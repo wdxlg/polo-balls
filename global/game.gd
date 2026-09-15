@@ -22,6 +22,19 @@ signal combat_damage_resolved(source:Node, target:Node, actual_health_damage:flo
 signal combatant_died(victim:Node, killer:Node, health_before_lethal:float)
 
 const SETTINGS_PATH := "user://settings.cfg"
+
+
+#########################################################################
+# Game 门面（Facade）
+# game.gd 曾是 3900 行的“上帝对象”。现在内聚的子系统各自拆成 RefCounted 模块
+# 放在 res://global/game_*.gd，由下面的 *_MODULE 常量实例化并持有。
+# 规则：
+#   1) 外部代码继续只调用 Game.xxx；下面的函数/属性都是 1 行转发壳。
+#   2) 所有 @rpc 函数保留在 game.gd 上，RPC 路径与联机协议不变。
+#   3) 模块通过 _game 访问仍留在 Game 上的成员（Game_Settings、信号、RPC、场景树）。
+#   4) 新增子系统时：先写 game_<name>.gd，再在这里加模块常量与需要的转发壳。
+#########################################################################
+
 #========================================================
 # 持久化语言 / 翻译表 / 运行时 UI 兜底翻译 —— 已拆分到 res://global/game_localization.gd
 # 下面的成员只是转发壳，保持 Game.xxx 对外接口与 RPC 路径不变。
@@ -97,6 +110,7 @@ func get_language_display_name() -> String:
 const PLACEMENT_MODULE := preload("res://global/game_character_placement.gd")
 var _placement = PLACEMENT_MODULE.new(self)
 
+
 #========================================================
 # 通用击杀血液视觉与大奖红闪（非 RPC 部分） —— 已拆分到 res://global/game_kill_blood.gd
 # 下面的成员只是转发壳，保持 Game.xxx 对外接口与 RPC 路径不变。
@@ -110,13 +124,15 @@ func play_blood_jackpot_flash_local() -> void:
 func is_global_blood_effects_enabled() -> bool:
 	return _kill_blood.is_global_blood_effects_enabled()
 
-const WILD_DOG_OLD_AGE_REMAINS_SCENE:PackedScene = preload("res://scenes/effects/野生狗奶老死残骸.tscn")
-const WILD_DOG_OLD_AGE_DEADLINE_META:StringName = &"wild_dog_milk_old_age_death_deadline_msec"
-const WILD_DOG_OLD_AGE_HEALTH_META:StringName = &"wild_dog_milk_old_age_death_health_before"
-const WILD_DOG_OLD_AGE_AUDIO_PLAYED_META:StringName = &"wild_dog_milk_old_age_death_audio_played"
-const WILD_DOG_OLD_AGE_BASE_BODY_WIDTH_WORLD:float = 36.0
-const WILD_DOG_OLD_AGE_MIN_SIZE_MULTIPLIER:float = 0.90
-const WILD_DOG_OLD_AGE_REMAINS_CONTAINER_NAME:StringName = &"野生狗奶老死残骸容器"
+
+#========================================================
+# 野生狗奶“老死”残骸结算（非 RPC 部分） —— 已拆分到 res://global/game_wild_dog_old_age.gd
+# 下面的成员只是转发壳，保持 Game.xxx 对外接口与 RPC 路径不变。
+#========================================================
+const WILD_DOG_OLD_AGE_MODULE := preload("res://global/game_wild_dog_old_age.gd")
+var _wild_dog_old_age = WILD_DOG_OLD_AGE_MODULE.new(self)
+
+
 #========================================================
 # 野生狗奶“时间流逝”日月视觉与配乐（角色专属全局效果） —— 已拆分到 res://global/game_wild_dog_time_visual.gd
 # 下面的成员只是转发壳，保持 Game.xxx 对外接口与 RPC 路径不变。
@@ -129,6 +145,114 @@ func request_wild_dog_time_visual(source_key:String, factor:float, factor_start:
 
 func release_wild_dog_time_visual(source_key:String) -> void:
 	_wild_dog_time.release_wild_dog_time_visual(source_key)
+
+
+#========================================================
+# V127 局域网 / 虚拟局域网房间发现（UDP 27019） —— 已拆分到 res://global/game_room_discovery.gd
+# 下面的成员只是转发壳，保持 Game.xxx 对外接口与 RPC 路径不变。
+#========================================================
+const ROOM_DISCOVERY_MODULE := preload("res://global/game_room_discovery.gd")
+var _room_discovery = ROOM_DISCOVERY_MODULE.new(self)
+
+var discovered_rooms:Dictionary:
+	get: return _room_discovery.discovered_rooms
+	set(value): _room_discovery.discovered_rooms = value
+
+func request_room_scan(force:bool = false) -> void:
+	_room_discovery.request_room_scan(force)
+
+func get_discovered_rooms() -> Array[Dictionary]:
+	return _room_discovery.get_discovered_rooms()
+
+
+#========================================================
+# 训练模式设置查询 / 手动训练攻击目录 —— 已拆分到 res://global/game_training_mode.gd
+# 下面的成员只是转发壳，保持 Game.xxx 对外接口与 RPC 路径不变。
+#========================================================
+const TRAINING_MODULE := preload("res://global/game_training_mode.gd")
+var _training = TRAINING_MODULE.new(self)
+
+const MANUAL_ATTACK_INTERVAL_MIN = TRAINING_MODULE.MANUAL_ATTACK_INTERVAL_MIN
+
+const MANUAL_ATTACK_INTERVAL_MAX = TRAINING_MODULE.MANUAL_ATTACK_INTERVAL_MAX
+
+const MANUAL_ATTACK_INTERVAL_STEP = TRAINING_MODULE.MANUAL_ATTACK_INTERVAL_STEP
+
+func is_training_mode() -> bool:
+	return _training.is_training_mode()
+
+func set_training_mode(enabled:bool, apply_existing_characters:bool = true) -> void:
+	_training.set_training_mode(enabled, apply_existing_characters)
+
+func get_training_mode_type() -> String:
+	return _training.get_training_mode_type()
+
+func is_rotation_training_mode() -> bool:
+	return _training.is_rotation_training_mode()
+
+func is_timed_training_mode() -> bool:
+	return _training.is_timed_training_mode()
+
+func is_boss_training_mode() -> bool:
+	return _training.is_boss_training_mode()
+
+func get_training_timed_duration() -> float:
+	return _training.get_training_timed_duration()
+
+func get_training_boss_side() -> String:
+	return _training.get_training_boss_side()
+
+func get_training_boss_multiplier() -> float:
+	return _training.get_training_boss_multiplier()
+
+func is_training_boss_specialization_enabled() -> bool:
+	return _training.is_training_boss_specialization_enabled()
+
+func is_training_boss_wheel_battle_enabled() -> bool:
+	return _training.is_training_boss_wheel_battle_enabled()
+
+func is_training_boss_intro_enabled() -> bool:
+	return _training.is_training_boss_intro_enabled()
+
+func set_manual_training_attack_interval(value:float, save_after:bool = false) -> void:
+	_training.set_manual_training_attack_interval(value, save_after)
+
+func get_manual_training_attack_interval() -> float:
+	return _training.get_manual_training_attack_interval()
+
+func set_manual_training_attack(attack_id:String) -> void:
+	_training.set_manual_training_attack(attack_id)
+
+func get_manual_training_attack() -> String:
+	return _training.get_manual_training_attack()
+
+func get_manual_attack_catalog(force_refresh:bool = false) -> Array[Dictionary]:
+	return _training.get_manual_attack_catalog(force_refresh)
+
+var _normal_max_physics_steps_per_frame:int = 8
+
+
+#========================================================
+# 可叠加的世界流速覆写与慢动作着色 —— 已拆分到 res://global/game_time_scale.gd
+# 下面的成员只是转发壳，保持 Game.xxx 对外接口与 RPC 路径不变。
+#========================================================
+const TIME_SCALE_MODULE := preload("res://global/game_time_scale.gd")
+var _time_scale = TIME_SCALE_MODULE.new(self)
+
+func request_time_scale_override(source_key:String,factor:float,tint:Color = Color(0.20,0.55,1.0,0.14)) -> void:
+	_time_scale.request_time_scale_override(source_key, factor, tint)
+
+func release_time_scale_override(source_key:String) -> void:
+	_time_scale.release_time_scale_override(source_key)
+
+func get_time_scale_override_factor() -> float:
+	return _time_scale.get_time_scale_override_factor()
+
+func get_base_game_time_scale() -> float:
+	return _time_scale.get_base_game_time_scale()
+
+func _apply_time_scale_overrides() -> void:
+	_time_scale._apply_time_scale_overrides()
 
 
 #========================================================
@@ -146,22 +270,6 @@ const NETWORK_PING_INTERVAL:float = 2.0
 #========================================================
 # V127 房间发现：只负责“同一局域网 / 虚拟局域网里谁正在开房”
 #========================================================
-#========================================================
-# V127 局域网 / 虚拟局域网房间发现（UDP 27019） —— 已拆分到 res://global/game_room_discovery.gd
-# 下面的成员只是转发壳，保持 Game.xxx 对外接口与 RPC 路径不变。
-#========================================================
-const ROOM_DISCOVERY_MODULE := preload("res://global/game_room_discovery.gd")
-var _room_discovery = ROOM_DISCOVERY_MODULE.new(self)
-
-var discovered_rooms:Dictionary:
-	get: return _room_discovery.discovered_rooms
-	set(value): _room_discovery.discovered_rooms = value
-
-func request_room_scan(force:bool = false) -> void:
-	_room_discovery.request_room_scan(force)
-
-func get_discovered_rooms() -> Array[Dictionary]:
-	return _room_discovery.get_discovered_rooms()
 
 
 #========================================================
@@ -596,71 +704,6 @@ func _on_speed_slider_drag_ended(value_changed:bool) -> void:
 const NORMAL_SPEED_SLIDER_MAX_VALUE:float = 19.0 # 原版最高 10x
 const TRAINING_SPEED_SLIDER_MAX_VALUE:float = 41.0 # 映射后最高 32x
 const TRAINING_MAX_PHYSICS_TICKS:int = 1920 # 32x * 60Hz
-#========================================================
-# 训练模式设置查询 / 手动训练攻击目录 —— 已拆分到 res://global/game_training_mode.gd
-# 下面的成员只是转发壳，保持 Game.xxx 对外接口与 RPC 路径不变。
-#========================================================
-const TRAINING_MODULE := preload("res://global/game_training_mode.gd")
-var _training = TRAINING_MODULE.new(self)
-
-const MANUAL_ATTACK_INTERVAL_MIN = TRAINING_MODULE.MANUAL_ATTACK_INTERVAL_MIN
-
-const MANUAL_ATTACK_INTERVAL_MAX = TRAINING_MODULE.MANUAL_ATTACK_INTERVAL_MAX
-
-const MANUAL_ATTACK_INTERVAL_STEP = TRAINING_MODULE.MANUAL_ATTACK_INTERVAL_STEP
-
-func is_training_mode() -> bool:
-	return _training.is_training_mode()
-
-func set_training_mode(enabled:bool, apply_existing_characters:bool = true) -> void:
-	_training.set_training_mode(enabled, apply_existing_characters)
-
-func get_training_mode_type() -> String:
-	return _training.get_training_mode_type()
-
-func is_rotation_training_mode() -> bool:
-	return _training.is_rotation_training_mode()
-
-func is_timed_training_mode() -> bool:
-	return _training.is_timed_training_mode()
-
-func is_boss_training_mode() -> bool:
-	return _training.is_boss_training_mode()
-
-func get_training_timed_duration() -> float:
-	return _training.get_training_timed_duration()
-
-func get_training_boss_side() -> String:
-	return _training.get_training_boss_side()
-
-func get_training_boss_multiplier() -> float:
-	return _training.get_training_boss_multiplier()
-
-func is_training_boss_specialization_enabled() -> bool:
-	return _training.is_training_boss_specialization_enabled()
-
-func is_training_boss_wheel_battle_enabled() -> bool:
-	return _training.is_training_boss_wheel_battle_enabled()
-
-func is_training_boss_intro_enabled() -> bool:
-	return _training.is_training_boss_intro_enabled()
-
-func set_manual_training_attack_interval(value:float, save_after:bool = false) -> void:
-	_training.set_manual_training_attack_interval(value, save_after)
-
-func get_manual_training_attack_interval() -> float:
-	return _training.get_manual_training_attack_interval()
-
-func set_manual_training_attack(attack_id:String) -> void:
-	_training.set_manual_training_attack(attack_id)
-
-func get_manual_training_attack() -> String:
-	return _training.get_manual_training_attack()
-
-func get_manual_attack_catalog(force_refresh:bool = false) -> Array[Dictionary]:
-	return _training.get_manual_attack_catalog(force_refresh)
-
-var _normal_max_physics_steps_per_frame:int = 8
 
 # 把投射物/召唤物的伤害归属递归收束到真正主人。
 # 这样角色系统只需要关心“这笔伤害最终属于谁”，不必逐个适配武器。
@@ -738,136 +781,37 @@ func report_combatant_death(
 		return
 	var victim_node:Node = victim as Node
 	var effective_killer:Node = resolve_combat_source(killer)
-	var is_wild_dog_old_age:bool = _is_wild_dog_old_age_death(
+	var is_wild_dog_old_age:bool = _wild_dog_old_age._is_wild_dog_old_age_death(
 		victim_node,
 		effective_killer,
 		health_before_lethal
 	)
 	if is_wild_dog_old_age:
 		# 老死是真正死亡：先按受害者自己的死亡音规则播放一次，再生成骨骸；但不生成攻击死亡血。
-		_play_wild_dog_old_age_death_audio(victim_node)
-		_spawn_wild_dog_old_age_remains(victim_node)
+		_wild_dog_old_age._play_wild_dog_old_age_death_audio(victim_node)
+		_wild_dog_old_age._spawn_wild_dog_old_age_remains(victim_node)
 	else:
 		# 野生狗奶自己的低额时间伤害如果先把人打死，仍属于普通伤害击杀；开启血液时照常喷血。
 		_kill_blood._spawn_global_kill_blood(victim_node,effective_killer)
-	_clear_wild_dog_old_age_marker(victim_node)
+	_wild_dog_old_age._clear_wild_dog_old_age_marker(victim_node)
 	combatant_died.emit(victim_node, effective_killer, maxf(health_before_lethal, 0.0))
-
-
-func _play_wild_dog_old_age_death_audio(victim:Node) -> void:
-	if victim == null or not is_instance_valid(victim):
-		return
-	victim.set_meta(WILD_DOG_OLD_AGE_AUDIO_PLAYED_META,true)
-	var unique_stream:Variant = victim.get("Unique_Death_Audio")
-	if unique_stream is AudioStream and unique_stream != null and victim.has_method("play_unique_audio"):
-		# ball.Character_Audio_Slot.Death == 5
-		victim.call("play_unique_audio",5,true)
-		return
-	var dead_audio_name:String = str(victim.get("Dead_Audio"))
-	if not dead_audio_name.is_empty():
-		Audios.play_sfx(dead_audio_name,{},true)
-
-
-func _is_wild_dog_old_age_death(victim:Node,killer:Node,health_before_lethal:float) -> bool:
-	if victim == null or killer == null or not is_instance_valid(victim) or not is_instance_valid(killer):
-		return false
-	if not killer.is_in_group("WildDogMilkCharacter"):
-		return false
-	if not victim.has_meta(WILD_DOG_OLD_AGE_DEADLINE_META) or not victim.has_meta(WILD_DOG_OLD_AGE_HEALTH_META):
-		return false
-	var deadline_msec:int = int(victim.get_meta(WILD_DOG_OLD_AGE_DEADLINE_META,0))
-	if deadline_msec <= 0 or Time.get_ticks_msec() > deadline_msec:
-		return false
-	var marked_health_before:float = float(victim.get_meta(WILD_DOG_OLD_AGE_HEALTH_META,-INF))
-	return absf(marked_health_before - maxf(health_before_lethal,0.0)) <= 1.1
-
-
-func _clear_wild_dog_old_age_marker(victim:Node) -> void:
-	if victim == null or not is_instance_valid(victim):
-		return
-	if victim.has_meta(WILD_DOG_OLD_AGE_DEADLINE_META):
-		victim.remove_meta(WILD_DOG_OLD_AGE_DEADLINE_META)
-	if victim.has_meta(WILD_DOG_OLD_AGE_HEALTH_META):
-		victim.remove_meta(WILD_DOG_OLD_AGE_HEALTH_META)
-
-
-func _spawn_wild_dog_old_age_remains(victim:Node) -> void:
-	if victim == null or not is_instance_valid(victim) or not (victim is Node2D):
-		return
-	var origin:Vector2 = (victim as Node2D).global_position
-	var seed_value:int = Game.battle_rng_seed_or("global/game.gd:seed_value",int(Time.get_ticks_usec()) ^ int(victim.get_instance_id()))
-	var victim_body_width:float = _resolve_character_body_collision_world_width(victim)
-	var remains_size_multiplier:float = maxf(
-		victim_body_width / maxf(WILD_DOG_OLD_AGE_BASE_BODY_WIDTH_WORLD,0.001),
-		WILD_DOG_OLD_AGE_MIN_SIZE_MULTIPLIER
-	)
-	if multiplayer.has_multiplayer_peer():
-		_rpc_spawn_wild_dog_old_age_remains.rpc(origin,seed_value,remains_size_multiplier)
-	else:
-		_rpc_spawn_wild_dog_old_age_remains(origin,seed_value,remains_size_multiplier)
-
-
-func _resolve_character_body_collision_world_width(victim:Node) -> float:
-	# V281：骨架实际尺寸只看人物“本体” CollisionShape2D 的横向世界宽度。
-	# 用 Shape2D.get_rect() 的四个角经过 CollisionShape2D 全局变换后的 X 包围宽度，
-	# 因此会自动包含角色根 scale / collision node scale / rotation 等真实变换。
-	if victim == null or not is_instance_valid(victim):
-		return WILD_DOG_OLD_AGE_BASE_BODY_WIDTH_WORLD
-	var body_collision:CollisionShape2D = victim.get_node_or_null("CollisionShape2D") as CollisionShape2D
-	if body_collision == null or not is_instance_valid(body_collision) or body_collision.shape == null:
-		return WILD_DOG_OLD_AGE_BASE_BODY_WIDTH_WORLD
-	var local_rect:Rect2 = body_collision.shape.get_rect()
-	if local_rect.size.x <= 0.001:
-		return WILD_DOG_OLD_AGE_BASE_BODY_WIDTH_WORLD
-	var local_corners:Array[Vector2] = [
-		local_rect.position,
-		Vector2(local_rect.end.x,local_rect.position.y),
-		local_rect.end,
-		Vector2(local_rect.position.x,local_rect.end.y)
-	]
-	var min_x:float = INF
-	var max_x:float = -INF
-	for local_point:Vector2 in local_corners:
-		var world_point:Vector2 = body_collision.to_global(local_point)
-		min_x = minf(min_x,world_point.x)
-		max_x = maxf(max_x,world_point.x)
-	var world_width:float = max_x - min_x
-	if not is_finite(world_width) or world_width <= 0.001:
-		return WILD_DOG_OLD_AGE_BASE_BODY_WIDTH_WORLD
-	return world_width
-
-
-func _ensure_wild_dog_old_age_remains_container(scene_root:Node) -> Node:
-	# V309：World 根节点是 MultiplayerSpawner.spawn_path。老死残骸已经由本函数的 RPC 在各 peer
-	# 使用同一 seed/size 手动创建，不能再作为 World 的直接子节点触发一次自动 Spawn。
-	# 放进稳定的二级运行时容器后，残骸不再属于 spawn_path 的“直接子节点”；同时所有 add_child
-	# 都使用 force_readable_name=true，避免同名节点被 Godot 改成 @StaticBody2D@xxxx 保留名称。
-	if scene_root == null or not is_instance_valid(scene_root):
-		return null
-	var existing:Node = scene_root.get_node_or_null(NodePath(str(WILD_DOG_OLD_AGE_REMAINS_CONTAINER_NAME)))
-	if existing != null and is_instance_valid(existing):
-		return existing
-	var container := Node2D.new()
-	container.name = WILD_DOG_OLD_AGE_REMAINS_CONTAINER_NAME
-	scene_root.add_child(container,true)
-	return container
 
 
 @rpc("authority","call_local","reliable")
 func _rpc_spawn_wild_dog_old_age_remains(origin:Vector2,seed_value:int,size_multiplier:float = 1.0) -> void:
-	if not is_inside_tree() or WILD_DOG_OLD_AGE_REMAINS_SCENE == null:
+	if not is_inside_tree() or _wild_dog_old_age.WILD_DOG_OLD_AGE_REMAINS_SCENE == null:
 		return
 	var scene_root:Node = get_tree().current_scene
 	if scene_root == null:
 		return
-	var remains_parent:Node = _ensure_wild_dog_old_age_remains_container(scene_root)
+	var remains_parent:Node = _wild_dog_old_age._ensure_wild_dog_old_age_remains_container(scene_root)
 	if remains_parent == null:
 		return
-	var remains:Node = WILD_DOG_OLD_AGE_REMAINS_SCENE.instantiate()
+	var remains:Node = _wild_dog_old_age.WILD_DOG_OLD_AGE_REMAINS_SCENE.instantiate()
 	if remains == null:
 		return
 	if remains.has_method("configure"):
-		remains.call("configure",seed_value,maxf(size_multiplier,WILD_DOG_OLD_AGE_MIN_SIZE_MULTIPLIER))
+		remains.call("configure",seed_value,maxf(size_multiplier,_wild_dog_old_age.WILD_DOG_OLD_AGE_MIN_SIZE_MULTIPLIER))
 	remains_parent.add_child(remains,true)
 	if remains is Node2D:
 		(remains as Node2D).global_position = origin
@@ -2259,27 +2203,6 @@ func vignette_tween(amount:float) -> void:
 # 临时倍率；多个来源同时存在时取最慢的那个。这样极速者退出后不会把
 # 玩家原本设置的 0.8x / 1.5x 等速度错误恢复成 1.0x。
 # ========================================================
-#========================================================
-# 可叠加的世界流速覆写与慢动作着色 —— 已拆分到 res://global/game_time_scale.gd
-# 下面的成员只是转发壳，保持 Game.xxx 对外接口与 RPC 路径不变。
-#========================================================
-const TIME_SCALE_MODULE := preload("res://global/game_time_scale.gd")
-var _time_scale = TIME_SCALE_MODULE.new(self)
-
-func request_time_scale_override(source_key:String,factor:float,tint:Color = Color(0.20,0.55,1.0,0.14)) -> void:
-	_time_scale.request_time_scale_override(source_key, factor, tint)
-
-func release_time_scale_override(source_key:String) -> void:
-	_time_scale.release_time_scale_override(source_key)
-
-func get_time_scale_override_factor() -> float:
-	return _time_scale.get_time_scale_override_factor()
-
-func get_base_game_time_scale() -> float:
-	return _time_scale.get_base_game_time_scale()
-
-func _apply_time_scale_overrides() -> void:
-	_time_scale._apply_time_scale_overrides()
 
 
 #速度
