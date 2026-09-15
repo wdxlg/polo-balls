@@ -1,0 +1,71 @@
+[gd_scene format=3 uid="uid://1a7iyct7xnnk"]
+
+[ext_resource type="PackedScene" uid="uid://dgfmejo2auorn" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" uid="uid://c6rx45p5mxpxb" path="res://scripts/characters/占卜师.gd" id="2_script"]
+[ext_resource type="Texture2D" uid="uid://7ji06qox75kt" path="res://Images/characters/人物/占卜师/01_占卜师.png" id="3_portrait"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ienex"]
+resource_local_to_scene = true
+size = Vector2(140.55786, 168.1)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_8ix8j"]
+resource_local_to_scene = true
+size = Vector2(140.55786, 168.1)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_8kpot"]
+resource_local_to_scene = true
+size = Vector2(140.55786, 168.1)
+
+[node name="占卜师" unique_id=703477282 instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+draw_move_duration = 0.72
+draw_stagger = 0.12
+reveal_pause = 0.34
+confirm_duration = 0.62
+reorder_duration = 0.42
+card_slot_y = 29.0
+card_spacing = 13.0
+attack_card_chance = 30.0
+defense_card_chance = 30.0
+recovery_card_chance = 30.0
+attack_multiplier_one = 0.9
+attack_multiplier_two = 1.15
+attack_multiplier_three = 1.45
+attack_multiplier_four = 1.8
+attack_card_flight_duration = 0.78
+attack_curve_height = 62.0
+attack_homing_strength = 2.3
+attack_launch_stagger = 0.11
+defense_base_per_card = 55.0
+recovery_base_per_card = 65.0
+same_card_growth_per_extra = 0.18
+recovery_duration = 3.2
+recovery_tick_interval = 0.2
+utility_consume_duration = 0.56
+Type_Tags = PackedStringArray("远程", "随机", "防御", "回血", "爆发")
+Attack_Cooling = 5.8
+Skill_Cooling = 999.0
+Damage = 62
+Speed = 92.0
+Max_health = 560
+max_block = 480
+Can_Skill = false
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+scale = Vector2(0.14844318, 0.14844318)
+texture = ExtResource("3_portrait")
+offset = Vector2(5, -3.5)
+
+[node name="CollisionShape2D" parent="." index="1" unique_id=434200601]
+shape = SubResource("RectangleShape2D_ienex")
+metadata/_character_auto_fit_v3_last_auto = "RectangleShape2D|(140.5579, 168.1)|(0.0, 0.0)|(1.0, 1.0)|0.0"
+
+[node name="CollisionShape2D" parent="hitbox" parent_id_path=PackedInt32Array(28640507) index="0" unique_id=390337144]
+shape = SubResource("RectangleShape2D_8ix8j")
+metadata/_character_auto_fit_v3_last_auto = "RectangleShape2D|(140.5579, 168.1)|(0.0, 0.0)|(1.0, 1.0)|0.0"
+
+[node name="CollisionShape2D" parent="hurtbox" parent_id_path=PackedInt32Array(586576587) index="0" unique_id=58230542]
+shape = SubResource("RectangleShape2D_8kpot")
+metadata/_character_auto_fit_v3_last_auto = "RectangleShape2D|(140.5579, 168.1)|(0.0, 0.0)|(1.0, 1.0)|0.0"
+
+[editable path="Health_Bar"]

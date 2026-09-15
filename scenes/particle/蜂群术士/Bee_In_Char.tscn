@@ -1,0 +1,59 @@
+[gd_scene format=3 uid="uid://daj0xo27icjpp"]
+
+[ext_resource type="PackedScene" path="res://scenes/particle.tscn" id="1_68qoo"]
+
+[sub_resource type="Gradient" id="Gradient_6b0ak"]
+colors = PackedColorArray(0.2627451, 0.22745098, 0.043137256, 1, 0.2627451, 0.22745098, 0.043137256, 1)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_abbho"]
+gradient = SubResource("Gradient_6b0ak")
+
+[sub_resource type="Gradient" id="Gradient_nffmu"]
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_b43yy"]
+gradient = SubResource("Gradient_nffmu")
+
+[sub_resource type="Curve" id="Curve_qeebt"]
+_data = [Vector2(0, 1), 0.0, -0.15045863, 0, 0, Vector2(1, 0.50017166), -1.6851376, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_ah22i"]
+curve = SubResource("Curve_qeebt")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_vdpel"]
+lifetime_randomness = 0.2
+particle_flag_disable_z = true
+emission_shape_scale = Vector3(2, 1, 1)
+emission_shape = 3
+emission_box_extents = Vector3(10, 10, 1)
+angle_min = 1.0728835e-05
+angle_max = 360.00003
+spread = 10.0
+initial_velocity_max = 10.0
+angular_velocity_min = -10.000016
+angular_velocity_max = 9.999984
+orbit_velocity_min = -0.49999994
+orbit_velocity_max = 0.5000001
+gravity = Vector3(0, 0, 0)
+linear_accel_min = -0.71000224
+linear_accel_max = -2.2351742e-06
+radial_accel_min = -10.000002
+radial_accel_max = -2.2351742e-06
+tangential_accel_min = -1.0000023
+tangential_accel_max = 0.99999774
+damping_max = 1.0
+scale_min = 0.0
+scale_max = 2.0
+scale_curve = SubResource("CurveTexture_ah22i")
+color_ramp = SubResource("GradientTexture1D_b43yy")
+color_initial_ramp = SubResource("GradientTexture1D_abbho")
+
+[node name="bee_in_char" unique_id=530416242 instance=ExtResource("1_68qoo")]
+amount = 60
+lifetime = 10.0
+local_coords = true
+process_material = SubResource("ParticleProcessMaterial_vdpel")
+follow_rotation = false
+follow_scale = false
+follow_skew = false

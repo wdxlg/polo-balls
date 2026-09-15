@@ -1,0 +1,58 @@
+[gd_scene format=3 uid="uid://dq4dkfyfkrts0"]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_medxb"]
+[ext_resource type="Script" path="res://scripts/characters/三角洲/背刺鼠.gd" id="2_7l65a"]
+[ext_resource type="Texture2D" path="res://Images/characters/三角洲/乌鲁鲁/PixPin_2026-05-22_14-25-50.png" id="2_wna0k"]
+[ext_resource type="Texture2D" path="res://Images/characters/三角洲/背刺/PixPin_2026-05-22_14-08-10.png" id="3_7l65a"]
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_2ystx"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("2_wna0k")
+}],
+"loop": true,
+"name": &"Attack",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("3_7l65a")
+}],
+"loop": true,
+"name": &"default",
+"speed": 5.0
+}]
+
+[node name="背刺鼠" unique_id=751516400 node_paths=PackedStringArray("image") instance=ExtResource("1_medxb")]
+script = ExtResource("2_7l65a")
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("射手", "爆发", "干扰")
+Negative_Tags = PackedStringArray("畜生", "老鼠", "老六")
+image = NodePath("Graphics/AnimatedSprite2D")
+dir_left = false
+Skill_Cooling = 5.0
+continue_attack_cooling = 0.1
+
+[node name="Graphics" parent="." index="0" unique_id=1055880812]
+position = Vector2(0, -15)
+scale = Vector2(0.82187575, 0.82187575)
+
+[node name="Image" parent="Graphics" index="0" unique_id=1294062553]
+texture = null
+
+[node name="AnimatedSprite2D" parent="Graphics" index="1" unique_id=907666059]
+position = Vector2(4.7683716e-07, 35.000004)
+scale = Vector2(0.45398772, 0.45398772)
+sprite_frames = SubResource("SpriteFrames_2ystx")
+autoplay = "default"
+
+[node name="CharacterAutoFit" parent="." index="2"]
+scan_all_animated_frames = false
+refit_on_animation_change = true
+collision_width_ratio = 0.78
+collision_height_ratio = 0.76
+collision_min_size = Vector2(40, 50)
+collision_max_size = Vector2(150, 160)
+
+[editable path="Health_Bar"]

@@ -1,0 +1,64 @@
+[gd_resource type="Theme" format=3 uid="uid://2wmr6bru0nuh"]
+
+[ext_resource type="Texture2D" uid="uid://0y50v0um1g4m" path="res://Images/Base-01.png" id="1_gwjk0"]
+[ext_resource type="FontFile" uid="uid://bm2pluicbhca7" path="res://fonts/Mojangles.ttf" id="2_mojangles"]
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_v42ni"]
+content_margin_bottom = 1.0
+texture = ExtResource("1_gwjk0")
+texture_margin_left = 3.0
+texture_margin_top = 3.0
+texture_margin_right = 3.0
+texture_margin_bottom = 3.0
+region_rect = Rect2(0, 64, 64, 16)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_l7puf"]
+content_margin_top = 2.0
+content_margin_bottom = 9.0
+texture = ExtResource("1_gwjk0")
+texture_margin_left = 3.0
+texture_margin_top = 3.0
+texture_margin_right = 3.0
+texture_margin_bottom = 3.0
+region_rect = Rect2(0, 64, 64, 16)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_5l5fv"]
+content_margin_top = 2.0
+content_margin_bottom = 10.0
+texture = ExtResource("1_gwjk0")
+texture_margin_left = 3.0
+texture_margin_top = 3.0
+texture_margin_right = 3.0
+texture_margin_bottom = 3.0
+region_rect = Rect2(0, 64, 64, 16)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_w8l70"]
+content_margin_top = 5.0
+content_margin_bottom = 7.0
+texture = ExtResource("1_gwjk0")
+texture_margin_left = 3.0
+texture_margin_top = 3.0
+texture_margin_right = 3.0
+texture_margin_bottom = 3.0
+region_rect = Rect2(0, 64, 64, 16)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_ydhd3"]
+texture = ExtResource("1_gwjk0")
+texture_margin_left = 3.0
+texture_margin_top = 3.0
+texture_margin_right = 3.0
+texture_margin_bottom = 3.0
+region_rect = Rect2(0, 64, 64, 16)
+
+[resource]
+default_font = ExtResource("2_mojangles")
+Button/styles/disabled = SubResource("StyleBoxTexture_v42ni")
+Button/styles/focus = SubResource("StyleBoxTexture_l7puf")
+Button/styles/hover = SubResource("StyleBoxTexture_l7puf")
+Button/styles/normal = SubResource("StyleBoxTexture_5l5fv")
+Button/styles/pressed = SubResource("StyleBoxTexture_w8l70")
+LineEdit/constants/outline_size = 2
+LineEdit/styles/focus = SubResource("StyleBoxTexture_ydhd3")
+LineEdit/styles/normal = SubResource("StyleBoxTexture_ydhd3")
+LineEdit/styles/read_only = SubResource("StyleBoxTexture_ydhd3")
+VBoxContainer/constants/separation = 4

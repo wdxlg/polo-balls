@@ -1,0 +1,56 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/creatures/军火商_枪.gd" id="1_script"]
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_gun"]
+properties/0/path = NodePath(".:global_position")
+properties/0/spawn = true
+properties/0/replication_mode = 1
+properties/1/path = NodePath(".:rotation")
+properties/1/spawn = true
+properties/1/replication_mode = 1
+properties/2/path = NodePath(".:gun_type")
+properties/2/spawn = true
+properties/2/replication_mode = 1
+properties/3/path = NodePath(".:Master_name")
+properties/3/spawn = true
+properties/3/replication_mode = 1
+properties/4/path = NodePath(".:Team")
+properties/4/spawn = true
+properties/4/replication_mode = 1
+properties/5/path = NodePath(".:sniper_aim_active")
+properties/5/spawn = true
+properties/5/replication_mode = 1
+properties/6/path = NodePath(".:sniper_aim_length")
+properties/6/spawn = true
+properties/6/replication_mode = 1
+properties/7/path = NodePath(".:gatling_aim_angle_world")
+properties/7/spawn = true
+properties/7/replication_mode = 1
+properties/8/path = NodePath("Sprite2D:flip_h")
+properties/8/spawn = true
+properties/8/replication_mode = 1
+
+[node name="军火商_枪" type="Node2D"]
+z_index = 18
+script = ExtResource("1_script")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+
+[node name="SniperAimLine" type="Line2D" parent="."]
+visible = false
+z_index = -1
+width = 1.4
+default_color = Color(1, 0.12, 0.08, 0.78)
+begin_cap_mode = 2
+end_cap_mode = 2
+antialiased = true
+
+[node name="MuzzleFlash" type="Polygon2D" parent="."]
+visible = false
+polygon = PackedVector2Array(18, 0, 27, -5, 34, 0, 27, 5)
+color = Color(1, 0.82, 0.28, 0.95)
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
+root_path = NodePath("..")
+replication_config = SubResource("SceneReplicationConfig_gun")

@@ -1,0 +1,56 @@
+[gd_scene format=3 uid="uid://c2q3cu6ntwn0"]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/伤心的男人.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/伤心的男人/伤心的男人.png" id="3_sad"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_5cqlv"]
+size = Vector2(172.42023, 168.1)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_copk8"]
+size = Vector2(172.42023, 168.1)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_s4eht"]
+size = Vector2(172.42023, 168.1)
+
+[node name="伤心的男人" unique_id=224615391 instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+umbrella_half_width = 98.0
+umbrella_height = 39.0
+umbrella_curve = 61.0
+block_from_above_margin = 8.0
+umbrella_defense_arc_thickness = 7.0
+rain_interval = 0.04
+rain_drops_per_wave = 3
+rain_speed = 760.0
+rain_length_min = 8.0
+rain_length_max = 17.0
+rain_damage = 5.0
+rain_ambience_volume_db = -22.0
+umbrella_hit_sfx_1_volume_db = -20.0
+umbrella_hit_sfx_2_volume_db = 0.0
+Type_Tags = PackedStringArray("防御", "范围", "持续", "特殊")
+Negative_Tags = PackedStringArray("无法攻击")
+Damage = 5
+Max_health = 520
+Can_Attack = false
+Can_Skill = false
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+scale = Vector2(0.16192734, 0.16192734)
+texture = ExtResource("3_sad")
+offset = Vector2(6, -10.5)
+
+[node name="CollisionShape2D" parent="." index="1" unique_id=434200601]
+scale = Vector2(1, 1)
+shape = SubResource("RectangleShape2D_5cqlv")
+
+[node name="CollisionShape2D" parent="hitbox" parent_id_path=PackedInt32Array(28640507) index="0" unique_id=390337144]
+scale = Vector2(1, 1)
+shape = SubResource("RectangleShape2D_copk8")
+
+[node name="CollisionShape2D" parent="hurtbox" parent_id_path=PackedInt32Array(586576587) index="0" unique_id=58230542]
+scale = Vector2(1, 1)
+shape = SubResource("RectangleShape2D_s4eht")
+
+[editable path="Health_Bar"]

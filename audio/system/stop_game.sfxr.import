@@ -1,0 +1,17 @@
+[remap]
+
+importer="com.timothyqiu.gdfxr.importer"
+type="AudioStreamWAV"
+uid="uid://h1infcbxobci"
+path="res://.godot/imported/stop_game.sfxr-ce9aca88ccca964b6021106849eb0ec4.sample"
+
+[deps]
+
+source_file="res://audio/system/stop_game.sfxr"
+dest_files=["res://.godot/imported/stop_game.sfxr-ce9aca88ccca964b6021106849eb0ec4.sample"]
+
+[params]
+
+loop=false
+bit_depth=0
+sample_rate=0

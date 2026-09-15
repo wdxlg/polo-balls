@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://dlbs3r2wt21lf"
+path="res://.godot/imported/下车_[cut_1sec] (1).mp3-1b5c3777f79440d5fd02172e1acf025f.mp3str"
+
+[deps]
+
+source_file="res://audio/characters/面包车/下车_[cut_1sec] (1).mp3"
+dest_files=["res://.godot/imported/下车_[cut_1sec] (1).mp3-1b5c3777f79440d5fd02172e1acf025f.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

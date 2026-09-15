@@ -1,0 +1,56 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/shooter/菊花茶水滴.gd" id="2_script"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleBody"]
+radius = 3.6
+height = 36.0
+
+[sub_resource type="CapsuleShape2D" id="CapsuleHit"]
+radius = 4.2
+height = 40.0
+
+[node name="菊花茶水滴" instance=ExtResource("1_base")]
+collision_layer = 0
+collision_mask = 1
+script = ExtResource("2_script")
+Type = 1
+Type_Tags = PackedStringArray("meme", "投射物", "抛物线", "细线")
+Negative_Tags = PackedStringArray("低伤害")
+Attack_Cooling = 999.0
+Skill_Cooling = 999.0
+Damage = 38
+Speed = 520.0
+Max_health = 99999
+Health_Restore = 0
+Can_Attack = false
+Can_Skill = false
+Has_Collision_Damage = true
+AfterImage_Speed = 0.0
+
+[node name="Image" parent="Graphics" index="0"]
+visible = false
+
+[node name="CollisionShape2D" parent="." index="1"]
+shape = SubResource("CapsuleBody")
+metadata/_character_auto_fit_v3_managed = false
+metadata/_character_auto_fit_v3_manual = true
+
+[node name="CharacterAutoFit" parent="." index="2"]
+process_mode = 4
+
+[node name="Health_Bar" parent="." index="3"]
+visible = false
+
+[node name="CollisionShape2D" parent="hitbox" index="0"]
+shape = SubResource("CapsuleHit")
+metadata/_character_auto_fit_v3_managed = false
+metadata/_character_auto_fit_v3_manual = true
+
+[node name="CollisionShape2D" parent="hurtbox" index="0"]
+shape = SubResource("CapsuleBody")
+metadata/_character_auto_fit_v3_managed = false
+metadata/_character_auto_fit_v3_manual = true
+
+[editable path="Health_Bar"]

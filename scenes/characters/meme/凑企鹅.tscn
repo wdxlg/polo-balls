@@ -1,0 +1,234 @@
+[gd_scene format=3 uid="uid://bln4njnoyeg50"]
+
+[ext_resource type="PackedScene" uid="uid://dgfmejo2auorn" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" uid="uid://c8so3npoyr1tt" path="res://scripts/characters/meme/凑企鹅.gd" id="2_script"]
+[ext_resource type="Texture2D" uid="uid://dnju7cjwowmgv" path="res://Images/characters/meme/凑企鹅/凑企鹅.png" id="3_normal"]
+[ext_resource type="Texture2D" uid="uid://garpgm7hxwep" path="res://Images/characters/meme/凑企鹅/同化1.png" id="4_a1"]
+[ext_resource type="Texture2D" uid="uid://bxbtsts1oykwq" path="res://Images/characters/meme/凑企鹅/同化2.png" id="5_a2"]
+[ext_resource type="Texture2D" uid="uid://by7fmenxeij3v" path="res://Images/characters/meme/凑企鹅/同化3.png" id="6_a3"]
+[ext_resource type="Texture2D" uid="uid://df1fei6wtb4xb" path="res://Images/characters/meme/凑企鹅/同化4.png" id="7_a4"]
+[ext_resource type="Texture2D" uid="uid://brhp5k03lnic0" path="res://Images/characters/meme/凑企鹅/同化5.png" id="8_a5"]
+[ext_resource type="Texture2D" uid="uid://di6e27llh21tp" path="res://Images/shooter/meme/凑企鹅石头.png" id="9_rock"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/meme/凑企鹅/飞踢/frame_000.png" id="10_fk000"]
+[ext_resource type="Texture2D" path="res://Images/characters/meme/凑企鹅/飞踢/frame_002.png" id="11_fk002"]
+[ext_resource type="Texture2D" path="res://Images/characters/meme/凑企鹅/飞踢/frame_004.png" id="12_fk004"]
+[ext_resource type="Texture2D" path="res://Images/characters/meme/凑企鹅/飞踢/frame_006.png" id="13_fk006"]
+[ext_resource type="Texture2D" path="res://Images/characters/meme/凑企鹅/飞踢/frame_008.png" id="14_fk008"]
+[ext_resource type="Texture2D" path="res://Images/characters/meme/凑企鹅/飞踢/frame_010.png" id="15_fk010"]
+[ext_resource type="Texture2D" path="res://Images/characters/meme/凑企鹅/飞踢/frame_012.png" id="16_fk012"]
+[ext_resource type="Texture2D" path="res://Images/characters/meme/凑企鹅/飞踢/frame_014.png" id="17_fk014"]
+[ext_resource type="Texture2D" path="res://Images/characters/meme/凑企鹅/飞踢/frame_016.png" id="18_fk016"]
+[ext_resource type="Texture2D" path="res://Images/characters/meme/凑企鹅/飞踢/frame_018.png" id="19_fk018"]
+[ext_resource type="Texture2D" path="res://Images/characters/meme/凑企鹅/飞踢/frame_020.png" id="20_fk020"]
+[ext_resource type="Texture2D" path="res://Images/characters/meme/凑企鹅/飞踢/frame_022.png" id="21_fk022"]
+[ext_resource type="Texture2D" path="res://Images/characters/meme/凑企鹅/飞踢/frame_024.png" id="22_fk024"]
+[ext_resource type="Texture2D" path="res://Images/characters/meme/凑企鹅/飞踢/frame_026.png" id="23_fk026"]
+[ext_resource type="Texture2D" path="res://Images/characters/meme/凑企鹅/飞踢/frame_028.png" id="24_fk028"]
+[ext_resource type="Texture2D" path="res://Images/characters/meme/凑企鹅/飞踢/frame_030.png" id="25_fk030"]
+[ext_resource type="Texture2D" path="res://Images/characters/meme/凑企鹅/飞踢/frame_032.png" id="26_fk032"]
+[ext_resource type="Texture2D" path="res://Images/characters/meme/凑企鹅/飞踢/frame_034.png" id="27_fk034"]
+[ext_resource type="Texture2D" path="res://Images/characters/meme/凑企鹅/飞踢/frame_036.png" id="28_fk036"]
+[ext_resource type="Texture2D" path="res://Images/characters/meme/凑企鹅/飞踢/frame_038.png" id="29_fk038"]
+[ext_resource type="Texture2D" path="res://Images/characters/meme/凑企鹅/飞踢/frame_040.png" id="30_fk040"]
+[ext_resource type="Texture2D" path="res://Images/characters/meme/凑企鹅/飞踢/frame_042.png" id="31_fk042"]
+[ext_resource type="Texture2D" path="res://Images/characters/meme/凑企鹅/飞踢/frame_044.png" id="32_fk044"]
+[ext_resource type="Texture2D" path="res://Images/characters/meme/凑企鹅/飞踢/frame_046.png" id="33_fk046"]
+[ext_resource type="Texture2D" path="res://Images/characters/meme/凑企鹅/飞踢/frame_048.png" id="34_fk048"]
+[ext_resource type="Texture2D" path="res://Images/characters/meme/凑企鹅/飞踢/frame_050.png" id="35_fk050"]
+[ext_resource type="Texture2D" path="res://Images/characters/meme/凑企鹅/飞踢/frame_052.png" id="36_fk052"]
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_assimilate"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("4_a1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("5_a2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_a3")
+}, {
+"duration": 1.0,
+"texture": ExtResource("7_a4")
+}, {
+"duration": 1.0,
+"texture": ExtResource("8_a5")
+}],
+"loop": 1,
+"name": &"assimilate",
+"speed": 7.0
+}]
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_fly_kick"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("10_fk000")
+}, {
+"duration": 1.0,
+"texture": ExtResource("11_fk002")
+}, {
+"duration": 1.0,
+"texture": ExtResource("12_fk004")
+}, {
+"duration": 1.0,
+"texture": ExtResource("13_fk006")
+}, {
+"duration": 1.0,
+"texture": ExtResource("14_fk008")
+}, {
+"duration": 1.0,
+"texture": ExtResource("15_fk010")
+}, {
+"duration": 1.0,
+"texture": ExtResource("16_fk012")
+}, {
+"duration": 1.0,
+"texture": ExtResource("17_fk014")
+}, {
+"duration": 1.0,
+"texture": ExtResource("18_fk016")
+}, {
+"duration": 1.0,
+"texture": ExtResource("19_fk018")
+}, {
+"duration": 1.0,
+"texture": ExtResource("20_fk020")
+}, {
+"duration": 1.0,
+"texture": ExtResource("21_fk022")
+}, {
+"duration": 1.0,
+"texture": ExtResource("22_fk024")
+}, {
+"duration": 1.0,
+"texture": ExtResource("23_fk026")
+}, {
+"duration": 1.0,
+"texture": ExtResource("24_fk028")
+}, {
+"duration": 1.0,
+"texture": ExtResource("25_fk030")
+}, {
+"duration": 1.0,
+"texture": ExtResource("26_fk032")
+}, {
+"duration": 1.0,
+"texture": ExtResource("27_fk034")
+}, {
+"duration": 1.0,
+"texture": ExtResource("28_fk036")
+}, {
+"duration": 1.0,
+"texture": ExtResource("29_fk038")
+}, {
+"duration": 1.0,
+"texture": ExtResource("30_fk040")
+}, {
+"duration": 1.0,
+"texture": ExtResource("31_fk042")
+}, {
+"duration": 1.0,
+"texture": ExtResource("32_fk044")
+}, {
+"duration": 1.0,
+"texture": ExtResource("33_fk046")
+}, {
+"duration": 1.0,
+"texture": ExtResource("34_fk048")
+}, {
+"duration": 1.0,
+"texture": ExtResource("35_fk050")
+}, {
+"duration": 1.0,
+"texture": ExtResource("36_fk052")
+}],
+"loop": 0,
+"name": &"fly_kick",
+"speed": 15.0
+}]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_638do"]
+size = Vector2(100, 168.1)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ybwqk"]
+size = Vector2(100, 168.1)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_0lyyq"]
+size = Vector2(100, 168.1)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_flykick"]
+radius = 48.0
+
+[node name="凑企鹅" unique_id=1944342486 instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+rock_damage_multiplier = 4.7777778
+rock_speed = 320.0
+grounded_rock_damage_multiplier = 1.0
+rock_knockback_distance = 72.0
+grounded_rock_knockback_distance = 0.0
+rock_knockback_speed = 520.0
+rock_spawn_offset = 42.0
+rock_throw_windup = 0.18
+rock_throw_recovery = 0.24
+has_rock = true
+assimilate_health_ratio = 0.2
+assimilate_after_voice_delay = 0.05
+assimilate_scan_interval = 0.1
+victory_scan_interval = 0.2
+Dead_Audio = ""
+Type_Tags = PackedStringArray("Meme", "远程", "高伤", "击退", "同化", "飞踢")
+Negative_Tags = PackedStringArray("只有一块石头", "需要捡回武器", "飞踢冷却较长")
+Attack_Cooling = 1.65
+Skill_Cooling = 8.5
+Damage = 18
+Speed = 92.0
+Max_health = 720
+Can_Skill = true
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+scale = Vector2(0.24939175, 0.24939175)
+texture = ExtResource("3_normal")
+
+[node name="AssimilationAnimation" type="AnimatedSprite2D" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="2" unique_id=1662769752]
+visible = false
+scale = Vector2(0.417515, 0.417515)
+sprite_frames = SubResource("SpriteFrames_assimilate")
+animation = &"assimilate"
+
+[node name="HeldRock" type="Sprite2D" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="3" unique_id=696196337]
+position = Vector2(-50, 60.000008)
+scale = Vector2(0.06, 0.06)
+texture = ExtResource("9_rock")
+
+[node name="FlyKickAnimation" type="AnimatedSprite2D" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="4"]
+visible = false
+texture_filter = 1
+sprite_frames = SubResource("SpriteFrames_fly_kick")
+animation = &"fly_kick"
+
+[node name="CollisionShape2D" parent="." index="1" unique_id=434200601]
+scale = Vector2(1, 1)
+shape = SubResource("RectangleShape2D_638do")
+
+[node name="CollisionShape2D" parent="hitbox" parent_id_path=PackedInt32Array(28640507) index="0" unique_id=390337144]
+scale = Vector2(1, 1)
+shape = SubResource("RectangleShape2D_ybwqk")
+
+[node name="CollisionShape2D" parent="hurtbox" parent_id_path=PackedInt32Array(586576587) index="0" unique_id=58230542]
+scale = Vector2(1, 1)
+shape = SubResource("RectangleShape2D_0lyyq")
+
+[node name="FlyKickArea" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 2
+monitoring = false
+monitorable = false
+metadata/threat_debug_damage = 0.0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="FlyKickArea"]
+shape = SubResource("CircleShape2D_flykick")
+
+[editable path="Health_Bar"]

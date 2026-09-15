@@ -1,0 +1,39 @@
+[gd_scene format=3 uid="uid://djsli6l53q51g"]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_8arfj"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/异蛙寄生虫/PixPin_2026-05-21_18-02-20.png" id="2_b4eso"]
+[ext_resource type="Script" path="res://scripts/characters/杀戮尖塔/异蛙寄生虫_小.gd" id="2_p7nsk"]
+
+[node name="异蛙寄生虫_小" unique_id=751516400 instance=ExtResource("1_8arfj")]
+script = ExtResource("2_p7nsk")
+Has_Collision_Damage = true
+Type_Tags = PackedStringArray("近战", "召唤", "异常")
+Negative_Tags = PackedStringArray("虫子", "蛆")
+Dead_Audio = ""
+Damage = 5
+Max_health = 50
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+texture = ExtResource("2_b4eso")
+
+[node name="CharacterAutoFit" parent="." index="2"]
+visual_size_multiplier = 0.52
+collision_width_ratio = 0.84
+collision_height_ratio = 0.80
+
+[node name="CollisionShape2D" parent="." index="1" unique_id=434200601]
+visible = true
+position = Vector2(0, 10)
+scale = Vector2(0.29004368, 1.1683592)
+
+[node name="CollisionShape2D" parent="hitbox" parent_id_path=PackedInt32Array(28640507) index="0" unique_id=390337144]
+visible = true
+position = Vector2(0, 5.0000005)
+scale = Vector2(0.3885913, 1.5653305)
+
+[node name="CollisionShape2D" parent="hurtbox" parent_id_path=PackedInt32Array(586576587) index="0" unique_id=58230542]
+visible = true
+position = Vector2(0, 5.0000005)
+scale = Vector2(0.3885913, 1.5653305)
+
+[editable path="Health_Bar"]

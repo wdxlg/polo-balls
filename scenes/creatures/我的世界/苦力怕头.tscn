@@ -1,0 +1,86 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/creatures/我的世界/苦力怕头.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/苦力怕/苦力怕头.png" id="3_head"]
+
+[sub_resource type="CircleShape2D" id="HeadShape"]
+resource_local_to_scene = true
+radius = 39.0
+
+[sub_resource type="Shader" id="FuseWhiteShader"]
+code = "shader_type canvas_item;\n\ninstance uniform float power : hint_range(0.0, 1.0) = 0.0;\n\nvoid fragment() {\n\tvec4 tex = texture(TEXTURE, UV);\n\tfloat p = clamp(power, 0.0, 1.0);\n\tCOLOR = vec4(1.0, 1.0, 1.0, tex.a * p);\n}\n"
+
+[sub_resource type="ShaderMaterial" id="FuseWhiteMaterial"]
+shader = SubResource("FuseWhiteShader")
+
+[node name="苦力怕头" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+dir_left = false
+Dead_Audio = ""
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("我的世界", "召唤", "二阶段", "爆炸")
+Negative_Tags = PackedStringArray("脆弱")
+Max_health = 85
+Damage = 0
+Speed = 188.0
+Attack_Cooling = 999.0
+Skill_Cooling = 999.0
+Health_Restore = 0
+Can_Attack = false
+Can_Skill = false
+side_status_ui_enabled = false
+
+[node name="Image" parent="Graphics" index="0"]
+texture = ExtResource("3_head")
+texture_filter = 1
+scale = Vector2(0.18, 0.18)
+
+
+[node name="FuseWhiteOverlay" type="Sprite2D" parent="Graphics"]
+material = SubResource("FuseWhiteMaterial")
+instance_shader_parameters/power = 0.0
+z_index = 1
+texture = ExtResource("3_head")
+texture_filter = 1
+scale = Vector2(0.18, 0.18)
+
+[node name="CollisionShape2D" parent="." index="1"]
+shape = SubResource("HeadShape")
+metadata/_character_auto_fit_v3_manual = true
+
+[node name="CharacterAutoFit" parent="." index="2"]
+enabled = false
+
+[node name="CollisionShape2D" parent="hitbox" index="0"]
+disabled = true
+
+[node name="CollisionShape2D" parent="hurtbox" index="0"]
+shape = SubResource("HeadShape")
+metadata/_character_auto_fit_v3_manual = true
+
+
+[node name="FuseProgress" type="ProgressBar" parent="."]
+offset_left = -65.0
+offset_top = -118.0
+offset_right = 65.0
+offset_bottom = -101.0
+mouse_filter = 2
+show_percentage = false
+max_value = 1.0
+step = 0.001
+value = 0.0
+visible = false
+z_index = 20
+
+[node name="FuseAudio" type="AudioStreamPlayer2D" parent="."]
+max_distance = 820.0
+attenuation = 0.9
+max_polyphony = 1
+
+[node name="DeathAudio" type="AudioStreamPlayer2D" parent="."]
+max_distance = 900.0
+attenuation = 0.9
+max_polyphony = 1
+
+[editable path="Health_Bar"]

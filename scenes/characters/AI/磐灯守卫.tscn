@@ -1,0 +1,27 @@
+[gd_scene load_steps=4 format=3]
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1"]
+[ext_resource type="Script" path="res://scripts/characters/AI/磐灯守卫.gd" id="2"]
+[ext_resource type="Texture2D" path="res://Images/characters/AI/磐灯守卫.svg" id="3"]
+[node name="磐灯守卫" instance=ExtResource("1")]
+script = ExtResource("2")
+Max_health = 1100
+Damage = 24
+Speed = 76.0
+Health_Restore = 0
+Has_Collision_Damage = false
+Attack_Cooling = 1.1
+Skill_Cooling = 8.0
+engagement_range = 95.0
+preferred_distance = 62.0
+accent = Color(0.96, 0.72, 0.35, 1)
+character_traits = "守势反击"
+Type_Tags = PackedStringArray("AI原创", "近战", "护盾", "反击")
+Negative_Tags = PackedStringArray("手短", "慢速")
+max_block = 140
+[node name="Image" parent="Graphics" index="0"]
+texture = ExtResource("3")
+scale = Vector2(1, 1)
+[node name="CharacterAutoFit" parent="." index="2"]
+visual_size_multiplier = 1.0
+collision_width_ratio = 0.7
+collision_height_ratio = 0.72

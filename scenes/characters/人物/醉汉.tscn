@@ -1,0 +1,110 @@
+[gd_scene format=3 uid="uid://e1b1xswpevxf"]
+
+[ext_resource type="PackedScene" uid="uid://dgfmejo2auorn" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" uid="uid://i4ciuekq813" path="res://scripts/characters/醉汉.gd" id="2_script"]
+[ext_resource type="Texture2D" uid="uid://crolg0w378y1" path="res://Images/characters/人物/醉汉/正常.png" id="3_normal"]
+[ext_resource type="Texture2D" uid="uid://dlaxf623uobxy" path="res://Images/characters/人物/醉汉/前腰.png" id="4_windup"]
+[ext_resource type="Texture2D" uid="uid://d0md4tv87g8f4" path="res://Images/characters/人物/醉汉/扔瓶子.png" id="5_throw"]
+[ext_resource type="Texture2D" uid="uid://1dn52y4csm2e" path="res://Images/characters/人物/醉汉/砸人.png" id="6_smash"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_7rfd7"]
+resource_local_to_scene = true
+size = Vector2(132.25989, 168.09999)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_3wnc8"]
+resource_local_to_scene = true
+size = Vector2(132.25989, 168.09999)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hjvoh"]
+resource_local_to_scene = true
+size = Vector2(132.25989, 168.09999)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_smash"]
+size = Vector2(51, 50)
+
+[node name="醉汉" unique_id=248548775 instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+chaos_speed_min = 45.0
+chaos_speed_max = 230.0
+chaos_speed_response = 520.0
+chaos_turn_interval_min = 0.12
+chaos_turn_interval_max = 0.55
+chaos_turn_degrees = 105.0
+full_random_direction_chance = 0.28
+dodge_projectiles = true
+dodge_scan_radius = 190.0
+dodge_prediction_horizon = 0.48
+dodge_danger_clearance = 34.0
+dodge_trigger_chance = 0.55
+dodge_scan_interval = 0.07
+dodge_time_min = 0.14
+dodge_time_max = 0.26
+dodge_direction_weight = 0.72
+dodge_speed_multiplier = 1.15
+dodge_min_speed = 115.0
+dodge_same_threat_lock = 0.65
+attack_cooldown_min = 0.55
+attack_cooldown_max = 0.85
+attack_windup_min = 0.05
+attack_windup_max = 1.0
+attack_throw_chance = 0.5
+attack_spread_degrees = 14.0
+throw_pose_hold = 0.12
+smash_pose_hold = 0.16
+bottle_speed = 360.0
+bottle_spawn_offset = 35.0
+throw_audio = "KnifeThrow1"
+smash_damage_multiplier = 2.0
+smash_swing_volume_db = -2.0
+smash_swing_pitch_scale = 1.0
+smash_swing_random_pitch = 0.05
+smash_swing_max_distance = 1100.0
+normal_texture = ExtResource("3_normal")
+windup_texture = ExtResource("4_windup")
+throw_texture = ExtResource("5_throw")
+smash_texture = ExtResource("6_smash")
+Type_Tags = PackedStringArray("射手", "随机", "机动")
+Negative_Tags = PackedStringArray("酒鬼")
+Attack_Cooling = 0.7
+Damage = 28
+Speed = 120.0
+Max_health = 650
+Can_Skill = false
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+scale = Vector2(0.14246005, 0.14246005)
+texture = ExtResource("3_normal")
+offset = Vector2(15.5, -4.5)
+
+[node name="CollisionShape2D" parent="." index="1" unique_id=434200601]
+scale = Vector2(1, 1)
+shape = SubResource("RectangleShape2D_7rfd7")
+metadata/_character_auto_fit_v3_managed = true
+metadata/_character_auto_fit_v3_manual = false
+metadata/_character_auto_fit_v3_last_auto = "RectangleShape2D|(132.2599, 168.1)|(0.0, 0.0)|(1.0, 1.0)|0.0"
+
+[node name="CollisionShape2D" parent="hitbox" parent_id_path=PackedInt32Array(28640507) index="0" unique_id=390337144]
+scale = Vector2(1, 1)
+shape = SubResource("RectangleShape2D_3wnc8")
+metadata/_character_auto_fit_v3_managed = true
+metadata/_character_auto_fit_v3_manual = false
+metadata/_character_auto_fit_v3_last_auto = "RectangleShape2D|(132.2599, 168.1)|(0.0, 0.0)|(1.0, 1.0)|0.0"
+
+[node name="CollisionShape2D" parent="hurtbox" parent_id_path=PackedInt32Array(586576587) index="0" unique_id=58230542]
+scale = Vector2(1, 1)
+shape = SubResource("RectangleShape2D_hjvoh")
+metadata/_character_auto_fit_v3_managed = true
+metadata/_character_auto_fit_v3_manual = false
+metadata/_character_auto_fit_v3_last_auto = "RectangleShape2D|(132.2599, 168.1)|(0.0, 0.0)|(1.0, 1.0)|0.0"
+
+[node name="SmashArea" type="Area2D" parent="." index="12" unique_id=178543665]
+top_level = true
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="SmashArea" index="0" unique_id=1597498289]
+position = Vector2(44.5, 0)
+shape = SubResource("RectangleShape2D_smash")
+
+[editable path="Health_Bar"]

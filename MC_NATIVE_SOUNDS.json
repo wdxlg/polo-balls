@@ -1,0 +1,729 @@
+{
+  "source": "https://o.xbottle.top/mcsounds/",
+  "retrieved_date": "2026-09-15",
+  "events": {
+    "entity.evoker.cast_spell": [
+      {
+        "file": "audio/characters/唤魔者/evoker.cast_spell_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/ea/ea93dbbc9a8d5fc306b042fc70c4f3b35a94113b",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.evoker.cast_spell",
+        "path": "mob/evocation_illager/cast1",
+        "file_hash": "ea93dbbc9a8d5fc306b042fc70c4f3b35a94113b",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/唤魔者/evoker.cast_spell_2.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/46/466c7079811a6589a34f6efe17e5a212b2fcc18a",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.evoker.cast_spell",
+        "path": "mob/evocation_illager/cast2",
+        "file_hash": "466c7079811a6589a34f6efe17e5a212b2fcc18a",
+        "volume": 1,
+        "pitch": 1
+      }
+    ],
+    "entity.evoker.prepare_attack": [
+      {
+        "file": "audio/characters/唤魔者/evoker.prepare_attack_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/13/135ee4fcf11d359fdfed376277ed718767357c08",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.evoker.prepare_attack",
+        "path": "mob/evocation_illager/prepare_attack1",
+        "file_hash": "135ee4fcf11d359fdfed376277ed718767357c08",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/唤魔者/evoker.prepare_attack_2.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/3c/3ca11902af61eec12ef68e9cca8da23d3874d131",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.evoker.prepare_attack",
+        "path": "mob/evocation_illager/prepare_attack2",
+        "file_hash": "3ca11902af61eec12ef68e9cca8da23d3874d131",
+        "volume": 1,
+        "pitch": 1
+      }
+    ],
+    "entity.evoker.prepare_summon": [
+      {
+        "file": "audio/characters/唤魔者/evoker.prepare_summon_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/e7/e792be7a228007d8a782b0d6caf9da9ebf77a86b",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.evoker.prepare_summon",
+        "path": "mob/evocation_illager/prepare_summon",
+        "file_hash": "e792be7a228007d8a782b0d6caf9da9ebf77a86b",
+        "volume": 1,
+        "pitch": 1
+      }
+    ],
+    "entity.evoker.hurt": [
+      {
+        "file": "audio/characters/唤魔者/evoker.hurt_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/89/89ef3aed3fec190c64ed86eeba5dc38aae9ca2ee",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.evoker.hurt",
+        "path": "mob/evocation_illager/hurt1",
+        "file_hash": "89ef3aed3fec190c64ed86eeba5dc38aae9ca2ee",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/唤魔者/evoker.hurt_2.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/8d/8dfd90da4e259388924ff960e6abc8dec7bd0337",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.evoker.hurt",
+        "path": "mob/evocation_illager/hurt2",
+        "file_hash": "8dfd90da4e259388924ff960e6abc8dec7bd0337",
+        "volume": 1,
+        "pitch": 1
+      }
+    ],
+    "entity.evoker.death": [
+      {
+        "file": "audio/characters/唤魔者/evoker.death_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/1a/1a6e8801cfbafdd14af3b345dbc9c0ec6f806511",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.evoker.death",
+        "path": "mob/evocation_illager/death1",
+        "file_hash": "1a6e8801cfbafdd14af3b345dbc9c0ec6f806511",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/唤魔者/evoker.death_2.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/b7/b75434f8a7d65c44caa508c486d64440bba01a1d",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.evoker.death",
+        "path": "mob/evocation_illager/death2",
+        "file_hash": "b75434f8a7d65c44caa508c486d64440bba01a1d",
+        "volume": 1,
+        "pitch": 1
+      }
+    ],
+    "entity.evoker_fangs.attack": [
+      {
+        "file": "audio/characters/唤魔者/evoker_fangs.attack_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/3b/3be8d0b483bcd9d7234a55fa8b0ab81f0713438e",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.evoker_fangs.attack",
+        "path": "mob/evocation_illager/fangs",
+        "file_hash": "3be8d0b483bcd9d7234a55fa8b0ab81f0713438e",
+        "volume": 1,
+        "pitch": 1
+      }
+    ],
+    "entity.vex.charge": [
+      {
+        "file": "audio/characters/唤魔者/vex.charge_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/e4/e4208f313e7c1431d9e04c80974fa4ed4a783275",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.vex.charge",
+        "path": "mob/vex/charge1",
+        "file_hash": "e4208f313e7c1431d9e04c80974fa4ed4a783275",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/唤魔者/vex.charge_2.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/a8/a87243e6908907bfc9b2493e1bc0fd52d551045e",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.vex.charge",
+        "path": "mob/vex/charge2",
+        "file_hash": "a87243e6908907bfc9b2493e1bc0fd52d551045e",
+        "volume": 1,
+        "pitch": 1
+      }
+    ],
+    "entity.vex.hurt": [
+      {
+        "file": "audio/characters/唤魔者/vex.hurt_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/90/909ded09c154faea85e71d5456921be64cbdcd49",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.vex.hurt",
+        "path": "mob/vex/hurt1",
+        "file_hash": "909ded09c154faea85e71d5456921be64cbdcd49",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/唤魔者/vex.hurt_2.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/a0/a0d9187ca37ac82a7e11b0564882e87762bca51c",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.vex.hurt",
+        "path": "mob/vex/hurt2",
+        "file_hash": "a0d9187ca37ac82a7e11b0564882e87762bca51c",
+        "volume": 1,
+        "pitch": 1
+      }
+    ],
+    "entity.vex.death": [
+      {
+        "file": "audio/characters/唤魔者/vex.death_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/d3/d33b4c2a9bcaa175655a69f9b0a425bf1c136b71",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.vex.death",
+        "path": "mob/vex/death1",
+        "file_hash": "d33b4c2a9bcaa175655a69f9b0a425bf1c136b71",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/唤魔者/vex.death_2.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/03/032dab45995981f555619bfbd8ff80a0fc5f3d91",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.vex.death",
+        "path": "mob/vex/death2",
+        "file_hash": "032dab45995981f555619bfbd8ff80a0fc5f3d91",
+        "volume": 1,
+        "pitch": 1
+      }
+    ],
+    "entity.shulker.open": [
+      {
+        "file": "audio/characters/潜影贝/shulker.open_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/39/39dd58da1447613afebbfbd099a551663ac442bc",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.shulker.open",
+        "path": "entity/shulker/open1",
+        "file_hash": "39dd58da1447613afebbfbd099a551663ac442bc",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/潜影贝/shulker.open_2.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/46/466465961daca3ad95d498fe34aace460ed4c8a4",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.shulker.open",
+        "path": "entity/shulker/open2",
+        "file_hash": "466465961daca3ad95d498fe34aace460ed4c8a4",
+        "volume": 1,
+        "pitch": 1
+      }
+    ],
+    "entity.shulker.close": [
+      {
+        "file": "audio/characters/潜影贝/shulker.close_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/55/5561ce870837ae106a6ff0b6186d04f726aeafc6",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.shulker.close",
+        "path": "entity/shulker/close1",
+        "file_hash": "5561ce870837ae106a6ff0b6186d04f726aeafc6",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/潜影贝/shulker.close_2.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/5f/5f98c736907655a48944c763657a38d472416d6e",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.shulker.close",
+        "path": "entity/shulker/close2",
+        "file_hash": "5f98c736907655a48944c763657a38d472416d6e",
+        "volume": 1,
+        "pitch": 1
+      }
+    ],
+    "entity.shulker.shoot": [
+      {
+        "file": "audio/characters/潜影贝/shulker.shoot_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/cc/cc94a15dca4384c3c315ec98628648fb291f17d7",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.shulker.shoot",
+        "path": "entity/shulker/shoot1",
+        "file_hash": "cc94a15dca4384c3c315ec98628648fb291f17d7",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/潜影贝/shulker.shoot_2.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/d1/d17a3b165c758f5f7e63af5c7141aa60602930e2",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.shulker.shoot",
+        "path": "entity/shulker/shoot2",
+        "file_hash": "d17a3b165c758f5f7e63af5c7141aa60602930e2",
+        "volume": 1,
+        "pitch": 1
+      }
+    ],
+    "entity.shulker.hurt": [
+      {
+        "file": "audio/characters/潜影贝/shulker.hurt_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/05/05b10bf6d4554c28cb2fbd0ed85a505e92140e2e",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.shulker.hurt",
+        "path": "entity/shulker/hurt1",
+        "file_hash": "05b10bf6d4554c28cb2fbd0ed85a505e92140e2e",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/潜影贝/shulker.hurt_2.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/12/12edc7d00dc3c2ee5d82f26875be77586c46a7ed",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.shulker.hurt",
+        "path": "entity/shulker/hurt2",
+        "file_hash": "12edc7d00dc3c2ee5d82f26875be77586c46a7ed",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/潜影贝/shulker.hurt_3.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/e4/e4df499058ce4b7f52801a7b6966de47c948feee",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.shulker.hurt",
+        "path": "entity/shulker/hurt3",
+        "file_hash": "e4df499058ce4b7f52801a7b6966de47c948feee",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/潜影贝/shulker.hurt_4.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/80/80c1c8a3de011b5c08169f0c532c272ca586d355",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.shulker.hurt",
+        "path": "entity/shulker/hurt4",
+        "file_hash": "80c1c8a3de011b5c08169f0c532c272ca586d355",
+        "volume": 1,
+        "pitch": 1
+      }
+    ],
+    "entity.shulker.hurt_closed": [
+      {
+        "file": "audio/characters/潜影贝/shulker.hurt_closed_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/db/db24df80329e9c1ac4566a0ed20029d312002409",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.shulker.hurt_closed",
+        "path": "entity/shulker/hurt_closed1",
+        "file_hash": "db24df80329e9c1ac4566a0ed20029d312002409",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/潜影贝/shulker.hurt_closed_2.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/57/5722548545b3405acfe280a74e88471517bc7bb1",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.shulker.hurt_closed",
+        "path": "entity/shulker/hurt_closed2",
+        "file_hash": "5722548545b3405acfe280a74e88471517bc7bb1",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/潜影贝/shulker.hurt_closed_3.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/2d/2d67535d719b7485f2a97b1f397051302d3ad1cd",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.shulker.hurt_closed",
+        "path": "entity/shulker/hurt_closed3",
+        "file_hash": "2d67535d719b7485f2a97b1f397051302d3ad1cd",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/潜影贝/shulker.hurt_closed_4.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/51/511fce760d0a64353a839f456f4225783be344bc",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.shulker.hurt_closed",
+        "path": "entity/shulker/hurt_closed4",
+        "file_hash": "511fce760d0a64353a839f456f4225783be344bc",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/潜影贝/shulker.hurt_closed_5.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/8a/8aaaa5fc3424da6ad9cd5fb3954c4fc798064dd0",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.shulker.hurt_closed",
+        "path": "entity/shulker/hurt_closed5",
+        "file_hash": "8aaaa5fc3424da6ad9cd5fb3954c4fc798064dd0",
+        "volume": 1,
+        "pitch": 1
+      }
+    ],
+    "entity.shulker.death": [
+      {
+        "file": "audio/characters/潜影贝/shulker.death_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/5a/5a2a953165cac17c014e9da4c202f1efde19ec46",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.shulker.death",
+        "path": "entity/shulker/death1",
+        "file_hash": "5a2a953165cac17c014e9da4c202f1efde19ec46",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/潜影贝/shulker.death_2.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/3d/3d8274d3fe03f28abb559e08505202ca5261ae47",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.shulker.death",
+        "path": "entity/shulker/death2",
+        "file_hash": "3d8274d3fe03f28abb559e08505202ca5261ae47",
+        "volume": 1,
+        "pitch": 1
+      }
+    ],
+    "entity.shulker_bullet.hit": [
+      {
+        "file": "audio/characters/潜影贝/shulker_bullet.hit_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/93/9340adb5c86230146f204c26a13c052626a8ad9e",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.shulker_bullet.hit",
+        "path": "entity/shulker_bullet/hit1",
+        "file_hash": "9340adb5c86230146f204c26a13c052626a8ad9e",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/潜影贝/shulker_bullet.hit_2.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/88/888dc3e9ae0fb74109b2e79020919a4ebfd7dd66",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.shulker_bullet.hit",
+        "path": "entity/shulker_bullet/hit2",
+        "file_hash": "888dc3e9ae0fb74109b2e79020919a4ebfd7dd66",
+        "volume": 1,
+        "pitch": 1
+      }
+    ],
+    "entity.shulker_bullet.hurt": [
+      {
+        "file": "audio/characters/潜影贝/shulker_bullet.hurt_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/93/9340adb5c86230146f204c26a13c052626a8ad9e",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.shulker_bullet.hurt",
+        "path": "entity/shulker_bullet/hit1",
+        "file_hash": "9340adb5c86230146f204c26a13c052626a8ad9e",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/潜影贝/shulker_bullet.hurt_2.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/88/888dc3e9ae0fb74109b2e79020919a4ebfd7dd66",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.shulker_bullet.hurt",
+        "path": "entity/shulker_bullet/hit2",
+        "file_hash": "888dc3e9ae0fb74109b2e79020919a4ebfd7dd66",
+        "volume": 1,
+        "pitch": 1
+      }
+    ],
+    "entity.enderman.teleport": [
+      {
+        "file": "audio/characters/末影人/enderman.teleport_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/15/15eb7f0940b43b5422524c8f20db44b72b310233",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.enderman.teleport",
+        "path": "mob/endermen/portal",
+        "file_hash": "15eb7f0940b43b5422524c8f20db44b72b310233",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/末影人/enderman.teleport_2.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/e5/e513adbd9b3ea95b7c2d5726c8ae7a5f497e0328",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.enderman.teleport",
+        "path": "mob/endermen/portal2",
+        "file_hash": "e513adbd9b3ea95b7c2d5726c8ae7a5f497e0328",
+        "volume": 1,
+        "pitch": 1
+      }
+    ],
+    "entity.enderman.stare": [
+      {
+        "file": "audio/characters/末影人/enderman.stare_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/75/75b6933acfef6d24e2205b01f34d8907c5fb9dad",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.enderman.stare",
+        "path": "mob/endermen/stare",
+        "file_hash": "75b6933acfef6d24e2205b01f34d8907c5fb9dad",
+        "volume": 1,
+        "pitch": 1
+      }
+    ],
+    "entity.enderman.scream": [
+      {
+        "file": "audio/characters/末影人/enderman.scream_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/71/712e0aaea2e31ba6872912dddc28640ad3a4207e",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.enderman.scream",
+        "path": "mob/endermen/scream1",
+        "file_hash": "712e0aaea2e31ba6872912dddc28640ad3a4207e",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/末影人/enderman.scream_2.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/86/86a0b94f4f328875c20b338c3cb8cda44a55d942",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.enderman.scream",
+        "path": "mob/endermen/scream2",
+        "file_hash": "86a0b94f4f328875c20b338c3cb8cda44a55d942",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/末影人/enderman.scream_3.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/71/71d7fdda5f0ff979adb0f6c7895d8b6be16ad624",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.enderman.scream",
+        "path": "mob/endermen/scream3",
+        "file_hash": "71d7fdda5f0ff979adb0f6c7895d8b6be16ad624",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/末影人/enderman.scream_4.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/a6/a66c9a44027dc9c57cef179b4896c5cddcb1da59",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.enderman.scream",
+        "path": "mob/endermen/scream4",
+        "file_hash": "a66c9a44027dc9c57cef179b4896c5cddcb1da59",
+        "volume": 1,
+        "pitch": 1
+      }
+    ],
+    "entity.enderman.hurt": [
+      {
+        "file": "audio/characters/末影人/enderman.hurt_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/a6/a6edf57f2e84d56a45c1936f34f88da69184ebb4",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.enderman.hurt",
+        "path": "mob/endermen/hit1",
+        "file_hash": "a6edf57f2e84d56a45c1936f34f88da69184ebb4",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/末影人/enderman.hurt_2.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/54/54ab48277ef3c82cf46e0b044180aced6fa08c9c",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.enderman.hurt",
+        "path": "mob/endermen/hit2",
+        "file_hash": "54ab48277ef3c82cf46e0b044180aced6fa08c9c",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/末影人/enderman.hurt_3.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/6e/6e9c3f42dabbab33be160964f49f145ac181c711",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.enderman.hurt",
+        "path": "mob/endermen/hit3",
+        "file_hash": "6e9c3f42dabbab33be160964f49f145ac181c711",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/末影人/enderman.hurt_4.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/f0/f0af45e814823e47963d702a38ef90c7d515bdc9",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.enderman.hurt",
+        "path": "mob/endermen/hit4",
+        "file_hash": "f0af45e814823e47963d702a38ef90c7d515bdc9",
+        "volume": 1,
+        "pitch": 1
+      }
+    ],
+    "entity.enderman.death": [
+      {
+        "file": "audio/characters/末影人/enderman.death_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/85/85a616fdd30fb3782da596048a034fbbd8df30ab",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.enderman.death",
+        "path": "mob/endermen/death",
+        "file_hash": "85a616fdd30fb3782da596048a034fbbd8df30ab",
+        "volume": 1,
+        "pitch": 1
+      }
+    ],
+    "entity.evoker.ambient": [
+      {
+        "file": "audio/characters/唤魔者/evoker.ambient_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/86/86d6f58ce7ae38547cbe6953043b66c53fed5d1c",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.evoker.ambient",
+        "path": "mob/evocation_illager/idle1",
+        "file_hash": "86d6f58ce7ae38547cbe6953043b66c53fed5d1c",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/唤魔者/evoker.ambient_2.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/e6/e691b03bd2617dfdc13abbaa53acda1bae060b50",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.evoker.ambient",
+        "path": "mob/evocation_illager/idle2",
+        "file_hash": "e691b03bd2617dfdc13abbaa53acda1bae060b50",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/唤魔者/evoker.ambient_3.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/48/48585e48180eb593a5eaada25365c3fe123ac938",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.evoker.ambient",
+        "path": "mob/evocation_illager/idle3",
+        "file_hash": "48585e48180eb593a5eaada25365c3fe123ac938",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/唤魔者/evoker.ambient_4.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/6b/6b66557e4f1c10f571b830621286093c07d7892b",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.evoker.ambient",
+        "path": "mob/evocation_illager/idle4",
+        "file_hash": "6b66557e4f1c10f571b830621286093c07d7892b",
+        "volume": 1,
+        "pitch": 1
+      }
+    ],
+    "entity.evoker.celebrate": [
+      {
+        "file": "audio/characters/唤魔者/evoker.celebrate_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/da/da0c8b46bbdbafa6b228a1eec36b1debb86b9405",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.evoker.celebrate",
+        "path": "mob/evocation_illager/celebrate",
+        "file_hash": "da0c8b46bbdbafa6b228a1eec36b1debb86b9405",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/唤魔者/evoker.celebrate_2.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/86/86d6f58ce7ae38547cbe6953043b66c53fed5d1c",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.evoker.celebrate",
+        "path": "mob/evocation_illager/idle1",
+        "file_hash": "86d6f58ce7ae38547cbe6953043b66c53fed5d1c",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/唤魔者/evoker.celebrate_3.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/e6/e691b03bd2617dfdc13abbaa53acda1bae060b50",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.evoker.celebrate",
+        "path": "mob/evocation_illager/idle2",
+        "file_hash": "e691b03bd2617dfdc13abbaa53acda1bae060b50",
+        "volume": 1,
+        "pitch": 1
+      }
+    ],
+    "entity.vex.ambient": [
+      {
+        "file": "audio/characters/唤魔者/vex.ambient_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/7a/7a13ec82ec28b2adf2424a415ad5bcb67bbc4ccd",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.vex.ambient",
+        "path": "mob/vex/idle1",
+        "file_hash": "7a13ec82ec28b2adf2424a415ad5bcb67bbc4ccd",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/唤魔者/vex.ambient_2.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/c7/c7ce80fe971fc4644d149da5bf4756181468ed0e",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.vex.ambient",
+        "path": "mob/vex/idle2",
+        "file_hash": "c7ce80fe971fc4644d149da5bf4756181468ed0e",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/唤魔者/vex.ambient_3.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/aa/aa745efd1abcd1fa4c3b660d7e386f62df11cb7b",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.vex.ambient",
+        "path": "mob/vex/idle3",
+        "file_hash": "aa745efd1abcd1fa4c3b660d7e386f62df11cb7b",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/唤魔者/vex.ambient_4.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/6e/6eb62a07da842363c903f38c3a67e520ceaa097f",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.vex.ambient",
+        "path": "mob/vex/idle4",
+        "file_hash": "6eb62a07da842363c903f38c3a67e520ceaa097f",
+        "volume": 1,
+        "pitch": 1
+      }
+    ],
+    "entity.shulker.ambient": [
+      {
+        "file": "audio/characters/潜影贝/shulker.ambient_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/95/95dca0416258364d90649392592d470eb800b17c",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.shulker.ambient",
+        "path": "entity/shulker/ambient1",
+        "file_hash": "95dca0416258364d90649392592d470eb800b17c",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/潜影贝/shulker.ambient_2.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/f1/f1a522b5bea10dbb48e49279c1358e71846d3a92",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.shulker.ambient",
+        "path": "entity/shulker/ambient2",
+        "file_hash": "f1a522b5bea10dbb48e49279c1358e71846d3a92",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/潜影贝/shulker.ambient_3.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/18/1829db3d900fde5a1f118286c7b437ebc48c06d3",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.shulker.ambient",
+        "path": "entity/shulker/ambient3",
+        "file_hash": "1829db3d900fde5a1f118286c7b437ebc48c06d3",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/潜影贝/shulker.ambient_4.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/b0/b04022583d2d085a769e14ca7b7ea6566f326d58",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.shulker.ambient",
+        "path": "entity/shulker/ambient4",
+        "file_hash": "b04022583d2d085a769e14ca7b7ea6566f326d58",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/潜影贝/shulker.ambient_5.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/0e/0e533ac4f54c97288ac1f1d207ae185f1059f6ea",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.shulker.ambient",
+        "path": "entity/shulker/ambient5",
+        "file_hash": "0e533ac4f54c97288ac1f1d207ae185f1059f6ea",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/潜影贝/shulker.ambient_6.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/5f/5fd4f3fd1c07f8c03452c27c8a188c2947a96f75",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.shulker.ambient",
+        "path": "entity/shulker/ambient6",
+        "file_hash": "5fd4f3fd1c07f8c03452c27c8a188c2947a96f75",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/潜影贝/shulker.ambient_7.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/a1/a12177b8cb7844ed33eac78576c4fb43cebad4b9",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.shulker.ambient",
+        "path": "entity/shulker/ambient7",
+        "file_hash": "a12177b8cb7844ed33eac78576c4fb43cebad4b9",
+        "volume": 1,
+        "pitch": 1
+      }
+    ],
+    "entity.shulker.teleport": [
+      {
+        "file": "audio/characters/潜影贝/shulker.teleport_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/15/15eb7f0940b43b5422524c8f20db44b72b310233",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.shulker.teleport",
+        "path": "mob/endermen/portal",
+        "file_hash": "15eb7f0940b43b5422524c8f20db44b72b310233",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/潜影贝/shulker.teleport_2.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/e5/e513adbd9b3ea95b7c2d5726c8ae7a5f497e0328",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.shulker.teleport",
+        "path": "mob/endermen/portal2",
+        "file_hash": "e513adbd9b3ea95b7c2d5726c8ae7a5f497e0328",
+        "volume": 1,
+        "pitch": 1
+      }
+    ],
+    "entity.enderman.ambient": [
+      {
+        "file": "audio/characters/末影人/enderman.ambient_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/7c/7c42f197c2b4dfd98ffb6a30b50ee2777db18bef",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.enderman.ambient",
+        "path": "mob/endermen/idle1",
+        "file_hash": "7c42f197c2b4dfd98ffb6a30b50ee2777db18bef",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/末影人/enderman.ambient_2.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/d1/d1faf091c1aa0be81a3ce71110a5c07c91c3141a",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.enderman.ambient",
+        "path": "mob/endermen/idle2",
+        "file_hash": "d1faf091c1aa0be81a3ce71110a5c07c91c3141a",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/末影人/enderman.ambient_3.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/14/14cce45307ffc5fe7f50e9f0d0ed3d32ab24beb0",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.enderman.ambient",
+        "path": "mob/endermen/idle3",
+        "file_hash": "14cce45307ffc5fe7f50e9f0d0ed3d32ab24beb0",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/末影人/enderman.ambient_4.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/ed/ed7ddfb460eb5246d6cbbdf3b6eb381bbd3fe26a",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.enderman.ambient",
+        "path": "mob/endermen/idle4",
+        "file_hash": "ed7ddfb460eb5246d6cbbdf3b6eb381bbd3fe26a",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/末影人/enderman.ambient_5.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/ad/ad2675a08adbe28d8a6247a36debfbf70983b0ca",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.enderman.ambient",
+        "path": "mob/endermen/idle5",
+        "file_hash": "ad2675a08adbe28d8a6247a36debfbf70983b0ca",
+        "volume": 1,
+        "pitch": 1
+      }
+    ]
+  },
+  "updated_date": "2026-09-15"
+}

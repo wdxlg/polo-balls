@@ -1,0 +1,39 @@
+[gd_scene format=3 uid="uid://dixtddyi8lw8v"]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_5hwx2"]
+[ext_resource type="Script" path="res://scripts/shooter/bee.gd" id="2_m1vtb"]
+
+[sub_resource type="Gradient" id="Gradient_m1vtb"]
+colors = PackedColorArray(0.2625871, 0.22700188, 0.041344687, 1, 0.2627451, 0.22745098, 0.043137256, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_navsj"]
+gradient = SubResource("Gradient_m1vtb")
+
+[node name="Bee" unique_id=751516400 instance=ExtResource("1_5hwx2")]
+z_index = 1
+y_sort_enabled = true
+scale = Vector2(0.199272, 0.201165)
+collision_layer = 3
+collision_mask = 1
+script = ExtResource("2_m1vtb")
+Type = 1
+Damage = 12
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+scale = Vector2(0.156821, 0.156821)
+texture = SubResource("GradientTexture2D_navsj")
+
+[node name="CollisionShape2D" parent="." index="1" unique_id=434200601]
+scale = Vector2(0.0451407, 0.235109)
+
+[node name="Health_Bar" parent="." index="2" unique_id=595266760]
+visible = false
+
+[node name="CollisionShape2D" parent="hitbox" parent_id_path=PackedInt32Array(28640507) index="0" unique_id=390337144]
+scale = Vector2(0.0451407, 0.235109)
+
+[node name="hurtbox" parent="." index="5" unique_id=586576587]
+collision_layer = 4
+
+[node name="CollisionShape2D" parent="hurtbox" index="0" unique_id=58230542]
+scale = Vector2(0.0451407, 0.235109)

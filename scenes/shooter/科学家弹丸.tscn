@@ -1,0 +1,29 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/shooter/科学家弹丸.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/科学家/扳手.png" id="3_wrench"]
+
+[node name="科学家弹丸" instance=ExtResource("1_base")]
+collision_layer = 0
+collision_mask = 3
+script = ExtResource("2_script")
+Type = 1
+Max_health = 1
+Damage = 14
+Speed = 470.0
+Health_Restore = 0
+Collide_Audio_Node = ""
+Can_Attack = false
+Can_Skill = false
+lifetime = 2.6
+portal_extra_lifetime = 0.0
+max_total_lifetime = 8.0
+wrench_spin_speed = 8.2
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+scale = Vector2(0.115, 0.115)
+texture = ExtResource("3_wrench")
+
+[node name="Health_Bar" parent="." index="2"]
+visible = false

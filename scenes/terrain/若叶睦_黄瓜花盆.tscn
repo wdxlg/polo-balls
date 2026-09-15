@@ -1,0 +1,72 @@
+[gd_scene format=3 uid="uid://b7d1v56w8cq8t"]
+
+[ext_resource type="Script" uid="uid://coy41an2qixw3" path="res://scripts/terrain/若叶睦_黄瓜花盆.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://diibaaeiivjxr" path="res://Images/characters/人物/若叶睦/01_黄瓜盆栽_空盆土壤.png" id="2_empty"]
+[ext_resource type="Texture2D" uid="uid://djaebm26m8ouc" path="res://Images/characters/人物/若叶睦/02_黄瓜盆栽_刚种下幼苗.png" id="3_seedling"]
+[ext_resource type="Texture2D" uid="uid://oy7wfx8wt1sm" path="res://Images/characters/人物/若叶睦/03_黄瓜盆栽_茂盛藤蔓_无黄瓜.png" id="4_vine"]
+[ext_resource type="Texture2D" uid="uid://qo0rxpvle8km" path="res://Images/characters/人物/若叶睦/04_黄瓜本体.png" id="5_cucumber"]
+[ext_resource type="Texture2D" uid="uid://yv8cn5laxjji" path="res://Images/characters/人物/若叶睦/枯萎.png" id="6_withered"]
+
+[node name="若叶睦_黄瓜花盆" type="Node2D" unique_id=1735284362]
+script = ExtResource("1_script")
+
+[node name="VisualRoot_可手动调整" type="Node2D" parent="." unique_id=1306027887]
+scale = Vector2(0.09, 0.09)
+
+[node name="空盆土壤" type="Sprite2D" parent="VisualRoot_可手动调整" unique_id=55500376]
+position = Vector2(1.5258789e-05, -11.111113)
+scale = Vector2(0.1772107, 0.1772107)
+texture = ExtResource("2_empty")
+
+[node name="刚种下幼苗" type="Sprite2D" parent="VisualRoot_可手动调整" unique_id=248307396]
+position = Vector2(1.5258789e-05, -44.444443)
+scale = Vector2(0.21265286, 0.2126529)
+texture = ExtResource("3_seedling")
+
+[node name="茂盛藤蔓" type="Sprite2D" parent="VisualRoot_可手动调整" unique_id=909394769]
+position = Vector2(3.0517578e-05, -99.99999)
+scale = Vector2(0.31897926, 0.31897932)
+texture = ExtResource("4_vine")
+
+[node name="枯萎藤蔓" type="Sprite2D" parent="VisualRoot_可手动调整" unique_id=418109581]
+position = Vector2(-11.111111, -77.77777)
+scale = Vector2(0.26861888, 0.26861894)
+texture = ExtResource("6_withered")
+
+[node name="黄瓜挂点_可手动调整" type="Node2D" parent="VisualRoot_可手动调整" unique_id=1396786125]
+
+[node name="黄瓜1" type="Sprite2D" parent="VisualRoot_可手动调整/黄瓜挂点_可手动调整" unique_id=1473137883]
+position = Vector2(-100, -66.66667)
+rotation = -0.35
+scale = Vector2(0.095, 0.095)
+texture = ExtResource("5_cucumber")
+
+[node name="黄瓜2" type="Sprite2D" parent="VisualRoot_可手动调整/黄瓜挂点_可手动调整" unique_id=336503458]
+position = Vector2(144.44446, -77.77777)
+rotation = 0.42
+scale = Vector2(0.095, 0.095)
+texture = ExtResource("5_cucumber")
+
+[node name="黄瓜3" type="Sprite2D" parent="VisualRoot_可手动调整/黄瓜挂点_可手动调整" unique_id=1629677365]
+position = Vector2(-88.888855, -155.55554)
+rotation = -0.18
+scale = Vector2(0.095, 0.095)
+texture = ExtResource("5_cucumber")
+
+[node name="黄瓜4" type="Sprite2D" parent="VisualRoot_可手动调整/黄瓜挂点_可手动调整" unique_id=1694236878]
+position = Vector2(99.99999, -111.11105)
+rotation = 0.28
+scale = Vector2(0.095, 0.095)
+texture = ExtResource("5_cucumber")
+
+[node name="黄瓜5" type="Sprite2D" parent="VisualRoot_可手动调整/黄瓜挂点_可手动调整" unique_id=999579328]
+position = Vector2(-99.999985, -111.111145)
+rotation = -0.46
+scale = Vector2(0.095, 0.095)
+texture = ExtResource("5_cucumber")
+
+[node name="黄瓜6" type="Sprite2D" parent="VisualRoot_可手动调整/黄瓜挂点_可手动调整" unique_id=744828139]
+position = Vector2(66.666595, -166.66663)
+rotation = 0.5
+scale = Vector2(0.095, 0.095)
+texture = ExtResource("5_cucumber")

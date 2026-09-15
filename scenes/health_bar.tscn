@@ -1,0 +1,115 @@
+[gd_scene format=3 uid="uid://eve8tksfkyvy"]
+
+[ext_resource type="Script" path="res://classes/health_bar.gd" id="1_y3kqx"]
+[ext_resource type="Texture2D" path="res://Images/未标题-1.png" id="2_6opq1"]
+
+[sub_resource type="Gradient" id="Gradient_y3kqx"]
+colors = PackedColorArray(1, 1, 0, 1, 1, 1, 0, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_6opq1"]
+gradient = SubResource("Gradient_y3kqx")
+
+[node name="Health_Bar" type="Control" unique_id=595266760]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_y3kqx")
+
+[node name="TextureRect" type="TextureRect" parent="." unique_id=436834118]
+self_modulate = Color(0, 0, 0, 1)
+layout_mode = 0
+offset_left = -945.0
+offset_top = -945.0
+offset_right = 945.0
+offset_bottom = 945.0
+texture = ExtResource("2_6opq1")
+
+[node name="Health" type="TextureProgressBar" parent="TextureRect" unique_id=531906221]
+layout_mode = 0
+offset_left = 50.0
+offset_top = 50.0
+offset_right = 1940.0
+offset_bottom = 1940.0
+scale = Vector2(0.95, 0.95)
+max_value = 1.0
+step = 0.0
+value = 0.5
+fill_mode = 3
+texture_progress = ExtResource("2_6opq1")
+
+[node name="Label" type="Label" parent="TextureRect" unique_id=1931065171]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -877.0
+offset_top = -610.0
+offset_right = 839.0
+offset_bottom = 590.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.58431375)
+theme_override_colors/font_outline_color = Color(1, 1, 1, 1)
+theme_override_constants/shadow_offset_x = 20
+theme_override_constants/shadow_offset_y = 20
+theme_override_constants/outline_size = 120
+theme_override_constants/shadow_outline_size = 100
+theme_override_font_sizes/font_size = 900
+text = "1000"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Block" type="TextureProgressBar" parent="TextureRect" unique_id=1417344489]
+self_modulate = Color(0.46618086, 0.4661808, 0.4661808, 0.5647059)
+z_index = 1
+layout_mode = 0
+offset_left = 50.0
+offset_top = 50.0
+offset_right = 1940.0
+offset_bottom = 1940.0
+scale = Vector2(0.95, 0.95)
+max_value = 1.0
+step = 0.0
+value = 1.0
+fill_mode = 3
+texture_progress = ExtResource("2_6opq1")
+
+[node name="Energy_Bar" type="ColorRect" parent="." unique_id=1185060233]
+visible = false
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -945.0
+offset_top = 1042.0
+offset_right = 945.0
+offset_bottom = 1142.0
+grow_horizontal = 2
+grow_vertical = 0
+color = Color(0, 0, 0, 1)
+
+[node name="Energy" type="TextureProgressBar" parent="Energy_Bar" unique_id=1831067949]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -32.0
+offset_top = -32.0
+offset_right = 32.0
+offset_bottom = 32.0
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(28, 0.9)
+pivot_offset_ratio = Vector2(0.5, 0.5)
+max_value = 1.0
+step = 0.0
+value = 1.0
+texture_progress = SubResource("GradientTexture2D_6opq1")
+
+[connection signal="health_changed" from="." to="." method="_on_health_changed"]

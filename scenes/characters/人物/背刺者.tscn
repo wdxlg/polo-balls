@@ -1,0 +1,33 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/背刺者.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/背刺者/背刺者_和善.png" id="3_friendly"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/背刺者/背刺者_凶狠.png" id="4_knife"]
+
+[node name="背刺者" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+friendly_texture = ExtResource("3_friendly")
+knife_texture = ExtResource("4_knife")
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("射手", "爆发", "机动")
+Negative_Tags = PackedStringArray("老六", "阴人")
+Max_health = 480
+Damage = 105
+Speed = 125.0
+Attack_Cooling = 2.4
+continue_attack_cooling = 0.08
+Health_Restore = 0
+Can_Skill = false
+projectile_speed = 360.0
+backstab_trigger_delay = 0.08
+shot_cooldown = 2.35
+facing_dot_tolerance = 0.02
+evade_trigger_distance = 118.0
+evade_front_dot_threshold = 0.12
+evade_turn_degrees = 18.0
+evade_cooldown_min = 0.75
+evade_cooldown_max = 1.2
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+texture = ExtResource("3_friendly")

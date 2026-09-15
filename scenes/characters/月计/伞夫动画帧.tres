@@ -1,0 +1,450 @@
+[gd_resource type="SpriteFrames" format=3 uid="uid://b3ojd12phvgoa"]
+
+[ext_resource type="Texture2D" uid="uid://capxvrdfydblq" path="res://Images/characters/月计/伞夫/站立/frame_0001.png" id="1"]
+[ext_resource type="Texture2D" uid="uid://ciomlwy0gilq2" path="res://Images/characters/月计/伞夫/站立/frame_0002.png" id="2"]
+[ext_resource type="Texture2D" uid="uid://3v7exnrk6x0c" path="res://Images/characters/月计/伞夫/站立/frame_0003.png" id="3"]
+[ext_resource type="Texture2D" uid="uid://ccr8jh2foma6k" path="res://Images/characters/月计/伞夫/站立/frame_0004.png" id="4"]
+[ext_resource type="Texture2D" uid="uid://icr81bm0rl8v" path="res://Images/characters/月计/伞夫/站立/frame_0005.png" id="5"]
+[ext_resource type="Texture2D" uid="uid://wcw87t5wngij" path="res://Images/characters/月计/伞夫/站立/frame_0006.png" id="6"]
+[ext_resource type="Texture2D" uid="uid://brdkcdlq54xc" path="res://Images/characters/月计/伞夫/站立/frame_0007.png" id="7"]
+[ext_resource type="Texture2D" uid="uid://be775bb82fs1c" path="res://Images/characters/月计/伞夫/站立/frame_0008.png" id="8"]
+[ext_resource type="Texture2D" uid="uid://s531vahajj6k" path="res://Images/characters/月计/伞夫/站立/frame_0009.png" id="9"]
+[ext_resource type="Texture2D" uid="uid://cioo32kro72bp" path="res://Images/characters/月计/伞夫/站立/frame_0010.png" id="10"]
+[ext_resource type="Texture2D" uid="uid://bhj5kjvvbdwxe" path="res://Images/characters/月计/伞夫/站立/frame_0011.png" id="11"]
+[ext_resource type="Texture2D" uid="uid://biwj0o1xd1imq" path="res://Images/characters/月计/伞夫/站立/frame_0012.png" id="12"]
+[ext_resource type="Texture2D" uid="uid://ckpk7f8rblqvt" path="res://Images/characters/月计/伞夫/站立/frame_0013.png" id="13"]
+[ext_resource type="Texture2D" uid="uid://rl80d1uoaajm" path="res://Images/characters/月计/伞夫/站立/frame_0014.png" id="14"]
+[ext_resource type="Texture2D" uid="uid://cq2vridtphggh" path="res://Images/characters/月计/伞夫/站立/frame_0015.png" id="15"]
+[ext_resource type="Texture2D" uid="uid://bylubtyed7y4f" path="res://Images/characters/月计/伞夫/站立/frame_0016.png" id="16"]
+[ext_resource type="Texture2D" uid="uid://cutl0ufbhcd1p" path="res://Images/characters/月计/伞夫/站立/frame_0017.png" id="17"]
+[ext_resource type="Texture2D" uid="uid://c2l4e5wohyoo5" path="res://Images/characters/月计/伞夫/站立/frame_0018.png" id="18"]
+[ext_resource type="Texture2D" uid="uid://doyxjouoayra2" path="res://Images/characters/月计/伞夫/站立/frame_0019.png" id="19"]
+[ext_resource type="Texture2D" uid="uid://bwyyh3liful7i" path="res://Images/characters/月计/伞夫/站立/frame_0020.png" id="20"]
+[ext_resource type="Texture2D" uid="uid://1lac6s7qyo2w" path="res://Images/characters/月计/伞夫/站立/frame_0021.png" id="21"]
+[ext_resource type="Texture2D" uid="uid://drygbj1op10hj" path="res://Images/characters/月计/伞夫/站立/frame_0022.png" id="22"]
+[ext_resource type="Texture2D" uid="uid://b6hj4iitedpc3" path="res://Images/characters/月计/伞夫/站立/frame_0023.png" id="23"]
+[ext_resource type="Texture2D" uid="uid://ckp5bhj3yjbjt" path="res://Images/characters/月计/伞夫/站立/frame_0024.png" id="24"]
+[ext_resource type="Texture2D" uid="uid://deiysscegr2jq" path="res://Images/characters/月计/伞夫/站立/frame_0025.png" id="25"]
+[ext_resource type="Texture2D" uid="uid://b2pwuv5p7dqrn" path="res://Images/characters/月计/伞夫/站立/frame_0026.png" id="26"]
+[ext_resource type="Texture2D" uid="uid://ypismxbhkkea" path="res://Images/characters/月计/伞夫/站立/frame_0027.png" id="27"]
+[ext_resource type="Texture2D" uid="uid://dea3mrock8dpy" path="res://Images/characters/月计/伞夫/站立/frame_0028.png" id="28"]
+[ext_resource type="Texture2D" uid="uid://tjrsf8i4ocf1" path="res://Images/characters/月计/伞夫/站立/frame_0029.png" id="29"]
+[ext_resource type="Texture2D" uid="uid://deplm01k417pe" path="res://Images/characters/月计/伞夫/站立/frame_0030.png" id="30"]
+[ext_resource type="Texture2D" uid="uid://ceb7e5kak2jy3" path="res://Images/characters/月计/伞夫/站立/frame_0031.png" id="31"]
+[ext_resource type="Texture2D" uid="uid://b1qr3i2vcvc0i" path="res://Images/characters/月计/伞夫/站立/frame_0032.png" id="32"]
+[ext_resource type="Texture2D" uid="uid://ebxr6845wl5v" path="res://Images/characters/月计/伞夫/站立/frame_0033.png" id="33"]
+[ext_resource type="Texture2D" uid="uid://bjk0wwrbi00fg" path="res://Images/characters/月计/伞夫/站立/frame_0034.png" id="34"]
+[ext_resource type="Texture2D" uid="uid://cshslv8trl3og" path="res://Images/characters/月计/伞夫/站立/frame_0035.png" id="35"]
+[ext_resource type="Texture2D" uid="uid://dt4y6cjkf3hb1" path="res://Images/characters/月计/伞夫/站立/frame_0036.png" id="36"]
+[ext_resource type="Texture2D" uid="uid://41m651i8deux" path="res://Images/characters/月计/伞夫/站立/frame_0037.png" id="37"]
+[ext_resource type="Texture2D" uid="uid://c60iaj2dw0qsm" path="res://Images/characters/月计/伞夫/站立/frame_0038.png" id="38"]
+[ext_resource type="Texture2D" uid="uid://b7j76p21dk45b" path="res://Images/characters/月计/伞夫/站立/frame_0039.png" id="39"]
+[ext_resource type="Texture2D" uid="uid://b5e0jgbfbyhis" path="res://Images/characters/月计/伞夫/站立/frame_0040.png" id="40"]
+[ext_resource type="Texture2D" uid="uid://cjeixh6vj0pvq" path="res://Images/characters/月计/伞夫/站立/frame_0041.png" id="41"]
+[ext_resource type="Texture2D" uid="uid://bwk8ug4k8e6th" path="res://Images/characters/月计/伞夫/站立/frame_0042.png" id="42"]
+[ext_resource type="Texture2D" uid="uid://c1468y8tlbhkt" path="res://Images/characters/月计/伞夫/站立/frame_0043.png" id="43"]
+[ext_resource type="Texture2D" uid="uid://b1k0cxvwq2ltd" path="res://Images/characters/月计/伞夫/站立/frame_0044.png" id="44"]
+[ext_resource type="Texture2D" uid="uid://bcvrc227p62mr" path="res://Images/characters/月计/伞夫/站立/frame_0045.png" id="45"]
+[ext_resource type="Texture2D" uid="uid://cnlfnjyxrg3b2" path="res://Images/characters/月计/伞夫/站立/frame_0046.png" id="46"]
+[ext_resource type="Texture2D" uid="uid://280vslhmkp26" path="res://Images/characters/月计/伞夫/站立/frame_0047.png" id="47"]
+[ext_resource type="Texture2D" uid="uid://bfqooiritmcpt" path="res://Images/characters/月计/伞夫/站立/frame_0048.png" id="48"]
+[ext_resource type="Texture2D" uid="uid://dmuartfb4jxir" path="res://Images/characters/月计/伞夫/站立/frame_0049.png" id="49"]
+[ext_resource type="Texture2D" uid="uid://bfkxow68v6ft7" path="res://Images/characters/月计/伞夫/站立/frame_0050.png" id="50"]
+[ext_resource type="Texture2D" uid="uid://bn7sfg5h18dk1" path="res://Images/characters/月计/伞夫/站立/frame_0051.png" id="51"]
+[ext_resource type="Texture2D" uid="uid://qwbprovugik0" path="res://Images/characters/月计/伞夫/站立/frame_0052.png" id="52"]
+[ext_resource type="Texture2D" uid="uid://cja8dsfdn4xff" path="res://Images/characters/月计/伞夫/站立/frame_0053.png" id="53"]
+[ext_resource type="Texture2D" uid="uid://cn5bw0ets0tod" path="res://Images/characters/月计/伞夫/站立/frame_0054.png" id="54"]
+[ext_resource type="Texture2D" uid="uid://dflghisejs6wl" path="res://Images/characters/月计/伞夫/站立/frame_0055.png" id="55"]
+[ext_resource type="Texture2D" uid="uid://d1iylogbwibu6" path="res://Images/characters/月计/伞夫/站立/frame_0056.png" id="56"]
+[ext_resource type="Texture2D" uid="uid://o1ydh0qheht2" path="res://Images/characters/月计/伞夫/站立/frame_0057.png" id="57"]
+[ext_resource type="Texture2D" uid="uid://c0rmymf5dvv06" path="res://Images/characters/月计/伞夫/站立/frame_0058.png" id="58"]
+[ext_resource type="Texture2D" uid="uid://bn1t3qtx6mdpu" path="res://Images/characters/月计/伞夫/站立/frame_0059.png" id="59"]
+[ext_resource type="Texture2D" uid="uid://bg7if71kdirkq" path="res://Images/characters/月计/伞夫/站立/frame_0060.png" id="60"]
+[ext_resource type="Texture2D" uid="uid://djry6fj5xrokf" path="res://Images/characters/月计/伞夫/站立/frame_0061.png" id="61"]
+[ext_resource type="Texture2D" uid="uid://bsh3218pigria" path="res://Images/characters/月计/伞夫/站立/frame_0062.png" id="62"]
+[ext_resource type="Texture2D" uid="uid://cbh8r0gx1yug5" path="res://Images/characters/月计/伞夫/站立/frame_0063.png" id="63"]
+[ext_resource type="Texture2D" uid="uid://bh6hq0k30fsv8" path="res://Images/characters/月计/伞夫/站立/frame_0064.png" id="64"]
+[ext_resource type="Texture2D" uid="uid://b4cxl3x0nmj85" path="res://Images/characters/月计/伞夫/站立/frame_0065.png" id="65"]
+[ext_resource type="Texture2D" uid="uid://cfgloreqmangn" path="res://Images/characters/月计/伞夫/站立/frame_0066.png" id="66"]
+[ext_resource type="Texture2D" uid="uid://b2f1ptkasir4t" path="res://Images/characters/月计/伞夫/站立/frame_0067.png" id="67"]
+[ext_resource type="Texture2D" uid="uid://jamd11nck7xc" path="res://Images/characters/月计/伞夫/攻击1/frame_0004.png" id="68"]
+[ext_resource type="Texture2D" uid="uid://devscbrkpwjp5" path="res://Images/characters/月计/伞夫/攻击1/frame_0005.png" id="69"]
+[ext_resource type="Texture2D" uid="uid://bl1ge4hc736u0" path="res://Images/characters/月计/伞夫/攻击1/frame_0007.png" id="70"]
+[ext_resource type="Texture2D" uid="uid://ber2jg0r26to6" path="res://Images/characters/月计/伞夫/攻击1/frame_0008.png" id="71"]
+[ext_resource type="Texture2D" uid="uid://byxvdg54auxo6" path="res://Images/characters/月计/伞夫/攻击1/frame_0009.png" id="72"]
+[ext_resource type="Texture2D" uid="uid://q3t1e3uvy6j5" path="res://Images/characters/月计/伞夫/攻击1/frame_0012.png" id="73"]
+[ext_resource type="Texture2D" uid="uid://c3oper8xenxgv" path="res://Images/characters/月计/伞夫/攻击1/frame_0013.png" id="74"]
+[ext_resource type="Texture2D" uid="uid://dmxn6w8dsis6w" path="res://Images/characters/月计/伞夫/攻击1/frame_0014.png" id="75"]
+[ext_resource type="Texture2D" uid="uid://c6fs2ltqg158h" path="res://Images/characters/月计/伞夫/攻击1/frame_0015.png" id="76"]
+[ext_resource type="Texture2D" uid="uid://dtdsdrdibtnqg" path="res://Images/characters/月计/伞夫/攻击1/frame_0016.png" id="77"]
+[ext_resource type="Texture2D" uid="uid://dhjdqq4dnpo28" path="res://Images/characters/月计/伞夫/攻击1/frame_0017.png" id="78"]
+[ext_resource type="Texture2D" uid="uid://tuytyks6lu4" path="res://Images/characters/月计/伞夫/攻击1/frame_0018.png" id="79"]
+[ext_resource type="Texture2D" uid="uid://bulvv73g0m1t5" path="res://Images/characters/月计/伞夫/攻击1/frame_0019.png" id="80"]
+[ext_resource type="Texture2D" uid="uid://fq2xnqqiw6sw" path="res://Images/characters/月计/伞夫/攻击1/frame_0020.png" id="81"]
+[ext_resource type="Texture2D" uid="uid://cc7iaej6pqmun" path="res://Images/characters/月计/伞夫/攻击1/frame_0021.png" id="82"]
+[ext_resource type="Texture2D" uid="uid://cp2m4vlwvp8dj" path="res://Images/characters/月计/伞夫/攻击1/frame_0022.png" id="83"]
+[ext_resource type="Texture2D" uid="uid://go3uxrrxl6py" path="res://Images/characters/月计/伞夫/攻击1/frame_0023.png" id="84"]
+[ext_resource type="Texture2D" uid="uid://cjy0omlm1m0p4" path="res://Images/characters/月计/伞夫/攻击1/frame_0024.png" id="85"]
+[ext_resource type="Texture2D" uid="uid://cxlf3wtv0w4v2" path="res://Images/characters/月计/伞夫/攻击1/frame_0025.png" id="86"]
+[ext_resource type="Texture2D" uid="uid://c8chqt37ib7o3" path="res://Images/characters/月计/伞夫/攻击1/frame_0026.png" id="87"]
+[ext_resource type="Texture2D" uid="uid://fhkqrehiolce" path="res://Images/characters/月计/伞夫/攻击1/frame_0027.png" id="88"]
+[ext_resource type="Texture2D" uid="uid://cungycajy0qyt" path="res://Images/characters/月计/伞夫/攻击1/frame_0028.png" id="89"]
+[ext_resource type="Texture2D" uid="uid://52t3xljqtxcs" path="res://Images/characters/月计/伞夫/攻击2/frame_0011.png" id="90"]
+[ext_resource type="Texture2D" uid="uid://b25brxlcfjirr" path="res://Images/characters/月计/伞夫/攻击2/frame_0012.png" id="91"]
+[ext_resource type="Texture2D" uid="uid://0ofjlofupki4" path="res://Images/characters/月计/伞夫/攻击2/frame_0013.png" id="92"]
+[ext_resource type="Texture2D" uid="uid://c5sc73nsewbuh" path="res://Images/characters/月计/伞夫/攻击2/frame_0014.png" id="93"]
+[ext_resource type="Texture2D" uid="uid://cxsjooopmqtqu" path="res://Images/characters/月计/伞夫/攻击2/frame_0015.png" id="94"]
+[ext_resource type="Texture2D" uid="uid://bup770rwtpgvp" path="res://Images/characters/月计/伞夫/攻击3/frame_0013.png" id="107"]
+[ext_resource type="Texture2D" uid="uid://c3tyo6nsy8t6t" path="res://Images/characters/月计/伞夫/攻击3/frame_0014.png" id="108"]
+[ext_resource type="Texture2D" uid="uid://dj7npbn2pxkyw" path="res://Images/characters/月计/伞夫/攻击3/frame_0016.png" id="110"]
+[ext_resource type="Texture2D" uid="uid://bfwqsqfhf6dmp" path="res://Images/characters/月计/伞夫/攻击3/frame_0017.png" id="111"]
+[ext_resource type="Texture2D" uid="uid://chr1apnvirmfq" path="res://Images/characters/月计/伞夫/攻击3/frame_0018.png" id="112"]
+[ext_resource type="Texture2D" uid="uid://dowg3pyahwc10" path="res://Images/characters/月计/伞夫/攻击3/frame_0019.png" id="113"]
+[ext_resource type="Texture2D" uid="uid://c6hti2pv3msj0" path="res://Images/characters/月计/伞夫/攻击3/frame_0020.png" id="114"]
+[ext_resource type="Texture2D" uid="uid://desr6rvjh8dp6" path="res://Images/characters/月计/伞夫/攻击3/frame_0021.png" id="115"]
+[ext_resource type="Texture2D" uid="uid://c3rgpc6ihmiva" path="res://Images/characters/月计/伞夫/攻击3/frame_0022.png" id="116"]
+[ext_resource type="Texture2D" uid="uid://cpr3sdls2a4po" path="res://Images/characters/月计/伞夫/攻击3/frame_0023.png" id="117"]
+[ext_resource type="Texture2D" uid="uid://4lewv76cwid6" path="res://Images/characters/月计/伞夫/防御.png" id="118"]
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("68")
+}, {
+"duration": 1.0,
+"texture": ExtResource("69")
+}, {
+"duration": 1.0,
+"texture": ExtResource("70")
+}, {
+"duration": 1.0,
+"texture": ExtResource("71")
+}, {
+"duration": 1.0,
+"texture": ExtResource("72")
+}, {
+"duration": 1.0,
+"texture": ExtResource("73")
+}, {
+"duration": 1.0,
+"texture": ExtResource("74")
+}, {
+"duration": 1.0,
+"texture": ExtResource("75")
+}, {
+"duration": 1.0,
+"texture": ExtResource("76")
+}, {
+"duration": 1.0,
+"texture": ExtResource("77")
+}, {
+"duration": 1.0,
+"texture": ExtResource("78")
+}, {
+"duration": 1.0,
+"texture": ExtResource("79")
+}, {
+"duration": 1.0,
+"texture": ExtResource("80")
+}, {
+"duration": 1.0,
+"texture": ExtResource("81")
+}, {
+"duration": 1.0,
+"texture": ExtResource("82")
+}, {
+"duration": 1.0,
+"texture": ExtResource("83")
+}, {
+"duration": 1.0,
+"texture": ExtResource("84")
+}, {
+"duration": 1.0,
+"texture": ExtResource("85")
+}, {
+"duration": 1.0,
+"texture": ExtResource("86")
+}, {
+"duration": 1.0,
+"texture": ExtResource("87")
+}, {
+"duration": 1.0,
+"texture": ExtResource("88")
+}, {
+"duration": 1.0,
+"texture": ExtResource("89")
+}],
+"loop": 0,
+"name": &"Attack1",
+"speed": 30.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("90")
+}, {
+"duration": 1.0,
+"texture": ExtResource("91")
+}, {
+"duration": 1.0,
+"texture": ExtResource("92")
+}, {
+"duration": 1.0,
+"texture": ExtResource("93")
+}, {
+"duration": 1.0,
+"texture": ExtResource("94")
+}],
+"loop": 0,
+"name": &"Attack2",
+"speed": 24.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("107")
+}, {
+"duration": 1.0,
+"texture": ExtResource("108")
+}, {
+"duration": 1.0,
+"texture": ExtResource("110")
+}, {
+"duration": 1.0,
+"texture": ExtResource("111")
+}, {
+"duration": 1.0,
+"texture": ExtResource("112")
+}, {
+"duration": 1.0,
+"texture": ExtResource("113")
+}, {
+"duration": 1.0,
+"texture": ExtResource("114")
+}, {
+"duration": 1.0,
+"texture": ExtResource("115")
+}, {
+"duration": 1.0,
+"texture": ExtResource("116")
+}, {
+"duration": 1.0,
+"texture": ExtResource("117")
+}],
+"loop": 0,
+"name": &"Attack3",
+"speed": 30.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("118")
+}],
+"loop": 0,
+"name": &"Defense",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("3")
+}, {
+"duration": 1.0,
+"texture": ExtResource("4")
+}, {
+"duration": 1.0,
+"texture": ExtResource("5")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6")
+}, {
+"duration": 1.0,
+"texture": ExtResource("7")
+}, {
+"duration": 1.0,
+"texture": ExtResource("8")
+}, {
+"duration": 1.0,
+"texture": ExtResource("9")
+}, {
+"duration": 1.0,
+"texture": ExtResource("10")
+}, {
+"duration": 1.0,
+"texture": ExtResource("11")
+}, {
+"duration": 1.0,
+"texture": ExtResource("12")
+}, {
+"duration": 1.0,
+"texture": ExtResource("13")
+}, {
+"duration": 1.0,
+"texture": ExtResource("14")
+}, {
+"duration": 1.0,
+"texture": ExtResource("15")
+}, {
+"duration": 1.0,
+"texture": ExtResource("16")
+}, {
+"duration": 1.0,
+"texture": ExtResource("17")
+}, {
+"duration": 1.0,
+"texture": ExtResource("18")
+}, {
+"duration": 1.0,
+"texture": ExtResource("19")
+}, {
+"duration": 1.0,
+"texture": ExtResource("20")
+}, {
+"duration": 1.0,
+"texture": ExtResource("21")
+}, {
+"duration": 1.0,
+"texture": ExtResource("22")
+}, {
+"duration": 1.0,
+"texture": ExtResource("23")
+}, {
+"duration": 1.0,
+"texture": ExtResource("24")
+}, {
+"duration": 1.0,
+"texture": ExtResource("25")
+}, {
+"duration": 1.0,
+"texture": ExtResource("26")
+}, {
+"duration": 1.0,
+"texture": ExtResource("27")
+}, {
+"duration": 1.0,
+"texture": ExtResource("28")
+}, {
+"duration": 1.0,
+"texture": ExtResource("29")
+}, {
+"duration": 1.0,
+"texture": ExtResource("30")
+}, {
+"duration": 1.0,
+"texture": ExtResource("31")
+}, {
+"duration": 1.0,
+"texture": ExtResource("32")
+}, {
+"duration": 1.0,
+"texture": ExtResource("33")
+}, {
+"duration": 1.0,
+"texture": ExtResource("34")
+}, {
+"duration": 1.0,
+"texture": ExtResource("35")
+}, {
+"duration": 1.0,
+"texture": ExtResource("36")
+}, {
+"duration": 1.0,
+"texture": ExtResource("37")
+}, {
+"duration": 1.0,
+"texture": ExtResource("38")
+}, {
+"duration": 1.0,
+"texture": ExtResource("39")
+}, {
+"duration": 1.0,
+"texture": ExtResource("40")
+}, {
+"duration": 1.0,
+"texture": ExtResource("41")
+}, {
+"duration": 1.0,
+"texture": ExtResource("42")
+}, {
+"duration": 1.0,
+"texture": ExtResource("43")
+}, {
+"duration": 1.0,
+"texture": ExtResource("44")
+}, {
+"duration": 1.0,
+"texture": ExtResource("45")
+}, {
+"duration": 1.0,
+"texture": ExtResource("46")
+}, {
+"duration": 1.0,
+"texture": ExtResource("47")
+}, {
+"duration": 1.0,
+"texture": ExtResource("48")
+}, {
+"duration": 1.0,
+"texture": ExtResource("49")
+}, {
+"duration": 1.0,
+"texture": ExtResource("50")
+}, {
+"duration": 1.0,
+"texture": ExtResource("51")
+}, {
+"duration": 1.0,
+"texture": ExtResource("52")
+}, {
+"duration": 1.0,
+"texture": ExtResource("53")
+}, {
+"duration": 1.0,
+"texture": ExtResource("54")
+}, {
+"duration": 1.0,
+"texture": ExtResource("55")
+}, {
+"duration": 1.0,
+"texture": ExtResource("56")
+}, {
+"duration": 1.0,
+"texture": ExtResource("57")
+}, {
+"duration": 1.0,
+"texture": ExtResource("58")
+}, {
+"duration": 1.0,
+"texture": ExtResource("59")
+}, {
+"duration": 1.0,
+"texture": ExtResource("60")
+}, {
+"duration": 1.0,
+"texture": ExtResource("61")
+}, {
+"duration": 1.0,
+"texture": ExtResource("62")
+}, {
+"duration": 1.0,
+"texture": ExtResource("63")
+}, {
+"duration": 1.0,
+"texture": ExtResource("64")
+}, {
+"duration": 1.0,
+"texture": ExtResource("65")
+}, {
+"duration": 1.0,
+"texture": ExtResource("66")
+}, {
+"duration": 1.0,
+"texture": ExtResource("67")
+}],
+"loop": 1,
+"name": &"Idle",
+"speed": 18.0
+}]

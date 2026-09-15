@@ -1,0 +1,22 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/effects/野生狗奶老死残骸.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/meme/野生狗奶/整体.png" id="2_whole"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape_remains"]
+size = Vector2(38.08, 29.92)
+
+[node name="野生狗奶老死残骸" type="StaticBody2D"]
+collision_layer = 1
+collision_mask = 0
+script = ExtResource("1_script")
+
+[node name="整体" type="Sprite2D" parent="."]
+texture_filter = 1
+texture = ExtResource("2_whole")
+scale = Vector2(0.0323, 0.0323)
+z_index = 3
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape_remains")
+position = Vector2(0, 1.7)

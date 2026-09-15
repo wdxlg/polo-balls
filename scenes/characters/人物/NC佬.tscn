@@ -1,0 +1,21 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/NC佬.gd" id="2_script"]
+
+[node name="NC佬" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("远程", "群体", "召唤", "特殊")
+Negative_Tags = PackedStringArray("装填")
+Max_health = 225
+Damage = 3
+Speed = 104.0
+Health_Restore = 0
+Can_Attack = false
+Can_Skill = false
+squad_size = 4
+global_nc_cap = 12
+tank_trigger_time = 120.0
+
+[editable path="Health_Bar"]

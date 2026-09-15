@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://cbjq816qlwq2b"]
+
+[ext_resource type="PackedScene" path="res://scenes/particle.tscn" id="1_hcjys"]
+[ext_resource type="Material" path="res://particles/bee.tres" id="2_p65ne"]
+
+[node name="Bee_Follow" unique_id=530416242 instance=ExtResource("1_hcjys")]
+amount = 100
+local_coords = true
+process_material = ExtResource("2_p65ne")
+follow_skew = false

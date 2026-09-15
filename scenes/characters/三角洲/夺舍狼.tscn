@@ -1,0 +1,56 @@
+[gd_scene format=3 uid="uid://dg12y8f02l2l3"]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_sy4w8"]
+[ext_resource type="Texture2D" path="res://Images/characters/三角洲/红狼/PixPin_2026-05-22_14-21-55.png" id="2_mv17q"]
+[ext_resource type="Script" path="res://scripts/characters/夺舍狼.gd" id="2_wolua"]
+[ext_resource type="Texture2D" path="res://Images/characters/三角洲/红狼/PixPin_2026-05-22_14-27-06.png" id="3_wolua"]
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_tntar"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("2_mv17q")
+}],
+"loop": true,
+"name": &"Attack",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("3_wolua")
+}],
+"loop": true,
+"name": &"default",
+"speed": 5.0
+}]
+
+[node name="夺舍狼" unique_id=751516400 node_paths=PackedStringArray("image") instance=ExtResource("1_sy4w8")]
+script = ExtResource("2_wolua")
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("近战", "特殊", "控制")
+Negative_Tags = PackedStringArray("畜生", "狼崽子")
+image = NodePath("Graphics/AnimatedSprite2D")
+dir_left = false
+Skill_Cooling = 5.0
+continue_attack_cooling = 0.05
+
+[node name="Graphics" parent="." index="0" unique_id=1055880812]
+position = Vector2(0, 45)
+scale = Vector2(1.2744555, 1.2744555)
+
+[node name="Image" parent="Graphics" index="0" unique_id=1294062553]
+texture = null
+
+[node name="AnimatedSprite2D" parent="Graphics" index="1" unique_id=907666059]
+sprite_frames = SubResource("SpriteFrames_tntar")
+autoplay = "default"
+
+[node name="CharacterAutoFit" parent="." index="2"]
+scan_all_animated_frames = false
+refit_on_animation_change = true
+collision_width_ratio = 0.78
+collision_height_ratio = 0.76
+collision_min_size = Vector2(40, 50)
+collision_max_size = Vector2(150, 160)
+
+[editable path="Health_Bar"]

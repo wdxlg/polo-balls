@@ -1,0 +1,63 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/智者.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/智者/智者_正常.png" id="3_normal"]
+
+[node name="智者" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("布局", "控制", "机动", "特殊")
+Negative_Tags = PackedStringArray("神棍", "老登")
+Max_health = 430
+Damage = 20
+Speed = 142.0
+Attack_Cooling = 1.0
+Health_Restore = 0
+Can_Attack = false
+Can_Skill = false
+layout_interval = 4.8
+points_per_layout = 4
+layout_lifetime = 13.0
+between_point_delay = 0.38
+layout_point_radius = 6.0
+layout_line_width = 1.15
+active_move_max_distance = 56.0
+active_move_max_time = 1.1
+active_turn_limit_deg = 52.0
+active_steer_strength = 0.76
+placement_reach = 7.0
+point_spacing_min = 21.0
+point_spacing_max = 52.0
+
+active_retarget_interval = 0.16
+prediction_horizon = 3.0
+prediction_step = 0.12
+intercept_min_lead = 0.16
+intercept_preferred_lead = 0.48
+predicted_touch_radius = 23.0
+adaptive_check_interval = 0.28
+unreachable_grace_time = 1.35
+adaptive_cooldown = 4.8
+adaptive_remove_max = 2
+adaptive_prediction_horizon = 3.6
+tactic_cooldown = 1.9
+tactic_check_interval = 0.15
+tactic_move_max_distance = 44.0
+tactic_move_max_time = 0.82
+tactic_turn_limit_deg = 62.0
+tactic_steer_strength = 0.82
+dodge_eta_window = 1.15
+dodge_interference_radius = 25.0
+dodge_side_distance = 29.0
+push_activation_range = 78.0
+push_point_max_distance = 92.0
+push_setup_offset = 23.0
+push_commit_time = 0.34
+push_distance = 34.0
+push_speed = 430.0
+point_damage_start_multiplier = 1.0
+point_damage_step_multiplier = 0.9
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+texture = ExtResource("3_normal")

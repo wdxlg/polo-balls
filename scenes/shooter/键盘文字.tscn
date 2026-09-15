@@ -1,0 +1,35 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/shooter/键盘文字.gd" id="2_script"]
+
+[node name="键盘文字" instance=ExtResource("1_base")]
+collision_layer = 0
+collision_mask = 1
+script = ExtResource("2_script")
+Type = 1
+Max_health = 1
+Damage = 7
+Speed = 280.0
+Health_Restore = 0
+Can_Attack = false
+Can_Skill = false
+
+[node name="Image" parent="Graphics" index="0"]
+visible = false
+
+[node name="文字" type="Label" parent="Graphics"]
+offset_left = -120.0
+offset_top = -36.0
+offset_right = 120.0
+offset_bottom = 36.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 34
+text = "菜"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Health_Bar" parent="." index="2"]
+visible = false

@@ -1,0 +1,178 @@
+[gd_scene format=3 uid="uid://b5xwcuxwm1q2p"]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_krb2j"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/虔诚雕刻师/攻击_converted_frames/frames/攻击_converted_1.png" id="2_1fheh"]
+[ext_resource type="Script" path="res://scripts/characters/杀戮尖塔/虔诚雕刻师.gd" id="2_ig23s"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/虔诚雕刻师/攻击_converted_frames/frames/攻击_converted_2.png" id="3_ig23s"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/虔诚雕刻师/攻击_converted_frames/frames/攻击_converted_3.png" id="4_0d04e"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/虔诚雕刻师/攻击_converted_frames/frames/攻击_converted_4.png" id="5_rklpl"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/虔诚雕刻师/死亡_converted_frames/frames/死亡_converted_1.png" id="6_bmg5u"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/虔诚雕刻师/死亡_converted_frames/frames/死亡_converted_2.png" id="7_0b4fd"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/虔诚雕刻师/死亡_converted_frames/frames/死亡_converted_3.png" id="8_6m2b2"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/虔诚雕刻师/死亡_converted_frames/frames/死亡_converted_4.png" id="9_hy6rl"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/虔诚雕刻师/死亡_converted_frames/frames/死亡_converted_5.png" id="10_8v1w2"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/虔诚雕刻师/死亡_converted_frames/frames/死亡_converted_6.png" id="11_n4sa2"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/虔诚雕刻师/死亡_converted_frames/frames/死亡_converted_7.png" id="12_uppes"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/虔诚雕刻师/死亡_converted_frames/frames/死亡_converted_8.png" id="13_fry65"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/虔诚雕刻师/死亡_converted_frames/frames/死亡_converted_9.png" id="14_5wmj0"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/虔诚雕刻师/死亡_converted_frames/frames/死亡_converted_10.png" id="15_iaswn"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/虔诚雕刻师/死亡_converted_frames/frames/死亡_converted_11.png" id="16_lvmtm"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/虔诚雕刻师/受伤_converted_frames/frames/受伤_converted_1.png" id="17_o0l2m"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/虔诚雕刻师/受伤_converted_frames/frames/受伤_converted_2.png" id="18_mkxjx"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/虔诚雕刻师/受伤_converted_frames/frames/受伤_converted_3.png" id="19_kco6p"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/虔诚雕刻师/受伤_converted_frames/frames/受伤_converted_4.png" id="20_cw7ch"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/虔诚雕刻师/站立_converted_frames/frames/站立_converted_1.png" id="21_ytl7w"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/虔诚雕刻师/站立_converted_frames/frames/站立_converted_2.png" id="22_8bpg3"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/虔诚雕刻师/站立_converted_frames/frames/站立_converted_3.png" id="23_m3wye"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/虔诚雕刻师/站立_converted_frames/frames/站立_converted_4.png" id="24_idhx1"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/虔诚雕刻师/吟唱_converted_frames/frames/吟唱_converted_1.png" id="25_am136"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/虔诚雕刻师/吟唱_converted_frames/frames/吟唱_converted_2.png" id="26_n8fcy"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/虔诚雕刻师/吟唱_converted_frames/frames/吟唱_converted_3.png" id="27_3uyna"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/虔诚雕刻师/吟唱_converted_frames/frames/吟唱_converted_4.png" id="28_rlxyo"]
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_ybdnb"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("2_1fheh")
+}, {
+"duration": 1.0,
+"texture": ExtResource("3_ig23s")
+}, {
+"duration": 1.0,
+"texture": ExtResource("4_0d04e")
+}, {
+"duration": 1.0,
+"texture": ExtResource("5_rklpl")
+}],
+"loop": true,
+"name": &"Attack",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("6_bmg5u")
+}, {
+"duration": 1.0,
+"texture": ExtResource("7_0b4fd")
+}, {
+"duration": 1.0,
+"texture": ExtResource("8_6m2b2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("9_hy6rl")
+}, {
+"duration": 1.0,
+"texture": ExtResource("10_8v1w2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("11_n4sa2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("12_uppes")
+}, {
+"duration": 1.0,
+"texture": ExtResource("13_fry65")
+}, {
+"duration": 1.0,
+"texture": ExtResource("14_5wmj0")
+}, {
+"duration": 1.0,
+"texture": ExtResource("15_iaswn")
+}, {
+"duration": 1.0,
+"texture": ExtResource("16_lvmtm")
+}],
+"loop": false,
+"name": &"Die",
+"speed": 6.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("17_o0l2m")
+}, {
+"duration": 1.0,
+"texture": ExtResource("18_mkxjx")
+}, {
+"duration": 1.0,
+"texture": ExtResource("19_kco6p")
+}, {
+"duration": 1.0,
+"texture": ExtResource("20_cw7ch")
+}],
+"loop": true,
+"name": &"Hurt",
+"speed": 6.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("21_ytl7w")
+}, {
+"duration": 1.0,
+"texture": ExtResource("22_8bpg3")
+}, {
+"duration": 1.0,
+"texture": ExtResource("23_m3wye")
+}, {
+"duration": 1.0,
+"texture": ExtResource("24_idhx1")
+}],
+"loop": true,
+"name": &"Idle",
+"speed": 6.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("25_am136")
+}, {
+"duration": 1.0,
+"texture": ExtResource("26_n8fcy")
+}, {
+"duration": 1.0,
+"texture": ExtResource("27_3uyna")
+}, {
+"duration": 1.0,
+"texture": ExtResource("28_rlxyo")
+}],
+"loop": true,
+"name": &"Skill",
+"speed": 8.0
+}]
+
+[node name="虔诚雕刻师" unique_id=751516400 node_paths=PackedStringArray("image") instance=ExtResource("1_krb2j")]
+script = ExtResource("2_ig23s")
+Has_Collision_Damage = true
+Type_Tags = PackedStringArray("近战", "成长", "爆发")
+Negative_Tags = PackedStringArray("神棍")
+image = NodePath("Graphics/AnimatedSprite2D")
+Skill_Cooling = 3.0
+Max_health = 900
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+texture = null
+
+[node name="AnimatedSprite2D" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="1" unique_id=907666059]
+position = Vector2(0, 90)
+scale = Vector2(0.6985294, 0.69852936)
+sprite_frames = SubResource("SpriteFrames_ybdnb")
+animation = &"Skill"
+autoplay = "Idle"
+
+[node name="CharacterAutoFit" parent="." index="2"]
+visual_size_multiplier = 1.28
+
+[node name="CollisionShape2D" parent="." index="1" unique_id=434200601]
+visible = true
+position = Vector2(0, 95)
+scale = Vector2(0.97190505, 6.4558973)
+
+[node name="CollisionShape2D" parent="hitbox" parent_id_path=PackedInt32Array(28640507) index="0" unique_id=390337144]
+position = Vector2(0, 110)
+scale = Vector2(1.5658193, 8.509243)
+
+[node name="CollisionShape2D" parent="hurtbox" parent_id_path=PackedInt32Array(586576587) index="0" unique_id=58230542]
+visible = true
+position = Vector2(0, 95)
+scale = Vector2(1.0303239, 6.7958856)
+
+[editable path="Health_Bar"]

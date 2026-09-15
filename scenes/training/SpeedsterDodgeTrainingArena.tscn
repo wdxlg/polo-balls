@@ -1,0 +1,19 @@
+[gd_scene format=3 uid="uid://dtoy3yuvc0ayu"]
+
+[ext_resource type="Script" path="res://scripts/training/speedster_dodge_training_arena.gd" id="1_arena"]
+[ext_resource type="Script" path="res://addons/godot_rl_agents/sync.gd" id="2_sync"]
+[ext_resource type="PackedScene" path="res://scenes/training/SpeedsterTrainingProjectile.tscn" id="4_projectile"]
+
+[node name="SpeedsterDodgeTrainingArena" type="Node2D" unique_id=1808560728]
+script = ExtResource("1_arena")
+speedster_path = NodePath("")
+projectile_scene = ExtResource("4_projectile")
+
+[node name="Sync" type="Node" parent="." unique_id=309162530]
+script = ExtResource("2_sync")
+action_repeat = 2
+
+[node name="Projectiles" type="Node2D" parent="." unique_id=1406820828]
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=1228575579]
+position = Vector2(640, 360)

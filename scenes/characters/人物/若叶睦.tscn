@@ -1,0 +1,130 @@
+[gd_scene format=3 uid="uid://bml6s0co5253a"]
+
+[ext_resource type="PackedScene" uid="uid://dgfmejo2auorn" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" uid="uid://b2nlr4hid2jtv" path="res://scripts/characters/若叶睦.gd" id="2_script"]
+[ext_resource type="Texture2D" uid="uid://gm7xq33pn1bv" path="res://Images/characters/人物/若叶睦/若叶睦.png" id="3_mutsumi"]
+[ext_resource type="Texture2D" uid="uid://cch53em3xigi3" path="res://Images/characters/人物/若叶睦/拳头.png" id="4_punch"]
+[ext_resource type="Texture2D" uid="uid://bhhnjjyy84olh" path="res://Images/characters/人物/若叶睦/吉他.png" id="5_guitar"]
+[ext_resource type="Texture2D" uid="uid://b62fi71x3mi61" path="res://Images/characters/人物/若叶睦/浇水壶.png" id="6_watering_can"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_6rn45"]
+resource_local_to_scene = true
+size = Vector2(180, 158.7239)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_q3vp1"]
+resource_local_to_scene = true
+size = Vector2(180, 158.7239)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wwldx"]
+resource_local_to_scene = true
+size = Vector2(180, 158.7239)
+
+[node name="若叶睦" unique_id=873698720 instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+mutsumi_auto_switch_time = 16.0
+mutsumi_damage_switch_ratio = 0.3
+mutsumi_damage_window = 4.5
+mortis_no_damage_return_time = 8.0
+mortis_heal_return_ratio = 0.18
+plant_cooldown = 12.0
+max_active_pots = 4
+pot_interaction_radius = 34.0
+vine_growth_time = 7.0
+cucumber_growth_time = 10.0
+cucumbers_per_vine = 3
+watering_growth_multiplier = 2.4
+watering_move_multiplier = 0.55
+cucumber_instant_heal_ratio = 0.075
+cucumber_hot_heal_ratio = 0.12
+cucumber_hot_duration = 4.0
+cucumber_eat_duration = 1.15
+cucumber_eat_sound_min_count = 3
+cucumber_eat_sound_max_count = 5
+cucumber_eat_sound_gap_min = 0.12
+cucumber_eat_sound_gap_max = 0.2
+cucumber_mouth_visual_size = 48.0
+cucumber_crumbs_per_burst = 6
+pot_wither_after_unwatered = 10.0
+pot_wither_cucumber_interval = 0.4
+pot_wither_disappear_delay = 0.65
+death_tremble_amplitude = 6.0
+death_tremble_interval = 0.045
+water_drop_interval = 0.04
+water_drop_travel_time = 0.34
+water_drop_length = 7.0
+water_drop_width = 1.5
+water_arc_height = 44.0
+water_impact_visual_speed = 620.0
+mortis_punch_range = 70.0
+mortis_punch_cooldown = 1.1
+mortis_punch_damage_multiplier = 0.65
+mortis_double_punch_interval = 0.12
+mortis_punch_knockback_distance = 18.0
+mortis_punch_knockback_speed = 340.0
+mortis_punch_visual_scale = 0.145
+mortis_guitar_min_range = 80.0
+mortis_guitar_max_range = 185.0
+mortis_guitar_cooldown = 4.3
+mortis_guitar_damage_multiplier = 2.35
+mortis_guitar_arc_degrees = 112.0
+mortis_guitar_knockback_distance = 78.0
+mortis_guitar_knockback_speed = 760.0
+mortis_guitar_visual_scale = 0.165
+mortis_guitar_trail_interval = 0.026
+mortis_guitar_trail_lifetime = 0.18
+mortis_guitar_trail_alpha = 0.3
+mortis_punch_kill_blood_count = 5
+mortis_punch_kill_blood_spread_degrees = 6.5
+mortis_punch_kill_blood_force = 170.0
+mortis_guitar_kill_blood_count = 11
+mortis_guitar_kill_blood_spread_degrees = 14.0
+mortis_guitar_kill_blood_force = 285.0
+mortis_attack_alpha_threshold = 0.1
+mortis_attack_polygon_epsilon = 2.0
+Type_Tags = PackedStringArray("双重人格", "种植", "续航", "近战", "控制")
+Negative_Tags = PackedStringArray("人格切换")
+Attack_Cooling = 999.0
+Skill_Cooling = 999.0
+Damage = 46
+Speed = 98.0
+Max_health = 520
+Can_Attack = false
+Can_Skill = false
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+texture = ExtResource("3_mutsumi")
+
+[node name="PunchVisual" type="Sprite2D" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="2" unique_id=828114804]
+visible = false
+z_index = 35
+scale = Vector2(0.145, 0.145)
+texture = ExtResource("4_punch")
+
+[node name="GuitarTrailRoot" type="Node2D" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="3" unique_id=1929653163]
+
+[node name="GuitarVisual" type="Sprite2D" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="4" unique_id=1370764050]
+visible = false
+z_index = 34
+scale = Vector2(0.165, 0.165)
+texture = ExtResource("5_guitar")
+
+[node name="WateringCanVisual" type="Sprite2D" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="5" unique_id=201629776]
+visible = false
+z_index = 33
+position = Vector2(70, -44)
+scale = Vector2(0.18, 0.18)
+texture = ExtResource("6_watering_can")
+
+[node name="Spout" type="Marker2D" parent="Graphics/WateringCanVisual" index="0" unique_id=297668039]
+position = Vector2(-500, -135)
+
+[node name="CollisionShape2D" parent="." index="1" unique_id=434200601]
+shape = SubResource("RectangleShape2D_6rn45")
+
+[node name="CollisionShape2D" parent="hitbox" parent_id_path=PackedInt32Array(28640507) index="0" unique_id=390337144]
+shape = SubResource("RectangleShape2D_q3vp1")
+
+[node name="CollisionShape2D" parent="hurtbox" parent_id_path=PackedInt32Array(586576587) index="0" unique_id=58230542]
+shape = SubResource("RectangleShape2D_wwldx")
+
+[editable path="Health_Bar"]

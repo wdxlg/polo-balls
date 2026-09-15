@@ -1,0 +1,27 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/科学家.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/科学家/科学家_正常.png" id="3_normal"]
+
+[node name="科学家" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("射手", "地形", "机动", "控制")
+Negative_Tags = PackedStringArray("书呆子", "疯子")
+Max_health = 510
+Damage = 14
+Speed = 108.0
+Attack_Cooling = 1.05
+Health_Restore = 0
+Can_Skill = false
+projectile_speed = 470.0
+projectile_lifetime = 2.6
+portal_extra_lifetime = 0.0
+portal_interval = 4.0
+portal_length = 38.0
+portal_thickness = 5.0
+portal_exit_offset = 16.0
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+texture = ExtResource("3_normal")

@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/creatures/伪军.tscn" id="1_base"]
+
+[node name="伪军" instance=ExtResource("1_base")]
+standalone_selection = true
+side_status_ui_enabled = true
+
+[editable path="Health_Bar"]

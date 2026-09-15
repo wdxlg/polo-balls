@@ -1,0 +1,49 @@
+[gd_scene format=3 uid="uid://dlfpgkkjjfrfr"]
+
+[ext_resource type="PackedScene" path="res://scenes/particle/宿傩/捌.tscn" id="3_4vge2"]
+[ext_resource type="PackedScene" path="res://scenes/particle/宿傩/解.tscn" id="4_04qyp"]
+
+[sub_resource type="Environment" id="Environment_4dvvg"]
+background_mode = 3
+glow_enabled = true
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_3m5ht"]
+viewport_path = NodePath("Node2D/SubViewportContainer/SubViewport")
+
+[node name="Node2D" type="Node2D" unique_id=1846031675]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=393654862]
+environment = SubResource("Environment_4dvvg")
+
+[node name="TextureRect" type="TextureRect" parent="." unique_id=864942553]
+offset_right = 1152.0
+offset_bottom = 648.0
+texture = SubResource("ViewportTexture_3m5ht")
+
+[node name="Node2D" type="Node2D" parent="." unique_id=1016450988]
+
+[node name="SubViewportContainer" type="SubViewportContainer" parent="Node2D" unique_id=584441208]
+z_index = -5
+offset_right = 1152.0
+offset_bottom = 642.0
+
+[node name="SubViewport" type="SubViewport" parent="Node2D/SubViewportContainer" unique_id=1652715336]
+transparent_bg = true
+handle_input_locally = false
+scaling_3d_scale = 2.0
+texture_mipmap_bias = 2.0
+canvas_item_default_texture_filter = 0
+gui_snap_controls_to_pixels = false
+size = Vector2i(1152, 642)
+render_target_update_mode = 4
+
+[node name="解" parent="Node2D/SubViewportContainer/SubViewport" unique_id=324836888 instance=ExtResource("4_04qyp")]
+position = Vector2(513, 198)
+emitting = true
+one_shot = false
+
+[node name="捌" parent="Node2D/SubViewportContainer/SubViewport" unique_id=1299075065 instance=ExtResource("3_4vge2")]
+position = Vector2(807, 202)
+emitting = true
+amount = 10
+one_shot = false

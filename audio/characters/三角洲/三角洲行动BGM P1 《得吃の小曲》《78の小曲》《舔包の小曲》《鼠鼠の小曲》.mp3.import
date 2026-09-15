@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://bgwf5xpt3pyw6"
+path="res://.godot/imported/三角洲行动BGM P1 《得吃の小曲》《78の小曲》《舔包の小曲》《鼠鼠の小曲》.mp3-610f970f5ab682a6234eb41827cc666b.mp3str"
+
+[deps]
+
+source_file="res://audio/characters/三角洲/三角洲行动BGM P1 《得吃の小曲》《78の小曲》《舔包の小曲》《鼠鼠の小曲》.mp3"
+dest_files=["res://.godot/imported/三角洲行动BGM P1 《得吃の小曲》《78の小曲》《舔包の小曲》《鼠鼠の小曲》.mp3-610f970f5ab682a6234eb41827cc666b.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

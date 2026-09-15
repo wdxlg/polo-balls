@@ -1,0 +1,36 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/鼓手.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/鼓手/鼓手_正常.png" id="3_preview"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/鼓手/鼓手_打鼓.png" id="4_attack"]
+
+[node name="鼓手" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+normal_texture = ExtResource("3_preview")
+attack_texture = ExtResource("4_attack")
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("范围", "控制", "特殊")
+Negative_Tags = PackedStringArray("噪音", "扰民")
+Max_health = 620
+Damage = 26
+Speed = 108.0
+Health_Restore = 0
+Can_Attack = false
+Can_Skill = false
+attack_visual_duration = 0.9
+beat_1_radius = 29.3333
+beat_2_radius = 48.3333
+beat_3_radius = 51.6667
+beat_4_radius = 59.3333
+beat_4_damage_multiplier = 2.0
+beat_3_pull_distance = 36.0
+beat_3_pull_speed = 500.0
+beat_4_push_distance = 56.0
+beat_4_push_speed = 620.0
+collision_beat_guard = 0.12
+
+[node name="Image" parent="Graphics" index="0"]
+texture = ExtResource("3_preview")
+
+[editable path="Health_Bar"]

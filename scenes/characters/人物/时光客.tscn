@@ -1,0 +1,34 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/时光客.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/时光客/时光客_正常.png" id="3_normal"]
+
+[node name="时光客" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("射手", "爆发", "特殊", "时间")
+Negative_Tags = PackedStringArray("老登")
+Max_health = 430
+Damage = 26
+Speed = 122.0
+Attack_Cooling = 2.65
+Health_Restore = 0
+Can_Attack = true
+Can_Skill = false
+projectile_speed = 185.0
+projectile_spawn_offset = 30.0
+projectile_lifetime = 6.0
+projectile_orbit_radius = 16.0
+projectile_orbit_speed = 6.2
+rewind_history_seconds = 2.2
+rewind_interval = 6.2
+rewind_playback_duration = 0.9
+rewind_contact_damage_multiplier = 1.0
+rewind_contact_radius = 24.0
+rewind_contact_knockback_distance = 28.0
+projectile_damage_multiplier = 2.6153846
+rewind_projectile_damage_multiplier = 1.7
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+texture = ExtResource("3_normal")

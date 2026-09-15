@@ -1,0 +1,36 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/投资者.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/投资者/投资者_正常.png" id="3_normal"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/投资者/投资者_生气.png" id="4_angry"]
+
+[node name="投资者" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+normal_texture = ExtResource("3_normal")
+angry_texture = ExtResource("4_angry")
+Has_Collision_Damage = true
+Type_Tags = PackedStringArray("地形", "控制", "成长")
+Negative_Tags = PackedStringArray("资本家", "奸商")
+Max_health = 620
+Damage = 10
+Speed = 92.0
+Health_Restore = 0
+Can_Attack = false
+Can_Skill = false
+column_interval = 1.35
+grow_duration = 0.30
+scroll_duration = 0.24
+min_columns = 3
+max_columns = 10
+green_height_fraction_min = 0.58
+green_height_fraction_max = 0.95
+green_damage_multiplier_at_low_bar = 3.4
+green_damage_multiplier_at_high_bar = 1.0
+red_height_fraction_min = 0.12
+red_height_fraction_max = 0.48
+red_damage_multiplier_at_low_bar = 9.2
+red_damage_multiplier_at_high_bar = 5.4
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+texture = ExtResource("3_normal")

@@ -1,0 +1,153 @@
+{
+  "size": [
+    160,
+    224
+  ],
+  "source_commit": "736072450c26a7c67f07b1661f29d9a5ebaa14b1",
+  "roles": {
+    "enderman": {
+      "clips": {
+        "idle": {
+          "count": 48,
+          "duration": 3.488372093023256,
+          "loop": true,
+          "unique": 24
+        },
+        "walk": {
+          "count": 24,
+          "duration": 1.0,
+          "loop": true,
+          "unique": 24
+        },
+        "angry_idle": {
+          "count": 48,
+          "duration": 3.488372093023256,
+          "loop": true,
+          "unique": 24
+        },
+        "angry_walk": {
+          "count": 24,
+          "duration": 1.0,
+          "loop": true,
+          "unique": 24
+        },
+        "attack": {
+          "count": 16,
+          "duration": 0.5,
+          "loop": false,
+          "unique": 16
+        },
+        "angry_attack": {
+          "count": 16,
+          "duration": 0.5,
+          "loop": false,
+          "unique": 16
+        }
+      },
+      "foot_y": 199,
+      "neutral_bounds": [
+        59,
+        45,
+        107,
+        214
+      ],
+      "textures": 128
+    },
+    "evoker": {
+      "clips": {
+        "idle": {
+          "count": 1,
+          "duration": 1.0,
+          "loop": true,
+          "unique": 1
+        },
+        "walk": {
+          "count": 24,
+          "duration": 1.0,
+          "loop": true,
+          "unique": 13
+        },
+        "cast": {
+          "count": 16,
+          "duration": 0.47157453497511137,
+          "loop": true,
+          "unique": 9
+        },
+        "celebrate": {
+          "count": 16,
+          "duration": 0.45,
+          "loop": true,
+          "unique": 16
+        }
+      },
+      "foot_y": 199,
+      "neutral_bounds": [
+        34,
+        43,
+        116,
+        202
+      ],
+      "textures": 38
+    },
+    "vex": {
+      "clips": {
+        "fly": {
+          "count": 48,
+          "duration": 2.0,
+          "loop": true,
+          "unique": 48
+        },
+        "charge": {
+          "count": 48,
+          "duration": 2.0,
+          "loop": true,
+          "unique": 48
+        }
+      },
+      "foot_y": 170,
+      "neutral_bounds": [
+        43,
+        94,
+        147,
+        174
+      ],
+      "textures": 96
+    },
+    "shulker": {
+      "clips": {
+        "closed": {
+          "count": 1,
+          "duration": 1.0,
+          "loop": true,
+          "unique": 1
+        },
+        "open": {
+          "count": 24,
+          "duration": 0.5,
+          "loop": false,
+          "unique": 24
+        },
+        "hold": {
+          "count": 48,
+          "duration": 3.141361256544503,
+          "loop": true,
+          "unique": 25
+        },
+        "close": {
+          "count": 24,
+          "duration": 0.5,
+          "loop": false,
+          "unique": 24
+        }
+      },
+      "foot_y": 199,
+      "neutral_bounds": [
+        37,
+        129,
+        123,
+        208
+      ],
+      "textures": 60
+    }
+  }
+}

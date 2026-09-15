@@ -1,0 +1,47 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_ball"]
+[ext_resource type="Script" path="res://scripts/shooter/clown/clown_projectile.gd" id="2_script"]
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_clown"]
+properties/0/path = NodePath(".:projectile_mode")
+properties/0/spawn = true
+properties/0/replication_mode = 1
+properties/1/path = NodePath(".:projectile_skin_path")
+properties/1/spawn = true
+properties/1/replication_mode = 1
+
+[node name="ClownProjectile" instance=ExtResource("1_ball")]
+collision_layer = 0
+collision_mask = 1
+script = ExtResource("2_script")
+Type = 2
+Can_Attack = false
+Can_Skill = false
+Damage = 0
+Speed = 400.0
+Max_health = 1
+
+[node name="Image" parent="Graphics" index="0"]
+scale = Vector2(0.10, 0.10)
+
+[node name="CollisionShape2D" parent="." index="1"]
+visible = true
+scale = Vector2(0.11, 0.22)
+
+[node name="Health_Bar" parent="." index="2"]
+visible = false
+
+[node name="CollisionShape2D" parent="hitbox" index="0"]
+visible = true
+scale = Vector2(0.11, 0.22)
+
+[node name="CollisionShape2D" parent="hurtbox" index="0"]
+visible = true
+scale = Vector2(0.11, 0.22)
+
+[node name="ClownProjectileSynchronizer" type="MultiplayerSynchronizer" parent="."]
+root_path = NodePath("..")
+replication_config = SubResource("SceneReplicationConfig_clown")
+
+[editable path="Health_Bar"]

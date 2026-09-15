@@ -1,0 +1,65 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/meme/肌肉男.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/meme/肌肉男/07_肌肉男_独立身体.png" id="3_body"]
+[ext_resource type="Texture2D" path="res://Images/characters/meme/肌肉男/06_肌肉男_独立手臂.png" id="4_arm"]
+[ext_resource type="Script" path="res://classes/hitbox.gd" id="5_hitbox"]
+[ext_resource type="AudioStream" path="res://audio/characters/meme/肌肉男/旋转.mp3" id="6_spin"]
+
+[sub_resource type="CircleShape2D" id="FistShape"]
+radius = 22.0
+
+[node name="肌肉男" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+Type_Tags = PackedStringArray("meme", "近战", "持续旋转", "加速", "击退")
+Negative_Tags = PackedStringArray()
+Damage = 45
+Speed = 76.0
+Max_health = 750
+Health_Restore = 0
+Has_Collision_Damage = false
+Can_Attack = false
+Can_Skill = false
+
+[node name="Image" parent="Graphics" index="0"]
+texture = ExtResource("3_body")
+texture_filter = 1
+
+[node name="CharacterAutoFit" parent="." index="2"]
+visual_size_multiplier = 1.08
+collision_min_size = Vector2(112, 116)
+collision_max_size = Vector2(165, 180)
+
+[node name="OrbitFistHitbox" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 2
+monitoring = true
+monitorable = false
+script = ExtResource("5_hitbox")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="OrbitFistHitbox"]
+position = Vector2(38, -46)
+shape = SubResource("FistShape")
+
+[node name="ArmVisual" type="Sprite2D" parent="OrbitFistHitbox"]
+texture = ExtResource("4_arm")
+texture_filter = 1
+scale = Vector2(0.10, 0.10)
+
+[node name="SpinAudioA" type="AudioStreamPlayer2D" parent="."]
+stream = ExtResource("6_spin")
+volume_db = -80.0
+max_distance = 1300.0
+attenuation = 1.0
+
+[node name="SpinAudioB" type="AudioStreamPlayer2D" parent="."]
+stream = ExtResource("6_spin")
+volume_db = -80.0
+max_distance = 1300.0
+attenuation = 1.0
+
+[connection signal="on_hit" from="OrbitFistHitbox" to="." method="_on_hitbox_on_hit"]
+[connection signal="on_hit" from="OrbitFistHitbox" to="." method="_on_orbit_fist_on_hit"]
+
+[editable path="Health_Bar"]

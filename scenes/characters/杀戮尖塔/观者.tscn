@@ -1,0 +1,31 @@
+[gd_scene format=3 uid="uid://b1pn2ywlj4qrb"]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_0438v"]
+[ext_resource type="Script" path="res://scripts/characters/杀戮尖塔/观者.gd" id="2_mg76y"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/观者/PixPin_2026-05-20_00-37-57.png" id="3_37pbp"]
+
+[node name="观者" unique_id=751516400 instance=ExtResource("1_0438v")]
+script = ExtResource("2_mg76y")
+Has_Collision_Damage = true
+Type_Tags = PackedStringArray("近战", "形态", "爆发", "防御")
+Negative_Tags = PackedStringArray("神棍")
+dir_left = false
+Skill_Cooling = 5.0
+Health_Restore = 1
+Damage = 40
+Max_health = 500
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+texture = ExtResource("3_37pbp")
+
+[node name="CollisionShape2D" parent="." index="1" unique_id=434200601]
+visible = true
+scale = Vector2(0.41155562, 2.8908489)
+
+[node name="CollisionShape2D" parent="hitbox" parent_id_path=PackedInt32Array(28640507) index="0" unique_id=390337144]
+visible = true
+scale = Vector2(0.44122344, 3.0992415)
+
+[node name="CollisionShape2D" parent="hurtbox" parent_id_path=PackedInt32Array(586576587) index="0" unique_id=58230542]
+visible = true
+scale = Vector2(0.44122344, 3.0992415)

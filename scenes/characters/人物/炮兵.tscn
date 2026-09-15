@@ -1,0 +1,45 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/炮兵.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/炮兵/炮兵_普通状态.png" id="3_normal"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/炮兵/炮兵_指挥开火.png" id="4_fire"]
+
+[node name="炮兵" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+normal_texture = ExtResource("3_normal")
+command_texture = ExtResource("4_fire")
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("远程", "范围", "控制", "炮击")
+Negative_Tags = PackedStringArray("爆炸", "炮火")
+Max_health = 780
+Damage = 145
+Speed = 88.0
+Health_Restore = 0
+Can_Attack = false
+Can_Skill = false
+first_barrage_delay = 2.0
+barrage_interval = 6.8
+command_windup = 0.65
+barrage_radius = 55.0
+map_edge_margin = 12.0
+barrage_intro_duration = 0.4
+barrage_outro_duration = 0.4
+barrage_intro_scale = 1.07
+barrage_rotation_speed_deg = 6.0
+strike_count_min = 3
+strike_count_max = 6
+strike_radius_min = 18.0
+strike_radius_max = 24.0
+warning_duration = 1.55
+warning_hold_duration = 0.12
+shell_fall_duration = 0.24
+strike_spawn_interval_min = 0.3
+strike_spawn_interval_max = 0.46
+shell_damage_multiplier = 1.0
+knockback_distance = 98.0
+knockback_speed = 790.0
+knockback_wall_bounce = 0.42
+impact_camera_shake = 34.0
+
+[editable path="Health_Bar"]

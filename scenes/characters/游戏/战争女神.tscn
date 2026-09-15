@@ -1,0 +1,121 @@
+[gd_scene format=3 uid="uid://d18m3n0pwbusj"]
+
+[ext_resource type="PackedScene" uid="uid://dgfmejo2auorn" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" uid="uid://duvj81mqph5us" path="res://scripts/characters/游戏/战争女神.gd" id="2_script"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_tq7ef"]
+resource_local_to_scene = true
+size = Vector2(180, 158.7239)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_gi33a"]
+resource_local_to_scene = true
+size = Vector2(180, 158.7239)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_x7y4h"]
+resource_local_to_scene = true
+size = Vector2(180, 158.7239)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_detect"]
+radius = 330.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_melee"]
+size = Vector2(260, 140)
+
+[node name="战争女神" unique_id=12439505 instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+melee_range = 52.0
+melee_width = 28.0
+melee_damage_multiplier = 19.3333333
+attack_interval = 0.78
+attack_windup = 0.13
+attack_active_time = 0.1
+attack_recovery = 0.18
+damage_immunity_chance = 0.2
+immunity_fx_duration = 0.5
+immunity_fx_radius = 0.5499999999999999
+circle_radius = 72.0
+circle_duration = 8.0
+circle_damage_interval = 0.5
+circle_damage_multiplier = 3.3333333
+circle_heal_interval = 1.0
+circle_heal_amount = 14.0
+actual_heal_to_form2 = 100.0
+magic_circle_cooldown = 9.5
+first_circle_delay = 2.0
+form2_speed_multiplier = 1.15
+form2_circle_follow_speed = 18.0
+form2_melee_range_multiplier = 1.15
+form2_target_range = 330.0
+projectile_damage_multiplier = 8.6666667
+projectile_speed = 560.0
+projectile_max_distance = 520.0
+projectile_burn_duration = 3.0
+projectile_burn_tick_interval = 0.5
+projectile_burn_tick_damage_multiplier = 1.0
+sword_swing_sfx_volume_db = -1.0
+sword_hit_sfx_volume_db = 0.0
+magic_circle_sfx_volume_db = -2.0
+fire_swing_sfx_volume_db = -2.0
+burn_tick_sfx_volume_db = 1.0
+immunity_sfx_volume_db = -1.0
+transform_sfx_volume_db = -2.0
+war_sfx_max_distance = 900.0
+war_sfx_attenuation = 0.75
+dir_left = false
+Type_Tags = PackedStringArray("近战", "法阵", "续航", "免疫", "远程")
+Negative_Tags = PackedStringArray()
+Skill_Cooling = 9.5
+Damage = 3
+Speed = 108.0
+Max_health = 500
+Can_Attack = false
+Can_Skill = false
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+scale = Vector2(0.8167331, 0.8167331)
+offset = Vector2(-1.5, -1.5)
+
+[node name="CollisionShape2D" parent="." index="1" unique_id=434200601]
+scale = Vector2(1, 1)
+shape = SubResource("RectangleShape2D_tq7ef")
+metadata/_character_auto_fit_v3_managed = true
+metadata/_character_auto_fit_v3_manual = false
+metadata/_character_auto_fit_v3_last_auto = "RectangleShape2D|(180.0, 158.7239)|(0.0, 0.0)|(1.0, 1.0)|0.0"
+
+[node name="CollisionShape2D" parent="hitbox" parent_id_path=PackedInt32Array(28640507) index="0" unique_id=390337144]
+scale = Vector2(1, 1)
+shape = SubResource("RectangleShape2D_gi33a")
+metadata/_character_auto_fit_v3_managed = true
+metadata/_character_auto_fit_v3_manual = false
+metadata/_character_auto_fit_v3_last_auto = "RectangleShape2D|(180.0, 158.7239)|(0.0, 0.0)|(1.0, 1.0)|0.0"
+
+[node name="CollisionShape2D" parent="hurtbox" parent_id_path=PackedInt32Array(586576587) index="0" unique_id=58230542]
+scale = Vector2(1, 1)
+shape = SubResource("RectangleShape2D_x7y4h")
+metadata/_character_auto_fit_v3_managed = true
+metadata/_character_auto_fit_v3_manual = false
+metadata/_character_auto_fit_v3_last_auto = "RectangleShape2D|(180.0, 158.7239)|(0.0, 0.0)|(1.0, 1.0)|0.0"
+
+[node name="AttackDetectArea" type="Area2D" parent="." index="12" unique_id=1142446131]
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+metadata/threat_debug_detection = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="AttackDetectArea" index="0" unique_id=232695693]
+shape = SubResource("CircleShape2D_detect")
+
+[node name="MeleePivot" type="Node2D" parent="." index="13" unique_id=1891966985]
+
+[node name="MeleeArea" type="Area2D" parent="MeleePivot" index="0" unique_id=2099018861]
+position = Vector2(130, 0)
+collision_layer = 0
+collision_mask = 2
+monitoring = false
+monitorable = false
+metadata/threat_debug_damage = 0.0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="MeleePivot/MeleeArea" index="0" unique_id=1101063346]
+shape = SubResource("RectangleShape2D_melee")
+
+[editable path="Health_Bar"]

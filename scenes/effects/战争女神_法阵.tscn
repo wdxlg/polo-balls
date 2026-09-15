@@ -1,0 +1,38 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/effects/战争女神_法阵.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/游戏/战争女神/法阵.png" id="2_circle_tex"]
+[ext_resource type="Shader" path="res://shaders/战争女神_法阵发光.gdshader" id="3_glow_shader"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_glow"]
+resource_local_to_scene = true
+shader = ExtResource("3_glow_shader")
+shader_parameter/glow_strength = 1.55
+shader_parameter/glow_radius_px = 6.0
+shader_parameter/pulse_speed = 3.2
+shader_parameter/pulse_amount = 0.22
+shader_parameter/opacity = 0.40
+shader_parameter/visual_fade = 1.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_circle"]
+radius = 72.0
+
+[node name="战争女神_法阵" type="Node2D"]
+script = ExtResource("1_script")
+z_as_relative = false
+z_index = -1
+
+[node name="MagicCircleVisual" type="Sprite2D" parent="."]
+material = SubResource("ShaderMaterial_glow")
+texture = ExtResource("2_circle_tex")
+self_modulate = Color(1, 1, 1, 1)
+texture_filter = 2
+
+[node name="EffectArea" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 2
+monitoring = true
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="EffectArea"]
+shape = SubResource("CircleShape2D_circle")

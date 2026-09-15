@@ -1,0 +1,83 @@
+[gd_scene format=3 uid="uid://dmbl0757vp414"]
+
+[ext_resource type="StyleBox" path="res://ui/set_button_background.tres" id="1_uja46"]
+[ext_resource type="Texture2D" path="res://Images/Base-01.png" id="2_bgxpd"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_1nruc"]
+atlas = ExtResource("2_bgxpd")
+region = Rect2(95, 63, 18, 18)
+margin = Rect2(1, 1, 2, 2)
+
+[node name="GameSetting" type="HBoxContainer" unique_id=1340141599]
+size_flags_horizontal = 0
+theme_override_constants/separation = 2
+
+[node name="Text" type="PanelContainer" parent="." unique_id=1409007152]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 4
+mouse_filter = 1
+theme_override_styles/panel = ExtResource("1_uja46")
+
+[node name="Label" type="Label" parent="Text" unique_id=1602141109]
+layout_mode = 2
+size_flags_horizontal = 0
+mouse_filter = 1
+theme_override_font_sizes/font_size = 10
+text = "队友伤害"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Set" type="Panel" parent="." unique_id=821000123]
+custom_minimum_size = Vector2(20, 20)
+layout_mode = 2
+mouse_filter = 1
+theme_override_styles/panel = ExtResource("1_uja46")
+
+[node name="Background" type="NinePatchRect" parent="Set" unique_id=2084589818]
+modulate = Color(0.7683069, 0.7683071, 0.76830703, 1)
+self_modulate = Color(1, 1, 1, 0.3372549)
+custom_minimum_size = Vector2(16, 16)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -8.0
+offset_top = -8.0
+offset_right = 8.0
+offset_bottom = 8.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+size_flags_stretch_ratio = 0.0
+mouse_filter = 1
+texture = ExtResource("2_bgxpd")
+region_rect = Rect2(64, 64, 16, 16)
+patch_margin_left = 3
+patch_margin_top = 3
+patch_margin_right = 3
+patch_margin_bottom = 3
+
+[node name="TextureButton" type="TextureButton" parent="Set" unique_id=1721614747]
+self_modulate = Color(3.003, 0, 0, 1)
+custom_minimum_size = Vector2(20, 20)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -10.0
+offset_top = -10.0
+offset_right = 10.0
+offset_bottom = 10.0
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(0.9, 0.9)
+pivot_offset = Vector2(10, 10)
+mouse_filter = 1
+texture_normal = SubResource("AtlasTexture_1nruc")

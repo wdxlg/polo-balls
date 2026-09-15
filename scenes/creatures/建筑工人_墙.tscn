@@ -1,0 +1,41 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/creatures/建筑工人_墙.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/建筑工人/墙倒塌动画.png" id="3_collapse_fx"]
+
+[node name="建筑工人_墙" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+Type = 3
+Has_Collision_Damage = false
+Max_health = 85
+Damage = 0
+Speed = 0.0
+Can_Attack = false
+Can_Skill = false
+Health_Restore = 0
+side_status_ui_enabled = false
+AfterImage_Speed = -1.0
+collapse_damage_multiplier = 6.6666667
+collapse_fx_y = 30.0
+
+[node name="CollapseRight" type="Sprite2D" parent="Graphics"]
+visible = false
+modulate = Color(1, 1, 1, 0)
+z_index = 4
+texture = ExtResource("3_collapse_fx")
+hframes = 3
+vframes = 3
+frame = 0
+
+[node name="CollapseLeft" type="Sprite2D" parent="Graphics"]
+visible = false
+modulate = Color(1, 1, 1, 0)
+z_index = 4
+texture = ExtResource("3_collapse_fx")
+hframes = 3
+vframes = 3
+frame = 0
+flip_h = true
+
+[editable path="Health_Bar"]

@@ -1,0 +1,17 @@
+[remap]
+
+importer="com.timothyqiu.gdfxr.importer"
+type="AudioStreamWAV"
+uid="uid://b0jcljohtke8u"
+path="res://.godot/imported/balls_hit1.sfxr-9fb5a0d54463bb249cc296aab99a574d.sample"
+
+[deps]
+
+source_file="res://audio/sfx/physics/balls_hit1.sfxr"
+dest_files=["res://.godot/imported/balls_hit1.sfxr-9fb5a0d54463bb249cc296aab99a574d.sample"]
+
+[params]
+
+loop=false
+bit_depth=0
+sample_rate=0

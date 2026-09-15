@@ -1,0 +1,20 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/effects/户山香澄_星星坠落.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/乐队/户山香澄/警告.png" id="2_warning"]
+[ext_resource type="AudioStream" path="res://audio/characters/户山香澄/星星.mp3" id="3_star_sfx"]
+
+[node name="户山香澄_星星坠落" type="Node2D"]
+script = ExtResource("1_script")
+
+[node name="Warning" type="Sprite2D" parent="."]
+texture = ExtResource("2_warning")
+centered = true
+
+[node name="StarFallSFX" type="AudioStreamPlayer2D" parent="."]
+stream = ExtResource("3_star_sfx")
+autoplay = true
+volume_db = -1.0
+max_distance = 1050.0
+attenuation = 0.55
+max_polyphony = 4

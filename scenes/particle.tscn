@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://c8tx3xeyipebo"]
+
+[ext_resource type="Script" path="res://classes/particles.gd" id="1_jw3tu"]
+
+[node name="GPUParticles2D" type="GPUParticles2D" unique_id=530416242]
+script = ExtResource("1_jw3tu")

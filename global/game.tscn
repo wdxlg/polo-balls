@@ -1,0 +1,134 @@
+[gd_scene format=3 uid="uid://crci3bmoy3b02"]
+
+[ext_resource type="Script" path="res://global/game.gd" id="1_t72q8"]
+[ext_resource type="Shader" path="res://shaders/vignette.gdshader" id="2_bq0tr"]
+[ext_resource type="Theme" path="res://ui/slider.tres" id="3_igirx"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_igirx"]
+shader = ExtResource("2_bq0tr")
+shader_parameter/player_position = Vector2(0.5, 0.5)
+shader_parameter/color = Color(0, 0, 0, 1)
+shader_parameter/MULTIPLIER = 0.56
+shader_parameter/SOFTNESS = 0.75
+
+[node name="Game" type="Control" unique_id=1517286914]
+process_mode = 3
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture_filter = 1
+mouse_filter = 2
+script = ExtResource("1_t72q8")
+
+[node name="Vignette" type="CanvasLayer" parent="." unique_id=513830131]
+layer = 99
+
+[node name="Vignette" type="ColorRect" parent="Vignette" unique_id=2037411261]
+material = SubResource("ShaderMaterial_igirx")
+instance_shader_parameters/SCALE = 1.2
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 1)
+
+[node name="Stop_Ui" type="CanvasLayer" parent="." unique_id=13335145]
+process_mode = 3
+layer = 98
+
+[node name="Stop_Text" type="Label" parent="Stop_Ui" unique_id=1364739946]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -400.0
+offset_top = -269.0
+offset_right = 400.0
+offset_bottom = 131.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.1764706)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/shadow_offset_x = 20
+theme_override_constants/shadow_offset_y = 20
+theme_override_constants/outline_size = 30
+theme_override_constants/shadow_outline_size = 50
+theme_override_font_sizes/font_size = 400
+text = "Stop"
+horizontal_alignment = 1
+vertical_alignment = 1
+metadata/_edit_use_anchors_ = true
+
+[node name="Stop_background" type="ColorRect" parent="Stop_Ui" unique_id=1419410985]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0.44313726)
+metadata/_edit_use_anchors_ = true
+
+[node name="Speed_Control" type="Control" parent="Stop_Ui" unique_id=1336053751]
+layout_mode = 3
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -450.0
+offset_top = -300.0
+offset_right = 450.0
+offset_bottom = -100.0
+grow_horizontal = 2
+grow_vertical = 0
+texture_filter = 1
+theme = ExtResource("3_igirx")
+
+[node name="Speed_Slider" type="HSlider" parent="Stop_Ui/Speed_Control" unique_id=2146165635]
+custom_minimum_size = Vector2(800, 40)
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -400.0
+offset_top = -55.0
+offset_right = 400.0
+offset_bottom = -15.0
+grow_horizontal = 2
+grow_vertical = 0
+texture_filter = 1
+max_value = 19.0
+value = 10.0
+tick_count = 20
+
+[node name="Speed_Text" type="Label" parent="Stop_Ui/Speed_Control" unique_id=1674438460]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -400.0
+offset_top = 20.0
+offset_right = 400.0
+offset_bottom = 105.0
+grow_horizontal = 2
+texture_filter = 1
+theme_override_colors/font_color = Color(1, 1, 0, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.1764706)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/shadow_offset_x = 4
+theme_override_constants/shadow_offset_y = 4
+theme_override_constants/outline_size = 8
+theme_override_constants/shadow_outline_size = 6
+theme_override_font_sizes/font_size = 56
+text = "Speed:1"
+horizontal_alignment = 1
+vertical_alignment = 1

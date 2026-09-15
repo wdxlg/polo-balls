@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://c3gri8nj7xmja"
+path="res://.godot/imported/小刀刺_[cut_1sec] (1).mp3-298302a5b93444b02b38f74f43ec8fd4.mp3str"
+
+[deps]
+
+source_file="res://audio/characters/meme/愤怒的普通人/小刀刺_[cut_1sec] (1).mp3"
+dest_files=["res://.godot/imported/小刀刺_[cut_1sec] (1).mp3-298302a5b93444b02b38f74f43ec8fd4.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

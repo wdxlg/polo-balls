@@ -1,0 +1,73 @@
+[gd_scene format=3 uid="uid://gaeg70eh6t0y"]
+
+[ext_resource type="PackedScene" path="res://scenes/characters/默认/盔甲架.tscn" id="1_base"]
+[ext_resource type="Script" uid="uid://djwttroi1e0sr" path="res://scripts/characters/默认/防御盔甲架.gd" id="2_script"]
+[ext_resource type="Texture2D" uid="uid://ddi82g6cbb53q" path="res://Images/characters/默认/盔甲架/Iron_Chestplate.png" id="3_chest"]
+[ext_resource type="Texture2D" uid="uid://cv06ptr0ss11c" path="res://Images/characters/默认/盔甲架/Iron_Helmet.png" id="4_helmet_back"]
+[ext_resource type="Texture2D" uid="uid://cbotleaobvknc" path="res://Images/characters/默认/盔甲架/头盔前.png" id="5_helmet_front"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_whapk"]
+resource_local_to_scene = true
+size = Vector2(78, 155)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_2vu6e"]
+resource_local_to_scene = true
+size = Vector2(180, 158.7239)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_qoara"]
+resource_local_to_scene = true
+size = Vector2(74, 150)
+
+[node name="防御盔甲架" unique_id=916003359 instance=ExtResource("1_base")]
+editor_description = "V40：铁头盔前/后层取消视差，严格共用同一个整体 Transform。后层固定绝对 Z=-1，人物本体固定绝对 Z=0，胸甲 Z=2，前层固定绝对 Z=3，确保游戏内绘制顺序为：后头盔 → 人物 → 胸甲 → 前头盔。"
+script = ExtResource("2_script")
+hurt_sound_chance = 0.62
+hurt_sound_cooldown = 0.1
+hurt_volume_db = 2.5
+hurt_pitch_min = 0.96
+hurt_pitch_max = 1.04
+Type_Tags = PackedStringArray("默认", "坦克", "固定", "防御")
+Max_health = 500
+max_block = 500
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+z_as_relative = false
+
+[node name="铁胸甲_可视调整" type="Sprite2D" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="2" unique_id=891482409]
+editor_description = "可视化手动调整：在 2D 视图拖动本节点改变胸甲位置；使用缩放工具，或 Inspector -> Transform -> Scale 改大小。"
+z_index = 2
+z_as_relative = false
+texture_filter = 1
+position = Vector2(0, -25)
+scale = Vector2(0.08789063, 0.087890625)
+texture = ExtResource("3_chest")
+
+[node name="铁头盔_整体调整" type="Node2D" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="3" unique_id=2059176174]
+editor_description = "头盔前后两层的统一可视调整节点。只移动/缩放这个节点即可让前后头盔保持完全相同的位置与大小。V40 已删除所有视差偏移。"
+position = Vector2(2.842171e-14, -75.00001)
+scale = Vector2(0.08, 0.08)
+
+[node name="铁头盔后" type="Sprite2D" parent="Graphics/铁头盔_整体调整" index="0" unique_id=702756664]
+editor_description = "旧 Iron_Helmet，作为后层。与前层位置完全一致、没有 Offset 视差；使用绝对 Z=-1，保证在人物本体（Z=0）后面。"
+z_index = -1
+z_as_relative = false
+texture_filter = 1
+texture = ExtResource("4_helmet_back")
+
+[node name="铁头盔前" type="Sprite2D" parent="Graphics/铁头盔_整体调整" index="1" unique_id=465690401]
+editor_description = "头盔前层。与后层位置完全一致、没有 Offset 视差；使用绝对 Z=3，保证显示在人物和胸甲前面。"
+z_index = 3
+z_as_relative = false
+texture_filter = 1
+texture = ExtResource("5_helmet_front")
+
+[node name="CollisionShape2D" parent="." index="1" unique_id=434200601]
+shape = SubResource("RectangleShape2D_whapk")
+
+[node name="CollisionShape2D" parent="hitbox" parent_id_path=PackedInt32Array(28640507) index="0" unique_id=390337144]
+shape = SubResource("RectangleShape2D_2vu6e")
+
+[node name="CollisionShape2D" parent="hurtbox" parent_id_path=PackedInt32Array(586576587) index="0" unique_id=58230542]
+shape = SubResource("RectangleShape2D_qoara")
+
+[editable path="Health_Bar"]

@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://c14fekicyeov3"
+path="res://.godot/imported/狗_[cut_0sec] (1).mp3-df7ff123ddcd876baa69cf28ae9fccce.mp3str"
+
+[deps]
+
+source_file="res://audio/characters/训犬师/狗_[cut_0sec] (1).mp3"
+dest_files=["res://.godot/imported/狗_[cut_0sec] (1).mp3-df7ff123ddcd876baa69cf28ae9fccce.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

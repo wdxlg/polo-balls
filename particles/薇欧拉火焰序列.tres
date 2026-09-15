@@ -1,0 +1,146 @@
+[gd_resource type="SpriteFrames" load_steps=28 format=3]
+
+[ext_resource type="Texture2D" path="res://Images/effects/通用火焰/火焰_00000.png" id="1_frame"]
+[ext_resource type="Texture2D" path="res://Images/effects/通用火焰/火焰_00001.png" id="2_frame"]
+[ext_resource type="Texture2D" path="res://Images/effects/通用火焰/火焰_00002.png" id="3_frame"]
+[ext_resource type="Texture2D" path="res://Images/effects/通用火焰/火焰_00003.png" id="4_frame"]
+[ext_resource type="Texture2D" path="res://Images/effects/通用火焰/火焰_00004.png" id="5_frame"]
+[ext_resource type="Texture2D" path="res://Images/effects/通用火焰/火焰_00005.png" id="6_frame"]
+[ext_resource type="Texture2D" path="res://Images/effects/通用火焰/火焰_00006.png" id="7_frame"]
+[ext_resource type="Texture2D" path="res://Images/effects/通用火焰/火焰_00007.png" id="8_frame"]
+[ext_resource type="Texture2D" path="res://Images/effects/通用火焰/火焰_00008.png" id="9_frame"]
+[ext_resource type="Texture2D" path="res://Images/effects/通用火焰/火焰_00009.png" id="10_frame"]
+[ext_resource type="Texture2D" path="res://Images/effects/通用火焰/火焰_00010.png" id="11_frame"]
+[ext_resource type="Texture2D" path="res://Images/effects/通用火焰/火焰_00011.png" id="12_frame"]
+[ext_resource type="Texture2D" path="res://Images/effects/通用火焰/火焰_00012.png" id="13_frame"]
+[ext_resource type="Texture2D" path="res://Images/effects/通用火焰/火焰_00013.png" id="14_frame"]
+[ext_resource type="Texture2D" path="res://Images/effects/通用火焰/火焰_00014.png" id="15_frame"]
+[ext_resource type="Texture2D" path="res://Images/effects/通用火焰/火焰_00015.png" id="16_frame"]
+[ext_resource type="Texture2D" path="res://Images/effects/通用火焰/火焰_00016.png" id="17_frame"]
+[ext_resource type="Texture2D" path="res://Images/effects/通用火焰/火焰_00017.png" id="18_frame"]
+[ext_resource type="Texture2D" path="res://Images/effects/通用火焰/火焰_00018.png" id="19_frame"]
+[ext_resource type="Texture2D" path="res://Images/effects/通用火焰/火焰_00019.png" id="20_frame"]
+[ext_resource type="Texture2D" path="res://Images/effects/通用火焰/火焰_00020.png" id="21_frame"]
+[ext_resource type="Texture2D" path="res://Images/effects/通用火焰/火焰_00021.png" id="22_frame"]
+[ext_resource type="Texture2D" path="res://Images/effects/通用火焰/火焰_00022.png" id="23_frame"]
+[ext_resource type="Texture2D" path="res://Images/effects/通用火焰/火焰_00023.png" id="24_frame"]
+[ext_resource type="Texture2D" path="res://Images/effects/通用火焰/火焰_00024.png" id="25_frame"]
+[ext_resource type="Texture2D" path="res://Images/effects/通用火焰/火焰_00025.png" id="26_frame"]
+[ext_resource type="Texture2D" path="res://Images/effects/通用火焰/火焰_00026.png" id="27_frame"]
+
+[resource]
+animations = [{
+"frames": [
+{
+"duration": 1.0,
+"texture": ExtResource("1_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("2_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("3_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("4_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("5_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("6_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("7_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("8_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("9_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("10_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("11_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("12_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("13_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("14_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("15_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("16_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("17_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("18_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("19_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("20_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("21_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("22_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("23_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("24_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("25_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("26_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("27_frame")
+}
+],
+"loop": true,
+"name": &"default",
+"speed": 20.0
+}]

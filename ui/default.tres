@@ -1,0 +1,29 @@
+[gd_resource type="Theme" format=3 uid="uid://dpwql48tncd6r"]
+
+[ext_resource type="FontFile" uid="uid://bm2pluicbhca7" path="res://fonts/Mojangles.ttf" id="1_ftkij"]
+[ext_resource type="StyleBox" uid="uid://t4o33yqco1x4" path="res://ui/Button/focus.tres" id="3_6d1m5"]
+[ext_resource type="StyleBox" uid="uid://cjub0gkrl4vem" path="res://ui/Button/hover.tres" id="4_tdvd7"]
+[ext_resource type="StyleBox" uid="uid://jfpvxklkhua5" path="res://ui/set_button_background.tres" id="5_6d1m5"]
+[ext_resource type="StyleBox" uid="uid://coegwcwyol0qq" path="res://ui/Button/normal.tres" id="5_hk1h8"]
+
+[resource]
+default_font = ExtResource("1_ftkij")
+Button/colors/font_color = Color(0.87070966, 0.8707098, 0.87070966, 1)
+Button/colors/font_focus_color = Color(0.7649327, 0.7649328, 0.76493263, 1)
+Button/colors/font_hover_color = Color(0.95, 0.95, 0.95, 1)
+Button/colors/font_hover_pressed_color = Color(0, 0, 0, 1)
+Button/colors/font_outline_color = Color(0, 0, 0, 1)
+Button/constants/h_separation = 2
+Button/constants/outline_size = 2
+Button/font_sizes/font_size = 12
+Button/fonts/font = ExtResource("1_ftkij")
+Button/styles/disabled = ExtResource("3_6d1m5")
+Button/styles/focus = ExtResource("3_6d1m5")
+Button/styles/hover = ExtResource("4_tdvd7")
+Button/styles/normal = ExtResource("5_hk1h8")
+Button/styles/pressed = ExtResource("3_6d1m5")
+HBoxContainer/constants/separation = 8
+Label/colors/font_shadow_color = Color(0, 0, 0, 0.5529412)
+Label/constants/outline_size = 1
+Label/font_sizes/font_size = 10
+PanelContainer/styles/panel = ExtResource("5_6d1m5")

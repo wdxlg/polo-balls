@@ -1,0 +1,147 @@
+{
+  "commit": "736072450c26a7c67f07b1661f29d9a5ebaa14b1",
+  "repository": "https://github.com/Mojang/bedrock-samples",
+  "license": "Minecraft EULA; see LICENSE.md",
+  "files": [
+    {
+      "path": "resource_pack/animation_controllers/enderman.animation_controllers.json",
+      "sha256": "29702ac0bc3ef2c13be402145ceba710406ac3c5d2e7994dd554aba2b250eb7a"
+    },
+    {
+      "path": "resource_pack/animation_controllers/evoker.animation_controllers.json",
+      "sha256": "e61192153108b7106a664b54eb028abb968c7c3e9cb8f971b2845b6990f213a1"
+    },
+    {
+      "path": "resource_pack/animation_controllers/humanoid.animation_controllers.json",
+      "sha256": "a65e7e09510cb9b47266df618a2e953e6308c3cf1d26835f524670761b5fa912"
+    },
+    {
+      "path": "resource_pack/animation_controllers/shulker.animation_controllers.json",
+      "sha256": "c84d4997b27e72ed43eeeab5a6e1b05d79ad631c2217923f7f41b961bf8ed326"
+    },
+    {
+      "path": "resource_pack/animation_controllers/vex.animation_controllers.json",
+      "sha256": "95446451187f29f8938798ceaf80ed0ab89736f6f8846b4601791ba32d9d5ec0"
+    },
+    {
+      "path": "resource_pack/animations/enderman.animation.json",
+      "sha256": "c6ef4c453576ba219d8731624fb2d10736afee40e3182e974bae386ba60ebbd7"
+    },
+    {
+      "path": "resource_pack/animations/enderman.animation.v1.0.json",
+      "sha256": "d06940be79d31d0b4c729bb65f70bbd67ba7c24cb3ef5b66ef6f99a13f2f755e"
+    },
+    {
+      "path": "resource_pack/animations/evoker.animation.json",
+      "sha256": "354feea696328fa8c3617469b7024442f5609c9f3905dcdcf50bdce84ff5ae43"
+    },
+    {
+      "path": "resource_pack/animations/humanoid.animation.json",
+      "sha256": "4059e76703386ec92b4a66e863507fd17417c7398bad071c2e0e6ffec8363a44"
+    },
+    {
+      "path": "resource_pack/animations/shulker.animation.json",
+      "sha256": "c827fa4a053594f927f906247128e00c9c59fe1d44edf18b1f577bdac1b6ee64"
+    },
+    {
+      "path": "resource_pack/animations/shulker.animations.v1.0.json",
+      "sha256": "5160963e081c187009caee1c9a7994ae3bd2783afe9a9831b71563d79c464be9"
+    },
+    {
+      "path": "resource_pack/animations/vex.animation.json",
+      "sha256": "10c644b02c86074daf254be78fcb5f24cb5c75e3a03041de8f3cbc7823240d94"
+    },
+    {
+      "path": "resource_pack/entity/enderman.entity.json",
+      "sha256": "5ab95558f0c3d3658566d4370eeba8d3d98c3e2573f002b595a3dad3122c5744"
+    },
+    {
+      "path": "resource_pack/entity/enderman.v1.0.entity.json",
+      "sha256": "60b149c3a469cfb7e2b3d157e305a8f441283fd76cf222812a8bac550bbd88d4"
+    },
+    {
+      "path": "resource_pack/entity/evocation_illager.entity.json",
+      "sha256": "e4d39d91b482387cf4c73d10d7616c4b9416199f101558dbe8e7d3dd556bc716"
+    },
+    {
+      "path": "resource_pack/entity/evocation_illager.v1.0.entity.json",
+      "sha256": "9205a50c3da3a9b956c9c1a0f87856474481bd068ab5c8c15314a1515dc19f10"
+    },
+    {
+      "path": "resource_pack/entity/shulker.entity.json",
+      "sha256": "7b522e74ce76cfc283a53361e00ce213b425aa26eb87a03054ef095d96b70015"
+    },
+    {
+      "path": "resource_pack/entity/shulker.v1.0.entity.json",
+      "sha256": "fc66d23ca3bbccafc93c180199aaa54938826d17443d9f4cb96208c8d4fc60b7"
+    },
+    {
+      "path": "resource_pack/entity/vex.entity.json",
+      "sha256": "de15bcf48875d1c5cfaebdf6efbefedb16c3ecfe48485b04746655432a73fdcb"
+    },
+    {
+      "path": "resource_pack/entity/vex.v1.0.entity.json",
+      "sha256": "99fb41bb9d79f0e467b6ecc848aaaf62e1b09376d8729b688cd1125a6b08f430"
+    },
+    {
+      "path": "resource_pack/entity/vex.v1.0.json",
+      "sha256": "71d0b870cb35fe2477e56e295477d67b95eb2ea7ce84d650971a10edd2711d40"
+    },
+    {
+      "path": "resource_pack/models/entity/enderman.geo.json",
+      "sha256": "e09e2e49c456456ef8605c5ef8432571f1714e6f7636cb349367318398b35072"
+    },
+    {
+      "path": "resource_pack/models/entity/enderman_v1.0.geo.json",
+      "sha256": "9f17bdf88b18750a1010a383471d6690727c38bac47696921022027c65b3279d"
+    },
+    {
+      "path": "resource_pack/models/entity/evoker.geo.json",
+      "sha256": "c5f149fb2ebbcf9dd764053aca4d15f54fbf3aa241718e94a6a3373f7ca22362"
+    },
+    {
+      "path": "resource_pack/models/entity/evoker_v1.0.geo.json",
+      "sha256": "7a9d28ca4c33e98920a49bdfc68831099ea8a0fc928d71034e33489e4a6c24ea"
+    },
+    {
+      "path": "resource_pack/models/entity/humanoid.custom.geo.json",
+      "sha256": "d3688f959a95f6b39c9bd8b15312a19361256ae161d2d055ba63d810e17a8ca8"
+    },
+    {
+      "path": "resource_pack/models/entity/shulker.geo.json",
+      "sha256": "e203b0cf1d9924e75ff9e01bbe26d34ba458780670fea3c25b40c6b710bf1b00"
+    },
+    {
+      "path": "resource_pack/models/entity/vex.geo.json",
+      "sha256": "735469ea315b9e3432388c607ad14caca368b8d2c58e0a8f94ae9b93813ca638"
+    },
+    {
+      "path": "resource_pack/models/entity/vex.v1.0.geo.json",
+      "sha256": "7eb715bd576d09aa9082eaee2f24e6be6020644fd106162c41f4d746a7dba903"
+    },
+    {
+      "path": "resource_pack/textures/entity/enderman/enderman.tga",
+      "sha256": "a94d1e061aa62a01a9f8fdde09afcc2079af09cc796df6e94b70a2bcc1ec9c95"
+    },
+    {
+      "path": "resource_pack/textures/entity/illager/evoker.png",
+      "sha256": "9b35ad0e9bd6e8a58928681308959c6a59f7d4e85827089324cce7da9fa38ed0"
+    },
+    {
+      "path": "resource_pack/textures/entity/shulker/shulker_undyed.png",
+      "sha256": "312641c04dd9ed443815fd7c305c8a91fb33118ebb5ba8bb5c143623d7549ce2"
+    },
+    {
+      "path": "resource_pack/textures/entity/vex/vex.png",
+      "sha256": "2b9b1301e217717f211ab85ae2e7efcea39973996877d2b2e8f5f22b31e49a3d"
+    },
+    {
+      "path": "resource_pack/textures/entity/vex/vex_charging.png",
+      "sha256": "b7f1a66fa8dec6f0e1c83cefa6343be9f089e06effa2f7b31a986d5c60d0ba25"
+    },
+    {
+      "path": "resource_pack/textures/items/iron_sword.png",
+      "sha256": "1d1faeae22cbb8db31db1380c25dfeb4b68ca649f6cc72bd974720823152bec3"
+    }
+  ]
+}

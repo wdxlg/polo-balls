@@ -1,0 +1,199 @@
+{
+  "size": [
+    160,
+    224
+  ],
+  "roles": {
+    "witch": {
+      "clips": {
+        "idle": {
+          "count": 32,
+          "duration": 6.283161128176487,
+          "loop": true,
+          "unique": 32
+        },
+        "walk": {
+          "count": 24,
+          "duration": 1,
+          "loop": true,
+          "unique": 24
+        },
+        "hold": {
+          "count": 24,
+          "duration": 6.283161128176487,
+          "loop": true,
+          "unique": 12
+        },
+        "drink": {
+          "count": 24,
+          "duration": 0.78,
+          "loop": true,
+          "unique": 3
+        }
+      },
+      "foot_y": 201,
+      "neutral_bounds": [
+        40,
+        37,
+        111,
+        204
+      ],
+      "textures": 67,
+      "mouth": [
+        66.35,
+        114.36093537489617
+      ]
+    },
+    "blaze": {
+      "clips": {
+        "idle": {
+          "count": 240,
+          "duration": 10,
+          "loop": true,
+          "unique": 240
+        }
+      },
+      "foot_y": 199,
+      "neutral_bounds": [
+        41,
+        56,
+        133,
+        183
+      ],
+      "textures": 240
+    },
+    "creeper": {
+      "clips": {
+        "idle": {
+          "count": 1,
+          "duration": 1,
+          "loop": true,
+          "unique": 1
+        },
+        "walk": {
+          "count": 24,
+          "duration": 1,
+          "loop": true,
+          "unique": 13
+        },
+        "fuse": {
+          "count": 32,
+          "duration": 1,
+          "loop": false,
+          "unique": 32
+        },
+        "fuse_walk": {
+          "count": 32,
+          "duration": 1,
+          "loop": false,
+          "unique": 32
+        },
+        "idle_charged": {
+          "count": 24,
+          "duration": 2,
+          "loop": true,
+          "unique": 16
+        },
+        "walk_charged": {
+          "count": 24,
+          "duration": 1,
+          "loop": true,
+          "unique": 24
+        },
+        "fuse_charged": {
+          "count": 32,
+          "duration": 1,
+          "loop": false,
+          "unique": 32
+        },
+        "fuse_walk_charged": {
+          "count": 32,
+          "duration": 1,
+          "loop": false,
+          "unique": 32
+        }
+      },
+      "foot_y": 190,
+      "neutral_bounds": [
+        48,
+        57,
+        112,
+        197
+      ],
+      "textures": 176
+    },
+    "silverfish": {
+      "clips": {
+        "idle": {
+          "count": 24,
+          "duration": 0.3490401396160558,
+          "loop": true,
+          "unique": 24
+        },
+        "walk": {
+          "count": 24,
+          "duration": 0.3490401396160558,
+          "loop": true,
+          "unique": 24
+        }
+      },
+      "foot_y": 160,
+      "neutral_bounds": [
+        59,
+        125,
+        138,
+        167
+      ],
+      "textures": 24
+    },
+    "skeleton": {
+      "clips": {
+        "idle": {
+          "count": 32,
+          "duration": 3.488372093023256,
+          "loop": true,
+          "unique": 17
+        },
+        "walk": {
+          "count": 24,
+          "duration": 1,
+          "loop": true,
+          "unique": 24
+        },
+        "shoot": {
+          "count": 24,
+          "duration": 0.45,
+          "loop": false,
+          "unique": 24
+        }
+      },
+      "foot_y": 201,
+      "neutral_bounds": [
+        19,
+        55,
+        109,
+        203
+      ],
+      "textures": 65
+    },
+    "fang": {
+      "clips": {
+        "bite": {
+          "count": 40,
+          "duration": 1,
+          "loop": false,
+          "unique": 40
+        }
+      },
+      "foot_y": 199,
+      "neutral_bounds": [
+        50,
+        107,
+        110,
+        205
+      ],
+      "textures": 40
+    }
+  },
+  "source_commit": "736072450c26a7c67f07b1661f29d9a5ebaa14b1"
+}

@@ -1,0 +1,40 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/拳击手.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/拳击手/拳击手_正常.png" id="3_preview"]
+
+[node name="拳击手" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+normal_texture = ExtResource("3_preview")
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("近战", "爆发", "机动")
+Negative_Tags = PackedStringArray("冲动", "拳击")
+Max_health = 900
+Damage = 40
+Speed = 128.0
+Attack_Cooling = 1.0
+Skill_Cooling = 4.2
+Can_Attack = false
+Can_Skill = true
+fist_rest_length = 15.0
+fist_max_length = 45.0
+fist_extend_time = 0.07
+fist_retract_time = 0.06
+fist_fade_steps = 3
+fist_fade_step_time = 0.022
+extra_punch_damage_multiplier = 0.5
+punch_same_target_guard = 0.28
+combo_window = 1.75
+combo_max_punches = 4
+combo_extra_punch_interval = 0.07
+combo_extra_knockback_multiplier = 0.4
+dash_trigger_min_distance = 55.0
+dash_trigger_max_distance = 120.0
+dash_distance = 360.0
+dash_speed = 920.0
+
+[node name="Image" parent="Graphics" index="0"]
+texture = ExtResource("3_preview")
+
+[editable path="Health_Bar"]

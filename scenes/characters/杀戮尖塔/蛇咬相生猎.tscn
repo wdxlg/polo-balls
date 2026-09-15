@@ -1,0 +1,18 @@
+[gd_scene format=3 uid="uid://cbnrf34brpydf"]
+
+[ext_resource type="PackedScene" path="res://scenes/characters/杀戮尖塔/小刀猎.tscn" id="1_uvr0w"]
+[ext_resource type="Script" path="res://scripts/characters/杀戮尖塔/蛇咬相生猎.gd" id="2_r2bd5"]
+
+[node name="蛇咬相生猎" unique_id=751516400 node_paths=PackedStringArray("image") instance=ExtResource("1_uvr0w")]
+script = ExtResource("2_r2bd5")
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("射手", "多段", "成长")
+Negative_Tags = PackedStringArray("毒狗")
+image = NodePath("Graphics/AnimatedSprite2D")
+dir_left = true
+Attack_Cooling = 1.0
+Health_Restore = 1
+Speed = 100.0
+Max_health = 200
+
+[editable path="Health_Bar"]

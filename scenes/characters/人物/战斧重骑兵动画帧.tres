@@ -1,0 +1,59 @@
+[gd_resource type="SpriteFrames" load_steps=7 format=3]
+
+[ext_resource type="Texture2D" path="res://Images/characters/人物/战斧重骑兵/穿甲状态.png" id="1_armored_idle"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/战斧重骑兵/穿甲高举战斧状态.png" id="2_armored_windup"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/战斧重骑兵/穿甲攻击状态.png" id="3_armored_attack"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/战斧重骑兵/卸甲状态.png" id="4_broken_idle"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/战斧重骑兵/卸甲高举战斧状态.png" id="5_broken_windup"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/战斧重骑兵/卸甲攻击状态.png" id="6_broken_attack"]
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("1_armored_idle")
+}],
+"loop": false,
+"name": &"ArmoredIdle",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("2_armored_windup")
+}],
+"loop": false,
+"name": &"ArmoredWindup",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("3_armored_attack")
+}],
+"loop": false,
+"name": &"ArmoredAttack",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("4_broken_idle")
+}],
+"loop": false,
+"name": &"BrokenIdle",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("5_broken_windup")
+}],
+"loop": false,
+"name": &"BrokenWindup",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("6_broken_attack")
+}],
+"loop": false,
+"name": &"BrokenAttack",
+"speed": 1.0
+}]

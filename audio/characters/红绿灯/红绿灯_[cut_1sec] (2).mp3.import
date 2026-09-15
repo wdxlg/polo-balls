@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://byhl2j1fqfk7y"
+path="res://.godot/imported/红绿灯_[cut_1sec] (2).mp3-bf5fc17a3a47d3bb693b7e5eaf38174d.mp3str"
+
+[deps]
+
+source_file="res://audio/characters/红绿灯/红绿灯_[cut_1sec] (2).mp3"
+dest_files=["res://.godot/imported/红绿灯_[cut_1sec] (2).mp3-bf5fc17a3a47d3bb693b7e5eaf38174d.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

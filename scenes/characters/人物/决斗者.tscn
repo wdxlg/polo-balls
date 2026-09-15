@@ -1,0 +1,80 @@
+[gd_scene format=3 uid="uid://cs8rsl3626xfe"]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/决斗者.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/决斗者/决斗者_正常.png" id="3_normal"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/决斗者/决斗者_突刺.png" id="4_stab"]
+[ext_resource type="AudioStream" path="res://audio/characters/决斗者/嗖一下转场，唰，划走转场音，冲刺音_爱给网_aigei_com.wav" id="6_3ipts"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/决斗者/决斗者_格挡.png" id="7_block"]
+[ext_resource type="AudioStream" path="res://audio/characters/决斗者/剑戟（刺击、切割、拔刀）C-金属撞击声-尖叫声_爱给网_aigei_com.mp3" id="7_ncqxw"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_g8hdn"]
+size = Vector2(180, 165.87216)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_rnt56"]
+size = Vector2(180, 165.87216)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_e8tev"]
+size = Vector2(180, 165.87216)
+
+[node name="决斗者" unique_id=471147590 instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+dash_max_distance = 520.0
+dash_speed = 900.0
+thrust_target_gap = 38.0
+thrust_target_gap_random = 5.0
+thrust_lateral_random = 6.0
+dash_arrival_distance = 8.0
+stab_range = 62.0
+stab_audio = "战士attack1"
+thrust_visual_width = 10.0
+thrust_visual_alpha = 0.16
+thrust_visual_stretch_time = 0.09
+thrust_visual_fade_time = 0.16
+thrust_visual_forward_distance = 54.0
+normal_texture = ExtResource("3_normal")
+stab_texture = ExtResource("4_stab")
+block_texture = ExtResource("7_block")
+stab_pose_duration = 0.18
+block_pose_duration = 0.12
+weakspot_half_angle_degrees = 38.0
+weakspot_start_distance = 30.0
+weakspot_length = 180.0
+show_weakspot_visual = true
+weakspot_fill_color = Color(1, 0.12, 0.12, 0.1)
+weakspot_line_color = Color(1, 0.18, 0.18, 0.72)
+weakspot_line_width = 2.0
+immune_audio = "BlockAtk1"
+immune_audio_cooldown = 0.08
+Unique_Attack_Audio = ExtResource("6_3ipts")
+Unique_Hit_Audio = ExtResource("7_ncqxw")
+Type_Tags = PackedStringArray("近战", "爆发", "机动", "防御")
+Negative_Tags = PackedStringArray("莽夫")
+Attack_Cooling = 2.2
+Damage = 50
+Speed = 130.0
+Max_health = 300
+Can_Skill = false
+AfterImage_Speed = 360.0
+AfterImage_Spacing = 8.0
+AfterImage_Lifetime = 0.2
+AfterImage_Alpha = 0.32
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+scale = Vector2(0.24698797, 0.24698797)
+texture = ExtResource("3_normal")
+offset = Vector2(0, 0.5)
+
+[node name="CollisionShape2D" parent="." index="1" unique_id=434200601]
+scale = Vector2(1, 1)
+shape = SubResource("RectangleShape2D_g8hdn")
+
+[node name="CollisionShape2D" parent="hitbox" parent_id_path=PackedInt32Array(28640507) index="0" unique_id=390337144]
+scale = Vector2(1, 1)
+shape = SubResource("RectangleShape2D_rnt56")
+
+[node name="CollisionShape2D" parent="hurtbox" parent_id_path=PackedInt32Array(586576587) index="0" unique_id=58230542]
+scale = Vector2(1, 1)
+shape = SubResource("RectangleShape2D_e8tev")
+
+[editable path="Health_Bar"]

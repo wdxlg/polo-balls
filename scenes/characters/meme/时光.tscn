@@ -1,0 +1,36 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/meme/时光.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/棋手/棋手_正常.png" id="3_go_player"]
+
+[node name="时光" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("meme", "范围", "成长", "特殊", "围棋")
+Negative_Tags = PackedStringArray("棋手")
+Max_health = 430
+Damage = 25
+Speed = 122.0
+Attack_Cooling = 2.0
+Health_Restore = 0
+Can_Attack = false
+Can_Skill = false
+normal_place_interval = 2.0
+high_dan_place_interval = 1.0
+ke_jie_place_interval = 0.1
+board_spacing = 26.0
+board_margin = 18.0
+stone_radius = 6.0
+stone_fall_height = 105.0
+stone_fall_duration = 0.3
+landing_hit_radius = 27.0
+landing_hit_damage = 25.0
+promotion_base_offset = 2.0
+ke_jie_check_interval = 10.0
+ke_jie_chance = 0.01
+ke_jie_heal_ratio = 0.5
+surround_damage_per_x = 25.0
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+texture = ExtResource("3_go_player")

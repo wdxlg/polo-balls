@@ -1,0 +1,37 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/shooter/战争女神_火焰剑气.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/游戏/战争女神/火焰.png" id="2_fire_tex"]
+[ext_resource type="Shader" path="res://shaders/战争女神_火焰弧.gdshader" id="3_fire_shader"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_fire"]
+shader = ExtResource("3_fire_shader")
+shader_parameter/arc_bulge = 0.72
+shader_parameter/arc_width = 0.18
+shader_parameter/wiggle_strength = 0.028
+shader_parameter/wiggle_speed = 8.0
+shader_parameter/flame_pulse = 0.22
+shader_parameter/glow_strength = 1.25
+shader_parameter/opacity = 0.52
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_projectile"]
+radius = 7.0
+
+[node name="战争女神_火焰剑气" type="Node2D"]
+script = ExtResource("1_script")
+z_index = 12
+
+[node name="FireArcVisual" type="Sprite2D" parent="."]
+material = SubResource("ShaderMaterial_fire")
+texture = ExtResource("2_fire_tex")
+scale = Vector2(0.07, 0.082)
+texture_filter = 2
+
+[node name="HitArea" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 3
+monitoring = true
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="HitArea"]
+shape = SubResource("CircleShape2D_projectile")

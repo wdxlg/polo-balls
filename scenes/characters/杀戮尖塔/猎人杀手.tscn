@@ -1,0 +1,29 @@
+[gd_scene format=3 uid="uid://dxfv1kpeilsjn"]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_2t324"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/猎人杀手/PixPin_2026-05-20_00-33-19.png" id="2_fiybq"]
+[ext_resource type="Script" path="res://scripts/characters/杀戮尖塔/猎人杀手.gd" id="2_xi8cq"]
+
+[node name="猎人杀手" unique_id=751516400 instance=ExtResource("1_2t324")]
+script = ExtResource("2_xi8cq")
+Has_Collision_Damage = true
+Type_Tags = PackedStringArray("近战", "反制", "削弱")
+Negative_Tags = PackedStringArray("阴人")
+Damage = 15
+Can_Attack = false
+Can_Skill = false
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+texture = ExtResource("2_fiybq")
+
+[node name="CollisionShape2D" parent="." index="1" unique_id=434200601]
+visible = true
+scale = Vector2(1.156002, 3.0830648)
+
+[node name="CollisionShape2D" parent="hitbox" parent_id_path=PackedInt32Array(28640507) index="0" unique_id=390337144]
+visible = true
+scale = Vector2(1.2305651, 3.281925)
+
+[node name="CollisionShape2D" parent="hurtbox" parent_id_path=PackedInt32Array(586576587) index="0" unique_id=58230542]
+visible = true
+scale = Vector2(1.2305651, 3.281925)

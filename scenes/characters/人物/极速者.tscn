@@ -1,0 +1,136 @@
+[gd_scene format=3 uid="uid://cg5lbixrrntxe"]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/极速者.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/极速者/图层 112.png" id="3_bes2k"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/极速者/图层 11.png" id="4_hxk45"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hxk45"]
+size = Vector2(127.37921, 168.1)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_bl6pn"]
+size = Vector2(127.37921, 168.1)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_rp6dd"]
+size = Vector2(127.37921, 168.1)
+
+[node name="极速者" unique_id=391494549 instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+normal_texture = ExtResource("3_bes2k")
+speed_texture = ExtResource("4_hxk45")
+speed_visual_scale_multiplier = 1.13
+world_slow_factor = 0.35
+speed_world_tint = Color(0.16, 0.52, 1, 0.16)
+speed_mode_enter_sfx = "DefenseBreak"
+speed_mode_exit_sfx = ""
+dodge_energy_drain_per_second = 18.0
+attack_energy_drain_per_second = 14.0
+attack_stage_extra_drain = 1.5
+energy_recharge_per_second = 17.0
+energy_recharge_delay = 0.55
+minimum_dodge_energy = 1
+attack_start_energy = 24
+attack_stop_energy = 8
+dodge_speed_multiplier = 1.9
+max_dodge_speed_burst = 0.12
+dodge_min_carry_time = 0.07
+dodge_max_carry_time = 0.22
+dodge_probe_distance = 135.0
+dodge_min_clearance = 34.0
+simulation_step = 0.01
+projectile_scan_radius = 560.0
+projectile_prediction_horizon = 0.48
+projectile_reaction_ttc = 0.28
+projectile_extra_margin = 7.0
+ranged_windup_lead = 0.13
+ranged_prefire_scan_radius = 650.0
+ranged_projectile_speed_fallback = 320.0
+ranged_projectile_radius_fallback = 13.0
+same_threat_lock_time = 0.24
+melee_scan_radius = 700.0
+melee_windup_lead = 0.18
+melee_default_reach = 165.0
+melee_default_dash_speed = 620.0
+melee_default_active_duration = 0.22
+melee_extra_margin = 15.0
+attack_search_radius = 1050.0
+ricochet_direction_samples = 96
+ricochet_ray_length = 1050.0
+ricochet_min_wall_distance = 52.0
+ricochet_min_incidence = 0.08
+ricochet_setup_max_line_miss = 330.0
+ricochet_setup_min_alignment = 0.16
+ricochet_target_extra_radius = 22.0
+ricochet_corner_probe = 105.0
+ricochet_corner_min_open = 44.0
+attack_replan_interval = 0.1
+attack_no_plan_grace = 0.32
+physics_bounce_commit_time = 0.09
+attack_reenter_delay = 0.1
+attack_speed_stage_0 = 1.7
+attack_speed_stage_1 = 2.05
+attack_speed_stage_2 = 2.45
+attack_speed_stage_3 = 2.95
+attack_speed_stage_4 = 3.6
+attack_stage_distance_1 = 90.0
+attack_stage_distance_2 = 220.0
+attack_stage_distance_3 = 410.0
+attack_stage_distance_4 = 650.0
+max_damage_multiplier = 3.45
+damage_speed_slope = 0.82
+hazard_lookahead = 125.0
+hazard_detour_time = 0.11
+hazard_detour_probe = 115.0
+hazard_min_exit_space = 55.0
+threat_scan_interval = 0.025
+attack_scan_interval = 0.08
+debug_speedster_ai = false
+
+image_color = Color(0.6, 0.86, 1, 1)
+Type_Tags = PackedStringArray("近战", "机动", "爆发", "闪避")
+Has_Collision_Damage = true
+Damage = 22
+Speed = 145.0
+Max_health = 220
+max_energy = 100
+Can_Attack = false
+Can_Skill = false
+AfterImage_Speed = 220.0
+AfterImage_Interval = 0.035
+AfterImage_Max_Per_Frame = 6
+AfterImage_Lifetime = 0.22
+AfterImage_Style = 0
+AfterImage_Alpha = 0.46
+AfterImage_Tint = Color(0.78, 0.94, 1, 1)
+AfterImage_End_Tint = Color(0.35, 0.7, 1, 1)
+AfterImage_Blur_Pixels = 0.0
+AfterImage_End_Blur_Pixels = 0.6
+AfterImage_Smear_Pixels = 0.0
+AfterImage_End_Smear_Pixels = 0.0
+AfterImage_Stretch_Full_Speed = 650.0
+AfterImage_Stretch_Length = 86.0
+AfterImage_Stretch_Head_Width = 0.9
+AfterImage_Stretch_Tail_Width = 0.22
+AfterImage_Stretch_Alpha = 0.32
+AfterImage_Stretch_Geometry = 1
+AfterImage_Path_Point_Spacing = 2.0
+AfterImage_Path_Max_Points = 72
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+scale = Vector2(0.7347671, 0.7347671)
+texture = ExtResource("3_bes2k")
+offset = Vector2(0.5, -0.5)
+
+[node name="CollisionShape2D" parent="." index="1" unique_id=434200601]
+scale = Vector2(1, 1)
+shape = SubResource("RectangleShape2D_hxk45")
+
+[node name="CollisionShape2D" parent="hitbox" parent_id_path=PackedInt32Array(28640507) index="0" unique_id=390337144]
+scale = Vector2(1, 1)
+shape = SubResource("RectangleShape2D_bl6pn")
+
+[node name="CollisionShape2D" parent="hurtbox" parent_id_path=PackedInt32Array(586576587) index="0" unique_id=58230542]
+scale = Vector2(1, 1)
+shape = SubResource("RectangleShape2D_rp6dd")
+
+[editable path="Health_Bar"]

@@ -1,0 +1,143 @@
+{
+  "commit": "736072450c26a7c67f07b1661f29d9a5ebaa14b1",
+  "repository": "https://github.com/Mojang/bedrock-samples",
+  "license": "Minecraft EULA; no additional commercial license obtained",
+  "files": [
+    {
+      "path": "resource_pack/animation_controllers/blaze.animation_controllers.json",
+      "sha256": "2ace9aa635a3016ef4036cc11c3671893505689bf6da6f1790b00f4f642985ea"
+    },
+    {
+      "path": "resource_pack/animation_controllers/creeper.animation_controllers.json",
+      "sha256": "5c794ba2bfbe0b1f545a0ad46b1b843a8c924d92414392bdbce3f5330cfa0877"
+    },
+    {
+      "path": "resource_pack/animation_controllers/silverfish.animation_controllers.json",
+      "sha256": "20616b6b8ba0b4543bbe4f0e114654dc96de57d9dab9564b1573cd5b91f480b2"
+    },
+    {
+      "path": "resource_pack/animation_controllers/skeleton.animation_controllers.json",
+      "sha256": "71b7bee62f321cfe65542fe17dfd8aa6c47b5aea437112749e26087909380602"
+    },
+    {
+      "path": "resource_pack/animation_controllers/witch.animation_controllers.json",
+      "sha256": "005c2b296c749c00380b72207a674241a089c030872545eb123765dc6da4f6aa"
+    },
+    {
+      "path": "resource_pack/animations/blaze.animation.json",
+      "sha256": "8a6a3bdd5b86e78d457cfe88a9714fb38dd4303f744268d14dd42bec09c33569"
+    },
+    {
+      "path": "resource_pack/animations/creeper.animation.json",
+      "sha256": "ae5893d5520433859b76ea7fdb07b35cf889ae25a3127191a99c98a71ee487e2"
+    },
+    {
+      "path": "resource_pack/animations/evocation_fang.animation.json",
+      "sha256": "2cb5ef28f77237256cbfcb576cf36f229fcbbd878abaa80e8d8e24e0e41964b0"
+    },
+    {
+      "path": "resource_pack/animations/silverfish.animation.json",
+      "sha256": "2ae9272b082dca8cfb29b137b2a3f905f722cd0844c85ee0c7d6edaa73181e0c"
+    },
+    {
+      "path": "resource_pack/animations/skeleton.animation.json",
+      "sha256": "ee57315b126e9c8271320e8c8f53c427effbf62a93151bd5e6064e95c3701fb9"
+    },
+    {
+      "path": "resource_pack/animations/villager.animation.json",
+      "sha256": "291ee066110528bed721208f204a184a2bc69514c7ed7c1316ba3e4d4cef34d7"
+    },
+    {
+      "path": "resource_pack/animations/witch.animation.json",
+      "sha256": "450f9f46fa7afa7f42703d6fa4d2dea160ac876b99d89f4a449a55c91f80f810"
+    },
+    {
+      "path": "resource_pack/entity/blaze.entity.json",
+      "sha256": "c03a86ed7131673d639b24d9d28e5d8a6107f5936af78962eeb89232076ae0bc"
+    },
+    {
+      "path": "resource_pack/entity/creeper.entity.json",
+      "sha256": "3e1ac047ce1472cefbae96c7b26435123c29c1d3f7b58a3784720a7a4f9d537b"
+    },
+    {
+      "path": "resource_pack/entity/evocation_fang.entity.json",
+      "sha256": "d865d0bdb3b410c4fa35b164fe09211c3a43ba77947977a7af2aaae8548a68af"
+    },
+    {
+      "path": "resource_pack/entity/silverfish.entity.json",
+      "sha256": "ff8a0c800fcf64cb4e04958d7958f12ae25dc760842c9f081ad9867ad5b034f7"
+    },
+    {
+      "path": "resource_pack/entity/skeleton.entity.json",
+      "sha256": "1fc1053df3d2658925ee7a3dc8f0d0f4ce5ea60e41dd00d226308e5694fe979f"
+    },
+    {
+      "path": "resource_pack/entity/witch.entity.json",
+      "sha256": "fea0ed4337213836d40f1514b56ad1e96ea02f79090fbbd1d15358e2ea1f3ac8"
+    },
+    {
+      "path": "resource_pack/models/entity/blaze.geo.json",
+      "sha256": "edc1508a7b6d972a038ea4d8514a9876c7de9068823666ff7ecbd2c811a0290d"
+    },
+    {
+      "path": "resource_pack/models/entity/creeper.geo.json",
+      "sha256": "ca8ffc305c2ec6099e3ab80f6729583aa3228070f774c7af2e86b76192ba9822"
+    },
+    {
+      "path": "resource_pack/models/entity/evocation_fang.json",
+      "sha256": "dc1b5d8c5bd368503e72acd0692e180d2b544617e86bf8ebed94688dd5814b67"
+    },
+    {
+      "path": "resource_pack/models/entity/silverfish.geo.json",
+      "sha256": "7f75af58b2884256e8827201c8e513b8829ea3bde18207b666b2dd4742a9d1e5"
+    },
+    {
+      "path": "resource_pack/models/entity/skeleton.geo.json",
+      "sha256": "13cc68d24423b66cd5d2dfd63cf36c28b312a9ffac5cce1b8d6a5c871a1e11aa"
+    },
+    {
+      "path": "resource_pack/models/entity/villager.geo.json",
+      "sha256": "21e69d8ce3abcdac543362f38e2deb08dd03fc1390954f15350422fa765325df"
+    },
+    {
+      "path": "resource_pack/models/entity/witch.geo.json",
+      "sha256": "36fe685464e6c4c839e8167ed9b5bb376e5bbf6e07d04a1cc7ab41590179400e"
+    },
+    {
+      "path": "resource_pack/textures/entity/blaze.tga",
+      "sha256": "9a22bceab26ff6f7a0176ad99a7c73f4d3d1a92db188e5fe72d96c765fd40b53"
+    },
+    {
+      "path": "resource_pack/textures/entity/creeper/creeper.png",
+      "sha256": "de7cb032dc9a81732535c66aaf55dba03e29a4463219403d6d9573018191790a"
+    },
+    {
+      "path": "resource_pack/textures/entity/creeper/creeper_armor.png",
+      "sha256": "96b844e6ce25a076633954f3540e0864dfc94077fa7bc81200350e179fa51edc"
+    },
+    {
+      "path": "resource_pack/textures/entity/illager/fangs.png",
+      "sha256": "5d42d2ff027f744d2cad6211c5dccd1ebbc8ed1f3612e7f00104341058e049e2"
+    },
+    {
+      "path": "resource_pack/textures/entity/silverfish.png",
+      "sha256": "2b8e2b7b9365d576c6175ded7cdb1a21a8af807b34343229a41718bf6947d0ec"
+    },
+    {
+      "path": "resource_pack/textures/entity/skeleton/skeleton.png",
+      "sha256": "850d5eb0178465c2661e5bf0bde5d9485f8de23c4a75590205acc968f7e000b1"
+    },
+    {
+      "path": "resource_pack/textures/entity/witch.png",
+      "sha256": "cef6cfa844fd1356ac5231899385ac55bcba50bc9f382d32022ac8cae90e3a8f"
+    },
+    {
+      "path": "resource_pack/textures/items/bow_pulling_2.png",
+      "sha256": "83f9bcf4f10b7a8b6ed54c8472bf995637b8a7cfbd22aef10f3959417d414e94"
+    },
+    {
+      "path": "resource_pack/textures/items/bow_standby.png",
+      "sha256": "113ac4abb7fdd72d9949b4636a79130d672f1b54b76a103e1238ad5ea757ba11"
+    }
+  ]
+}

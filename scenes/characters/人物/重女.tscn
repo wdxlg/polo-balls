@@ -1,0 +1,37 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/重女.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/重女/高松灯_ON常服.png" id="3_normal"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/重女/高松灯黑脸.png" id="4_black_hole"]
+
+[node name="重女" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+normal_texture = ExtResource("3_normal")
+black_hole_texture = ExtResource("4_black_hole")
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("特殊", "范围", "控制", "二阶段")
+Negative_Tags = PackedStringArray("自损")
+Max_health = 820
+Damage = 5
+Speed = 84.0
+Health_Restore = 0
+Can_Attack = false
+Can_Skill = false
+text_spawn_interval = 1.4
+text_reveal_duration = 3.6
+text_min_damage_multiplier = 1.0
+text_max_damage_multiplier = 11.0
+red_text_chance = 0.24
+phase2_self_drain_per_second = 26.0
+phase2_pull_radius = 230.0
+phase2_pull_speed = 165.0
+phase2_pull_stop_radius = 82.0
+phase2_damage_radius = 105.0
+phase2_damage_interval = 0.5
+phase2_tick_damage_multiplier = 6.0
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+texture = ExtResource("3_normal")
+
+[editable path="Health_Bar"]

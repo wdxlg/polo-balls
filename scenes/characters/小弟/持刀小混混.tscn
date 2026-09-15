@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/creatures/投稿随从.tscn" id="1_base"]
+
+[node name="持刀小混混" instance=ExtResource("1_base")]
+kind = 6
+standalone_selection = true
+side_status_ui_enabled = true
+
+[editable path="Health_Bar"]

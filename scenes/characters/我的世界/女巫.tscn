@@ -1,0 +1,56 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/我的世界/女巫.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/女巫/女巫.webp" id="3_visual"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape_body"]
+resource_local_to_scene = true
+size = Vector2(94, 118)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape_hit"]
+resource_local_to_scene = true
+size = Vector2(94, 118)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape_hurt"]
+resource_local_to_scene = true
+size = Vector2(94, 118)
+
+[node name="女巫" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+brew_interval = 2.0
+Type_Tags = PackedStringArray("我的世界", "远程", "药水", "状态", "随机", "特殊")
+Negative_Tags = PackedStringArray("随机")
+minecraft_potion_positive_effect_ratio = 1.2
+minecraft_potion_negative_effect_ratio = 0.5
+Max_health = 500
+Damage = 20
+Speed = 76.0
+Attack_Cooling = 1.0
+Skill_Cooling = 999.0
+Health_Restore = 0
+Has_Collision_Damage = false
+Can_Attack = false
+Can_Skill = false
+
+[node name="Image" parent="Graphics" index="0"]
+texture = ExtResource("3_visual")
+scale = Vector2(0.145, 0.145)
+offset = Vector2(0, -4)
+
+[node name="CollisionShape2D" parent="." index="1"]
+shape = SubResource("RectangleShape_body")
+metadata/_character_auto_fit_v3_manual = true
+
+[node name="CharacterAutoFit" parent="." index="2"]
+enabled = false
+
+[node name="CollisionShape2D" parent="hitbox" index="0"]
+shape = SubResource("RectangleShape_hit")
+metadata/_character_auto_fit_v3_manual = true
+
+[node name="CollisionShape2D" parent="hurtbox" index="0"]
+shape = SubResource("RectangleShape_hurt")
+metadata/_character_auto_fit_v3_manual = true
+
+[editable path="Health_Bar"]

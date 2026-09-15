@@ -1,0 +1,25 @@
+[gd_scene format=3]
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/镜子.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/镜子/镜子_普通.png" id="3_normal"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/镜子/镜子_反弹.png" id="4_reflect"]
+[node name="镜子" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+normal_texture = ExtResource("3_normal")
+reflect_texture = ExtResource("4_reflect")
+Has_Collision_Damage = true
+Type_Tags = PackedStringArray("近战", "防御", "反制", "随机")
+Negative_Tags = PackedStringArray("复读机")
+Max_health = 420
+Damage = 18
+Speed = 128.0
+Attack_Cooling = 1.0
+Health_Restore = 0
+Can_Skill = false
+reflect_duration_min = 0.55
+reflect_duration_max = 1.35
+reflect_cooldown_min = 1.25
+reflect_cooldown_max = 3.1
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+texture = ExtResource("3_normal")

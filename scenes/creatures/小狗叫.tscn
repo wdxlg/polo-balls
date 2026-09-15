@@ -1,0 +1,118 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/creatures/小狗叫.gd" id="2_small_script"]
+[ext_resource type="Script" path="res://scripts/characters/meme/狗叫机制.gd" id="3_bark_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/meme/大狗叫/小狗.png" id="4_idle"]
+
+[sub_resource type="CircleShape2D" id="BodyCircle"]
+radius = 15.0
+
+[sub_resource type="CircleShape2D" id="ContactCircle"]
+radius = 18.0
+
+[sub_resource type="CircleShape2D" id="DamageCircle"]
+radius = 32.0
+
+[node name="小狗叫" instance=ExtResource("1_base")]
+top_level = true
+scale = Vector2(1, 1)
+collision_layer = 8
+collision_mask = 3
+script = ExtResource("2_small_script")
+Type = 3
+Type_Tags = PackedStringArray("meme", "附属", "声波", "不可瞄准")
+Negative_Tags = PackedStringArray()
+Max_health = 1
+Damage = 0
+Speed = 0.0
+Attack_Cooling = 999.0
+Skill_Cooling = 999.0
+Can_Attack = false
+Can_Skill = false
+Health_Restore = 0
+Has_Collision_Damage = false
+side_status_ui_enabled = false
+AfterImage_Speed = -1.0
+
+[node name="Image" parent="Graphics" index="0"]
+texture = ExtResource("4_idle")
+
+[node name="CollisionShape2D" parent="." index="1"]
+shape = SubResource("BodyCircle")
+
+[node name="CharacterAutoFit" parent="." index="2"]
+enabled = false
+
+[node name="Health_Bar" parent="." index="3"]
+visible = false
+
+[node name="hitbox" parent="."]
+collision_layer = 0
+collision_mask = 0
+monitoring = false
+monitorable = false
+
+[node name="CollisionShape2D" parent="hitbox" index="0"]
+disabled = true
+
+[node name="hurtbox" parent="."]
+collision_layer = 0
+collision_mask = 0
+monitoring = false
+monitorable = false
+
+[node name="CollisionShape2D" parent="hurtbox" index="0"]
+disabled = true
+
+[node name="BarkMechanic" type="Node2D" parent="."]
+script = ExtResource("3_bark_script")
+collisions_before_howl = 20
+contact_sound_cooldown_start = 0.62
+contact_sound_cooldown_end = 0.16
+contact_sound_acceleration_curve = 1.25
+wave_interval = 0.16
+contact_radius = 18.0
+wave_radius = 32.0
+small_wave_damage_multiplier = 0.3333333
+wave_knockback_distance = 1.2
+wave_knockback_speed = 65.0
+
+[node name="ContactArea" type="Area2D" parent="BarkMechanic"]
+collision_layer = 0
+collision_mask = 3
+monitoring = true
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="BarkMechanic/ContactArea"]
+shape = SubResource("ContactCircle")
+
+[node name="DamageArea" type="Area2D" parent="BarkMechanic"]
+collision_layer = 0
+collision_mask = 2
+monitoring = false
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="BarkMechanic/DamageArea"]
+shape = SubResource("DamageCircle")
+disabled = true
+
+[node name="ShortBarkAudio" type="AudioStreamPlayer2D" parent="BarkMechanic"]
+max_polyphony = 1
+volume_db = 0.0
+max_distance = 1400.0
+attenuation = 0.55
+
+[node name="ShortBarkAudioB" type="AudioStreamPlayer2D" parent="BarkMechanic"]
+process_mode = 4
+max_polyphony = 1
+volume_db = 0.0
+max_distance = 1400.0
+attenuation = 0.55
+
+[node name="HowlAudio" type="AudioStreamPlayer2D" parent="BarkMechanic"]
+volume_db = 1.5
+max_distance = 1400.0
+attenuation = 0.55
+
+[editable path="Health_Bar"]

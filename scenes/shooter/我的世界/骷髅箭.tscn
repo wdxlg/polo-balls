@@ -1,0 +1,25 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/effects/我的世界/骷髅箭.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/骷髅/箭.png" id="2_visual"]
+
+[sub_resource type="CircleShape2D" id="PickupShape"]
+radius = 3.2
+
+[node name="骷髅箭" type="Area2D"]
+collision_layer = 0
+collision_mask = 2
+monitoring = true
+monitorable = true
+script = ExtResource("1_script")
+z_index = 8
+
+[node name="ArrowSprite" type="Sprite2D" parent="."]
+texture = ExtResource("2_visual")
+texture_filter = 1
+scale = Vector2(0.016, 0.016)
+rotation = 0.785398
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("PickupShape")
+disabled = true

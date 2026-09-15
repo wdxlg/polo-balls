@@ -1,0 +1,128 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/我的世界/烈焰人.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/烈焰人.svg" id="3_visual"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/烈焰棒.png" id="4_rod"]
+[ext_resource type="SpriteFrames" path="res://scenes/characters/我的世界/烈焰人动画帧.tres" id="5_anim"]
+
+[sub_resource type="RectangleShape2D" id="BodyShape"]
+resource_local_to_scene = true
+size = Vector2(78, 155)
+
+[sub_resource type="RectangleShape2D" id="HurtShape"]
+resource_local_to_scene = true
+size = Vector2(74, 150)
+
+[sub_resource type="RectangleShape2D" id="RodShape"]
+resource_local_to_scene = true
+size = Vector2(18, 72)
+
+[sub_resource type="RectangleShape2D" id="RodDamageShape"]
+resource_local_to_scene = true
+size = Vector2(24, 78)
+
+[node name="烈焰人" node_paths=PackedStringArray("image") instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+image = NodePath("Graphics/AnimatedSprite2D")
+dir_left = true
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("我的世界", "远程", "燃烧", "连射", "障碍", "特殊")
+fire_effect_ratio = 0.0
+Negative_Tags = PackedStringArray("远程")
+Max_health = 520
+Damage = 28
+Speed = 82.0
+Attack_Cooling = 4.2
+Skill_Cooling = 999.0
+Health_Restore = 0
+Can_Attack = true
+Can_Skill = false
+
+[node name="Image" parent="Graphics" index="0"]
+visible = false
+texture = ExtResource("3_visual")
+texture_filter = 1
+scale = Vector2(0.52, 0.52)
+
+[node name="AnimatedSprite2D" parent="Graphics" index="1"]
+sprite_frames = ExtResource("5_anim")
+animation = &"idle"
+autoplay = "idle"
+texture_filter = 1
+scale = Vector2(0.8, 0.8)
+
+[node name="CollisionShape2D" parent="." index="1"]
+shape = SubResource("BodyShape")
+metadata/_character_auto_fit_v3_manual = true
+
+[node name="CharacterAutoFit" parent="." index="2"]
+enabled = false
+
+[node name="CollisionShape2D" parent="hitbox" index="0"]
+shape = SubResource("BodyShape")
+metadata/_character_auto_fit_v3_manual = true
+
+[node name="CollisionShape2D" parent="hurtbox" index="0"]
+shape = SubResource("HurtShape")
+metadata/_character_auto_fit_v3_manual = true
+
+[node name="BlazeRodA" type="AnimatableBody2D" parent="."]
+collision_layer = 1
+collision_mask = 0
+sync_to_physics = true
+
+[node name="Sprite2D" type="Sprite2D" parent="BlazeRodA"]
+texture = ExtResource("4_rod")
+texture_filter = 1
+rotation = -0.785398
+scale = Vector2(0.085, 0.085)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="BlazeRodA"]
+shape = SubResource("RodShape")
+
+[node name="DamageArea" type="Area2D" parent="BlazeRodA"]
+collision_layer = 0
+collision_mask = 2
+monitoring = true
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="BlazeRodA/DamageArea"]
+shape = SubResource("RodDamageShape")
+
+[node name="BlazeRodB" type="AnimatableBody2D" parent="."]
+collision_layer = 1
+collision_mask = 0
+sync_to_physics = true
+
+[node name="Sprite2D" type="Sprite2D" parent="BlazeRodB"]
+texture = ExtResource("4_rod")
+texture_filter = 1
+rotation = -0.785398
+scale = Vector2(0.085, 0.085)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="BlazeRodB"]
+shape = SubResource("RodShape")
+
+[node name="DamageArea" type="Area2D" parent="BlazeRodB"]
+collision_layer = 0
+collision_mask = 2
+monitoring = true
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="BlazeRodB/DamageArea"]
+shape = SubResource("RodDamageShape")
+
+[node name="BreathAudio" type="AudioStreamPlayer2D" parent="."]
+volume_db = -2.0
+max_distance = 920.0
+attenuation = 1.0
+max_polyphony = 1
+
+[node name="HurtAudio" type="AudioStreamPlayer2D" parent="."]
+volume_db = -0.5
+max_distance = 920.0
+attenuation = 1.0
+max_polyphony = 1
+
+[editable path="Health_Bar"]

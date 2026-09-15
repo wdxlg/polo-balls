@@ -1,0 +1,6 @@
+[gd_resource type="ShaderMaterial" format=3 uid="uid://b1kjmngonb1p7"]
+
+[ext_resource type="Shader" path="res://shaders/after_image_stretch.gdshader" id="1_shader"]
+
+[resource]
+shader = ExtResource("1_shader")

@@ -1,0 +1,76 @@
+[gd_scene format=3 uid="uid://cpd2sy028mf2u"]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_0sfp3"]
+[ext_resource type="Script" path="res://scripts/creatures/储君_sword.gd" id="2_feaiy"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/储君/剑/剑_converted_1.png" id="3_txjjy"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/储君/剑/剑_converted_2.png" id="4_6v62m"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/储君/剑/剑_converted_3.png" id="5_py7kp"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/储君/剑/剑_converted_4.png" id="6_0vc8i"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/储君/剑/剑_converted_5.png" id="7_kjov2"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/储君/剑/剑_converted_6.png" id="8_3tqk3"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/储君/剑/剑_converted_7.png" id="9_k5tft"]
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_7qc2v"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("3_txjjy")
+}, {
+"duration": 1.0,
+"texture": ExtResource("4_6v62m")
+}, {
+"duration": 1.0,
+"texture": ExtResource("5_py7kp")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_0vc8i")
+}, {
+"duration": 1.0,
+"texture": ExtResource("7_kjov2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("8_3tqk3")
+}, {
+"duration": 1.0,
+"texture": ExtResource("9_k5tft")
+}],
+"loop": true,
+"name": &"Idle",
+"speed": 7.0
+}]
+
+[node name="储君_Sword" unique_id=751516400 instance=ExtResource("1_0sfp3")]
+script = ExtResource("2_feaiy")
+dir_left = false
+Type = 3
+Damage = 0
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+texture = null
+
+[node name="AnimatedSprite2D" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="1" unique_id=907666059]
+sprite_frames = SubResource("SpriteFrames_7qc2v")
+animation = &"Idle"
+autoplay = "Idle"
+frame_progress = 0.63214415
+
+[node name="CollisionShape2D" parent="." index="1" unique_id=434200601]
+visible = true
+position = Vector2(0, 5)
+scale = Vector2(1.3576285, 2.4402657)
+
+[node name="Health_Bar" parent="." index="2" unique_id=595266760]
+visible = false
+
+[node name="CollisionShape2D" parent="hitbox" parent_id_path=PackedInt32Array(28640507) index="0" unique_id=390337144]
+visible = true
+position = Vector2(0, 5)
+scale = Vector2(1.4643642, 2.6321173)
+
+[node name="hurtbox" parent="." index="5" unique_id=586576587]
+collision_layer = 0
+
+[node name="CollisionShape2D" parent="hurtbox" index="0" unique_id=58230542]
+visible = true
+position = Vector2(0, 5)
+scale = Vector2(1.4643642, 2.6321173)

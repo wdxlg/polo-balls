@@ -1,0 +1,11 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/characters/小弟/愤怒的人.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/人物/愤怒的男人.gd" id="2_script"]
+
+[node name="愤怒的男人" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+Type_Tags = PackedStringArray("人物", "近战", "拳击", "狂暴", "复活形态")
+Negative_Tags = PackedStringArray("愤怒")
+Max_health = 250
+Damage = 50

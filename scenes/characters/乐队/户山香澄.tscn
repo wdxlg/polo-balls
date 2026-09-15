@@ -1,0 +1,45 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/乐队/户山香澄.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/乐队/户山香澄/户山香澄.png" id="3_portrait"]
+
+[node name="户山香澄" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("乐队", "Poppin'Party", "吉他", "音乐", "远程", "范围")
+Negative_Tags = PackedStringArray()
+Max_health = 600
+Damage = 45
+Speed = 105.0
+Attack_Cooling = 1.0
+Skill_Cooling = 999.0
+Health_Restore = 0
+Can_Attack = true
+Can_Skill = false
+star_impact_delay = 0.92
+star_damage_radius = 34.0
+star_damage_multiplier = 1.0
+star_fall_height = 210.0
+warning_color_cycle = 0.16
+star_visual_radius = 16.0
+star_entry_side_min_x = 110.0
+star_entry_side_max_x = 220.0
+star_entry_height_jitter = 0.18
+attack_recovery = 0.10
+target_random_radius = 42.0
+minimum_attack_cooling = 0.25
+hits_to_max_fire_rate = 10
+popipa_volume_db = -2.0
+popipa_max_distance = 1100.0
+quiet_width_scale = 1.18
+quiet_height_scale = 0.82
+loud_width_scale = 0.76
+loud_height_scale = 1.30
+voice_shape_response = 13.0
+voice_shape_silence_threshold = 0.015
+
+[node name="Image" parent="Graphics" index="0"]
+texture = ExtResource("3_portrait")
+
+[editable path="Health_Bar"]

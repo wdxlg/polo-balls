@@ -1,0 +1,136 @@
+[gd_scene format=3 uid="uid://bl3e4qfgh24n3"]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_13mhq"]
+[ext_resource type="Script" path="res://scripts/characters/杀戮尖塔/战士.gd" id="2_gtbjk"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/战士/攻击/攻击_converted__1__1.png" id="2_h1ox7"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/战士/攻击/攻击_converted__1__2.png" id="3_gtbjk"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/战士/攻击/攻击_converted__1__3.png" id="4_cq3ne"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/战士/攻击/攻击_converted__1__4.png" id="5_0i2t2"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/战士/攻击/攻击_converted__1__5.png" id="6_crwn8"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/战士/死亡/受伤_converted__1__1.png" id="7_la5bi"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/战士/死亡/死亡_converted__1__2.png" id="8_3lwsf"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/战士/死亡/死亡_converted__1__3.png" id="9_aiqn0"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/战士/死亡/死亡_converted__1__4.png" id="10_b7bml"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/战士/死亡/死亡_converted__1__5.png" id="11_kxu1x"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/战士/受伤/受伤_converted__1__1.png" id="12_6ykae"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/战士/受伤/受伤_converted__1__2.png" id="13_obqst"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/战士/受伤/受伤_converted__1__3.png" id="14_3074k"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/战士/站立/PixPin_2026_05_18_06_03_27_converted_1.png" id="15_xu1li"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/战士/站立/PixPin_2026_05_18_06_03_27_converted_2.png" id="16_te337"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/战士/站立/PixPin_2026_05_18_06_03_27_converted_3.png" id="17_i72vt"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/战士/站立/PixPin_2026_05_18_06_03_27_converted_4.png" id="18_pcfln"]
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_31r1l"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("2_h1ox7")
+}, {
+"duration": 1.0,
+"texture": ExtResource("3_gtbjk")
+}, {
+"duration": 1.0,
+"texture": ExtResource("4_cq3ne")
+}, {
+"duration": 1.0,
+"texture": ExtResource("5_0i2t2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_crwn8")
+}],
+"loop": true,
+"name": &"Attack",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("7_la5bi")
+}, {
+"duration": 1.0,
+"texture": ExtResource("8_3lwsf")
+}, {
+"duration": 1.0,
+"texture": ExtResource("9_aiqn0")
+}, {
+"duration": 1.0,
+"texture": ExtResource("10_b7bml")
+}, {
+"duration": 1.0,
+"texture": ExtResource("11_kxu1x")
+}],
+"loop": false,
+"name": &"Die",
+"speed": 6.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("12_6ykae")
+}, {
+"duration": 1.0,
+"texture": ExtResource("13_obqst")
+}, {
+"duration": 1.0,
+"texture": ExtResource("14_3074k")
+}],
+"loop": true,
+"name": &"Hurt",
+"speed": 6.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("15_xu1li")
+}, {
+"duration": 1.0,
+"texture": ExtResource("16_te337")
+}, {
+"duration": 1.0,
+"texture": ExtResource("17_i72vt")
+}, {
+"duration": 1.0,
+"texture": ExtResource("18_pcfln")
+}],
+"loop": true,
+"name": &"Idle",
+"speed": 6.0
+}]
+
+[node name="战士" unique_id=751516400 node_paths=PackedStringArray("image") instance=ExtResource("1_13mhq")]
+script = ExtResource("2_gtbjk")
+Has_Collision_Damage = true
+Type_Tags = PackedStringArray("近战", "爆发", "控制")
+Negative_Tags = PackedStringArray("莽夫")
+image = NodePath("Graphics/AnimatedSprite2D")
+dir_left = false
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+texture = null
+
+[node name="AnimatedSprite2D" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="1" unique_id=907666059]
+position = Vector2(0, 25)
+sprite_frames = SubResource("SpriteFrames_31r1l")
+animation = &"Attack"
+autoplay = "Idle"
+frame_progress = 0.5040562
+
+[node name="CharacterAutoFit" parent="." index="2"]
+visual_size_multiplier = 1.62
+
+[node name="CollisionShape2D" parent="." index="1" unique_id=434200601]
+visible = true
+position = Vector2(0, 70)
+scale = Vector2(0.8433864, 6.348491)
+
+[node name="hitbox" parent="." index="4" unique_id=28640507]
+scale = Vector2(1.1068403, 1.1068403)
+
+[node name="CollisionShape2D" parent="hitbox" index="0" unique_id=390337144]
+visible = true
+position = Vector2(0, 69.99999)
+scale = Vector2(0.91966146, 6.922643)
+
+[node name="CollisionShape2D" parent="hurtbox" parent_id_path=PackedInt32Array(586576587) index="0" unique_id=58230542]
+visible = true
+position = Vector2(0, 70)
+scale = Vector2(0.9196615, 6.922643)
+
+[editable path="Health_Bar"]

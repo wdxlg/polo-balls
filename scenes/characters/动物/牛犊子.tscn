@@ -1,0 +1,165 @@
+[gd_scene format=3 uid="uid://co141ncemr5t1"]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/动物/牛系.gd" id="2_cow"]
+[ext_resource type="Texture2D" path="res://Images/牛/牛犊子_慢走.png" id="3_dku8u"]
+[ext_resource type="Texture2D" path="res://Images/牛/牛犊子_冲刺.png" id="4_v2ui4"]
+[ext_resource type="Texture2D" path="res://Images/牛/牛犊子_吃草.png" id="5_5fcph"]
+[ext_resource type="Texture2D" path="res://Images/牛/吃草动画/frame_000001.png" id="6_graze_01"]
+[ext_resource type="Texture2D" path="res://Images/牛/吃草动画/frame_000002.png" id="6_graze_02"]
+[ext_resource type="Texture2D" path="res://Images/牛/吃草动画/frame_000003.png" id="6_graze_03"]
+[ext_resource type="Texture2D" path="res://Images/牛/吃草动画/frame_000004.png" id="6_graze_04"]
+[ext_resource type="Texture2D" path="res://Images/牛/吃草动画/frame_000005.png" id="6_graze_05"]
+[ext_resource type="Texture2D" path="res://Images/牛/吃草动画/frame_000006.png" id="6_graze_06"]
+[ext_resource type="Texture2D" path="res://Images/牛/吃草动画/frame_000007.png" id="6_graze_07"]
+[ext_resource type="Texture2D" path="res://Images/牛/吃草动画/frame_000008.png" id="6_graze_08"]
+[ext_resource type="Texture2D" path="res://Images/牛/吃草动画/frame_000009.png" id="6_graze_09"]
+[ext_resource type="Texture2D" path="res://Images/牛/吃草动画/frame_000010.png" id="6_graze_10"]
+[ext_resource type="Texture2D" path="res://Images/牛/吃草动画/frame_000011.png" id="6_graze_11"]
+[ext_resource type="Texture2D" path="res://Images/牛/吃草动画/frame_000012.png" id="6_graze_12"]
+[ext_resource type="Texture2D" path="res://Images/牛/吃草动画/frame_000013.png" id="6_graze_13"]
+[ext_resource type="Texture2D" path="res://Images/牛/吃草动画/frame_000014.png" id="6_graze_14"]
+[ext_resource type="Texture2D" path="res://Images/牛/吃草动画/frame_000015.png" id="6_graze_15"]
+[ext_resource type="Texture2D" path="res://Images/牛/吃草动画/frame_000016.png" id="6_graze_16"]
+[ext_resource type="Texture2D" path="res://Images/牛/吃草动画/frame_000017.png" id="6_graze_17"]
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_graze"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("6_graze_01")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_graze_02")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_graze_03")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_graze_04")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_graze_05")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_graze_06")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_graze_07")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_graze_08")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_graze_09")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_graze_10")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_graze_11")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_graze_12")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_graze_13")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_graze_14")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_graze_15")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_graze_16")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_graze_17")
+}],
+"loop": false,
+"name": &"graze",
+"speed": 17.0
+}]
+
+[node name="牛犊子" unique_id=649250114 instance=ExtResource("1_base")]
+script = ExtResource("2_cow")
+Has_Collision_Damage = true
+Type_Tags = PackedStringArray("近战", "成长", "续航")
+Negative_Tags = PackedStringArray("畜生", "牛马")
+base_run_speed = 90.0
+speed_growth_rate = 0.21
+max_run_speed = 1100.0
+max_charge_damage_multiplier = 18.4615385
+damage_speed_exponent = 0.78
+graze_after_charge_damage_threshold = 60.0
+graze_interrupt_damage_threshold = 110.0
+graze_damage_decay_per_second = 6.0
+charge_damage_grace_time = 0.1
+graze_duration = 2.5
+graze_speed_multiplier = 0.0
+graze_heal_per_second = 22.0
+graze_heal_tick_interval = 0.5
+display_meters_per_world_unit = 1.0
+switch_to_km_per_second_at = 1000.0
+slow_texture = ExtResource("3_dku8u")
+fast_texture = ExtResource("4_v2ui4")
+graze_texture = ExtResource("5_5fcph")
+fast_state_speed_threshold = 300.0
+fast_sound = "牛叫"
+fast_sound_repeat_interval = 0.65
+graze_start_sound = "草放置"
+graze_end_sound = "草破坏"
+graze_animation_mouth_offset = Vector2(105.0, 16.0)
+graze_animation_offset = Vector2(0, 0)
+graze_animation_scale = Vector2(0.333333, 0.333333)
+image_color = Color(0.64, 0.43, 0.23, 1)
+image_color_mix = 0.45
+Damage = 13
+Speed = 90.0
+Max_health = 420
+Can_Attack = false
+Can_Skill = false
+AfterImage_Speed = 350.0
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+texture = ExtResource("3_dku8u")
+
+[node name="GrazeAnimatedSprite2D" type="AnimatedSprite2D" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="2"]
+visible = false
+z_index = 10
+scale = Vector2(0.333333, 0.333333)
+position = Vector2(105.0, 16.0)
+sprite_frames = SubResource("SpriteFrames_graze")
+animation = &"graze"
+frame = 0
+
+
+[node name="CharacterAutoFit" parent="." index="2"]
+visual_size_multiplier = 0.7
+
+[node name="CollisionShape2D" parent="." index="1" unique_id=434200601]
+visible = true
+
+[node name="CollisionShape2D" parent="hitbox" parent_id_path=PackedInt32Array(28640507) index="0" unique_id=390337144]
+visible = true
+
+[node name="CollisionShape2D" parent="hurtbox" parent_id_path=PackedInt32Array(586576587) index="0" unique_id=58230542]
+visible = true
+
+[node name="SpeedLabel" type="Label" parent="." index="11" unique_id=1945547268]
+visible = false
+z_index = 20
+offset_left = -150.0
+offset_top = 94.0
+offset_right = 150.0
+offset_bottom = 136.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 30
+text = "90 m/s"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[editable path="Health_Bar"]

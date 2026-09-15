@@ -1,0 +1,89 @@
+[gd_scene format=3 uid="uid://c4vbkxgx6lw8q"]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_gc43a"]
+[ext_resource type="Texture2D" path="res://Images/shooter/Knife.png" id="2_7qxcc"]
+[ext_resource type="Script" path="res://scripts/shooter/knife.gd" id="2_rsid4"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_7qxcc"]
+size = Vector2(200, 93.75)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_rsid4"]
+size = Vector2(225, 109.375)
+
+[node name="Knife" unique_id=751516400 instance=ExtResource("1_gc43a")]
+scale = Vector2(0.08, 0.08)
+collision_layer = 0
+collision_mask = 1
+script = ExtResource("2_rsid4")
+Type = 1
+Health_Restore = 1
+Speed = 300.0
+AfterImage_Speed = 40.0
+AfterImage_Spacing = 6.0
+AfterImage_Interval = 0.03
+AfterImage_Lifetime = 0.18
+AfterImage_Alpha = 0.24
+AfterImage_Blur_Pixels = 0.8
+AfterImage_Smear_Pixels = 3.0
+AfterImage_Mode = 2
+AfterImage_Style = 0
+AfterImage_Fade = 1
+AfterImage_End_Alpha = 0.0
+AfterImage_End_Tint = Color(0.82, 0.88, 0.96, 1)
+AfterImage_Start_Scale = Vector2(1.0, 1.0)
+AfterImage_End_Scale = Vector2(0.9, 0.9)
+AfterImage_End_Blur_Pixels = 1.4
+AfterImage_End_Smear_Pixels = 1.0
+AfterImage_Sample_Count = 5
+AfterImage_Stretch_Geometry = 0
+AfterImage_Path_Use_Texture = false
+AfterImage_Path_Width_Multiplier = 1.0
+AfterImage_Path_Edge_Inset_Pixels = 2.0
+AfterImage_Path_Tail_Band_Pixels = 32.0
+AfterImage_Path_Alpha_Threshold = 0.08
+AfterImage_Path_Scanline_Samples = 36
+AfterImage_Path_Leading_Inset_Pixels = 0.0
+AfterImage_Path_Attach_Overlap_Pixels = 1.5
+AfterImage_Path_Reverse_Source_Direction = false
+AfterImage_Path_Solid_Width_Ratio = 0.68
+AfterImage_Path_Point_Spacing = 5.5
+AfterImage_Path_Max_Points = 18
+AfterImage_Path_Round_Precision = 12
+AfterImage_Stretch_Full_Speed = 320.0
+AfterImage_Stretch_Length = 54.0
+AfterImage_Stretch_Head_Width = 0.72
+AfterImage_Stretch_Tail_Width = 0.22
+AfterImage_Stretch_Alpha = 0.46
+AfterImage_Stretch_Head_Color = Color(0.96, 0.98, 1, 1)
+AfterImage_Stretch_Tail_Color = Color(0.56, 0.68, 0.82, 0)
+Max_health = 100
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+rotation = 3.1415927
+scale = Vector2(0.32, 0.32)
+texture = ExtResource("2_7qxcc")
+
+[node name="CollisionShape2D" parent="." index="1" unique_id=434200601]
+position = Vector2(0, 6.249999)
+scale = Vector2(1.5357788, 1.0146765)
+shape = SubResource("RectangleShape2D_7qxcc")
+
+[node name="Health_Bar" parent="." index="2" unique_id=595266760]
+visible = false
+
+[node name="CollisionShape2D" parent="hitbox" parent_id_path=PackedInt32Array(28640507) index="0" unique_id=390337144]
+position = Vector2(0, 6)
+scale = Vector2(1.4999828, 1)
+shape = SubResource("RectangleShape2D_rsid4")
+
+[node name="hurtbox" parent="." index="5" unique_id=586576587]
+z_index = 1
+y_sort_enabled = true
+collision_layer = 4
+
+[node name="CollisionShape2D" parent="hurtbox" index="0" unique_id=58230542]
+position = Vector2(0, 6)
+scale = Vector2(1.4999828, 1)
+shape = SubResource("RectangleShape2D_rsid4")
+
+[editable path="Health_Bar"]

@@ -1,0 +1,23 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/shooter/数学老师公式弹.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/数学老师/粉笔(2).png" id="2_chalk"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_chalk"]
+size = Vector2(1, 1)
+
+[node name="数学老师公式弹" type="Node2D"]
+script = ExtResource("1_script")
+
+[node name="Visual" type="Sprite2D" parent="."]
+texture = ExtResource("2_chalk")
+scale = Vector2(0.0105, 0.0105)
+
+[node name="ChalkHitbox" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 0
+monitoring = false
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ChalkHitbox"]
+shape = SubResource("RectangleShape2D_chalk")

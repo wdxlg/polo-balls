@@ -1,0 +1,13 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/characters/三角洲/跑刀仔.tscn" id="1_runner"]
+[ext_resource type="Texture2D" path="res://Images/characters/三角洲/跑刀仔/吴彦祖.png" id="2_berserker"]
+
+[node name="猛攻哥" instance=ExtResource("1_runner")]
+standalone_berserker = true
+Type_Tags = PackedStringArray("三角洲", "装备", "射手", "随机装备")
+dir_left = false
+
+[node name="Image" parent="Graphics" index="0"]
+texture = ExtResource("2_berserker")
+flip_h = false

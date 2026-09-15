@@ -1,0 +1,58 @@
+[gd_resource type="SpriteFrames" format=3 uid="uid://dwrdp0x8q0602"]
+
+[ext_resource type="Texture2D" uid="uid://biffuw7gn06b8" path="res://Images/characters/动漫/菜月昴/烟雾/透明序列/死档烟雾02_01.webp" id="1_02"]
+[ext_resource type="Texture2D" uid="uid://c4v3yw8f5lsyj" path="res://Images/characters/动漫/菜月昴/烟雾/透明序列/死档烟雾02_02.webp" id="2_02"]
+[ext_resource type="Texture2D" uid="uid://dtjk2yr4bdvm1" path="res://Images/characters/动漫/菜月昴/烟雾/透明序列/死档烟雾02_03.webp" id="3_02"]
+[ext_resource type="Texture2D" uid="uid://csr3isvfuhoik" path="res://Images/characters/动漫/菜月昴/烟雾/透明序列/死档烟雾02_04.webp" id="4_02"]
+[ext_resource type="Texture2D" uid="uid://y2c3tbilfa3p" path="res://Images/characters/动漫/菜月昴/烟雾/透明序列/死档烟雾02_05.webp" id="5_02"]
+[ext_resource type="Texture2D" uid="uid://8qwy8ekicpme" path="res://Images/characters/动漫/菜月昴/烟雾/透明序列/死档烟雾02_06.webp" id="6_02"]
+[ext_resource type="Texture2D" uid="uid://b032j2c827pkf" path="res://Images/characters/动漫/菜月昴/烟雾/透明序列/死档烟雾02_07.webp" id="7_02"]
+[ext_resource type="Texture2D" uid="uid://dsvxsg7m54p1r" path="res://Images/characters/动漫/菜月昴/烟雾/透明序列/死档烟雾02_08.webp" id="8_02"]
+[ext_resource type="Texture2D" uid="uid://c4p0yvu1b4bhq" path="res://Images/characters/动漫/菜月昴/烟雾/透明序列/死档烟雾02_09.webp" id="9_02"]
+[ext_resource type="Texture2D" uid="uid://x0uycoeo3h7u" path="res://Images/characters/动漫/菜月昴/烟雾/透明序列/死档烟雾02_10.webp" id="10_02"]
+[ext_resource type="Texture2D" uid="uid://m5xs4lyckp4w" path="res://Images/characters/动漫/菜月昴/烟雾/透明序列/死档烟雾02_11.webp" id="11_02"]
+[ext_resource type="Texture2D" uid="uid://blniiqm3djt4l" path="res://Images/characters/动漫/菜月昴/烟雾/透明序列/死档烟雾02_12.webp" id="12_02"]
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("1_02")
+}, {
+"duration": 1.0,
+"texture": ExtResource("2_02")
+}, {
+"duration": 1.0,
+"texture": ExtResource("3_02")
+}, {
+"duration": 1.0,
+"texture": ExtResource("4_02")
+}, {
+"duration": 1.0,
+"texture": ExtResource("5_02")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_02")
+}, {
+"duration": 1.0,
+"texture": ExtResource("7_02")
+}, {
+"duration": 1.0,
+"texture": ExtResource("8_02")
+}, {
+"duration": 1.0,
+"texture": ExtResource("9_02")
+}, {
+"duration": 1.0,
+"texture": ExtResource("10_02")
+}, {
+"duration": 1.0,
+"texture": ExtResource("11_02")
+}, {
+"duration": 1.0,
+"texture": ExtResource("12_02")
+}],
+"loop": 1,
+"name": &"default",
+"speed": 4.0
+}]

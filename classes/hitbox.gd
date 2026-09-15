@@ -1,0 +1,195 @@
+class_name hitbox
+extends Area2D
+
+signal on_hit(hurt:hurtbox)
+
+# Area2D 命中与 CharacterBody2D 实体接触有时会在相邻物理帧同时报告。
+@export_range(0.0, 0.5, 0.005) var duplicate_hit_guard_seconds:float = 0.08
+var _last_hit_msec_by_target:Dictionary = {}
+
+
+func _init() -> void:
+	area_entered.connect(on_area_enter)
+
+
+func _ready() -> void:
+	# V410：战斗 Area 不参与鼠标点击，关闭拾取可减少大量角色时的无效输入检测。
+	input_pickable = false
+
+
+func on_area_enter(area:Area2D) -> void:
+	if not area is hurtbox:
+		return
+	try_hit_hurtbox(area)
+
+
+func _combat_owner_from_hitbox() -> ball:
+	# hitbox 在项目结构中始终是 ball 的直接子节点；parent 比 Node.owner
+	# 更不容易受继承场景/嵌套 PackedScene 的 owner 元数据影响。
+	var parent_node := get_parent()
+	if parent_node is ball:
+		return parent_node as ball
+	if owner is ball:
+		return owner as ball
+	return null
+
+
+func _combat_owner_from_hurtbox(hurt:hurtbox) -> ball:
+	if hurt == null:
+		return null
+	var parent_node := hurt.get_parent()
+	if parent_node is ball:
+		return parent_node as ball
+	if hurt.owner is ball:
+		return hurt.owner as ball
+	return null
+
+
+func _effective_team(entity:ball) -> String:
+	if entity == null:
+		return ""
+
+	# V349：房产证召唤物等需要跨网络时序保持固定阵营的实体，可以写入强制战斗 Team。
+	# Hitbox 在真正造成伤害前优先读取它，避免 Team 属性短暂回落到 "Ball" 时误伤队友。
+	if entity.has_meta(&"forced_combat_team"):
+		var forced_team:String = str(entity.get_meta(&"forced_combat_team","")).strip_edges()
+		if not forced_team.is_empty() and forced_team != "Ball":
+			return forced_team
+
+	# 旧召唤物/旧子弹经常忘记复制 Team，保留了基类历史默认值 "Ball"。
+	# 如果它有 Master，则这种默认值应视为“未设置”，优先用主人阵营。
+	if entity.Master != null and is_instance_valid(entity.Master):
+		if entity.Team.is_empty() or entity.Team == "Ball":
+			if entity.Master.has_meta(&"forced_combat_team"):
+				var master_forced:String = str(entity.Master.get_meta(&"forced_combat_team","")).strip_edges()
+				if not master_forced.is_empty() and master_forced != "Ball":
+					return master_forced
+			return str(entity.Master.Team).strip_edges()
+	return str(entity.Team).strip_edges()
+
+
+# 公共命中入口：
+# 1. 正常 Area2D.area_entered 会调用这里。
+# 2. ball.gd 检测到 CharacterBody2D 实体碰撞时也会调用这里。
+func try_hit_hurtbox(hurt:hurtbox) -> bool:
+	if hurt == null or not is_instance_valid(hurt):
+		return false
+
+	var attacker:ball = _combat_owner_from_hitbox()
+	if attacker == null:
+		return false
+
+	# V245 盾狗铁丝网：环境受击区只接收“攻击命中通知”，绝不成为 ball 战斗目标。
+	# 返回 false 可确保原 Hitbox 不被刺网消耗/阻挡，投射物和近战都继续原轨迹。
+	var hurt_parent:Node = hurt.get_parent()
+	if (
+		hurt_parent != null
+		and hurt_parent.is_in_group("DeltaBarbedWire")
+		and hurt_parent.has_method("receive_attack_hitbox")
+	):
+		hurt_parent.call("receive_attack_hitbox",attacker,self)
+		return false
+
+	var target:ball = _combat_owner_from_hurtbox(hurt)
+	if target == null:
+		return false
+	if attacker == target:
+		return false
+
+	var world = get_tree().current_scene
+	if world == null:
+		return false
+
+	var master:ball = attacker.Master if attacker.Master != null and is_instance_valid(attacker.Master) else null
+	if master == null and not attacker.Master_name.is_empty():
+		var resolved = world.get_node_or_null(attacker.Master_name)
+		if resolved is ball:
+			master = resolved as ball
+
+	var enemy_master:ball = target.Master if target.Master != null and is_instance_valid(target.Master) else null
+	if enemy_master == null and not target.Master_name.is_empty():
+		var resolved_enemy = world.get_node_or_null(target.Master_name)
+		if resolved_enemy is ball:
+			enemy_master = resolved_enemy as ball
+
+	# 通用友伤覆写：角色只需设置一次，自己的投射物也继承。
+	var ignore_team_damage_setting:bool = attacker.Ignore_Team_Damage_Setting
+	if master != null and master.Ignore_Team_Damage_Setting:
+		ignore_team_damage_setting = true
+
+	# 自己/主人/同一主人实体永远不互伤。
+	if (
+		(master != null and enemy_master != null and enemy_master == master)
+		or enemy_master == attacker
+		or target == master
+	):
+		return false
+
+	# 友军判定只比较“有效 Team”，不再同时比较一个可能是遗留默认值的 projectile.Team。
+	var source_team:String = _effective_team(master if master != null else attacker)
+	var target_team:String = _effective_team(target)
+	if (
+		not Game.Game_Settings.Have_Team_Damage
+		and not ignore_team_damage_setting
+		and not source_team.is_empty()
+		and source_team == target_team
+	):
+		return false
+
+	var target_id:int = target.get_instance_id()
+	var now_msec:int = Time.get_ticks_msec()
+	var guard_msec:int = int(round(duplicate_hit_guard_seconds * 1000.0))
+
+	# 少数角色会有多个 Hurtbox（例如决斗者身体 + 背后弱点）。
+	# 正常情况下仍按目标做重复命中保护；只有目标明确声明某个 Hurtbox 是
+	# “优先命中区”时，才允许它绕过同目标刚刚产生的身体碰撞记录。
+	var bypass_duplicate_guard:bool = false
+	if target.has_method("should_bypass_duplicate_hit_guard"):
+		bypass_duplicate_guard = bool(target.call("should_bypass_duplicate_hit_guard",self,hurt))
+
+	if not bypass_duplicate_guard and guard_msec > 0 and _last_hit_msec_by_target.has(target_id):
+		if now_msec - int(_last_hit_msec_by_target[target_id]) < guard_msec:
+			return false
+
+	_last_hit_msec_by_target[target_id] = now_msec
+
+	# 受击前置钩子，例如镜子/决斗者。
+	# 新钩子会把“到底撞到哪个 Hurtbox”也交给目标；没有实现新钩子的旧角色
+	# 仍继续走 can_receive_hit_from()，因此不会改变原有兼容性。
+	var accepted:bool = true
+	if target.has_method("can_receive_hit_contact"):
+		accepted = bool(target.call("can_receive_hit_contact",self,hurt))
+	elif target.has_method("can_receive_hit_from"):
+		accepted = bool(target.call("can_receive_hit_from",self))
+
+	if not accepted:
+		if target.has_method("on_incoming_hit_rejected"):
+			target.call("on_incoming_hit_rejected",self)
+		return false
+
+	if _last_hit_msec_by_target.size() > 128:
+		_cleanup_old_hit_records(now_msec,maxi(guard_msec * 4,1000))
+
+	# 先记真实生命；hurt 信号在本项目中同步结算伤害。
+	var health_before:float = float(target.health)
+	on_hit.emit(hurt)
+	hurt.on_hurt.emit(self)
+	var actual_health_damage:float = maxf(health_before - float(target.health), 0.0)
+	if actual_health_damage > 0.0 and Game.has_method("report_combat_damage"):
+		var effective_source:Node = master if master != null else attacker
+		Game.report_combat_damage(
+			effective_source,
+			target,
+			actual_health_damage,
+			health_before
+		)
+	return true
+
+
+func _cleanup_old_hit_records(now_msec:int,keep_msec:int) -> void:
+	var to_remove:Array[int] = []
+	for target_id in _last_hit_msec_by_target:
+		if now_msec - int(_last_hit_msec_by_target[target_id]) > keep_msec:
+			to_remove.append(int(target_id))
+	for target_id in to_remove:
+		_last_hit_msec_by_target.erase(target_id)

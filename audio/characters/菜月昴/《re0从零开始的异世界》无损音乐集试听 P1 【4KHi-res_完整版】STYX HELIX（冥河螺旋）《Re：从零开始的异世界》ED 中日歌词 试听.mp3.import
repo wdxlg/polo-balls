@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://bcil2vlqyvbjb"
+path="res://.godot/imported/《re0从零开始的异世界》无损音乐集试听 P1 【4KHi-res_完整版】STYX HELIX（冥河螺旋）《Re：从零开始的异世界》ED 中日歌词 试听.mp3-6685676f1ffb3eb338fb905f2e8b2007.mp3str"
+
+[deps]
+
+source_file="res://audio/characters/菜月昴/《re0从零开始的异世界》无损音乐集试听 P1 【4KHi-res_完整版】STYX HELIX（冥河螺旋）《Re：从零开始的异世界》ED 中日歌词 试听.mp3"
+dest_files=["res://.godot/imported/《re0从零开始的异世界》无损音乐集试听 P1 【4KHi-res_完整版】STYX HELIX（冥河螺旋）《Re：从零开始的异世界》ED 中日歌词 试听.mp3-6685676f1ffb3eb338fb905f2e8b2007.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

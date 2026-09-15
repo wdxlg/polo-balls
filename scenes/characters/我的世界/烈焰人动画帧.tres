@@ -1,0 +1,286 @@
+[gd_resource type="SpriteFrames" load_steps=56 format=3]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00000.png" id="1_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00001.png" id="2_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00002.png" id="3_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00003.png" id="4_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00004.png" id="5_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00005.png" id="6_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00006.png" id="7_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00007.png" id="8_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00008.png" id="9_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00009.png" id="10_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00010.png" id="11_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00011.png" id="12_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00012.png" id="13_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00013.png" id="14_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00014.png" id="15_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00015.png" id="16_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00016.png" id="17_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00017.png" id="18_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00018.png" id="19_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00019.png" id="20_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00020.png" id="21_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00021.png" id="22_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00022.png" id="23_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00023.png" id="24_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00024.png" id="25_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00025.png" id="26_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00026.png" id="27_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00027.png" id="28_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00028.png" id="29_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00029.png" id="30_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00030.png" id="31_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00031.png" id="32_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00032.png" id="33_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00033.png" id="34_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00034.png" id="35_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00035.png" id="36_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00036.png" id="37_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00037.png" id="38_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00038.png" id="39_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00039.png" id="40_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00040.png" id="41_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00041.png" id="42_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00042.png" id="43_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00043.png" id="44_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00044.png" id="45_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00045.png" id="46_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00046.png" id="47_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00047.png" id="48_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00048.png" id="49_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00049.png" id="50_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00050.png" id="51_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00051.png" id="52_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00052.png" id="53_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00053.png" id="54_frame"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/烈焰人/动画/烈焰人_00054.png" id="55_frame"]
+
+[resource]
+animations = [{
+"frames": [
+{
+"duration": 1.0,
+"texture": ExtResource("1_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("2_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("3_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("4_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("5_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("6_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("7_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("8_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("9_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("10_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("11_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("12_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("13_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("14_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("15_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("16_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("17_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("18_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("19_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("20_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("21_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("22_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("23_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("24_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("25_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("26_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("27_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("28_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("29_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("30_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("31_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("32_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("33_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("34_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("35_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("36_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("37_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("38_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("39_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("40_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("41_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("42_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("43_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("44_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("45_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("46_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("47_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("48_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("49_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("50_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("51_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("52_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("53_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("54_frame")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("55_frame")
+}
+],
+"loop": true,
+"name": &"idle",
+"speed": 24.0
+}]

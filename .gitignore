@@ -1,0 +1,27 @@
+# Godot 4+ specific ignores
+.godot/
+/android/
+
+# 本地 Python 虚拟环境（949MB，不入库；用 requirements 重建）
+rl_env/
+
+# 性能工具链（godot-cpp、native 构建产物、godot_release.exe）
+.performance_tools/
+
+# 根目录手工 zip 快照（git 接管后不再需要）
+*.zip
+
+# RL 训练产物：checkpoints / tensorboard 日志不入库，导出的 onnx 模型保留
+rl_training/runs/
+rl_training/__pycache__/
+__pycache__/
+*.pyc
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+.DS_Store
+*.tmp
+*.log

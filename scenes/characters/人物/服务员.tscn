@@ -1,0 +1,68 @@
+[gd_scene format=3 uid="uid://ch24y2v8geykt"]
+
+[ext_resource type="PackedScene" uid="uid://dgfmejo2auorn" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" uid="uid://8acbw6j5lxd" path="res://scripts/characters/服务员.gd" id="2_script"]
+[ext_resource type="Texture2D" uid="uid://cfe5eorm67yoy" path="res://Images/characters/人物/服务员/服务员_普通状态.png" id="3_normal"]
+[ext_resource type="Texture2D" uid="uid://cw5w8hx5hm23r" path="res://Images/characters/人物/服务员/服务员_弯腰请进状态.png" id="4_open"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_bcrcx"]
+resource_local_to_scene = true
+size = Vector2(180, 158.7239)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_aqrlt"]
+resource_local_to_scene = true
+size = Vector2(180, 158.7239)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ecbei"]
+resource_local_to_scene = true
+size = Vector2(180, 158.7239)
+
+[node name="服务员" unique_id=387676248 instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+normal_texture = ExtResource("3_normal")
+opening_texture = ExtResource("4_open")
+door_skill_wall_distance = 24.0
+door_width = 38.0
+door_open_animation = 0.28
+door_hold_duration = 3.2
+door_close_animation = 0.28
+door_inner_tunnel_depth = 28.0
+door_outer_tunnel_depth = 46.0
+door_open_sfx_volume_db = 5.0
+door_close_sfx_volume_db = 4.0
+door_sfx_max_distance = 900.0
+Type_Tags = PackedStringArray("辅助", "控制", "地形", "开门")
+Negative_Tags = PackedStringArray("技能期间定身")
+Attack_Cooling = 999.0
+Skill_Cooling = 2.0
+Damage = 0
+Speed = 96.0
+Max_health = 680
+Can_Attack = false
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+scale = Vector2(0.8167331, 0.8167331)
+offset = Vector2(-1.5, -1.5)
+
+[node name="CollisionShape2D" parent="." index="1" unique_id=434200601]
+scale = Vector2(1, 1)
+shape = SubResource("RectangleShape2D_bcrcx")
+metadata/_character_auto_fit_v3_managed = true
+metadata/_character_auto_fit_v3_manual = false
+metadata/_character_auto_fit_v3_last_auto = "RectangleShape2D|(180.0, 158.7239)|(0.0, 0.0)|(1.0, 1.0)|0.0"
+
+[node name="CollisionShape2D" parent="hitbox" parent_id_path=PackedInt32Array(28640507) index="0" unique_id=390337144]
+scale = Vector2(1, 1)
+shape = SubResource("RectangleShape2D_aqrlt")
+metadata/_character_auto_fit_v3_managed = true
+metadata/_character_auto_fit_v3_manual = false
+metadata/_character_auto_fit_v3_last_auto = "RectangleShape2D|(180.0, 158.7239)|(0.0, 0.0)|(1.0, 1.0)|0.0"
+
+[node name="CollisionShape2D" parent="hurtbox" parent_id_path=PackedInt32Array(586576587) index="0" unique_id=58230542]
+scale = Vector2(1, 1)
+shape = SubResource("RectangleShape2D_ecbei")
+metadata/_character_auto_fit_v3_managed = true
+metadata/_character_auto_fit_v3_manual = false
+metadata/_character_auto_fit_v3_last_auto = "RectangleShape2D|(180.0, 158.7239)|(0.0, 0.0)|(1.0, 1.0)|0.0"
+
+[editable path="Health_Bar"]

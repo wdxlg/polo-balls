@@ -1,0 +1,36 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/world.tscn" id="1_world"]
+[ext_resource type="Script" path="res://scripts/training/speedster_rl_world_controller.gd" id="2_controller"]
+[ext_resource type="Script" path="res://addons/godot_rl_agents/sync.gd" id="3_sync"]
+[ext_resource type="Script" path="res://scripts/training/manual_training_controller.gd" id="4_manual"]
+[ext_resource type="Script" path="res://scripts/training/combat_threat_analyzer.gd" id="5_analyzer"]
+[ext_resource type="Script" path="res://scripts/training/training_respawn_manager.gd" id="6_respawn"]
+
+[node name="SpeedsterRLWorld" instance=ExtResource("1_world")]
+
+[node name="SpeedsterRLWorldController" type="Node2D" parent="." groups=["AGENT"]]
+process_priority = -20
+script = ExtResource("2_controller")
+reset_after = 3600
+
+
+[node name="CombatThreatAnalyzer" type="Node2D" parent="."]
+process_priority = -18
+z_index = 90
+script = ExtResource("5_analyzer")
+
+[node name="TrainingRespawnManager" type="Node" parent="."]
+process_priority = -17
+script = ExtResource("6_respawn")
+
+[node name="ManualTrainingController" type="Node2D" parent="."]
+process_priority = -15
+z_index = 100
+script = ExtResource("4_manual")
+
+[node name="Sync" type="Node" parent="."]
+script = ExtResource("3_sync")
+control_mode = 1
+action_repeat = 2
+speed_up = 1.0

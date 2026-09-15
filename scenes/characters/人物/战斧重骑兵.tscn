@@ -1,0 +1,89 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/战斧重骑兵.gd" id="2_script"]
+[ext_resource type="SpriteFrames" path="res://scenes/characters/人物/战斧重骑兵动画帧.tres" id="3_frames"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/战斧重骑兵/战斧武器.png" id="4_axe"]
+
+
+[sub_resource type="ConvexPolygonShape2D" id="ConvexPolygonShape2D_axe_head"]
+resource_local_to_scene = true
+points = PackedVector2Array(-211, -616, -53, -668, 235, -681, 250, -660, 279, -595, 292, -498, 274, -406, 247, -349, 190, -275, -69, -273)
+
+[sub_resource type="ConvexPolygonShape2D" id="ConvexPolygonShape2D_axe_handle"]
+resource_local_to_scene = true
+points = PackedVector2Array(-69, -301, 8, -301, 33, 676, -86, 676)
+
+[node name="战斧重骑兵" node_paths=PackedStringArray("image") instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+image = NodePath("Graphics/AnimatedSprite2D")
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("近战", "防御", "重甲")
+Negative_Tags = PackedStringArray("前摇", "破甲易伤")
+Max_health = 500
+Damage = 150
+Speed = 100.0
+max_block = 500
+Attack_Cooling = 2.0
+Skill_Cooling = 999.0
+Can_Attack = true
+Can_Skill = false
+Health_Restore = 0
+axe_attack_range = 96.0
+armored_axe_damage_multiplier = 1.3333333
+armored_axe_windup = 1.0
+armored_move_speed = 100.0
+armored_attack_move_multiplier = 0.1
+broken_axe_damage_multiplier = 1.0
+broken_axe_windup = 0.55
+broken_move_speed = 140.0
+broken_attack_move_multiplier = 0.3
+armor_broken_damage_multiplier = 1.5
+axe_handle_pivot_local = Vector2(-25, 676)
+axe_visual_offset = Vector2(0, -62)
+axe_windup_pull_distance = 34.0
+axe_windup_lift_distance = 42.0
+axe_windup_rotation_deg = 16.0
+axe_swing_forward_distance = 52.0
+axe_swing_down_distance = 84.0
+axe_swing_rotation_deg = 180.0
+axe_swing_ease_power = 3.0
+axe_swing_duration = 0.32
+attack_pose_hold = 0.12
+axe_afterimage_count = 8
+axe_afterimage_lifetime = 0.24
+axe_afterimage_alpha = 0.3
+swing_sfx_volume_db = -3.0
+hit_sfx_volume_db = -1.5
+armor_break_sfx_volume_db = -3.0
+
+[node name="Image" parent="Graphics" index="0"]
+texture = null
+
+[node name="AnimatedSprite2D" parent="Graphics" index="1"]
+sprite_frames = ExtResource("3_frames")
+animation = &"ArmoredIdle"
+frame = 0
+frame_progress = 0.0
+
+[node name="AxeMotion" type="Node2D" parent="Graphics"]
+visible = false
+z_index = 8
+
+[node name="AxeSprite" type="Sprite2D" parent="Graphics/AxeMotion"]
+texture = ExtResource("4_axe")
+centered = true
+
+[node name="AxeHitArea" type="Area2D" parent="Graphics/AxeMotion"]
+collision_layer = 0
+collision_mask = 0
+monitoring = false
+monitorable = false
+
+[node name="AxeHeadShape" type="CollisionShape2D" parent="Graphics/AxeMotion/AxeHitArea"]
+shape = SubResource("ConvexPolygonShape2D_axe_head")
+
+[node name="AxeHandleShape" type="CollisionShape2D" parent="Graphics/AxeMotion/AxeHitArea"]
+shape = SubResource("ConvexPolygonShape2D_axe_handle")
+
+[editable path="Health_Bar"]

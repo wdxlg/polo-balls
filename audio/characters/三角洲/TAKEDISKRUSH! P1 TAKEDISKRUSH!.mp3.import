@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://disg3wiuo2t68"
+path="res://.godot/imported/TAKEDISKRUSH! P1 TAKEDISKRUSH!.mp3-b33a7980a5e291409b47839610989af3.mp3str"
+
+[deps]
+
+source_file="res://audio/characters/三角洲/TAKEDISKRUSH! P1 TAKEDISKRUSH!.mp3"
+dest_files=["res://.godot/imported/TAKEDISKRUSH! P1 TAKEDISKRUSH!.mp3-b33a7980a5e291409b47839610989af3.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

@@ -1,0 +1,173 @@
+[gd_scene format=3 uid="uid://cjacs7exyd8xw"]
+
+[ext_resource type="PackedScene" uid="uid://dgfmejo2auorn" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" uid="uid://dfua7u0l7nk41" path="res://scripts/characters/面包车.gd" id="2_script"]
+[ext_resource type="Texture2D" uid="uid://d0ht1y80yi2xg" path="res://Images/characters/人物/面包车/面包车.png" id="3_image"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ere2k"]
+resource_local_to_scene = true
+size = Vector2(180, 116.597015)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ttl4y"]
+resource_local_to_scene = true
+size = Vector2(180, 116.597015)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ciss1"]
+resource_local_to_scene = true
+size = Vector2(180, 116.597015)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ram_front"]
+resource_local_to_scene = true
+size = Vector2(100, 120.00001)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ram_rear"]
+resource_local_to_scene = true
+size = Vector2(85.00004, 105)
+
+[node name="面包车" unique_id=909173344 instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+ram_max_damage_multiplier = 8.3333333
+ram_min_damage_multiplier = 2.0833333
+ram_stun = 1.2
+ram_hit_radius = 36.0
+ram_knockback_min_distance = 8.0
+ram_knockback_max_distance = 70.0
+ram_knockback_min_speed = 120.0
+ram_knockback_max_speed = 560.0
+ram_target_cooldown = 2.5
+ram_knockback_speed_curve = 1.7
+cripple_ratio = 0.18
+summon_interval = 10.0
+summon_rear_offset = 48.0
+summon_side_jitter = 12.0
+summon_clear_radius = 23.0
+summon_side_clearance = 36.0
+summon_collision_grace = 0.7
+normal_minion_health_multiplier = 0.5
+summon_audio_volume_db = -3.0
+summon_audio_min_gap_msec = 120
+summon_reverse_duration = 0.78
+summon_reverse_clear_ratio = 0.58
+boss_specialized_health = 1200
+boss_summon_interval_ratio = 0.82
+boss_mobility_multiplier = 1.12
+boss_speed_multiplier = 1.05
+boss_all_minions_health_ratio = 0.5
+drive_acceleration = 165.0
+drive_brake = 280.0
+reverse_speed_ratio = 0.48
+reverse_duration = 0.55
+reverse_rearm_delay = 0.78
+steering_rate = 2.25
+steering_input_smoothing = 8.8
+steering_acceleration = 8.0
+throttle_smoothing = 6.0
+minimum_steering_factor = 0.9
+ram_min_speed_ratio = 0.42
+rear_ram_damage_ratio = 0.55
+target_lead_seconds = 0.04
+target_lead_max_seconds = 0.26
+roam_speed_ratio = 0.58
+roam_wall_margin = 82.0
+roam_reach_distance = 58.0
+roam_repick_seconds = 4.5
+wall_probe_mask = 1
+wall_probe_min_distance = 58.0
+wall_probe_max_distance = 128.0
+wall_probe_side_angle_degrees = 34.0
+wall_safe_margin = 88.0
+wall_avoidance_strength = 2.35
+blocked_speed_ratio = 0.22
+wall_escape_min_time = 0.72
+wall_escape_max_time = 1.55
+wall_escape_min_distance = 82.0
+wall_recovery_duration = 1.15
+wall_recovery_side_angle_degrees = 38.0
+wall_escape_steering_multiplier = 2.15
+wall_escape_probe_clearance = 2.0
+vehicle_probe_front_offset = 21.0
+vehicle_probe_half_width = 7.0
+vehicle_wall_body_scale = 0.96
+character_collision_sync_interval = 0.3
+smart_lookahead_min = 82.0
+smart_lookahead_max = 168.0
+wall_follow_min_time = 0.85
+wall_follow_clear_time = 0.32
+stuck_trigger_time = 0.3
+stuck_motion_ratio = 0.22
+hard_turn_angle_degrees = 76.0
+hard_turn_speed_ratio = 0.14
+low_speed_turn_boost = 2.1
+hard_turn_yaw_boost = 1.35
+close_target_steering_boost = 1.45
+close_target_distance = 180.0
+ai_direct_clear_ratio = 0.72
+ai_wall_follow_speed_ratio = 0.52
+ai_close_reverse_distance = 145.0
+ai_close_reverse_angle_degrees = 132.0
+ai_reverse_clear_ratio = 0.78
+multi_target_lock_seconds = 1.15
+multi_target_switch_ratio = 0.68
+crowd_ram_radius = 220.0
+crowd_ram_enemy_threshold = 2
+crowd_ram_pass_grace = 0.34
+enemy_blocked_reverse_delay = 0.14
+enemy_blocked_motion_ratio = 0.38
+enemy_wall_probe_ratio = 0.42
+ram_reverse_duration = 0.48
+ram_reverse_speed_ratio = 0.52
+forward_audio_volume_db = 7.0
+reverse_audio_volume_db = 2.5
+wall_audio_volume_db = -4.0
+vehicle_audio_max_distance = 720.0
+engine_audio_min_speed = 8.0
+Type_Tags = PackedStringArray("冲撞", "控制", "阶段")
+Negative_Tags = PackedStringArray("体型大")
+Damage = 12
+Speed = 135.0
+Max_health = 800
+Can_Attack = false
+Can_Skill = false
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+scale = Vector2(0.14539008, 0.14539008)
+texture = ExtResource("3_image")
+offset = Vector2(0, -16)
+
+[node name="CollisionShape2D" parent="." index="1" unique_id=434200601]
+shape = SubResource("RectangleShape2D_ere2k")
+metadata/_character_auto_fit_v3_last_auto = "RectangleShape2D|(180.0, 116.597)|(0.0, 0.0)|(1.0, 1.0)|0.0"
+
+[node name="CollisionShape2D" parent="hitbox" parent_id_path=PackedInt32Array(28640507) index="0" unique_id=390337144]
+shape = SubResource("RectangleShape2D_ttl4y")
+metadata/_character_auto_fit_v3_last_auto = "RectangleShape2D|(180.0, 116.597)|(0.0, 0.0)|(1.0, 1.0)|0.0"
+
+[node name="CollisionShape2D" parent="hurtbox" parent_id_path=PackedInt32Array(586576587) index="0" unique_id=58230542]
+shape = SubResource("RectangleShape2D_ciss1")
+metadata/_character_auto_fit_v3_last_auto = "RectangleShape2D|(180.0, 116.597)|(0.0, 0.0)|(1.0, 1.0)|0.0"
+
+[node name="冲撞攻击碰撞" type="Node2D" parent="." index="12" unique_id=227671342]
+
+[node name="车头攻击区域" type="Area2D" parent="冲撞攻击碰撞" index="0" unique_id=267405258]
+collision_layer = 0
+collision_mask = 2
+monitoring = false
+monitorable = false
+
+[node name="车头碰撞箱" type="CollisionShape2D" parent="冲撞攻击碰撞/车头攻击区域" index="0" unique_id=1657505923]
+position = Vector2(74.99994, 7.152556e-06)
+scale = Vector2(0.9999997, 0.9999997)
+shape = SubResource("RectangleShape2D_ram_front")
+
+[node name="车尾攻击区域" type="Area2D" parent="冲撞攻击碰撞" index="1" unique_id=948499703]
+collision_layer = 0
+collision_mask = 2
+monitoring = false
+monitorable = false
+
+[node name="车尾碰撞箱" type="CollisionShape2D" parent="冲撞攻击碰撞/车尾攻击区域" index="0" unique_id=1990875175]
+position = Vector2(-67.49998, -7.499995)
+scale = Vector2(0.99999976, 0.99999976)
+shape = SubResource("RectangleShape2D_ram_rear")
+
+[editable path="Health_Bar"]

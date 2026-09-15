@@ -1,0 +1,73 @@
+[gd_scene format=3 uid="uid://bkmbavtx0hjux"]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_gb8gr"]
+[ext_resource type="Script" path="res://scripts/shooter/蛇咬.gd" id="2_4ieeg"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/猎人/子弹/snakebite.png" id="2_ocxvk"]
+
+[node name="蛇咬" unique_id=751516400 instance=ExtResource("1_gb8gr")]
+collision_layer = 0
+collision_mask = 1
+script = ExtResource("2_4ieeg")
+Type = 1
+Damage = 0
+Speed = 0.0
+AfterImage_Speed = 1.0
+AfterImage_Spacing = 5.5
+AfterImage_Interval = 0.045
+AfterImage_Lifetime = 0.25
+AfterImage_Alpha = 0.30
+AfterImage_Blur_Pixels = 1.8
+AfterImage_Smear_Pixels = 5.0
+AfterImage_Mode = 2
+AfterImage_Style = 4
+AfterImage_Stretch_Geometry = 1
+AfterImage_Path_Use_Texture = false
+AfterImage_Path_Edge_Inset_Pixels = 1.5
+AfterImage_Path_Point_Spacing = 2.5
+AfterImage_Path_Round_Precision = 12
+AfterImage_Fade = 1
+AfterImage_End_Alpha = 0.0
+AfterImage_Tint = Color(0.72, 1, 0.62, 1)
+AfterImage_End_Tint = Color(0.22, 0.52, 0.18, 1)
+AfterImage_Start_Scale = Vector2(1.0, 1.0)
+AfterImage_End_Scale = Vector2(1.14, 1.14)
+AfterImage_End_Blur_Pixels = 4.8
+AfterImage_End_Smear_Pixels = 2.0
+AfterImage_Distortion_Pixels = 0.8
+AfterImage_End_Distortion_Pixels = 4.0
+AfterImage_Sample_Count = 10
+AfterImage_Stretch_Full_Speed = 360.0
+AfterImage_Stretch_Length = 44.0
+AfterImage_Stretch_Head_Width = 1.0
+AfterImage_Stretch_Tail_Width = 0.55
+AfterImage_Stretch_Alpha = 0.18
+AfterImage_Stretch_Head_Color = Color(0.65, 1, 0.55, 0.8)
+AfterImage_Stretch_Tail_Color = Color(0.12, 0.42, 0.1, 0.2)
+AfterImage_Stretch_Distortion_Pixels = 5.0
+AfterImage_Stretch_Sample_Count = 6
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+texture = ExtResource("2_ocxvk")
+
+[node name="CollisionShape2D" parent="." index="1" unique_id=434200601]
+visible = true
+position = Vector2(5, -10)
+scale = Vector2(0.4244468, 1.4989091)
+
+[node name="Health_Bar" parent="." index="2" unique_id=595266760]
+visible = false
+
+[node name="CollisionShape2D" parent="hitbox" parent_id_path=PackedInt32Array(28640507) index="0" unique_id=390337144]
+visible = true
+position = Vector2(5, -10)
+scale = Vector2(0.4244468, 1.4989091)
+
+[node name="hurtbox" parent="." index="5" unique_id=586576587]
+collision_layer = 0
+
+[node name="CollisionShape2D" parent="hurtbox" index="0" unique_id=58230542]
+visible = true
+position = Vector2(5, -10)
+scale = Vector2(0.4244468, 1.4989091)
+
+[editable path="Health_Bar"]

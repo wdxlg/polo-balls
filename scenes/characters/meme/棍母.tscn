@@ -1,0 +1,47 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/meme/棍母.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/meme/棍母/棍母全身.png" id="3_body_tex"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_contact"]
+size = Vector2(112, 124)
+
+[node name="棍母" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+collision_layer = 0
+collision_mask = 1
+Type_Tags = PackedStringArray("meme", "持续伤害", "地形碰撞", "无实体碰撞")
+Negative_Tags = PackedStringArray()
+Damage = 10
+Speed = 82.0
+Max_health = 1000
+Health_Restore = 0
+Has_Collision_Damage = false
+Can_Attack = false
+Can_Skill = false
+side_status_ui_enabled = false
+
+[node name="Image" parent="Graphics" index="0"]
+texture = ExtResource("3_body_tex")
+texture_filter = 1
+
+[node name="CharacterAutoFit" parent="." index="2"]
+visual_size_multiplier = 0.72
+collision_min_size = Vector2(72, 78)
+collision_max_size = Vector2(118, 128)
+
+[node name="Health_Bar" parent="." index="3"]
+visible = false
+
+[node name="ContactDamageArea" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 2
+monitoring = true
+monitorable = false
+metadata/threat_debug_damage = 10.0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ContactDamageArea"]
+shape = SubResource("RectangleShape2D_contact")
+
+[editable path="Health_Bar"]

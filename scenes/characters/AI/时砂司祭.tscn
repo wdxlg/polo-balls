@@ -1,0 +1,26 @@
+[gd_scene load_steps=4 format=3]
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1"]
+[ext_resource type="Script" path="res://scripts/characters/AI/时砂司祭.gd" id="2"]
+[ext_resource type="Texture2D" path="res://Images/characters/AI/时砂司祭.svg" id="3"]
+[node name="时砂司祭" instance=ExtResource("1")]
+script = ExtResource("2")
+Max_health = 820
+Damage = 16
+Speed = 88.0
+Health_Restore = 0
+Has_Collision_Damage = false
+Attack_Cooling = 1.25
+Skill_Cooling = 6.0
+engagement_range = 180.0
+preferred_distance = 125.0
+accent = Color(0.77, 0.65, 1, 1)
+character_traits = "时印与回响"
+Type_Tags = PackedStringArray("AI原创", "支援", "治疗", "印记")
+Negative_Tags = PackedStringArray("依赖铺垫", "低爆发")
+[node name="Image" parent="Graphics" index="0"]
+texture = ExtResource("3")
+scale = Vector2(1, 1)
+[node name="CharacterAutoFit" parent="." index="2"]
+visual_size_multiplier = 1.0
+collision_width_ratio = 0.7
+collision_height_ratio = 0.72

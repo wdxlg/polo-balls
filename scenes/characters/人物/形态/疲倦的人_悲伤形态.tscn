@@ -1,0 +1,67 @@
+[gd_scene format=3 uid="uid://dmj8an1nytn8s"]
+
+[ext_resource type="PackedScene" uid="uid://dgfmejo2auorn" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" uid="uid://doo0ajuvq1w1y" path="res://scripts/characters/人物/悲伤的男人.gd" id="2_script"]
+[ext_resource type="Texture2D" uid="uid://brv7gmkcssvfa" path="res://Images/characters/人物/疲倦的人/捂脸悲伤的蓝衣男子.png" id="3_body"]
+
+[sub_resource type="RectangleShape2D" id="Shape_body"]
+size = Vector2(122, 158)
+
+[sub_resource type="RectangleShape2D" id="Shape_hit"]
+size = Vector2(122, 158)
+
+[sub_resource type="RectangleShape2D" id="Shape_hurt"]
+size = Vector2(122, 158)
+
+[node name="悲伤的男人" unique_id=1480984644 instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+tear_interval = 0.06
+tear_speed = 1100.0
+tear_damage_multiplier = 1.0
+tear_forward_offset = 22.0
+tear_spawn_jitter = Vector2(26, 16)
+tear_initial_length_range = Vector2(4, 9)
+tear_initial_width_range = Vector2(0.32, 0.68)
+tear_lateral_speed = 95.0
+cry_volume_db = -3.0
+cry_max_distance = 1000.0
+cry_attenuation = 0.7
+Type_Tags = PackedStringArray("人物", "远程", "持续", "眼泪", "复活形态")
+Negative_Tags = PackedStringArray("悲伤")
+Attack_Cooling = 999.0
+Damage = 8
+Speed = 60.0
+dir_left = false
+Max_health = 400
+Can_Attack = false
+Can_Skill = false
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+scale = Vector2(0.1482285, 0.1482285)
+texture = ExtResource("3_body")
+offset = Vector2(24, -9.5)
+
+[node name="CollisionShape2D" parent="." index="1" unique_id=434200601]
+shape = SubResource("Shape_body")
+metadata/_character_auto_fit_v3_managed = false
+metadata/_character_auto_fit_v3_manual = true
+
+[node name="CollisionShape2D" parent="hitbox" parent_id_path=PackedInt32Array(28640507) index="0" unique_id=390337144]
+shape = SubResource("Shape_hit")
+metadata/_character_auto_fit_v3_managed = false
+metadata/_character_auto_fit_v3_manual = true
+
+[node name="CollisionShape2D" parent="hurtbox" parent_id_path=PackedInt32Array(586576587) index="0" unique_id=58230542]
+shape = SubResource("Shape_hurt")
+metadata/_character_auto_fit_v3_managed = false
+metadata/_character_auto_fit_v3_manual = true
+
+[node name="LeftTearPoint" type="Marker2D" parent="." index="12" unique_id=1159673023]
+position = Vector2(14.999998, -45)
+gizmo_extents = 8.0
+
+[node name="RightTearPoint" type="Marker2D" parent="." index="13" unique_id=1486083497]
+position = Vector2(29.999998, -40)
+gizmo_extents = 8.0
+
+[editable path="Health_Bar"]

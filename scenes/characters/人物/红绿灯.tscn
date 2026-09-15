@@ -1,0 +1,67 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/红绿灯.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/红绿灯/04_拿着红绿灯的人_绿灯亮.png" id="3_green"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/红绿灯/05_拿着红绿灯的人_黄灯亮.png" id="4_yellow"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/红绿灯/06_拿着红绿灯的人_红灯亮.png" id="5_red"]
+[ext_resource type="AudioStream" path="res://audio/characters/红绿灯/红绿灯_[cut_1sec] (1).mp3" id="6_switch1"]
+[ext_resource type="AudioStream" path="res://audio/characters/红绿灯/红绿灯_[cut_1sec] (2).mp3" id="7_switch2"]
+[ext_resource type="AudioStream" path="res://audio/characters/红绿灯/红绿灯_[cut_1sec] (3).mp3" id="8_switch3"]
+
+[sub_resource type="Gradient" id="Gradient_glow"]
+offsets = PackedFloat32Array(0, 0.36, 1)
+colors = PackedColorArray(1, 1, 1, 0.92, 1, 1, 1, 0.30, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_glow"]
+gradient = SubResource("Gradient_glow")
+width = 256
+height = 256
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_glow"]
+blend_mode = 1
+light_mode = 1
+
+[node name="红绿灯" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("规则", "持续伤害", "控制")
+Negative_Tags = PackedStringArray("周期性", "红灯静止")
+Damage = 10
+Speed = 88.0
+Can_Attack = false
+Can_Skill = false
+Health_Restore = 0
+image_color = Color(1, 1, 1, 1)
+image_color_mix = 0.0
+green_texture = ExtResource("3_green")
+yellow_texture = ExtResource("4_yellow")
+red_texture = ExtResource("5_red")
+
+[node name="SwitchSfx1" type="AudioStreamPlayer2D" parent="."]
+stream = ExtResource("6_switch1")
+max_distance = 1200.0
+
+[node name="SwitchSfx2" type="AudioStreamPlayer2D" parent="."]
+stream = ExtResource("7_switch2")
+max_distance = 1200.0
+
+[node name="SwitchSfx3" type="AudioStreamPlayer2D" parent="."]
+stream = ExtResource("8_switch3")
+max_distance = 1200.0
+
+[node name="Image" parent="Graphics" index="0"]
+texture = ExtResource("3_green")
+
+[node name="GlowHalo" type="Sprite2D" parent="Graphics/Image"]
+z_index = 5
+position = Vector2(-379, -63)
+scale = Vector2(1.35, 1.35)
+texture = SubResource("GradientTexture2D_glow")
+material = SubResource("CanvasItemMaterial_glow")
+modulate = Color(0.12, 1, 0.18, 0.72)
+
+[editable path="Health_Bar"]

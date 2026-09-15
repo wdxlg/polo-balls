@@ -1,0 +1,26 @@
+{
+  "minecraft_version": "1.21.4",
+  "note": "原版Minecraft贴图镜像；仅运行时重复绘制与草地生物群系着色，不改变原图像素。",
+  "textures": [
+    {
+      "path": "Images/effects/我的世界/草方块背景/grass_block_top.png",
+      "source": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/grass_block_top.png",
+      "sha256": "52f44b64ce884a13dfe35e4b4da2e35898b790dd4d7a5ea536f1b0c0d56d29b4",
+      "pixels": [
+        16,
+        16
+      ],
+      "runtime_tint": "#91BD59"
+    },
+    {
+      "path": "Images/effects/我的世界/草方块背景/oak_log_top.png",
+      "source": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/oak_log_top.png",
+      "sha256": "62f38b25ae28b6c4842ee5a83f790394b1ec4d6c6f20dd52044394855346a2a7",
+      "pixels": [
+        16,
+        16
+      ],
+      "runtime_tint": "#FFFFFF"
+    }
+  ]
+}

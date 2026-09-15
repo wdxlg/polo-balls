@@ -1,0 +1,45 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/收债人.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/收债人/收债人_普通.png" id="3_normal"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/收债人/收债人_送钱.png" id="4_give"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/收债人/收债人_愤怒收债.png" id="5_angry"]
+
+[node name="收债人" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+normal_texture = ExtResource("3_normal")
+give_money_texture = ExtResource("4_give")
+angry_collect_texture = ExtResource("5_angry")
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("远程", "成长", "斩杀", "特殊")
+Negative_Tags = PackedStringArray("资本家", "奸商")
+Max_health = 420
+Damage = 0
+Speed = 88.0
+Attack_Cooling = 1.0
+Health_Restore = 1
+Can_Attack = true
+Can_Skill = false
+continue_attack_cooling = 1.15
+attack_range = 190.0
+money_speed = 270.0
+money_lifetime = 1.2
+debt_per_hit_flat = 6.0
+debt_per_hit_health_ratio = 0.07
+debt_tick_interval = 2.0
+debt_growth_base_ratio = 0.05
+debt_growth_bonus_at_full_ratio = 0.18
+debt_growth_ratio_cap = 0.35
+gift_stat_ratio_min = 0.08
+gift_stat_ratio_max = 0.16
+gift_damage_reduction_min = 0.03
+gift_damage_reduction_max = 0.06
+gift_restore_min = 1
+gift_restore_max = 3
+
+[node name="Image" parent="Graphics" index="0"]
+self_modulate = Color(1, 1, 1, 1)
+texture = ExtResource("3_normal")
+
+[editable path="Health_Bar"]

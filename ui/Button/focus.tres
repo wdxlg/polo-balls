@@ -1,0 +1,15 @@
+[gd_resource type="StyleBoxTexture" format=3 uid="uid://t4o33yqco1x4"]
+
+[ext_resource type="Texture2D" uid="uid://dm1vwi2u8up2" path="res://Images/gdb-gamepad-2(all)/gdb-keyboard-2.png" id="1_keyboard"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_n7tmc"]
+atlas = ExtResource("1_keyboard")
+region = Rect2(100, 578, 24, 14)
+
+[resource]
+content_margin_bottom = 3.0
+texture = SubResource("AtlasTexture_n7tmc")
+texture_margin_left = 4.0
+texture_margin_top = 2.0
+texture_margin_right = 4.0
+texture_margin_bottom = 7.0

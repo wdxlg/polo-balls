@@ -1,0 +1,27 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/赌徒.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/赌徒/赌徒_装填.png" id="3_reload"]
+
+[node name="赌徒" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("射手", "爆发", "特殊", "随机")
+Negative_Tags = PackedStringArray("赌狗")
+Max_health = 380
+Damage = 60
+Speed = 108.0
+Attack_Cooling = 999.0
+Health_Restore = 0
+Can_Attack = false
+Can_Skill = false
+enemy_bullet_damage_multiplier = 1.0
+bullet_speed = 520.0
+trigger_interval = 0.0
+opening_delay = 0.45
+reload_pause = 3.2
+muzzle_offset = 28.0
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+texture = ExtResource("3_reload")

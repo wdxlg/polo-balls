@@ -1,0 +1,38 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/meme/野生狗奶.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/meme/野生狗奶/野生狗奶.png" id="3_texture"]
+
+[node name="野生狗奶" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+Type_Tags = PackedStringArray("meme", "时间", "全局控制", "衰老", "处决")
+Negative_Tags = PackedStringArray("无普通攻击", "衰老需要累计")
+Attack_Cooling = 999.0
+Skill_Cooling = 999.0
+Damage = 34
+Speed = 88.0
+Max_health = 400
+time_acceleration_duration = 12.0
+aging_gain_percent_start = 0.6
+aging_gain_percent_end = 1.2
+aging_low_health_max_multiplier = 32.0
+aging_low_health_curve_power = 2.4
+aging_skull_world_size = 28.0
+aging_skull_shake_start_opacity = 0.95
+Health_Restore = 0
+Can_Attack = false
+Can_Skill = false
+Has_Collision_Damage = false
+
+[node name="Image" parent="Graphics" index="0"]
+texture = ExtResource("3_texture")
+texture_filter = 1
+
+[node name="CharacterAutoFit" parent="." index="2"]
+visual_size_multiplier = 0.92
+collision_min_size = Vector2(118, 138)
+collision_max_size = Vector2(176, 216)
+
+
+[editable path="Health_Bar"]

@@ -1,0 +1,2 @@
+extends "res://scripts/effects/我的世界/女巫药水状态.gd"
+# V100 compatibility wrapper.

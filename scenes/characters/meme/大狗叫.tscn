@@ -1,0 +1,86 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/meme/大狗叫.gd" id="2_script"]
+[ext_resource type="Script" path="res://scripts/characters/meme/狗叫机制.gd" id="3_bark_script"]
+[ext_resource type="PackedScene" path="res://scenes/creatures/小狗叫.tscn" id="4_puppy"]
+
+[sub_resource type="CircleShape2D" id="ContactCircle"]
+radius = 142.0
+
+[sub_resource type="CircleShape2D" id="DamageCircle"]
+radius = 604.0
+
+[node name="大狗叫" instance=ExtResource("1_base")]
+scale = Vector2(0.24, 0.24)
+script = ExtResource("2_script")
+Type_Tags = PackedStringArray("meme", "召唤", "声波", "持续伤害", "碰撞触发")
+Negative_Tags = PackedStringArray()
+Max_health = 680
+Damage = 15
+Speed = 88.0
+Attack_Cooling = 999.0
+Skill_Cooling = 999.0
+Can_Attack = false
+Can_Skill = false
+Health_Restore = 0
+Has_Collision_Damage = false
+
+[node name="CharacterAutoFit" parent="." index="2"]
+visual_size_multiplier = 0.92
+collision_min_size = Vector2(150, 135)
+collision_max_size = Vector2(240, 220)
+
+[node name="BarkMechanic" type="Node2D" parent="."]
+script = ExtResource("3_bark_script")
+collisions_before_howl = 20
+contact_sound_cooldown_start = 0.62
+contact_sound_cooldown_end = 0.16
+contact_sound_acceleration_curve = 1.25
+wave_interval = 0.1
+contact_radius = 34.0
+wave_radius = 130.0
+wave_damage_multiplier = 1.0
+wave_knockback_distance = 6.0
+wave_knockback_speed = 180.0
+
+[node name="ContactArea" type="Area2D" parent="BarkMechanic"]
+collision_layer = 0
+collision_mask = 3
+monitoring = true
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="BarkMechanic/ContactArea"]
+shape = SubResource("ContactCircle")
+
+[node name="DamageArea" type="Area2D" parent="BarkMechanic"]
+collision_layer = 0
+collision_mask = 2
+monitoring = false
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="BarkMechanic/DamageArea"]
+shape = SubResource("DamageCircle")
+disabled = true
+
+[node name="ShortBarkAudio" type="AudioStreamPlayer2D" parent="BarkMechanic"]
+max_polyphony = 1
+volume_db = 1.5
+max_distance = 2200.0
+attenuation = 0.45
+
+[node name="ShortBarkAudioB" type="AudioStreamPlayer2D" parent="BarkMechanic"]
+process_mode = 4
+max_polyphony = 1
+volume_db = 1.5
+max_distance = 2200.0
+attenuation = 0.45
+
+[node name="HowlAudio" type="AudioStreamPlayer2D" parent="BarkMechanic"]
+volume_db = 3.0
+max_distance = 2200.0
+attenuation = 0.45
+
+[node name="小狗叫" parent="." instance=ExtResource("4_puppy")]
+
+[editable path="Health_Bar"]

@@ -1,0 +1,21 @@
+[gd_scene load_steps=4 format=3]
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1"]
+[ext_resource type="Script" path="res://scripts/characters/meme/寸头没事沙漠溜达猪.gd" id="2"]
+[ext_resource type="Texture2D" path="res://Images/characters/meme/寸头没事沙漠溜达猪/沙漠寸头没事瞎溜达猪.png" id="3"]
+[node name="寸头没事沙漠溜达猪" instance=ExtResource("1")]
+script = ExtResource("2")
+Type_Tags = PackedStringArray("meme", "无攻击", "闪避", "飞扑")
+Max_health = 520
+Damage = 0
+Speed = 92.0
+Can_Attack = false
+Can_Skill = true
+Has_Collision_Damage = false
+Attack_Cooling = 999.0
+Skill_Cooling = 5.5
+
+[node name="Image" parent="Graphics" index="0"]
+texture = ExtResource("3")
+scale = Vector2(0.541, 0.541)
+
+[editable path="Health_Bar"]

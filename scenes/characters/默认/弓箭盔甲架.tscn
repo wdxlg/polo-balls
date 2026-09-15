@@ -1,0 +1,16 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/characters/默认/盔甲架.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/默认/弓箭盔甲架.gd" id="2_script"]
+
+[node name="弓箭盔甲架" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+Type_Tags = PackedStringArray("默认", "远程", "固定")
+Negative_Tags = PackedStringArray("无法移动")
+Max_health = 1000
+Damage = 10
+Speed = 0.0
+Attack_Cooling = 1.75
+Skill_Cooling = 999.0
+Can_Attack = true
+Can_Skill = false

@@ -1,0 +1,58 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/训犬师.gd" id="2_script"]
+[ext_resource type="Shader" path="res://shaders/训犬师标记线.gdshader" id="3_line_shader"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/训犬师/04_训犬师_正常状态.png" id="4_normal"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/训犬师/05_训犬师_吹哨状态.png" id="5_whistle"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_line"]
+shader = ExtResource("3_line_shader")
+
+[sub_resource type="RectangleShape2D" id="RectangleShape_mark"]
+size = Vector2(420, 200)
+
+[node name="训犬师" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+normal_texture = ExtResource("4_normal")
+whistle_texture = ExtResource("5_whistle")
+dog_spawn_interval = 14.0
+dog_max_count = 3
+whistle_action_cooldown = 6.0
+line_length = 420.0
+line_detector_half_height = 100.0
+line_reveal_distance = 100.0
+whistle_line_vertical_tolerance = 4.0
+line_min_alpha = 0.1
+line_max_alpha = 1.0
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("召唤", "标记", "控制")
+Negative_Tags = PackedStringArray("无攻击", "依赖猎犬")
+Max_health = 700
+Damage = 50
+Speed = 86.0
+Can_Attack = false
+Can_Skill = false
+Health_Restore = 0
+image_color = Color(1, 1, 1, 1)
+image_color_mix = 0.0
+
+[node name="Image" parent="Graphics" index="0"]
+texture = ExtResource("4_normal")
+
+[node name="MarkLine" type="Line2D" parent="."]
+material = SubResource("ShaderMaterial_line")
+width = 3.0
+default_color = Color(1, 0, 0, 1)
+points = PackedVector2Array(0, 0, 420, 0)
+
+[node name="MarkDetector" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 2
+monitoring = true
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="MarkDetector"]
+shape = SubResource("RectangleShape_mark")
+
+[editable path="Health_Bar"]

@@ -1,0 +1,133 @@
+[gd_scene format=3 uid="uid://1ibrkjeqwfdy"]
+
+[ext_resource type="PackedScene" uid="uid://dgfmejo2auorn" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" uid="uid://g4cfhijepgwf" path="res://scripts/characters/meme/菊花茶.gd" id="2_script"]
+[ext_resource type="Texture2D" uid="uid://ct7o637oosiui" path="res://Images/characters/meme/菊花茶/菊花茶.png" id="3_texture"]
+[ext_resource type="Texture2D" uid="uid://xbfcdn51x0v7" path="res://Images/characters/meme/菊花茶/吸管.png" id="4_straw"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_vjeh4"]
+resource_local_to_scene = true
+size = Vector2(103.04, 154.652)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_pblef"]
+resource_local_to_scene = true
+size = Vector2(103.04, 154.652)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_d2sqd"]
+resource_local_to_scene = true
+size = Vector2(103.04, 154.652)
+
+[node name="菊花茶" unique_id=2029654370 instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+projectile_speed = 520.0
+projectile_gravity = 1050.0
+projectile_damage_multiplier = 0.1
+projectile_target_prediction = 0.16
+projectile_lifetime = 2.6
+projectile_vertical_aim_max_angle_deg = 26.0
+projectile_vertical_aim_full_offset = 140.0
+tea_body_visual_offset = Vector2(0, 0)
+projectile_spawn_above_gap = 3.0
+projectile_spawn_horizontal_jitter = 0.0
+projectile_spawn_vertical_jitter = 0.0
+projectile_arc_time_center = 1.22
+projectile_arc_time_variation = 0.24
+straw_visual_scale_multiplier = 1.0
+straw_aim_angle_offset_deg = 0.0
+straw_head_max_rotation_deg = 180.0
+straw_aim_follow_response = 30.0
+restrict_attack_to_straw_side = true
+gravity_cycle_interval = 7.0
+gravity_active_duration = 3.0
+gravity_acceleration = 300.0
+gravity_damage_per_second_multiplier = 0.5
+gravity_damage_tick_interval = 0.2
+Type_Tags = PackedStringArray("meme", "射手", "高频", "抛物线", "重力")
+Negative_Tags = PackedStringArray("低伤害")
+Attack_Cooling = 0.03
+Skill_Cooling = 999.0
+Damage = 16
+Speed = 92.0
+Max_health = 650
+Can_Skill = false
+
+[node name="Graphics" parent="." index="0" unique_id=1055880812]
+position = Vector2(0, 50)
+
+[node name="Image" parent="Graphics" index="0" unique_id=1294062553]
+z_index = 1
+texture_filter = 1
+position = Vector2(0, 12)
+scale = Vector2(0.11570553, 0.11570553)
+texture = ExtResource("3_texture")
+offset = Vector2(0, 21)
+
+[node name="StrawRig" type="Node2D" parent="Graphics" index="2" unique_id=1777850213]
+editor_description = "V294：这里保存用户手调的局内吸管基础 Transform2D。角色左右反转时脚本会围绕 Graphics 原点镜像整套吸管（含位置）；其余位置/缩放/skew 均以本场景为准。"
+position = Vector2(-40.585, -41.47)
+scale = Vector2(0.11570553, 0.11570553)
+skew = 0.50963616
+
+[node name="StrawStem" type="Polygon2D" parent="Graphics/StrawRig" index="0" unique_id=747633123]
+editor_description = "固定长管区域。选中本节点，在 2D 顶部打开 Polygon2D 的 UV 编辑器手动重画/改点；脚本不会再覆盖 polygon 或 uv。"
+position = Vector2(-480.00003, -867)
+texture = ExtResource("4_straw")
+polygon = PackedVector2Array(172.26465, 169.52379, 272.10474, 102.96378, 434.34473, 319.28384, 1157.0013, 1591.3135, 890.22034, 1661.7839, 709.0106, 1606.4143, 648.60754, 1324.5326)
+uv = PackedVector2Array(172.26465, 169.52379, 272.10474, 102.96378, 434.34473, 319.28384, 1157.0013, 1591.3135, 890.22034, 1661.7839, 709.0106, 1606.4143, 648.60754, 1324.5326)
+
+[node name="StrawHeadPivot" type="Marker2D" parent="Graphics/StrawRig" index="1" unique_id=1784452441]
+editor_description = "V302：真实旋转轴。StrawHead、StrawMouthInner、StrawMuzzle 作为它的子节点整体刚体旋转；运行时管口角度直接对齐 V297 抛物线的实际起射角。position 仍完全由本场景手调。"
+position = Vector2(-255.00003, -732)
+gizmo_extents = 18.0
+
+[node name="StrawHead" type="Polygon2D" parent="Graphics/StrawRig/StrawHeadPivot" index="0" unique_id=1849928201]
+editor_description = "V302：可旋转弯头/短管区域。保持你手调的 polygon/uv 不变；不再做 V298~V301 的渐进弯曲/Shader 变形，只跟随 StrawHeadPivot 整体旋转。"
+position = Vector2(-227.63, -140)
+texture = ExtResource("4_straw")
+polygon = PackedVector2Array(-67.23169, 341.89572, 201.27747, 542.33215, 284.47766, 508.2958, 178.58655, 175.4957, 292.04114, 96.077484, 216.4049, -66.54074, 8.404785, -93.01347, -59.66797, 262.47757)
+uv = PackedVector2Array(-67.23169, 341.89572, 201.27747, 542.33215, 284.47766, 508.2958, 178.58655, 175.4957, 292.04114, 96.077484, 216.4049, -66.54074, 8.404785, -93.01347, -59.66797, 262.47757)
+
+[node name="StrawMouthInner" type="Marker2D" parent="Graphics/StrawRig/StrawHeadPivot" index="1" unique_id=1439689366]
+editor_description = "管口内侧方向点。与 StrawMuzzle 两个十字共同定义 rotation=0 时吸管头的基础朝向；可直接拖动。"
+position = Vector2(-66.449, 213.44)
+gizmo_extents = 14.0
+
+[node name="StrawMuzzle" type="Marker2D" parent="Graphics/StrawRig/StrawHeadPivot" index="2" unique_id=796375925]
+editor_description = "真实发射口。水滴直接从这个十字的 global_position 出生；把它拖到你认为的吸管口中心。"
+position = Vector2(-11.96, 340)
+scale = Vector2(-178.62839, 183.60359)
+gizmo_extents = 20.0
+
+[node name="NamePlate" type="Label" parent="Graphics" index="3" unique_id=1845353798]
+offset_left = -96.0
+offset_top = 78.0
+offset_right = 96.0
+offset_bottom = 113.0
+theme_override_colors/font_color = Color(0.84, 1, 0.72, 1)
+theme_override_colors/font_outline_color = Color(0.1, 0.3, 0.08, 0.96)
+theme_override_constants/outline_size = 7
+theme_override_font_sizes/font_size = 28
+text = "菊花茶"
+horizontal_alignment = 1
+
+[node name="CollisionShape2D" parent="." index="1" unique_id=434200601]
+position = Vector2(0, 12)
+shape = SubResource("RectangleShape2D_vjeh4")
+metadata/_character_auto_fit_v3_last_auto = "RectangleShape2D|(103.04, 154.652)|(0.0, 12.0)|(1.0, 1.0)|0.0"
+
+[node name="CharacterAutoFit" parent="." index="2" unique_id=1101643520]
+visual_size_multiplier = 0.92
+collision_min_size = Vector2(112, 138)
+collision_max_size = Vector2(168, 218)
+
+[node name="CollisionShape2D" parent="hitbox" parent_id_path=PackedInt32Array(28640507) index="0" unique_id=390337144]
+position = Vector2(0, 12)
+shape = SubResource("RectangleShape2D_pblef")
+metadata/_character_auto_fit_v3_last_auto = "RectangleShape2D|(103.04, 154.652)|(0.0, 12.0)|(1.0, 1.0)|0.0"
+
+[node name="CollisionShape2D" parent="hurtbox" parent_id_path=PackedInt32Array(586576587) index="0" unique_id=58230542]
+position = Vector2(0, 12)
+shape = SubResource("RectangleShape2D_d2sqd")
+metadata/_character_auto_fit_v3_last_auto = "RectangleShape2D|(103.04, 154.652)|(0.0, 12.0)|(1.0, 1.0)|0.0"
+
+[editable path="Health_Bar"]

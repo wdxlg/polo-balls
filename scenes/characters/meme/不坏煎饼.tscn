@@ -1,0 +1,32 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/meme/不坏煎饼.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/meme/不坏煎饼/煎饼在包装内.png" id="3_texture"]
+
+[node name="不坏煎饼" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+Type_Tags = PackedStringArray("meme", "刷新", "永久弹体", "弹射", "中毒")
+Negative_Tags = PackedStringArray("无普通攻击", "弹体随时间腐烂")
+Attack_Cooling = 999.0
+Skill_Cooling = 32.0
+Damage = 52
+Speed = 82.0
+Max_health = 200
+Health_Restore = 0
+Can_Attack = false
+Can_Skill = true
+Has_Collision_Damage = false
+full_refresh_cooldown = 32.0
+
+[node name="Image" parent="Graphics" index="0"]
+texture = ExtResource("3_texture")
+texture_filter = 1
+
+[node name="CharacterAutoFit" parent="." index="2"]
+visual_size_multiplier = 0.94
+collision_min_size = Vector2(120, 138)
+collision_max_size = Vector2(178, 218)
+
+
+[editable path="Health_Bar"]

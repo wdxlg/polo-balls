@@ -1,0 +1,62 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/creatures/训犬师_狗.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/训犬师/06_马犬_正常状态.png" id="3_normal"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/训犬师/07_马犬_要咬人状态.png" id="4_bite"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape_bite"]
+size = Vector2(42, 84)
+
+[node name="训犬师_狗" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+normal_texture = ExtResource("3_normal")
+bite_texture = ExtResource("4_bite")
+guard_notice_radius = 56.0
+bite_knockback_distance = 10.0
+bite_knockback_speed = 240.0
+bite_hitbox_size = Vector2(42, 84)
+bite_hitbox_forward_offset = 21.0
+bite_hitbox_active_time = 0.12
+bite_cooldown = 0.12
+continuous_attack_owner_radius = 96.0
+follow_stop_radius = 6.0
+follow_space_clearance_radius = 18.0
+follow_staging_owner_radius = 62.0
+follow_ideal_clear_hold_time = 0.45
+follow_target_response = 7.5
+follow_recovery_step = 42.0
+collision_layer = 2
+collision_mask = 3
+Type = 3
+Has_Collision_Damage = false
+Max_health = 75
+Damage = 75
+Speed = 145.0
+Can_Attack = false
+Can_Skill = false
+Health_Restore = 0
+side_status_ui_enabled = false
+image_color = Color(1, 1, 1, 1)
+image_color_mix = 0.0
+
+[node name="Image" parent="Graphics" index="0"]
+scale = Vector2(0.146, 0.146)
+texture = ExtResource("3_normal")
+
+[node name="DogTail" type="Polygon2D" parent="Graphics"]
+visible = false
+polygon = PackedVector2Array(-65, -10, -120, -42, -104, 10, -58, 18)
+color = Color(0.23, 0.13, 0.07, 1)
+
+[node name="BiteArea" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 2
+monitoring = false
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="BiteArea"]
+shape = SubResource("RectangleShape_bite")
+disabled = true
+
+[editable path="Health_Bar"]

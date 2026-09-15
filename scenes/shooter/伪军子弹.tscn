@@ -1,0 +1,21 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/shooter/伪军子弹.gd" id="2_script"]
+
+[node name="伪军子弹" instance=ExtResource("1_base")]
+scale = Vector2(0.06, 0.06)
+script = ExtResource("2_script")
+Type = 1
+collision_mask = 1
+Max_health = 1
+Damage = 0
+Speed = 720.0
+Can_Attack = false
+Can_Skill = false
+Health_Restore = 0
+side_status_ui_enabled = false
+image_color = Color(0.95, 0.8, 0.25, 1)
+image_color_mix = 1.0
+
+[editable path="Health_Bar"]

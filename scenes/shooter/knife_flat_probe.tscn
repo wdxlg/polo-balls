@@ -1,0 +1,395 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/shooter/knife.gd" id="1_iqwu3"]
+[ext_resource type="Shader" path="res://shaders/Set_RGB_Color.gdshader" id="2_t8ol5"]
+[ext_resource type="Texture2D" path="res://Images/shooter/Knife.png" id="3_8ke8q"]
+[ext_resource type="Script" path="res://scripts/character_auto_fit.gd" id="4_33vey"]
+[ext_resource type="Script" path="res://classes/health_bar.gd" id="5_ki785"]
+[ext_resource type="Texture2D" path="res://Images/未标题-1.png" id="6_uey2h"]
+[ext_resource type="Script" path="res://classes/state_machine.gd" id="7_51dqc"]
+[ext_resource type="Script" path="res://classes/hitbox.gd" id="8_ljd23"]
+[ext_resource type="Script" path="res://classes/hurtbox.gd" id="9_6n2lo"]
+[ext_resource type="Texture2D" path="res://Images/Status/dazed.png" id="10_beba7"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_v8l5b"]
+shader = ExtResource("2_t8ol5")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_iijjg"]
+shader = ExtResource("2_t8ol5")
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_7qxcc"]
+size = Vector2(200, 93.75)
+
+[sub_resource type="Gradient" id="Gradient_y3kqx"]
+colors = PackedColorArray(1, 1, 0, 1, 1, 1, 0, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_6opq1"]
+gradient = SubResource("Gradient_y3kqx")
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_rsid4"]
+size = Vector2(225, 109.375)
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_v8l5b"]
+properties/0/path = NodePath(".:scale")
+properties/0/spawn = true
+properties/0/replication_mode = 2
+properties/1/path = NodePath(".:rotation")
+properties/1/spawn = true
+properties/1/replication_mode = 2
+properties/2/path = NodePath(".:skew")
+properties/2/spawn = true
+properties/2/replication_mode = 2
+properties/3/path = NodePath("Graphics:rotation")
+properties/3/spawn = true
+properties/3/replication_mode = 2
+properties/4/path = NodePath("Graphics:scale")
+properties/4/spawn = true
+properties/4/replication_mode = 2
+properties/5/path = NodePath("Graphics:skew")
+properties/5/spawn = true
+properties/5/replication_mode = 2
+properties/6/path = NodePath("Graphics/Image:flip_h")
+properties/6/spawn = true
+properties/6/replication_mode = 2
+properties/7/path = NodePath("Graphics/AnimatedSprite2D:flip_h")
+properties/7/spawn = true
+properties/7/replication_mode = 2
+properties/8/path = NodePath("Graphics/Image:rotation")
+properties/8/spawn = true
+properties/8/replication_mode = 2
+properties/9/path = NodePath("Graphics/Image:skew")
+properties/9/spawn = true
+properties/9/replication_mode = 2
+properties/10/path = NodePath("Graphics/Image:scale")
+properties/10/spawn = true
+properties/10/replication_mode = 2
+properties/11/path = NodePath("Graphics/AnimatedSprite2D:scale")
+properties/11/spawn = true
+properties/11/replication_mode = 2
+properties/12/path = NodePath("Graphics/AnimatedSprite2D:rotation")
+properties/12/spawn = true
+properties/12/replication_mode = 2
+properties/13/path = NodePath("Graphics/AnimatedSprite2D:skew")
+properties/13/spawn = true
+properties/13/replication_mode = 2
+properties/14/path = NodePath("Graphics/AnimatedSprite2D:frame")
+properties/14/spawn = true
+properties/14/replication_mode = 1
+properties/15/path = NodePath("Graphics/AnimatedSprite2D:animation")
+properties/15/spawn = true
+properties/15/replication_mode = 2
+properties/16/path = NodePath("Health_Bar/TextureRect/Label:text")
+properties/16/spawn = true
+properties/16/replication_mode = 2
+properties/17/path = NodePath("Health_Bar/TextureRect/Health:value")
+properties/17/spawn = true
+properties/17/replication_mode = 2
+properties/18/path = NodePath("Health_Bar/TextureRect/Health:self_modulate")
+properties/18/spawn = true
+properties/18/replication_mode = 2
+properties/19/path = NodePath("Health_Bar/TextureRect/Block:value")
+properties/19/spawn = true
+properties/19/replication_mode = 2
+properties/20/path = NodePath("Graphics/Image:instance_shader_parameters/power")
+properties/20/spawn = true
+properties/20/replication_mode = 2
+properties/21/path = NodePath("Graphics/AnimatedSprite2D:instance_shader_parameters/power")
+properties/21/spawn = true
+properties/21/replication_mode = 2
+properties/22/path = NodePath("Graphics/Image:instance_shader_parameters/default_color")
+properties/22/spawn = true
+properties/22/replication_mode = 2
+properties/23/path = NodePath("Graphics/Image:instance_shader_parameters/defualt_color_mix")
+properties/23/spawn = true
+properties/23/replication_mode = 2
+properties/24/path = NodePath("Graphics/Image:instance_shader_parameters/hit_white_color")
+properties/24/spawn = true
+properties/24/replication_mode = 2
+properties/25/path = NodePath("Graphics/AnimatedSprite2D:instance_shader_parameters/default_color")
+properties/25/spawn = true
+properties/25/replication_mode = 2
+properties/26/path = NodePath("Graphics/AnimatedSprite2D:instance_shader_parameters/defualt_color_mix")
+properties/26/spawn = true
+properties/26/replication_mode = 2
+properties/27/path = NodePath("Graphics/AnimatedSprite2D:instance_shader_parameters/hit_white_color")
+properties/27/spawn = true
+properties/27/replication_mode = 2
+properties/28/path = NodePath(".:global_position")
+properties/28/spawn = true
+properties/28/replication_mode = 1
+properties/29/path = NodePath("Graphics/Image:offset")
+properties/29/spawn = true
+properties/29/replication_mode = 2
+properties/30/path = NodePath("Graphics/AnimatedSprite2D:offset")
+properties/30/spawn = true
+properties/30/replication_mode = 2
+properties/31/path = NodePath("Graphics:position")
+properties/31/spawn = true
+properties/31/replication_mode = 1
+properties/32/path = NodePath("Graphics/Image:global_position")
+properties/32/spawn = true
+properties/32/replication_mode = 0
+properties/33/path = NodePath("Graphics/AnimatedSprite2D:global_position")
+properties/33/spawn = true
+properties/33/replication_mode = 0
+properties/34/path = NodePath("Graphics/Image:visible")
+properties/34/spawn = true
+properties/34/replication_mode = 2
+properties/35/path = NodePath("Graphics/AnimatedSprite2D:visible")
+properties/35/spawn = true
+properties/35/replication_mode = 2
+properties/36/path = NodePath("Graphics:visible")
+properties/36/spawn = true
+properties/36/replication_mode = 2
+properties/37/path = NodePath(".:visible")
+properties/37/spawn = true
+properties/37/replication_mode = 2
+properties/38/path = NodePath(".:Type")
+properties/38/spawn = true
+properties/38/replication_mode = 2
+properties/39/path = NodePath(".:Team")
+properties/39/spawn = true
+properties/39/replication_mode = 2
+properties/40/path = NodePath(".:Master_name")
+properties/40/spawn = true
+properties/40/replication_mode = 2
+
+[node name="Knife" type="CharacterBody2D" unique_id=751516400 node_paths=PackedStringArray("image")]
+scale = Vector2(0.08, 0.08)
+collision_layer = 0
+script = ExtResource("1_iqwu3")
+image = NodePath("Graphics/Image")
+Default_Rotation = 0.0
+Type = 1
+Type_Tags = PackedStringArray()
+Negative_Tags = PackedStringArray()
+Speed = 300.0
+stun_effect_offset = Vector2(0, -20)
+stun_effect_scale = 0.02
+AfterImage_Speed = 40.0
+AfterImage_Interval = 0.03
+AfterImage_Spacing = 6.0
+AfterImage_Lifetime = 0.18
+AfterImage_Mode = 2
+AfterImage_Style = 0
+AfterImage_Alpha = 0.24
+AfterImage_End_Tint = Color(0.82, 0.88, 0.96, 1)
+AfterImage_End_Scale = Vector2(0.9, 0.9)
+AfterImage_Blur_Pixels = 0.8
+AfterImage_End_Blur_Pixels = 1.4
+AfterImage_Smear_Pixels = 3.0
+AfterImage_End_Smear_Pixels = 1.0
+AfterImage_Sample_Count = 5
+AfterImage_Stretch_Full_Speed = 320.0
+AfterImage_Stretch_Head_Width = 0.72
+AfterImage_Stretch_Tail_Width = 0.22
+AfterImage_Stretch_Alpha = 0.46
+AfterImage_Stretch_Head_Color = Color(0.96, 0.98, 1, 1)
+AfterImage_Stretch_Tail_Color = Color(0.56, 0.68, 0.82, 0)
+AfterImage_Path_Edge_Inset_Pixels = 2.0
+AfterImage_Path_Tail_Band_Pixels = 32.0
+AfterImage_Path_Scanline_Samples = 36
+AfterImage_Path_Attach_Overlap_Pixels = 1.5
+AfterImage_Path_Solid_Width_Ratio = 0.68
+AfterImage_Path_Point_Spacing = 5.5
+AfterImage_Path_Max_Points = 18
+AfterImage_Path_Round_Precision = 12
+motion_blur_effect_strength = 49.8
+motion_blur_start_speed = 120.0
+motion_blur_full_speed = 500.0
+
+[node name="Graphics" type="Node2D" parent="." unique_id=1055880812]
+scale = Vector2(0.99999994, 0.99999994)
+
+[node name="Image" type="Sprite2D" parent="Graphics" unique_id=1294062553]
+material = SubResource("ShaderMaterial_v8l5b")
+instance_shader_parameters/hit_white_color = Color(1, 1, 1, 1)
+instance_shader_parameters/power = 0.0
+rotation = 3.1415927
+scale = Vector2(0.32, 0.32)
+texture = ExtResource("3_8ke8q")
+offset = Vector2(-1.5, -1.5)
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="Graphics" unique_id=907666059]
+material = SubResource("ShaderMaterial_iijjg")
+instance_shader_parameters/hit_white_color = Color(1, 1, 1, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=434200601]
+visible = false
+position = Vector2(0, 6.249999)
+scale = Vector2(1.5357788, 1.0146765)
+shape = SubResource("RectangleShape2D_7qxcc")
+metadata/_character_auto_fit_v3_managed = true
+metadata/_character_auto_fit_v3_manual = false
+metadata/_character_auto_fit_v3_last_auto = "RectangleShape2D|(180.0, 158.7239)|(0.0, 0.0)|(1.0, 1.0)|0.0"
+
+[node name="CharacterAutoFit" type="Node" parent="." unique_id=1101643520]
+script = ExtResource("4_33vey")
+
+[node name="Health_Bar" type="Control" parent="." unique_id=595266760]
+visible = false
+layout_mode = 3
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_top = -134.0
+offset_bottom = -134.0
+grow_horizontal = 2
+scale = Vector2(0.06, 0.06)
+script = ExtResource("5_ki785")
+metadata/_edit_use_anchors_ = true
+
+[node name="TextureRect" type="TextureRect" parent="Health_Bar" unique_id=436834118]
+self_modulate = Color(0, 0, 0, 1)
+layout_mode = 0
+offset_left = -945.0
+offset_top = -945.0
+offset_right = 945.0
+offset_bottom = 945.0
+texture = ExtResource("6_uey2h")
+
+[node name="Health" type="TextureProgressBar" parent="Health_Bar/TextureRect" unique_id=531906221]
+layout_mode = 0
+offset_left = 50.0
+offset_top = 50.0
+offset_right = 1940.0
+offset_bottom = 1940.0
+scale = Vector2(0.95, 0.95)
+max_value = 1.0
+step = 0.0
+value = 0.5
+fill_mode = 3
+texture_progress = ExtResource("6_uey2h")
+
+[node name="Label" type="Label" parent="Health_Bar/TextureRect" unique_id=1931065171]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -877.0
+offset_top = -610.0
+offset_right = 839.0
+offset_bottom = 590.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.58431375)
+theme_override_colors/font_outline_color = Color(1, 1, 1, 1)
+theme_override_constants/shadow_offset_x = 20
+theme_override_constants/shadow_offset_y = 20
+theme_override_constants/outline_size = 120
+theme_override_constants/shadow_outline_size = 100
+theme_override_font_sizes/font_size = 900
+text = "1000"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Block" type="TextureProgressBar" parent="Health_Bar/TextureRect" unique_id=1417344489]
+self_modulate = Color(0.46618086, 0.4661808, 0.4661808, 0.5647059)
+z_index = 1
+layout_mode = 0
+offset_left = 50.0
+offset_top = 50.0
+offset_right = 1940.0
+offset_bottom = 1940.0
+scale = Vector2(0.95, 0.95)
+max_value = 1.0
+step = 0.0
+value = 1.0
+fill_mode = 3
+texture_progress = ExtResource("6_uey2h")
+
+[node name="Energy_Bar" type="ColorRect" parent="Health_Bar" unique_id=1185060233]
+visible = false
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -945.0
+offset_top = 1042.0
+offset_right = 945.0
+offset_bottom = 1142.0
+grow_horizontal = 2
+grow_vertical = 0
+color = Color(0, 0, 0, 1)
+
+[node name="Energy" type="TextureProgressBar" parent="Health_Bar/Energy_Bar" unique_id=1831067949]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -32.0
+offset_top = -32.0
+offset_right = 32.0
+offset_bottom = 32.0
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(28, 0.9)
+pivot_offset_ratio = Vector2(0.5, 0.5)
+max_value = 1.0
+step = 0.0
+value = 1.0
+texture_progress = SubResource("GradientTexture2D_6opq1")
+
+[node name="state_machine" type="Node" parent="." unique_id=1153150648]
+script = ExtResource("7_51dqc")
+metadata/_custom_type_script = "uid://bv2rb81mpjfxg"
+
+[node name="hitbox" type="Area2D" parent="." unique_id=28640507]
+collision_layer = 0
+collision_mask = 2
+script = ExtResource("8_ljd23")
+metadata/_custom_type_script = "uid://dfrt1bpsaxbql"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="hitbox" unique_id=390337144]
+visible = false
+position = Vector2(0, 6)
+scale = Vector2(1.4999828, 1)
+shape = SubResource("RectangleShape2D_rsid4")
+metadata/_character_auto_fit_v3_managed = true
+metadata/_character_auto_fit_v3_manual = false
+metadata/_character_auto_fit_v3_last_auto = "RectangleShape2D|(180.0, 158.7239)|(0.0, 0.0)|(1.0, 1.0)|0.0"
+
+[node name="hurtbox" type="Area2D" parent="." unique_id=586576587]
+z_index = 1
+y_sort_enabled = true
+collision_layer = 4
+collision_mask = 0
+script = ExtResource("9_6n2lo")
+metadata/_custom_type_script = "uid://drkxgge158cfk"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="hurtbox" unique_id=58230542]
+visible = false
+position = Vector2(0, 6)
+scale = Vector2(1.4999828, 1)
+shape = SubResource("RectangleShape2D_rsid4")
+metadata/_character_auto_fit_v3_managed = true
+metadata/_character_auto_fit_v3_manual = false
+metadata/_character_auto_fit_v3_last_auto = "RectangleShape2D|(180.0, 158.7239)|(0.0, 0.0)|(1.0, 1.0)|0.0"
+
+[node name="Health_Restore_Timer" type="Timer" parent="." unique_id=936591498]
+autostart = true
+
+[node name="Hurting_Timer" type="Timer" parent="." unique_id=1734411358]
+one_shot = true
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1866701039]
+
+[node name="Status_Image" type="Sprite2D" parent="." unique_id=849368199]
+self_modulate = Color(1, 1, 1, 0)
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("10_beba7")
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="." unique_id=1751091311]
+replication_interval = 0.033333
+replication_config = SubResource("SceneReplicationConfig_v8l5b")
+
+[connection signal="health_changed" from="Health_Bar" to="Health_Bar" method="_on_health_changed"]
+[connection signal="on_hit" from="hitbox" to="." method="_on_hitbox_on_hit"]
+[connection signal="on_hurt" from="hurtbox" to="." method="_on_hurtbox_on_hurt"]

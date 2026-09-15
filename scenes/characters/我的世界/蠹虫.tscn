@@ -1,0 +1,49 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/我的世界/蠹虫.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/蠹虫/本体.webp" id="3_body"]
+
+[node name="蠹虫" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+Dead_Audio = ""
+Has_Collision_Damage = true
+Type_Tags = PackedStringArray("我的世界", "近战", "碰撞", "召唤", "地形")
+Negative_Tags = PackedStringArray("脆弱", "虫子")
+Max_health = 66
+Damage = 13
+Speed = 104.0
+Health_Restore = 0
+Can_Attack = false
+Can_Skill = false
+
+[node name="Image" parent="Graphics" index="0"]
+texture = ExtResource("3_body")
+texture_filter = 1
+
+[node name="CharacterAutoFit" parent="." index="2"]
+visual_size_multiplier = 0.45
+collision_width_ratio = 0.82
+collision_height_ratio = 0.72
+collision_min_size = Vector2(72, 58)
+collision_max_size = Vector2(150, 110)
+
+[node name="HissAudio" type="AudioStreamPlayer2D" parent="."]
+max_distance = 850.0
+attenuation = 1.0
+max_polyphony = 1
+volume_db = -1.0
+
+[node name="FootstepAudio" type="AudioStreamPlayer2D" parent="."]
+max_distance = 700.0
+attenuation = 1.0
+max_polyphony = 1
+volume_db = -3.0
+
+[node name="DeathAudio" type="AudioStreamPlayer2D" parent="."]
+max_distance = 900.0
+attenuation = 1.0
+max_polyphony = 1
+volume_db = 0.0
+
+[editable path="Health_Bar"]

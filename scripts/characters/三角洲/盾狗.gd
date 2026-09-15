@@ -1,0 +1,1373 @@
+extends ball
+const WIRE_SCRIPT = preload("res://scripts/effects/三角洲_铁丝网.gd")
+const SHIELD_DOG_TEXTURE_PATH:String = "res://Images/characters/三角洲/盾狗/深蓝.png"
+const SHIELD_DOG_WIRE_TEXTURE_PATH:String = "res://Images/characters/三角洲/盾狗/刺网.png"
+const SHIELD_DOG_BLADE_TEXTURE_PATH:String = "res://Images/characters/三角洲/盾狗/刺网子弹.png"
+const SHIELD_DOG_VISUAL_LONGEST_SIDE:float = 240.0
+const SHIELD_DOG_AUDIO_DIR:String = "res://audio/characters/三角洲/盾狗/"
+const SHIELD_DOG_WALK_PATH:String = SHIELD_DOG_AUDIO_DIR + "走路循环(1).MP3"
+const SHIELD_DOG_RAM_SFX_PATHS:Array[String] = [
+	SHIELD_DOG_AUDIO_DIR + "撞击1.MP3",
+	SHIELD_DOG_AUDIO_DIR + "撞击2.MP3",
+]
+const SHIELD_DOG_RAM_VOICE_PATHS:Array[String] = [
+	SHIELD_DOG_AUDIO_DIR + "撞击语音1.MP3",
+	SHIELD_DOG_AUDIO_DIR + "撞击语音2.MP3",
+	SHIELD_DOG_AUDIO_DIR + "撞击语音4.MP3",
+]
+const SHIELD_DOG_WIRE_SFX_PATHS:Array[String] = [
+	SHIELD_DOG_AUDIO_DIR + "刺网1(1).MP3",
+	SHIELD_DOG_AUDIO_DIR + "刺网2(1).MP3",
+	SHIELD_DOG_AUDIO_DIR + "刺网3.MP3",
+]
+const SHIELD_DOG_BLADE_THROW_PATH:String = SHIELD_DOG_AUDIO_DIR + "扔刀片.MP3"
+const SHIELD_DOG_BLADE_LAND_PATH:String = SHIELD_DOG_AUDIO_DIR + "刀片落地.MP3"
+const SHIELD_DOG_HOOK_FIRE_PATH:String = SHIELD_DOG_AUDIO_DIR + "钩爪.MP3"
+const SHIELD_DOG_HOOK_RETRACT_PATH:String = SHIELD_DOG_AUDIO_DIR + "钩爪收回.MP3"
+@export_category("盾狗")
+@export_range(0.0,1.0,0.05) var front_damage_reduction:float = 0.85
+@export var ram_range:float = 40.0
+@export_range(30.0,180.0,1.0) var ram_front_angle_degrees:float = 120.0
+@export var ram_damage_multiplier:float = 1.0
+@export var ram_knockback_distance:float = 28.0
+@export var ram_stun:float = 0.34
+@export_range(0.05,0.6,0.01) var ram_attack_cooldown:float = 0.22
+@export var stamina_max:float = 100.0
+@export var stamina_regen:float = 10.0
+@export var ram_stamina_cost:float = 26.0
+@export var approach_ram_stamina_cost:float = 42.0
+@export var wire_skill_cost:float = 0.0
+
+@export_category("盾狗体力条")
+@export var stamina_bar_width:float = 12.0
+@export var stamina_bar_height:float = 180.0
+@export var stamina_bar_back_distance:float = 0.0
+@export var stamina_bar_back_gap:float = 8.0
+@export var stamina_bar_color:Color = Color(1.0,0.78,0.05,1.0)
+@export var stamina_bar_background_color:Color = Color(0.08,0.07,0.03,0.82)
+
+@export_category("盾狗正面投射物格挡")
+# 变量名为旧场景兼容保留；V245 起语义是“所有投射物”，不再只指枪械子弹。
+@export var front_blocks_bullets:bool = true
+@export_range(0.0,0.5,0.01) var front_block_audio_cooldown:float = 0.08
+
+@export_category("盾狗盾击铁丝网导向")
+@export var ram_wire_redirect_range:float = 150.0
+@export_range(30.0,180.0,1.0) var ram_wire_redirect_angle_degrees:float = 120.0
+
+@export_category("盾狗冲撞图片反馈")
+@export var ram_visual_back_local:float = 15.0
+@export var ram_visual_forward_local:float = 30.0
+@export_range(0.65,1.0,0.01) var ram_visual_squash_x:float = 0.82
+@export_range(1.0,1.25,0.01) var ram_visual_squash_y:float = 1.08
+@export var ram_visual_back_time:float = 0.075
+@export var ram_visual_rush_time:float = 0.085
+@export var ram_visual_recover_time:float = 0.13
+@export_category("盾狗音效")
+@export_range(0.0,1.0,0.01) var ram_voice_chance:float = 0.42
+@export var walk_sfx_volume_db:float = 3.0
+@export var action_sfx_volume_db:float = -1.5
+@export var voice_sfx_volume_db:float = 2.0
+@export var sfx_max_distance:float = 520.0
+@export_category("盾狗刀片陷阱")
+@export var wire_throw_distance:float = 58.0
+@export var wire_throw_time:float = 0.34
+@export var wire_throw_arc_height:float = 42.0
+@export var wire_throw_spin_turns:float = 1.35
+@export var wire_blade_visual_width:float = 38.0
+@export var blade_throw_volume_db:float = 3.0
+@export var blade_land_volume_db:float = 3.0
+
+@export_category("盾狗钩爪")
+@export var hook_range:float = 220.0
+@export var hook_min_range:float = 48.0
+@export_range(30.0,180.0,1.0) var hook_front_angle_degrees:float = 120.0
+@export var hook_damage:float = 5.0
+@export var hook_cooldown:float = 5.2
+@export var hook_pull_front_offset:float = 42.0
+@export var hook_pull_speed:float = 520.0
+@export var hook_extend_time:float = 0.13
+@export var hook_tip_radius:float = 5.0
+@export var hook_retract_visual_time:float = 0.18
+@export var hook_sfx_volume_db:float = 4.0
+var stamina:float = 100.0
+var facing_sign:float = 1.0
+var _facing_direction:Vector2=Vector2.RIGHT
+var _ram_visual_tween:Tween=null
+var _ram_visual_base_position:Vector2=Vector2.ZERO
+var _ram_visual_base_scale:Vector2=Vector2.ONE
+var _ram_visual_ready:bool=false
+var _walk_audio:AudioStreamPlayer2D=null
+var _walk_audio_last_global_position:Vector2=Vector2.ZERO
+var _walk_audio_motion_initialized:bool=false
+var _action_audio:AudioStreamPlayer2D=null
+var _voice_audio:AudioStreamPlayer2D=null
+var _hook_cooldown_left:float=0.0
+var _hook_active:bool=false
+var _hook_line:Line2D=null
+var _hook_phase:StringName=&""
+var _hook_launch_start:Vector2=Vector2.ZERO
+var _hook_direction:Vector2=Vector2.RIGHT
+var _hook_tip:Vector2=Vector2.ZERO
+var _hook_travelled:float=0.0
+var _hook_retract_from:Vector2=Vector2.ZERO
+var _hook_retract_elapsed:float=0.0
+var _hook_pull_target_ref:WeakRef=null
+var _hook_pull_effect_ref:WeakRef=null
+var _hook_pull_destination:Vector2=Vector2.ZERO
+var _hook_pull_timeout:float=0.0
+var _stamina_bar_root:Control=null
+var _stamina_bar_fill:ColorRect=null
+var _front_block_last_audio_msec:int=-1000000
+var _ram_attack_cooldown_left:float=0.0
+
+func _ready() -> void:
+	stamina=stamina_max
+
+	# V239：盾狗正式图片的默认正面按“朝右”处理。
+	# 公共 ball 的 dir_left=true 表示“素材默认朝左”，会导致移动朝右时反而镜像。
+	# 这里必须在 super._ready() 前设置，保证初始朝向和后续公共移动翻转都统一。
+	dir_left=false
+
+	super._ready()
+	_apply_shield_dog_texture()
+	_sync_facing_from_movement()
+	_setup_shield_dog_audio()
+	_walk_audio_last_global_position=global_position
+	_walk_audio_motion_initialized=true
+	_setup_stamina_bar()
+	_update_stamina_bar()
+
+func tick_physics(state:State,delta:float) -> void:
+	stamina=minf(stamina_max,stamina+stamina_regen*delta)
+	_update_stamina_bar()
+	_hook_cooldown_left=maxf(_hook_cooldown_left-delta,0.0)
+	_ram_attack_cooldown_left=maxf(_ram_attack_cooldown_left-delta,0.0)
+
+	# V239：正面 = 移动方向。先同步正面，再做钩爪/冲撞/正面减伤等方向机制。
+	_sync_facing_from_movement()
+
+	# V283：走路循环音放到 super.tick_physics() 完成实际移动之后再判断，
+	# 避免仅仅处于 Move 状态但身体根本没有位移时仍播放走路声。
+
+	# V243：钩爪的延伸/命中/拉回全部在真实 physics tick 内更新。
+	# 这样 direct_space_state 的墙体查询与角色碰撞检测都发生在物理时序里。
+	# V43：死亡回归会恢复脚本里的安全标量，但运行时 Line2D 不一定同步恢复。
+	# 如果回溯把 _hook_active 恢复成 false，而旧钩线还挂在 World 下，这里主动收尸。
+	if not _hook_active and _hook_line != null:
+		_finish_hook()
+	if _hook_active:
+		_update_hook(delta)
+
+	# V241：钩爪不再只在 Move 状态尝试。
+	# Stand / Move 都属于可自由动作状态，只要目标在正面120°且距离合适就优先尝试钩爪。
+	if (
+		is_multiplayer_authority()
+		and (state==State.Stand or state==State.Move)
+		and not _hook_active
+		and not Attacking
+		and not Using_Skill
+	):
+		_try_hook()
+
+	if is_multiplayer_authority() and state==State.Move and not _hook_active:
+		_try_ram()
+
+	super.tick_physics(state,delta)
+	_update_walk_audio(state,delta)
+
+
+func _sync_facing_from_movement()->void:
+	var move_direction:Vector2=direction
+
+	# 公共 ball.move() 在直接控制时真正使用 player_control_direction，
+	# 因此这里也必须使用同一个来源，避免人物往左走但攻击正面仍留在右边。
+	if is_player_controlled() and player_control_direction.length_squared()>0.0001:
+		move_direction=player_control_direction
+	elif move_direction.length_squared()<=0.0001 and absf(velocity.x)>0.5:
+		move_direction=velocity.normalized()
+
+	if move_direction.length_squared()>0.0001:
+		_facing_direction=move_direction.normalized()
+	if absf(move_direction.x)>0.05:
+		facing_sign=signf(move_direction.x)
+
+	if absf(facing_sign)<0.001:
+		facing_sign=1.0
+
+	# V245：绝不能在这里把 AI direction 压成水平向量。
+	# 公共 ball.move() 本来支持正常二维移动；这里只同步左右贴图朝向。
+	_sync_shield_dog_image_facing()
+	_update_stamina_bar_transform()
+
+
+func _sync_shield_dog_image_facing()->void:
+	# 正式“深蓝.png”按默认朝右处理：
+	# 右移不翻、左移才水平翻转。使用 ball 的统一视觉接口，
+	# 兼容项目人物Shader的 sprite_flip_h，不直接和 Sprite2D.flip_h 抢状态。
+	set_character_visual_flip_h(facing_sign<0.0)
+
+
+func _movement_forward_vector()->Vector2:
+	# V245：正面跟随真实二维移动/攻击方向，不再永远锁死在水平轴。
+	var forward:Vector2=direction
+	if is_player_controlled() and player_control_direction.length_squared()>0.0001:
+		forward=player_control_direction
+	if forward.length_squared()>0.0001:
+		return forward.normalized()
+	if _facing_direction.length_squared()>0.0001:
+		return _facing_direction.normalized()
+	var sign_value:float=facing_sign
+	if absf(sign_value)<0.001:
+		sign_value=1.0
+	return Vector2(sign_value,0.0)
+
+
+func receive_spatial_damage(damage:float,damage_space:Variant,ignore_block:bool=false,raw_health:bool=false)->bool:
+	# raw_health 是项目明确要求绕过常规防御的特殊入口，不让盾牌改写其语义。
+	if raw_health:
+		return super.receive_spatial_damage(damage,damage_space,ignore_block,raw_health)
+
+	var impact:=global_position
+	var source:Node=null
+	if damage_space is Vector2:
+		impact=damage_space as Vector2
+	elif damage_space is Dictionary:
+		var context:=damage_space as Dictionary
+		if context.get("point",null) is Vector2:
+			impact=context["point"] as Vector2
+		elif context.get("center",null) is Vector2:
+			impact=context["center"] as Vector2
+		if context.get("source",null) is Node:
+			source=context["source"] as Node
+
+	return _receive_shield_dog_positional_damage(
+		damage,
+		impact,
+		ignore_block,
+		source
+	)
+
+
+func receive_positional_damage(
+	damage:float,
+	impact_position:Vector2,
+	ignore_block:bool=false,
+	source:Node=null
+)->bool:
+	# 军火商普通子弹 / 猎人霰弹等射线弹直接调用 receive_positional_damage()，
+	# 因此防弹逻辑必须在这一层也存在，不能只覆写 receive_spatial_damage()。
+	return _receive_shield_dog_positional_damage(
+		damage,
+		impact_position,
+		ignore_block,
+		source
+	)
+
+
+func _receive_shield_dog_positional_damage(
+	damage:float,
+	impact_position:Vector2,
+	ignore_block:bool,
+	source:Node
+)->bool:
+	if damage<=0.0:
+		return false
+
+	if (
+		front_blocks_bullets
+		and _is_blockable_projectile_source(source)
+		and _is_world_position_in_front(impact_position)
+	):
+		_play_front_projectile_block_feedback(source,impact_position,damage,true)
+		return false
+
+	var adjusted_damage:float=damage
+	if _is_world_position_in_front(impact_position):
+		adjusted_damage*=1.0-clampf(front_damage_reduction,0.0,1.0)
+	return super.receive_positional_damage(
+		adjusted_damage,
+		impact_position,
+		ignore_block,
+		source
+	)
+
+
+func can_receive_hit_from(incoming_hit:hitbox)->bool:
+	# 普通 ball 型枪械子弹走 hitbox.try_hit_hurtbox()；在伤害结算前直接拒绝，
+	# 让公共 on_incoming_hit_rejected() 负责白色格挡火花和销毁子弹。
+	if not front_blocks_bullets or incoming_hit==null or not is_instance_valid(incoming_hit):
+		return true
+	var attacker:ball=_incoming_hit_attacker(incoming_hit)
+	if attacker==null or not is_instance_valid(attacker):
+		return true
+	if not _is_blockable_projectile_source(attacker):
+		return true
+	return not _is_world_position_in_front(attacker.global_position)
+
+
+func on_incoming_hit_rejected(incoming_hit:hitbox)->void:
+	var attacker:ball=_incoming_hit_attacker(incoming_hit)
+	var is_front_bullet:bool=(
+		attacker!=null
+		and is_instance_valid(attacker)
+		and _is_blockable_projectile_source(attacker)
+		and _is_world_position_in_front(attacker.global_position)
+	)
+	if is_front_bullet:
+		_play_front_block_audio(float(attacker.Damage))
+	super.on_incoming_hit_rejected(incoming_hit)
+
+
+func _is_world_position_in_front(world_pos:Vector2)->bool:
+	var to_point:Vector2=world_pos-global_position
+	if to_point.length_squared()<=1.0:
+		return true
+	# 正面使用真实二维前向半平面；向上/向下移动时盾牌也会跟着防守该方向。
+	return _movement_forward_vector().dot(to_point.normalized())>=-0.01
+
+
+func _is_blockable_projectile_source(source:Node)->bool:
+	if source==null or not is_instance_valid(source):
+		return false
+
+	# V245：用户定义“子弹”=所有投射物。优先识别项目明确的投射物类型/目录/组。
+	if source.is_in_group("ArmsDealerProjectile") or source.is_in_group("HunterPellet"):
+		return true
+	if source.is_in_group("CouPenguinRock") or source.is_in_group("TimeTravelerClock"):
+		return true
+	if source.is_in_group("BomberBomb") or source.is_in_group("MagnetElectricBall"):
+		return true
+
+	if source is ball:
+		var projectile_ball:=source as ball
+		if projectile_ball.Type==Ball_Type.Shooter or projectile_ball.Type==Ball_Type.Shooter_with_Health:
+			return true
+
+	var script_resource:Script=source.get_script() as Script
+	if script_resource!=null:
+		var script_path:String=script_resource.resource_path
+		if script_path.begins_with("res://scripts/shooter/"):
+			return true
+
+	return false
+
+
+# 给“source 不是弹体本身”的特殊投射物使用。返回 true 表示本次正面投射物命中已被盾牌完全吃掉。
+func try_block_projectile_hit(projectile:Node,impact_position:Vector2,raw_damage:float=0.0)->bool:
+	if not front_blocks_bullets or health<=0:
+		return false
+	if not _is_blockable_projectile_source(projectile):
+		return false
+	if not _is_world_position_in_front(impact_position):
+		return false
+	_play_front_projectile_block_feedback(projectile,impact_position,raw_damage,true)
+	return true
+
+
+func _play_front_projectile_block_feedback(
+	_source:Node,
+	impact_position:Vector2,
+	raw_damage:float,
+	with_visual:bool
+)->void:
+	if with_visual:
+		hit_white_visual_only()
+		notify_block_burst_feedback(
+			impact_position,
+			maxf(raw_damage,0.0),
+			10.0,
+			Game.battle_rng_seed_or("scripts/characters/三角洲/盾狗.gd:block_seed",int(Time.get_ticks_usec()) ^ int(get_instance_id()))
+		)
+	_play_front_block_audio(raw_damage)
+
+
+func _play_front_block_audio(raw_damage:float)->void:
+	var now_msec:int=Time.get_ticks_msec()
+	var cooldown_msec:int=int(round(maxf(front_block_audio_cooldown,0.0)*1000.0))
+	if now_msec-_front_block_last_audio_msec<cooldown_msec:
+		return
+	_front_block_last_audio_msec=now_msec
+
+	if Unique_Block_Audio!=null:
+		play_unique_audio(Character_Audio_Slot.Block,true)
+	elif Block_Audio!="":
+		Audios.play_sfx.rpc(
+			Block_Audio,
+			{"volume":clampf(maxf(raw_damage,0.0)-12.0,-100.0,0.0)},
+			true
+		)
+
+func get_armor_test_effect_summary() -> String:
+	# V419：盔甲架测试 HUD 使用角色自己的完整机制说明，避免 world 简表随版本迭代漏项。
+	var front_reduce_percent:int = int(round(clampf(front_damage_reduction,0.0,1.0) * 100.0))
+	var ram_stun_text:String = ("%.2f" % maxf(ram_stun,0.0)).trim_suffix("0").trim_suffix(".")
+	var hook_cd_text:String = ("%.1f" % maxf(hook_cooldown,0.0)).trim_suffix(".0")
+	return (
+		"【盾牌】正面承伤降低 %d%%，并完全格挡从正面命中的投射物。" % front_reduce_percent
+		+ "\n【盾击】敌人进入正面 %.0fpx 近身范围时自动盾击，造成 %.0f%% 攻击伤害、击退 %.0fpx、眩晕 %s 秒；每次消耗 %.0f 体力，体力上限 %.0f、每秒回复 %.0f。"
+		% [maxf(ram_range,0.0),maxf(ram_damage_multiplier,0.0)*100.0,maxf(ram_knockback_distance,0.0),ram_stun_text,maxf(ram_stamina_cost,0.0),maxf(stamina_max,0.0),maxf(stamina_regen,0.0)]
+		+ "\n【钩爪】自动锁定正面 %.0f~%.0fpx 内且无遮挡的敌人；命中造成 %.0f 伤害并把目标拉到自己面前，冷却 %s 秒。"
+		% [maxf(hook_min_range,0.0),maxf(hook_range,0.0),maxf(hook_damage,0.0),hook_cd_text]
+		+ "\n【铁丝网】技能向前投掷刀片并生成刺网。敌人进入刺网立即受伤并持续减速；在网内每移动一段距离会再次受伤并叠加流血。刺网有耐久，会自然损耗，也会被攻击与投射物破坏。"
+		+ "\n【联动】盾击附近敌人时，如果正前方存在可利用的铁丝网，会优先把击退方向导向铁丝网，让敌人更容易被撞进刺网。"
+	)
+
+
+func Skill() -> void:
+	if not is_multiplayer_authority():
+		return
+	_begin_wire_blade_throw()
+	Using_Skill=false
+
+
+func _begin_wire_blade_throw()->void:
+	var scene:=get_tree().current_scene
+	if scene==null:
+		return
+
+	var start_pos:=global_position+Vector2(facing_sign*22.0,-4.0)
+	var land_pos:=global_position+Vector2(facing_sign*maxf(wire_throw_distance,20.0),0.0)
+	_play_world_one_shot(SHIELD_DOG_BLADE_THROW_PATH,start_pos,blade_throw_volume_db)
+
+	var blade_tex:=load(SHIELD_DOG_BLADE_TEXTURE_PATH) as Texture2D
+	var blade:=Sprite2D.new()
+	blade.name="盾狗飞行刀片"
+	blade.texture=blade_tex
+	blade.centered=true
+	blade.z_index=6
+	scene.add_child(blade)
+	blade.global_position=start_pos
+
+	if blade_tex!=null:
+		var tex_size:=blade_tex.get_size()
+		if tex_size.x>0.001:
+			var fit_scale:float=maxf(wire_blade_visual_width,8.0)/tex_size.x
+			blade.scale=Vector2.ONE*fit_scale
+	blade.flip_h=facing_sign<0.0
+	blade.rotation_degrees=-10.0*facing_sign
+
+	# V238：使用同一progress同时驱动抛物线位置和旋转。
+	var flight:=blade.create_tween()
+	flight.tween_method(
+		_set_wire_blade_throw_progress.bind(
+			blade,
+			start_pos,
+			land_pos,
+			blade.rotation
+		),
+		0.0,
+		1.0,
+		maxf(wire_throw_time,0.08)
+	).set_trans(Tween.TRANS_LINEAR).set_ease(Tween.EASE_IN_OUT)
+	await flight.finished
+
+	if is_instance_valid(blade):
+		blade.queue_free()
+	if not is_inside_tree():
+		return
+
+	_play_world_one_shot(SHIELD_DOG_BLADE_LAND_PATH,land_pos,blade_land_volume_db)
+	var wire:=WIRE_SCRIPT.new() as Node2D
+	if wire==null:
+		return
+	wire.name="三角洲铁丝网_%d"%Time.get_ticks_usec()
+	scene.add_child(wire,true)
+	wire.global_position=land_pos
+	wire.call("setup",self,Team)
+
+
+
+func _set_wire_blade_throw_progress(
+	progress:float,
+	blade:Sprite2D,
+	start_pos:Vector2,
+	land_pos:Vector2,
+	start_rotation:float
+)->void:
+	if blade==null or not is_instance_valid(blade):
+		return
+	var t:float=clampf(progress,0.0,1.0)
+	var linear_pos:Vector2=start_pos.lerp(land_pos,t)
+	var arc_y:float=-4.0*maxf(wire_throw_arc_height,0.0)*t*(1.0-t)
+	blade.global_position=linear_pos+Vector2(0.0,arc_y)
+
+	var spin_radians:float=TAU*wire_throw_spin_turns*facing_sign
+	blade.rotation=start_rotation+spin_radians*t
+
+
+func _is_target_in_front_cone(target:ball,angle_degrees:float)->bool:
+	if target==null or not is_instance_valid(target):
+		return false
+	var to_target:Vector2=target.global_position-global_position
+	if to_target.length_squared()<=0.0001:
+		return true
+
+	var face:Vector2=_movement_forward_vector()
+
+	var half_angle:float=deg_to_rad(
+		clampf(angle_degrees,30.0,180.0)*0.5
+	)
+	return face.normalized().dot(to_target.normalized())>=cos(half_angle)
+
+
+
+func _try_hook()->void:
+	if _hook_active or _hook_cooldown_left>0.0 or health<=0:
+		return
+
+	var target:=_find_hook_target()
+	if target==null:
+		return
+
+	if _start_hook(target):
+		_hook_cooldown_left=maxf(hook_cooldown,0.1)
+
+
+func _find_hook_target()->ball:
+	var face:Vector2=_movement_forward_vector()
+	var min_dot:float=cos(
+		deg_to_rad(clampf(hook_front_angle_degrees,30.0,180.0)*0.5)
+	)
+	var best:ball=null
+	var best_dist:float=INF
+
+	for node:Node in get_tree().get_nodes_in_group("Ball"):
+		if node==self or not node is ball:
+			continue
+		var candidate:=node as ball
+		if candidate.health<=0:
+			continue
+
+		# V242：严格跟随 World._refresh_one_nearest_enemy() 的阵营语义。
+		# 只有双方 Team 都非空并且相等时才是同队。
+		# 训练场常见 Team=""；空Team对空Team仍属于可互相攻击的敌对单位，
+		# 不能再用 candidate.Team==Team 直接跳过，否则会把全场都误判成队友。
+		if (
+			not Team.is_empty()
+			and not candidate.Team.is_empty()
+			and candidate.Team==Team
+		):
+			continue
+		if candidate.has_method("is_combat_targetable") and not bool(candidate.call("is_combat_targetable")):
+			continue
+
+		var delta:=candidate.global_position-global_position
+		var dist:=delta.length()
+		if dist<maxf(hook_min_range,0.0) or dist>maxf(hook_range,hook_min_range):
+			continue
+		if dist<=0.001:
+			continue
+		if face.dot(delta/dist)<min_dot:
+			continue
+		if not _hook_has_clear_line(candidate):
+			continue
+		if dist<best_dist:
+			best_dist=dist
+			best=candidate
+	return best
+
+
+func _hook_has_clear_line(target:ball)->bool:
+	if target==null or not is_instance_valid(target):
+		return false
+	var world_2d:=get_world_2d()
+	if world_2d==null:
+		return false
+
+	# V241：钩爪只被地图墙体阻挡。
+	# 旧 mask=3 同时扫描 Layer1墙 + Layer2角色，战场一拥挤就经常被任意人物挡住，
+	# 导致“完全不使用钩爪”。用户只要求正面120°，因此角色不再作为钩爪遮挡物。
+	var query:=PhysicsRayQueryParameters2D.create(
+		global_position,
+		target.global_position,
+		1
+	)
+	query.exclude=[get_rid()]
+	query.collide_with_bodies=true
+	query.collide_with_areas=false
+	var hit:=world_2d.direct_space_state.intersect_ray(query)
+	return hit.is_empty()
+
+
+func _start_hook(target:ball)->bool:
+	var scene:=get_tree().current_scene
+	if scene==null or target==null or not is_instance_valid(target):
+		return false
+
+	var start_pos:Vector2=_hook_owner_anchor()
+	var aim_delta:Vector2=target.global_position-start_pos
+	if aim_delta.length_squared()<=0.0001:
+		return false
+
+	_finish_hook()
+	_hook_active=true
+	_hook_phase=&"extend"
+	_hook_launch_start=start_pos
+	_hook_direction=aim_delta.normalized()
+	_hook_tip=start_pos
+	_hook_travelled=0.0
+	_hook_retract_elapsed=0.0
+	_hook_pull_target_ref=null
+	_hook_pull_effect_ref=null
+	_hook_pull_timeout=0.0
+
+	_play_world_one_shot(SHIELD_DOG_HOOK_FIRE_PATH,start_pos,hook_sfx_volume_db)
+
+	_hook_line=Line2D.new()
+	_hook_line.name="盾狗钩爪线"
+	_hook_line.width=2.2
+	_hook_line.default_color=Color(0.30,0.31,0.32,0.98)
+	_hook_line.begin_cap_mode=Line2D.LINE_CAP_ROUND
+	_hook_line.end_cap_mode=Line2D.LINE_CAP_ROUND
+	_hook_line.z_index=7
+	scene.add_child(_hook_line)
+	_hook_line.add_to_group("ShieldDogHookVisual")
+	_hook_line.set_meta("shield_dog_hook_owner_id",get_instance_id())
+	_hook_line.global_position=Vector2.ZERO
+	_hook_line.points=PackedVector2Array([start_pos,start_pos])
+	return true
+
+
+func _update_hook(delta:float)->void:
+	if not _hook_active:
+		return
+	if health<=0 or not is_inside_tree():
+		_finish_hook()
+		return
+	if _hook_line==null or not is_instance_valid(_hook_line):
+		_finish_hook(false)
+		return
+
+	match _hook_phase:
+		&"extend":
+			_update_hook_extend(delta)
+		&"pull":
+			_update_hook_pull(delta)
+		&"retract":
+			_update_hook_retract(delta)
+		_:
+			_finish_hook()
+
+
+func _update_hook_extend(delta:float)->void:
+	var travel_limit:float=maxf(hook_range,1.0)
+	var duration:float=maxf(hook_extend_time,0.03)
+	var extend_speed:float=travel_limit/duration
+	var previous_tip:Vector2=_hook_tip
+	var next_travel:float=minf(
+		travel_limit,
+		_hook_travelled+extend_speed*maxf(delta,0.0)
+	)
+	var next_tip:Vector2=_hook_launch_start+_hook_direction*next_travel
+
+	var wall_hit:Dictionary=_hook_wall_contact(previous_tip,next_tip)
+	var target_hit:Dictionary=_find_hook_contact_on_segment(previous_tip,next_tip)
+	var chosen:Dictionary={}
+
+	if not target_hit.is_empty():
+		chosen=target_hit
+	if not wall_hit.is_empty():
+		if chosen.is_empty():
+			chosen=wall_hit
+		else:
+			var target_dist_sq:float=previous_tip.distance_squared_to(chosen["point"] as Vector2)
+			var wall_dist_sq:float=previous_tip.distance_squared_to(wall_hit["point"] as Vector2)
+			if wall_dist_sq<target_dist_sq:
+				chosen=wall_hit
+
+	if not chosen.is_empty():
+		var contact_point:Vector2=chosen["point"] as Vector2
+		_hook_tip=contact_point
+		_hook_line.points=PackedVector2Array([_hook_owner_anchor(),contact_point])
+		var hooked_target:ball=chosen.get("target",null) as ball
+		if hooked_target!=null and is_instance_valid(hooked_target):
+			_on_hook_target_contact(hooked_target,contact_point)
+		else:
+			_begin_hook_retract(contact_point)
+		return
+
+	_hook_travelled=next_travel
+	_hook_tip=next_tip
+	_hook_line.points=PackedVector2Array([_hook_owner_anchor(),_hook_tip])
+	if _hook_travelled>=travel_limit-0.001:
+		_begin_hook_retract(_hook_tip)
+
+
+func _hook_owner_anchor()->Vector2:
+	return global_position+Vector2(facing_sign*24.0,-4.0)
+
+
+func _hook_wall_contact(from_pos:Vector2,to_pos:Vector2)->Dictionary:
+	if from_pos.distance_squared_to(to_pos)<=0.000001:
+		return {}
+	var world_2d:=get_world_2d()
+	if world_2d==null:
+		return {}
+	var query:=PhysicsRayQueryParameters2D.create(from_pos,to_pos,1)
+	query.exclude=[get_rid()]
+	query.collide_with_bodies=true
+	query.collide_with_areas=false
+	var hit:=world_2d.direct_space_state.intersect_ray(query)
+	if hit.is_empty():
+		return {}
+	var point:Variant=hit.get("position",null)
+	if not point is Vector2:
+		return {}
+	return {"point":point as Vector2,"wall":true}
+
+
+func _find_hook_contact_on_segment(from_pos:Vector2,to_pos:Vector2)->Dictionary:
+	var best_target:ball=null
+	var best_point:Vector2=to_pos
+	var best_distance_sq:float=INF
+
+	for node:Node in get_tree().get_nodes_in_group("Ball"):
+		if not node is ball:
+			continue
+		var candidate:=node as ball
+		if not _is_valid_hook_enemy(candidate):
+			continue
+
+		var center:Vector2=_hook_target_center(candidate)
+		var radius:float=_hook_target_radius(candidate)+maxf(hook_tip_radius,0.0)
+		var hit_fraction:float=-1.0
+		if from_pos.distance_squared_to(center)<=radius*radius:
+			hit_fraction=0.0
+		else:
+			hit_fraction=Geometry2D.segment_intersects_circle(
+				from_pos,
+				to_pos,
+				center,
+				radius
+			)
+		if hit_fraction<0.0:
+			continue
+
+		var contact_point:Vector2=from_pos.lerp(to_pos,clampf(hit_fraction,0.0,1.0))
+		var distance_sq:float=from_pos.distance_squared_to(contact_point)
+		if distance_sq<best_distance_sq:
+			best_distance_sq=distance_sq
+			best_target=candidate
+			best_point=contact_point
+
+	if best_target==null:
+		return {}
+	return {"target":best_target,"point":best_point}
+
+
+func _is_valid_hook_enemy(candidate:ball)->bool:
+	if candidate==null or not is_instance_valid(candidate) or candidate==self:
+		return false
+	if candidate.health<=0:
+		return false
+	if (
+		not Team.is_empty()
+		and not candidate.Team.is_empty()
+		and candidate.Team==Team
+	):
+		return false
+	if candidate.has_method("is_combat_targetable") and not bool(candidate.call("is_combat_targetable")):
+		return false
+	return true
+
+
+func _hook_target_center(target:ball)->Vector2:
+	if target==null or not is_instance_valid(target):
+		return Vector2.ZERO
+	if target.collision_shape_2d!=null and is_instance_valid(target.collision_shape_2d):
+		return target.collision_shape_2d.global_position
+	return target.global_position
+
+
+func _hook_target_radius(target:ball)->float:
+	if target==null or not is_instance_valid(target):
+		return 12.0
+	if target.has_method("get_crowd_separation_radius_world"):
+		return clampf(float(target.call("get_crowd_separation_radius_world")),6.0,40.0)
+	return 12.0
+
+
+func _on_hook_target_contact(target:ball,contact_point:Vector2)->void:
+	if target==null or not is_instance_valid(target) or target.health<=0:
+		_begin_hook_retract(contact_point)
+		return
+
+	# V243：一旦钩尖实际碰到敌人，本物理帧立刻切换到pull阶段。
+	# 从这一行开始不会再增加_hook_travelled，因此视觉上也不会继续往敌人身后延伸。
+	_hook_phase=&"pull"
+	_hook_tip=contact_point
+	_hook_pull_target_ref=weakref(target)
+	_hook_line.points=PackedVector2Array([_hook_owner_anchor(),contact_point])
+
+	var before:=float(target.health)
+	var damaged:bool=target.receive_spatial_damage(
+		maxf(hook_damage,0.0),
+		{"point":contact_point,"source":self},
+		false,
+		false
+	)
+	if damaged and before>target.health:
+		play_wire_damage_impact_audio(contact_point,maxf(hook_damage,0.0))
+
+	# V43：如果钩爪这一击直接击杀目标，不再创建拉拽效果。
+	# 目标进入死亡/回溯流程后可能立刻停物理或被移出树，旧实现会因此留下 World 下的孤儿钩线。
+	if target.health<=0 or target.is_queued_for_deletion():
+		_begin_hook_retract(contact_point)
+		return
+	if (
+		target.state_machine!=null
+		and target.state_machine.current_state==ball.State.Die
+	):
+		_begin_hook_retract(contact_point)
+		return
+
+	_play_world_one_shot(
+		SHIELD_DOG_HOOK_RETRACT_PATH,
+		contact_point,
+		hook_sfx_volume_db+8.0
+	)
+
+	_hook_pull_destination=global_position+Vector2(
+		facing_sign*maxf(hook_pull_front_offset,20.0),
+		0.0
+	)
+	var pull_vec:Vector2=_hook_pull_destination-target.global_position
+	var pull_distance:float=pull_vec.length()
+	var pull_speed:float=maxf(hook_pull_speed,80.0)
+	_hook_pull_timeout=maxf(
+		hook_retract_visual_time,
+		pull_distance/pull_speed+0.35
+	)
+
+	if pull_distance>1.0:
+		var effect:Node=target.apply_knockback(
+			pull_vec.normalized(),
+			pull_distance,
+			pull_speed,
+			0.0,
+			0.0,
+			{
+				"source":self,
+				"lock_control":true,
+				"stop_on_character":false,
+				"max_wall_bounces":0,
+				"smooth_motion":true,
+				"smooth_end_ratio":0.34,
+				"control_recovery_time":0.06
+			}
+		)
+		if effect!=null and is_instance_valid(effect):
+			_hook_pull_effect_ref=weakref(effect)
+	else:
+		_hook_pull_effect_ref=null
+
+
+func _update_hook_pull(delta:float)->void:
+	var target:ball=_hook_target_from_ref(_hook_pull_target_ref)
+	if (
+		target==null
+		or target.health<=0
+		or target.is_queued_for_deletion()
+		or not target.is_inside_tree()
+	):
+		_finish_hook()
+		return
+	if (
+		target.state_machine!=null
+		and target.state_machine.current_state==ball.State.Die
+	):
+		_finish_hook()
+		return
+	if target.has_method("is_combat_targetable") and not bool(target.call("is_combat_targetable")):
+		_finish_hook()
+		return
+
+	# 钩绳始终连接盾狗手前锚点和目标当前位置；目标被拉回来时绳子同步变短。
+	_hook_tip=target.global_position
+	_hook_line.points=PackedVector2Array([_hook_owner_anchor(),_hook_tip])
+	_hook_pull_timeout=maxf(_hook_pull_timeout-delta,0.0)
+
+	var effect_active:bool=false
+	if _hook_pull_effect_ref!=null:
+		var effect_value:Variant=_hook_pull_effect_ref.get_ref()
+		if is_instance_valid(effect_value) and effect_value is Node:
+			var effect:=effect_value as Node
+			effect_active=(
+				not effect.has_method("is_active_effect")
+				or bool(effect.call("is_active_effect"))
+			)
+
+	if (
+		_hook_pull_timeout<=0.0
+		or (not effect_active and target.global_position.distance_to(_hook_pull_destination)<=6.0)
+		or (not effect_active and _hook_pull_effect_ref!=null)
+	):
+		_finish_hook()
+
+
+func _hook_target_from_ref(value:WeakRef)->ball:
+	if value==null:
+		return null
+	var target_value:Variant=value.get_ref()
+	if not is_instance_valid(target_value) or not target_value is ball:
+		return null
+	var target:=target_value as ball
+	if target.is_queued_for_deletion() or not target.is_inside_tree():
+		return null
+	return target
+
+
+func _begin_hook_retract(from_pos:Vector2)->void:
+	if not _hook_active:
+		return
+	_hook_phase=&"retract"
+	_hook_retract_from=from_pos
+	_hook_retract_elapsed=0.0
+	_play_world_one_shot(
+		SHIELD_DOG_HOOK_RETRACT_PATH,
+		from_pos,
+		hook_sfx_volume_db+8.0
+	)
+
+
+func _update_hook_retract(delta:float)->void:
+	var duration:float=maxf(hook_retract_visual_time,0.04)
+	_hook_retract_elapsed=minf(duration,_hook_retract_elapsed+maxf(delta,0.0))
+	var fraction:float=clampf(_hook_retract_elapsed/duration,0.0,1.0)
+	var owner_pos:Vector2=_hook_owner_anchor()
+	_hook_tip=_hook_retract_from.lerp(owner_pos,fraction)
+	_hook_line.points=PackedVector2Array([owner_pos,_hook_tip])
+	if fraction>=1.0:
+		_finish_hook()
+
+
+func _finish_hook(queue_line:bool=true)->void:
+	if queue_line and _hook_line!=null and is_instance_valid(_hook_line):
+		if not _hook_line.is_queued_for_deletion():
+			_hook_line.queue_free()
+	_hook_line=null
+	_hook_active=false
+	_hook_phase=&""
+	_hook_travelled=0.0
+	_hook_pull_target_ref=null
+	_hook_pull_effect_ref=null
+	_hook_pull_timeout=0.0
+
+
+func _exit_tree()->void:
+	# V43：钩线挂在 World 下，不是盾狗子节点；角色死亡/Reset 时必须显式清理。
+	_finish_hook()
+
+
+func _try_ram() -> void:
+	# V249：盾击增加极短攻击冷却，避免贴身时每个物理帧连续结算伤害。
+	if _ram_attack_cooldown_left>0.0:
+		return
+
+	var enemy:Node=return_reusable_combat_target()
+	if enemy==null or not enemy is ball:
+		return
+	var target:ball=enemy as ball
+
+	# V238/V239：仍只允许移动正面120°。
+	if not _is_target_in_front_cone(target,ram_front_angle_degrees):
+		return
+
+	# V240：普通冲撞是真正近身攻击。
+	# 删除旧 ram_range*1.75 的“远处先瞬移X再同帧直接_ram()”分支；
+	# 现在只有中心距离已经 <= ram_range 才允许伤害结算。
+	var dist:float=global_position.distance_to(target.global_position)
+	if dist>maxf(ram_range,1.0):
+		return
+
+	if stamina>=ram_stamina_cost:
+		_ram(target,ram_stamina_cost)
+
+func _ram(target:ball,cost:float)->void:
+	# V238硬门槛：任何调用路径都不能攻击侧面/背后的目标。
+	if not _is_target_in_front_cone(target,ram_front_angle_degrees):
+		return
+	if _ram_attack_cooldown_left>0.0:
+		return
+
+	# V249：从真正发起一次盾击的这一帧开始计时；默认0.22秒，属于很短的攻击间隔。
+	_ram_attack_cooldown_left=maxf(ram_attack_cooldown,0.05)
+
+	# V232：冲撞反馈只操作 Graphics/Image，真实 CharacterBody2D / 碰撞 / 伤害位置完全不动。
+	_play_ram_image_feedback()
+	_play_random_shield_audio(_action_audio,SHIELD_DOG_RAM_SFX_PATHS)
+	_try_play_ram_voice()
+	stamina-=cost
+	_update_stamina_bar()
+	var before:=float(target.health)
+	target.receive_spatial_damage(attack_damage(ram_damage_multiplier),{"point":target.global_position,"source":self},false,false)
+	if before>target.health:
+		var knock_dir:Vector2=_movement_forward_vector()
+		if knock_dir.length_squared()<=0.0001:
+			knock_dir=(target.global_position-global_position).normalized()
+		if knock_dir.length_squared()<=0.0001:
+			knock_dir=Vector2(facing_sign,0.0)
+		knock_dir=_ram_knockback_direction_with_wire(target,knock_dir.normalized())
+		target.apply_knockback(knock_dir,ram_knockback_distance,280.0,0.0,ram_stun,{"source":self,"lock_control":true})
+
+
+func _ram_knockback_direction_with_wire(target:ball,base_direction:Vector2)->Vector2:
+	if target==null or not is_instance_valid(target):
+		return base_direction
+	var wires:Array[Node]=get_tree().get_nodes_in_group("DeltaBarbedWire")
+	# 已经在任意铁丝网里时完全禁用导向，避免为了“找网”把敌人反向拉出来。
+	for node:Node in wires:
+		if node==null or not is_instance_valid(node):
+			continue
+		if node.has_method("contains_ball") and bool(node.call("contains_ball",target)):
+			return base_direction
+
+	var max_range:float=maxf(ram_wire_redirect_range,0.0)
+	var half_angle:float=deg_to_rad(clampf(ram_wire_redirect_angle_degrees,30.0,180.0)*0.5)
+	var min_dot:float=cos(half_angle)
+	var best_wire:Node2D=null
+	var best_score:float=-INF
+	for node:Node in wires:
+		if not node is Node2D:
+			continue
+		var wire:=node as Node2D
+		var delta:Vector2=wire.global_position-target.global_position
+		var distance:float=delta.length()
+		if distance<=0.001 or distance>max_range:
+			continue
+		var toward:Vector2=delta/distance
+		var alignment:float=base_direction.dot(toward)
+		if alignment<min_dot:
+			continue
+		# 优先更靠正前方，再轻微偏好更近的网。
+		var score:float=alignment*2.0+(1.0-distance/maxf(max_range,1.0))*0.35
+		if score>best_score:
+			best_score=score
+			best_wire=wire
+
+	if best_wire==null:
+		return base_direction
+	var redirected:Vector2=(best_wire.global_position-target.global_position).normalized()
+	return redirected if redirected.length_squared()>0.0001 else base_direction
+
+func _apply_shield_dog_texture()->void:
+	if not (image is Sprite2D):
+		return
+	var sprite:=image as Sprite2D
+	var tex:=load(SHIELD_DOG_TEXTURE_PATH) as Texture2D
+	if tex==null:
+		push_warning("盾狗角色贴图加载失败: %s" % SHIELD_DOG_TEXTURE_PATH)
+		return
+	sprite.texture=tex
+	sprite.visible=true
+	sprite.centered=true
+	sprite.modulate=Color.WHITE
+	sprite.rotation=0.0
+	var tex_size:=tex.get_size()
+	var longest:=maxf(tex_size.x,tex_size.y)
+	if longest>0.001:
+		var fit_scale:float=SHIELD_DOG_VISUAL_LONGEST_SIDE/longest
+		sprite.scale=Vector2.ONE*fit_scale
+	_ram_visual_base_position=sprite.position
+	_ram_visual_base_scale=sprite.scale
+	_ram_visual_ready=true
+	_sync_shield_dog_image_facing()
+
+
+func _play_ram_image_feedback()->void:
+	if not _ram_visual_ready or not (image is Sprite2D):
+		return
+	var sprite:=image as Sprite2D
+
+	# 连续冲撞时永远回到真实基准再重播，避免 Tween 叠加造成图片漂移或永久变形。
+	if _ram_visual_tween!=null and _ram_visual_tween.is_valid():
+		_ram_visual_tween.kill()
+	sprite.position=_ram_visual_base_position
+	sprite.scale=_ram_visual_base_scale
+
+	var face:float=facing_sign
+	if absf(face)<0.001:
+		face=1.0
+
+	var back_pos:=_ram_visual_base_position+Vector2(-face*ram_visual_back_local,0.0)
+	var rush_pos:=_ram_visual_base_position+Vector2(face*ram_visual_forward_local,0.0)
+	var squash_scale:=Vector2(
+		_ram_visual_base_scale.x*ram_visual_squash_x,
+		_ram_visual_base_scale.y*ram_visual_squash_y
+	)
+
+	# 第一段：小幅后撤，同时横向压扁，像冲撞前短暂蓄力。
+	_ram_visual_tween=create_tween()
+	_ram_visual_tween.bind_node(self)
+	_ram_visual_tween.set_process_mode(Tween.TWEEN_PROCESS_PHYSICS)
+	_ram_visual_tween.tween_property(
+		sprite,
+		"position",
+		back_pos,
+		maxf(ram_visual_back_time,0.01)
+	).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	_ram_visual_tween.parallel().tween_property(
+		sprite,
+		"scale",
+		squash_scale,
+		maxf(ram_visual_back_time,0.01)
+	).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+
+	# 第二段：图片向面朝方向快速窜出，同时恢复正常比例。
+	_ram_visual_tween.tween_property(
+		sprite,
+		"position",
+		rush_pos,
+		maxf(ram_visual_rush_time,0.01)
+	).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	_ram_visual_tween.parallel().tween_property(
+		sprite,
+		"scale",
+		_ram_visual_base_scale,
+		maxf(ram_visual_rush_time,0.01)
+	).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+	# 第三段：只把图片位置弹回角色中心；真实角色从头到尾没有发生额外位移。
+	_ram_visual_tween.tween_property(
+		sprite,
+		"position",
+		_ram_visual_base_position,
+		maxf(ram_visual_recover_time,0.01)
+	).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_ram_visual_tween.parallel().tween_property(
+		sprite,
+		"scale",
+		_ram_visual_base_scale,
+		maxf(ram_visual_recover_time,0.01)
+	).set_trans(Tween.TRANS_SPRING).set_ease(Tween.EASE_OUT)
+
+
+
+func _setup_stamina_bar()->void:
+	if _stamina_bar_root!=null and is_instance_valid(_stamina_bar_root):
+		return
+
+	var width_value:float=maxf(stamina_bar_width,2.0)
+	var height_value:float=maxf(stamina_bar_height,20.0)
+	var holder:=Control.new()
+	holder.name="盾狗体力条"
+	holder.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	holder.size=Vector2(width_value,height_value)
+	holder.clip_contents=true
+	# V248：不仅位置放在人物当前二维朝向的反方向，绘制顺序也必须在人物后面。
+	# 保持与人物同一最终Z，避免负Z掉到地图地板下面；再把它移动到角色子节点最前，
+	# 让同Z的 Graphics/Image 后绘制，从而稳定盖在体力条前面。
+	holder.show_behind_parent=true
+	holder.z_index=0
+	add_child(holder)
+	move_child(holder,0)
+
+	var background:=ColorRect.new()
+	background.name="背景"
+	background.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	background.position=Vector2.ZERO
+	background.size=Vector2(width_value,height_value)
+	background.color=stamina_bar_background_color
+	holder.add_child(background)
+
+	var fill:=ColorRect.new()
+	fill.name="黄色体力"
+	fill.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	fill.position=Vector2(0.0,0.0)
+	fill.size=Vector2(width_value,height_value)
+	fill.color=stamina_bar_color
+	fill.z_index=1
+	holder.add_child(fill)
+
+	_stamina_bar_root=holder
+	_stamina_bar_fill=fill
+	_update_stamina_bar_transform()
+
+
+func _update_stamina_bar_transform()->void:
+	if _stamina_bar_root==null or not is_instance_valid(_stamina_bar_root):
+		return
+
+	var width_value:float=maxf(stamina_bar_width,2.0)
+	var height_value:float=maxf(stamina_bar_height,20.0)
+
+	# V250：体力条就是“纯竖条”，空间位置也只跟人物左右朝向有关。
+	# 不能再用真实二维 movement forward 算位置：AI 的 direction 即使主要向左/右，
+	# 只要带一点 Y 分量，旧实现就会把整根条往上/下带偏，看起来不是在人物身后。
+	# 盾狗素材只有水平翻面，因此这里的“身后”定义为：
+	# 朝右 -> 条固定在左后；朝左 -> 条固定在右后；Y 永远与人物中心对齐。
+	var horizontal_facing:float=facing_sign
+	if absf(horizontal_facing)<0.001:
+		horizontal_facing=1.0
+	horizontal_facing=signf(horizontal_facing)
+
+	# V251：按当前实际显示出来的盾狗贴图宽度算水平半径，而不是继续拿
+	# `SHIELD_DOG_VISUAL_LONGEST_SIDE`（它是长边目标尺寸）当作图片宽度。
+	# 盾狗贴图明显是“高 > 宽”，旧算法会把水平半径估得过大，导致竖条离人物太远。
+	var visual_half_width:float=SHIELD_DOG_VISUAL_LONGEST_SIDE*0.5
+	if image is Sprite2D:
+		var dog_sprite:=image as Sprite2D
+		if dog_sprite.texture!=null:
+			visual_half_width=dog_sprite.texture.get_size().x*absf(dog_sprite.scale.x)*0.5
+
+	# 条仍完整留在人物轮廓之外，但默认只留 8px 小间隙。
+	# stamina_bar_back_distance=0 表示默认完全由“真实贴图边缘 + gap”决定，
+	# 仍保留这个导出项，之后想人为拉远时可以直接设置一个更大的最小距离。
+	var required_center_distance:float=(
+		visual_half_width
+		+width_value*0.5
+		+maxf(stamina_bar_back_gap,0.0)
+	)
+	var center_distance:float=maxf(
+		maxf(stamina_bar_back_distance,0.0),
+		required_center_distance
+	)
+	var center_x:float=-horizontal_facing*center_distance
+
+	# Control 自身尺寸从左上角计位置，所以显式减半宽/高。
+	# rotation 永远清零：这不是把横条旋转90度，而是原生 width x height 的竖直矩形。
+	_stamina_bar_root.rotation=0.0
+	_stamina_bar_root.position=Vector2(
+		center_x-width_value*0.5,
+		-height_value*0.5
+	)
+
+
+func _update_stamina_bar()->void:
+	if _stamina_bar_root==null or not is_instance_valid(_stamina_bar_root):
+		return
+	if _stamina_bar_fill==null or not is_instance_valid(_stamina_bar_fill):
+		return
+
+	_stamina_bar_root.visible=health>0
+	var width_value:float=maxf(stamina_bar_width,2.0)
+	var height_value:float=maxf(stamina_bar_height,20.0)
+	var max_value:float=maxf(stamina_max,0.001)
+	var ratio:float=clampf(stamina/max_value,0.0,1.0)
+	var fill_height:float=height_value*ratio
+
+	# 竖条从下往上表示剩余体力：体力降低时黄色顶部向下收缩。
+	_stamina_bar_fill.position=Vector2(0.0,height_value-fill_height)
+	_stamina_bar_fill.size=Vector2(width_value,fill_height)
+
+
+func _setup_shield_dog_audio()->void:
+	_walk_audio=_make_shield_audio_player("WalkLoop",walk_sfx_volume_db)
+	_action_audio=_make_shield_audio_player("ActionSFX",action_sfx_volume_db)
+	_voice_audio=_make_shield_audio_player("VoiceSFX",voice_sfx_volume_db)
+
+	var raw_walk:=_load_shield_audio(SHIELD_DOG_WALK_PATH)
+	if raw_walk is AudioStreamMP3 and _walk_audio!=null:
+		var walk_stream:=raw_walk.duplicate() as AudioStreamMP3
+		walk_stream.loop=true
+		_walk_audio.stream=walk_stream
+
+
+func _make_shield_audio_player(node_name:String,volume:float)->AudioStreamPlayer2D:
+	var player:=AudioStreamPlayer2D.new()
+	player.name=node_name
+	player.volume_db=volume
+	player.max_distance=maxf(sfx_max_distance,0.0)
+	player.max_polyphony=1
+	add_child(player)
+	return player
+
+
+func _update_walk_audio(state:State,delta:float)->void:
+	if _walk_audio==null:
+		return
+
+	var current_position:Vector2=global_position
+	if not _walk_audio_motion_initialized:
+		_walk_audio_last_global_position=current_position
+		_walk_audio_motion_initialized=true
+
+	# 按这一物理帧的真实世界位移，而不是 State.Move / Speed 数值判断是否真的在走。
+	# 顶着墙、被其它角色卡住、方向为零时位移接近0，因此立即停掉循环音。
+	var moved_distance:float=current_position.distance_to(_walk_audio_last_global_position)
+	_walk_audio_last_global_position=current_position
+	var actual_move_speed:float=moved_distance/maxf(delta,0.001)
+	var should_walk:bool=(
+		health>0
+		and state==State.Move
+		and actual_move_speed>3.0
+	)
+
+	if should_walk:
+		if not _walk_audio.playing and _walk_audio.stream!=null:
+			_walk_audio.play()
+	elif _walk_audio.playing:
+		_walk_audio.stop()
+
+
+
+func _load_shield_audio(path:String)->AudioStream:
+	# V237：先检查资源是否真实存在，再交给 ResourceLoader。
+	# 即使用户以后误删某条素材，也只给一条清晰 warning，不让裸 load() 反复刷红错。
+	if not ResourceLoader.exists(path):
+		push_warning("盾狗音效文件缺失，请覆盖V237自包含包: %s" % path)
+		return null
+	var resource:=ResourceLoader.load(path)
+	if not resource is AudioStream:
+		push_warning("盾狗音效资源类型错误: %s" % path)
+		return null
+	return resource as AudioStream
+
+
+func _play_random_shield_audio(player:AudioStreamPlayer2D,paths:Array[String])->void:
+	if player==null or paths.is_empty():
+		return
+	var path:String=paths[randi_range(0,paths.size()-1)]
+	var stream:=_load_shield_audio(path)
+	if stream==null:
+		return
+	player.stream=stream
+	player.play()
+
+
+func _try_play_ram_voice()->void:
+	if _voice_audio==null:
+		return
+	if _voice_audio.playing:
+		return
+	if randf()>clampf(ram_voice_chance,0.0,1.0):
+		return
+	_play_random_shield_audio(_voice_audio,SHIELD_DOG_RAM_VOICE_PATHS)
+
+
+func _play_world_one_shot(path:String,world_pos:Vector2,volume_db:float)->void:
+	var scene:=get_tree().current_scene
+	if scene==null:
+		return
+	var stream:=_load_shield_audio(path)
+	if stream==null:
+		return
+	var player:=AudioStreamPlayer2D.new()
+	player.name="盾狗OneShot_%d"%Time.get_ticks_usec()
+	player.stream=stream
+	player.volume_db=volume_db
+	player.max_distance=maxf(sfx_max_distance,0.0)
+	player.max_polyphony=1
+	scene.add_child(player)
+	player.global_position=world_pos
+	player.finished.connect(player.queue_free)
+	player.play()
+
+
+func play_wire_damage_impact_audio(_world_pos:Vector2,outgoing_damage:float=0.0)->void:
+	# V243：刺网/钩爪真实伤害复用 ball.gd 的标准“碰撞伤害命中”音效链。
+	# 默认 Hit_Audio=balls_hit1；不再错误播放盾狗冲撞专用的“撞击1/撞击2”。
+	var resolved_damage:float=maxf(outgoing_damage,0.0)
+	if Unique_Hit_Audio!=null:
+		play_unique_audio(Character_Audio_Slot.Hit,true)
+	elif Hit_Audio!="":
+		Audios.play_sfx.rpc(
+			Hit_Audio,
+			{"volume":clampf(resolved_damage-12.0,-100.0,0.0)},
+			true
+		)
+
+func get_preview_texture()->Texture2D:
+	# 与跑刀仔一致：局内 Ghost 不执行 _ready()，所以显式把正式盾狗贴图交给预览系统。
+	return load(SHIELD_DOG_TEXTURE_PATH) as Texture2D

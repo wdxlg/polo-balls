@@ -1,0 +1,126 @@
+[gd_scene format=3 uid="uid://djv33ano6sq83"]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_q54b8"]
+[ext_resource type="Script" path="res://scripts/characters/杀戮尖塔/小刀猎.gd" id="2_3jhcm"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/猎人/攻击/攻击_2.png" id="3_an72f"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/猎人/攻击/攻击_3.png" id="4_odb7f"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/猎人/攻击/攻击_4.png" id="5_ynsla"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/猎人/死/死_1.png" id="6_2c10g"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/猎人/死/死_2.png" id="7_hmp7k"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/猎人/死/死_3.png" id="8_ypaor"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/猎人/死/死_4.png" id="9_wkuam"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/猎人/站立/站立_1.png" id="10_0lc7u"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/猎人/受伤/受伤_25.png" id="10_hmp7k"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/猎人/受伤/受伤_26.png" id="11_ypaor"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/猎人/站立/站立_2.png" id="11_yu72j"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/猎人/站立/站立_3.png" id="12_3na7c"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/猎人/受伤/受伤_27.png" id="12_wkuam"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/猎人/受伤/受伤_28.png" id="13_0lc7u"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/猎人/站立/站立_4.png" id="13_u18hv"]
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_8gmlk"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("3_an72f")
+}, {
+"duration": 1.0,
+"texture": ExtResource("4_odb7f")
+}, {
+"duration": 1.0,
+"texture": ExtResource("5_ynsla")
+}],
+"loop": true,
+"name": &"Attack",
+"speed": 18.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("6_2c10g")
+}, {
+"duration": 1.0,
+"texture": ExtResource("7_hmp7k")
+}, {
+"duration": 1.0,
+"texture": ExtResource("8_ypaor")
+}, {
+"duration": 1.0,
+"texture": ExtResource("9_wkuam")
+}],
+"loop": false,
+"name": &"Die",
+"speed": 6.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("10_hmp7k")
+}, {
+"duration": 1.0,
+"texture": ExtResource("11_ypaor")
+}, {
+"duration": 1.0,
+"texture": ExtResource("12_wkuam")
+}, {
+"duration": 1.0,
+"texture": ExtResource("13_0lc7u")
+}],
+"loop": true,
+"name": &"Hurt",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("10_0lc7u")
+}, {
+"duration": 1.0,
+"texture": ExtResource("11_yu72j")
+}, {
+"duration": 1.0,
+"texture": ExtResource("12_3na7c")
+}, {
+"duration": 1.0,
+"texture": ExtResource("13_u18hv")
+}],
+"loop": true,
+"name": &"Idle",
+"speed": 6.0
+}]
+
+[node name="小刀猎" unique_id=751516400 node_paths=PackedStringArray("image") instance=ExtResource("1_q54b8")]
+script = ExtResource("2_3jhcm")
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("射手", "高频")
+Negative_Tags = PackedStringArray("刀狗")
+image = NodePath("Graphics/AnimatedSprite2D")
+dir_left = false
+Attack_Cooling = 0.18
+Speed = 80.0
+Max_health = 800
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+texture = null
+
+[node name="AnimatedSprite2D" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="1" unique_id=907666059]
+position = Vector2(0, 10)
+scale = Vector2(0.6666666, 0.66666657)
+sprite_frames = SubResource("SpriteFrames_8gmlk")
+animation = &"Hurt"
+autoplay = "Idle"
+frame_progress = 0.8412888
+
+[node name="CollisionShape2D" parent="." index="1" unique_id=434200601]
+visible = true
+position = Vector2(0, 10.000002)
+scale = Vector2(0.79999995, 3.800001)
+
+[node name="CollisionShape2D" parent="hitbox" parent_id_path=PackedInt32Array(28640507) index="0" unique_id=390337144]
+visible = true
+position = Vector2(0, 10)
+scale = Vector2(0.877166, 4.1984982)
+
+[node name="CollisionShape2D" parent="hurtbox" parent_id_path=PackedInt32Array(586576587) index="0" unique_id=58230542]
+visible = true
+position = Vector2(0, 10)
+scale = Vector2(0.877166, 4.1984982)
+
+[editable path="Health_Bar"]

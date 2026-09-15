@@ -1,0 +1,631 @@
+[gd_scene format=3 uid="uid://bkud2ewhukedf"]
+
+[ext_resource type="Theme" path="res://ui/default.tres" id="1_qh227"]
+[ext_resource type="Texture2D" path="res://Images/Base-01.png" id="2_2mc8b"]
+[ext_resource type="Script" path="res://ui/control.gd" id="2_sm8s4"]
+[ext_resource type="Shader" path="res://shaders/vignette.gdshader" id="3_dx307"]
+[ext_resource type="StyleBox" path="res://ui/setting_panel_stylebox.tres" id="3_sm8s4"]
+[ext_resource type="Theme" path="res://ui/team_set_button.tres" id="6_sm8s4"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_1nruc"]
+shader = ExtResource("3_dx307")
+shader_parameter/player_position = Vector2(0.5, 0.5)
+shader_parameter/color = Color(0, 0, 0, 1)
+shader_parameter/MULTIPLIER = 0.56
+shader_parameter/SOFTNESS = 0.62
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_71j4m"]
+atlas = ExtResource("2_2mc8b")
+region = Rect2(50, 210, 12, 12)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_qfnet"]
+atlas = ExtResource("2_2mc8b")
+region = Rect2(50, 194, 12, 11)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_sm8s4"]
+atlas = ExtResource("2_2mc8b")
+region = Rect2(20, 149, 7, 7)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_dx307"]
+atlas = ExtResource("2_2mc8b")
+region = Rect2(3, 243, 10, 9)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_1nruc"]
+atlas = ExtResource("2_2mc8b")
+region = Rect2(35, 210, 10, 11)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_obno4"]
+atlas = ExtResource("2_2mc8b")
+region = Rect2(5, 196, 4, 7)
+margin = Rect2(2, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ceolb"]
+atlas = ExtResource("2_2mc8b")
+region = Rect2(5, 196, 4, 7)
+margin = Rect2(0, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_sqan1"]
+atlas = ExtResource("2_2mc8b")
+region = Rect2(6, 180, 4, 7)
+margin = Rect2(0, 0, 2, 0)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_xlkeo"]
+atlas = ExtResource("2_2mc8b")
+region = Rect2(6, 180, 4, 7)
+margin = Rect2(2, 0, 2, 0)
+
+[node name="Control" type="Control" unique_id=919894581]
+process_mode = 3
+layout_mode = 3
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(3, 3)
+texture_filter = 1
+theme = ExtResource("1_qh227")
+script = ExtResource("2_sm8s4")
+
+[node name="background" type="ColorRect" parent="." unique_id=435009944]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -334.22223
+offset_top = -188.0
+offset_right = 334.22223
+offset_bottom = 188.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0.09019608)
+
+[node name="Vignette" type="ColorRect" parent="." unique_id=1941902758]
+visible = false
+material = SubResource("ShaderMaterial_1nruc")
+instance_shader_parameters/SCALE = 1.5
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -258.96298
+offset_top = -145.66667
+offset_right = 258.96298
+offset_bottom = 145.66667
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 1)
+
+[node name="Settings" type="PanelContainer" parent="." unique_id=959187540]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -65.0
+offset_top = -103.0
+offset_right = 65.0
+offset_bottom = -74.0
+grow_horizontal = 2
+grow_vertical = 2
+pivot_offset_ratio = Vector2(0.5, 0.5)
+metadata/_edit_group_ = true
+
+[node name="HBoxContainer" type="HBoxContainer" parent="Settings" unique_id=193852060]
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="Game_Setting" type="Button" parent="Settings/HBoxContainer" unique_id=1147582272]
+layout_mode = 2
+size_flags_vertical = 4
+focus_behavior_recursive = 1
+text = "游戏设置"
+icon = SubResource("AtlasTexture_71j4m")
+
+[node name="Team" type="Button" parent="Settings/HBoxContainer" unique_id=1868529138]
+layout_mode = 2
+size_flags_vertical = 4
+focus_behavior_recursive = 1
+text = "队伍"
+icon = SubResource("AtlasTexture_qfnet")
+
+[node name="Reset" type="Button" parent="Settings/HBoxContainer" unique_id=1764034033]
+layout_mode = 2
+size_flags_vertical = 4
+focus_behavior_recursive = 1
+text = "重置"
+icon = SubResource("AtlasTexture_sm8s4")
+
+[node name="Rematch" type="Button" parent="Settings/HBoxContainer" unique_id=1870042261]
+layout_mode = 2
+size_flags_vertical = 4
+focus_behavior_recursive = 1
+text = "重打"
+icon = SubResource("AtlasTexture_sm8s4")
+
+[node name="Map" type="Button" parent="Settings/HBoxContainer" unique_id=225512993]
+layout_mode = 2
+size_flags_vertical = 4
+focus_behavior_recursive = 1
+text = "地图"
+icon = SubResource("AtlasTexture_dx307")
+
+[node name="MultiPlayer" type="Button" parent="Settings/HBoxContainer" unique_id=797013618]
+layout_mode = 2
+size_flags_vertical = 4
+focus_behavior_recursive = 1
+text = "多人"
+icon = SubResource("AtlasTexture_1nruc")
+
+[node name="Game_Setting" type="Panel" parent="." unique_id=788182332]
+visible = false
+clip_contents = true
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -134.99997
+offset_top = -71.666664
+offset_right = 134.99997
+offset_bottom = 100.66668
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = ExtResource("3_sm8s4")
+metadata/_edit_group_ = true
+
+[node name="Panel" type="Panel" parent="Game_Setting" unique_id=1299575387]
+self_modulate = Color(1, 1, 1, 0.17254902)
+clip_contents = true
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -131.0
+offset_top = -80.16667
+offset_right = 131.0
+offset_bottom = 81.83333
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = ExtResource("3_sm8s4")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Game_Setting/Panel" unique_id=1250736670]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 4.0
+offset_top = 4.0
+offset_right = -4.0
+offset_bottom = -4.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 3
+
+[node name="Team" type="Control" parent="." unique_id=1188433246]
+anchors_preset = 0
+theme = ExtResource("6_sm8s4")
+
+[node name="Team" type="Panel" parent="Team" unique_id=300873539]
+layout_mode = 0
+offset_left = -181.33333
+offset_top = -62.666664
+offset_right = -83.99999
+offset_bottom = 140.66669
+scale = Vector2(1, 0.8133334)
+theme_override_styles/panel = ExtResource("3_sm8s4")
+
+[node name="Team_Inner" type="Panel" parent="Team/Team" unique_id=1188157763]
+self_modulate = Color(0.73467994, 0.73467994, 0.7346799, 0.5568628)
+clip_contents = true
+layout_mode = 0
+offset_left = 6.666667
+offset_top = 7.3333435
+offset_right = 90.66667
+offset_bottom = 166.39343
+theme_override_styles/panel = ExtResource("3_sm8s4")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Team/Team/Team_Inner" unique_id=21228966]
+custom_minimum_size = Vector2(75, 0)
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -37.5
+offset_top = 2.5027227
+offset_right = 37.499996
+offset_bottom = 28.502724
+grow_horizontal = 2
+
+[node name="CreateButton" type="Button" parent="Team/Team" unique_id=1916200004]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -37.499996
+offset_top = 69.64479
+offset_right = 37.499996
+offset_bottom = 94.64479
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_vertical = 4
+text = "Create
+"
+
+[node name="Label" type="Label" parent="Team/Team" unique_id=889447372]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -48.0
+offset_top = -116.42076
+offset_right = 48.000004
+offset_bottom = -105.42076
+grow_horizontal = 2
+grow_vertical = 2
+text = "Choose Team here!"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="NowTeam" type="Label" parent="Team/Team" unique_id=291215521]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -48.0
+offset_top = -128.71585
+offset_right = 48.000004
+offset_bottom = -117.71585
+grow_horizontal = 2
+grow_vertical = 2
+text = "Now Team:"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Char" type="Panel" parent="Team" unique_id=909682975]
+layout_mode = 0
+offset_left = 68.0
+offset_top = -62.666664
+offset_right = 188.0
+offset_bottom = 154.0
+scale = Vector2(1, 0.8133334)
+theme_override_styles/panel = ExtResource("3_sm8s4")
+
+[node name="Char_Inner" type="Panel" parent="Team/Char" unique_id=358452442]
+self_modulate = Color(0.73467994, 0.73467994, 0.7346799, 0.5568628)
+clip_contents = true
+layout_mode = 0
+offset_left = 7.0
+offset_top = 7.0
+offset_right = 113.0
+offset_bottom = 210.0
+theme_override_styles/panel = ExtResource("3_sm8s4")
+
+[node name="Search" type="LineEdit" parent="Team/Char/Char_Inner"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 5.0
+offset_top = 5.0
+offset_right = -5.0
+offset_bottom = 29.0
+grow_horizontal = 2
+placeholder_text = "搜索人物…"
+theme_override_font_sizes/font_size = 9
+clear_button_enabled = true
+
+[node name="CharScroll" type="ScrollContainer" parent="Team/Char/Char_Inner"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 5.0
+offset_top = 35.0
+offset_right = -5.0
+offset_bottom = -5.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 2
+scroll_vertical_custom_step = 14.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Team/Char/Char_Inner/CharScroll" unique_id=1433380868]
+custom_minimum_size = Vector2(86, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 3
+alignment = 0
+
+[node name="NowType" type="Label" parent="Team/Char" unique_id=643354166]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -47.999664
+offset_top = -116.42067
+offset_right = 48.000336
+offset_bottom = -105.42067
+grow_horizontal = 2
+grow_vertical = 2
+text = "Now Type:"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="NowChar" type="Label" parent="Team/Char" unique_id=639207196]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -47.999664
+offset_top = -128.71567
+offset_right = 48.000336
+offset_bottom = -117.71567
+grow_horizontal = 2
+grow_vertical = 2
+text = "Now char:"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Left" type="TextureButton" parent="Team/Char" unique_id=125916573]
+custom_minimum_size = Vector2(18, 24)
+layout_mode = 0
+offset_left = -16.0
+offset_top = 12.0
+offset_right = 2.0
+offset_bottom = 36.0
+focus_mode = 0
+ignore_texture_size = true
+stretch_mode = 5
+texture_normal = SubResource("AtlasTexture_obno4")
+texture_pressed = SubResource("AtlasTexture_ceolb")
+
+[node name="Right" type="TextureButton" parent="Team/Char" unique_id=2138587790]
+custom_minimum_size = Vector2(18, 24)
+layout_mode = 0
+offset_left = 118.0
+offset_top = 12.0
+offset_right = 136.0
+offset_bottom = 36.0
+focus_mode = 0
+ignore_texture_size = true
+stretch_mode = 5
+texture_normal = SubResource("AtlasTexture_sqan1")
+texture_pressed = SubResource("AtlasTexture_xlkeo")
+
+[node name="Offset_Timer" type="Timer" parent="." unique_id=746398126]
+process_mode = 3
+wait_time = 0.3
+autostart = true
+
+[node name="Map" type="Panel" parent="." unique_id=523266232]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -48.666664
+offset_top = -67.0
+offset_right = 48.666664
+offset_bottom = 136.33334
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(1, 0.8133334)
+theme = ExtResource("6_sm8s4")
+theme_override_styles/panel = ExtResource("3_sm8s4")
+
+[node name="Map_Inner" type="Panel" parent="Map" unique_id=520398389]
+self_modulate = Color(0.73467994, 0.73467994, 0.7346799, 0.5568628)
+clip_contents = true
+layout_mode = 0
+offset_left = 6.666667
+offset_top = 7.3333435
+offset_right = 90.66667
+offset_bottom = 196.0
+theme_override_styles/panel = ExtResource("3_sm8s4")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Map/Map_Inner" unique_id=409015171]
+custom_minimum_size = Vector2(75, 0)
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -37.00002
+offset_top = 2.5027227
+offset_right = 37.99998
+offset_bottom = 88.50272
+grow_horizontal = 2
+
+[node name="MultiPlayer" type="Panel" parent="." unique_id=1322394490]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -129.0
+offset_top = -74.0
+offset_right = 129.0
+offset_bottom = 190.0
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(1, 1)
+pivot_offset = Vector2(129, 93)
+theme = ExtResource("6_sm8s4")
+theme_override_styles/panel = ExtResource("3_sm8s4")
+
+[node name="MultiPlayer_Inner" type="Panel" parent="MultiPlayer" unique_id=133517054]
+self_modulate = Color(0.73467994, 0.73467994, 0.7346799, 0.5568628)
+clip_contents = true
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -122.0
+offset_top = -85.0
+offset_right = 122.0
+offset_bottom = -43.0
+grow_horizontal = 2
+grow_vertical = 2
+pivot_offset = Vector2(122, 21)
+theme_override_styles/panel = ExtResource("3_sm8s4")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MultiPlayer/MultiPlayer_Inner" unique_id=881232687]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -116.0
+offset_top = -13.0
+offset_right = 116.0
+offset_bottom = 13.0
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(1, 1)
+pivot_offset = Vector2(79.5, 13)
+
+[node name="Server" type="Button" parent="MultiPlayer/MultiPlayer_Inner/HBoxContainer" unique_id=825485400]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+focus_behavior_recursive = 1
+text = "创建"
+icon = SubResource("AtlasTexture_1nruc")
+
+[node name="Client" type="Button" parent="MultiPlayer/MultiPlayer_Inner/HBoxContainer" unique_id=158579928]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+focus_behavior_recursive = 1
+text = "加入
+"
+icon = SubResource("AtlasTexture_1nruc")
+
+[node name="Port" type="LineEdit" parent="MultiPlayer/MultiPlayer_Inner/HBoxContainer" unique_id=8618249]
+layout_mode = 2
+custom_minimum_size = Vector2(112, 26)
+size_flags_horizontal = 3
+placeholder_text = "服务器 IP / 地址"
+alignment = 1
+
+[node name="Ip_Label" type="Label" parent="MultiPlayer" unique_id=697039426]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -120.0
+offset_top = 10.0
+offset_right = 120.0
+offset_bottom = 38.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "ip:"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Connect_Label" type="Label" parent="MultiPlayer" unique_id=1839533513]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -120.0
+offset_top = -18.0
+offset_right = 120.0
+offset_bottom = 8.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "Connect State:"
+horizontal_alignment = 1
+
+[node name="Player_list" type="Panel" parent="MultiPlayer" unique_id=1521997145]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -122.0
+offset_top = 42.0
+offset_right = 122.0
+offset_bottom = 108.0
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(1, 1)
+theme = ExtResource("6_sm8s4")
+theme_override_styles/panel = ExtResource("3_sm8s4")
+
+[node name="Player_list_Inner" type="Panel" parent="MultiPlayer/Player_list" unique_id=1832635228]
+self_modulate = Color(0.73467994, 0.73467994, 0.7346799, 0.5568628)
+clip_contents = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 6.0
+offset_top = 6.0
+offset_right = -6.0
+offset_bottom = -6.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = ExtResource("3_sm8s4")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MultiPlayer/Player_list/Player_list_Inner" unique_id=373378504]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 4.0
+offset_top = 3.0
+offset_right = -4.0
+offset_bottom = -3.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[connection signal="button_up" from="Settings/HBoxContainer/Game_Setting" to="." method="_on_game_setting_button_up"]
+[connection signal="button_up" from="Settings/HBoxContainer/Team" to="." method="_on_team_button_up"]
+[connection signal="button_up" from="Settings/HBoxContainer/Reset" to="." method="_on_reset_button_up"]
+[connection signal="button_up" from="Settings/HBoxContainer/Rematch" to="." method="_on_rematch_button_up"]
+[connection signal="gui_input" from="Settings/HBoxContainer/Rematch" to="." method="_on_rematch_button_gui_input"]
+[connection signal="button_up" from="Settings/HBoxContainer/Map" to="." method="_on_map_button_up"]
+[connection signal="button_up" from="Settings/HBoxContainer/MultiPlayer" to="." method="_on_multi_player_button_up"]
+[connection signal="button_up" from="Team/Team/CreateButton" to="." method="_on_create_button_button_up"]
+[connection signal="button_up" from="Team/Char/Left" to="." method="_on_left_button_up"]
+[connection signal="button_up" from="Team/Char/Right" to="." method="_on_right_button_up"]
+[connection signal="timeout" from="Offset_Timer" to="." method="_on_offset_timer_timeout"]
+[connection signal="button_up" from="MultiPlayer/MultiPlayer_Inner/HBoxContainer/Server" to="." method="_on_server_button_up"]
+[connection signal="button_up" from="MultiPlayer/MultiPlayer_Inner/HBoxContainer/Client" to="." method="_on_client_button_up"]

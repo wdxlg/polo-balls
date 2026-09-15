@@ -1,0 +1,117 @@
+[gd_scene format=3 uid="uid://c27qccjt5p62h"]
+
+[ext_resource type="PackedScene" uid="uid://dgfmejo2auorn" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" uid="uid://ctihkufpox5b6" path="res://scripts/characters/锻刀师.gd" id="2_script"]
+[ext_resource type="Texture2D" uid="uid://lspfnok71c4o" path="res://Images/characters/人物/锻刀师/01_锻刀师_双手抱胸微笑.png" id="3_idle"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_x5ku0"]
+resource_local_to_scene = true
+size = Vector2(139.0118, 168.1)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_8uk3d"]
+resource_local_to_scene = true
+size = Vector2(139.0118, 168.1)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_sndku"]
+resource_local_to_scene = true
+size = Vector2(139.0118, 168.1)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_fire"]
+resource_local_to_scene = true
+radius = 360.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_sword"]
+resource_local_to_scene = true
+size = Vector2(300, 76)
+
+[node name="锻刀师" unique_id=28346957 instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+blueprint_duration = 1.0
+heating_duration = 3.2
+tempering_duration = 3.5
+showcase_duration = 0.85
+heating_move_multiplier = 0.65
+fire_radius = 72.0
+fire_tick_interval = 0.18
+fire_tick_damage_multiplier = 1.3333333
+burn_duration = 2.5
+burn_tick_interval = 0.5
+burn_tick_damage_multiplier = 1.0
+hammer_strike_count = 14
+hammer_interval_randomness = 0.08
+shockwave_damage_multiplier = 8.0
+steam_spawn_interval = 0.38
+steam_damage_multiplier = 2.6666667
+sword_attack_range = 64.0
+sword_attack_interval = 0.78
+sword_swing_duration = 0.28
+sword_damage_multiplier = 50.0
+sword_durability_cost = 15.0
+blueprint_sfx_volume_db = 3.0
+fire_loop_volume_db = 2.0
+steam_start_sfx_volume_db = 0.0
+hammer_sfx_volume_db = 2.0
+sword_swing_sfx_volume_db = -2.0
+sword_hit_sfx_volume_db = -2.0
+burn_tick_sfx_volume_db = 1.0
+bladesmith_sfx_max_distance = 900.0
+bladesmith_sfx_attenuation = 0.75
+Type_Tags = PackedStringArray("近战", "周期爆发", "范围", "持续伤害")
+Negative_Tags = PackedStringArray("准备时间", "近战")
+Attack_Cooling = 999.0
+Skill_Cooling = 999.0
+Damage = 3
+Speed = 105.0
+Max_health = 800
+Can_Attack = false
+Can_Skill = false
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+scale = Vector2(0.1493081, 0.1493081)
+texture = ExtResource("3_idle")
+offset = Vector2(32, -14.5)
+
+[node name="CollisionShape2D" parent="." index="1" unique_id=434200601]
+scale = Vector2(1, 1)
+shape = SubResource("RectangleShape2D_x5ku0")
+metadata/_character_auto_fit_v3_managed = true
+metadata/_character_auto_fit_v3_manual = false
+metadata/_character_auto_fit_v3_last_auto = "RectangleShape2D|(139.0118, 168.1)|(0.0, 0.0)|(1.0, 1.0)|0.0"
+
+[node name="CollisionShape2D" parent="hitbox" parent_id_path=PackedInt32Array(28640507) index="0" unique_id=390337144]
+scale = Vector2(1, 1)
+shape = SubResource("RectangleShape2D_8uk3d")
+metadata/_character_auto_fit_v3_managed = true
+metadata/_character_auto_fit_v3_manual = false
+metadata/_character_auto_fit_v3_last_auto = "RectangleShape2D|(139.0118, 168.1)|(0.0, 0.0)|(1.0, 1.0)|0.0"
+
+[node name="CollisionShape2D" parent="hurtbox" parent_id_path=PackedInt32Array(586576587) index="0" unique_id=58230542]
+scale = Vector2(1, 1)
+shape = SubResource("RectangleShape2D_sndku")
+metadata/_character_auto_fit_v3_managed = true
+metadata/_character_auto_fit_v3_manual = false
+metadata/_character_auto_fit_v3_last_auto = "RectangleShape2D|(139.0118, 168.1)|(0.0, 0.0)|(1.0, 1.0)|0.0"
+
+[node name="ForgeFireArea" type="Area2D" parent="." index="12" unique_id=1771174535]
+collision_layer = 0
+collision_mask = 0
+monitoring = false
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ForgeFireArea" index="0" unique_id=1034307010]
+shape = SubResource("CircleShape2D_fire")
+
+[node name="SwordPivot" type="Node2D" parent="." index="13" unique_id=1957791964]
+z_index = 9
+
+[node name="SwordHitArea" type="Area2D" parent="SwordPivot" index="0" unique_id=528855029]
+position = Vector2(150, 0)
+collision_layer = 0
+collision_mask = 0
+monitoring = false
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="SwordPivot/SwordHitArea" index="0" unique_id=435993154]
+shape = SubResource("RectangleShape2D_sword")
+
+[editable path="Health_Bar"]

@@ -1,0 +1,46 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/动物/九头蛇.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/动物/九头蛇/九头蛇_身体.png" id="3_body"]
+
+[node name="九头蛇" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("近战", "召唤", "续航", "多单位")
+Negative_Tags = PackedStringArray("畜生", "蛇", "多头蛇")
+Max_health = 320
+Damage = 18
+Speed = 112.0
+Attack_Cooling = 1.0
+Health_Restore = 0
+Can_Attack = false
+Can_Skill = false
+initial_head_count = 3
+head_max_health = 80
+head_damage_multiplier = 1.0
+head_speed = 235.0
+head_move_radius = 145.0
+head_attack_search_radius = 180.0
+head_rest_radius = 64.0
+head_respawn_delay = 2.6
+head_regrow_emerge_duration = 0.8
+head_regrow_stagger = 0.12
+heads_regrown_per_death = 2
+max_head_count = 9
+neck_width = 30.0
+neck_curve_amount = 18.0
+neck_wiggle_amount = 7.0
+neck_wiggle_speed = 2.2
+neck_root_inset = 14.0
+neck_head_inset = 11.0
+
+[node name="CharacterAutoFit" parent="." index="2"]
+visual_size_multiplier = 1.08
+collision_width_ratio = 0.9
+collision_height_ratio = 0.78
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+texture = ExtResource("3_body")
+
+[editable path="Health_Bar"]

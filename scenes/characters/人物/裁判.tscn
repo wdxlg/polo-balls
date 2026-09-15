@@ -1,0 +1,35 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/裁判.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/裁判/裁判_正常.png" id="3_preview"]
+
+[node name="裁判" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+normal_texture = ExtResource("3_preview")
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("控制", "反制", "范围")
+Negative_Tags = PackedStringArray("执法", "爱管闲事")
+Max_health = 720
+Damage = 32
+Speed = 108.0
+Attack_Cooling = 1.45
+Health_Restore = 0
+Can_Skill = false
+throw_pose_time = 0.2
+whistle_radius = 135.0
+whistle_damage_multiplier = 1.40625
+whistle_knockback_distance = 78.0
+whistle_knockback_speed = 720.0
+card_damage_window = 2.2
+card_damage_threshold = 150.0
+card_reaction_cooldown = 0.55
+card_speed = 470.0
+yellow_card_weight = 4.5
+blue_card_weight = 3.0
+red_card_weight = 2.0
+
+[node name="Image" parent="Graphics" index="0"]
+texture = ExtResource("3_preview")
+
+[editable path="Health_Bar"]

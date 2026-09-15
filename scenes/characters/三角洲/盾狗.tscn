@@ -1,0 +1,25 @@
+[gd_scene load_steps=4 format=3]
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1"]
+[ext_resource type="Script" path="res://scripts/characters/三角洲/盾狗.gd" id="2"]
+[ext_resource type="Texture2D" path="res://Images/characters/三角洲/盾狗/深蓝.png" id="3_shield"]
+[node name="盾狗" instance=ExtResource("1")]
+script = ExtResource("2")
+dir_left = false
+Type_Tags = PackedStringArray("三角洲", "坦克", "控制", "铁丝网", "方向减伤")
+Max_health = 980
+Damage = 16
+Speed = 68.0
+Can_Attack = false
+Can_Skill = true
+Has_Collision_Damage = false
+Attack_Cooling = 0.42
+Skill_Cooling = 6.8
+max_block = 55
+
+
+[node name="Image" parent="Graphics" index="0" unique_id=1294062553]
+scale = Vector2(0.84507, 0.84507)
+texture = ExtResource("3_shield")
+
+[node name="CharacterAutoFit" parent="." index="2"]
+visual_size_multiplier = 1.17

@@ -1,0 +1,36 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/动漫/菜月昴.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/动漫/菜月昴/昴.png" id="3_normal"]
+
+[node name="菜月昴" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("动漫", "近战", "时间", "复活")
+Negative_Tags = PackedStringArray("脆弱", "执念")
+Max_health = 67
+Damage = 67
+Speed = 104.0
+Attack_Cooling = 1.0
+Skill_Cooling = 1.0
+Can_Attack = false
+Can_Skill = false
+rewind_min_seconds = 0.5
+return_visual_duration = 1.8
+return_scream_volume_db = 18.0
+return_sound_volume_db = -8.0
+return_scream_max_distance = 2400.0
+return_music_start_count = 3
+dead_save_trigger_deaths = 5
+fist_trigger_radius = 138.0
+fist_attack_reach = 178.0
+fist_arm_width = 34.0
+fist_hand_visual_size = 48.0
+fist_hand_hit_radius = 20.0
+fist_knockback_strength = 48.0
+
+[node name="Image" parent="Graphics" index="0"]
+texture = ExtResource("3_normal")
+
+[editable path="Health_Bar"]

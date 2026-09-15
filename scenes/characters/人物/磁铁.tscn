@@ -1,0 +1,30 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/磁铁.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/磁铁/磁铁_吸引.png" id="3_attract"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/磁铁/磁铁_排斥.png" id="4_repel"]
+
+[node name="磁铁" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+attraction_texture = ExtResource("3_attract")
+repulsion_texture = ExtResource("4_repel")
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("控制", "干扰", "防御", "特殊")
+Negative_Tags = PackedStringArray("铁疙瘩")
+Max_health = 440
+Damage = 11
+Speed = 106.0
+Attack_Cooling = 2.25
+Health_Restore = 0
+Can_Attack = false
+Can_Skill = false
+polarity_interval = 3.4
+influence_radius = 230.0
+orbit_capture_radius = 88.0
+projectile_turn_strength = 8.5
+orbit_radius = 56.0
+orbit_speed = 2.8
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+texture = ExtResource("3_attract")

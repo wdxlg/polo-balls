@@ -1,0 +1,422 @@
+extends Node
+
+const POTION_PARTICLE = preload("res://scripts/effects/我的世界/女巫药水粒子.gd")
+const DAMAGE_SFX = preload("res://scripts/effects/我的世界/女巫药水伤害音效.gd")
+
+const INVISIBILITY_CONTACT_DAMAGE:float = 2.0
+const INVISIBILITY_CONTACT_INTERVAL:float = 0.05
+const INVISIBILITY_CONTACT_AREA_MULTIPLIER:float = 1.06
+const IGNORE_LOCKING_META:StringName = &"ignore_combat_locking"
+
+var target:ball = null
+var source:Node = null
+var effect_type:String = ""
+var remaining:float = INF
+var tick_interval:float = 1.0
+var tick_left:float = 1.0
+var regen_amount:float = 7.0
+var poison_damage:float = 6.0
+var wither_damage:float = 16.0
+var invis_alpha:float = 0.22
+var particle_color:Color = Color.WHITE
+var particle_interval:float = 0.18
+var _particle_left:float = 0.0
+
+var _saved_collision_layer:int = 0
+var _saved_collision_mask:int = 0
+var _saved_alpha:float = 1.0
+var _invisibility_applied:bool = false
+var _saved_ignore_locking_had_meta:bool = false
+var _saved_ignore_locking_value:bool = false
+var _invisibility_contact_area:Area2D = null
+var _invisibility_contact_shape:CollisionShape2D = null
+var _invisibility_contact_left:float = 0.0
+var _invisibility_lock_clear_left:float = 0.0
+var _cleaned:bool = false
+
+
+func setup(
+	new_target:ball,
+	new_effect_type:String,
+	duration:float,
+	new_source:Node = null,
+	options:Dictionary = {}
+) -> void:
+	target = new_target
+	effect_type = new_effect_type
+	remaining = duration
+	source = new_source
+	regen_amount = maxf(float(options.get("regen_amount",regen_amount)),0.0)
+	poison_damage = maxf(float(options.get("poison_damage",poison_damage)),0.0)
+	wither_damage = maxf(float(options.get("wither_damage",wither_damage)),0.0)
+	invis_alpha = clampf(float(options.get("invis_alpha",invis_alpha)),0.02,1.0)
+	_apply_particle_options(options)
+	tick_left = tick_interval
+	_particle_left = 0.0
+
+	if effect_type == "invisibility":
+		_apply_invisibility()
+
+
+func refresh(duration:float,new_source:Node = null,options:Dictionary = {}) -> void:
+	if is_inf(duration):
+		remaining = INF
+	elif is_inf(remaining):
+		pass
+	else:
+		remaining = maxf(remaining,duration)
+
+	if is_instance_valid(new_source):
+		source = new_source
+	if options.has("regen_amount"):
+		regen_amount = maxf(float(options["regen_amount"]),regen_amount)
+	if options.has("poison_damage"):
+		poison_damage = maxf(float(options["poison_damage"]),poison_damage)
+	if options.has("wither_damage"):
+		wither_damage = maxf(float(options["wither_damage"]),wither_damage)
+	if options.has("invis_alpha"):
+		invis_alpha = minf(invis_alpha,clampf(float(options["invis_alpha"]),0.02,1.0))
+	_apply_particle_options(options)
+	if effect_type == "invisibility":
+		_apply_invisibility()
+
+
+func _physics_process(delta:float) -> void:
+	if target == null or not is_instance_valid(target) or target.is_queued_for_deletion():
+		queue_free()
+		return
+	if target.health <= 0:
+		queue_free()
+		return
+
+	_update_status_particles(delta)
+
+	if effect_type == "invisibility":
+		_maintain_invisibility()
+		# V88：隐身只取消 AI 锁定。每物理帧清掉已有锁定，
+		# 但不改碰撞层/Hurtbox，也不额外制造“隐身接触伤害”。
+		_clear_existing_enemy_locks()
+
+	if effect_type == "regen" or effect_type == "poison" or effect_type == "wither":
+		tick_left -= delta
+		while tick_left <= 0.0:
+			tick_left += tick_interval
+			_tick_periodic_health_effect()
+			if target == null or not is_instance_valid(target) or target.health <= 0:
+				break
+
+	if not is_inf(remaining):
+		remaining -= delta
+		if remaining <= 0.0:
+			queue_free()
+
+
+func _apply_particle_options(options:Dictionary) -> void:
+	var color_value:Variant = options.get("particle_color",particle_color)
+	if color_value is Color:
+		particle_color = color_value
+	particle_interval = clampf(float(options.get("particle_interval",particle_interval)),0.06,0.8)
+
+
+func _update_status_particles(delta:float) -> void:
+	_particle_left -= delta
+	while _particle_left <= 0.0:
+		_particle_left += particle_interval
+		_spawn_status_particle()
+
+
+func _spawn_status_particle() -> void:
+	if target == null or not is_instance_valid(target):
+		return
+	var world:Node = target.get_tree().current_scene
+	if world == null:
+		return
+	# 粒子从角色身体/头部附近生成，然后使用世界坐标独立向上飘，
+	# 角色继续移动时已经生成的粒子不会被硬拖着走。
+	var spawn_position:Vector2 = target.global_position + Vector2(
+		randf_range(-13.0,13.0),
+		randf_range(-18.0,8.0)
+	)
+	var particle:Sprite2D = POTION_PARTICLE.new()
+	world.add_child(particle)
+	particle.call(
+		"setup",
+		spawn_position,
+		particle_color,
+		Vector2(randf_range(-7.0,7.0),randf_range(-48.0,-34.0)),
+		randf_range(0.020,0.030),
+		randf_range(0.060,0.072),
+		82
+	)
+
+
+func _tick_periodic_health_effect() -> void:
+	if target == null or not is_instance_valid(target) or target.health <= 0:
+		return
+
+	var positive:bool = effect_type == "regen"
+	var effect_ratio:float = _potion_effect_ratio(positive)
+	if effect_ratio <= 0.000001:
+		# 运行时把倍率改成 0 时，已有药水状态也立刻失效。
+		queue_free()
+		return
+
+	var inverted:bool = _healing_damage_inverted()
+	if effect_type == "regen":
+		var amount:float = regen_amount * effect_ratio
+		if inverted:
+			_apply_periodic_raw_damage(amount,false)
+		else:
+			target.heal(amount)
+		return
+
+	if effect_type == "poison":
+		var amount:float = poison_damage * effect_ratio
+		if inverted:
+			target.heal(amount)
+		else:
+			# 非反转中毒仍保留原规则：最多压到 1 HP，不成为最终击杀来源。
+			_apply_periodic_raw_damage(amount,true)
+		return
+
+	if effect_type == "wither":
+		_apply_periodic_raw_damage(wither_damage * effect_ratio,false)
+
+
+func _apply_periodic_raw_damage(amount:float,leave_one_hp:bool) -> void:
+	if target == null or not is_instance_valid(target) or target.health <= 0:
+		return
+	var damage:float = maxf(amount,0.0)
+	if leave_one_hp:
+		damage = minf(damage,maxf(float(target.health - 1),0.0))
+	if damage <= 0.0:
+		return
+	var context:Dictionary = {
+		"point": target.global_position,
+		"shape": "all",
+	}
+	if is_instance_valid(source):
+		context["source"] = source
+	var damage_applied:bool = target.receive_spatial_raw_health_damage(damage,context)
+	if damage_applied:
+		DAMAGE_SFX.play(target,target.global_position)
+
+
+func _potion_effect_ratio(positive:bool) -> float:
+	if target == null or not is_instance_valid(target):
+		return 1.0
+	if target.has_method("get_minecraft_potion_effect_ratio"):
+		return maxf(float(target.call("get_minecraft_potion_effect_ratio",positive)),0.0)
+	return 1.0
+
+
+func _healing_damage_inverted() -> bool:
+	if target == null or not is_instance_valid(target):
+		return false
+	if target.has_method("is_minecraft_potion_healing_damage_inverted"):
+		return bool(target.call("is_minecraft_potion_healing_damage_inverted"))
+	return false
+
+
+func _apply_invisibility() -> void:
+	if target == null or not is_instance_valid(target):
+		return
+	if not _invisibility_applied:
+		_saved_collision_layer = target.collision_layer
+		_saved_collision_mask = target.collision_mask
+		_saved_ignore_locking_had_meta = target.has_meta(IGNORE_LOCKING_META)
+		if _saved_ignore_locking_had_meta:
+			_saved_ignore_locking_value = bool(target.get_meta(IGNORE_LOCKING_META))
+		var graphics:CanvasItem = target.get_node_or_null("Graphics") as CanvasItem
+		if graphics != null:
+			_saved_alpha = graphics.modulate.a
+		_invisibility_applied = true
+		_clear_existing_enemy_locks()
+	_maintain_invisibility()
+
+
+func _maintain_invisibility() -> void:
+	if target == null or not is_instance_valid(target):
+		return
+	# V88：隐身不再修改 collision_layer / collision_mask。角色身体、Hurtbox、
+	# 已飞出的投射物、范围攻击和普通接触攻击都仍按原规则命中。
+	# 这里只标记“不可被 AI 锁定”，与 is_combat_targetable()（能否受攻击）彻底分离。
+	target.set_meta(IGNORE_LOCKING_META,true)
+	var graphics:CanvasItem = target.get_node_or_null("Graphics") as CanvasItem
+	if graphics != null:
+		var c:Color = graphics.modulate
+		c.a = minf(c.a,invis_alpha)
+		graphics.modulate = c
+
+
+func _setup_invisibility_contact_area() -> void:
+	if target == null or not is_instance_valid(target):
+		return
+	if _invisibility_contact_area != null and is_instance_valid(_invisibility_contact_area):
+		return
+
+	_invisibility_contact_area = Area2D.new()
+	_invisibility_contact_area.name = "WitchInvisibilityContactDamageArea"
+	_invisibility_contact_area.collision_layer = 0
+	_invisibility_contact_area.collision_mask = 2
+	_invisibility_contact_area.monitoring = true
+	_invisibility_contact_area.monitorable = false
+	target.add_child(_invisibility_contact_area)
+
+	_invisibility_contact_shape = CollisionShape2D.new()
+	_invisibility_contact_shape.name = "CollisionShape2D"
+	_invisibility_contact_area.add_child(_invisibility_contact_shape)
+	_sync_invisibility_contact_shape()
+	_invisibility_contact_left = 0.0
+	_invisibility_lock_clear_left = 0.0
+
+
+func _sync_invisibility_contact_shape() -> void:
+	if target == null or not is_instance_valid(target):
+		return
+	if _invisibility_contact_shape == null or not is_instance_valid(_invisibility_contact_shape):
+		return
+	var source_shape:CollisionShape2D = target.collision_shape_2d
+	if source_shape == null or not is_instance_valid(source_shape) or source_shape.shape == null:
+		var fallback:=CircleShape2D.new()
+		fallback.radius = 16.0 * INVISIBILITY_CONTACT_AREA_MULTIPLIER
+		_invisibility_contact_shape.shape = fallback
+		_invisibility_contact_shape.position = Vector2.ZERO
+		return
+
+	_invisibility_contact_shape.position = source_shape.position
+	_invisibility_contact_shape.rotation = source_shape.rotation
+	_invisibility_contact_shape.scale = source_shape.scale
+	if source_shape.shape is RectangleShape2D:
+		var source_rect:RectangleShape2D = source_shape.shape as RectangleShape2D
+		var rect:=RectangleShape2D.new()
+		rect.size = source_rect.size * INVISIBILITY_CONTACT_AREA_MULTIPLIER
+		_invisibility_contact_shape.shape = rect
+	elif source_shape.shape is CircleShape2D:
+		var source_circle:CircleShape2D = source_shape.shape as CircleShape2D
+		var circle:=CircleShape2D.new()
+		circle.radius = source_circle.radius * INVISIBILITY_CONTACT_AREA_MULTIPLIER
+		_invisibility_contact_shape.shape = circle
+	else:
+		# 其它自定义 Shape2D 沿用原 Shape，避免因为未知形状擅自改写角色碰撞结构。
+		_invisibility_contact_shape.shape = source_shape.shape
+
+
+func _update_invisibility_contact_damage(delta:float) -> void:
+	if _invisibility_contact_area == null or not is_instance_valid(_invisibility_contact_area):
+		_setup_invisibility_contact_area()
+		if _invisibility_contact_area == null:
+			return
+	_invisibility_contact_left -= delta
+	if _invisibility_contact_left > 0.0:
+		return
+	_invisibility_contact_left += INVISIBILITY_CONTACT_INTERVAL
+	_damage_invisibility_contact_enemies()
+
+
+func _damage_invisibility_contact_enemies() -> void:
+	if target == null or not is_instance_valid(target) or target.health <= 0:
+		return
+	if _invisibility_contact_area == null or not is_instance_valid(_invisibility_contact_area):
+		return
+	var hit_ids:Dictionary = {}
+	for area:Area2D in _invisibility_contact_area.get_overlapping_areas():
+		if not area is hurtbox:
+			continue
+		var target_node:Node = area.get_parent()
+		if not target_node is ball:
+			target_node = area.owner
+		if not target_node is ball:
+			continue
+		var enemy:ball = target_node as ball
+		if not _is_invisibility_contact_enemy(enemy):
+			continue
+		var enemy_id:int = enemy.get_instance_id()
+		if hit_ids.has(enemy_id):
+			continue
+		hit_ids[enemy_id] = true
+
+		var before_health:float = float(enemy.health)
+		var before_block:float = float(enemy.block)
+		enemy.receive_positional_damage(
+			INVISIBILITY_CONTACT_DAMAGE,
+			enemy.global_position,
+			false,
+			target
+		)
+		var health_loss:float = maxf(before_health - float(enemy.health),0.0)
+		var block_loss:float = maxf(before_block - float(enemy.block),0.0)
+		if health_loss > 0.0 or block_loss > 0.0:
+			DAMAGE_SFX.play(enemy,enemy.global_position)
+
+
+func _is_invisibility_contact_enemy(candidate:ball) -> bool:
+	if target == null or not is_instance_valid(target):
+		return false
+	if candidate == null or not is_instance_valid(candidate) or candidate == target:
+		return false
+	if candidate.health <= 0 or candidate.is_queued_for_deletion():
+		return false
+	if candidate.Type == ball.Ball_Type.Creature:
+		if not candidate.is_combat_targetable():
+			return false
+	elif candidate.Type != ball.Ball_Type.Ball:
+		return false
+	if (
+		not Game.Game_Settings.Have_Team_Damage
+		and not target.Team.is_empty()
+		and candidate.Team == target.Team
+	):
+		return false
+	return true
+
+
+func _clear_existing_enemy_locks() -> void:
+	if target == null or not is_instance_valid(target):
+		return
+	var tree:SceneTree = target.get_tree()
+	if tree == null:
+		return
+	for node:Node in tree.get_nodes_in_group("Ball"):
+		if not node is ball:
+			continue
+		var observer:ball = node as ball
+		if observer == target or not is_instance_valid(observer):
+			continue
+		if (
+			not Game.Game_Settings.Have_Team_Damage
+			and not target.Team.is_empty()
+			and observer.Team == target.Team
+		):
+			continue
+		if observer.Target_Enemy == target:
+			observer.Target_Enemy = null
+		if observer.Nearest_Enemy == target:
+			observer.Nearest_Enemy = null
+
+
+func _cleanup() -> void:
+	if _cleaned:
+		return
+	_cleaned = true
+	if _invisibility_contact_area != null and is_instance_valid(_invisibility_contact_area):
+		_invisibility_contact_area.queue_free()
+	_invisibility_contact_area = null
+	_invisibility_contact_shape = null
+	if target == null or not is_instance_valid(target):
+		return
+	if effect_type == "invisibility" and _invisibility_applied:
+		# V88：碰撞层从未被隐身改写，因此这里也不需要恢复碰撞。
+		if _saved_ignore_locking_had_meta:
+			target.set_meta(IGNORE_LOCKING_META,_saved_ignore_locking_value)
+		else:
+			target.remove_meta(IGNORE_LOCKING_META)
+		var graphics:CanvasItem = target.get_node_or_null("Graphics") as CanvasItem
+		if graphics != null:
+			var c:Color = graphics.modulate
+			c.a = _saved_alpha
+			graphics.modulate = c
+
+
+func _exit_tree() -> void:
+	_cleanup()

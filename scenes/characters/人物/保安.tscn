@@ -1,0 +1,50 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/保安.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/保安/保安_正常.png" id="3_normal"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/保安/保安_攻击.png" id="4_attack"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/保安/保安_对讲机.png" id="5_radio"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/保安/保安_钢叉.png" id="6_fork"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/保安/保安_巡逻车.png" id="7_car"]
+
+[node name="保安" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+dir_left = false
+normal_texture = ExtResource("3_normal")
+attack_texture = ExtResource("4_attack")
+radio_texture = ExtResource("5_radio")
+fork_texture = ExtResource("6_fork")
+car_texture = ExtResource("7_car")
+attack_visual_duration = 0.55
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("近战", "控制", "召唤", "群体")
+Negative_Tags = PackedStringArray("保安", "执勤")
+Max_health = 80
+Damage = 32
+Speed = 98.0
+Attack_Cooling = 1.9
+Health_Restore = 0
+Can_Attack = true
+Can_Skill = false
+spawn_initial_squad = true
+initial_squad_size = 3
+max_guards_per_team = 10
+radio_cast_time = 1.0
+reinforcement_arrival_delay = 1.8
+reinforcement_car_drive_time = 0.95
+reinforcement_car_wait_time = 0.45
+reinforcement_car_world_width = 88.0
+reinforcement_disembark_distance = 24.0
+enemy_notice_radius = 78.0
+fork_windup = 0.24
+fork_forward_offset = 44.0
+fork_hit_radius = 34.0
+fork_damage_multiplier = 1.0
+fork_knockback_distance = 48.0
+fork_knockback_speed = 540.0
+
+[node name="Image" parent="Graphics" index="0"]
+texture = ExtResource("3_normal")
+
+[editable path="Health_Bar"]

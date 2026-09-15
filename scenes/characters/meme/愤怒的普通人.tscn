@@ -1,0 +1,56 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/meme/愤怒的普通人.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/meme/愤怒的普通人/01_普通人_微笑持刀.png" id="3_body"]
+[ext_resource type="Texture2D" path="res://Images/characters/meme/愤怒的普通人/08_小刀本体.png" id="4_knife"]
+[ext_resource type="Script" path="res://classes/hitbox.gd" id="5_hitbox"]
+
+[sub_resource type="RectangleShape2D" id="KnifeShape"]
+size = Vector2(72, 22)
+
+[node name="愤怒的普通人" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+Type_Tags = PackedStringArray("meme", "近战", "突刺", "残血强化")
+Negative_Tags = PackedStringArray()
+Damage = 50
+Attack_Cooling = 0.90
+Speed = 92.0
+Max_health = 700
+Health_Restore = 0
+Has_Collision_Damage = false
+Can_Attack = true
+Can_Skill = false
+
+[node name="Image" parent="Graphics" index="0"]
+texture = ExtResource("3_body")
+texture_filter = 1
+
+[node name="CharacterAutoFit" parent="." index="2"]
+visual_size_multiplier = 0.92
+collision_min_size = Vector2(92, 108)
+collision_max_size = Vector2(145, 175)
+
+[node name="KnifeHitbox" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 2
+monitoring = false
+monitorable = false
+script = ExtResource("5_hitbox")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="KnifeHitbox"]
+position = Vector2(18, 0)
+shape = SubResource("KnifeShape")
+disabled = true
+
+[node name="KnifeVisual" type="Sprite2D" parent="KnifeHitbox"]
+position = Vector2(36, 0)
+rotation = 0.56
+scale = Vector2(0.08, 0.08)
+texture = ExtResource("4_knife")
+texture_filter = 1
+z_index = 6
+
+[connection signal="on_hit" from="KnifeHitbox" to="." method="_on_hitbox_on_hit"]
+
+[editable path="Health_Bar"]

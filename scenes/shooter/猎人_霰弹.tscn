@@ -1,0 +1,63 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/shooter/猎人_霰弹.gd" id="1_script"]
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_pellet"]
+properties/0/path = NodePath(".:global_position")
+properties/0/spawn = true
+properties/0/replication_mode = 1
+properties/1/path = NodePath(".:global_rotation")
+properties/1/spawn = true
+properties/1/replication_mode = 1
+properties/2/path = NodePath(".:Master_name")
+properties/2/spawn = true
+properties/2/replication_mode = 1
+properties/3/path = NodePath(".:Team")
+properties/3/spawn = true
+properties/3/replication_mode = 1
+properties/4/path = NodePath(".:damage_amount")
+properties/4/spawn = true
+properties/4/replication_mode = 1
+properties/5/path = NodePath(".:speed")
+properties/5/spawn = true
+properties/5/replication_mode = 1
+properties/6/path = NodePath(".:max_distance")
+properties/6/spawn = true
+properties/6/replication_mode = 1
+properties/7/path = NodePath(".:direction")
+properties/7/spawn = true
+properties/7/replication_mode = 1
+properties/8/path = NodePath(".:knockback_distance")
+properties/8/spawn = true
+properties/8/replication_mode = 1
+properties/9/path = NodePath(".:knockback_speed")
+properties/9/spawn = true
+properties/9/replication_mode = 1
+properties/10/path = NodePath(".:visual_size")
+properties/10/spawn = true
+properties/10/replication_mode = 1
+
+[node name="猎人_霰弹" type="Area2D"]
+z_index = 27
+collision_layer = 0
+collision_mask = 0
+monitoring = false
+monitorable = false
+script = ExtResource("1_script")
+
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+z_index = 1
+
+[node name="Trail" type="Line2D" parent="."]
+width = 1.5
+default_color = Color(0.95, 0.82, 0.54, 0.58)
+points = PackedVector2Array(0, 0, -12, 0)
+
+[node name="BodyVisual" type="Polygon2D" parent="."]
+polygon = PackedVector2Array(6, 0, -3, -2, -3, 2)
+color = Color(0.96, 0.88, 0.64, 1)
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
+root_path = NodePath("..")
+replication_config = SubResource("SceneReplicationConfig_pellet")

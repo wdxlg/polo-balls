@@ -1,0 +1,160 @@
+[gd_scene format=3 uid="uid://csxeitye05s3x"]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_ball"]
+[ext_resource type="Script" path="res://scripts/characters/小丑.gd" id="2_clown"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/小丑/小丑_正常.png" id="3_normal"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/小丑/小丑_沉思.png" id="4_thinking"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/小丑/小丑_大笑.png" id="5_laugh"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/小丑/小丑_沮丧.png" id="6_sad"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/小丑/武器_玩具锤.png" id="8_hammer_projectile"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/小丑/武器_回旋镖.png" id="9_boomerang_projectile"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/小丑/小丑_香蕉.png" id="10_banana_pose"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/小丑/小丑_彩带炮.png" id="11_confetti_pose"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/小丑/小丑_玩具锤.png" id="12_hammer_pose"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/小丑/小丑_狙击枪.png" id="13_sniper_pose"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/小丑/小丑_火箭筒.png" id="14_rocket_pose"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/小丑/小丑_黑洞枪.png" id="15_black_hole_pose"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/小丑/小丑_连锁闪电枪.png" id="16_chain_lightning_pose"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/小丑/小丑_冰冻射线枪.png" id="17_freeze_pose"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/小丑/小丑_回旋镖.png" id="18_boomerang_pose"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/小丑/小丑_坏掉的手枪.png" id="19_broken_pistol_pose"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/小丑/弹丸_香蕉皮.png" id="20_banana_peel"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/小丑/弹丸_坏掉的手枪.png" id="21_broken_pistol_projectile"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/小丑/弹丸_火箭弹.png" id="22_rocket_projectile"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/小丑/弹丸_狙击子弹.png" id="23_sniper_bullet"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/小丑/弹丸_单个彩带.png" id="24_confetti_piece"]
+
+[node name="小丑" unique_id=1944030229 instance=ExtResource("1_ball")]
+script = ExtResource("2_clown")
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("随机", "爆发", "控制", "特殊")
+Negative_Tags = PackedStringArray("小丑", "乐子人")
+roll_duration = 0.9
+roll_tick_count = 8
+roll_complete_hold = 0.34
+armed_hold_before_use = 0.22
+prevent_same_weapon_twice = true
+clown_normal_texture = ExtResource("3_normal")
+clown_thinking_texture = ExtResource("4_thinking")
+clown_laugh_texture = ExtResource("5_laugh")
+clown_sad_texture = ExtResource("6_sad")
+clown_banana_texture = ExtResource("10_banana_pose")
+clown_confetti_texture = ExtResource("11_confetti_pose")
+clown_toy_hammer_texture = ExtResource("12_hammer_pose")
+clown_sniper_texture = ExtResource("13_sniper_pose")
+clown_rocket_texture = ExtResource("14_rocket_pose")
+clown_black_hole_texture = ExtResource("15_black_hole_pose")
+clown_chain_lightning_texture = ExtResource("16_chain_lightning_pose")
+clown_freeze_texture = ExtResource("17_freeze_pose")
+clown_boomerang_texture = ExtResource("18_boomerang_pose")
+clown_broken_pistol_texture = ExtResource("19_broken_pistol_pose")
+banana_peel_texture = ExtResource("20_banana_peel")
+confetti_piece_texture = ExtResource("24_confetti_piece")
+toy_hammer_projectile_texture = ExtResource("8_hammer_projectile")
+sniper_bullet_texture = ExtResource("23_sniper_bullet")
+rocket_projectile_texture = ExtResource("22_rocket_projectile")
+boomerang_projectile_texture = ExtResource("9_boomerang_projectile")
+broken_pistol_bullet_texture = ExtResource("21_broken_pistol_projectile")
+banana_prepare_time = 0.16
+confetti_prepare_time = 0.24
+toy_hammer_prepare_time = 0.24
+sniper_prepare_time = 0.16
+rocket_prepare_time = 0.3
+black_hole_prepare_time = 0.36
+chain_lightning_prepare_time = 0.26
+freeze_prepare_time = 0.22
+boomerang_prepare_time = 0.22
+broken_pistol_prepare_time = 0.22
+weapon_aim_smoothing = 14.0
+weapon_return_smoothing = 11.0
+rolling_tick_sfx = "MouseEnterButton1"
+roll_complete_sfx = "ButtonUpMouseOut"
+strong_cheer_sfx = "God"
+weak_sigh_sfx = "Debuff1"
+banana_arm_delay = 0.55
+banana_lifetime = 8.0
+banana_slide_speed = 540.0
+banana_slide_distance = 150.0
+banana_wall_bounce_strength = 0.0
+banana_crash_damage_multiplier = 0.85
+banana_crash_stun = 0.55
+confetti_piece_count = 18
+confetti_launch_speed = 235.0
+confetti_upward_speed = 190.0
+confetti_gravity = 520.0
+confetti_spread_angle_deg = 18.0
+confetti_spawn_lateral_spread = 9.0
+confetti_fall_delete_distance = 110.0
+confetti_lifetime = 1.55
+confetti_damage_multiplier = 0.08
+toy_hammer_speed = 350.0
+toy_hammer_damage_multiplier = 1.65
+toy_hammer_knockback_distance = 105.0
+toy_hammer_knockback_speed = 860.0
+toy_hammer_wall_bounce_strength = 0.22
+toy_hammer_stun_duration = 0.16
+toy_hammer_recoil_distance = 38.0
+toy_hammer_recoil_speed = 500.0
+sniper_aim_duration = 0.62
+sniper_bullet_speed = 1650.0
+sniper_damage_multiplier = 4.5
+sniper_max_predict_time = 0.75
+sniper_range = 1150.0
+rocket_speed = 260.0
+rocket_damage_multiplier = 3.2
+rocket_explosion_radius = 150.0
+rocket_explosion_knockback_distance = 120.0
+rocket_explosion_knockback_speed = 850.0
+rocket_explosion_wall_bounce_strength = 0.3
+rocket_explosion_stun_duration = 0.14
+black_hole_cast_range = 360.0
+black_hole_projectile_speed = 285.0
+black_hole_projectile_min_travel_time = 0.2
+black_hole_projectile_max_travel_time = 0.78
+black_hole_radius = 235.0
+black_hole_duration = 1.6
+black_hole_pull_speed = 620.0
+black_hole_edge_pull_ratio = 0.42
+black_hole_tick_interval = 0.25
+black_hole_tick_damage_multiplier = 0.12
+black_hole_final_damage_multiplier = 3.2
+black_hole_final_radius = 145.0
+black_hole_final_knockback_distance = 135.0
+black_hole_final_knockback_speed = 900.0
+black_hole_final_wall_bounce_strength = 0.38
+black_hole_final_stun_duration = 0.12
+chain_lightning_targets = 4
+chain_lightning_range = 265.0
+chain_lightning_first_damage_multiplier = 2.1
+chain_lightning_decay = 0.72
+chain_lightning_stun = 0.14
+freeze_range = 205.0
+freeze_half_angle_degrees = 34.0
+freeze_damage_multiplier = 0.55
+freeze_speed_multiplier = 0.5
+freeze_duration = 1.45
+boomerang_speed = 520.0
+boomerang_distance = 285.0
+boomerang_damage_multiplier = 1.1
+boomerang_knockback_distance = 28.0
+boomerang_knockback_speed = 460.0
+boomerang_wall_bounce_strength = 0.1
+broken_pistol_jam_chance = 0.42
+broken_pistol_backfire_chance = 0.12
+broken_pistol_damage_multiplier = 0.8
+Skill_Cooling = 3.5
+Can_Attack = false
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+texture = ExtResource("3_normal")
+
+[node name="CollisionShape2D" parent="." index="1" unique_id=434200601]
+visible = true
+
+[node name="CollisionShape2D" parent="hitbox" parent_id_path=PackedInt32Array(28640507) index="0" unique_id=390337144]
+visible = true
+
+[node name="CollisionShape2D" parent="hurtbox" parent_id_path=PackedInt32Array(586576587) index="0" unique_id=58230542]
+visible = true
+
+[editable path="Health_Bar"]

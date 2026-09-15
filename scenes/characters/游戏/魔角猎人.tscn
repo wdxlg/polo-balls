@@ -1,0 +1,73 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/游戏/魔角猎人.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/游戏/魔角猎人/人物.png" id="3_character"]
+[ext_resource type="Texture2D" path="res://Images/characters/游戏/魔角猎人/武器.png" id="4_weapon"]
+
+[node name="魔角猎人" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+Has_Collision_Damage = false
+dir_left = false
+Type_Tags = PackedStringArray("远程", "标记", "灼烧", "爆炸")
+Negative_Tags = PackedStringArray()
+Max_health = 500
+Damage = 25
+Speed = 108.0
+Attack_Cooling = 1.15
+Skill_Cooling = 999.0
+Health_Restore = 0
+Can_Attack = true
+Can_Skill = false
+projectile_speed = 430.0
+projectile_max_distance = 520.0
+projectile_damage_multiplier = 1.0
+projectile_visual_radius = 5.0
+mark_duration = 4.5
+burn_tick_interval = 0.5
+burn_tick_damage_per_stack = 5.0
+mark_points_per_stage = 3
+normal_attack_mark_points = 2
+small_bomb_mark_points = 1
+mark_overload_flash_duration = 0.26
+mark_overload_damage_multiplier = 2.4
+mark_overload_knockback_distance = 78.0
+mark_overload_knockback_speed = 700.0
+bomb_window_duration = 4.0
+small_bomb_count = 4
+small_bomb_min_distance = 24.0
+small_bomb_max_distance = 58.0
+small_bomb_shake_duration = 0.42
+small_bomb_damage_multiplier = 2.0
+weapon_texture = ExtResource("4_weapon")
+weapon_local_offset = Vector2(13, 1)
+weapon_turn_duration = 0.17
+weapon_recoil_distance = 6.5
+weapon_recoil_shake_degrees = 4.0
+enhanced_recoil_multiplier = 2.15
+enhanced_body_visual_recoil_distance = 7.0
+enhanced_body_visual_shake_distance = 2.0
+enhanced_body_physical_recoil_distance = 16.0
+enhanced_body_physical_recoil_speed = 420.0
+fire_sfx_volume_db = -1.0
+enhanced_fire_sfx_volume_db = 1.0
+mark_weapon_spin_turns = 3.0
+mark_weapon_spin_duration = 1.35
+mark_weapon_spin_sfx_volume_db = 10.0
+mark_weapon_spin_sfx_fade_duration = 0.38
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+visible = true
+texture_filter = 1
+texture = ExtResource("3_character")
+
+[node name="WeaponPivot" type="Node2D" parent="." index="12"]
+z_index = 4
+
+[node name="Weapon" type="Sprite2D" parent="WeaponPivot"]
+texture_filter = 1
+texture = ExtResource("4_weapon")
+scale = Vector2(2.15, 2.15)
+position = Vector2(13, 1)
+
+[editable path="Health_Bar"]

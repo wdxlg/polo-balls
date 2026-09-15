@@ -1,0 +1,8 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/creatures/火车长_列车.gd" id="1_script"]
+
+[node name="火车长_列车" type="Node2D"]
+z_index = 120
+z_as_relative = false
+script = ExtResource("1_script")

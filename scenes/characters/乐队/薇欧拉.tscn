@@ -1,0 +1,48 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/乐队/薇欧拉.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/薇欧拉/薇欧拉(4).png" id="3_normal"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/薇欧拉/手机.png" id="4_phone"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/薇欧拉/录音器.png" id="5_recorder"]
+
+[node name="薇欧拉" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("射手", "控制", "持续伤害", "特殊")
+Negative_Tags = PackedStringArray("录音时无法攻击")
+Max_health = 390
+Damage = 42
+Speed = 104.0
+Attack_Cooling = 999.0
+Skill_Cooling = 999.0
+Health_Restore = 0
+Can_Attack = false
+Can_Skill = false
+
+[node name="Image" parent="Graphics" index="0"]
+texture = ExtResource("3_normal")
+
+[node name="手机" type="Sprite2D" parent="Graphics"]
+visible = false
+position = Vector2(88, -10)
+scale = Vector2(0.045, 0.045)
+texture = ExtResource("4_phone")
+z_index = 6
+
+[node name="录音器" type="Sprite2D" parent="Graphics"]
+visible = false
+position = Vector2(92, -6)
+scale = Vector2(0.052, 0.052)
+texture = ExtResource("5_recorder")
+z_index = 6
+
+[node name="PhoneDisplayTimer" type="Timer" parent="."]
+wait_time = 0.34
+one_shot = true
+
+[node name="FirePoseTimer" type="Timer" parent="."]
+wait_time = 0.72
+one_shot = true
+
+[editable path="Health_Bar"]

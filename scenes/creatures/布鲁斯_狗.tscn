@@ -1,0 +1,21 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/creatures/布鲁斯_狗.gd" id="2_script"]
+
+[node name="布鲁斯_狗" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+Type = 3
+Has_Collision_Damage = false
+Max_health = 450
+Damage = 0
+Speed = 155.0
+Attack_Cooling = 999.0
+Skill_Cooling = 999.0
+Can_Attack = false
+Can_Skill = false
+Health_Restore = 0
+side_status_ui_enabled = false
+AfterImage_Speed = -1.0
+
+[editable path="Health_Bar"]

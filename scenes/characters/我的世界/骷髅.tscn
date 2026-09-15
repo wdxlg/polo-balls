@@ -1,0 +1,50 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/我的世界/骷髅.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/骷髅/骷髅待机.webp" id="3_visual"]
+
+[sub_resource type="RectangleShape2D" id="BodyShape"]
+resource_local_to_scene = true
+size = Vector2(78, 126)
+
+[sub_resource type="RectangleShape2D" id="HurtShape"]
+resource_local_to_scene = true
+size = Vector2(74, 122)
+
+[node name="骷髅" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("我的世界", "射手", "弓箭", "成长攻速", "斩杀", "特殊")
+Negative_Tags = PackedStringArray("脆弱")
+minecraft_potion_invert_healing_damage = true
+Max_health = 420
+Damage = 8
+Speed = 88.0
+Attack_Cooling = 1.1
+Skill_Cooling = 999.0
+Health_Restore = 0
+Can_Attack = true
+Can_Skill = false
+
+[node name="Image" parent="Graphics" index="0"]
+texture = ExtResource("3_visual")
+texture_filter = 1
+scale = Vector2(0.13, 0.13)
+offset = Vector2(0, -4)
+
+[node name="CollisionShape2D" parent="." index="1"]
+shape = SubResource("BodyShape")
+metadata/_character_auto_fit_v3_manual = true
+
+[node name="CharacterAutoFit" parent="." index="2"]
+enabled = false
+
+[node name="CollisionShape2D" parent="hitbox" index="0"]
+disabled = true
+
+[node name="CollisionShape2D" parent="hurtbox" index="0"]
+shape = SubResource("HurtShape")
+metadata/_character_auto_fit_v3_manual = true
+
+[editable path="Health_Bar"]

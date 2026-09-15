@@ -1,0 +1,45 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/矿工.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/矿工/矿工_正常.png" id="3_preview"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/矿工/矿工_落锤.png" id="5_attack"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/矿工/矿工_休息.png" id="6_rest"]
+
+[node name="矿工" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+normal_texture = ExtResource("3_preview")
+attack_texture = ExtResource("5_attack")
+rest_texture = ExtResource("6_rest")
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("范围", "地形", "爆发")
+Negative_Tags = PackedStringArray("笨重", "采矿")
+Max_health = 980
+Damage = 92
+Speed = 92.0
+Attack_Cooling = 3.1
+Can_Attack = true
+Can_Skill = false
+hammer_attack_radius = 20.0
+hammer_base_offset = 10.0
+hammer_windup = 0.82
+windup_move_speed_multiplier = 0.05
+attack_hit_delay = 0.1
+attack_pose_hold = 0.45
+hammer_damage_multiplier = 6.5
+hammer_edge_damage_ratio = 0.35
+fatigue_speed_multiplier = 0.45
+stone_min_count = 2
+stone_max_count = 3
+stone_land_min_radius = 28.0
+stone_land_max_radius = 76.0
+stone_throw_duration = 0.34
+stone_arc_height = 34.0
+stone_min_scale = 0.82
+stone_max_scale = 1.12
+stone_map_margin = 14.0
+
+[node name="Image" parent="Graphics" index="0"]
+texture = ExtResource("3_preview")
+
+[editable path="Health_Bar"]

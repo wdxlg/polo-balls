@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://c317bsgcnsdhr"
+path="res://.godot/imported/古风音乐 P1 《吹梦到西洲dj(0.8x)》《野生狗奶の小曲》黄诗扶、王敬轩丨“忘你不舍 寻你不休 画外人易朽 似浓淡相间色相构”.mp3-6f33edaff74332a6c476d5bea034dd4c.mp3str"
+
+[deps]
+
+source_file="res://audio/characters/meme/野生狗奶/古风音乐 P1 《吹梦到西洲dj(0.8x)》《野生狗奶の小曲》黄诗扶、王敬轩丨“忘你不舍 寻你不休 画外人易朽 似浓淡相间色相构”.mp3"
+dest_files=["res://.godot/imported/古风音乐 P1 《吹梦到西洲dj(0.8x)》《野生狗奶の小曲》黄诗扶、王敬轩丨“忘你不舍 寻你不休 画外人易朽 似浓淡相间色相构”.mp3-6f33edaff74332a6c476d5bea034dd4c.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

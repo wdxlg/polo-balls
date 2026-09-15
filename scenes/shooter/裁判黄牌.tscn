@@ -1,0 +1,37 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/shooter/裁判牌.gd" id="2_script"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_card"]
+size = Vector2(26, 18)
+
+[node name="裁判黄牌" instance=ExtResource("1_base")]
+scale = Vector2(1, 1)
+collision_layer = 0
+collision_mask = 1
+script = ExtResource("2_script")
+Type = 1
+card_type = 0
+Has_Collision_Damage = false
+Max_health = 1
+Health_Restore = 0
+Damage = 0
+Speed = 470.0
+Can_Attack = false
+Can_Skill = false
+AfterImage_Speed = -1.0
+
+[node name="CollisionShape2D" parent="." index="1"]
+shape = SubResource("RectangleShape2D_card")
+
+[node name="Health_Bar" parent="." index="2"]
+visible = false
+
+[node name="CollisionShape2D" parent="hitbox" index="0"]
+shape = SubResource("RectangleShape2D_card")
+
+[node name="CollisionShape2D" parent="hurtbox" index="0"]
+shape = SubResource("RectangleShape2D_card")
+
+[editable path="Health_Bar"]

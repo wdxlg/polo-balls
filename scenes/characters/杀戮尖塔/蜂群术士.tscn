@@ -1,0 +1,413 @@
+[gd_scene format=3 uid="uid://cljg1fe0wvgxc"]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_ji0sr"]
+[ext_resource type="Script" path="res://scripts/characters/杀戮尖塔/蜂群术士.gd" id="2_6g0dn"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/蜂群术士/正常/蜂群术士_正常_1.png" id="2_ddewq"]
+[ext_resource type="Shader" path="res://shaders/set_rgb_color.gdshader" id="2_oijwk"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/蜂群术士/攻击/蜂群术士_攻击_1 (1).png" id="3_6g0dn"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/蜂群术士/攻击/蜂群术士_攻击_2 (1).png" id="4_xdhbj"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/蜂群术士/攻击/蜂群术士_攻击_3 (1).png" id="5_hxcha"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/蜂群术士/攻击/蜂群术士_攻击_4 (1).png" id="6_hx1ml"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/蜂群术士/死/蜂群术士_死.png" id="7_to6qc"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/蜂群术士/死/死亡_converted_2.png" id="9_r3pab"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/蜂群术士/正常/蜂群术士_正常_2.png" id="9_skhsb"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/蜂群术士/受伤/受伤_1.png" id="9_to6qc"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/蜂群术士/正常/蜂群术士_正常_3.png" id="10_7j1s7"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/蜂群术士/死/死亡_converted_3.png" id="10_bqrlj"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/蜂群术士/受伤/受伤_2.png" id="10_skhsb"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/蜂群术士/受伤/受伤_3.png" id="11_7j1s7"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/蜂群术士/死/死亡_converted_4.png" id="11_l1ipu"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/蜂群术士/正常/蜂群术士_正常_4.png" id="11_r3pab"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/蜂群术士/受伤/受伤_4.png" id="12_r3pab"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_bqrlj"]
+shader = ExtResource("2_oijwk")
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_ddewq"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("3_6g0dn")
+}, {
+"duration": 1.0,
+"texture": ExtResource("4_xdhbj")
+}, {
+"duration": 1.0,
+"texture": ExtResource("5_hxcha")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_hx1ml")
+}],
+"loop": false,
+"name": &"Attack",
+"speed": 6.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("7_to6qc")
+}, {
+"duration": 1.0,
+"texture": ExtResource("9_r3pab")
+}, {
+"duration": 1.0,
+"texture": ExtResource("10_bqrlj")
+}, {
+"duration": 1.0,
+"texture": ExtResource("11_l1ipu")
+}],
+"loop": false,
+"name": &"Die",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("9_to6qc")
+}, {
+"duration": 1.0,
+"texture": ExtResource("10_skhsb")
+}, {
+"duration": 1.0,
+"texture": ExtResource("11_7j1s7")
+}, {
+"duration": 1.0,
+"texture": ExtResource("12_r3pab")
+}],
+"loop": false,
+"name": &"Hurt",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("2_ddewq")
+}, {
+"duration": 1.0,
+"texture": ExtResource("9_skhsb")
+}, {
+"duration": 1.0,
+"texture": ExtResource("10_7j1s7")
+}, {
+"duration": 1.0,
+"texture": ExtResource("11_r3pab")
+}],
+"loop": false,
+"name": &"Idle",
+"speed": 6.0
+}]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_6g0dn"]
+size = Vector2(200, 41.875)
+
+[sub_resource type="Animation" id="Animation_rimfl"]
+resource_name = "Attack"
+length = 0.664
+loop_mode = 1
+step = 0.166
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Graphics/AnimatedSprite2D:animation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [&"Attack"]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Graphics/AnimatedSprite2D:frame")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.166, 0.332, 0.49799997),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 1,
+"values": [0, 1, 2, 3]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Graphics:position")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(0, 0)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Graphics:scale")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(0.99999994, 0.99999994)]
+}
+
+[sub_resource type="Animation" id="Animation_i77iq"]
+resource_name = "Die"
+length = 3.0
+step = 0.125
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Graphics/AnimatedSprite2D:animation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [&"Die"]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Graphics/AnimatedSprite2D:frame")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.125, 0.25, 0.375),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 1,
+"values": [0, 1, 2, 3]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Graphics:position")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(24.4, -9.232)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Graphics:scale")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(0.675, 0.77)]
+}
+
+[sub_resource type="Animation" id="Animation_to6qc"]
+resource_name = "Hurt"
+length = 0.5
+loop_mode = 1
+step = 0.125
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Graphics/AnimatedSprite2D:animation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [&"Hurt"]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Graphics/AnimatedSprite2D:frame")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.125, 0.25, 0.375),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 1,
+"values": [0, 1, 2, 3]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Graphics:position")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(24.4, -9.232)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Graphics:scale")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(0.675, 0.77)]
+}
+
+[sub_resource type="Animation" id="Animation_ckala"]
+resource_name = "Idle"
+length = 0.664
+loop_mode = 1
+step = 0.166
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Graphics/AnimatedSprite2D:animation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [&"Idle"]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Graphics/AnimatedSprite2D:frame")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.166, 0.332, 0.49799997),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 1,
+"values": [0, 1, 2, 3]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Graphics:position")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(0, 0)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Graphics:scale")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(0.99999994, 0.99999994)]
+}
+
+[sub_resource type="Animation" id="Animation_skhsb"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Graphics/AnimatedSprite2D:animation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [&"Idle"]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Graphics/AnimatedSprite2D:frame")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [0]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Graphics:position")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(0, 0)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Graphics:scale")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(0.99999994, 0.99999994)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_gwne4"]
+_data = {
+&"Attack": SubResource("Animation_rimfl"),
+&"Die": SubResource("Animation_i77iq"),
+&"Hurt": SubResource("Animation_to6qc"),
+&"Idle": SubResource("Animation_ckala"),
+&"RESET": SubResource("Animation_skhsb")
+}
+
+[node name="蜂群术士" unique_id=751516400 node_paths=PackedStringArray("image") instance=ExtResource("1_ji0sr")]
+script = ExtResource("2_6g0dn")
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("射手", "召唤", "多段")
+Negative_Tags = PackedStringArray("虫子", "蜂狗")
+image = NodePath("Graphics/AnimatedSprite2D")
+Attack_Cooling = 10.0
+Damage = 3
+continue_attack_cooling = 0.2
+continue_attacking_delay = 2.0
+metadata/_edit_horizontal_guides_ = [-17.0, 17.0]
+metadata/_edit_vertical_guides_ = [-11.0, 22.0]
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+scale = Vector2(0.73913085, 0.7391305)
+texture = null
+
+[node name="AnimatedSprite2D" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="1" unique_id=907666059]
+material = SubResource("ShaderMaterial_bqrlj")
+scale = Vector2(0.739, 0.739)
+sprite_frames = SubResource("SpriteFrames_ddewq")
+animation = &"Idle"
+
+[node name="CollisionShape2D" parent="." index="1" unique_id=434200601]
+scale = Vector2(0.72808003, 3.8586686)
+shape = SubResource("RectangleShape2D_6g0dn")
+
+[node name="CollisionShape2D" parent="hitbox" parent_id_path=PackedInt32Array(28640507) index="0" unique_id=390337144]
+visible = true
+scale = Vector2(1.1607962, 3.9032998)
+
+[node name="CollisionShape2D" parent="hurtbox" parent_id_path=PackedInt32Array(586576587) index="0" unique_id=58230542]
+visible = true
+scale = Vector2(0.7596494, 4.067995)
+
+[node name="AnimationPlayer" parent="." index="8" unique_id=1866701039]
+libraries/ = SubResource("AnimationLibrary_gwne4")
+
+[editable path="Health_Bar"]

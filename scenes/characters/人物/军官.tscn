@@ -1,0 +1,112 @@
+[gd_scene format=3 uid="uid://chtw5sh6vjecd"]
+
+[ext_resource type="PackedScene" uid="uid://dgfmejo2auorn" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" uid="uid://0o7qobp13e8s" path="res://scripts/characters/默认/军官.gd" id="2_script"]
+[ext_resource type="Texture2D" uid="uid://d1bbm7ask1dhk" path="res://Images/characters/默认/军官/人_正常.png" id="3_normal"]
+[ext_resource type="Texture2D" uid="uid://qwvvq6dte77j" path="res://Images/characters/默认/军官/人_生气.png" id="4_angry"]
+[ext_resource type="Texture2D" uid="uid://b8u05rfvngpuu" path="res://Images/characters/默认/军官/核弹.png" id="5_nuke"]
+[ext_resource type="AudioStream" uid="uid://btwsf02p1euoi" path="res://audio/characters/军官/打火机点火.mp3" id="6_ok4qp"]
+[ext_resource type="AudioStream" uid="uid://d3popfdlxowlo" path="res://audio/characters/军官/核弹爆炸.wav" id="7_qbiqw"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ok4qp"]
+resource_local_to_scene = true
+size = Vector2(167.7072, 168.1)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_qbiqw"]
+resource_local_to_scene = true
+size = Vector2(167.7072, 168.1)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_nperk"]
+resource_local_to_scene = true
+size = Vector2(167.7072, 168.1)
+
+[node name="军官" unique_id=1165388380 instance=ExtResource("1_base")]
+Damage = 1200
+script = ExtResource("2_script")
+normal_texture = ExtResource("3_normal")
+angry_texture = ExtResource("4_angry")
+damage_for_100_percent = 500.0
+angry_at_percent = 55.0
+rage_red_color = Color(1, 0.16, 0.12, 1)
+rage_color_mix_at_100 = 0.82
+rage_decay_delay_after_damage = 1.5
+rage_decay_percent_per_second = 5.0
+nuke_texture = ExtResource("5_nuke")
+nuke_target_mode = 1
+nuke_fall_duration = 1.45
+nuke_start_height = 650.0
+nuke_sprite_scale = 0.1
+nuke_explosion_radius = 400.0
+nuke_damage_multiplier = 1.0
+nuke_ignore_block = true
+nuke_explosion_visual_duration = 0.65
+nuke_camera_shake = 220.0
+Type_Tags = PackedStringArray("爆发", "成长", "范围")
+Negative_Tags = PackedStringArray("官僚", "老登")
+Speed = 90.0
+Max_health = 900
+Can_Attack = false
+Can_Skill = false
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+scale = Vector2(0.30688626, 0.30688626)
+texture = ExtResource("3_normal")
+region_enabled = true
+region_rect = Rect2(-4, -3, 1025, 679)
+
+[node name="CollisionShape2D" parent="." index="1" unique_id=434200601]
+visible = true
+position = Vector2(17.492516, 1.6878738)
+scale = Vector2(1, 1)
+shape = SubResource("RectangleShape2D_ok4qp")
+metadata/_character_auto_fit_v3_managed = true
+metadata/_character_auto_fit_v3_manual = false
+metadata/_character_auto_fit_v3_last_auto = "RectangleShape2D|(167.7072, 168.1)|(17.49252, 1.687874)|(1.0, 1.0)|0.0"
+
+[node name="Health_Bar" parent="." index="3" unique_id=595266760]
+offset_top = -210.0
+offset_bottom = -210.0
+
+[node name="CollisionShape2D" parent="hitbox" parent_id_path=PackedInt32Array(28640507) index="0" unique_id=390337144]
+visible = true
+position = Vector2(17.492516, 1.6878738)
+scale = Vector2(1, 1)
+shape = SubResource("RectangleShape2D_qbiqw")
+metadata/_character_auto_fit_v3_managed = true
+metadata/_character_auto_fit_v3_manual = false
+metadata/_character_auto_fit_v3_last_auto = "RectangleShape2D|(167.7072, 168.1)|(17.49252, 1.687874)|(1.0, 1.0)|0.0"
+
+[node name="CollisionShape2D" parent="hurtbox" parent_id_path=PackedInt32Array(586576587) index="0" unique_id=58230542]
+visible = true
+position = Vector2(17.492516, 1.6878738)
+scale = Vector2(1, 1)
+shape = SubResource("RectangleShape2D_nperk")
+metadata/_character_auto_fit_v3_managed = true
+metadata/_character_auto_fit_v3_manual = false
+metadata/_character_auto_fit_v3_last_auto = "RectangleShape2D|(167.7072, 168.1)|(17.49252, 1.687874)|(1.0, 1.0)|0.0"
+
+[node name="RageLabel" type="Label" parent="." index="11" unique_id=875339859]
+z_index = 30
+offset_left = -90.0
+offset_top = 55.000004
+offset_right = 90.0
+offset_bottom = 138.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 75
+text = "0%"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="NukeWarningAudio" type="AudioStreamPlayer2D" parent="." index="12" unique_id=346679110]
+stream = ExtResource("6_ok4qp")
+volume_db = -2.0
+max_distance = 1200.0
+
+[node name="NukeExplosionAudio" type="AudioStreamPlayer2D" parent="." index="13" unique_id=162725915]
+stream = ExtResource("7_qbiqw")
+volume_db = 2.0
+max_distance = 1800.0
+
+[editable path="Health_Bar"]

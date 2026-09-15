@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="460" height="520" viewBox="0 0 460 520">
+  <defs>
+    <linearGradient id="bag" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f8f5e8" stop-opacity="0.92"/>
+      <stop offset="1" stop-color="#d9d4bf" stop-opacity="0.88"/>
+    </linearGradient>
+    <radialGradient id="cake" cx="42%" cy="36%" r="70%">
+      <stop offset="0" stop-color="#e9c779"/>
+      <stop offset="0.7" stop-color="#c68f41"/>
+      <stop offset="1" stop-color="#8d5d2c"/>
+    </radialGradient>
+  </defs>
+  <rect x="64" y="38" width="332" height="444" rx="42" fill="url(#bag)" stroke="#514b3d" stroke-width="13"/>
+  <path d="M83 91 H377" stroke="#aa4232" stroke-width="20" stroke-linecap="round"/>
+  <circle cx="230" cy="269" r="128" fill="url(#cake)" stroke="#6f4828" stroke-width="12"/>
+  <path d="M137 232 C183 199 244 198 323 230" fill="none" stroke="#f5d797" stroke-width="13" stroke-linecap="round" opacity="0.55"/>
+  <path d="M150 316 C195 343 256 348 311 317" fill="none" stroke="#7e522c" stroke-width="11" stroke-linecap="round" opacity="0.58"/>
+  <circle cx="180" cy="267" r="11" fill="#895b32" opacity="0.65"/>
+  <circle cx="267" cy="223" r="9" fill="#895b32" opacity="0.62"/>
+  <circle cx="284" cy="302" r="12" fill="#895b32" opacity="0.56"/>
+  <rect x="99" y="409" width="260" height="42" rx="13" fill="#2f6944" opacity="0.88"/>
+  <path d="M118 429 H340" stroke="#f6f0d8" stroke-width="8" stroke-linecap="round"/>
+</svg>

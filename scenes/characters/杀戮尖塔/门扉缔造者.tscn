@@ -1,0 +1,81 @@
+[gd_scene format=3 uid="uid://xtasoex8u0ls"]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_vf1we"]
+[ext_resource type="Script" path="res://scripts/characters/杀戮尖塔/门扉缔造者.gd" id="2_cj8uj"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/门扉缔造者/PixPin_2026-05-20_12-25-27.png" id="3_tqufv"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/门扉缔造者/PixPin_2026-05-20_12-26-20.png" id="4_ym7x5"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/门扉缔造者/PixPin_2026-05-20_12-26-25.png" id="5_f0v32"]
+[ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/门扉缔造者/PixPin_2026-05-20_12-26-29.png" id="6_pvvq6"]
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_j08yq"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("3_tqufv")
+}],
+"loop": true,
+"name": &"default",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("4_ym7x5")
+}],
+"loop": true,
+"name": &"eat",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("5_f0v32")
+}],
+"loop": true,
+"name": &"eye",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("6_pvvq6")
+}],
+"loop": true,
+"name": &"hand",
+"speed": 5.0
+}]
+
+[node name="门扉缔造者" unique_id=751516400 node_paths=PackedStringArray("image") instance=ExtResource("1_vf1we")]
+script = ExtResource("2_cj8uj")
+Has_Collision_Damage = true
+Type_Tags = PackedStringArray("近战", "召唤", "防御", "形态")
+Negative_Tags = PackedStringArray("怪物")
+image = NodePath("Graphics/AnimatedSprite2D")
+Skill_Cooling = 5.0
+Damage = 25
+Speed = 90.0
+Max_health = 500
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+position = Vector2(0, 30.000004)
+scale = Vector2(1.1805556, 1.1805556)
+texture = null
+
+[node name="AnimatedSprite2D" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="1" unique_id=907666059]
+sprite_frames = SubResource("SpriteFrames_j08yq")
+animation = &"eat"
+autoplay = "default"
+
+[node name="CollisionShape2D" parent="." index="1" unique_id=434200601]
+visible = true
+position = Vector2(0, 30)
+scale = Vector2(0.7600241, 3.72833)
+
+[node name="CollisionShape2D" parent="hitbox" parent_id_path=PackedInt32Array(28640507) index="0" unique_id=390337144]
+visible = true
+position = Vector2(0, 30)
+scale = Vector2(0.8983324, 4.4068074)
+
+[node name="CollisionShape2D" parent="hurtbox" parent_id_path=PackedInt32Array(586576587) index="0" unique_id=58230542]
+visible = true
+position = Vector2(0, 30)
+scale = Vector2(0.8983324, 4.4068074)
+
+[editable path="Health_Bar"]

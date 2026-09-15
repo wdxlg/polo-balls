@@ -1,0 +1,93 @@
+[gd_scene format=3 uid="uid://bhql2u44kdn1i"]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/剑客.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/剑客/反击矩形.png" id="3_wi33u"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_8jf2h"]
+size = Vector2(180, 158.7239)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_tn5q8"]
+size = Vector2(180, 158.7239)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_tkyx0"]
+size = Vector2(180, 158.7239)
+
+[node name="剑客" unique_id=437797220 instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+parry_interval = 5.2
+parry_window = 1.05
+parry_counter_delay = 0.26
+parry_counter_radius = 82.0
+parry_counter_length = 108.0
+parry_counter_width = 58.0
+parry_counter_damage_multiplier = 1.4583333
+slash_visual_hold = 0.36
+slash_damage_delay = 0.08
+parry_bleed_stacks = 1
+counter_rect_fx_texture = ExtResource("3_wi33u")
+counter_rect_fx_texture_path = "uid://bympa8gxpm3ef"
+counter_rect_fx_length = 52.0
+counter_rect_fx_width = 3.0
+counter_rect_fx_auto_rotate_long_side = false
+counter_rect_fx_vertical_points_down = true
+counter_rect_fx_texture_rotation_degrees = 0.0
+counter_rect_fx_sweep_degrees = 82.0
+counter_rect_fx_duration = 0.22
+counter_rect_fx_afterimages = 3
+counter_rect_fx_alpha = 0.82
+counter_rect_fx_preserve_texture_color = true
+counter_rect_fx_color = Color(0.72, 0.9, 1, 1)
+parry_visual_scale_multiplier = 0.78
+parry_visual_tint = Color(0.62, 0.82, 1, 1)
+dodge_cooldown = 3.6
+dodge_distance = 56.0
+dodge_duration = 0.22
+riposte_pause = 0.1
+behind_distance = 34.0
+thrust_duration = 0.2
+thrust_damage_multiplier = 1.5
+follow_slash_damage_multiplier = 1.0
+thrust_hitbox_width = 46.0
+follow_slash_length = 92.0
+follow_slash_width = 54.0
+thrust_visual_hold = 0.38
+thrust_face_windup = 0.07
+facing_rotation_offset_degrees = 0.0
+thrust_afterimage_count = 6
+thrust_afterimage_fade = 0.26
+thrust_afterimage_alpha = 0.42
+thrust_bleed_stacks = 2
+slash_bleed_stacks = 1
+bleed_max_stacks = 5
+bleed_duration = 6.0
+bleed_action_damage_per_stack_multiplier = 0.0416667
+bleed_move_tick_interval = 0.6
+bleed_move_damage_per_stack_multiplier = 0.0125
+Type_Tags = PackedStringArray("反击", "近战", "防御")
+Negative_Tags = PackedStringArray("无法主动攻击", "依赖反击")
+Attack_Cooling = 999.0
+Skill_Cooling = 999.0
+Damage = 48
+Speed = 112.0
+Max_health = 420
+Can_Attack = false
+Can_Skill = false
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+scale = Vector2(0.8167331, 0.8167331)
+offset = Vector2(-1.5, -1.5)
+
+[node name="CollisionShape2D" parent="." index="1" unique_id=434200601]
+scale = Vector2(1, 1)
+shape = SubResource("RectangleShape2D_8jf2h")
+
+[node name="CollisionShape2D" parent="hitbox" parent_id_path=PackedInt32Array(28640507) index="0" unique_id=390337144]
+scale = Vector2(1, 1)
+shape = SubResource("RectangleShape2D_tn5q8")
+
+[node name="CollisionShape2D" parent="hurtbox" parent_id_path=PackedInt32Array(586576587) index="0" unique_id=58230542]
+scale = Vector2(1, 1)
+shape = SubResource("RectangleShape2D_tkyx0")
+
+[editable path="Health_Bar"]

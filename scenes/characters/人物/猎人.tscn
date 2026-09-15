@@ -1,0 +1,51 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/猎人.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/猎人/猎人_瞄准.png" id="3_aim"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/猎人/猎人_装填.png" id="4_reload"]
+[ext_resource type="Texture2D" path="res://Images/characters/人物/猎人/猎人_放夹子.png" id="5_trap"]
+
+[node name="猎人" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+normal_texture = ExtResource("3_aim")
+attack_texture = ExtResource("3_aim")
+reload_texture = ExtResource("4_reload")
+trap_texture = ExtResource("5_trap")
+attack_windup = 0.18
+attack_recovery = 0.24
+reload_visual_duration = 0.85
+trap_pose_duration = 0.62
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("远程", "爆发", "控制", "布置")
+Negative_Tags = PackedStringArray("攻速慢", "射程有限")
+Max_health = 860
+Damage = 20
+Speed = 112.0
+Attack_Cooling = 3.2
+Skill_Cooling = 7.5
+Health_Restore = 0
+Can_Attack = true
+Can_Skill = false
+pellet_count = 9
+pellet_spread_degrees = 28.0
+pellet_damage_multiplier = 1.1
+pellet_speed = 780.0
+pellet_max_distance = 150.0
+pellet_knockback_distance = 10.0
+pellet_knockback_speed = 360.0
+trap_place_interval = 7.5
+trap_place_min_radius = 0.0
+trap_place_max_radius = 0.0
+first_trap_delay = 2.4
+max_active_traps = 3
+trap_trigger_radius = 24.0
+trap_damage_multiplier = 1.0
+trap_root_duration = 1.45
+trap_arm_delay = 0.45
+trap_lifetime = 20.0
+
+[node name="Image" parent="Graphics" index="0"]
+texture = ExtResource("3_aim")
+
+[editable path="Health_Bar"]

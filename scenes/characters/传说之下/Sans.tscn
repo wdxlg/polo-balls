@@ -1,0 +1,41 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/传说之下/Sans.gd" id="2_script"]
+
+[node name="Sans" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("传说之下", "近战", "远程", "闪避", "机动", "控制", "持续伤害")
+Negative_Tags = PackedStringArray("脆弱")
+Max_health = 1
+Damage = 1
+Speed = 112.0
+Health_Restore = 0
+Can_Attack = true
+Can_Skill = false
+Attack_Cooling = 1.0
+Skill_Cooling = 999.0
+max_dodge_count = 14
+dodge_recovery_delay = 8.0
+dodge_recovery_interval = 2.5
+dodge_map_margin = 22.0
+dodge_min_distance = 72.0
+dodge_clearance_radius = 18.0
+
+[node name="Image" parent="Graphics" index="0"]
+visible = false
+
+[node name="CollisionShape2D" parent="." index="1"]
+scale = Vector2(0.72, 1.55)
+metadata/_character_auto_fit_v3_manual = true
+
+[node name="CollisionShape2D" parent="hitbox" index="0"]
+scale = Vector2(0.72, 1.55)
+metadata/_character_auto_fit_v3_manual = true
+
+[node name="CollisionShape2D" parent="hurtbox" index="0"]
+scale = Vector2(0.72, 1.55)
+metadata/_character_auto_fit_v3_manual = true
+
+[editable path="Health_Bar"]

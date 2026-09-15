@@ -1,0 +1,17 @@
+[remap]
+
+importer="com.timothyqiu.gdfxr.importer"
+type="AudioStreamWAV"
+uid="uid://cp2bbglu6hk7i"
+path="res://.godot/imported/balls_collide1.sfxr-22f1473fee220b20f3011deb0cae8f3a.sample"
+
+[deps]
+
+source_file="res://audio/sfx/physics/balls_collide1.sfxr"
+dest_files=["res://.godot/imported/balls_collide1.sfxr-22f1473fee220b20f3011deb0cae8f3a.sample"]
+
+[params]
+
+loop=false
+bit_depth=0
+sample_rate=0

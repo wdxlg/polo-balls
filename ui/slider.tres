@@ -1,0 +1,37 @@
+[gd_resource type="Theme" format=3 uid="uid://c0vn3getfa6ed"]
+
+[ext_resource type="Texture2D" uid="uid://0y50v0um1g4m" path="res://Images/Base-01.png" id="1_hrg1o"]
+[ext_resource type="FontFile" uid="uid://bm2pluicbhca7" path="res://fonts/Mojangles.ttf" id="2_mojangles"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_do21b"]
+atlas = ExtResource("1_hrg1o")
+region = Rect2(65, 113, 14, 14)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_gsc3t"]
+atlas = ExtResource("1_hrg1o")
+region = Rect2(375, 244, 2, 4)
+margin = Rect2(0, -4, 0, 0)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_qkmnr"]
+atlas = ExtResource("1_hrg1o")
+region = Rect2(308, 103, 56, 2)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_5bs8x"]
+texture = SubResource("AtlasTexture_qkmnr")
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_igirx"]
+texture = ExtResource("1_hrg1o")
+texture_margin_top = 3.0
+texture_margin_right = 2.0
+texture_margin_bottom = 3.0
+region_rect = Rect2(309, 21, 56, 6)
+
+[resource]
+default_font = ExtResource("2_mojangles")
+HSlider/icons/grabber = SubResource("AtlasTexture_do21b")
+HSlider/icons/grabber_disabled = SubResource("AtlasTexture_do21b")
+HSlider/icons/grabber_highlight = SubResource("AtlasTexture_do21b")
+HSlider/icons/tick = SubResource("AtlasTexture_gsc3t")
+HSlider/styles/grabber_area = SubResource("StyleBoxTexture_5bs8x")
+HSlider/styles/grabber_area_highlight = SubResource("StyleBoxTexture_5bs8x")
+HSlider/styles/slider = SubResource("StyleBoxTexture_igirx")
