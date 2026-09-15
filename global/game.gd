@@ -377,7 +377,7 @@ func _apply_runtime_game_setting_local(setting:String,value:Variant,save_after:b
 	if not Game_Settings.has(setting):
 		return
 	if setting == "Training_Mode":
-		set_training_mode(bool(value))
+		_training.set_training_mode(bool(value))
 	elif setting == "Training_Mode_Type":
 		var mode:String = str(value)
 		if mode not in ["manual","rotation","timed","boss"]:
@@ -536,7 +536,7 @@ func load_persistent_settings() -> void:
 	Game_Settings["Manual_Training"] = false
 	Game_Settings["Manual_Collision_Damage"] = false
 	Game_Settings["Training_Debug_Mode"] = false
-	set_manual_training_attack_interval(float(Game_Settings.get("Manual_Attack_Interval", 0.15)), false)
+	_training.set_manual_training_attack_interval(float(Game_Settings.get("Manual_Attack_Interval", 0.15)), false)
 	if not _localization.SUPPORTED_LOCALES.has(_localization.current_locale):
 		_localization.current_locale = "zh"
 
@@ -626,9 +626,70 @@ func _on_speed_slider_drag_ended(value_changed:bool) -> void:
 const NORMAL_SPEED_SLIDER_MAX_VALUE:float = 19.0 # 原版最高 10x
 const TRAINING_SPEED_SLIDER_MAX_VALUE:float = 41.0 # 映射后最高 32x
 const TRAINING_MAX_PHYSICS_TICKS:int = 1920 # 32x * 60Hz
-const MANUAL_ATTACK_INTERVAL_MIN:float = 0.02
-const MANUAL_ATTACK_INTERVAL_MAX:float = 2.0
-const MANUAL_ATTACK_INTERVAL_STEP:float = 0.01
+#========================================================
+# 训练模式设置查询 / 手动训练攻击目录 —— 已拆分到 res://global/game_training_mode.gd
+# 下面的成员只是转发壳，保持 Game.xxx 对外接口与 RPC 路径不变。
+#========================================================
+const TRAINING_MODULE := preload("res://global/game_training_mode.gd")
+var _training = TRAINING_MODULE.new(self)
+
+const MANUAL_ATTACK_INTERVAL_MIN = TRAINING_MODULE.MANUAL_ATTACK_INTERVAL_MIN
+
+const MANUAL_ATTACK_INTERVAL_MAX = TRAINING_MODULE.MANUAL_ATTACK_INTERVAL_MAX
+
+const MANUAL_ATTACK_INTERVAL_STEP = TRAINING_MODULE.MANUAL_ATTACK_INTERVAL_STEP
+
+func is_training_mode() -> bool:
+	return _training.is_training_mode()
+
+func set_training_mode(enabled:bool, apply_existing_characters:bool = true) -> void:
+	_training.set_training_mode(enabled, apply_existing_characters)
+
+func get_training_mode_type() -> String:
+	return _training.get_training_mode_type()
+
+func is_rotation_training_mode() -> bool:
+	return _training.is_rotation_training_mode()
+
+func is_timed_training_mode() -> bool:
+	return _training.is_timed_training_mode()
+
+func is_boss_training_mode() -> bool:
+	return _training.is_boss_training_mode()
+
+func get_training_timed_duration() -> float:
+	return _training.get_training_timed_duration()
+
+func get_training_boss_side() -> String:
+	return _training.get_training_boss_side()
+
+func get_training_boss_multiplier() -> float:
+	return _training.get_training_boss_multiplier()
+
+func is_training_boss_specialization_enabled() -> bool:
+	return _training.is_training_boss_specialization_enabled()
+
+func is_training_boss_wheel_battle_enabled() -> bool:
+	return _training.is_training_boss_wheel_battle_enabled()
+
+func is_training_boss_intro_enabled() -> bool:
+	return _training.is_training_boss_intro_enabled()
+
+func set_manual_training_attack_interval(value:float, save_after:bool = false) -> void:
+	_training.set_manual_training_attack_interval(value, save_after)
+
+func get_manual_training_attack_interval() -> float:
+	return _training.get_manual_training_attack_interval()
+
+func set_manual_training_attack(attack_id:String) -> void:
+	_training.set_manual_training_attack(attack_id)
+
+func get_manual_training_attack() -> String:
+	return _training.get_manual_training_attack()
+
+func get_manual_attack_catalog(force_refresh:bool = false) -> Array[Dictionary]:
+	return _training.get_manual_attack_catalog(force_refresh)
+
 var _normal_max_physics_steps_per_frame:int = 8
 
 # 把投射物/召唤物的伤害归属递归收束到真正主人。
@@ -846,49 +907,11 @@ func _rpc_spawn_wild_dog_old_age_remains(origin:Vector2,seed_value:int,size_mult
 func report_training_damage(source:Node, target:Node, actual_health_damage:float) -> void:
 	# 轮放/计时/Boss 现在可以独立于 Training_Mode 运行。
 	# 计时模式仍依赖这条信号累计实际生命伤害，因此不能只检查 is_training_mode()。
-	if not is_training_mode() and not is_timed_training_mode():
+	if not _training.is_training_mode() and not _training.is_timed_training_mode():
 		return
 	if source == null or target == null or actual_health_damage <= 0.0:
 		return
 	training_damage_resolved.emit(source, target, actual_health_damage)
-
-
-# 手动训练攻击选择。目录扫描只做一次并缓存；UI 和训练控制器共用同一份目录。
-var manual_training_attack_id:String = "res://scenes/shooter/子弹.tscn"
-var _manual_attack_catalog_cache:Array[Dictionary] = []
-
-func is_training_mode() -> bool:
-	return bool(Game_Settings.get("Training_Mode", false))
-
-
-func set_training_mode(enabled:bool, apply_existing_characters:bool = true) -> void:
-	Game_Settings["Training_Mode"] = enabled
-	game_setting_changed.emit("Training_Mode", enabled)
-
-	if not enabled:
-		# 手动训练现在可以独立用于普通 World，因此关闭训练模式时不再强制关闭它。
-		# 只有 AI 威胁调试覆盖仍严格属于训练模式。
-		Game_Settings["Training_Debug_Mode"] = false
-		game_setting_changed.emit("Training_Debug_Mode",false)
-
-	# 训练模式下扩展 ESC 倍速上限；关闭后恢复普通游戏的 10x 上限。
-	if is_instance_valid(speed_slider):
-		speed_slider.max_value = (
-			TRAINING_SPEED_SLIDER_MAX_VALUE
-			if enabled
-			else NORMAL_SPEED_SLIDER_MAX_VALUE
-		)
-		speed_slider.tick_count = int(speed_slider.max_value) + 1
-		if speed_slider.value > speed_slider.max_value:
-			speed_slider.value = speed_slider.max_value
-
-	# 对已经放在场上的人物立即生效。新生成的人物会在 ball._ready() 再应用一次。
-	if apply_existing_characters and get_tree() != null:
-		for node:Node in get_tree().get_nodes_in_group("Ball"):
-			if node != null and is_instance_valid(node) and node.has_method("apply_training_mode"):
-				node.call("apply_training_mode", enabled)
-
-	_time_scale._apply_time_scale_overrides()
 
 
 func set_runtime_game_setting(setting:String, value:Variant, save_after:bool = true) -> void:
@@ -905,49 +928,6 @@ func set_runtime_game_setting(setting:String, value:Variant, save_after:bool = t
 	_apply_runtime_game_setting_local(setting,value,save_after)
 	if _is_network_shared_setting(setting) and multiplayer.is_server() and multiplayer.has_multiplayer_peer():
 		_receive_shared_setting.rpc(setting,Game_Settings[setting])
-
-
-func get_training_mode_type() -> String:
-	var mode:String = str(Game_Settings.get("Training_Mode_Type", "manual"))
-	return mode if mode in ["manual", "rotation", "timed", "boss"] else "manual"
-
-
-func is_rotation_training_mode() -> bool:
-	return get_training_mode_type() == "rotation"
-
-
-func is_timed_training_mode() -> bool:
-	return get_training_mode_type() == "timed"
-
-
-func is_boss_training_mode() -> bool:
-	return get_training_mode_type() == "boss"
-
-
-func get_training_timed_duration() -> float:
-	# 计时模式不再限制在固定预设；只保留 1 秒的安全下限。
-	return maxf(float(Game_Settings.get("Training_Timed_Duration", 60.0)), 1.0)
-
-
-func get_training_boss_side() -> String:
-	var side:String = str(Game_Settings.get("Training_Boss_Side", "right"))
-	return side if side in ["left","right"] else "right"
-
-
-func get_training_boss_multiplier() -> float:
-	return maxf(float(Game_Settings.get("Training_Boss_Multiplier", 3.0)), 1.0)
-
-
-func is_training_boss_specialization_enabled() -> bool:
-	return bool(Game_Settings.get("Training_Boss_Specialization", true))
-
-
-func is_training_boss_wheel_battle_enabled() -> bool:
-	return bool(Game_Settings.get("Training_Boss_Wheel_Battle", false))
-
-
-func is_training_boss_intro_enabled() -> bool:
-	return bool(Game_Settings.get("Training_Boss_Intro", true))
 
 
 func is_global_blood_effects_enabled() -> bool:
@@ -1069,100 +1049,6 @@ func _spawn_global_kill_blood_visual_now(origin:Vector2,base_direction:Vector2,s
 	effect.call("configure",origin,base_direction,2,seed_value,7,10.0,220.0,context)
 
 
-func set_manual_training_attack_interval(value:float, save_after:bool = false) -> void:
-	var clamped_value:float = snappedf(
-		clampf(value, MANUAL_ATTACK_INTERVAL_MIN, MANUAL_ATTACK_INTERVAL_MAX),
-		MANUAL_ATTACK_INTERVAL_STEP
-	)
-	set_runtime_game_setting("Manual_Attack_Interval",clamped_value,save_after)
-
-
-func get_manual_training_attack_interval() -> float:
-	return clampf(
-		float(Game_Settings.get("Manual_Attack_Interval", 0.15)),
-		MANUAL_ATTACK_INTERVAL_MIN,
-		MANUAL_ATTACK_INTERVAL_MAX
-	)
-
-
-func set_manual_training_attack(attack_id:String) -> void:
-	var wanted:String = attack_id.strip_edges()
-	if wanted.is_empty():
-		return
-	manual_training_attack_id = wanted
-	game_setting_changed.emit("Manual_Training_Attack", wanted)
-
-
-func get_manual_training_attack() -> String:
-	return manual_training_attack_id
-
-
-func get_manual_attack_catalog(force_refresh:bool = false) -> Array[Dictionary]:
-	if not force_refresh and not _manual_attack_catalog_cache.is_empty():
-		return _manual_attack_catalog_cache.duplicate(true)
-
-	var catalog:Array[Dictionary] = []
-	_collect_manual_attack_scenes("res://scenes/shooter", catalog)
-
-	# 拳击手的拳头不是独立 PackedScene，因此作为一个特殊攻击显式加入。
-	catalog.append({
-		"id": "special://boxer_fist",
-		"label": "拳击手：拳头",
-		"kind": "boxer_fist",
-		"path": "",
-	})
-
-	# V175：用于手动测试血液落地/贴墙表现的特殊攻击。当前飞行体先使用红色小方块占位。
-	catalog.append({
-		"id": "special://blood",
-		"label": "血",
-		"kind": "blood",
-		"path": "",
-	})
-
-	catalog.sort_custom(func(a:Dictionary, b:Dictionary) -> bool:
-		return str(a.get("label", "")) < str(b.get("label", ""))
-	)
-	_manual_attack_catalog_cache = catalog.duplicate(true)
-
-	var found_selected:bool = false
-	for entry:Dictionary in _manual_attack_catalog_cache:
-		if str(entry.get("id", "")) == manual_training_attack_id:
-			found_selected = true
-			break
-	if not found_selected and not _manual_attack_catalog_cache.is_empty():
-		manual_training_attack_id = str(_manual_attack_catalog_cache[0].get("id", ""))
-
-	return _manual_attack_catalog_cache.duplicate(true)
-
-
-func _collect_manual_attack_scenes(directory_path:String, out:Array[Dictionary]) -> void:
-	var directory := DirAccess.open(directory_path)
-	if directory == null:
-		return
-	directory.list_dir_begin()
-	var entry_name:String = directory.get_next()
-	while not entry_name.is_empty():
-		if entry_name != "." and entry_name != "..":
-			var full_path:String = directory_path.path_join(entry_name)
-			if directory.current_is_dir():
-				_collect_manual_attack_scenes(full_path, out)
-			elif entry_name.to_lower().ends_with(".tscn"):
-				var packed:PackedScene = ResourceLoader.load(full_path) as PackedScene
-				if packed != null:
-					var probe:Node = packed.instantiate()
-					if probe is Node2D:
-						out.append({
-							"id": full_path,
-							"label": str(probe.name),
-							"kind": "scene",
-							"path": full_path,
-						})
-					probe.free()
-		entry_name = directory.get_next()
-	directory.list_dir_end()
-
-
 @export var mouse_in_map:bool = false
 #引用
 @onready var stop_background: ColorRect = $Stop_Ui/Stop_background
@@ -1218,7 +1104,7 @@ func _ready() -> void:
 	# 普通场景保持原来的 10x 上限；训练场调用 set_training_mode(true) 后会扩到 32x。
 	speed_slider.max_value = (
 		TRAINING_SPEED_SLIDER_MAX_VALUE
-		if is_training_mode()
+		if _training.is_training_mode()
 		else NORMAL_SPEED_SLIDER_MAX_VALUE
 	)
 	speed_slider.tick_count = int(speed_slider.max_value) + 1
@@ -1616,7 +1502,7 @@ func delete_char() -> void:
 
 
 func _manual_training_owns_right_click() -> bool:
-	return get_training_mode_type() == "manual" and bool(Game_Settings.get("Manual_Training",false))
+	return _training.get_training_mode_type() == "manual" and bool(Game_Settings.get("Manual_Training",false))
 
 
 func _control_has_ancestor_named(control:Control,wanted_name:String) -> bool:
@@ -2524,6 +2410,9 @@ func get_time_scale_override_factor() -> float:
 
 func get_base_game_time_scale() -> float:
 	return _time_scale.get_base_game_time_scale()
+
+func _apply_time_scale_overrides() -> void:
+	_time_scale._apply_time_scale_overrides()
 
 
 #速度
