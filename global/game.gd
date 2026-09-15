@@ -97,9 +97,19 @@ func get_language_display_name() -> String:
 const PLACEMENT_MODULE := preload("res://global/game_character_placement.gd")
 var _placement = PLACEMENT_MODULE.new(self)
 
-const KILL_BLOOD_SCRIPT:Script = preload("res://scripts/effects/若叶睦_击杀血液.gd")
-# V39：批量击杀时，通用击杀血的玩法结算仍立即完成，但视觉实例分帧创建，避免同一帧几十/上百个节点分配造成卡顿。
-const KILL_BLOOD_VISUAL_SPAWN_BUDGET_PER_FRAME:int = 2
+#========================================================
+# 通用击杀血液视觉与大奖红闪（非 RPC 部分） —— 已拆分到 res://global/game_kill_blood.gd
+# 下面的成员只是转发壳，保持 Game.xxx 对外接口与 RPC 路径不变。
+#========================================================
+const KILL_BLOOD_MODULE := preload("res://global/game_kill_blood.gd")
+var _kill_blood = KILL_BLOOD_MODULE.new(self)
+
+func play_blood_jackpot_flash_local() -> void:
+	_kill_blood.play_blood_jackpot_flash_local()
+
+func is_global_blood_effects_enabled() -> bool:
+	return _kill_blood.is_global_blood_effects_enabled()
+
 const WILD_DOG_OLD_AGE_REMAINS_SCENE:PackedScene = preload("res://scenes/effects/野生狗奶老死残骸.tscn")
 const WILD_DOG_OLD_AGE_DEADLINE_META:StringName = &"wild_dog_milk_old_age_death_deadline_msec"
 const WILD_DOG_OLD_AGE_HEALTH_META:StringName = &"wild_dog_milk_old_age_death_health_before"
@@ -120,46 +130,6 @@ func request_wild_dog_time_visual(source_key:String, factor:float, factor_start:
 func release_wild_dog_time_visual(source_key:String) -> void:
 	_wild_dog_time.release_wild_dog_time_visual(source_key)
 
-const BLOOD_JACKPOT_AUDIO:AudioStream = preload("res://audio/system/血液爆炸.mp3")
-
-var _pending_kill_blood_visuals:Array[Dictionary] = []
-var _kill_blood_visual_drain_running:bool = false
-
-
-# V96：掷骰子点数7与占卜师“四命运之轮”共用的全局大奖反馈。
-# 这里只负责本机视觉/声音；调用者本身已有 call_local RPC，因此不会二次广播。
-func play_blood_jackpot_flash_local() -> void:
-	var scene_root:Node = get_tree().current_scene
-	if scene_root == null or not is_instance_valid(scene_root):
-		return
-
-	var flash_layer := CanvasLayer.new()
-	flash_layer.name = "BloodJackpotFlash"
-	flash_layer.layer = 190
-	scene_root.add_child(flash_layer)
-
-	var flash := ColorRect.new()
-	flash.name = "RedFlash"
-	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	flash.position = Vector2.ZERO
-	flash.size = get_viewport_rect().size
-	flash.color = Color(0.92,0.0,0.025,0.0)
-	flash_layer.add_child(flash)
-
-	var flash_tween:Tween = flash.create_tween()
-	flash_tween.tween_property(flash,"color:a",0.48,0.055).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	flash_tween.tween_property(flash,"color:a",0.0,0.19).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	flash_tween.finished.connect(flash_layer.queue_free)
-
-	var player := AudioStreamPlayer.new()
-	player.name = "BloodJackpotAudio"
-	player.stream = BLOOD_JACKPOT_AUDIO
-	player.volume_db = 9.0
-	if AudioServer.get_bus_index(&"GameplayRecord") >= 0:
-		player.bus = &"GameplayRecord"
-	scene_root.add_child(player)
-	player.finished.connect(player.queue_free)
-	player.play()
 
 #========================================================
 # V126 多人连接诊断状态
@@ -742,7 +712,7 @@ func report_combat_damage(
 		return
 	var target_node:Node = target as Node
 	if source is Node:
-		_capture_kill_blood_context(source,target_node,actual_health_damage,target_health_before)
+		_kill_blood._capture_kill_blood_context(source,target_node,actual_health_damage,target_health_before)
 	var effective_source:Node = resolve_combat_source(source)
 	if effective_source == null:
 		return
@@ -779,7 +749,7 @@ func report_combatant_death(
 		_spawn_wild_dog_old_age_remains(victim_node)
 	else:
 		# 野生狗奶自己的低额时间伤害如果先把人打死，仍属于普通伤害击杀；开启血液时照常喷血。
-		_spawn_global_kill_blood(victim_node,effective_killer)
+		_kill_blood._spawn_global_kill_blood(victim_node,effective_killer)
 	_clear_wild_dog_old_age_marker(victim_node)
 	combatant_died.emit(victim_node, effective_killer, maxf(health_before_lethal, 0.0))
 
@@ -930,123 +900,20 @@ func set_runtime_game_setting(setting:String, value:Variant, save_after:bool = t
 		_receive_shared_setting.rpc(setting,Game_Settings[setting])
 
 
-func is_global_blood_effects_enabled() -> bool:
-	return bool(Game_Settings.get("Blood_Effects", false))
-
-
-func _should_spawn_global_kill_blood(victim:Node, killer:Node) -> bool:
-	if not is_global_blood_effects_enabled():
-		return false
-	if victim == null or killer == null or not is_instance_valid(victim) or not is_instance_valid(killer):
-		return false
-	if not (victim is Node2D) or not (killer is Node2D):
-		return false
-
-	# V262：全局“血液”开关只允许真正角色死亡生成击杀血。
-	# ball 的 Shooter / Shooter_with_Health / Creature 也会进入 State.Die；
-	# 高频投射物在互相碰撞、被攻击或正常销毁时，绝不能被当作“人物死亡”喷出通用击杀血。
-	if not (victim is ball):
-		return false
-	var victim_ball:ball = victim as ball
-	if victim_ball.Type != ball.Ball_Type.Ball:
-		return false
-
-	# 若叶睦/墨提斯的拳头或吉他已经按武器力度生成专属血液时，禁止再叠一层通用血。
-	if bool(victim.get_meta("_wakaba_specific_kill_blood_spawned", false)):
-		return false
-	return true
-
-
-func _capture_kill_blood_context(source:Node,target:Node,damage:float,health_before:float) -> void:
-	# 在 Master 归因之前保存真实命中物的运动；只在已确认掉血后调用。
-	var context:Dictionary = {"kind":"generic","speed":180.0,"damage":damage,"reference_health":health_before}
-	if source is Node2D and target is Node2D:
-		context["direction"] = ((target as Node2D).global_position - (source as Node2D).global_position).normalized()
-	var motion:Vector2 = source.velocity if source is CharacterBody2D else Vector2.ZERO
-	var explicit_motion:Variant = source.get_meta("blood_attack_velocity",motion)
-	if explicit_motion is Vector2: motion = explicit_motion
-	if motion.is_finite() and motion.length_squared() > 1.0:
-		context["speed"] = minf(motion.length(),1600.0)
-		if source.has_method("_is_projectile_motion_object") and bool(source.call("_is_projectile_motion_object")):
-			context["kind"] = "pierce"
-			context["direction"] = motion.normalized()
-	var explicit_kind:String = str(source.get_meta("blood_damage_kind",""))
-	if explicit_kind in ["pierce","slash","crush","blast","burn"]:
-		context["kind"] = explicit_kind
-		if explicit_kind == "pierce" and motion.length_squared() > 1.0:
-			context["direction"] = motion.normalized()
-	if str(target.get_meta("_blood_damage_element","")) == "fire":
-		context["kind"] = "burn"
-	target.set_meta("_kill_blood_context",context)
-
-
-func _spawn_global_kill_blood(victim:Node, killer:Node) -> void:
-	if not _should_spawn_global_kill_blood(victim,killer):
-		return
-	var victim_2d:Node2D = victim as Node2D
-	var killer_2d:Node2D = killer as Node2D
-	var direction_value:Vector2 = victim_2d.global_position - killer_2d.global_position
-	if direction_value.length_squared() <= 0.000001:
-		direction_value = Vector2.RIGHT
-	else:
-		direction_value = direction_value.normalized()
-	var seed_value:int = int(randi())
-	var context:Dictionary = victim.get_meta("_kill_blood_context",{})
-	if multiplayer.has_multiplayer_peer():
-		_rpc_spawn_global_kill_blood.rpc(victim_2d.global_position,direction_value,seed_value,context)
-	else:
-		_rpc_spawn_global_kill_blood(victim_2d.global_position,direction_value,seed_value,context)
-
-
 @rpc("authority","call_local","unreliable")
 func _rpc_spawn_global_kill_blood(origin:Vector2,base_direction:Vector2,seed_value:int,context:Dictionary = {}) -> void:
 	if not is_inside_tree():
 		return
 	# V39：这里只登记视觉请求，不在死亡回调当帧立刻创建整套血液节点。
 	# 多杀时伤害/死亡/击杀统计仍已同步完成；只有纯视觉被摊到后续几帧。
-	_pending_kill_blood_visuals.append({
+	_kill_blood._pending_kill_blood_visuals.append({
 		"origin": origin,
 		"direction": base_direction,
 		"seed": seed_value,
 		"context": context.duplicate(),
 	})
-	if not _kill_blood_visual_drain_running:
-		call_deferred("_drain_kill_blood_visual_queue")
-
-
-func _drain_kill_blood_visual_queue() -> void:
-	if _kill_blood_visual_drain_running or not is_inside_tree():
-		return
-	_kill_blood_visual_drain_running = true
-	while is_inside_tree() and not _pending_kill_blood_visuals.is_empty():
-		var budget:int = maxi(KILL_BLOOD_VISUAL_SPAWN_BUDGET_PER_FRAME,1)
-		while budget > 0 and not _pending_kill_blood_visuals.is_empty():
-			var request:Dictionary = _pending_kill_blood_visuals.pop_front()
-			_spawn_global_kill_blood_visual_now(
-				request.get("origin",Vector2.ZERO),
-				request.get("direction",Vector2.RIGHT),
-				int(request.get("seed",0)),
-				request.get("context",{})
-			)
-			budget -= 1
-		if not _pending_kill_blood_visuals.is_empty():
-			await get_tree().process_frame
-	_kill_blood_visual_drain_running = false
-
-
-func _spawn_global_kill_blood_visual_now(origin:Vector2,base_direction:Vector2,seed_value:int,context:Dictionary = {}) -> void:
-	if not is_inside_tree():
-		return
-	var scene_root:Node = get_tree().current_scene
-	if scene_root == null:
-		return
-	var effect:Node2D = KILL_BLOOD_SCRIPT.new() as Node2D
-	if effect == null:
-		return
-	effect.name = "GlobalKillBloodBurst"
-	scene_root.add_child(effect)
-	# 通用人物击杀使用中等力度。若叶睦拳头/吉他会走角色自己的两个专属 profile。
-	effect.call("configure",origin,base_direction,2,seed_value,7,10.0,220.0,context)
+	if not _kill_blood._kill_blood_visual_drain_running:
+		_kill_blood.call_deferred("_drain_kill_blood_visual_queue")
 
 
 @export var mouse_in_map:bool = false
