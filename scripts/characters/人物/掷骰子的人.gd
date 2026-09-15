@@ -48,7 +48,6 @@ const RANGED_WEAPON_SCENES = [
 	"res://scenes/shooter/魔角猎人_黑弹.tscn",
 	"res://scenes/shooter/bee.tscn",
 	"res://scenes/shooter/clown/clown_projectile.tscn",
-	"res://scenes/shooter/clown_projectile.tscn",
 	"res://scenes/shooter/knife.tscn",
 ]
 

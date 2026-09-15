@@ -139,6 +139,7 @@ func _ensure_character_path_index() -> void:
 				var char_name:String = resource_name.get_basename()
 				# “雨衣男”已迁移到月计分类并改名为“伞夫”。旧文件可能仍残留在
 				# 玩家工程里；索引层直接隐藏，保证覆盖更新无需手动删旧文件。
+				# 若叶睦/薇欧拉 旧版本已于 2026-09 物理删除（正式版在 乐队/），此处继续隐藏以兼容玩家磁盘上的残留旧 tscn。
 				if folder_name == "人物" and char_name in ["雨衣男","若叶睦","薇欧拉","愤怒的人"]:
 					continue
 				# V169：V167/V168 曾误命名为“盔甲甲”。覆盖更新不能删除旧 tscn，
