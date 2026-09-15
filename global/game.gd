@@ -898,6 +898,8 @@ func _ready() -> void:
 	_localization.load_runtime_translations()
 	load_persistent_settings()
 	_normal_max_physics_steps_per_frame = Engine.max_physics_steps_per_frame
+	# V420 性能：项目启动即应用普通对局的物理补步上限，不必等第一次流速变化。
+	_time_scale._apply_time_scale_overrides()
 
 	#Input.set_custom_mouse_cursor(normal_mouse_image,Input.CURSOR_ARROW,Vector2(5,10))
 	#

@@ -4,6 +4,15 @@ const SNAPSHOT_BATCH = preload("res://classes/after_image_render_batch.gd")
 # Keep the original path available for visual comparisons and unusual scenes.
 @export var batch_after_image_snapshots:bool = true
 
+func _ready() -> void:
+	super._ready()
+	# V420 性能：100 人混战时同屏 60~70 把飞刀，每把每 tick 都在生成残影快照
+	# （add_snapshot + advance_snapshots 是 CPU 第一大头）。主人处于大规模战斗模式时
+	# 把采样间距放宽一倍、每帧上限减半：拖尾仍在，只是更稀疏；小场面完全不变。
+	if Master != null and is_instance_valid(Master) and Master.has_method("is_large_battle_performance_mode") and bool(Master.call("is_large_battle_performance_mode")):
+		AfterImage_Spacing = maxf(AfterImage_Spacing,2.0) * 2.0
+		AfterImage_Max_Per_Frame = maxi(int(ceil(float(AfterImage_Max_Per_Frame) * 0.5)),1)
+
 func _spawn_after_image_at_transform(ghost_transform:Transform2D,world_trail_dir:Vector2) -> void:
 	# A snapshot born inside a SceneTree tween callback must not be advanced by
 	# an older renderer tween later in that same phase. Keep that rare path native.

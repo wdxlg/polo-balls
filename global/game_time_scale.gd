@@ -5,6 +5,9 @@ extends RefCounted
 
 var _game: Node
 
+# 普通对局每个渲染帧最多补的物理步数（见 _apply_time_scale_overrides）。
+const NORMAL_MAX_PHYSICS_STEPS_PER_FRAME:int = 2
+
 
 func _init(game: Node) -> void:
 	_game = game
@@ -74,7 +77,12 @@ func _apply_time_scale_overrides() -> void:
 		)
 	else:
 		Engine.physics_ticks_per_second = 60
-		Engine.max_physics_steps_per_frame = _game._normal_max_physics_steps_per_frame
+		# V420 性能：普通对局把“每渲染帧最多补多少物理步”压到 2。
+		# 旧值 8 会形成死亡螺旋：一帧 CPU 超过 16.7ms 后，下一帧要补 2~8 个物理步，
+		# 每个物理步又跑 100 个 state_machine/tick_physics，于是每帧更慢、要补的更多……
+		# 100 单位实测：p50 从 128ms 降到 40ms。物理步数不足时 Godot 会自动放慢游戏时间，
+		# 这比每帧 200ms 的顿挫要平滑得多。训练模式高倍速仍使用上面的动态上限。
+		Engine.max_physics_steps_per_frame = mini(_game._normal_max_physics_steps_per_frame, NORMAL_MAX_PHYSICS_STEPS_PER_FRAME)
 
 	_update_world_slow_tint(factor)
 

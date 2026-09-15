@@ -19,6 +19,10 @@ var _elapsed:float = 0.0
 var _end_time:float = 0.0
 var _use_real_time:bool = false
 var _start_ticks_usec:int = 0
+# V420 性能：Line2D 的 width / default_color 每次赋值都会触发 Line2D 重建网格。
+# 记住上次写入的值，只有真正变化时才写回，同帧内多条线共用一份判定。
+const _WIDTH_EPSILON:float = 0.004
+const _ALPHA_EPSILON:float = 0.006
 
 
 func _smootherstep01(value:float) -> float:
@@ -161,17 +165,21 @@ func _process(delta:float) -> void:
 			alpha_ratio = 1.0 - _smootherstep01(fade_out_t)
 
 		var base_color:Color = data.get("color",Color.WHITE)
-		line.default_color = Color(
-			base_color.r,
-			base_color.g,
-			base_color.b,
-			base_color.a * alpha_ratio
-		)
+		var next_alpha:float = base_color.a * alpha_ratio
+		if absf(line.default_color.a - next_alpha) > _ALPHA_EPSILON or line.default_color.r != base_color.r or line.default_color.g != base_color.g or line.default_color.b != base_color.b:
+			line.default_color = Color(
+				base_color.r,
+				base_color.g,
+				base_color.b,
+				next_alpha
+			)
 
 		var width_fade_t:float = clampf((progress - 0.52) / 0.48,0.0,1.0)
 		var width_fade:float = _smootherstep01(width_fade_t)
 		var base_width:float = maxf(float(data.get("width",0.65)),0.22)
-		line.width = maxf(base_width * lerpf(1.0,0.55,width_fade),0.16)
+		var next_width:float = maxf(base_width * lerpf(1.0,0.55,width_fade),0.16)
+		if absf(line.width - next_width) > _WIDTH_EPSILON:
+			line.width = next_width
 
 	if _elapsed >= _end_time + 0.02:
 		queue_free()

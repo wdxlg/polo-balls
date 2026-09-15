@@ -492,6 +492,9 @@ func current_health_damage_request_amount() -> int:
 		# 这样即使 UI 跳字/动画脚本出现问题，
 		# 也不会阻止角色本身回血。
 		health = new_health
+		# V420 性能：生命跨越 0 时立即打脏 World 的“是否还有存活主战角色”同帧缓存。
+		if (old_health > 0) != (new_health > 0) and _cached_world != null and is_instance_valid(_cached_world):
+			_cached_world.notify_primary_battle_character_alive_changed()
 
 		if health_bar:
 			# health_changed 的 UI 回调是同步执行的；在这段窗口里提供未被 0 HP 下限截断的
@@ -5951,15 +5954,24 @@ func _play_hit_burst_feedback_local(
 		3,
 		18
 	)
+	# V420 性能：大规模战斗中每个受击白线都是独立 Node2D + N 个 Line2D，
+	# 100 人互砍时场上常驻 80~100 个特效、每帧数百个 Line2D 更新 points/width/color。
+	# 大规模模式把单次数量减半（最少 3 条），视觉语言不变，只是更稀疏。
+	if _large_battle_performance_mode:
+		count = maxi(int(ceil(float(count) * 0.5)),3)
 
 	var streaks:Array = []
+	# V420 性能：像素采样器只依赖当前贴图/翻转/调色，整次受击里不变；只建一次而不是每条线一次。
+	# 采样器创建不消耗 RNG，因此随机序列与之前完全一致。
+	var shared_pixel_sampler:RefCounted = _make_visual_pixel_sampler()
 	for _index:int in range(count):
 		var sample:Dictionary = _random_hit_effect_visual_sample(
 			rng,
 			force_white,
 			outward,
 			character_radius,
-			coverage_ratio
+			coverage_ratio,
+			shared_pixel_sampler
 		)
 		var angle_offset:float = deg_to_rad(rng.randf_range(-spread_degrees,spread_degrees))
 		var streak_direction:Vector2 = outward.rotated(angle_offset).normalized()
@@ -6068,10 +6080,11 @@ func _random_hit_effect_visual_sample(
 	force_white:bool,
 	outward:Vector2,
 	character_radius:float,
-	coverage_ratio:float
+	coverage_ratio:float,
+	shared_pixel_sampler:RefCounted = null
 ) -> Dictionary:
 	var visual_rect:Rect2 = _hit_effect_visual_rect()
-	var pixel_sampler:RefCounted = _make_visual_pixel_sampler()
+	var pixel_sampler:RefCounted = shared_pixel_sampler if shared_pixel_sampler != null else _make_visual_pixel_sampler()
 	var chosen_color:Color = Color.WHITE if force_white else _fallback_hit_effect_color()
 	var chosen_world:Vector2 = global_position + outward * maxf(character_radius * 0.72,5.0)
 	# This function never yields: source transform/origin are invariant for all

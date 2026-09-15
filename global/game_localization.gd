@@ -139,6 +139,7 @@ func load_runtime_translations() -> bool:
 	_translation_reverse.clear()
 	_translation_reverse_any.clear()
 	_translation_fragments.clear()
+	_ui_fragment_translation_cache.clear()
 
 	for translation in _runtime_translations:
 		if is_instance_valid(translation):
@@ -274,6 +275,12 @@ func translate_ui_text(source:String) -> String:
 	if not exact_key.is_empty():
 		return ui_t(exact_key)
 
+	# V420 性能：伤害跳字 "-12"、"暴击 37" 这类文本每 0.35s 扫一遍，
+	# 每个新字符串都要过一遍几百条片段的 contains()。翻译表与语言不变时结果是确定的，
+	# 因此跨 sweep 缓存片段替换结果；load_runtime_translations / set_language 时清空。
+	var cache_key:String = get_ui_locale() + "\u001f" + source
+	if _ui_fragment_translation_cache.has(cache_key):
+		return _ui_fragment_translation_cache[cache_key]
 	# 处理 "当前角色：牛"、"端口: 27018" 等组合文本。
 	# 片段表在 CSV 加载时一次性构建，切换语言时不再做 O(节点数×翻译数) 的嵌套扫描。
 	var result:String = source
@@ -281,7 +288,14 @@ func translate_ui_text(source:String) -> String:
 		var part:String = str(fragment[0])
 		if result.contains(part):
 			result = result.replace(part, ui_t(str(fragment[1])))
+	if _ui_fragment_translation_cache.size() >= _UI_FRAGMENT_TRANSLATION_CACHE_MAX:
+		_ui_fragment_translation_cache.clear()
+	_ui_fragment_translation_cache[cache_key] = result
 	return result
+
+
+var _ui_fragment_translation_cache:Dictionary = {}
+const _UI_FRAGMENT_TRANSLATION_CACHE_MAX:int = 4096
 
 
 func translate_game_text(source:String) -> String:
@@ -479,6 +493,7 @@ func set_language(locale:String, save_after:bool = true) -> void:
 
 	current_locale = locale
 	_apply_translation_server_locale()
+	_ui_fragment_translation_cache.clear()
 
 	if save_after:
 		_game.save_persistent_settings()
@@ -583,6 +598,15 @@ func _seed_runtime_localization_index(node:Node) -> void:
 func _on_runtime_localization_node_added(node:Node) -> void:
 	if not node is Control:
 		return
+	# V420 性能：战斗中每帧入树的绝大多数 Control 是伤害跳字/血条克隆。
+	# 它们的祖先链稳定，用父节点实例 ID 记住“是否位于内部 UI 子树”，避免每个节点都爬到根。
+	var parent:Node = node.get_parent()
+	if parent != null:
+		var parent_id:int = parent.get_instance_id()
+		if _runtime_localization_parent_verdict.has(parent_id):
+			if _runtime_localization_parent_verdict[parent_id]:
+				node.add_to_group(RUNTIME_LOCALIZATION_GROUP)
+			return
 	if node.is_in_group(RUNTIME_LOCALIZATION_GROUP):
 		node.remove_from_group(RUNTIME_LOCALIZATION_GROUP)
 	# Match get_children() from the old traversal: internal UI implementation
@@ -591,9 +615,29 @@ func _on_runtime_localization_node_added(node:Node) -> void:
 	while ancestor.get_parent() != null:
 		var parent_node:Node = ancestor.get_parent()
 		if parent_node.get_child_count(true) != parent_node.get_child_count() and not parent_node.get_children().has(ancestor):
+			_remember_localization_parent_verdict(node,false)
 			return
 		ancestor = parent_node
+	_remember_localization_parent_verdict(node,true)
 	node.add_to_group(RUNTIME_LOCALIZATION_GROUP)
+
+
+# 父节点 → 其直接子 Control 是否允许自动本地化。只缓存“父节点自身不是内部节点”的结论；
+# 一个节点是不是内部节点由它的 parent 决定，所以按父节点缓存是安全的。
+var _runtime_localization_parent_verdict:Dictionary = {}
+const _RUNTIME_LOCALIZATION_VERDICT_CACHE_MAX:int = 2048
+
+
+func _remember_localization_parent_verdict(node:Node,allowed:bool) -> void:
+	var parent:Node = node.get_parent()
+	if parent == null:
+		return
+	# 只有当 node 本身不是 parent 的内部子节点时，这个结论才对 parent 的其它普通子节点同样成立。
+	if parent.get_child_count(true) != parent.get_child_count() and not parent.get_children().has(node):
+		return
+	if _runtime_localization_parent_verdict.size() >= _RUNTIME_LOCALIZATION_VERDICT_CACHE_MAX:
+		_runtime_localization_parent_verdict.clear()
+	_runtime_localization_parent_verdict[parent.get_instance_id()] = allowed
 
 
 func _localize_runtime_control(control:Control,translation_cache:Dictionary) -> void:

@@ -824,6 +824,15 @@ const COMBAT_TEXT_VISIBILITY_LAYER:int = 2
 @export_range(0.25,2.0,0.05) var battle_registry_resync_interval:float = 0.75
 var _large_battle_mode_active:bool = false
 var _large_battle_monitor_elapsed:float = 0.0
+# V420 性能：is_combat_runtime_active() 每个 physics tick 被每个单位/Hitbox/投射物调用数百次，
+# 而“是否还有存活主战角色”在同一个 physics tick 内不会变。按 physics frame 缓存一次，
+# 单位死亡/注册/删除会把缓存打脏，语义与 _has_alive_primary_battle_character() 完全一致。
+var _alive_primary_cache_frame:int = -1
+var _alive_primary_cache_value:bool = false
+# V420 性能：胜负铃判定要遍历全部单位并逐个解析阵营 key（100 人时约 0.6ms/tick）。
+# 改为 ~20Hz 轮询；胜利提示最多延后 50ms，肉眼不可感知。铃声本身仍只触发一次。
+var _victory_bell_poll_elapsed:float = 0.0
+const VICTORY_BELL_POLL_INTERVAL:float = 0.05
 var _large_battle_separation_elapsed:float = 999.0
 var _battle_spatial_elapsed:float = 999.0
 var _battle_registry_resync_elapsed:float = 999.0
@@ -1359,6 +1368,7 @@ func register_battle_unit(unit:ball) -> void:
 	_battle_unit_ids[id] = true
 	_battle_units_cache.append(unit)
 	_battle_registry_dirty = true
+	_alive_primary_cache_frame = -1
 	# 盔甲架一注册就立即切换顶部 HUD；测试模式下新放角色也立刻刷新，
 	# 不必等 5Hz 定时器，避免短时间还显示旧角色信息。
 	if _is_armor_stand_test_unit(unit):
@@ -1383,6 +1393,7 @@ func unregister_battle_unit(unit:ball) -> void:
 			_battle_units_cache.remove_at(i)
 			break
 	_battle_registry_dirty = true
+	_alive_primary_cache_frame = -1
 	# queue_free/tree_exiting 发生时，节点可能要到帧末才真正离开场景树。
 	# 因此统一延后一拍刷新：盔甲架退出时重算测试模式，普通角色退出时则解除旧目标锁，
 	# 让新放下的第一个角色立即接管顶部信息。
@@ -1822,7 +1833,10 @@ func _physics_process(delta: float) -> void:
 			if training_ball.Type == ball.Ball_Type.Ball:
 				training_ball.enforce_training_health_cap()
 
-	_update_manual_victory_bell()
+	_victory_bell_poll_elapsed += maxf(delta,0.0)
+	if _victory_bell_poll_elapsed >= VICTORY_BELL_POLL_INTERVAL or set_property_group.size() <= 8:
+		_victory_bell_poll_elapsed = 0.0
+		_update_manual_victory_bell()
 
 
 #========================================================
@@ -6451,7 +6465,7 @@ func is_combat_runtime_active() -> bool:
 
 	# 手动模式：工具栏开着也算运行中，只看时间有没有停止。
 	if Game.get_training_mode_type() == "manual":
-		return _has_alive_primary_battle_character()
+		return _has_alive_primary_battle_character_cached()
 
 	# 特殊模式仍然保留布阵/正式开战界线。
 	if (
@@ -6468,7 +6482,23 @@ func is_combat_runtime_active() -> bool:
 	if Game.is_timed_training_mode():
 		return _timed_running and not _timed_finished
 
-	return _has_alive_primary_battle_character()
+	return _has_alive_primary_battle_character_cached()
+
+
+# 同一 physics tick 内复用存活判断；渲染帧（非物理帧）不缓存，保持原逐次扫描语义。
+func _has_alive_primary_battle_character_cached() -> bool:
+	if not Engine.is_in_physics_frame():
+		return _has_alive_primary_battle_character()
+	var frame:int = Engine.get_physics_frames()
+	if _alive_primary_cache_frame != frame:
+		_alive_primary_cache_frame = frame
+		_alive_primary_cache_value = _has_alive_primary_battle_character()
+	return _alive_primary_cache_value
+
+
+# ball.health 归零 / 复活时调用，让同帧后续查询立即看到变化。
+func notify_primary_battle_character_alive_changed() -> void:
+	_alive_primary_cache_frame = -1
 
 
 # 角色“开场问候”与真实战斗逻辑使用同一套开战条件，避免两套规则再次分叉。
