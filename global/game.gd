@@ -90,8 +90,13 @@ func get_language_display_name() -> String:
 	return _localization.get_language_display_name()
 
 
-# 长按左键框选放置：覆盖层只画屏幕空间矩形，实际生成点仍使用世界坐标。
-const PLACEMENT_BOX_OVERLAY_SCRIPT = preload("res://scripts/ui/placement_box_overlay.gd")
+#========================================================
+# 左键放置 / 长按框选批量放置人物与 Ghost 预览 —— 已拆分到 res://global/game_character_placement.gd
+# 下面的成员只是转发壳，保持 Game.xxx 对外接口与 RPC 路径不变。
+#========================================================
+const PLACEMENT_MODULE := preload("res://global/game_character_placement.gd")
+var _placement = PLACEMENT_MODULE.new(self)
+
 const KILL_BLOOD_SCRIPT:Script = preload("res://scripts/effects/若叶睦_击杀血液.gd")
 # V39：批量击杀时，通用击杀血的玩法结算仍立即完成，但视觉实例分帧创建，避免同一帧几十/上百个节点分配造成卡顿。
 const KILL_BLOOD_VISUAL_SPAWN_BUDGET_PER_FRAME:int = 2
@@ -102,10 +107,6 @@ const WILD_DOG_OLD_AGE_AUDIO_PLAYED_META:StringName = &"wild_dog_milk_old_age_de
 const WILD_DOG_OLD_AGE_BASE_BODY_WIDTH_WORLD:float = 36.0
 const WILD_DOG_OLD_AGE_MIN_SIZE_MULTIPLIER:float = 0.90
 const WILD_DOG_OLD_AGE_REMAINS_CONTAINER_NAME:StringName = &"野生狗奶老死残骸容器"
-const PLACEMENT_BOX_HOLD_TIME:float = 0.30
-const PLACEMENT_BOX_GRID_SPACING:float = 30.0
-const PLACEMENT_BOX_MIN_MULTI_SPAN:float = 20.0
-const PLACEMENT_BOX_MAX_CHARACTERS:int = 256
 #========================================================
 # 野生狗奶“时间流逝”日月视觉与配乐（角色专属全局效果） —— 已拆分到 res://global/game_wild_dog_time_visual.gd
 # 下面的成员只是转发壳，保持 Game.xxx 对外接口与 RPC 路径不变。
@@ -2104,7 +2105,7 @@ func _current_control_aim_position() -> Vector2:
 	var world:Node = get_tree().current_scene
 	if world is CanvasItem:
 		return (world as CanvasItem).get_global_mouse_position()
-	return mouse_poi
+	return _placement.mouse_poi
 
 func _send_control_action(action_index:int) -> void:
 	var target:Node = get_local_controlled_character()
@@ -2154,7 +2155,7 @@ func _input(event: InputEvent) -> void:
 		_clear_local_control_action_holds(true)
 		mouse_drag = false
 		world_middle_drag = false
-		_cancel_placement_press()
+		_placement._cancel_placement_press()
 		return
 
 	# C：鼠标指向一名普通角色后进入/退出直接控制。输入框正在编辑时不抢 C 键。
@@ -2168,32 +2169,32 @@ func _input(event: InputEvent) -> void:
 	# 一旦左键是在地图里开始的，松开事件即使落在 UI 上也必须在这里收尾，
 	# 否则 GUI 抢走 release 后会把框选状态卡住。
 	if is_controlling_character():
-		_cancel_placement_press()
-		if ghost_ball and is_instance_valid(ghost_ball):
-			ghost_ball.queue_free()
-			ghost_ball = null
+		_placement._cancel_placement_press()
+		if _placement.ghost_ball and is_instance_valid(_placement.ghost_ball):
+			_placement.ghost_ball.queue_free()
+			_placement.ghost_ball = null
 
-	if _placement_press_active:
+	if _placement._placement_press_active:
 		if event is InputEventMouseMotion:
-			_placement_current_screen = event.position
-			_placement_current_world = (world as World).get_global_mouse_position()
-			if _placement_box_mode:
-				_update_placement_box_overlay(world as World)
+			_placement._placement_current_screen = event.position
+			_placement._placement_current_world = (world as World).get_global_mouse_position()
+			if _placement._placement_box_mode:
+				_placement._update_placement_box_overlay(world as World)
 		elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.is_pressed():
-			_placement_current_screen = event.position
-			_placement_current_world = (world as World).get_global_mouse_position()
-			_finalize_placement_press(world as World)
+			_placement._placement_current_screen = event.position
+			_placement._placement_current_world = (world as World).get_global_mouse_position()
+			_placement._finalize_placement_press(world as World)
 			get_viewport().set_input_as_handled()
 			return
 
 	if event.is_action_pressed("esc"):
-		_cancel_placement_press()
+		_placement._cancel_placement_press()
 		if now_stop_state:
 			continue_game()
 		else:
 			stop_game()
 	elif event.is_action_pressed("menu"):
-		_cancel_placement_press()
+		_placement._cancel_placement_press()
 		(world as World).set_menu()
 	elif event is InputEventMouseButton:
 		# 控制角色时，战场鼠标只服务角色能力：左=普攻、右=技能、中=扩展动作。
@@ -2282,12 +2283,12 @@ func _unhandled_input(event: InputEvent) -> void:
 	if world is not World:
 		mouse_drag = false
 		world_middle_drag = false
-		_cancel_placement_press()
+		_placement._cancel_placement_press()
 		return
 
 	# 直接控制角色期间禁用放置、删除和地图中键拖动；能力鼠标已在 _input() 处理。
 	if is_controlling_character():
-		_cancel_placement_press()
+		_placement._cancel_placement_press()
 		mouse_drag = false
 		world_middle_drag = false
 		return
@@ -2295,8 +2296,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.is_pressed():
 		# 不再按下瞬间直接生成人物：先进入“待确认”状态。
 		# 短按在 release 时仍只放 1 个；按住约 0.3s 后切换成蓝色框选。
-		if (world as World).return_can_create_char() and _position_inside_character_placement_area(world as World,(world as World).get_global_mouse_position()):
-			_begin_placement_press(world as World,event.position)
+		if (world as World).return_can_create_char() and _placement._position_inside_character_placement_area(world as World,(world as World).get_global_mouse_position()):
+			_placement._begin_placement_press(world as World,event.position)
 			get_viewport().set_input_as_handled()
 			return
 
@@ -2307,186 +2308,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		if _try_world_right_click_delete(world as World):
 			get_viewport().set_input_as_handled()
 			return
-
-var mouse_poi:Vector2 = Vector2.ZERO
-var ghost_ball
-
-# 单击放置现在在“松开左键”时确认；按住超过阈值后切换为框选模式。
-var _placement_press_active:bool = false
-var _placement_box_mode:bool = false
-var _placement_hold_elapsed:float = 0.0
-var _placement_press_screen:Vector2 = Vector2.ZERO
-var _placement_current_screen:Vector2 = Vector2.ZERO
-var _placement_press_world:Vector2 = Vector2.ZERO
-var _placement_current_world:Vector2 = Vector2.ZERO
-var _placement_team:String = ""
-var _placement_character:String = ""
-var _placement_overlay:Control = null
-
-
-func _position_inside_current_map(world:World,position:Vector2) -> bool:
-	if world == null or not is_instance_valid(world):
-		return false
-	var border:Dictionary = world.return_now_map_border()
-	var start:Vector2 = border.get("start",Vector2.ZERO)
-	var end:Vector2 = border.get("end",Vector2.ZERO)
-	return position.x > start.x and position.x < end.x and position.y > start.y and position.y < end.y
-
-
-func _position_inside_character_placement_area(world:World,position:Vector2) -> bool:
-	if world == null or not is_instance_valid(world):
-		return false
-	# World 提供一个专门的“地图外自动回拉测试带”。它与 mouse_in_map 分离，
-	# 因此手动攻击、地图内判定等系统仍只认黑线内部。
-	if world.has_method("can_place_character_at"):
-		return bool(world.call("can_place_character_at",position))
-	return _position_inside_current_map(world,position)
-
-
-func _begin_placement_press(world:World,screen_position:Vector2) -> void:
-	_cancel_placement_press()
-	if world == null or not is_instance_valid(world):
-		return
-	var character_name:String = (
-		"random"
-		if world.now_choose_char == "" and bool(Game_Settings.get("Set_Random_Char_When_Didnt_Choose",true))
-		else world.now_choose_char
-	)
-	if character_name.is_empty():
-		return
-	_placement_press_active = true
-	_placement_box_mode = false
-	_placement_hold_elapsed = 0.0
-	_placement_press_screen = screen_position
-	_placement_current_screen = screen_position
-	_placement_press_world = world.get_global_mouse_position()
-	_placement_current_world = _placement_press_world
-	_placement_team = world.now_choose_team
-	_placement_character = character_name
-
-
-func _ensure_placement_box_overlay(world:World) -> void:
-	if is_instance_valid(_placement_overlay):
-		return
-	if world == null or not is_instance_valid(world):
-		return
-	var canvas_layer:Node = world.get_node_or_null("CanvasLayer")
-	if canvas_layer == null:
-		return
-	var overlay_variant:Variant = PLACEMENT_BOX_OVERLAY_SCRIPT.new()
-	if overlay_variant is not Control:
-		return
-	_placement_overlay = overlay_variant as Control
-	_placement_overlay.name = "CharacterPlacementSelection"
-	canvas_layer.add_child(_placement_overlay)
-
-
-func _update_placement_box_overlay(world:World) -> void:
-	if not _placement_press_active or not _placement_box_mode:
-		return
-	_ensure_placement_box_overlay(world)
-	if is_instance_valid(_placement_overlay) and _placement_overlay.has_method("set_selection_points"):
-		_placement_overlay.call("set_selection_points",_placement_press_screen,_placement_current_screen)
-
-
-func _cancel_placement_press() -> void:
-	_placement_press_active = false
-	_placement_box_mode = false
-	_placement_hold_elapsed = 0.0
-	_placement_team = ""
-	_placement_character = ""
-	if is_instance_valid(_placement_overlay) and _placement_overlay.has_method("clear_selection"):
-		_placement_overlay.call("clear_selection")
-
-
-func _spawn_placed_character(world:World,team_name:String,character_name:String,position:Vector2) -> void:
-	if world == null or not is_instance_valid(world) or character_name.is_empty():
-		return
-	if not is_multiplayer_authority():
-		create_ball_in_server.rpc_id(Server_Id,team_name,character_name,position)
-	else:
-		create_ball_in_server(team_name,character_name,position)
-
-
-func _box_placement_points(world:World,from_world:Vector2,to_world:Vector2) -> Array[Vector2]:
-	var points:Array[Vector2] = []
-	if world == null or not is_instance_valid(world):
-		return points
-
-	# 框选放置也允许进入地图外测试带，但不会无限扩到整个屏幕。
-	# 优先使用 World 给出的扩展 bounds；老版本 World 则退回黑线内部。
-	var placement_bounds:Rect2 = Rect2()
-	if world.has_method("return_character_placement_test_bounds"):
-		var bounds_variant:Variant = world.call("return_character_placement_test_bounds")
-		if bounds_variant is Rect2:
-			placement_bounds = bounds_variant
-	if placement_bounds.size.x <= 0.0 or placement_bounds.size.y <= 0.0:
-		var border:Dictionary = world.return_now_map_border()
-		var fallback_start:Vector2 = border.get("start",Vector2.ZERO)
-		var fallback_end:Vector2 = border.get("end",Vector2.ZERO)
-		placement_bounds = Rect2(fallback_start,fallback_end - fallback_start)
-	var map_start:Vector2 = placement_bounds.position
-	var map_end:Vector2 = placement_bounds.end
-	var min_x:float = clampf(minf(from_world.x,to_world.x),map_start.x,map_end.x)
-	var max_x:float = clampf(maxf(from_world.x,to_world.x),map_start.x,map_end.x)
-	var min_y:float = clampf(minf(from_world.y,to_world.y),map_start.y,map_end.y)
-	var max_y:float = clampf(maxf(from_world.y,to_world.y),map_start.y,map_end.y)
-	if max_x < min_x:
-		var swap_x:float = min_x
-		min_x = max_x
-		max_x = swap_x
-	if max_y < min_y:
-		var swap_y:float = min_y
-		min_y = max_y
-		max_y = swap_y
-
-	var span_x:float = max_x - min_x
-	var span_y:float = max_y - min_y
-	var count_x:int = 1
-	var count_y:int = 1
-	if span_x >= PLACEMENT_BOX_MIN_MULTI_SPAN:
-		count_x = maxi(2,roundi(span_x / PLACEMENT_BOX_GRID_SPACING) + 1)
-	if span_y >= PLACEMENT_BOX_MIN_MULTI_SPAN:
-		count_y = maxi(2,roundi(span_y / PLACEMENT_BOX_GRID_SPACING) + 1)
-
-	# 极大的框仍然保持规则网格，但限制一次性实例化数量，避免误拖把主线程卡死。
-	while count_x * count_y > PLACEMENT_BOX_MAX_CHARACTERS:
-		if count_x >= count_y and count_x > 1:
-			count_x -= 1
-		elif count_y > 1:
-			count_y -= 1
-		else:
-			break
-
-	for row:int in range(count_y):
-		var y:float = (min_y + max_y) * 0.5 if count_y == 1 else lerpf(min_y,max_y,float(row) / float(count_y - 1))
-		for column:int in range(count_x):
-			var x:float = (min_x + max_x) * 0.5 if count_x == 1 else lerpf(min_x,max_x,float(column) / float(count_x - 1))
-			var point := Vector2(x,y)
-			# grow() 的四个角可能超过真实救援半径，最终再按 World 的
-			# can_place_character_at() 过滤，确保每个地图外点都能自动拉回。
-			if _position_inside_character_placement_area(world,point):
-				points.append(point)
-	return points
-
-
-func _finalize_placement_press(world:World) -> void:
-	if not _placement_press_active:
-		return
-	var was_box_mode:bool = _placement_box_mode
-	var team_name:String = _placement_team
-	var character_name:String = _placement_character
-	var start_world:Vector2 = _placement_press_world
-	var end_world:Vector2 = _placement_current_world
-	_cancel_placement_press()
-
-	if world == null or not is_instance_valid(world) or not world.return_can_create_char():
-		return
-	if was_box_mode:
-		for point:Vector2 in _box_placement_points(world,start_world,end_world):
-			_spawn_placed_character(world,team_name,character_name,point)
-	elif _position_inside_character_placement_area(world,end_world):
-		_spawn_placed_character(world,team_name,character_name,end_world)
 
 
 func _process(delta: float) -> void:
@@ -2503,10 +2324,10 @@ func _process(delta: float) -> void:
 	var current_scene:Node = get_tree().current_scene
 	# Game 是全局节点，但训练场根节点不是 World。原来的强类型赋值会在训练场直接报错。
 	if current_scene is not World:
-		_cancel_placement_press()
-		if ghost_ball and is_instance_valid(ghost_ball):
-			ghost_ball.queue_free()
-			ghost_ball = null
+		_placement._cancel_placement_press()
+		if _placement.ghost_ball and is_instance_valid(_placement.ghost_ball):
+			_placement.ghost_ball.queue_free()
+			_placement.ghost_ball = null
 		return
 	var world:World = current_scene as World
 	_update_control_ring(world)
@@ -2514,41 +2335,41 @@ func _process(delta: float) -> void:
 	_wild_dog_time._update_wild_dog_time_visual(delta,world)
 
 	# 用 World 的 CanvasItem 坐标获取真实战场鼠标位置，和角色生成坐标保持一致。
-	mouse_poi = world.get_global_mouse_position()
+	_placement.mouse_poi = world.get_global_mouse_position()
 	var map_border:Dictionary = world.return_now_map_border()
-	mouse_in_map = (mouse_poi.x > map_border.start.x and
-	mouse_poi.x < map_border.end.x and
-	mouse_poi.y > map_border.start.y and
-	mouse_poi.y < map_border.end.y
+	mouse_in_map = (_placement.mouse_poi.x > map_border.start.x and
+	_placement.mouse_poi.x < map_border.end.x and
+	_placement.mouse_poi.y > map_border.start.y and
+	_placement.mouse_poi.y < map_border.end.y
 	)
 
-	if _placement_press_active:
-		_placement_current_screen = get_viewport().get_mouse_position()
-		_placement_current_world = mouse_poi
+	if _placement._placement_press_active:
+		_placement._placement_current_screen = get_viewport().get_mouse_position()
+		_placement._placement_current_world = _placement.mouse_poi
 		if not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or not world.return_can_create_char():
-			_cancel_placement_press()
+			_placement._cancel_placement_press()
 		else:
-			_placement_hold_elapsed += maxf(delta,0.0)
-			if not _placement_box_mode and _placement_hold_elapsed >= PLACEMENT_BOX_HOLD_TIME:
-				_placement_box_mode = true
-			if _placement_box_mode:
-				_update_placement_box_overlay(world)
+			_placement._placement_hold_elapsed += maxf(delta,0.0)
+			if not _placement._placement_box_mode and _placement._placement_hold_elapsed >= _placement.PLACEMENT_BOX_HOLD_TIME:
+				_placement._placement_box_mode = true
+			if _placement._placement_box_mode:
+				_placement._update_placement_box_overlay(world)
 
 	# 框选期间不再显示单个人物 Ghost，避免它和蓝色矩形互相遮挡。
-	if _placement_box_mode:
-		if ghost_ball and is_instance_valid(ghost_ball):
-			ghost_ball.queue_free()
-			ghost_ball = null
-	elif not is_controlling_character() and _position_inside_character_placement_area(world,mouse_poi) and world.now_choose_char != "" and world.return_can_create_char():
-		if ghost_ball and is_instance_valid(ghost_ball) and ghost_ball.name == world.now_choose_char:
-			ghost_ball.global_position = mouse_poi
+	if _placement._placement_box_mode:
+		if _placement.ghost_ball and is_instance_valid(_placement.ghost_ball):
+			_placement.ghost_ball.queue_free()
+			_placement.ghost_ball = null
+	elif not is_controlling_character() and _placement._position_inside_character_placement_area(world,_placement.mouse_poi) and world.now_choose_char != "" and world.return_can_create_char():
+		if _placement.ghost_ball and is_instance_valid(_placement.ghost_ball) and _placement.ghost_ball.name == world.now_choose_char:
+			_placement.ghost_ball.global_position = _placement.mouse_poi
 		else:
-			if ghost_ball and is_instance_valid(ghost_ball):
-				ghost_ball.queue_free()
-			ghost_ball = world.create_ghost_ball()
-	elif ghost_ball and is_instance_valid(ghost_ball):
-		ghost_ball.queue_free()
-		ghost_ball = null
+			if _placement.ghost_ball and is_instance_valid(_placement.ghost_ball):
+				_placement.ghost_ball.queue_free()
+			_placement.ghost_ball = world.create_ghost_ball()
+	elif _placement.ghost_ball and is_instance_valid(_placement.ghost_ball):
+		_placement.ghost_ball.queue_free()
+		_placement.ghost_ball = null
 
 func _physics_process(_delta:float) -> void:
 	# WASD 以物理频率发送；客户端用 unreliable_ordered 连续刷新输入意图。
