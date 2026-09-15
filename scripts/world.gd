@@ -4689,7 +4689,6 @@ const ARMOR_TEST_ROLE_SUMMARIES:Dictionary = {
 	"res://scripts/characters/科学家.gd":"弹丸可以通过自己布置的传送门改变位置。",
 	"res://scripts/characters/红绿灯.gd":"黄灯惩罚短时间移动过远；红灯按移动距离持续造成伤害。",
 	"res://scripts/characters/背刺者.gd":"会主动绕到目标背后抓背刺机会。",
-	"res://scripts/characters/若叶睦.gd":"若叶睦靠黄瓜恢复；墨提斯改用近战。",
 	"res://scripts/characters/乐队/若叶睦.gd":"若叶睦靠黄瓜恢复；墨提斯改用近战。",
 	"res://scripts/characters/裁判.gd":"短时间承受大量伤害后随机出牌：黄牌眩晕，蓝牌高伤，红牌封锁伤害输出。",
 	"res://scripts/characters/训犬师.gd":"标记敌人后，猎犬会围绕标记目标行动；猎犬不足时会继续补充。",
