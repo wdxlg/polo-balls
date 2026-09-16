@@ -333,9 +333,10 @@ func _ensure_stone_field() -> Node:
 	if not map_group.has(map_name):
 		return null
 	var map_value:Variant = map_group[map_name]
-	if not (map_value is TileMapLayer):
+	# 普通 TileMapLayer 或多岛 PortalMap 都可以铺石砖；石砖场自己会把各岛格子归一到基准岛坐标。
+	if not (map_value is TileMapLayer or map_value is PortalMap):
 		return null
-	var map_layer:TileMapLayer = map_value as TileMapLayer
+	var map_layer:Node = map_value as Node
 
 	for node:Node in get_tree().get_nodes_in_group(FIELD_GROUP):
 		if not is_instance_valid(node):

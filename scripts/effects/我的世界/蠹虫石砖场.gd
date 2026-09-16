@@ -37,6 +37,10 @@ enum StoneState {
 
 var _world:Node = null
 var _map_layer:TileMapLayer = null
+# 石砖场所属的地图节点：普通 TileMapLayer，或包含多座岛的 PortalMap（此时 _map_layer 只是坐标基准岛）。
+var _map_node:Node = null
+# 实际有地板的格子（以 _map_layer 的格坐标表示）。非矩形地图 / 多岛传送门地图只在这些格子上铺石砖。
+var _stone_cells:Dictionary = {}
 var _used_rect:Rect2i = Rect2i()
 var _tile_states:Dictionary = {}
 var _transition_sprites:Dictionary = {}
@@ -48,11 +52,12 @@ var _inner_shadow:Node2D
 var _inner_shadow_update_pending:bool = false
 
 
-func setup(world:Node,map_layer:TileMapLayer) -> void:
+func setup(world:Node,map_node:Node) -> void:
 	if _map_layer != null and is_instance_valid(_map_layer):
 		return
 	_world = world
-	_map_layer = map_layer
+	_map_node = map_node
+	_map_layer = _resolve_reference_layer(map_node)
 	name = "蠹虫石砖场"
 	# V82：石砖场仍直接挂在 World，避开隐藏 TileMapLayer。
 	# 绝对 Z 改为 -5：与 Background 最终层级相同但运行时后加入，因此仍显示在背景之上；
@@ -66,7 +71,7 @@ func setup(world:Node,map_layer:TileMapLayer) -> void:
 	if _map_layer == null or not is_instance_valid(_map_layer) or _map_layer.tile_set == null:
 		return
 
-	_used_rect = _map_layer.get_used_rect()
+	_collect_stone_cells()
 	if _used_rect.size.x <= 0 or _used_rect.size.y <= 0:
 		return
 	_rebuild_render_chunks()
@@ -76,12 +81,72 @@ func setup(world:Node,map_layer:TileMapLayer) -> void:
 	_inner_shadow.name = "StoneGapShadow"
 	add_child(_inner_shadow)
 	move_child(_inner_shadow,0)
-	_inner_shadow.configure(_world.return_map_world_rect(_map_layer),_used_rect)
-	_inner_shadow.update_states(_tile_states)
+	_inner_shadow.configure(_stone_footprint_rect(),_used_rect)
+	_flush_inner_shadow()
 
 
-func is_for_map(map_layer:TileMapLayer) -> bool:
-	return _map_layer != null and is_instance_valid(_map_layer) and _map_layer == map_layer
+func is_for_map(map_node:Node) -> bool:
+	if _map_node == null or not is_instance_valid(_map_node):
+		return false
+	return _map_node == map_node or _map_layer == map_node
+
+
+static func _resolve_reference_layer(map_node:Node) -> TileMapLayer:
+	if map_node is TileMapLayer:
+		return map_node as TileMapLayer
+	if map_node is PortalMap:
+		return (map_node as PortalMap).primary_island()
+	return null
+
+
+func _source_layers() -> Array[TileMapLayer]:
+	var layers:Array[TileMapLayer] = []
+	if _map_node is PortalMap:
+		for entry:Dictionary in (_map_node as PortalMap).island_entries():
+			var layer:TileMapLayer = entry.get("layer") as TileMapLayer
+			if layer != null and is_instance_valid(layer) and layer.tile_set != null:
+				layers.append(layer)
+	elif _map_layer != null and is_instance_valid(_map_layer):
+		layers.append(_map_layer)
+	return layers
+
+
+func _collect_stone_cells() -> void:
+	# 把每座岛实际画过的格子换算到基准岛的格坐标；PortalMap 各岛一般同尺寸且按整格摆放。
+	_stone_cells.clear()
+	var first:bool = true
+	var min_cell:Vector2i = Vector2i.ZERO
+	var max_cell:Vector2i = Vector2i.ZERO
+	for layer:TileMapLayer in _source_layers():
+		for cell:Vector2i in layer.get_used_cells():
+			var coord:Vector2i = cell
+			if layer != _map_layer:
+				coord = _map_layer.local_to_map(_map_layer.to_local(layer.to_global(layer.map_to_local(cell))))
+			_stone_cells[coord] = true
+			if first:
+				min_cell = coord
+				max_cell = coord
+				first = false
+			else:
+				min_cell = min_cell.min(coord)
+				max_cell = max_cell.max(coord)
+	_used_rect = Rect2i() if first else Rect2i(min_cell,max_cell - min_cell + Vector2i.ONE)
+
+
+func _stone_footprint_rect() -> Rect2:
+	# 缺口阴影的贴图范围 = used_rect 在世界坐标下的外接矩形（按基准岛的变换换算）。
+	if _map_node is TileMapLayer and _world != null and _world.has_method("return_map_world_rect"):
+		return _world.call("return_map_world_rect",_map_layer)
+	var tile_size:Vector2 = Vector2(_map_layer.tile_set.tile_size)
+	var local_min:Vector2 = Vector2(_used_rect.position) * tile_size
+	var local_max:Vector2 = Vector2(_used_rect.end) * tile_size
+	var a:Vector2 = _map_layer.to_global(local_min)
+	var b:Vector2 = _map_layer.to_global(local_max)
+	return Rect2(a.min(b),(b - a).abs())
+
+
+func has_stone_cell(coord:Vector2i) -> bool:
+	return _stone_cells.has(coord)
 
 
 func _coord_world_position(coord:Vector2i) -> Vector2:
@@ -135,7 +200,7 @@ func _rebuild_render_chunks() -> void:
 				continue
 			chunk.name = "石砖渲染块_%d_%d" % [chunk_x,chunk_y]
 			add_child(chunk)
-			chunk.call("setup",self,_map_layer,chunk_rect,STONE_TEXTURE,CRACKED_TEXTURE)
+			chunk.call("setup",self,_map_layer,chunk_rect,STONE_TEXTURE,CRACKED_TEXTURE,_stone_cells)
 			_render_chunks[Vector2i(chunk_x,chunk_y)] = chunk
 
 
@@ -165,8 +230,16 @@ func get_remaining_silverfish_slots() -> int:
 
 func _flush_inner_shadow() -> void:
 	_inner_shadow_update_pending = false
-	if is_instance_valid(_inner_shadow):
-		_inner_shadow.update_states(_tile_states)
+	if not is_instance_valid(_inner_shadow):
+		return
+	# 没有地板的格子（环形走廊中央、岛与岛之间）本来就没有石砖，也要从遮罩里扣掉。
+	var states:Dictionary = _tile_states.duplicate()
+	for y:int in range(_used_rect.position.y,_used_rect.end.y):
+		for x:int in range(_used_rect.position.x,_used_rect.end.x):
+			var coord := Vector2i(x,y)
+			if not _stone_cells.has(coord) and not states.has(coord):
+				states[coord] = StoneState.BROKEN
+	_inner_shadow.update_states(states)
 
 
 func can_stone_react() -> bool:
@@ -274,7 +347,7 @@ func trigger_near(
 func _is_reactive_coord(coord:Vector2i) -> bool:
 	# V83：最外圈也是真实石砖，必须允许完整 -> 裂纹 -> 完全碎裂。
 	# 出生安全不再靠“禁止边缘石砖响应”解决，而是在真正孵化时把出生点夹到内侧安全格。
-	return _used_rect.has_point(coord)
+	return _used_rect.has_point(coord) and _stone_cells.has(coord)
 
 
 func _shuffle_coords(coords:Array[Vector2i],rng:RandomNumberGenerator) -> void:
@@ -558,17 +631,33 @@ func _spawn_silverfish_at(coord:Vector2i,team:String,seed_value:int,source_name:
 func _safe_spawn_world_position(broken_coord:Vector2i) -> Vector2:
 	# 最外圈现在允许正常碎裂，但很多地图把 used_rect 的最外圈本身当墙体。
 	# 烟雾/声音/碎砖仍发生在原格；只有新蠹虫的实体出生点在边缘时向内夹 1 格，避免卡进墙。
-	if _used_rect.size.x < 3 or _used_rect.size.y < 3:
+	# 非矩形地图 / 多岛地图不能简单按 used_rect 夹取（可能夹到没有地板的格子），改为就近找一个四邻都有地板的内侧格。
+	if _is_interior_cell(broken_coord):
 		return _coord_world_position(broken_coord)
-	var min_x:int = _used_rect.position.x + 1
-	var max_x:int = _used_rect.end.x - 2
-	var min_y:int = _used_rect.position.y + 1
-	var max_y:int = _used_rect.end.y - 2
-	var safe_coord:=Vector2i(
-		clampi(broken_coord.x,min_x,max_x),
-		clampi(broken_coord.y,min_y,max_y)
-	)
-	return _coord_world_position(safe_coord)
+	for radius:int in range(1,4):
+		var best:Vector2i = broken_coord
+		var best_distance:int = 2147483647
+		for dy:int in range(-radius,radius + 1):
+			for dx:int in range(-radius,radius + 1):
+				var candidate:Vector2i = broken_coord + Vector2i(dx,dy)
+				if not _is_interior_cell(candidate):
+					continue
+				var distance:int = dx * dx + dy * dy
+				if distance < best_distance:
+					best_distance = distance
+					best = candidate
+		if best_distance != 2147483647:
+			return _coord_world_position(best)
+	return _coord_world_position(broken_coord)
+
+
+func _is_interior_cell(coord:Vector2i) -> bool:
+	if not _stone_cells.has(coord):
+		return false
+	for offset:Vector2i in [Vector2i.LEFT,Vector2i.RIGHT,Vector2i.UP,Vector2i.DOWN]:
+		if not _stone_cells.has(coord + offset):
+			return false
+	return true
 
 
 func _count_active_silverfish() -> int:

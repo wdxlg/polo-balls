@@ -628,6 +628,20 @@ func notch_side_segments(island_name:String,side:int,a:float,b:float,line:float 
 	var points:PackedVector2Array = notch_outline_points(island_name,side,a,b,line)
 	var result:Array[PackedVector2Array] = []
 	if points.size() != 4: return result
+	# 环形走廊这类"整面都是门"的布局里，一扇门的缺口侧壁会恰好压在相邻（垂直方向）门面的空腔上。
+	# 那里已经没有墙了，只剩发光的门面线，所以侧壁黑线要扣掉落在垂直门面空腔内的部分，否则四角会多出黑线。
+	# 只考虑垂直方向的门面：同轴对面的门（一格宽的桥）与本门共用同一个空腔，不能互相扣掉。
+	var other_voids:Array[Rect2] = []
+	var pad:float = maxf(_border_width,1.0) * 0.5 + 0.51
+	for gate:Dictionary in _gates:
+		for key:String in ["entry","exit"]:
+			var desc:Dictionary = gate[key]
+			var other_side:int = int(desc.get("side",-1))
+			if (other_side < 2) == (side < 2):
+				continue
+			var void_rect:Rect2 = gate_void_rect(str(desc.get("island","")),int(desc.get("side",0)),float(desc.get("a",0.0)),float(desc.get("b",0.0)),float(desc.get("line",INF)))
+			if void_rect.size.x > 0.0 and void_rect.size.y > 0.0:
+				other_voids.append(void_rect.grow(pad))
 	for pair:int in [0,2]:
 		var segments:Array[PackedVector2Array] = [PackedVector2Array([points[pair],points[pair+1]])]
 		for other:Variant in _island_rects.keys():
@@ -637,6 +651,11 @@ func notch_side_segments(island_name:String,side:int,a:float,b:float,line:float 
 				for segment:PackedVector2Array in segments:
 					clipped.append_array(_clip_axis_segment(segment[0],segment[1],region))
 				segments = clipped
+		for void_rect:Rect2 in other_voids:
+			var clipped:Array[PackedVector2Array] = []
+			for segment:PackedVector2Array in segments:
+				clipped.append_array(_clip_axis_segment(segment[0],segment[1],void_rect))
+			segments = clipped
 		result.append_array(segments)
 	return result
 

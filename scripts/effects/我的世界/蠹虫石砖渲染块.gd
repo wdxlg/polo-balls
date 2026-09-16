@@ -21,7 +21,8 @@ func setup(
 	map_layer:TileMapLayer,
 	chunk_rect:Rect2i,
 	intact_texture:Texture2D,
-	cracked_texture:Texture2D
+	cracked_texture:Texture2D,
+	stone_cells:Dictionary = {}
 ) -> void:
 	_field = field
 	_intact_texture = intact_texture
@@ -41,6 +42,9 @@ func setup(
 	for y:int in range(chunk_rect.position.y,chunk_rect.end.y):
 		for x:int in range(chunk_rect.position.x,chunk_rect.end.x):
 			var coord:=Vector2i(x,y)
+			# 只在实际有地板的格子上铺砖；空字典表示旧调用方式（整块 used_rect 全铺）。
+			if not stone_cells.is_empty() and not stone_cells.has(coord):
+				continue
 			var world_position:Vector2 = map_layer.to_global(map_layer.map_to_local(coord))
 			var center:Vector2 = _field.to_local(world_position)
 			_coords.append(coord)
