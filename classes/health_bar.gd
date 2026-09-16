@@ -86,6 +86,7 @@ func _ready() -> void:
 	_normal_label_outline_color = label.get_theme_color("font_outline_color")
 	_normal_label_shadow_color = label.get_theme_color("font_shadow_color")
 	_normal_label_outline_size = label.get_theme_constant("outline_size")
+	_label_base_font_size = label.get_theme_font_size("font_size")
 	health_changed.connect(when_value_changed.bind(health_bar))
 	block_changed.connect(when_value_changed.bind(block_bar))
 	energy_changed.connect(when_value_changed.bind(energy_bar))
@@ -253,8 +254,42 @@ func _apply_karma_overlay() -> void:
 	label.add_theme_color_override("font_color",_normal_label_font_color)
 
 
+
+# 生命数字自适应：字号按字符串宽度缩小，保证数字连同描边都留在血条内，不会像 1000/12345 那样溢出。
+var _label_base_font_size:int = 0
+func _set_label_text(value:String) -> void:
+	label.text = value
+	_fit_label_text()
+
+
+func _fit_label_text() -> void:
+	if not is_instance_valid(label):
+		return
+	if _label_base_font_size <= 0:
+		_label_base_font_size = label.get_theme_font_size("font_size")
+	var font:Font = label.get_theme_font("font")
+	if font == null:
+		return
+	var outline:int = label.get_theme_constant("outline_size")
+	# 不能拿 label.size 当参考：Label 会随文字最小宽度自动撑大。以血条本体宽度为准，
+	# 描边向两侧各伸出 outline 像素，再留 8% 余量。
+	var bar_width:float = health_bar.size.x * absf(health_bar.scale.x) if is_instance_valid(health_bar) else label.size.x
+	var available:float = maxf(bar_width * 0.92 - float(outline) * 2.0,1.0)
+	var font_size:int = _label_base_font_size
+	var width:float = font.get_string_size(label.text,HORIZONTAL_ALIGNMENT_CENTER,-1,font_size).x
+	# 按比例缩一次后再复测，最多迭代几轮直到放得下（像素字体取整会有少量误差）。
+	for _step:int in range(6):
+		if width <= available or font_size <= 1:
+			break
+		var next_size:int = mini(int(floor(float(font_size) * available / width)),font_size - 1)
+		font_size = maxi(next_size,1)
+		width = font.get_string_size(label.text,HORIZONTAL_ALIGNMENT_CENTER,-1,font_size).x
+	if label.get_theme_font_size("font_size") != font_size:
+		label.add_theme_font_size_override("font_size",font_size)
+
+
 func Set_Health_Text(health_text:int) -> void:
-	label.text = "INF" if _invincible_display else str(health_text)
+	_set_label_text("INF" if _invincible_display else str(health_text))
 
 
 func set_invincible_display(enabled:bool,animate_glow:bool = true) -> void:
@@ -268,11 +303,11 @@ func set_invincible_display(enabled:bool,animate_glow:bool = true) -> void:
 			_karma_bar.visible = false
 		health_bar.value = 1.0
 		health_bar.modulate = Color.WHITE
-		label.text = "INF"
+		_set_label_text("INF")
 		label.add_theme_color_override("font_color",INVINCIBLE_GOLD_BRIGHT)
 		label.add_theme_color_override("font_outline_color",Color(0.20,0.10,0.0,1.0))
 		label.add_theme_color_override("font_shadow_color",Color(1.0,0.64,0.02,0.86))
-		label.add_theme_constant_override("outline_size",maxi(_normal_label_outline_size,150))
+		label.add_theme_constant_override("outline_size",maxi(_normal_label_outline_size,220))
 		if animate_glow:
 			_start_invincible_glow()
 		else:
@@ -292,7 +327,7 @@ func set_invincible_display(enabled:bool,animate_glow:bool = true) -> void:
 	var ratio:float = clampf(float(health_value) / float(max_health_value),0.0,1.0)
 	health_bar.value = ratio
 	health_bar.modulate = Color(1.0,ratio,ratio)
-	label.text = str(health_value)
+	_set_label_text(str(health_value))
 	_apply_karma_overlay()
 
 
@@ -334,7 +369,7 @@ func when_value_changed(last_value:int,value:int,max_value:int,if_tween:bool,bar
 		_kill_bar_tween(health_bar)
 		health_bar.value = 1.0
 		health_bar.modulate = Color.WHITE
-		label.text = "INF"
+		_set_label_text("INF")
 		return
 
 	var target_value:float = 0.0
@@ -390,7 +425,7 @@ func when_value_changed(last_value:int,value:int,max_value:int,if_tween:bool,bar
 				_spawn_heal_text(value - last_value)
 	else:
 		if bar == health_bar:
-			label.text = str(value)
+			_set_label_text(str(value))
 		bar.value = target_value
 
 	if bar == health_bar and get_karma_preview_total() > 0.0001:
