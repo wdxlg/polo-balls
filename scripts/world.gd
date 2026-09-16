@@ -6214,6 +6214,7 @@ func _rotation_mark_current_dead(side:String,red:bool = true) -> void:
 	_rotation_current_labels[side] = null
 	if red:
 		label.add_theme_color_override("font_color",Color(1.0,0.28,0.28))
+		_rotation_attach_wasted_overlay(label)
 	else:
 		label.add_theme_color_override("font_color",Color(0.78,0.78,0.78))
 	var history:Array = _rotation_history_labels[side]
@@ -6236,6 +6237,41 @@ func _rotation_mark_current_dead(side:String,red:bool = true) -> void:
 		tween.tween_property(item,"position:y",target_y,0.22).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 		tween.tween_property(item,"modulate:a",target_alpha,0.22)
 	_rotation_refresh_future_labels(side)
+
+
+const ROTATION_WASTED_OVERLAY:Script = preload("res://scripts/effects/wasted_overlay.gd")
+func _rotation_attach_wasted_overlay(label:Label) -> void:
+	# 真正战死（不是小局结束被清场）的名字上叠一层 WASTED：黑色渐隐横带 + 红字黑边。
+	if label.has_node("WastedOverlay"):
+		return
+	var overlay:Control = ROTATION_WASTED_OVERLAY.new()
+	overlay.name = "WastedOverlay"
+	label.add_child(overlay)
+	_rotation_fit_wasted_overlay(label,overlay)
+	# 先缩在中间，再横向展开，配合名字变红的节奏。
+	overlay.scale = Vector2(0.2,1.0)
+	overlay.modulate.a = 0.0
+	var tween:Tween = overlay.create_tween().set_parallel(true)
+	tween.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(overlay,"scale",Vector2.ONE,0.22)
+	tween.tween_property(overlay,"modulate:a",1.0,0.14)
+
+
+func _rotation_fit_wasted_overlay(label:Label,overlay:Control) -> void:
+	# 横带以名字文字本身为中心（名字靠 VS 一侧对齐，不是整行居中），宽度约为文字的 1.8 倍。
+	var font:Font = label.get_theme_font("font")
+	var font_size:int = label.get_theme_font_size("font_size")
+	var text_w:float = font.get_string_size(label.text,HORIZONTAL_ALIGNMENT_LEFT,-1,font_size).x if font != null else label.size.x
+	var band_w:float = clampf(text_w * 1.8 + 24.0,64.0,label.size.x)
+	var band_h:float = label.size.y + 2.0
+	var text_center_x:float = label.size.x * 0.5
+	match label.horizontal_alignment:
+		HORIZONTAL_ALIGNMENT_RIGHT: text_center_x = label.size.x - text_w * 0.5
+		HORIZONTAL_ALIGNMENT_LEFT: text_center_x = text_w * 0.5
+	var left_x:float = clampf(text_center_x - band_w * 0.5,0.0,maxf(label.size.x - band_w,0.0))
+	overlay.position = Vector2(left_x,-1.0)
+	overlay.size = Vector2(band_w,band_h)
+	overlay.pivot_offset = overlay.size * 0.5
 
 
 func _rotation_refresh_future_labels(side:String) -> void:
@@ -6328,6 +6364,8 @@ func _layout_rotation_label_widths() -> void:
 		for child:Node in root.get_children():
 			if child is Label:
 				(child as Label).size = Vector2(root.size.x,12.0)
+				if child.has_node("WastedOverlay"):
+					_rotation_fit_wasted_overlay(child as Label,child.get_node("WastedOverlay") as Control)
 
 
 #========================================================
