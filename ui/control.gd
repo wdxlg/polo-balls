@@ -190,6 +190,9 @@ func _ready() -> void:
 	# 角色列表与设置列表共用同一套像素滚动条，避免选人界面出现 Godot 默认滚动条。
 	_style_pixel_scroll_container(char_scroll)
 	_configure_character_middle_drag()
+	# 选地图列表同样使用像素滚动条，并支持中键按住上下拖动。
+	_style_pixel_scroll_container(map_scroll)
+	_configure_map_middle_drag()
 	_style_character_search()
 	apply_portrait_layout()
 	_refresh_multiplayer_permissions_ui()
@@ -633,10 +636,13 @@ func change_connect_state() -> void:
 func _input(event:InputEvent) -> void:
 	# 中键拖动角色列表时由这里持续接管 motion。这样即使鼠标拖出某个按钮，
 	# 列表也会继续滚，而不是因为 GUI hover 目标变化突然中断。
-	if _character_middle_dragging:
+	if _character_middle_dragging or _map_middle_dragging:
 		Game.mouse_drag = false
 		if event is InputEventMouseMotion:
-			_scroll_character_list_by(-event.relative.y)
+			if _character_middle_dragging:
+				_scroll_character_list_by(-event.relative.y)
+			else:
+				_scroll_container_by(map_scroll,-event.relative.y)
 			get_viewport().set_input_as_handled()
 			return
 		if (
@@ -645,6 +651,7 @@ func _input(event:InputEvent) -> void:
 			and not event.is_pressed()
 		):
 			_character_middle_dragging = false
+			_map_middle_dragging = false
 			get_viewport().set_input_as_handled()
 			return
 
@@ -744,6 +751,7 @@ var boss_specialization_row:Control
 var mode_section_gap:Control
 var _settings_middle_dragging:bool = false
 var _character_middle_dragging:bool = false
+var _map_middle_dragging:bool = false
 
 func add_game_set() -> void:
 	# 新设置界面：顶部分类按钮 + 可滚动内容区。
@@ -1649,15 +1657,45 @@ func _on_character_middle_drag_gui_input(event:InputEvent, source:Control) -> vo
 
 
 func _scroll_character_list_by(amount:float) -> void:
-	if not is_instance_valid(char_scroll):
+	_scroll_container_by(char_scroll,amount)
+
+
+func _scroll_container_by(scroll:ScrollContainer,amount:float) -> void:
+	if not is_instance_valid(scroll):
 		return
-	var bar:VScrollBar = char_scroll.get_v_scroll_bar()
+	var bar:VScrollBar = scroll.get_v_scroll_bar()
 	var max_scroll:int = int(maxf(bar.max_value - bar.page, 0.0)) if is_instance_valid(bar) else 0
-	char_scroll.scroll_vertical = clampi(
-		char_scroll.scroll_vertical + roundi(amount),
+	scroll.scroll_vertical = clampi(
+		scroll.scroll_vertical + roundi(amount),
 		0,
 		max_scroll
 	)
+
+
+func _configure_map_middle_drag() -> void:
+	if not is_instance_valid(map_scroll):
+		return
+	_connect_map_middle_drag_recursive(map_scroll)
+	_connect_map_middle_drag_recursive(map_scroll.get_v_scroll_bar())
+
+
+func _connect_map_middle_drag_recursive(node:Node) -> void:
+	if node == null or not is_instance_valid(node):
+		return
+	if node is Control:
+		var control_node:Control = node as Control
+		var callback:Callable = _on_map_middle_drag_gui_input.bind(control_node)
+		if not control_node.gui_input.is_connected(callback):
+			control_node.gui_input.connect(callback)
+	for child:Node in node.get_children():
+		_connect_map_middle_drag_recursive(child)
+
+
+func _on_map_middle_drag_gui_input(event:InputEvent, source:Control) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_MIDDLE:
+		_map_middle_dragging = event.is_pressed()
+		Game.mouse_drag = false
+		source.accept_event()
 
 
 func _populate_manual_attack_options() -> void:
@@ -1817,6 +1855,7 @@ func _on_server_button_up() -> void:
 	change_connect_state()
 #地图
 @onready var map: Panel = $Map
+@onready var map_scroll: ScrollContainer = $Map/Map_Inner/ScrollContainer
 @onready var map_box: VBoxContainer = $Map/Map_Inner/ScrollContainer/VBoxContainer
 func set_map_buts() -> void:
 	for c in get_parent().get_parent().get_children():
@@ -1827,6 +1866,8 @@ func set_map_buts() -> void:
 			but.name = c.name
 			if c.name == get_tree().current_scene.default_map:
 				but.self_modulate = Color(0.671, 0.671, 0.671, 0.675)
+	# 按钮建好后再绑一次：中键拖动要能从按钮上开始。
+	_configure_map_middle_drag()
 #队伍设置
 	#通用
 		#改变世界设置和文本
