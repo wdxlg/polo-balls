@@ -22,7 +22,7 @@ Has_Collision_Damage = false
 Can_Attack = false
 Can_Skill = false
 Type = 3
-lifetime = 7.0
+lifetime = 0.0
 [node name="Image" parent="Graphics" index="0"]
 texture = ExtResource("3_visual")
 scale = Vector2(0.35, 0.35)

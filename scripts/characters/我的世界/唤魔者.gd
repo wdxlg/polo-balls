@@ -3,10 +3,11 @@ extends "res://scripts/characters/我的世界/mc_mob_base.gd"
 const FANG = preload("res://scripts/effects/我的世界/唤魔尖牙.gd")
 const VISUAL = preload("res://Images/characters/我的世界/唤魔者/唤魔者.png")
 @export var fang_interval:float = 2.2
-@export var summon_interval:float = 7.0
+# 恼鬼不再自然消散，只能被杀死，所以召唤间隔放慢：首次 6 秒、之后每 14 秒补员。
+@export var summon_interval:float = 14.0
 @export var max_vex:int = 3
 var _fang_wait:float = 0.6
-var _summon_wait:float = 3.0
+var _summon_wait:float = 6.0
 var _vex:Array[WeakRef] = []
 var _victory_cheered:bool = false
 
@@ -23,7 +24,7 @@ func tick_physics(state:State,delta:float) -> void:
 		_fang_wait = maxf(fang_interval,0.5)
 		cast_fangs(target)
 	if _summon_wait <= 0.0:
-		_summon_wait = maxf(summon_interval,2.0)
+		_summon_wait = maxf(summon_interval,4.0)
 		summon_vex()
 
 func cast_fangs(target:ball) -> void:

@@ -1,4 +1,5 @@
 extends "res://scripts/characters/我的世界/mc_mob_base.gd"
+# <= 0 表示没有寿命：只会被打死（恼鬼用），不会自然消散。末影分身仍保留正常寿命。
 @export var lifetime:float = 6.0
 @export var enderman_clone:bool = false
 var _life_left:float
@@ -30,14 +31,16 @@ func tick_physics(state:State,delta:float) -> void:
 		retire()
 		return
 	if mc_live():
-		_life_left -= delta
-		if _life_left <= 0.0:
-			health = 0
-			retire()
-			return
+		if has_lifetime():
+			_life_left -= delta
+			if _life_left <= 0.0:
+				health = 0
+				retire()
+				return
 		# 分身保留公共移动/碰墙反弹，不再向敌人持续改写方向。
 	super.tick_physics(state,delta)
 	_apply_creature_tint()
+func has_lifetime() -> bool: return lifetime > 0.0
 func move(speed:float,delta:float) -> void:
 	var before:Vector2 = global_position
 	super.move(speed,delta)
