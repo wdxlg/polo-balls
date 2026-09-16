@@ -26,7 +26,9 @@ const MC_SMOKE_SCENE:PackedScene = preload("res://scenes/effects/我的世界/MC
 const BLAZE_HIT_FLASH_SHADER:Shader = preload("res://shaders/Set_RGB_Color.gdshader")
 
 @export_category("烈焰人 / 视觉")
-@export_range(0.75,1.40,0.01) var body_size_vs_creeper:float = 1.18
+# 原版烈焰人 1.8 格、苦力怕 1.7 格；1.18 是旧 SVG 素材（含大量透明留白）时代的补偿值，
+# 换成原生逐帧模型后同一比例会把烈焰人放大约 30%。
+@export_range(0.75,1.40,0.01) var body_size_vs_creeper:float = 1.0
 
 @export_category("烈焰人 / 连射")
 @export_range(1,8,1) var burst_min_shots:int = 3

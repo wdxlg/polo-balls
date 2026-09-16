@@ -1036,10 +1036,17 @@ func _play_transit_effects(gate:Dictionary,_from_pos:Vector2,to_pos:Vector2,radi
 		stroke.default_color = Color(color.r*1.8,color.g*1.8,color.b*1.8,[0.12,0.25,1.0][i])
 		stroke.material = clip.material
 		ring.add_child(stroke)
-	ring.scale = Vector2.ONE*0.4
+	# 到达波纹：前 1/3 时间迅速撑开（指数缓出），全程正弦缓入渐隐，线宽同步收细，
+	# 结束时透明度与线宽都归零，不会“啪”地消失。
+	ring.scale = Vector2.ONE*0.55
+	ring.modulate.a = 0.0
+	var duration:float = 0.30
 	var tween:Tween = ring.create_tween().set_parallel(true)
-	tween.tween_property(ring,"scale",Vector2.ONE*2.0,0.4).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tween.tween_property(ring,"modulate:a",0.0,0.4)
+	tween.tween_property(ring,"scale",Vector2.ONE*2.6,duration).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
+	tween.tween_property(ring,"modulate:a",1.0,duration*0.12).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tween.tween_property(ring,"modulate:a",0.0,duration*0.88).set_delay(duration*0.12).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	for stroke:Line2D in ring.get_children():
+		tween.tween_property(stroke,"width",0.0,duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tween.chain().tween_callback(ring.queue_free)
 
 
