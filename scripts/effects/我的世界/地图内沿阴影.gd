@@ -34,3 +34,34 @@ func configure(rect:Rect2,spread:Vector2,wall_spans:Array) -> void:
 	surface.material.set_shader_parameter("segment_count",segments.size())
 	surface.material.set_shader_parameter("footprint_size",rect.size)
 	surface.material.set_shader_parameter("spread_size",spread.max(Vector2(0.01,0.01)))
+
+func configure_regions(regions:Array[Rect2],spread:Vector2,edges:Array[Dictionary]) -> void:
+	top_level = true
+	global_position = Vector2.ZERO
+	z_as_relative = false
+	z_index = -4
+	if not is_instance_valid(surface):
+		surface = Polygon2D.new()
+		var mat := ShaderMaterial.new()
+		mat.shader = SHADER
+		surface.material = mat
+		add_child(surface)
+	surface.visible = not regions.is_empty() and not edges.is_empty()
+	if not surface.visible: return
+	var vertices:PackedVector2Array = PackedVector2Array()
+	var polygons:Array[PackedInt32Array] = []
+	for rect:Rect2 in regions:
+		var k:int = vertices.size()
+		vertices.append_array(PackedVector2Array([rect.position,Vector2(rect.end.x,rect.position.y),rect.end,Vector2(rect.position.x,rect.end.y)]))
+		polygons.append(PackedInt32Array([k,k+1,k+2,k+3]))
+	surface.polygon = vertices
+	surface.polygons = polygons
+	var image:Image = Image.create(edges.size(),1,false,Image.FORMAT_RGBAF)
+	for i:int in range(edges.size()):
+		var edge:Dictionary = edges[i]
+		var a:Vector2 = MapTileGeometry.point(edge,edge.a)
+		var b:Vector2 = MapTileGeometry.point(edge,edge.b)
+		image.set_pixel(i,0,Color(a.x,a.y,b.x,b.y))
+	surface.material.set_shader_parameter("segments",ImageTexture.create_from_image(image))
+	surface.material.set_shader_parameter("segment_count",edges.size())
+	surface.material.set_shader_parameter("spread_size",spread.max(Vector2(0.01,0.01)))

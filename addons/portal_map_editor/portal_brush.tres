@@ -1,0 +1,18 @@
+[gd_resource type="TileSet" format=3 uid="uid://bc56hvj6enbr8"]
+
+[sub_resource type="Gradient" id="Gradient_portal"]
+offsets = PackedFloat32Array(0, 0.49, 0.51, 1)
+colors = PackedColorArray(0.1, 0.55, 1, 0.9, 0.1, 0.55, 1, 0.9, 1, 0.18, 0.25, 0.9, 1, 0.18, 0.25, 0.9)
+
+[sub_resource type="GradientTexture2D" id="Texture_portal"]
+gradient = SubResource("Gradient_portal")
+width = 32
+height = 16
+
+[sub_resource type="TileSetAtlasSource" id="Atlas_portal"]
+texture = SubResource("Texture_portal")
+0:0/0 = 0
+1:0/0 = 0
+
+[resource]
+sources/0 = SubResource("Atlas_portal")

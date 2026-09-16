@@ -283,8 +283,8 @@ func _update_wild_dog_time_visual(delta:float,world:World) -> void:
 	var map_rect := Rect2()
 	if world.map_group.has(world.now_choose_map):
 		var map_node:Variant = world.map_group[world.now_choose_map]
-		if map_node is TileMapLayer:
-			map_rect = world.return_map_world_rect(map_node as TileMapLayer)
+		if map_node is TileMapLayer or map_node is PortalMap:
+			map_rect = world.return_map_world_rect(map_node)
 
 	# 没有有效地图时宁可暂时隐藏日月，也不回退到镜头中心，避免再次出现在地图内部。
 	if map_rect.size.x <= 0.0 or map_rect.size.y <= 0.0:

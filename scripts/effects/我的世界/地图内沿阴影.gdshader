@@ -9,8 +9,6 @@ varying vec2 local_point;
 void vertex() { local_point = VERTEX; }
 void fragment() {
 	vec2 scale = max(spread_size,vec2(0.001));
-	vec2 edge = min(local_point,footprint_size-local_point)/scale;
-	if (min(edge.x,edge.y)>=1.0) { discard; }
 	vec2 p = local_point/scale;
 	float distance_from_edge = 1.0;
 	for (int i=0;i<segment_count;i++) {

@@ -1817,10 +1817,10 @@ func _on_server_button_up() -> void:
 	change_connect_state()
 #地图
 @onready var map: Panel = $Map
-@onready var map_box: VBoxContainer = $Map/Map_Inner/VBoxContainer
+@onready var map_box: VBoxContainer = $Map/Map_Inner/ScrollContainer/VBoxContainer
 func set_map_buts() -> void:
 	for c in get_parent().get_parent().get_children():
-		if c is TileMapLayer:
+		if c is TileMapLayer or c is PortalMap:
 			var but:Button = create_new_but(map_box)
 			but.set_meta("choice_value", str(c.name))
 			but.text = Game.ui_t(str(c.name))

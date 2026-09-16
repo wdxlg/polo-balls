@@ -346,6 +346,196 @@ const WAITER_DOOR_PASSAGE_GRACE_MSEC:int = 520
 var map_group:Dictionary = {}
 
 #========================================================
+# 断开地形（PortalMap）支持
+#
+# map_group 里既可以是普通 TileMapLayer，也可以是 PortalMap（多个 TileMapLayer 岛 + 传送门）。
+# 下面的辅助函数把“当前地图”抽象成“一个或多个岛矩形”，地图边框 / 内沿阴影 / 地图外遮罩 /
+# 安全墙 / 越界规则都按岛逐个处理；相机仍按所有岛的外接矩形取景。
+# 传送本身由 PortalMap.process_transits() 在 World 的物理帧里驱动（早于角色 move_and_slide）。
+#========================================================
+var _ball_projectile_units:Array = []
+var _ball_projectile_ids:Dictionary = {}
+var _island_extra_inside_shadows:Array[Node2D] = []
+var _island_extra_background_tiles:Array[Node2D] = []
+var _island_extra_background_shadows:Array[Node2D] = []
+
+
+func _is_map_node(node:Variant) -> bool:
+	return node is TileMapLayer or node is PortalMap
+
+
+func _current_map_node() -> Node:
+	if not map_group.has(now_choose_map):
+		return null
+	var node:Variant = map_group[now_choose_map]
+	if _is_map_node(node) and is_instance_valid(node):
+		return node
+	return null
+
+
+func current_portal_map() -> PortalMap:
+	var node:Node = _current_map_node()
+	if node is PortalMap:
+		return node as PortalMap
+	return null
+
+
+# 当前地图的岛列表：[{name, rect}]。普通 TileMapLayer 地图只有一个岛。
+const TileGeometry = preload("res://classes/map_tile_geometry.gd")
+
+func map_islands(map_node:Node) -> Array[Dictionary]:
+	var result:Array[Dictionary] = []
+	if map_node is PortalMap:
+		for entry:Dictionary in (map_node as PortalMap).island_entries():
+			var shape:Dictionary = TileGeometry.from_layer(map_node.islands[str(entry.name)])
+			result.append({"name":str(entry.name),"rect":entry.rect,"regions":shape.regions,"walls":shape.walls})
+	elif map_node is TileMapLayer:
+		var shape:Dictionary = TileGeometry.from_layer(map_node)
+		result.append({"name":str(map_node.name),"rect":return_map_world_rect(map_node),"regions":shape.regions,"walls":shape.walls})
+	return result
+
+func map_island_rects(map_node:Node) -> Array[Rect2]:
+	var rects:Array[Rect2] = []
+	for island:Dictionary in map_islands(map_node):
+		rects.append_array(island["regions"])
+	return rects
+
+
+func current_map_island_rects() -> Array[Rect2]:
+	return map_island_rects(_current_map_node())
+
+
+func _island_visual_rect(rect:Rect2,cell:Vector2) -> Rect2:
+	if not _is_grass_map_background():
+		return rect
+	return Rect2(rect.position-cell,rect.size+cell*2.0)
+
+
+func _island_display_rect(rect:Rect2,cell:Vector2) -> Rect2:
+	var outward:float = maxf(map_border_width,0.0) if _is_grass_map_background() else maxf(map_border_width*0.5-1.0,0.0)
+	return _island_visual_rect(rect,cell).grow(outward)
+
+
+# 点是否落在任意一个岛内。
+func map_contains_point(p:Vector2,rects:Array[Rect2]) -> bool:
+	for rect:Rect2 in rects:
+		if rect.has_point(p):
+			return true
+	return false
+
+
+# 包含该点的岛，否则离该点最近的岛；没有岛时返回空矩形。
+func nearest_map_island_rect(p:Vector2,rects:Array[Rect2]) -> Rect2:
+	var best:Rect2 = Rect2()
+	var best_distance:float = INF
+	for rect:Rect2 in rects:
+		if rect.has_point(p):
+			return rect
+		var nearest:Vector2 = Vector2(clampf(p.x,rect.position.x,rect.end.x),clampf(p.y,rect.position.y,rect.end.y))
+		var d:float = p.distance_squared_to(nearest)
+		if d < best_distance:
+			best_distance = d
+			best = rect
+	return best
+
+
+# 把“无限平面 - 所有岛”切成若干矩形；用于地图外裁剪遮罩与视差网格。
+func _map_outside_rects(rects:Array[Rect2]) -> Array[Rect2]:
+	var extent:float = 1000000.0
+	if rects.is_empty():
+		return [Rect2(Vector2(-extent,-extent),Vector2(extent*2.0,extent*2.0))]
+	var bounds:Rect2 = rects[0]
+	for rect:Rect2 in rects:
+		bounds = bounds.merge(rect)
+	var l:float = bounds.position.x
+	var r:float = bounds.end.x
+	var t:float = bounds.position.y
+	var b:float = bounds.end.y
+	var result:Array[Rect2] = [
+		Rect2(Vector2(-extent,-extent),Vector2(extent*2.0,t+extent)),
+		Rect2(Vector2(-extent,b),Vector2(extent*2.0,extent-b)),
+		Rect2(Vector2(-extent,t),Vector2(l+extent,maxf(b-t,0.0))),
+		Rect2(Vector2(r,t),Vector2(extent-r,maxf(b-t,0.0))),
+	]
+	if rects.size() <= 1:
+		return result
+	# 多岛：用所有岛的边缘切成网格，把不属于任何岛的格子补成遮罩。
+	var xs:Array[float] = []
+	var ys:Array[float] = []
+	for rect:Rect2 in rects:
+		for x:float in [rect.position.x,rect.end.x]:
+			if not xs.has(x):
+				xs.append(x)
+		for y:float in [rect.position.y,rect.end.y]:
+			if not ys.has(y):
+				ys.append(y)
+	xs.sort()
+	ys.sort()
+	for i:int in range(xs.size()-1):
+		for j:int in range(ys.size()-1):
+			var cell:Rect2 = Rect2(xs[i],ys[j],xs[i+1]-xs[i],ys[j+1]-ys[j])
+			if cell.size.x <= 0.001 or cell.size.y <= 0.001:
+				continue
+			if not map_contains_point(cell.get_center(),rects):
+				result.append(cell)
+	return result
+
+
+static func _rect_polygon(rr:Rect2) -> PackedVector2Array:
+	return PackedVector2Array([
+		rr.position,
+		Vector2(rr.end.x,rr.position.y),
+		rr.end,
+		Vector2(rr.position.x,rr.end.y),
+	])
+
+
+func _ensure_island_visual_count(list:Array[Node2D],count:int,script_path:String,node_name:String,z:int) -> void:
+	while list.size() < count:
+		var node:Node2D = load(script_path).new()
+		node.name = "%s_%d" % [node_name,list.size()+2]
+		node.z_as_relative = false
+		node.z_index = z
+		add_child(node)
+		list.append(node)
+	for i:int in range(list.size()):
+		if is_instance_valid(list[i]):
+			list[i].visible = i < count
+
+
+# 岛的安全墙允许向外伸出的最大厚度：不能压进其它岛。
+func _island_safety_clearance(rects:Array[Rect2],index:int) -> float:
+	var clearance:float = INF
+	var rect:Rect2 = rects[index]
+	for i:int in range(rects.size()):
+		if i == index:
+			continue
+		var other:Rect2 = rects[i]
+		var dx:float = maxf(maxf(other.position.x - rect.end.x,rect.position.x - other.end.x),0.0)
+		var dy:float = maxf(maxf(other.position.y - rect.end.y,rect.position.y - other.end.y),0.0)
+		clearance = minf(clearance,maxf(dx,dy))
+	return clearance
+
+
+func portal_get_projectile_velocity(node:Node) -> Vector2:
+	return _directional_gravity_projectile_velocity(node)
+
+
+func portal_set_projectile_velocity(node:Node,new_velocity:Vector2) -> void:
+	_set_directional_gravity_projectile_velocity(node,new_velocity)
+
+
+func _process_portal_transits(delta:float,ball_group:Array) -> void:
+	var portal:PortalMap = current_portal_map()
+	if portal == null:
+		return
+	for i:int in range(_ball_projectile_units.size()-1,-1,-1):
+		var raw:Variant = _ball_projectile_units[i]
+		if raw == null or not is_instance_valid(raw):
+			_ball_projectile_units.remove_at(i)
+	portal.process_transits(delta,ball_group,_ball_projectile_units,_non_ball_projectiles)
+
+#========================================================
 # 地图 / 顶部标题 / 互动文字
 #========================================================
 
@@ -903,12 +1093,10 @@ func _is_center_watermark_enabled() -> bool:
 
 
 func _get_center_watermark_map_rect() -> Rect2:
-	if not map_group.has(now_choose_map):
+	var map_node:Node = _current_map_node()
+	if map_node == null:
 		return Rect2()
-	var map_node:Variant = map_group[now_choose_map]
-	if not map_node is TileMapLayer:
-		return Rect2()
-	return return_map_visual_rect(map_node as TileMapLayer)
+	return return_map_visual_rect(map_node)
 
 
 func _refresh_center_watermark_layout(map_rect:Rect2 = Rect2()) -> void:
@@ -1118,7 +1306,7 @@ func _ready() -> void:
 	randomize()
 	
 	for c in get_children():
-		if c is TileMapLayer:
+		if c is TileMapLayer or c is PortalMap:
 			map_group[c.name] = c
 
 	# 创建黑色地图边框和 VS 标题；随机互动文字已删除。
@@ -1246,8 +1434,8 @@ func process_always(delta:float):
 
 	shake_restore += ball_count
 	var map_center:Vector2 = camera_2d.global_position
-	if map_group.has(now_choose_map) and map_group[now_choose_map] is TileMapLayer:
-		map_center = return_map_world_rect(map_group[now_choose_map]).get_center()
+	if _current_map_node() != null:
+		map_center = return_map_world_rect(_current_map_node()).get_center()
 	var desired_center:Vector2 = map_center
 	var controlled:Node = Game.get_local_controlled_character()
 	var follow_controlled:bool = false
@@ -1360,6 +1548,13 @@ func get_battle_units_fast() -> Array:
 func register_battle_unit(unit:ball) -> void:
 	if unit == null or not is_instance_valid(unit):
 		return
+	# 继承 ball 的投射物单独登记，供传送门地图逐帧检查穿越；不进入战斗单位表。
+	if unit.Type == ball.Ball_Type.Shooter or unit.Type == ball.Ball_Type.Shooter_with_Health:
+		var projectile_id:int = unit.get_instance_id()
+		if not _ball_projectile_ids.has(projectile_id):
+			_ball_projectile_ids[projectile_id] = true
+			_ball_projectile_units.append(unit)
+		return
 	if unit.Type != ball.Ball_Type.Ball and unit.Type != ball.Ball_Type.Creature:
 		return
 	var id:int = unit.get_instance_id()
@@ -1386,6 +1581,12 @@ func unregister_battle_unit(unit:ball) -> void:
 	if unit == null:
 		return
 	var id:int = unit.get_instance_id()
+	if _ball_projectile_ids.has(id):
+		_ball_projectile_ids.erase(id)
+		for i:int in range(_ball_projectile_units.size()-1,-1,-1):
+			if _ball_projectile_units[i] == unit:
+				_ball_projectile_units.remove_at(i)
+				break
 	_battle_unit_ids.erase(id)
 	for i:int in range(_battle_units_cache.size()-1,-1,-1):
 		var raw:Variant = _battle_units_cache[i]
@@ -1813,6 +2014,8 @@ func _physics_process(delta: float) -> void:
 
 	# 服务员门需要逐物理帧处理穿门碰撞；直接复用本帧单位数组，避免再次 get_nodes_in_group()。
 	_process_waiter_door_passages(set_property_group)
+	# 传送门地图：角色 / 投射物前沿贴到门边时立即映射到目标岛（早于本帧 move_and_slide）。
+	_process_portal_transits(delta,set_property_group)
 
 	# 地图救回/越界淘汰不是攻击命中判定，20Hz 足够；delta 累计后计时仍然准确。
 	_map_rule_refresh_elapsed += maxf(delta,0.0)
@@ -1850,14 +2053,11 @@ func _rebuild_map_safety_frame() -> void:
 
 	if not map_safety_frame_enabled:
 		return
-	if not map_group.has(now_choose_map):
+	var map_node:Node = _current_map_node()
+	if map_node == null:
 		return
-	var map_node = map_group[now_choose_map]
-	if not map_node is TileMapLayer:
-		return
-
-	var map_rect:Rect2 = return_map_world_rect(map_node)
-	if map_rect.size.x <= 1.0 or map_rect.size.y <= 1.0:
+	var rects:Array[Rect2] = map_island_rects(map_node)
+	if rects.is_empty():
 		return
 
 	var root := Node2D.new()
@@ -1867,14 +2067,22 @@ func _rebuild_map_safety_frame() -> void:
 	_map_safety_frame = root
 	_map_safety_frame_map_name = now_choose_map
 
-	var thickness:float = maxf(map_safety_wall_thickness,4.0)
-	var inset:float = maxf(map_safety_wall_inset,0.0)
-
-	# 四面安全墙现在按“线段”重建。服务员开门时，对应门宽会真实留空，
-	# 因此额外安全框本身也不会把门口堵住。
-	for side:int in range(4):
-		_add_map_safety_side_segments(root,map_rect,side,thickness,inset)
-
+	var portal:PortalMap = current_portal_map()
+	var all_ground:Array[Rect2] = map_island_rects(map_node)
+	for island:Dictionary in map_islands(map_node):
+		for edge:Dictionary in TileGeometry.edges(island.regions):
+			var side:int = edge.side
+			var normal:Vector2 = PortalMap.SIDE_NORMALS[side]
+			var spans:Array[Vector2] = _subtract_axis_intervals(edge.a,edge.b,_shape_edge_gaps(edge,island,portal,false))
+			for span:Vector2 in spans:
+				var a:Vector2 = TileGeometry.point(edge,span.x)
+				var b:Vector2 = TileGeometry.point(edge,span.y)
+				# Only exterior geometry; subtract ground so thin holes/nearby islands never receive internal walls.
+				var depth:float = maxf(map_safety_wall_thickness,4.0)
+				var outer:Vector2 = normal*depth
+				var wall:Rect2 = Rect2(a.min(b).min(a+outer),(a.max(b).max(b+outer)-a.min(b).min(a+outer)))
+				for piece:Rect2 in TileGeometry.subtract([wall],all_ground):
+					_add_map_safety_wall(root,piece.get_center(),piece.size)
 
 func _add_map_safety_side_segments(
 	parent:Node2D,
@@ -1946,14 +2154,13 @@ func open_waiter_door(
 ) -> int:
 	if owner == null or not is_instance_valid(owner) or not owner is Node2D:
 		return -1
-	if not map_group.has(now_choose_map):
-		return -1
-	var map_node:Variant = map_group[now_choose_map]
-	if not map_node is TileMapLayer:
+	var map_node:Node = _current_map_node()
+	if map_node == null:
 		return -1
 
 	_prune_waiter_doors_for_current_map()
-	var map_rect:Rect2 = return_map_world_rect(map_node as TileMapLayer)
+	# 传送门地图：门开在服务员所在（或最近）的岛上。
+	var map_rect:Rect2 = nearest_map_island_rect((owner as Node2D).global_position,map_island_rects(map_node))
 	if map_rect.size.x <= 1.0 or map_rect.size.y <= 1.0:
 		return -1
 
@@ -1961,8 +2168,9 @@ func open_waiter_door(
 	if owner is ball:
 		owner_half_extents = _ball_collision_world_half_extents(owner as ball)
 	var tile_depth:float = 16.0
-	if (map_node as TileMapLayer).tile_set != null:
-		var ts:Vector2i = (map_node as TileMapLayer).tile_set.tile_size
+	var tile_layer:TileMapLayer = map_node as TileMapLayer if map_node is TileMapLayer else (map_node as PortalMap).primary_island()
+	if tile_layer != null and tile_layer.tile_set != null:
+		var ts:Vector2i = tile_layer.tile_set.tile_size
 		tile_depth = float(maxi(ts.x,ts.y))
 	var placement:Dictionary = _choose_waiter_door_placement(
 		(owner as Node2D).global_position,
@@ -2004,6 +2212,7 @@ func open_waiter_door(
 	_waiter_doors[door_id] = {
 		"id": door_id,
 		"map_name": now_choose_map,
+		"island_rect": map_rect,
 		"owner_ref": weakref(owner),
 		"center": placement["center"],
 		"side": int(placement["side"]),
@@ -2150,12 +2359,19 @@ func _waiter_interval_sort(a:Vector2,b:Vector2) -> bool:
 
 
 func _waiter_door_gap_intervals(side:int,axis_min:float,axis_max:float,extra:float = 0.0) -> Array[Vector2]:
+	return _waiter_door_gap_intervals_for_island(side,axis_min,axis_max,extra,Rect2())
+
+
+# island_rect 非空时只统计开在该岛上的门（传送门地图逐岛绘制边框 / 安全墙）。
+func _waiter_door_gap_intervals_for_island(side:int,axis_min:float,axis_max:float,extra:float,island_rect:Rect2) -> Array[Vector2]:
 	var intervals:Array[Vector2] = []
 	for raw_id:Variant in _waiter_doors.keys():
 		var info:Dictionary = _waiter_doors[raw_id]
 		if str(info.get("map_name","")) != now_choose_map:
 			continue
 		if int(info.get("side",-1)) != side:
+			continue
+		if island_rect.size.x > 0.0 and info.has("island_rect") and not (info["island_rect"] as Rect2).is_equal_approx(island_rect):
 			continue
 		var center:Vector2 = info.get("center",Vector2.ZERO)
 		var scalar:float = center.y if side < 2 else center.x
@@ -2201,15 +2417,12 @@ func _process_waiter_door_passages(ball_group:Array = []) -> void:
 	if _waiter_doors.is_empty():
 		_restore_all_waiter_door_wall_masks()
 		return
-	if not map_group.has(now_choose_map):
-		_restore_all_waiter_door_wall_masks()
-		return
-	var map_node:Variant = map_group[now_choose_map]
-	if not map_node is TileMapLayer:
+	var map_node:Node = _current_map_node()
+	if map_node == null:
 		_restore_all_waiter_door_wall_masks()
 		return
 
-	var map_rect:Rect2 = return_map_world_rect(map_node as TileMapLayer)
+	var island_rects:Array[Rect2] = map_island_rects(map_node)
 	var now_msec:int = Time.get_ticks_msec()
 	var inside_any_tunnel:Dictionary = {}
 
@@ -2248,7 +2461,7 @@ func _process_waiter_door_passages(ball_group:Array = []) -> void:
 			_suspend_waiter_door_wall_collision(b)
 			b.set_meta(&"waiter_door_passage_grace_until_msec",now_msec + WAITER_DOOR_PASSAGE_GRACE_MSEC)
 
-			var inside_map_now:bool = map_rect.has_point(b.global_position)
+			var inside_map_now:bool = map_contains_point(b.global_position,island_rects)
 			var had_state:bool = body_states.has(body_id)
 			var previous_inside:bool = inside_map_now
 			if had_state:
@@ -2395,11 +2608,9 @@ func _prune_waiter_doors_for_current_map() -> void:
 
 
 func _refresh_current_map_border_geometry() -> void:
-	if not map_group.has(now_choose_map):
-		return
-	var map_node:Variant = map_group[now_choose_map]
-	if map_node is TileMapLayer:
-		_refresh_map_border_geometry(return_map_world_rect(map_node as TileMapLayer))
+	var map_node:Node = _current_map_node()
+	if map_node != null:
+		_refresh_map_border_geometry(return_map_world_rect(map_node))
 
 
 func _process_map_squeeze_protection(ball_group:Array = []) -> void:
@@ -2409,16 +2620,14 @@ func _process_map_squeeze_protection(ball_group:Array = []) -> void:
 	# 只有角色中心真正越过地图矩形时，才认为是被挤出了地图并执行动画救回。
 	if not map_safety_frame_enabled:
 		return
-	if not map_group.has(now_choose_map):
-		return
-	var map_node = map_group[now_choose_map]
-	if not map_node is TileMapLayer:
+	var map_node:Node = _current_map_node()
+	if map_node == null:
 		return
 
 	if _map_safety_frame_map_name != now_choose_map or _map_safety_frame == null or not is_instance_valid(_map_safety_frame):
 		_rebuild_map_safety_frame()
 
-	var map_rect:Rect2 = return_map_world_rect(map_node)
+	var island_rects:Array[Rect2] = map_island_rects(map_node)
 	for node in ball_group:
 		if not node is ball:
 			continue
@@ -2436,6 +2645,10 @@ func _process_map_squeeze_protection(ball_group:Array = []) -> void:
 			continue
 
 		var old_pos:Vector2 = b.global_position
+		# 传送门地图：按角色所在 / 最近的岛判断挤出。
+		var map_rect:Rect2 = nearest_map_island_rect(old_pos,island_rects)
+		if map_rect.size.x <= 0.0:
+			continue
 
 		# 服务员门例外：
 		# - 任意角色正在穿门时有短暂 grace，不会刚跨线就被自动拉回；
@@ -2575,17 +2788,15 @@ func _process_out_of_bounds_rule(delta:float,ball_group:Array = []) -> void:
 	if not out_of_bounds_enabled:
 		_clear_all_out_of_bounds_states()
 		return
-	if not map_group.has(now_choose_map):
-		_clear_all_out_of_bounds_states()
-		return
-	var map_node = map_group[now_choose_map]
-	if not map_node is TileMapLayer:
+	var map_node:Node = _current_map_node()
+	if map_node == null:
 		_clear_all_out_of_bounds_states()
 		return
 
-	var map_rect:Rect2 = return_map_world_rect(map_node)
+	var island_rects:Array[Rect2] = map_island_rects(map_node)
 	if out_of_bounds_margin > 0.0:
-		map_rect = map_rect.grow(out_of_bounds_margin)
+		for i:int in range(island_rects.size()):
+			island_rects[i] = island_rects[i].grow(out_of_bounds_margin)
 
 	var active_ids:Dictionary = {}
 	for node in ball_group:
@@ -2615,7 +2826,7 @@ func _process_out_of_bounds_rule(delta:float,ball_group:Array = []) -> void:
 			_clear_out_of_bounds_state(id)
 			continue
 
-		if map_rect.has_point(b.global_position):
+		if map_contains_point(b.global_position,island_rects):
 			_clear_out_of_bounds_state(id)
 			continue
 
@@ -2911,7 +3122,7 @@ func _recompute_cinematic_focus_state() -> void:
 	_cinematic_focus_tween.tween_property(self,"_cinematic_focus_zoom_multiplier",target_zoom,maxf(duration,0.01))
 
 
-func _fit_zoom_for_map(map_node:TileMapLayer) -> float:
+func _fit_zoom_for_map(map_node:Node) -> float:
 	if map_node == null or not is_instance_valid(map_node):
 		return 0.0
 	var map_rect:Rect2 = return_map_shadow_rect(map_node)
@@ -2939,13 +3150,11 @@ func _base_camera_zoom_value() -> float:
 			return minf(reference_zoom,maxf(_fit_zoom_for_map(map_group[now_choose_map]),0.05))
 		return reference_zoom
 
-	if not map_group.has(now_choose_map):
-		return reference_zoom
-	var current_node:Variant = map_group[now_choose_map]
-	if not current_node is TileMapLayer:
+	var current_node:Node = _current_map_node()
+	if current_node == null:
 		return reference_zoom
 
-	var current_map:TileMapLayer = current_node as TileMapLayer
+	var current_map:Node = current_node
 	var current_fit:float = _fit_zoom_for_map(current_map)
 	if current_fit <= 0.0:
 		return reference_zoom
@@ -2979,12 +3188,10 @@ func get_effective_camera_zoom() -> float:
 
 
 func _constrain_camera_center_to_keep_map_visible(desired_center:Vector2,zoom_value:float) -> Vector2:
-	if not map_group.has(now_choose_map):
+	var map_node:Node = _current_map_node()
+	if map_node == null:
 		return desired_center
-	var map_node:Variant = map_group[now_choose_map]
-	if not map_node is TileMapLayer:
-		return desired_center
-	var map_rect:Rect2 = return_map_visual_rect(map_node as TileMapLayer)
+	var map_rect:Rect2 = return_map_visual_rect(map_node)
 	var viewport_size:Vector2 = get_viewport_rect().size
 	var safe_zoom:float = maxf(zoom_value,0.001)
 	var half_view:Vector2 = viewport_size / (2.0 * safe_zoom)
@@ -3427,16 +3634,71 @@ var map_background_shadow:Node2D
 var map_inside_shadow:Node2D
 func _is_grass_map_background() -> bool:
 	return Game.Game_Settings.get("Map_Background","blue") == "grass"
-func map_visual_cell_size(layer:TileMapLayer) -> Vector2:
+func map_visual_cell_size(map_node:Node) -> Vector2:
+	var layer:TileMapLayer = map_node as TileMapLayer if map_node is TileMapLayer else ((map_node as PortalMap).primary_island() if map_node is PortalMap else null)
 	if not is_instance_valid(layer) or layer.tile_set == null: return Vector2(16,16)
 	var tile:Vector2 = Vector2(layer.tile_set.tile_size)
 	return Vector2(maxf(layer.global_transform.x.length()*tile.x,0.01),maxf(layer.global_transform.y.length()*tile.y,0.01))
-func return_map_visual_rect(layer:TileMapLayer) -> Rect2:
+func return_map_visual_rect(layer:Node) -> Rect2:
 	var rect:Rect2 = return_map_world_rect(layer)
 	if not _is_grass_map_background(): return rect
 	var cell:Vector2 = map_visual_cell_size(layer)
 	return Rect2(rect.position-cell,rect.size+cell*2.0)
-func _refresh_map_background_tiles(layer:TileMapLayer) -> void:
+# 草方块地图的边墙分段：把传送门缺口从每边的墙里减掉，墙就真的断开。
+func _island_wall_spans(physical_rect:Rect2,island_name:String,portal:PortalMap,cell:Vector2) -> Array:
+	if portal == null or physical_rect.size.x <= 0.0 or physical_rect.size.y <= 0.0:
+		return []
+	var visual_rect:Rect2 = _island_visual_rect(physical_rect,cell)
+	var spans:Array = []
+	for side:int in range(4):
+		var axis_min:float = physical_rect.position.y if side < 2 else visual_rect.position.x
+		var axis_max:float = physical_rect.end.y if side < 2 else visual_rect.end.x
+		var gaps:Array[Vector2] = portal.gap_intervals(island_name,side,axis_min,axis_max)
+		spans.append(_subtract_axis_intervals(axis_min,axis_max,gaps))
+	return spans
+
+
+func _island_shadow_cutouts(rect:Rect2,island_name:String,portal:PortalMap,cell:Vector2) -> Array[Rect2]:
+	var cuts:Array[Rect2] = []
+	if portal == null or not _is_grass_map_background(): return cuts
+	var reach:Vector2 = cell*4.0
+	for side:int in range(4):
+		var low:float = rect.position.y if side < 2 else rect.position.x
+		var high:float = rect.end.y if side < 2 else rect.end.x
+		for gap:Vector2 in portal.gap_intervals(island_name,side,low,high):
+			match side:
+				0: cuts.append(Rect2(rect.position.x-reach.x,gap.x,reach.x,gap.y-gap.x))
+				1: cuts.append(Rect2(rect.end.x,gap.x,reach.x,gap.y-gap.x))
+				2: cuts.append(Rect2(gap.x,rect.position.y-reach.y,gap.y-gap.x,reach.y))
+				3: cuts.append(Rect2(gap.x,rect.end.y,gap.y-gap.x,reach.y))
+	return cuts
+
+
+func _map_shape_walls(map_node:Node) -> Array[Rect2]:
+	var walls:Array[Rect2] = []
+	if not _is_grass_map_background(): return walls
+	for island:Dictionary in map_islands(map_node): walls.append_array(island.walls)
+	walls = TileGeometry.subtract(walls,map_island_rects(map_node))
+	var portal:PortalMap = current_portal_map()
+	if portal != null: walls = TileGeometry.subtract(walls,portal.void_rects())
+	return walls
+
+func _map_shape_visual(map_node:Node) -> Array[Rect2]:
+	var regions:Array[Rect2] = map_island_rects(map_node)
+	regions.append_array(_map_shape_walls(map_node))
+	return regions
+
+func _shape_edge_gaps(edge:Dictionary,island:Dictionary,portal:PortalMap,include_portals:bool = true) -> Array[Vector2]:
+	var rect:Rect2 = island.rect
+	var side:int = edge.side
+	var outer:float = [rect.position.x,rect.end.x,rect.position.y,rect.end.y][side]
+	var gaps:Array[Vector2] = []
+	if absf(outer-float(edge.line)) < 0.01:
+		gaps = _waiter_door_gap_intervals_for_island(side,edge.a,edge.b,0.0,rect if portal != null else Rect2())
+	if portal != null and include_portals: gaps.append_array(portal.gap_intervals(str(island.name),side,edge.a,edge.b,edge.line))
+	return PortalMap.merge_intervals(gaps)
+
+func _refresh_map_background_tiles(layer:Node) -> void:
 	if not is_instance_valid(map_background_tiles):
 		map_background_tiles = load("res://scripts/effects/我的世界/地图草方块背景.gd").new()
 		map_background_tiles.name = "MapBackgroundTiles"
@@ -3444,17 +3706,25 @@ func _refresh_map_background_tiles(layer:TileMapLayer) -> void:
 		map_background_tiles.z_as_relative = false
 		map_background_tiles.z_index = -5
 		add_child(map_background_tiles)
-	map_background_tiles.configure(return_map_world_rect(layer),map_visual_cell_size(layer),_is_grass_map_background())
 	if not is_instance_valid(map_background_shadow):
 		map_background_shadow = load("res://scripts/effects/我的世界/地图外沿阴影.gd").new()
 		map_background_shadow.name = "MapOutsideShadow"
 		add_child(map_background_shadow)
-	map_background_shadow.configure(return_map_display_rect(layer),map_visual_cell_size(layer))
+	var cell:Vector2 = map_visual_cell_size(layer)
+	var ground:Array[Rect2] = map_island_rects(layer)
+	var portal:PortalMap = current_portal_map()
+	if portal != null:
+		portal.set_wall_carving(_is_grass_map_background())
+		portal.refresh_visuals(map_border_width,-maxf(map_border_width,0.0)*0.5-cell.x if _is_grass_map_background() else 1.0,not _is_grass_map_background())
+	map_background_tiles.configure_regions(ground,_map_shape_walls(layer),cell,_is_grass_map_background())
+	map_background_shadow.configure_union(_map_shape_visual(layer),cell,[])
+	for extra:Node2D in _island_extra_background_tiles: extra.visible = false
+	for extra:Node2D in _island_extra_background_shadows: extra.visible = false
 
-func return_map_display_rect(layer:TileMapLayer) -> Rect2:
+func return_map_display_rect(layer:Node) -> Rect2:
 	var outward:float = maxf(map_border_width,0.0) if _is_grass_map_background() else maxf(map_border_width*0.5-1.0,0.0)
 	return return_map_visual_rect(layer).grow(outward)
-func return_map_shadow_rect(layer:TileMapLayer) -> Rect2:
+func return_map_shadow_rect(layer:Node) -> Rect2:
 	var rect:Rect2 = return_map_display_rect(layer)
 	var cell:Vector2 = map_visual_cell_size(layer)
 	return Rect2(rect.position-cell,rect.size+cell*2.0)
@@ -3536,14 +3806,19 @@ func setup_map_presentation() -> void:
 func _sync_selected_map_visibility() -> void:
 	for map_name:Variant in map_group.keys():
 		var node:Variant = map_group[map_name]
+		var selected:bool = str(map_name) == now_choose_map
+		if node is PortalMap:
+			var portal:PortalMap = node as PortalMap
+			if portal.is_active() != selected:
+				portal.set_active(selected)
+			continue
 		if node is TileMapLayer:
 			var layer:TileMapLayer = node as TileMapLayer
-			var selected:bool = str(map_name) == now_choose_map
 			# TileMap 只用来规划地图范围、墙体和导航，不作为运行时背景。
 			# 所有地图层始终隐藏；黑色 MapBorderLine 才是玩家实际看到的地图边界。
 			layer.visible = false
 			# 只有当前地图保留碰撞/导航，避免隐藏的其他地图继续产生墙体。
-			layer.collision_enabled = selected
+			layer.collision_enabled = false # painted tiles are ground; exposed edges provide collision
 			layer.navigation_enabled = selected
 
 
@@ -3555,7 +3830,9 @@ func _setup_map_outside_grid() -> void:
 	map_outside_grid_root.name = "MapOutsideParallaxGrid"
 	# Background 是 -3，BackBufferCopy 是 -1；网格夹在两者之间，
 	# 因而地图外裁剪遮罩也会复制到同一份棋盘背景。
-	map_outside_grid_root.z_index = -2
+	# 明确置于阴影(-4)下面；不能与阴影同层后绘制而覆盖门洞侧边阴影。
+	map_outside_grid_root.z_as_relative = false
+	map_outside_grid_root.z_index = -5
 	add_child(map_outside_grid_root)
 
 	map_outside_grid_material = ShaderMaterial.new()
@@ -3583,28 +3860,38 @@ func _refresh_map_outside_grid(map_rect:Rect2) -> void:
 
 	# 网格只存在于地图矩形外侧。这里沿用地图外裁剪遮罩的四块几何，
 	# 因此地图内部仍完整显示原来的蓝色 Background。
-	var extent:float = 1000000.0
-	var l:float = map_rect.position.x
-	var r:float = map_rect.end.x
-	var t:float = map_rect.position.y
-	var b:float = map_rect.end.y
-	var rects:Array[Rect2] = [
-		Rect2(Vector2(-extent,-extent),Vector2(extent * 2.0,t + extent)),
-		Rect2(Vector2(-extent,b),Vector2(extent * 2.0,extent - b)),
-		Rect2(Vector2(-extent,t),Vector2(l + extent,maxf(b - t,0.0))),
-		Rect2(Vector2(r,t),Vector2(extent - r,maxf(b - t,0.0))),
-	]
-	for i:int in range(mini(map_outside_grid_parts.size(),rects.size())):
-		var rr:Rect2 = rects[i]
+	# 传送门地图：岛与岛之间的空隙同样属于地图外，用同一网格材质补齐。
+	var rects:Array[Rect2] = _map_outside_rects(_current_visual_island_rects(map_rect))
+	# 墙上的门洞也属于地图外：使用同一视差材质，不能留下纯蓝底。
+	var portal:PortalMap = current_portal_map()
+	if portal != null and _is_grass_map_background():
+		portal.set_wall_carving(true)
+		var cell:Vector2 = map_visual_cell_size(portal)
+		portal.refresh_visuals(map_border_width,-maxf(map_border_width,0.0)*0.5-cell.x,false)
+		rects.append_array(portal.void_rects())
+	while map_outside_grid_parts.size() < rects.size():
+		var extra_poly := Polygon2D.new()
+		extra_poly.name = "OutsideGrid_%d" % map_outside_grid_parts.size()
+		extra_poly.color = Color.WHITE
+		extra_poly.material = map_outside_grid_material
+		map_outside_grid_root.add_child(extra_poly)
+		map_outside_grid_parts.append(extra_poly)
+	for i:int in range(map_outside_grid_parts.size()):
 		var poly:Polygon2D = map_outside_grid_parts[i]
-		poly.polygon = PackedVector2Array([
-			rr.position,
-			Vector2(rr.end.x,rr.position.y),
-			rr.end,
-			Vector2(rr.position.x,rr.end.y),
-		])
+		poly.visible = i < rects.size()
+		if i < rects.size():
+			poly.polygon = _rect_polygon(rects[i])
 	_update_map_outside_grid_parallax()
 
+
+# 当前地图各岛的“视觉矩形”（草地背景时向外扩一格）。fallback_rect 用于没有地图节点的情况。
+func _current_visual_island_rects(fallback_rect:Rect2) -> Array[Rect2]:
+	var node:Node = _current_map_node()
+	return [fallback_rect] if node == null else _map_shape_visual(node)
+
+func _current_physical_island_rects(fallback_rect:Rect2) -> Array[Rect2]:
+	var node:Node = _current_map_node()
+	return [fallback_rect] if node == null else map_island_rects(node)
 
 func _update_map_outside_grid_parallax() -> void:
 	if not map_outside_grid_enabled:
@@ -3674,33 +3961,35 @@ func _refresh_map_outside_mask(map_rect:Rect2) -> void:
 		return
 	_setup_map_outside_mask()
 	map_outside_mask_root.visible = true
-	var extent:float = 1000000.0
-	var l:float = map_rect.position.x
-	var r:float = map_rect.end.x
-	var t:float = map_rect.position.y
-	var b:float = map_rect.end.y
-	var rects:Array[Rect2] = [
-		Rect2(Vector2(-extent,-extent),Vector2(extent * 2.0,t + extent)),
-		Rect2(Vector2(-extent,b),Vector2(extent * 2.0,extent - b)),
-		Rect2(Vector2(-extent,t),Vector2(l + extent,maxf(b - t,0.0))),
-		Rect2(Vector2(r,t),Vector2(extent - r,maxf(b - t,0.0))),
-	]
-	for i:int in range(mini(map_outside_mask_parts.size(),rects.size())):
-		var rr:Rect2 = rects[i]
+	# 传送门地图：多岛之间的空隙也要裁掉越界的角色视觉。
+	var rects:Array[Rect2] = _map_outside_rects(_current_physical_island_rects(map_rect))
+	while map_outside_mask_parts.size() < rects.size():
+		var extra_poly := Polygon2D.new()
+		extra_poly.name = "OutsideMask_%d" % map_outside_mask_parts.size()
+		extra_poly.color = Color.WHITE
+		extra_poly.material = map_outside_mask_parts[0].material if not map_outside_mask_parts.is_empty() else map_clip_material
+		extra_poly.z_index = 0
+		map_outside_mask_root.add_child(extra_poly)
+		map_outside_mask_parts.append(extra_poly)
+	for i:int in range(map_outside_mask_parts.size()):
 		var poly:Polygon2D = map_outside_mask_parts[i]
+		poly.visible = i < rects.size()
+		if i >= rects.size():
+			continue
+		var rr:Rect2 = rects[i]
 		poly.color = Color.WHITE
-		poly.polygon = PackedVector2Array([
-			rr.position,
-			Vector2(rr.end.x,rr.position.y),
-			rr.end,
-			Vector2(rr.position.x,rr.end.y),
-		])
+		poly.polygon = _rect_polygon(rr)
 
 
 #========================================================
 # 获取地图真实世界矩形
 #========================================================
-func return_map_world_rect(map_layer:TileMapLayer) -> Rect2:
+func return_map_world_rect(map_layer:Node) -> Rect2:
+	# 传送门地图：所有岛的外接矩形（相机取景、顶部文字、水印用）。
+	if map_layer is PortalMap:
+		return (map_layer as PortalMap).world_rect()
+	if not map_layer is TileMapLayer:
+		return Rect2()
 	# 临时终幕地图的物理边界会延伸；原地图/10×10参考地图仍返回原始单格范围。
 	if is_instance_valid(map_layer) and map_layer.has_meta(&"sans_final_rect"):
 		return map_layer.get_meta(&"sans_final_rect") as Rect2
@@ -3873,6 +4162,24 @@ func _refresh_map_border_geometry(map_rect:Rect2) -> void:
 		map_border_segment_root.remove_child(child)
 		child.queue_free()
 
+	var portal:PortalMap = current_portal_map()
+	var map_node:Node = _current_map_node()
+	if _is_grass_map_background():
+		for edge:Dictionary in TileGeometry.edges(_map_shape_visual(map_node)):
+			var n:Vector2 = PortalMap.SIDE_NORMALS[int(edge.side)]
+			_add_map_border_segment(TileGeometry.point(edge,edge.a)+n*map_border_width*0.5,TileGeometry.point(edge,edge.b)+n*map_border_width*0.5)
+	else:
+		for island:Dictionary in map_islands(map_node):
+			for edge:Dictionary in TileGeometry.edges(island.regions):
+				var n:Vector2 = PortalMap.SIDE_NORMALS[int(edge.side)]
+				for span:Vector2 in _subtract_axis_intervals(edge.a,edge.b,_shape_edge_gaps(edge,island,portal)):
+					_add_map_border_segment(TileGeometry.point(edge,span.x)-n,TileGeometry.point(edge,span.y)-n)
+	if portal != null:
+		var cell:Vector2 = map_visual_cell_size(map_node)
+		portal.set_wall_carving(_is_grass_map_background())
+		portal.refresh_visuals(map_border_width,-maxf(map_border_width,0.0)*0.5-cell.x if _is_grass_map_background() else 1.0,not _is_grass_map_background())
+
+func _refresh_island_border_geometry(map_rect:Rect2,physical_rect:Rect2,island_name:String,portal:PortalMap) -> void:
 	# Line2D以中心线向两边扩宽；木圈必须连线宽都完全置于纹理外侧。
 	var inset:float = -maxf(map_border_width,0.0)*0.5 if _is_grass_map_background() else 1.0
 	var top_left:Vector2 = map_rect.position + Vector2.ONE*inset
@@ -3883,7 +4190,10 @@ func _refresh_map_border_geometry(map_rect:Rect2) -> void:
 	for side:int in range(4):
 		var axis_min:float = top_left.y if side < 2 else top_left.x
 		var axis_max:float = bottom_right.y if side < 2 else bottom_right.x
-		var gaps:Array[Vector2] = _waiter_door_gap_intervals(side,axis_min,axis_max,0.0)
+		var gaps:Array[Vector2] = _waiter_door_gap_intervals_for_island(side,axis_min,axis_max,0.0,physical_rect if portal != null else Rect2())
+		if portal != null:
+			gaps.append_array(portal.gap_intervals(island_name,side,axis_min,axis_max))
+			gaps = PortalMap.merge_intervals(gaps)
 		var segments:Array[Vector2] = _subtract_axis_intervals(axis_min,axis_max,gaps)
 		for span:Vector2 in segments:
 			if span.y - span.x <= 0.2:
@@ -3902,14 +4212,39 @@ func _refresh_map_border_geometry(map_rect:Rect2) -> void:
 			else:
 				a = Vector2(span.x,bottom_right.y)
 				b = Vector2(span.y,bottom_right.y)
-			_add_map_border_segment(a,b)
+			if portal != null and _is_grass_map_background():
+				for exposed:PackedVector2Array in portal.exposed_border_segments(island_name,a,b,map_border_width):
+					_add_map_border_segment(exposed[0],exposed[1])
+			else:
+				_add_map_border_segment(a,b)
 
 
 func _refresh_map_inside_shadow() -> void:
-	if not map_group.has(now_choose_map):
+	var map_node:Node = _current_map_node()
+	if map_node == null:
 		return
-	var layer:TileMapLayer = map_group[now_choose_map]
-	var rect:Rect2 = return_map_world_rect(layer)
+	var islands:Array[Dictionary] = map_islands(map_node)
+	if islands.is_empty():
+		return
+	var portal:PortalMap = current_portal_map()
+	if not is_instance_valid(map_inside_shadow):
+		map_inside_shadow = load("res://scripts/effects/我的世界/地图内沿阴影.gd").new()
+		map_inside_shadow.name = "MapInsideShadow"
+		add_child(map_inside_shadow)
+	var edges:Array[Dictionary] = []
+	for island:Dictionary in islands:
+		for edge:Dictionary in TileGeometry.edges(island.regions):
+			for span:Vector2 in _subtract_axis_intervals(edge.a,edge.b,_shape_edge_gaps(edge,island,portal)):
+				var segment:Dictionary = edge.duplicate()
+				segment.a = span.x
+				segment.b = span.y
+				edges.append(segment)
+	map_inside_shadow.configure_regions(map_island_rects(map_node),map_visual_cell_size(map_node),edges)
+	for extra:Node2D in _island_extra_inside_shadows: extra.visible = false
+
+func _configure_island_inside_shadow(shadow:Node2D,physical_rect:Rect2,island_name:String,portal:PortalMap) -> void:
+	var layer:Node = _current_map_node()
+	var rect:Rect2 = physical_rect
 	# 蓝色墙中心线内缩1，阴影从线条内缘开始；木墙内缘就是草地边缘。
 	if not _is_grass_map_background():
 		rect = rect.grow(-(1.0+maxf(map_border_width,0.0)*0.5))
@@ -3917,13 +4252,12 @@ func _refresh_map_inside_shadow() -> void:
 	for side:int in range(4):
 		var axis_min:float = rect.position.y if side < 2 else rect.position.x
 		var axis_max:float = rect.end.y if side < 2 else rect.end.x
-		var gaps:Array[Vector2] = _waiter_door_gap_intervals(side,axis_min,axis_max,0.0)
+		var gaps:Array[Vector2] = _waiter_door_gap_intervals_for_island(side,axis_min,axis_max,0.0,physical_rect if portal != null else Rect2())
+		if portal != null:
+			gaps.append_array(portal.gap_intervals(island_name,side,axis_min,axis_max))
+			gaps = PortalMap.merge_intervals(gaps)
 		wall_spans.append(_subtract_axis_intervals(axis_min,axis_max,gaps))
-	if not is_instance_valid(map_inside_shadow):
-		map_inside_shadow = load("res://scripts/effects/我的世界/地图内沿阴影.gd").new()
-		map_inside_shadow.name = "MapInsideShadow"
-		add_child(map_inside_shadow)
-	map_inside_shadow.configure(rect,map_visual_cell_size(layer),wall_spans)
+	shadow.configure(rect,map_visual_cell_size(layer),wall_spans)
 
 
 func _add_map_border_segment(a:Vector2,b:Vector2) -> void:
@@ -3949,7 +4283,9 @@ func refresh_map_presentation() -> void:
 
 	_prune_waiter_doors_for_current_map()
 	_sync_selected_map_visibility()
-	var now_map:TileMapLayer = map_group[now_choose_map]
+	var now_map:Node = _current_map_node()
+	if now_map == null:
+		return
 	var map_rect:Rect2 = return_map_world_rect(now_map)
 	var visual_rect:Rect2 = return_map_visual_rect(now_map)
 	_refresh_map_background_tiles(now_map)
@@ -3958,8 +4294,7 @@ func refresh_map_presentation() -> void:
 	_refresh_center_watermark_layout(visual_rect)
 
 	# 地图切换时重建不可见安全墙，防止角色从不同尺寸地图的边角被挤出去。
-	if _map_safety_frame_map_name != now_choose_map or _map_safety_frame == null or not is_instance_valid(_map_safety_frame):
-		_rebuild_map_safety_frame()
+	_rebuild_map_safety_frame()
 
 	# 黑色地图边框按线段绘制，服务员开门时对应门宽会真实断开。
 	_refresh_map_border_geometry(visual_rect)
@@ -5085,38 +5420,23 @@ func refresh_interaction_text() -> void:
 # 都属于自动救援距离，而不是进入远距离越界淘汰。
 #========================================================
 func return_character_placement_test_bounds() -> Rect2:
-	if not map_group.has(now_choose_map):
+	var map_node:Node = _current_map_node()
+	if map_node == null:
 		return Rect2()
-	var map_node:Variant = map_group[now_choose_map]
-	if not map_node is TileMapLayer:
-		return Rect2()
-	return return_map_world_rect(map_node as TileMapLayer).grow(maxf(map_squeeze_rescue_distance,0.0))
+	return return_map_world_rect(map_node).grow(maxf(map_squeeze_rescue_distance,0.0))
 
 
 func can_place_character_at(position:Vector2) -> bool:
-	if not map_group.has(now_choose_map):
-		return false
-	var map_node:Variant = map_group[now_choose_map]
-	if not map_node is TileMapLayer:
-		return false
-	var map_rect:Rect2 = return_map_world_rect(map_node as TileMapLayer)
-	if map_rect.has_point(position):
-		return true
+	return map_contains_point(position,map_island_rects(_current_map_node()))
 
-	# 不能只检查 grow() 后的矩形，因为四个角会比 rescue_distance 更远。
-	# 使用到原地图矩形最近点的欧氏距离，确保任何允许放置的位置
-	# 都真的会被 _process_map_squeeze_protection() 接管并拉回。
-	var nearest:Vector2 = Vector2(
-		clampf(position.x,map_rect.position.x,map_rect.end.x),
-		clampf(position.y,map_rect.position.y,map_rect.end.y)
-	)
-	return position.distance_to(nearest) <= maxf(map_squeeze_rescue_distance,0.0)
-
-
-#========================================================
-# 原有地图边界函数，保留给其他代码使用
-#========================================================
 func return_now_map_border() -> Dictionary:
+	var map_node:Node = _current_map_node()
+	if map_node is PortalMap:
+		var rect_all:Rect2 = return_map_world_rect(map_node)
+		return {
+			start = rect_all.position + Vector2(1,1),
+			end = rect_all.end - Vector2(1,1)
+		}
 	var rect = map_group[now_choose_map].get_used_rect()
 	var tile_size = map_group[now_choose_map].tile_set.tile_size
 	
