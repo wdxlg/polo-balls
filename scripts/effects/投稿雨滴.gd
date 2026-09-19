@@ -90,16 +90,27 @@ func _hit_master_umbrella() -> bool:
 	return hit
 
 func _hit_enemy() -> bool:
-	for raw:Node in get_tree().get_nodes_in_group("Ball"):
+	# V434 性能：先做最便宜的线段距离过滤，只有真正贴到雨滴轨迹的单位才走
+	# TOOLS.is_enemy()（召唤链 + 阵营 metadata 判定）。两个条件都必须成立，
+	# 交换顺序不改变结果；候选列表改用 World 的可索敌快照（无 World 时退回 Ball 组）。
+	var hit_radius_sq:float = hit_radius * hit_radius
+	for raw:Node in TOOLS.targeting_candidates(self):
 		if not raw is ball:
 			continue
 		var target:ball = raw as ball
 		if target.Type == ball.Ball_Type.Shooter or target.Type == ball.Ball_Type.Shooter_with_Health:
 			continue
+		var target_position:Vector2 = target.global_position
+		# 线段包围盒外的单位一定不可能命中，避免对全场每滴雨做投影运算。
+		if target_position.x < minf(_last_position.x,global_position.x) - hit_radius or target_position.x > maxf(_last_position.x,global_position.x) + hit_radius:
+			continue
+		if target_position.y < minf(_last_position.y,global_position.y) - hit_radius or target_position.y > maxf(_last_position.y,global_position.y) + hit_radius:
+			continue
+		if _distance_point_to_segment(target_position,_last_position,global_position) > hit_radius:
+			continue
 		if not TOOLS.is_enemy(master,target):
 			continue
-		if _distance_point_to_segment(target.global_position,_last_position,global_position) > hit_radius:
-			continue
+		if target.has_method("try_full_projectile_dodge") and bool(target.call("try_full_projectile_dodge",self)): continue
 		var did_damage:bool = target.receive_positional_damage(damage,global_position,false,master)
 		if did_damage:
 			_play_character_hit_sfx()

@@ -419,7 +419,7 @@ func _closest_point_on_segment(point:Vector2,a:Vector2,b:Vector2) -> Vector2:
 func _nearest_attack_target() -> ball:
 	var best:ball = null
 	var best_dist_sq:float = maxf(enemy_notice_radius,0.0) * maxf(enemy_notice_radius,0.0)
-	for node:Node in get_tree().get_nodes_in_group("Ball"):
+	for node:Node in SubmissionCharacterTools.targeting_candidates(self):
 		if not node is ball:
 			continue
 		var candidate:ball = node as ball

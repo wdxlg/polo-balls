@@ -67,7 +67,7 @@ func mc_nearest(delta:float = 0.0) -> ball:
 	_mc_target_ref = null
 	var nearest:ball = null
 	var best:float = INF
-	for node:Node in get_tree().get_nodes_in_group("Ball"):
+	for node:Node in SubmissionCharacterTools.targeting_candidates(self):
 		if node is ball and mc_enemy(node):
 			var distance:float = global_position.distance_squared_to(node.global_position)
 			if distance < best:

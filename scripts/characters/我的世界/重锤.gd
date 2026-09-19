@@ -772,10 +772,11 @@ func _opening_swing_can_hit(target:ball) -> bool:
 func _find_opening_swing_target() -> ball:
 	var best:ball = null
 	var best_distance_sq:float = INF
-	for node:Node in get_tree().get_nodes_in_group("Ball"):
-		if not node is ball:
-			continue
-		var candidate:ball = node as ball
+	# V434 性能：_opening_swing_can_hit() 每个候选要做 73 次物理形状查询；100 人混战里
+	# 每 tick 对全场 Ball 组逐个调用会占用十几毫秒。锤头在整圈挥舞中的所有采样圆都落在
+	# 以自身为圆心、半径 (reach + head_radius) * peak_scale 的大圆内，因此先用同一套
+	# Hurtbox Area 查询取一次大圆内的单位集合（严格超集），只对这些候选做精确判定。结果不变。
+	for candidate:ball in _opening_swing_reachable_candidates():
 		if not _opening_swing_can_hit(candidate):
 			continue
 		var distance_sq:float = global_position.distance_squared_to(combat_target_position(candidate))
@@ -783,6 +784,19 @@ func _find_opening_swing_target() -> ball:
 			best_distance_sq = distance_sq
 			best = candidate
 	return best
+
+
+func _opening_swing_reachable_candidates() -> Array[ball]:
+	var peak_scale:float = maxf(swing_peak_scale_multiplier,1.0)
+	var reach_radius:float = (maxf(swing_hammer_head_reach,0.0) + maxf(swing_hammer_head_radius,0.5)) * peak_scale + 1.0
+	var candidates:Array[ball] = _opening_swing_targets_at(global_position,reach_radius)
+	if candidates.size() >= 128:
+		# 极端拥挤时结果被 intersect_shape 上限截断，退回全量扫描，保证不漏目标。
+		candidates.clear()
+		for node:Node in get_tree().get_nodes_in_group("Ball"):
+			if node is ball:
+				candidates.append(node as ball)
+	return candidates
 
 
 # 威胁调试里的蓝色起手范围直接画“真实锤头扫过的环带”边界。

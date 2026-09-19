@@ -1072,6 +1072,11 @@ var _battle_setup_next_id:int = 1
 # 阵营计算包含 Ball/Creature 型附属，但不把子弹等 Shooter 算成独立阵营。
 var _victory_bell_armed:bool = false
 var _victory_bell_played:bool = false
+# V434 性能：网格重建时顺带整理一份“当前可被索敌的人物”快照（仍在 Ball 组、is_combat_targetable()）。
+# 投稿角色工具 / MC 生物等公共索敌助手每次查询不再遍历 SceneTree 整个 Ball 组
+# （其中大半是投射物、死亡单位），候选数从 ~250 降到真正存活的人物数；
+# 助手仍对每个候选逐个做实时 is_combat_targetable/阵营判断，结果与全量扫描一致。
+var _battle_targetable_units:Array = []
 var _victory_bell_sequence_generation:int = 0
 
 #========================================================
@@ -1599,6 +1604,13 @@ func unregister_battle_unit(unit:ball) -> void:
 	# 因此统一延后一拍刷新：盔甲架退出时重算测试模式，普通角色退出时则解除旧目标锁，
 	# 让新放下的第一个角色立即接管顶部信息。
 	if _is_armor_stand_test_unit(unit) or _armor_stand_test_hud_active:
+# V434：只读快速入口，返回最近一次（≤33ms 前）网格重建时仍可被索敌的人物快照。
+# 调用方必须继续对每个候选做自己的实时有效性/敌我判断；这里只负责去掉投射物、
+# 已死亡、已退出 Ball 组或已明确退出索敌契约的单位。
+func get_combat_targetable_units_fast() -> Array:
+	return _battle_targetable_units
+
+
 		call_deferred("refresh_versus_text")
 
 
@@ -1737,6 +1749,7 @@ func _nearest_enemy_candidate_distance_sq(source:ball,candidate:ball) -> float:
 	if source.Team != "" and candidate.Team != "" and candidate.Team == source.Team:
 		return INF
 	return source.global_position.distance_squared_to(candidate.global_position)
+	_battle_targetable_units.clear()
 
 
 # 精确最近敌人空间查询：逐圈扩展格子；一旦当前最佳距离已经小于“已扫描矩形到外界的最短距离”，
@@ -1764,6 +1777,9 @@ func _find_nearest_enemy_spatial(source:ball,units:Array) -> ball:
 					if idx < 0 or idx >= units.size():
 						continue
 					var candidate:ball = units[idx] as ball
+		# V434：可索敌人物快照（投射物已在 register 时排除；这里再排除死亡/退出契约/退出 Ball 组的单位）。
+		if unit.is_combat_targetable() and unit.is_in_group("Ball"):
+			_battle_targetable_units.append(unit)
 					var distance_sq:float = _nearest_enemy_candidate_distance_sq(source,candidate)
 					if distance_sq < nearest_sq:
 						nearest_sq = distance_sq

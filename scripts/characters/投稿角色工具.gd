@@ -18,6 +18,21 @@ static func map_rect(node:Node) -> Rect2:
 	var map_node = map_groups[key]
 	return world.return_map_world_rect(map_node)
 
+# V434 性能：公共索敌候选。World 在 30Hz 网格重建时已经筛掉投射物、死亡单位、
+# 退出 Ball 组 / 退出索敌契约的单位；这里只是拿到那份快照，调用方仍对每个候选
+# 逐个执行实时 is_enemy()/距离判断，因此结果与遍历整个 Ball 组一致。
+# 没有 World（编辑器/测试场景）或快照为空时退回 SceneTree group，行为不变。
+static func targeting_candidates(node:Node) -> Array:
+	if node == null or not is_instance_valid(node) or not node.is_inside_tree():
+		return []
+	var tree:SceneTree = node.get_tree()
+	var scene:Node = tree.current_scene
+	if scene != null and scene.has_method("get_combat_targetable_units_fast"):
+		var fast:Array = scene.call("get_combat_targetable_units_fast")
+		if not fast.is_empty():
+			return fast
+	return tree.get_nodes_in_group("Ball")
+
 static func combat_root(entity:ball) -> ball:
 	if entity == null or not is_instance_valid(entity):
 		return null
@@ -106,7 +121,7 @@ static func nearest_enemy(owner:ball,max_distance:float = INF) -> ball:
 		return null
 	var best:ball = null
 	var best_sq:float = INF if max_distance == INF else max_distance * max_distance
-	for raw:Node in owner.get_tree().get_nodes_in_group("Ball"):
+	for raw:Node in targeting_candidates(owner):
 		if not raw is ball:
 			continue
 		var candidate:ball = raw as ball
@@ -123,7 +138,7 @@ static func enemies_in_radius(owner:ball,center:Vector2,radius:float) -> Array[b
 	if owner == null or not is_instance_valid(owner):
 		return out
 	var radius_sq:float = radius * radius
-	for raw:Node in owner.get_tree().get_nodes_in_group("Ball"):
+	for raw:Node in targeting_candidates(owner):
 		if not raw is ball:
 			continue
 		var candidate:ball = raw as ball
