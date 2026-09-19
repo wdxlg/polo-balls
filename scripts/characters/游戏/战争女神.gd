@@ -713,7 +713,9 @@ func _war_texture_used_rect(texture:Texture2D) -> Rect2:
 		return Rect2()
 	# V432 性能：可见像素范围只取决于纹理本身。此前每次免疫命中都 Texture2D.get_image()
 	#（GPU->CPU 回读，单次 4~5 ms）；现在按纹理对象跨实例缓存一次。
-	var cache_key:int = texture.get_instance_id()
+	# V433：优先按资源路径命中缓存——运行时若 Sprite 拿到的是同一 PNG 的另一个 Texture 实例
+	#（AutoFit/网络生成/预览复制），也不会再触发一次 GPU 回读。无路径的动态纹理仍按实例 id。
+	var cache_key:Variant = texture.resource_path if not texture.resource_path.is_empty() else texture.get_instance_id()
 	var cached:Variant = _war_texture_used_rect_cache.get(cache_key)
 	if cached is Rect2:
 		return cached

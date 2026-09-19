@@ -2067,6 +2067,66 @@ func _character_ground_shadow_body_metrics() -> Dictionary:
 	if visual_rect.size.x <= 0.001 or visual_rect.size.y <= 0.001:
 		return {}
 
+	# V433 性能：像素扫描（约 7000 次 sample，单次 ~9 ms）只取决于纹理内容、帧区域与翻转，
+	# 与实例位置无关。图片本地空间的扫描结果跨同贴图实例共享；下面的 to_local 仍逐实例计算。
+	var scan:Dictionary = _character_ground_shadow_scan_cached(visual_rect,pixel_sampler)
+	if scan.is_empty():
+		return {}
+	var body_left_x:float = float(scan["body_left_x"])
+	var body_right_x:float = float(scan["body_right_x"])
+	var body_center_x:float = float(scan["body_center_x"])
+	var foot_y:float = float(scan["foot_y"])
+	var density_threshold:float = float(scan["density_threshold"])
+	var best_length:int = int(scan["core_columns"])
+
+	var left_root:Vector2 = to_local(image.to_global(Vector2(body_left_x,foot_y)))
+	var right_root:Vector2 = to_local(image.to_global(Vector2(body_right_x,foot_y)))
+	var foot_root:Vector2 = to_local(image.to_global(Vector2(body_center_x,foot_y)))
+	var body_width:float = left_root.distance_to(right_root)
+	if body_width <= 0.001:
+		return {}
+
+	return {
+		"body_width": body_width,
+		"foot_point": foot_root,
+		"density_threshold": density_threshold,
+		"core_columns": best_length,
+	}
+
+
+static var _character_ground_shadow_scan_cache:Dictionary = {}
+
+func _character_ground_shadow_scan_cached(visual_rect:Rect2,pixel_sampler:RefCounted) -> Dictionary:
+	var key:String = ""
+	var source_image:Image = pixel_sampler.get("source_image") as Image
+	if bool(pixel_sampler.get("valid")) and source_image != null:
+		var texture:Texture2D = _get_hit_effect_visual_texture()
+		var texture_key:String = ""
+		if texture != null:
+			texture_key = texture.resource_path if not texture.resource_path.is_empty() else str(texture.get_instance_id())
+		if not texture_key.is_empty():
+			var modulation:Color = pixel_sampler.get("modulation")
+			key = "%s|%s|%s|%s|%s|%d|%d|%.3f" % [
+				texture_key,
+				str(visual_rect),
+				str(pixel_sampler.get("rect")),
+				str(pixel_sampler.get("source_position")),
+				str(pixel_sampler.get("source_size")),
+				int(pixel_sampler.get("flip_h")),
+				int(pixel_sampler.get("flip_v")),
+				modulation.a,
+			]
+			var cached:Variant = _character_ground_shadow_scan_cache.get(key)
+			if cached is Dictionary:
+				return cached
+	var result:Dictionary = _character_ground_shadow_scan(visual_rect,pixel_sampler)
+	if not key.is_empty():
+		_character_ground_shadow_scan_cache[key] = result
+	return result
+
+
+# 纯像素扫描：返回图片本地坐标下的主体左右边界、脚底行等；不依赖实例位置。
+func _character_ground_shadow_scan(visual_rect:Rect2,pixel_sampler:RefCounted) -> Dictionary:
 	var column_count:int = maxi(CHARACTER_GROUND_SHADOW_SAMPLE_COLUMNS,16)
 	var row_count:int = maxi(CHARACTER_GROUND_SHADOW_SAMPLE_ROWS,16)
 	var core_top:float = visual_rect.position.y + visual_rect.size.y * CHARACTER_GROUND_SHADOW_CORE_TOP_RATIO
@@ -2169,16 +2229,11 @@ func _character_ground_shadow_body_metrics() -> Dictionary:
 	if not found_foot:
 		return {}
 
-	var left_root:Vector2 = to_local(image.to_global(Vector2(body_left_x,foot_y)))
-	var right_root:Vector2 = to_local(image.to_global(Vector2(body_right_x,foot_y)))
-	var foot_root:Vector2 = to_local(image.to_global(Vector2(body_center_x,foot_y)))
-	var body_width:float = left_root.distance_to(right_root)
-	if body_width <= 0.001:
-		return {}
-
 	return {
-		"body_width": body_width,
-		"foot_point": foot_root,
+		"body_left_x": body_left_x,
+		"body_right_x": body_right_x,
+		"body_center_x": body_center_x,
+		"foot_y": foot_y,
 		"density_threshold": density_threshold,
 		"core_columns": best_length,
 	}

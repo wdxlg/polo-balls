@@ -618,7 +618,8 @@ func _spawn_one_debris(large_piece:bool)->void:
 	# 这里直接复用刺网原纹理，并通过 Sprite2D.region_rect 裁出随机局部区域。
 	var tex:Texture2D=_wire_texture
 	if tex==null or not is_instance_valid(tex):
-		tex=load(WIRE_TEXTURE_PATH) as Texture2D
+		_shared_wire_assets()
+		tex=_shared_wire_texture
 	if tex==null:
 		return
 
@@ -793,14 +794,44 @@ func _load_durability_audio()->void:
 
 
 func _load_wire_audio(path:String)->AudioStream:
+	# V433 性能：音效按路径跨刺网实例缓存，不再每张刺网重新 ResourceLoader.load()。
+	var cached:Variant=_wire_audio_cache.get(path)
+	if cached is AudioStream:
+		return cached as AudioStream
 	if not ResourceLoader.exists(path):
 		push_warning("盾狗刀片刺网破坏音效缺失: %s" % path)
 		return null
 	var resource:=ResourceLoader.load(path)
 	if resource is AudioStream:
+		_wire_audio_cache[path]=resource
 		return resource as AudioStream
 	push_warning("盾狗刀片刺网破坏音效资源类型错误: %s" % path)
 	return null
+
+
+static var _wire_audio_cache:Dictionary={}
+# V433 性能：刺网.png 约 2.8 MB，未压缩导入；此前每张刺网都 load() + get_image()（100 人场上单帧 39 ms）。
+# 纹理与可读 Image 只解一次，跨实例共享；碎屑采样只读不写。
+static var _shared_wire_texture:Texture2D=null
+static var _shared_wire_image:Image=null
+static var _shared_wire_loaded:bool=false
+
+static func _shared_wire_assets()->void:
+	if _shared_wire_loaded and _shared_wire_texture!=null and is_instance_valid(_shared_wire_texture):
+		return
+	_shared_wire_loaded=true
+	_shared_wire_texture=load(WIRE_TEXTURE_PATH) as Texture2D
+	_shared_wire_image=null
+	if _shared_wire_texture==null:
+		return
+	var image:Image=_shared_wire_texture.get_image()
+	if image!=null and image.is_compressed():
+		var readable_image:Image=image.duplicate() as Image
+		if readable_image!=null and readable_image.decompress()==OK:
+			image=readable_image
+		else:
+			image=null
+	_shared_wire_image=image
 
 
 func _play_random_durability_break_audio()->void:
@@ -864,21 +895,15 @@ func _build_attack_receiver()->void:
 
 
 func _build_visual()->void:
-	var tex:=load(WIRE_TEXTURE_PATH) as Texture2D
+	_shared_wire_assets()
+	var tex:Texture2D=_shared_wire_texture
 	if tex==null:
 		push_warning("盾狗刺网图片加载失败: %s" % WIRE_TEXTURE_PATH)
 		return
 
 	_wire_texture=tex
-	# V250：只在创建刺网视觉时读取一次 Image，后续碎屑只做像素采样，不反复从GPU抓纹理。
-	# 如果返回的是压缩Image，复制后只解压这一份缓存，避免后续 get_pixel() 无法读取。
-	_wire_texture_image=tex.get_image()
-	if _wire_texture_image!=null and _wire_texture_image.is_compressed():
-		var readable_image:Image=_wire_texture_image.duplicate() as Image
-		if readable_image!=null and readable_image.decompress()==OK:
-			_wire_texture_image=readable_image
-		else:
-			_wire_texture_image=null
+	# V250：碎屑只做像素采样，不反复从 GPU 抓纹理；V433 起这份 Image 跨所有刺网共享。
+	_wire_texture_image=_shared_wire_image
 
 	var sprite:=Sprite2D.new()
 	sprite.name="刺网图片"

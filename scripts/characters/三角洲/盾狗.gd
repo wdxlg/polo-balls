@@ -430,7 +430,7 @@ func _begin_wire_blade_throw()->void:
 	var land_pos:=global_position+Vector2(facing_sign*maxf(wire_throw_distance,20.0),0.0)
 	_play_world_one_shot(SHIELD_DOG_BLADE_THROW_PATH,start_pos,blade_throw_volume_db)
 
-	var blade_tex:=load(SHIELD_DOG_BLADE_TEXTURE_PATH) as Texture2D
+	var blade_tex:Texture2D=_load_shield_texture(SHIELD_DOG_BLADE_TEXTURE_PATH)
 	var blade:=Sprite2D.new()
 	blade.name="盾狗飞行刀片"
 	blade.texture=blade_tex
@@ -1055,7 +1055,7 @@ func _apply_shield_dog_texture()->void:
 	if not (image is Sprite2D):
 		return
 	var sprite:=image as Sprite2D
-	var tex:=load(SHIELD_DOG_TEXTURE_PATH) as Texture2D
+	var tex:Texture2D=_load_shield_texture(SHIELD_DOG_TEXTURE_PATH)
 	if tex==null:
 		push_warning("盾狗角色贴图加载失败: %s" % SHIELD_DOG_TEXTURE_PATH)
 		return
@@ -1323,6 +1323,19 @@ func _load_shield_audio(path:String)->AudioStream:
 static var _shield_audio_cache:Dictionary = {}
 
 
+# V433 性能：盾狗自身/刀片贴图按路径跨实例缓存（每次扔刀片、每个新盾狗不再重新 load）。
+static var _shield_texture_cache:Dictionary = {}
+
+static func _load_shield_texture(path:String)->Texture2D:
+	var cached:Variant=_shield_texture_cache.get(path)
+	if cached is Texture2D:
+		return cached as Texture2D
+	var tex:=load(path) as Texture2D
+	if tex!=null:
+		_shield_texture_cache[path]=tex
+	return tex
+
+
 func _play_random_shield_audio(player:AudioStreamPlayer2D,paths:Array[String])->void:
 	if player==null or paths.is_empty():
 		return
@@ -1378,4 +1391,4 @@ func play_wire_damage_impact_audio(_world_pos:Vector2,outgoing_damage:float=0.0)
 
 func get_preview_texture()->Texture2D:
 	# 与跑刀仔一致：局内 Ghost 不执行 _ready()，所以显式把正式盾狗贴图交给预览系统。
-	return load(SHIELD_DOG_TEXTURE_PATH) as Texture2D
+	return _load_shield_texture(SHIELD_DOG_TEXTURE_PATH)
