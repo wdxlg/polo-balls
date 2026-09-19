@@ -110,6 +110,10 @@ func _update_placement_box_overlay(world:World) -> void:
 	_ensure_placement_box_overlay(world)
 	if is_instance_valid(_placement_overlay) and _placement_overlay.has_method("set_selection_points"):
 		_placement_overlay.call("set_selection_points",_placement_press_screen,_placement_current_screen)
+	# 蓝框左上角显示“横向个数x纵向个数”，与真正落子的网格算法保持同一份计算。
+	if is_instance_valid(_placement_overlay) and _placement_overlay.has_method("set_grid_counts"):
+		var counts:Vector2i = _box_placement_grid_counts(world,_placement_press_world,_placement_current_world)
+		_placement_overlay.call("set_grid_counts",counts.x,counts.y)
 
 
 func _cancel_placement_press() -> void:
@@ -131,10 +135,10 @@ func _spawn_placed_character(world:World,team_name:String,character_name:String,
 		_game.create_ball_in_server(team_name,character_name,position)
 
 
-func _box_placement_points(world:World,from_world:Vector2,to_world:Vector2) -> Array[Vector2]:
-	var points:Array[Vector2] = []
+# 把框选区域夹到可放置范围内，返回 [min_x,min_y,max_x,max_y]；范围无效时返回空数组。
+func _box_placement_clamped_span(world:World,from_world:Vector2,to_world:Vector2) -> PackedFloat64Array:
 	if world == null or not is_instance_valid(world):
-		return points
+		return PackedFloat64Array()
 
 	# 框选放置也允许进入地图外测试带，但不会无限扩到整个屏幕。
 	# 优先使用 World 给出的扩展 bounds；老版本 World 则退回黑线内部。
@@ -162,9 +166,16 @@ func _box_placement_points(world:World,from_world:Vector2,to_world:Vector2) -> A
 		var swap_y:float = min_y
 		min_y = max_y
 		max_y = swap_y
+	return PackedFloat64Array([min_x,min_y,max_x,max_y])
 
-	var span_x:float = max_x - min_x
-	var span_y:float = max_y - min_y
+
+# 框选网格的横向/纵向个数（含 256 上限收敛），蓝框上的“几x几”文本与实际生成完全一致。
+func _box_placement_grid_counts(world:World,from_world:Vector2,to_world:Vector2) -> Vector2i:
+	var span:PackedFloat64Array = _box_placement_clamped_span(world,from_world,to_world)
+	if span.size() < 4:
+		return Vector2i.ONE
+	var span_x:float = span[2] - span[0]
+	var span_y:float = span[3] - span[1]
 	var count_x:int = 1
 	var count_y:int = 1
 	if span_x >= PLACEMENT_BOX_MIN_MULTI_SPAN:
@@ -180,6 +191,21 @@ func _box_placement_points(world:World,from_world:Vector2,to_world:Vector2) -> A
 			count_y -= 1
 		else:
 			break
+	return Vector2i(count_x,count_y)
+
+
+func _box_placement_points(world:World,from_world:Vector2,to_world:Vector2) -> Array[Vector2]:
+	var points:Array[Vector2] = []
+	var span:PackedFloat64Array = _box_placement_clamped_span(world,from_world,to_world)
+	if span.size() < 4:
+		return points
+	var min_x:float = span[0]
+	var min_y:float = span[1]
+	var max_x:float = span[2]
+	var max_y:float = span[3]
+	var counts:Vector2i = _box_placement_grid_counts(world,from_world,to_world)
+	var count_x:int = counts.x
+	var count_y:int = counts.y
 
 	for row:int in range(count_y):
 		var y:float = (min_y + max_y) * 0.5 if count_y == 1 else lerpf(min_y,max_y,float(row) / float(count_y - 1))
