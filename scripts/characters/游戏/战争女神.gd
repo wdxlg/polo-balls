@@ -711,13 +711,23 @@ func _war_texture_used_rect(texture:Texture2D) -> Rect2:
 	var texture_size:Vector2 = texture.get_size()
 	if texture_size.x <= 0.0 or texture_size.y <= 0.0:
 		return Rect2()
+	# V432 性能：可见像素范围只取决于纹理本身。此前每次免疫命中都 Texture2D.get_image()
+	#（GPU->CPU 回读，单次 4~5 ms）；现在按纹理对象跨实例缓存一次。
+	var cache_key:int = texture.get_instance_id()
+	var cached:Variant = _war_texture_used_rect_cache.get(cache_key)
+	if cached is Rect2:
+		return cached
 	var used_rect := Rect2(Vector2.ZERO,texture_size)
 	var source_image:Image = texture.get_image()
 	if source_image != null and not source_image.is_empty():
 		var used:Rect2i = source_image.get_used_rect()
 		if used.size.x > 0 and used.size.y > 0:
 			used_rect = Rect2(Vector2(used.position),Vector2(used.size))
+	_war_texture_used_rect_cache[cache_key] = used_rect
 	return used_rect
+
+
+static var _war_texture_used_rect_cache:Dictionary = {}
 
 
 func _refresh_war_immunity_content_rect() -> void:

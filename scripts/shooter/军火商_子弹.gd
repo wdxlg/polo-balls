@@ -88,10 +88,19 @@ func _setup_visual() -> void:
 func _load_projectile_texture() -> Texture2D:
 	var file_name:String = "火箭筒弹.png" if projectile_kind == 1 else "步枪子弹.png"
 	var path:String = PROJECTILE_IMAGE_DIR.path_join(file_name)
+	# V432 性能：贴图按路径跨实例缓存，不再每颗子弹 ResourceLoader.load()。
+	var cached:Variant = _projectile_texture_cache.get(path)
+	if cached is Texture2D:
+		return cached as Texture2D
 	if not ResourceLoader.exists(path):
 		return null
 	var resource:Resource = ResourceLoader.load(path)
-	return resource as Texture2D if resource is Texture2D else null
+	var texture:Texture2D = resource as Texture2D if resource is Texture2D else null
+	if texture != null:
+		_projectile_texture_cache[path] = texture
+	return texture
+
+static var _projectile_texture_cache:Dictionary = {}
 
 
 func _projectile_visual_dimension() -> float:

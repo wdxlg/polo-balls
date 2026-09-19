@@ -21,6 +21,16 @@ static func map_rect(node:Node) -> Rect2:
 static func combat_root(entity:ball) -> ball:
 	if entity == null or not is_instance_valid(entity):
 		return null
+	# V431 性能：绝大多数调用者是没有 Master 的本体角色（每帧 2000+ 次调用）。
+	# 深度 0/1 时直接返回，不再为环检测分配 Dictionary；结果与下面的通用循环完全一致。
+	var first_master:ball = entity.Master
+	if first_master == null or not is_instance_valid(first_master):
+		return entity
+	if first_master == entity:
+		return entity
+	var second_master:ball = first_master.Master
+	if second_master == null or not is_instance_valid(second_master):
+		return first_master
 	var current:ball = entity
 	var visited:Dictionary = {}
 	for _i:int in range(12):
@@ -38,7 +48,9 @@ static func combat_root(entity:ball) -> ball:
 static func effective_team(entity:ball) -> String:
 	if entity == null or not is_instance_valid(entity):
 		return ""
+	return _effective_team_with_root(entity,combat_root(entity))
 
+static func _effective_team_with_root(entity:ball,root:ball) -> String:
 	# V349：极少数运行时召唤物在网络生成/ready 的一两个时序点里，
 	# Team 属性可能暂时被场景默认值覆盖。房产证“愤怒的人”把 authority
 	# 拾取瞬间的固定阵营写进 forced_combat_team，让公共敌我判断始终先读这份稳定值。
@@ -47,9 +59,8 @@ static func effective_team(entity:ball) -> String:
 		if not forced_team.is_empty() and forced_team != "Ball":
 			return forced_team
 
-	var root:ball = combat_root(entity)
 	if root != null and is_instance_valid(root):
-		if root.has_meta(&"forced_combat_team"):
+		if root != entity and root.has_meta(&"forced_combat_team"):
 			var root_forced:String = str(root.get_meta(&"forced_combat_team","")).strip_edges()
 			if not root_forced.is_empty() and root_forced != "Ball":
 				return root_forced
@@ -67,8 +78,9 @@ static func same_side(a:ball,b:ball) -> bool:
 	var root_b:ball = combat_root(b)
 	if root_a != null and root_b != null and root_a == root_b:
 		return true
-	var team_a:String = effective_team(a)
-	var team_b:String = effective_team(b)
+	# V432 性能：根节点已经算出来了，直接复用，不再让 effective_team 各自重走一遍 combat_root。
+	var team_a:String = _effective_team_with_root(a,root_a)
+	var team_b:String = _effective_team_with_root(b,root_b)
 	return not team_a.is_empty() and team_a == team_b
 
 static func is_enemy(owner:ball,candidate:ball) -> bool:
@@ -76,13 +88,12 @@ static func is_enemy(owner:ball,candidate:ball) -> bool:
 		return false
 	if not is_instance_valid(owner) or not is_instance_valid(candidate):
 		return false
-	if candidate.health <= 0:
+	# V432 性能：先做整数/枚举过滤（生命、投射物类型），再进入 metadata 与召唤链判定；结果不变。
+	if candidate.health <= 0 or candidate.Type == ball.Ball_Type.Shooter or candidate.Type == ball.Ball_Type.Shooter_with_Health:
 		return false
 	# V418：所有使用投稿角色工具索敌的角色也必须遵守公共可锁定契约。
 	# 女巫隐身会通过 ignore_combat_targeting 让 is_combat_targetable() 返回 false。
 	if not candidate.is_combat_targetable():
-		return false
-	if candidate.Type == ball.Ball_Type.Shooter or candidate.Type == ball.Ball_Type.Shooter_with_Health:
 		return false
 	# 投稿召唤物永远不把同主人、同召唤链或同队单位当作攻击目标。
 	# 这里不依赖全局友伤开关，避免直接伤害接口误伤队友。

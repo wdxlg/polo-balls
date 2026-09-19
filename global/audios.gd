@@ -29,6 +29,20 @@ var _explicit_gameplay_paused:bool = false
 var _last_requested_game_time_scale:float = 1.0
 var _active_audio_speed_scale:float = 1.0
 
+# V432 性能：create_new_audio 的动态播放器改为“池化 + 同源并发上限”。
+# 100 人混战时每物理帧会有 80+ 次碰撞/命中声请求，旧实现每次 new AudioStreamPlayer + queue_free，
+# 树里同时挂着 1100+ 个播放器，音频线程混音 50~70 ms/帧、主线程每帧遍历追踪表也随之膨胀。
+# 同一音源同时叠加超过几层后人耳已无法分辨，因此：同源最多 MAX_VOICES_PER_SOURCE 路，
+# 全局动态播放器最多 MAX_DYNAMIC_VOICES 路，超出的请求直接丢弃；播放完的播放器回收复用。
+const MAX_VOICES_PER_SOURCE:int = 6
+const MAX_DYNAMIC_VOICES:int = 64
+const META_DYNAMIC_SOURCE_KEY:StringName = &"_audios_dynamic_source_key"
+var _dynamic_free_players:Array[AudioStreamPlayer] = []
+var _dynamic_active_count:int = 0
+var _dynamic_active_by_source:Dictionary = {}
+var _dynamic_active_players:Dictionary = {}
+var _dynamic_reclaim_frame:int = -1
+
 const PREWARMED_PLAYBACK_STREAM = preload("res://classes/prewarmed_audio_stream.gd")
 
 # Called during character preparation, never in the attack loop. Only unused
@@ -218,17 +232,9 @@ func _play_sfx_player(source:AudioStreamPlayer,params:Dictionary = {},random:boo
 	var sfx:AudioStreamPlayer = source
 
 	if create_new_audio:
-		# 不 duplicate 正在充当“音效模板”的 Player。直接新建一个干净播放器，
-		# 只共享 AudioStream 资源；这样每次碰撞拥有完全独立的 playback voice，
-		# 不受源 Player 的 playing / max_polyphony / 内部播放状态影响。
-		sfx = AudioStreamPlayer.new()
-		sfx.stream = source.stream
-		sfx.bus = source.bus
-		sfx.mix_target = source.mix_target
-		sfx.process_mode = Node.PROCESS_MODE_ALWAYS
-		add_child(sfx)
-		_track_audio_player(sfx)
-		sfx.finished.connect(sfx.queue_free,CONNECT_ONE_SHOT)
+		sfx = _acquire_dynamic_player(source)
+		if sfx == null:
+			return
 
 	if "volume" in params:
 		sfx.volume_db = float(params.volume)
@@ -249,6 +255,89 @@ func _play_sfx_player(source:AudioStreamPlayer,params:Dictionary = {},random:boo
 	else:
 		sfx.play()
 
+
+# 不 duplicate 正在充当“音效模板”的 Player。动态播放器只共享 AudioStream 资源；
+# 这样每次碰撞拥有完全独立的 playback voice，不受源 Player 的 playing / max_polyphony 影响。
+func _acquire_dynamic_player(source:AudioStreamPlayer) -> AudioStreamPlayer:
+	var source_key:String = _settings_key(source)
+	var per_source:int = int(_dynamic_active_by_source.get(source_key,0))
+	if per_source >= MAX_VOICES_PER_SOURCE or _dynamic_active_count >= MAX_DYNAMIC_VOICES:
+		# stop() / stream_paused 不会发 finished；被外部停掉的播放器在这里补回收，再重新判断上限。
+		_reclaim_stopped_dynamic_players()
+		per_source = int(_dynamic_active_by_source.get(source_key,0))
+		if per_source >= MAX_VOICES_PER_SOURCE or _dynamic_active_count >= MAX_DYNAMIC_VOICES:
+			return null
+	var sfx:AudioStreamPlayer = null
+	while not _dynamic_free_players.is_empty() and sfx == null:
+		var candidate:AudioStreamPlayer = _dynamic_free_players.pop_back()
+		if candidate != null and is_instance_valid(candidate) and not candidate.playing:
+			sfx = candidate
+	if sfx == null:
+		sfx = AudioStreamPlayer.new()
+		sfx.process_mode = Node.PROCESS_MODE_ALWAYS
+		add_child(sfx)
+		_track_audio_player(sfx)
+		sfx.finished.connect(_release_dynamic_player.bind(sfx))
+	sfx.stream = source.stream
+	sfx.bus = source.bus
+	sfx.mix_target = source.mix_target
+	sfx.stream_paused = false
+	sfx.set_meta(META_DYNAMIC_SOURCE_KEY,source_key)
+	_dynamic_active_by_source[source_key] = per_source + 1
+	_dynamic_active_count += 1
+	_dynamic_active_players[sfx.get_instance_id()] = source_key
+	return sfx
+
+
+func _release_dynamic_player(sfx:AudioStreamPlayer) -> void:
+	if sfx == null or not is_instance_valid(sfx):
+		return
+	if not sfx.has_meta(META_DYNAMIC_SOURCE_KEY):
+		return
+	var source_key:String = str(sfx.get_meta(META_DYNAMIC_SOURCE_KEY))
+	sfx.remove_meta(META_DYNAMIC_SOURCE_KEY)
+	_dynamic_active_players.erase(sfx.get_instance_id())
+	var remaining:int = int(_dynamic_active_by_source.get(source_key,0)) - 1
+	if remaining <= 0:
+		_dynamic_active_by_source.erase(source_key)
+	else:
+		_dynamic_active_by_source[source_key] = remaining
+	_dynamic_active_count = maxi(_dynamic_active_count - 1,0)
+	_dynamic_free_players.append(sfx)
+
+
+func _reclaim_stopped_dynamic_players() -> void:
+	# 上限命中时每个 process 帧最多扫一次活动表（不是全部子节点）；被 stop() 的播放器在此回收。
+	var frame:int = Engine.get_process_frames()
+	if frame == _dynamic_reclaim_frame:
+		return
+	_dynamic_reclaim_frame = frame
+	for raw_id:Variant in _dynamic_active_players.keys():
+		var id:int = int(raw_id)
+		if not is_instance_id_valid(id):
+			# 被外部 free 的播放器：只修正计数，不可再访问对象。
+			var lost_key:String = str(_dynamic_active_players[raw_id])
+			_dynamic_active_players.erase(raw_id)
+			var remaining:int = int(_dynamic_active_by_source.get(lost_key,0)) - 1
+			if remaining <= 0: _dynamic_active_by_source.erase(lost_key)
+			else: _dynamic_active_by_source[lost_key] = remaining
+			_dynamic_active_count = maxi(_dynamic_active_count - 1,0)
+			continue
+		var player:AudioStreamPlayer = instance_from_id(id) as AudioStreamPlayer
+		if player == null:
+			continue
+		# 暂停中的播放器 playing 仍为 true，不会被误回收。
+		if not player.playing:
+			_release_dynamic_player(player)
+
+
+## 测试/诊断：当前动态播放器占用情况。
+func get_dynamic_voice_stats() -> Dictionary:
+	return {
+		"active": _dynamic_active_count,
+		"free": _dynamic_free_players.size(),
+		"by_source": _dynamic_active_by_source.duplicate(),
+	}
 func _find_numbered_sfx_variant(base_name:String) -> AudioStreamPlayer:
 	# 兼容项目原有的逻辑音效名：Buff / Debuff / Defense / Bee / KakaHurt / KakaSkill。
 	# 场景实际保存的是 Buff1..N 等播放器；旧调用传组名时应随机选择一个编号变体，

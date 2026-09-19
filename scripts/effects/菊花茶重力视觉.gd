@@ -24,7 +24,9 @@ var _rng := RandomNumberGenerator.new()
 var _viewport_snapshot:Image = null
 var _snapshot_canvas_transform:Transform2D = Transform2D.IDENTITY
 var _snapshot_viewport_size:Vector2 = Vector2.ONE
-var _texture_image_cache:Dictionary = {}
+# V432 性能：纹理 CPU 副本跨所有速度线实例共享。此前是实例变量，每次菊花茶触发重力都要对
+# 全场 100 个角色的纹理重新 GPU->CPU 回读（单次 ~12 ms）。
+static var _texture_image_cache:Dictionary = {}
 
 const PATTERN_CHANGE_MIN:float = 0.22
 const PATTERN_CHANGE_MAX:float = 0.36
@@ -344,13 +346,26 @@ func _sample_subject_anchor(target:Node,sprite:Sprite2D,axis_world:Vector2,side:
 			var found:bool = false
 			# 在真实不透明像素里挑“朝该侧最外层”的候选点。
 			# 这样起点更接近人物轮廓，不会从透明外框或人物中心凭空起线。
+			# V432 性能：不透明像素的 UV 表按纹理缓存一次（CPU 端 Image 采样），
+			# 不再对每条线做 72 次 Sprite2D.is_pixel_opaque()（100 人场上每次重抽 2000+ 次调用）。
+			var opaque_uvs:PackedVector2Array = _opaque_uv_table(sprite)
+			var uv_count:int = opaque_uvs.size()
 			for _attempt:int in range(SAMPLE_ATTEMPTS):
-				var local_point := Vector2(
-					_rng.randf_range(rect.position.x,rect.end.x),
-					_rng.randf_range(rect.position.y,rect.end.y)
-				)
-				if not sprite.is_pixel_opaque(local_point):
-					continue
+				var local_point:Vector2
+				if uv_count > 0:
+					var uv:Vector2 = opaque_uvs[_rng.randi_range(0,uv_count - 1)]
+					if sprite.flip_h:
+						uv.x = 1.0 - uv.x
+					if sprite.flip_v:
+						uv.y = 1.0 - uv.y
+					local_point = rect.position + uv * rect.size
+				else:
+					local_point = Vector2(
+						_rng.randf_range(rect.position.x,rect.end.x),
+						_rng.randf_range(rect.position.y,rect.end.y)
+					)
+					if not sprite.is_pixel_opaque(local_point):
+						continue
 				var normalized_point:Vector2 = local_point - rect.get_center()
 				var score:float = normalized_point.dot(local_axis)
 				# 轻微随机项避免每次都锁死在同一个最尖像素。
@@ -488,6 +503,54 @@ func _texture_image(texture:Texture2D) -> Image:
 	return null
 
 
+# 该纹理（当前帧区域）内不透明像素的归一化 UV 表，跨所有速度线实例共享。
+# 按 4 像素步长采样并封顶 4096 个点：足够勾出轮廓，又不会为大纹理分配过多内存。
+static var _opaque_uv_cache:Dictionary = {}
+const OPAQUE_UV_MAX_POINTS:int = 4096
+
+func _opaque_uv_table(sprite:Sprite2D) -> PackedVector2Array:
+	var texture:Texture2D = sprite.texture
+	if texture == null:
+		return PackedVector2Array()
+	var texture_size:Vector2 = Vector2(texture.get_size())
+	var source_rect := Rect2(Vector2.ZERO,texture_size)
+	if sprite.region_enabled and sprite.region_rect.size.x > 0.0 and sprite.region_rect.size.y > 0.0:
+		source_rect = sprite.region_rect
+	else:
+		var hframes:int = maxi(sprite.hframes,1)
+		var vframes:int = maxi(sprite.vframes,1)
+		if hframes > 1 or vframes > 1:
+			var frame_size := Vector2(texture_size.x / float(hframes),texture_size.y / float(vframes))
+			var coords:Vector2i = sprite.frame_coords
+			source_rect = Rect2(Vector2(coords.x * frame_size.x,coords.y * frame_size.y),frame_size)
+	var key:String = "%d:%d,%d,%d,%d" % [texture.get_instance_id(),int(source_rect.position.x),int(source_rect.position.y),int(source_rect.size.x),int(source_rect.size.y)]
+	var cached:Variant = _opaque_uv_cache.get(key)
+	if cached is PackedVector2Array:
+		return cached
+	var result:PackedVector2Array = PackedVector2Array()
+	var image:Image = _texture_image(texture)
+	if image != null and not image.is_empty() and source_rect.size.x >= 1.0 and source_rect.size.y >= 1.0:
+		var width:int = image.get_width()
+		var height:int = image.get_height()
+		var x0:int = clampi(int(source_rect.position.x),0,width - 1)
+		var y0:int = clampi(int(source_rect.position.y),0,height - 1)
+		var x1:int = clampi(int(source_rect.end.x),x0 + 1,width)
+		var y1:int = clampi(int(source_rect.end.y),y0 + 1,height)
+		var area:int = (x1 - x0) * (y1 - y0)
+		var step:int = maxi(int(ceil(sqrt(float(area) / float(OPAQUE_UV_MAX_POINTS)))),1)
+		var inv_w:float = 1.0 / source_rect.size.x
+		var inv_h:float = 1.0 / source_rect.size.y
+		var y:int = y0
+		while y < y1:
+			var x:int = x0
+			while x < x1:
+				if image.get_pixel(x,y).a >= PIXEL_ALPHA_THRESHOLD:
+					result.append(Vector2((float(x - x0) + 0.5) * inv_w,(float(y - y0) + 0.5) * inv_h))
+				x += step
+			y += step
+	_opaque_uv_cache[key] = result
+	return result
+
 func _sample_map_pixel_color(world_point:Vector2) -> Color:
 	if _viewport_snapshot == null or _viewport_snapshot.is_empty():
 		return Color(0.80,0.88,0.92,0.86)
@@ -562,9 +625,10 @@ func _is_gravity_visual_target(node:Node) -> bool:
 
 
 func _get_property_if_present(object:Object,property_name:StringName) -> Variant:
-	if object == null:
-		return null
-	for entry:Dictionary in object.get_property_list():
-		if StringName(str(entry.get("name",""))) == property_name:
-			return object.get(property_name)
+	# V431 性能：按脚本缓存属性名集合（classes/property_index.gd），不再逐次 get_property_list()。
+	if PROPERTY_INDEX.has_property(object,String(property_name)):
+		return object.get(property_name)
 	return null
+
+
+const PROPERTY_INDEX = preload("res://classes/property_index.gd")

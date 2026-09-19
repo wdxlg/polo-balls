@@ -42,7 +42,7 @@ func _process(delta:float) -> bool:
 				totals = data
 		if peer.get_status() in [StreamPeerTCP.STATUS_NONE,StreamPeerTCP.STATUS_ERROR]:
 			_finish()
-	if elapsed > 80.0:
+	if elapsed > 170.0:
 		_finish()
 	return false
 func _finish() -> void:

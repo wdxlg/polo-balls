@@ -375,6 +375,12 @@ func _damage_all_crossed_targets(from_pos:Vector2,to_pos:Vector2,facing_angle:fl
 func _chalk_sweep_hits_target(target:ball,from_pos:Vector2,to_pos:Vector2,facing_angle:float) -> bool:
 	if chalk_rect_shape == null:
 		return false
+	# V432 性能：先用粗包围圆剔除明显够不到的目标，再对少数近距离目标做 find_children + 精确扫掠。
+	# 保守半径 = 粉笔矩形半对角线 + 目标占据半径 + 200px 余量（覆盖 Boss 倍率放大后的碰撞体），不会漏掉任何原本能命中的目标。
+	var segment_center:Vector2 = (from_pos + to_pos) * 0.5
+	var reach:float = (to_pos - from_pos).length() * 0.5 + chalk_rect_shape.size.length() * 0.5 + _target_radius(target) * maxf(target.global_scale.length(),1.0) + 200.0
+	if segment_center.distance_squared_to(target.global_position) > reach * reach:
+		return false
 	var start_xform:Transform2D = _chalk_shape_transform(from_pos,facing_angle)
 	var motion:Vector2 = to_pos - from_pos
 	var found_relevant_shape:bool = false

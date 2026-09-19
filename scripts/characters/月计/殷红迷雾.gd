@@ -1277,8 +1277,20 @@ func _apply_visual_local(pose:StringName,dir_idx:int) -> void:
 func set_character_visual_flip_h(flipped:bool) -> void:
 	super.set_character_visual_flip_h(flipped)
 	var sprite:Sprite2D = image as Sprite2D
-	if sprite != null and is_instance_valid(sprite) and sprite.has_method("apply_runtime_flip"):
+	# V432 性能：move() 每个 physics tick 都会请求朝向；同值时视觉脚本的构图偏移不会变化，
+	# 不再每帧 Object.call()（100 人场上该调用曾占 7 ms/帧）。姿势切换时 _apply_visual_local 仍会显式同步。
+	if sprite == null or not is_instance_valid(sprite):
+		return
+	var sprite_id:int = sprite.get_instance_id()
+	if _last_forwarded_flip_sprite_id == sprite_id and _last_forwarded_flip_value == flipped:
+		return
+	if sprite.has_method("apply_runtime_flip"):
+		_last_forwarded_flip_sprite_id = sprite_id
+		_last_forwarded_flip_value = flipped
 		sprite.call("apply_runtime_flip",flipped)
+
+var _last_forwarded_flip_sprite_id:int = 0
+var _last_forwarded_flip_value:bool = false
 
 
 func _play_gebura_sfx(kind:int) -> AudioStreamPlayer:

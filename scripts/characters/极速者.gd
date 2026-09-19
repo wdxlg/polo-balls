@@ -1773,9 +1773,17 @@ func _enemy_likely_targets_self(enemy:ball) -> bool:
 	if enemy.Target_Enemy != null and is_instance_valid(enemy.Target_Enemy):
 		return false
 	# 兜底：若我们确实是它最近的敌人，则允许预判；1v1 尤其重要。
+	# V432 性能：先用一次“我到它的距离”做早退——只要场上任意一个敌人比我更近，我就不是它的最近敌人。
+	# 以下仍是同一套判定，只是把 get_nodes_in_group 全量扫描换成 World 已缓存的战斗单位表并允许提前返回。
+	var my_distance:float = enemy.global_position.distance_squared_to(global_position)
+	var units:Array = []
+	if _cached_world != null and is_instance_valid(_cached_world) and _cached_world.has_method("get_battle_units_fast"):
+		units = _cached_world.get_battle_units_fast()
+	else:
+		units = get_tree().get_nodes_in_group("Ball")
 	var closest:ball = null
 	var best_distance:float = INF
-	for node:Node in get_tree().get_nodes_in_group("Ball"):
+	for node:Node in units:
 		if not node is ball:
 			continue
 		var candidate:ball = node as ball
@@ -1784,6 +1792,8 @@ func _enemy_likely_targets_self(enemy:ball) -> bool:
 		if not enemy.Team.is_empty() and candidate.Team == enemy.Team:
 			continue
 		var d:float = enemy.global_position.distance_squared_to(candidate.global_position)
+		if candidate != self and d < my_distance:
+			return false
 		if d < best_distance:
 			best_distance = d
 			closest = candidate
@@ -1894,12 +1904,11 @@ func _first_numeric_property(object:Object,names:Array[String],fallback:float) -
 
 
 func _has_property(object:Object,property_name:String) -> bool:
-	if object == null:
-		return false
-	for raw_info:Dictionary in object.get_property_list():
-		if str(raw_info.get("name","")) == property_name:
-			return true
-	return false
+	# V431 性能：按脚本缓存属性名集合（classes/property_index.gd），不再逐次 get_property_list()。
+	return PROPERTY_INDEX.has_property(object,property_name)
+
+
+const PROPERTY_INDEX = preload("res://classes/property_index.gd")
 
 
 func _property_value(object:Object,property_name:String,fallback:Variant) -> Variant:

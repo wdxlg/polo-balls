@@ -2439,13 +2439,15 @@ func _on_ball_tree_exiting() -> void:
 func is_combat_targetable() -> bool:
 	# V194：地图外演出来客等单位可以显式退出公共索敌契约。
 	# 使用 metadata 而不是改 Type/Team，避免破坏它们自己 Attack()、投射物 Master 和阵营伤害逻辑。
-	if has_meta(&"ignore_combat_targeting") and bool(get_meta(&"ignore_combat_targeting")):
+	# V432 性能：100 人混战里此函数每帧被调用 7000+ 次；先做最便宜的整数/枚举判断，
+	# 只有真正的存活人物才去查 metadata（get_meta 带默认值只查一次字典）。判定结果不变。
+	if health <= 0 or Type != Ball_Type.Ball:
 		return false
-	if health <= 0 or is_queued_for_deletion():
-		return false
-	if Type != Ball_Type.Ball:
+	if is_queued_for_deletion():
 		return false
 	if state_machine != null and state_machine.current_state == State.Die:
+		return false
+	if bool(get_meta(&"ignore_combat_targeting",false)):
 		return false
 	return true
 
@@ -2457,7 +2459,7 @@ func is_combat_targetable() -> bool:
 func is_combat_lockable() -> bool:
 	if not is_combat_targetable():
 		return false
-	if has_meta(&"ignore_combat_locking") and bool(get_meta(&"ignore_combat_locking")):
+	if bool(get_meta(&"ignore_combat_locking",false)):
 		return false
 	return true
 

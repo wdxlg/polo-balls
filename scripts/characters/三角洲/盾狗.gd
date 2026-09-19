@@ -1305,6 +1305,10 @@ func _update_walk_audio(state:State,delta:float)->void:
 func _load_shield_audio(path:String)->AudioStream:
 	# V237：先检查资源是否真实存在，再交给 ResourceLoader。
 	# 即使用户以后误删某条素材，也只给一条清晰 warning，不让裸 load() 反复刷红错。
+	# V432 性能：MP3 解码资源按路径跨实例缓存；此前每次撞击/吼叫都重新 ResourceLoader.load()。
+	var cached:Variant = _shield_audio_cache.get(path)
+	if cached is AudioStream:
+		return cached as AudioStream
 	if not ResourceLoader.exists(path):
 		push_warning("盾狗音效文件缺失，请覆盖V237自包含包: %s" % path)
 		return null
@@ -1312,7 +1316,11 @@ func _load_shield_audio(path:String)->AudioStream:
 	if not resource is AudioStream:
 		push_warning("盾狗音效资源类型错误: %s" % path)
 		return null
+	_shield_audio_cache[path] = resource
 	return resource as AudioStream
+
+
+static var _shield_audio_cache:Dictionary = {}
 
 
 func _play_random_shield_audio(player:AudioStreamPlayer2D,paths:Array[String])->void:
