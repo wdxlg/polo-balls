@@ -22,17 +22,19 @@ func run() -> void:
 		w._cancel_attacks(true)
 		w.form=w.Form.DORMANT
 		w.listen_heading=Vector2.RIGHT
+		# 瞄准点故意放在假人脚下前方空地，避免被假人身体盖住；三格取不同相位看扩散圈
+		var target:Vector2=enemy.global_position+Vector2(-40,26)
 		if state==0:
-			w._aim("probe",enemy.global_position,0.32); w.aim_left=0.2
+			w._aim("probe",target,0.32); w.aim_left=0.27
 		elif state==1:
 			w.form=w.Form.AWAKE; w._form_stats(true); w.direction=Vector2.RIGHT
-			w._aim("sonic",enemy.global_position,1.15); w.aim_left=0.5
+			w._aim("sonic",target,1.15); w.aim_left=0.85
 			w._sonic_heading=Vector2.RIGHT; w.sonic_origin=o; w.sonic_end=o+Vector2.RIGHT*w.sonic_range; w.sonic_left=0.5
 		else:
 			w.form=w.Form.AWAKE; w._form_stats(true); w.direction=Vector2.RIGHT
 			enemy.global_position=o+Vector2(48,0)
-			w._aim("melee",enemy.global_position,0.2); w.aim_left=0.1
-		w.visual_mob(); w.frontier_fx.time=0.37; w.frontier_fx.queue_redraw()
+			w._aim("melee",enemy.global_position+Vector2(-20,26),0.2); w.aim_left=0.05
+		w.visual_mob(); w.frontier_fx.time=0.37+0.6*state; w.frontier_fx.queue_redraw()
 		await process_frame
 		await RenderingServer.frame_post_draw
 		var screen:Image=root.get_texture().get_image()
