@@ -53,8 +53,23 @@ func run() -> void:
 	check(mirror.aim_kind=="sonic" and mirror.aim_left==0.5,"replica accepts the aim hint")
 	mirror.client_visual_step(0.2)
 	check(absf(mirror.aim_left-0.3)<0.001,"replica counts the hint down locally")
-	# 绘制不报错
-	w._aim("sonic",enemy.global_position,1.0);w.frontier_fx.queue_redraw();await process_frame
-	check(true,"aim hint draws without errors")
+	# 圈的生命周期：瞄准中持续生成；出手/取消后不再生成，已有的圈自然渐隐后才消失
+	var fx:Node2D=w.frontier_fx
+	fx.aim_rings.clear();fx._aim_spawn_left=0.0
+	w._aim("sonic",enemy.global_position,1.0)
+	fx.update_aim_rings(0.01)
+	check(fx.aim_rings.size()==1 and fx.aim_rings[0].point==enemy.global_position,"aiming spawns a ring at the aim point")
+	fx.update_aim_rings(fx.AIM_RING_INTERVAL+0.01)
+	check(fx.aim_rings.size()==2,"another ring is spawned each interval while aiming")
+	w._clear_aim()
+	fx.update_aim_rings(0.05)
+	check(fx.aim_rings.size()==2,"clearing the aim keeps existing rings alive to fade out")
+	fx.update_aim_rings(fx.AIM_RING_INTERVAL+0.01)
+	check(fx.aim_rings.size()<2 and fx.aim_rings.size()>0,"no new rings after the aim ends while older ones are still fading")
+	fx.update_aim_rings(fx.AIM_RING_LIFE)
+	check(fx.aim_rings.is_empty(),"all rings disappear after their fade time")
+	w._aim("melee",enemy.global_position,0.2);fx.update_aim_rings(0.01);fx.queue_redraw();await process_frame
+	check(fx.aim_rings.size()==1,"a new aim starts spawning immediately and draws without errors")
+	w._clear_aim()
 	print("WARDEN_AIM_HINT checks=",checks," failures=",failures)
 	finish(0 if failures==0 else 1)

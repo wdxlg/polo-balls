@@ -17,6 +17,9 @@ var hearing_signals:Array[Dictionary] = []
 var time:float = 0.0
 var sword_trails:Array[Dictionary] = []
 var trail_emission_left:float = 0.0
+# 瞄准提示圈：每个圈独立生命周期，攻击出手/取消后不再生成新圈，已有的圈自然渐隐完再消失。
+var aim_rings:Array[Dictionary] = []
+var _aim_spawn_left:float = 0.0
 var _rng := RandomNumberGenerator.new()
 func _ready() -> void:
 	top_level = true
@@ -60,6 +63,7 @@ func _process(delta:float) -> void:
 	if not actor.is_combat_runtime_active() or Game.now_stop_state or get_tree().paused: return
 	update_hearing_signals(delta)
 	time += delta
+	if actor.role_key() == "warden": update_aim_rings(delta)
 	if actor.role_key() == "wooden_sword": update_sword_trails(delta)
 	for i:int in range(particles.size()-1,-1,-1):
 		particles[i].age += delta
@@ -152,32 +156,36 @@ func _draw_warden(center:Vector2) -> void:
 			var p:Vector2 = to_local(actor.sonic_origin.lerp(actor.sonic_end,float(i)/12.0))
 			var size:float = 7.0+5.0*(1.0-actor.sonic_left/actor.sonic_windup)
 			draw_texture_rect_region(SONIC,Rect2(p-Vector2.ONE*size*0.5,Vector2.ONE*size),Rect2(0,frame*8 if SONIC.get_height()>=frame*16 else 0,frame,frame),Color(0.7,1,1,0.2+0.5*(1.0-actor.sonic_left/actor.sonic_windup)))
-# 瞄准提示：和重锤落地圈同一个 pixel_arc 像素圆环，从中心向外扩大并渐隐、循环；
-# 配色取自尖啸体声波贴图 sonic.png 的两个主色（青 44,227,235 / 深青 11,180,170）。
-# 中间一个固定大小的像素 X，缓慢旋转。只是提示，不参与判定。
+# 瞄准提示：和重锤落地圈同一个 pixel_arc 像素圆环，从中心向外扩大并快速渐隐；
+# 前摇期间每隔 AIM_RING_INTERVAL 发一圈，配色取自尖啸体声波贴图 sonic.png 的两个主色
+#（青 44,227,235 / 深青 11,180,170）。只是提示，不参与判定。
 const PIXEL_ARC = preload("res://scripts/effects/我的世界/pixel_arc.gd")
 const AIM_CYAN:Color = Color(44.0/255.0,227.0/255.0,235.0/255.0)
 const AIM_TEAL:Color = Color(11.0/255.0,180.0/255.0,170.0/255.0)
-const AIM_RING_PERIOD:float = 0.75
+const AIM_RING_LIFE:float = 0.42
+const AIM_RING_INTERVAL:float = 0.28
+func update_aim_rings(delta:float) -> void:
+	for i:int in range(aim_rings.size()-1,-1,-1):
+		aim_rings[i].age += delta
+		if aim_rings[i].age >= AIM_RING_LIFE: aim_rings.remove_at(i)
+	if actor.aim_left>0.0 and actor.aim_total>0.0 and actor.health>0:
+		_aim_spawn_left -= delta
+		if _aim_spawn_left <= 0.0:
+			_aim_spawn_left = AIM_RING_INTERVAL
+			if aim_rings.size() >= 6: aim_rings.pop_front()
+			aim_rings.append({"point":actor.aim_point,"age":0.0,"big":actor.aim_kind=="sonic"})
+	else: _aim_spawn_left = 0.0
 func _draw_warden_aim() -> void:
-	if actor.aim_left<=0.0 or actor.aim_total<=0.0 or actor.health<=0: return
-	var p:Vector2 = to_local(actor.aim_point).round()
-	var big:bool = actor.aim_kind=="sonic"
-	var max_radius:float = 42.0 if big else 30.0
-	var elapsed:float = maxf(actor.aim_total-actor.aim_left,0.0)
-	# 一圈：像重锤落地圈一样先快后慢地扩大，同时渐隐；到头后从中心重新开始
-	var t:float = fmod(elapsed,AIM_RING_PERIOD)/AIM_RING_PERIOD
-	var expand:float = 1.0-pow(1.0-t,2.6)
-	var alpha:float = pow(1.0-t,1.3)
-	var radius:float = lerpf(6.0,max_radius,expand)
-	PIXEL_ARC.draw(self,p,radius,0.0,TAU,64,Color(AIM_TEAL,0.55*alpha),3.0,false)
-	PIXEL_ARC.draw(self,p,radius,0.0,TAU,64,Color(AIM_CYAN,0.95*alpha),1.0,false)
-	# 中间的像素 X：固定大小、缓慢旋转，两条 3px 粗的线
-	var arm:float = 7.0 if big else 6.0
-	draw_set_transform(p,time*0.8,Vector2.ONE)
-	draw_line(Vector2(-arm,-arm),Vector2(arm,arm),AIM_CYAN,3.0,false)
-	draw_line(Vector2(-arm,arm),Vector2(arm,-arm),AIM_CYAN,3.0,false)
-	draw_set_transform(Vector2.ZERO)
+	for ring:Dictionary in aim_rings:
+		var t:float = clampf(float(ring.age)/AIM_RING_LIFE,0.0,1.0)
+		# 像重锤落地圈一样先快后慢地扩大，同时较快地渐隐
+		var expand:float = 1.0-pow(1.0-t,2.6)
+		var alpha:float = pow(1.0-t,1.6)
+		if alpha <= 0.01: continue
+		var p:Vector2 = to_local(ring.point).round()
+		var radius:float = lerpf(6.0,42.0 if ring.big else 30.0,expand)
+		PIXEL_ARC.draw(self,p,radius,0.0,TAU,64,Color(AIM_TEAL,0.55*alpha),3.0,false)
+		PIXEL_ARC.draw(self,p,radius,0.0,TAU,64,Color(AIM_CYAN,0.95*alpha),1.0,false)
 
 func update_sword_trails(delta:float) -> void:
 	for i:int in range(sword_trails.size()-1,-1,-1):

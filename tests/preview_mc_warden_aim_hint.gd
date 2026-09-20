@@ -1,5 +1,5 @@
 extends "res://tests/test_mc_frontier.gd"
-## GPU 预览：左 = 尖啸体探测瞄准；中 = 声波蓄力瞄准（前摇中段）；右 = 近战瞄准。
+## GPU 预览：左 = 尖啸体探测波（带残影）+ 瞄准圈；中 = 声波蓄力瞄准（多圈不同相位）；右 = 瞄准结束后残留的圈在渐隐。
 func run() -> void:
 	var o:Vector2=await setup_world()
 	world.control.hide()
@@ -20,20 +20,27 @@ func run() -> void:
 	var frames:Array[Image]=[]
 	for state:int in range(3):
 		w._cancel_attacks(true)
+		w.frontier_fx.aim_rings.clear(); w.frontier_fx._aim_spawn_left=0.0
 		w.form=w.Form.DORMANT
 		w.listen_heading=Vector2.RIGHT
 		# 瞄准点故意放在假人脚下前方空地，避免被假人身体盖住；三格取不同相位看扩散圈
 		var target:Vector2=enemy.global_position+Vector2(-40,26)
 		if state==0:
-			w._aim("probe",target,0.32); w.aim_left=0.27
+			w.alert_level=100; w.begin_probe(); w.emit_probe()
+			var wave:Node2D=w.waves.back()
+			wave.set_physics_process(false)
+			for i:int in range(12): wave.advance(0.03)
+			w._aim("probe",target,0.32)
+			w.frontier_fx.update_aim_rings(0.01); w.frontier_fx.update_aim_rings(0.16)
 		elif state==1:
 			w.form=w.Form.AWAKE; w._form_stats(true); w.direction=Vector2.RIGHT
-			w._aim("sonic",target,1.15); w.aim_left=0.85
+			w._aim("sonic",target,1.15)
+			for i:int in range(3): w.frontier_fx.update_aim_rings(0.14)
 			w._sonic_heading=Vector2.RIGHT; w.sonic_origin=o; w.sonic_end=o+Vector2.RIGHT*w.sonic_range; w.sonic_left=0.5
 		else:
 			w.form=w.Form.AWAKE; w._form_stats(true); w.direction=Vector2.RIGHT
-			enemy.global_position=o+Vector2(48,0)
-			w._aim("melee",enemy.global_position+Vector2(-20,26),0.2); w.aim_left=0.05
+			w._aim("melee",target,0.2); w.frontier_fx.update_aim_rings(0.01)
+			w._clear_aim(); w.frontier_fx.update_aim_rings(0.2)
 		w.visual_mob(); w.frontier_fx.time=0.37+0.6*state; w.frontier_fx.queue_redraw()
 		await process_frame
 		await RenderingServer.frame_post_draw
