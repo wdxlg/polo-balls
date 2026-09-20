@@ -152,37 +152,31 @@ func _draw_warden(center:Vector2) -> void:
 			var p:Vector2 = to_local(actor.sonic_origin.lerp(actor.sonic_end,float(i)/12.0))
 			var size:float = 7.0+5.0*(1.0-actor.sonic_left/actor.sonic_windup)
 			draw_texture_rect_region(SONIC,Rect2(p-Vector2.ONE*size*0.5,Vector2.ONE*size),Rect2(0,frame*8 if SONIC.get_height()>=frame*16 else 0,frame,frame),Color(0.7,1,1,0.2+0.5*(1.0-actor.sonic_left/actor.sonic_windup)))
-# 瞄准提示：MC 风格的像素蓝圈从中心向外扩大并渐隐，循环发射（一圈一圈往外推）；
-# 中间一个像素蓝叉大小不变、缓慢旋转。只是提示，不参与判定。
-const AIM_BLUE:Color = Color(0.08,0.45,1.0)
-const AIM_CYAN:Color = Color(0.55,0.95,1.0)
-const AIM_RING_PERIOD:float = 0.8
+# 瞄准提示：和重锤落地圈同一个 pixel_arc 像素圆环，从中心向外扩大并渐隐、循环；
+# 配色取自尖啸体声波贴图 sonic.png 的两个主色（青 44,227,235 / 深青 11,180,170）。
+# 中间一个固定大小的像素 X，缓慢旋转。只是提示，不参与判定。
+const PIXEL_ARC = preload("res://scripts/effects/我的世界/pixel_arc.gd")
+const AIM_CYAN:Color = Color(44.0/255.0,227.0/255.0,235.0/255.0)
+const AIM_TEAL:Color = Color(11.0/255.0,180.0/255.0,170.0/255.0)
+const AIM_RING_PERIOD:float = 0.75
 func _draw_warden_aim() -> void:
 	if actor.aim_left<=0.0 or actor.aim_total<=0.0 or actor.health<=0: return
 	var p:Vector2 = to_local(actor.aim_point).round()
 	var big:bool = actor.aim_kind=="sonic"
-	var max_radius:float = 40.0 if big else 30.0
+	var max_radius:float = 42.0 if big else 30.0
 	var elapsed:float = maxf(actor.aim_total-actor.aim_left,0.0)
-	# 两圈错开半个周期，保证任何时刻都有一圈在扩散
-	for wave:int in range(2):
-		var t:float = fmod(elapsed+AIM_RING_PERIOD*0.5*float(wave),AIM_RING_PERIOD)/AIM_RING_PERIOD
-		var radius:float = lerpf(4.0,max_radius,t)
-		var alpha:float = (1.0-t)*1.0
-		if alpha<=0.02: continue
-		# 像素圈：沿椭圆（贴地透视 0.62）密铺 3px 方块成连续的一圈，方块位置取整保证像素感
-		var dots:int = maxi(16,int(radius*2.6))
-		for i:int in range(dots):
-			var a:float = TAU*float(i)/float(dots)
-			var d:Vector2 = (p+Vector2(cos(a),sin(a)*0.62)*radius).round()
-			draw_rect(Rect2(d-Vector2.ONE,Vector2(3,3)),Color(AIM_BLUE if i%4!=0 else AIM_CYAN,alpha))
-	# 中间的像素蓝叉：固定大小、缓慢旋转。用 draw_set_transform 旋转，叉本身由整数像素方块拼成
-	var arm:int = 6 if big else 5
-	draw_set_transform(p,time*0.9,Vector2.ONE)
-	for k:int in range(-arm,arm+1):
-		var edge:bool = absi(k)>=arm-1
-		var c:Color = Color(AIM_CYAN if edge or k==0 else AIM_BLUE,0.95)
-		draw_rect(Rect2(Vector2(k,k)-Vector2.ONE,Vector2(2,2)),c)
-		draw_rect(Rect2(Vector2(k,-k)-Vector2.ONE,Vector2(2,2)),c)
+	# 一圈：像重锤落地圈一样先快后慢地扩大，同时渐隐；到头后从中心重新开始
+	var t:float = fmod(elapsed,AIM_RING_PERIOD)/AIM_RING_PERIOD
+	var expand:float = 1.0-pow(1.0-t,2.6)
+	var alpha:float = pow(1.0-t,1.3)
+	var radius:float = lerpf(6.0,max_radius,expand)
+	PIXEL_ARC.draw(self,p,radius,0.0,TAU,64,Color(AIM_TEAL,0.55*alpha),3.0,false)
+	PIXEL_ARC.draw(self,p,radius,0.0,TAU,64,Color(AIM_CYAN,0.95*alpha),1.0,false)
+	# 中间的像素 X：固定大小、缓慢旋转，两条 3px 粗的线
+	var arm:float = 7.0 if big else 6.0
+	draw_set_transform(p,time*0.8,Vector2.ONE)
+	draw_line(Vector2(-arm,-arm),Vector2(arm,arm),AIM_CYAN,3.0,false)
+	draw_line(Vector2(-arm,arm),Vector2(arm,-arm),AIM_CYAN,3.0,false)
 	draw_set_transform(Vector2.ZERO)
 
 func update_sword_trails(delta:float) -> void:
