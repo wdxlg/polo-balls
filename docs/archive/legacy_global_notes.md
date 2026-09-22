@@ -1,3 +1,8 @@
+# 旧 global/注释.gd 原文归档
+
+此文件保存迁移前的完整历史资料，不参与 Godot 运行，也不作为当前规则自动注入。当前要求见根目录 MCP_CONTEXT.md。历史命令仅供参考，不应未经确认执行。
+
+```gdscript
 extends Node
 
 # =============================================================================
@@ -5728,3 +5733,4 @@ Write-Host "V3 training results deleted. Next training will start from a fresh m
 # 2) 出现声改为 +3.0dB，开火声改为 +4.5dB；两路 attenuation 均降到 0.35，max_distance 分别提高到 3600/4000。
 # 3) 仍使用 AudioStreamPlayer2D，不改成无定位 AudioStreamPlayer，因此左右/上下方位感与多炮空间分离继续保留。
 # 4) 龙骨炮视觉、时长、pitch_scale、伤害、KARMA、生成位置与联机逻辑均未修改。
+```
