@@ -1,7 +1,7 @@
 extends SceneTree
 ## Dependency/scene smoke check. Run with godot --headless --script res://tests/test_wither.gd.
 func _initialize() -> void:
-    var names:Array[String] = ["wither", "skull", "rose", "status", "beacon"]
+    var names:Array[String] = ["wither", "skull", "rose", "status", "beacon", "audio"]
     var errors:int = 0
     for name:String in names:
         var path:String = "res://scripts/characters/我的世界/wither/%s.gd" % name
@@ -14,10 +14,15 @@ func _initialize() -> void:
         if scene == null or not scene.can_instantiate():
             push_error("WITHER SCENE FAILED: " + path)
             errors += 1
+    for path:String in ["wither_front.png", "wither_assembling.png", "wither_skull.png", "beacon_front.png", "beacon_beam.png", "soul_sand.png", "wither_rose.png", "nether_star.png", "effect_0.png", "flash.png"]:
+        var texture:Texture2D = load("res://Images/characters/我的世界/wither/" + path) as Texture2D
+        if texture == null or texture.get_width() == 0:
+            push_error("WITHER OFFICIAL TEXTURE FAILED: " + path)
+            errors += 1
     if errors > 0:
         quit(1)
         return
-    print("WITHER SMOKE: 7/7 resources loadable")
+    print("WITHER SMOKE: 8/8 scripts and scenes loadable")
     call_deferred("_run_behaviors")
 
 func _run_behaviors() -> void:

@@ -1,6 +1,9 @@
 extends "res://scripts/characters/我的世界/new5/base.gd"
 ## The heart falls vertically, then patrols the ground on X only; it remains targetable.
-const BEACON_TEXTURE = preload("res://Images/characters/我的世界/wither/beacon.svg")
+const BEACON_TEXTURE = preload("res://Images/characters/我的世界/wither/beacon_front.png")
+const BEAM_TEXTURE = preload("res://Images/characters/我的世界/wither/beacon_beam.png")
+const HEART_TEXTURE = preload("res://Images/characters/我的世界/wither/nether_star.png")
+const VANILLA_SOUND = preload("res://scripts/characters/我的世界/wither/audio.gd")
 const BUFFS:Array[String] = ["speed","haste","strength","resistance","regeneration"]
 var landed:bool = false
 var fall_speed:float = 0.0
@@ -18,7 +21,9 @@ func _ready() -> void:
 	Can_Skill = false
 	Health_Restore = 0
 	super._ready()
-	if image is Sprite2D: (image as Sprite2D).texture = BEACON_TEXTURE
+	if image is Sprite2D:
+		(image as Sprite2D).texture = BEACON_TEXTURE
+		(image as Sprite2D).visible = false # Falling Nether Star, not yet a beacon.
 	add_to_group("AI_Hazard")
 	add_to_group("WitherBeacon")
 func get_preview_texture() -> Texture2D: return BEACON_TEXTURE
@@ -36,12 +41,17 @@ func step_mob(delta:float) -> void:
 		if not hit.is_empty():
 			global_position.y = float(hit.position.y)-20.0
 			landed = true
+			if image is Sprite2D: (image as Sprite2D).visible = true
+			_emit_sound("beacon_activate")
 			fall_speed = 0.0
 		else:
 			var arena:Rect2 = master.call("mc_arena_rect")
 			var limit:float = arena.end.y-24.0
 			global_position.y = minf(bottom,limit)
-			if global_position.y >= limit: landed = true
+			if global_position.y >= limit:
+				landed = true
+				if image is Sprite2D: (image as Sprite2D).visible = true
+				_emit_sound("beacon_activate")
 		return
 	var target:ball = U.nearest(self)
 	if target != null and warning_left <= 0 and firing_left <= 0:
@@ -54,6 +64,7 @@ func step_mob(delta:float) -> void:
 		warning_left -= delta
 		beam_end = _clipped_beam()
 		if warning_left <= 0:
+			_emit_sound("beacon_power")
 			firing_left = 1.5
 			tick_left = 0.5
 		return
@@ -70,6 +81,7 @@ func step_mob(delta:float) -> void:
 					if nearest.distance_to(enemy.global_position) <= 7.0+enemy.get_crowd_separation_radius_world():
 						master.call("impact",enemy,12.0,nearest)
 		if firing_left <= 0:
+			_emit_sound("beacon_deactivate")
 			beams_fired += 1
 			last_buff = BUFFS[rng.randi_range(0,BUFFS.size()-1)]
 			master.call("apply_beacon_buff",last_buff)
@@ -112,11 +124,19 @@ func visual_mob() -> void:
 	if image is Sprite2D:
 		image.rotation = 0.0
 		image.position = Vector2.ZERO
+func _emit_sound(event:String) -> void:
+	VANILLA_SOUND.play(self,event,global_position)
+	if multiplayer.has_multiplayer_peer(): _remote_sound.rpc(event,global_position)
+@rpc("authority","call_remote","reliable")
+func _remote_sound(event:String,point:Vector2) -> void: VANILLA_SOUND.play(self,event,point)
 func _draw() -> void:
-	if warning_left > 0: draw_line(Vector2.ZERO,to_local(beam_end),Color(0.75,0.24,0.58,0.7),2.0)
-	if firing_left > 0:
-		draw_line(Vector2.ZERO,to_local(beam_end),Color(0.68,0.31,0.8,0.85),14.0)
-		draw_line(Vector2.ZERO,to_local(beam_end),Color(0.93,0.81,1.0,0.9),3.0)
+	if not landed: draw_texture_rect(HEART_TEXTURE,Rect2(-16,-16,32,32),false)
+	if warning_left <= 0 and firing_left <= 0: return
+	var ray:Vector2 = to_local(beam_end)
+	draw_set_transform(Vector2.ZERO,ray.angle(),Vector2.ONE)
+	for x:int in range(0,int(ray.length()),16):
+		draw_texture_rect(BEAM_TEXTURE,Rect2(float(x),-7.0,minf(16.0,ray.length()-float(x)),14.0),false,Color(1,1,1,0.45 if warning_left > 0 else 0.9))
+	draw_set_transform(Vector2.ZERO,0.0,Vector2.ONE)
 func _process(delta:float) -> void:
 	super._process(delta)
 	queue_redraw()

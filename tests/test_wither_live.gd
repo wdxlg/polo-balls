@@ -30,6 +30,15 @@ func run() -> void:
 	check(wither.health == 500,"summoning is immune to damage")
 	wither.summoned = true
 	wither.image.visible = true
+	# Regression: normal movement must run through ball.move (0.6 baseline),
+	# not the old stationary-or-teleporting local Wither AI.
+	await physics_frame
+	wither.state_machine.set_physics_process(false)
+	wither.direction = Vector2.RIGHT
+	var start_x:float = wither.global_position.x
+	wither.move(110.0,1.0/60.0)
+	check(wither.global_position.x > start_x,"summoned Wither actually moves with no target requirement")
+	check(absf(wither.velocity.x-66.0) < 0.1,"Wither uses common ball.move baseline speed multiplier")
 	var before:float = enemy.health
 	wither._blast(enemy.global_position,64.0,45.0,enemy,true)
 	check(is_equal_approx(before-enemy.health,75.0),"one skull direct impact settles exactly 75 damage, not another splash")

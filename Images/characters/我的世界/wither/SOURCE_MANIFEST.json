@@ -1,0 +1,34 @@
+{
+  "version": "Minecraft Java Edition 1.21.11",
+  "client_sha1": "ba2df812c2d12e0219c489c4cd9a5e1f0760f5bd",
+  "index_sha1": "adb0a43fae291fd88ee27d85a372ba6f2072b0a3",
+  "textures": {
+    "entity/wither/wither.png": "62d551d536199aa3327d799b4a0384dc5c9defb8",
+    "entity/wither/wither_invulnerable.png": "64c3f22614ffbd9e0475da0fc8fa6c708842a4e7",
+    "entity/beacon_beam.png": "2a0e344c143f3939b238e18dc5752a4b6e202585",
+    "block/soul_sand.png": "9b54daa047ce266d8f2f0dc53d64e418ba0436db",
+    "block/wither_rose.png": "75708fef65108c44d5d98b9f259b1e9210bf799d",
+    "block/beacon.png": "88a34dbc329f2a0a6a6d5904ac592037ed965da9",
+    "item/nether_star.png": "14c249fd89eb9b3a92e6e3a0d7d81cbf32341f4e",
+    "particle/effect_0.png": "f782a4bfd2bded4f7f5c94fa15e0de87750af10b",
+    "particle/flash.png": "eb6dfb8d27a8e96475789a0deb35745a7028e214",
+    "particle/big_smoke_0.png": "3f9dc620d582a583e95cd4ed3fd4ddfefe7072b1"
+  },
+  "sounds": {
+    "minecraft/sounds/mob/wither/spawn.ogg": "52049ed59e074474287b5dfee00477ce571b3385",
+    "minecraft/sounds/mob/wither/shoot.ogg": "59ce2fddc9e777d47471c5614aa5d7d219a43ad1",
+    "minecraft/sounds/mob/wither/hurt1.ogg": "befdf6ca94508a93e52b5324abb793aefef4066f",
+    "minecraft/sounds/mob/wither/hurt2.ogg": "9ec7172eac72fc7bcb96aa3f741777735a9baec6",
+    "minecraft/sounds/mob/wither/hurt3.ogg": "4b905fd80da30e902a26f0e34f1ade44df0fb51e",
+    "minecraft/sounds/mob/wither/hurt4.ogg": "a2b5af171e999ddfe59c01bbfc6401e7478d6760",
+    "minecraft/sounds/mob/wither/death.ogg": "db84aad8831f937c3c4162766a8abcb49506c1e7",
+    "minecraft/sounds/mob/wither/idle1.ogg": "34dbc7532d14383742333147ca3adbda0350aa0e",
+    "minecraft/sounds/mob/wither/idle2.ogg": "78d511b2ae44d0354e932acdc7acdaaf0a39d73a",
+    "minecraft/sounds/random/explode1.ogg": "fa85b9e7e54c36c9f9d0249ca739444b5e3bb66c",
+    "minecraft/sounds/block/beacon/activate.ogg": "28892890033064296ba36dfc9462be578d7b969a",
+    "minecraft/sounds/block/beacon/power1.ogg": "4b7a8bb552b47179761301bd7db481543e2404cf",
+    "minecraft/sounds/block/beacon/deactivate.ogg": "44bd337eda14f18dd7d5c3366b91a5cea7e34bc0",
+    "minecraft/sounds/block/soul_sand/step1.ogg": "3591ce4debaac9064c44043a3034cdafd77c2533",
+    "minecraft/sounds/dig/grass1.ogg": "f970f8e68b06d60603af52120056ff2eb66ac75d"
+  }
+}

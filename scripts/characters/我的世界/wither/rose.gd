@@ -1,4 +1,6 @@
 extends Node2D
+const ROSE_TEXTURE = preload("res://Images/characters/我的世界/wither/wither_rose.png")
+const EFFECT_TEXTURE = preload("res://Images/characters/我的世界/wither/effect_0.png")
 var source_ref:WeakRef
 var age:float = 0.0
 var life:float = 12.0
@@ -18,13 +20,9 @@ func _physics_process(delta:float) -> void:
 			source.apply_wither(node as ball)
 func _process(_delta:float) -> void: queue_redraw()
 func _draw() -> void:
-	draw_circle(Vector2.ZERO,23.0,Color(0.31,0.10,0.31,0.16))
 	var scale_factor:float = minf(age/0.5,1.0)
-	draw_line(Vector2(0,10)*scale_factor,Vector2(0,-9)*scale_factor,Color("424a37"),4.0)
-	for i:int in range(5):
-		var p:Vector2 = Vector2(0,-10)+Vector2.RIGHT.rotated(float(i)*TAU/5.0)*9.0
-		draw_circle(p*scale_factor,6.0*scale_factor,Color("462331"))
-	draw_circle(Vector2(0,-10)*scale_factor,4.0*scale_factor,Color("17191b"))
+	draw_texture_rect(ROSE_TEXTURE,Rect2(-21*scale_factor,-21*scale_factor,42*scale_factor,42*scale_factor),false)
+	draw_texture_rect(EFFECT_TEXTURE,Rect2(-23,-23,46,46),false,Color(0.23,0.17,0.29,0.22))
 func get_ai_hazard_info() -> Dictionary:
 	var source:Variant = source_ref.get_ref() if source_ref != null else null
 	if age < 0.5 or not is_instance_valid(source) or source.health <= 0: return {}

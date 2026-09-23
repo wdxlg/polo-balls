@@ -1,4 +1,5 @@
 extends Node2D
+const EFFECT_TEXTURE = preload("res://Images/characters/我的世界/wither/effect_0.png")
 ## One status per target; refresh rather than stacking damage or tint.
 var source_ref:WeakRef
 var remaining:float = 0.0
@@ -33,7 +34,7 @@ func _draw() -> void:
 	var time:float = Time.get_ticks_msec()*0.001
 	for i:int in range(6):
 		var phase:float = time*1.8+float(i)*1.047
-		draw_circle(Vector2(sin(phase)*19.0,-12.0-fmod(phase*13.0,48.0)),2.8,Color(0.28,0.17,0.36,0.7))
+		draw_texture_rect(EFFECT_TEXTURE,Rect2(Vector2(sin(phase)*19.0,-12.0-fmod(phase*13.0,48.0)),Vector2(8,8)),false,Color(0.28,0.17,0.36,0.7))
 func _exit_tree() -> void:
 	var target:ball = get_parent() as ball
 	if painted and is_instance_valid(target) and target.image is CanvasItem and target.image.modulate.is_equal_approx(Color(0.24,0.21,0.28,1.0)):

@@ -1,13 +1,17 @@
 # 凋零角色：当前实现与验收边界
 
-入口：`scenes/characters/我的世界/凋零.tscn`；信标是仅供召唤的 `scenes/creatures/我的世界/凋零信标.tscn`，不进入独立选角列表。资产在 `Images/characters/我的世界/wither/`，脚本在 `scripts/characters/我的世界/wither/`。
+入口：`scenes/characters/我的世界/凋零.tscn`；信标是仅供召唤的 `scenes/creatures/我的世界/凋零信标.tscn`，不进入独立选角列表。纹理及烘焙精灵在 `Images/characters/我的世界/wither/`，音效在 `audio/characters/我的世界/wither/`，脚本在 `scripts/characters/我的世界/wither/`。
+
+**资源与移动修订（2026-09-24）：** 之前的 `wither.svg`、`beacon.svg` 是非原版手绘占位，已从运行时全部替换；源码已删除占位文件。`fetch_vanilla_assets.py` 从 Mojang Java 1.21.11 官方 client.jar（SHA-1 `ba2df812c2d12e0219c489c4cd9a5e1f0760f5bd`）和资产索引（SHA-1 `adb0a43fae291fd88ee27d85a372ba6f2072b0a3`）提取 10 张游戏纹理、15 个原版声音，并逐一核验哈希。`SOURCE_MANIFEST.json` 列出精确 jar 路径和每个源素材 SHA-1。仅以原版 UV/方块纹理为像素来源，通过最近邻重排生成 2D 凋零、无敌凋零、骷髅头、信标精灵；药水/爆炸/魂沙/玫瑰/激光也改用原版纹理，凋零出生、开火、受伤、死亡、闲置、爆炸及信标声改用原版事件。伤害反馈继续复用项目已核实为 MC 原版的暴击/受伤音效。资源的使用和再分发须遵守 Mojang EULA / usage guidelines，不把衍生精灵描述成 Minecraft 官方提供的 2D 成品。常态 `wither.move()` 改为 `super.move()`，遵守统一 0.6 倍基础移速、操控/AI 方向、击退、碰撞及其他角色通用移动行为，不再按距离悬浮/停滞或直接改 `global_position`；冲撞单独用 `CharacterBody2D.move_and_slide()` 做真实碰撞。信标落地后的水平巡航仍按指定机制独立处理。
 
 本轮按用户新版取代旧的三连中信标方案：500 血、放置点原地搭魂沙/三头、约 3 秒苏醒免伤，标准 `ball` 弹体击中时反弹；苏醒末端 110 半径预警爆炸 45 伤。骷髅每 5 秒发一次，直击 75，撞人/墙时 64 半径溅射 45（同目标不重复）；凋零效果持续 3 秒、每秒 4 伤，刷新不叠加，角色变暗并有药水粒子。玫瑰每约 10 秒生成、最多 3 朵、落地后触碰施加相同状态。约 12 秒一次 130 距离冲撞，32 伤及击退。
 
 首次半血生成 180 血下界之心；落地后用重力和地面判定在下方水平移动。每约 10 秒预警并发 1.5 秒激光，每半秒 12 伤；释放结束随机给本体 6 秒的速度、急迫、力量、抗性、再生之一，效果不叠加。角色、玫瑰、骷髅与激光暴露真实威胁区域；信标本体不把纯支持范围标为伤害。实际有效伤害 >50 播 MC 暴击，其余播放普通反馈，额外基础增益为 0 dB 并依伤害增加。
 
-**已验证范围：** 新增 GDScript 使用 `gdtoolkit` 的 `gdparse` 静态语法检查成功，SVG 通过 XML 解析。使用项目指定的 `../polo-balls-tools/offline-engine/runtime/Godot.4.7.2.offline.exe --headless --path . --script`：`tests/test_wither.gd` 的 7/7 资源加载以及开局免伤、威胁声明、半血信标唯一性与增益入口通过；`tests/test_wither_live.gd` 在真实 World/Map50x50 场景中 **16 项检查、0 失败**，覆盖直击 75 不重复溅射、每秒 4 点持续伤害、玫瑰触碰刷新同一状态、半血信标仅生成一次、重力下落、激光周期伤害/随机增益，以及真实物理帧自动生成玫瑰和发射骷髅。日志在 `.godot/agent_wither_smoke.log` 和 `.godot/agent_wither_live.log`。Godot 测试只用无头渲染，尚不等于真实 GPU 视觉验收。
+**原型历史验证（不代表当前修订已通过）：** 上一版 GDScript 使用 `gdtoolkit` 的 `gdparse` 静态语法检查成功。使用项目指定的 `../polo-balls-tools/offline-engine/runtime/Godot.4.7.2.offline.exe --headless --path . --script`：`tests/test_wither.gd` 当时的 7/7 资源加载以及开局免伤、威胁声明、半血信标唯一性与增益入口通过；`tests/test_wither_live.gd` 在真实 World/Map50x50 场景中 **16 项检查、0 失败**，覆盖直击 75 不重复溅射、每秒 4 点持续伤害、玫瑰触碰刷新同一状态、半血信标仅生成一次、重力下落、激光周期伤害/随机增益，以及真实物理帧自动生成玫瑰和发射骷髅。日志在 `.godot/agent_wither_smoke.log` 和 `.godot/agent_wither_live.log`。Godot 测试只用无头渲染，尚不等于真实 GPU 视觉验收。
 
-**待验收/已知边界：** 项目根目录的 `godot.exe` 不是本项目指定的独立引擎，用它尝试检查时出现了已有的 `addons/csvedit` DELIM 与旧素材预加载错误且脚本长时间不返回；已仅终止本轮的测试进程。**独立离线引擎已完成上面的有效测试**，但尚未在真实 GPU 画面中核对魂沙/旋转/爆炸、药水粒子、撞墙骷髅头、玫瑰黑化恢复、铁砧式地面移动、冲撞及激光遮挡，也未做主观听音、胜率平衡或双端联机。当前投射物反射使用项目标准 `ball` 射手接口；非标准自定义射线弹及各 transient 特效的远端复制尚未双端验证。无头 World 测试结束时会有已存在的 shader UID 大小写警告及 ObjectDB 退出清理提示，16 项断言仍通过。
+**当前修订验证：** 官方 jar / 资产索引及逐个 OGG SHA-1 全部通过，自动构建 10 种原始纹理、15 个音效和 4 个派生贴图。独立离线引擎编辑器导入 PNG/OGG 成功；无头 smoke 加载 8/8 脚本和场景及 10 张关键贴图，World 场景现在 18 项检查、0 失败（新增真实位移及统一 0.6 倍移速检查）。资源语法与运行时结果只代表无头环境，不等于 GPU 视觉/实际听音验收。
+
+**待验收/已知边界：** 项目根目录的 `godot.exe` 不是本项目指定的独立引擎，用它尝试检查时出现了已有的 `addons/csvedit` DELIM 与旧素材预加载错误且脚本长时间不返回；已仅终止本轮的测试进程。**独立离线引擎已完成上面的有效测试**，但尚未在真实 GPU 画面中核对魂沙/旋转/爆炸、药水粒子、撞墙骷髅头、玫瑰黑化恢复、地面移动、冲撞及激光遮挡，也未做主观听音、胜率平衡或双端联机。当前投射物反射使用项目标准 `ball` 射手接口；非标准自定义射线弹及各 transient 特效的远端复制尚未双端验证。无头 World 测试结束时会有已存在的 shader UID 大小写警告及 ObjectDB 退出清理提示。
 
 项目现有工作区在本次工作开始时约 2729 个未提交路径；不要把本次局部提交解释为整个项目快照。`MCP_CONTEXT.md` 在本轮工作期间被另一个任务并发更新，按协作规则暂不覆盖，后续待协同维护索引。

@@ -1,4 +1,7 @@
 extends Node2D
+const HEAD = preload("res://Images/characters/我的世界/wither/wither_skull.png")
+const FLASH = preload("res://Images/characters/我的世界/wither/flash.png")
+const SMOKE = preload("res://Images/characters/我的世界/wither/big_smoke_0.png")
 ## Sweep the path each physics frame, explode on the first target or solid wall.
 var source_ref:WeakRef
 var heading:Vector2 = Vector2.RIGHT
@@ -34,6 +37,7 @@ func _physics_process(delta:float) -> void:
 		var direct:ball = collider as ball if collider is ball else null
 		var center:Vector2 = Vector2(hit.position)-heading*3.0
 		source.call("_blast",center,64.0,45.0,direct,true)
+		source.call("_emit_sound","explode",center)
 		global_position = center
 		exploded = true
 		remove_from_group("AI_Hazard")
@@ -43,14 +47,11 @@ func _physics_process(delta:float) -> void:
 	if not exploded: global_position = end
 func _draw() -> void:
 	if exploded:
-		draw_circle(Vector2.ZERO,64.0,Color(0.14,0.11,0.18,0.32))
-		draw_arc(Vector2.ZERO,64.0,0,TAU,28,Color(0.62,0.43,0.73,0.9),3.0)
+		draw_texture_rect(FLASH,Rect2(-64,-64,128,128),false,Color(1,1,1,0.75))
+		draw_texture_rect(SMOKE,Rect2(-32,-32,64,64),false)
 		return
-	draw_circle(Vector2.ZERO,15.0,Color("313238"))
-	draw_rect(Rect2(-9,-4,5,5),Color.BLACK)
-	draw_rect(Rect2(4,-4,5,5),Color.BLACK)
-	draw_rect(Rect2(-5,6,10,3),Color("161518"))
-	draw_circle(Vector2(-23,0),7.0,Color(0.14,0.09,0.19,0.55))
+	draw_texture_rect(HEAD,Rect2(-16,-16,32,32),false)
+	draw_texture_rect(SMOKE,Rect2(-27,-9,14,18),false,Color(1,1,1,0.55))
 func get_ai_hazard_info() -> Dictionary:
 	var source:ball = _source()
 	if exploded or source == null: return {}

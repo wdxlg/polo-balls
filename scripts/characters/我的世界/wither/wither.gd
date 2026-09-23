@@ -1,6 +1,11 @@
 extends "res://scripts/characters/我的世界/mc_mob_base.gd"
 ## 召唤 -> 骷髅/玫瑰/冲撞 -> 半血下界之心。所有伤害由权威端结算。
-const BODY = preload("res://Images/characters/我的世界/wither/wither.svg")
+const BODY = preload("res://Images/characters/我的世界/wither/wither_front.png")
+const ASSEMBLING = preload("res://Images/characters/我的世界/wither/wither_assembling.png")
+const SOUL_SAND = preload("res://Images/characters/我的世界/wither/soul_sand.png")
+const HEAD = preload("res://Images/characters/我的世界/wither/wither_skull.png")
+const FLASH = preload("res://Images/characters/我的世界/wither/flash.png")
+const VANILLA_SOUND = preload("res://scripts/characters/我的世界/wither/audio.gd")
 const SKULL = preload("res://scripts/characters/我的世界/wither/skull.gd")
 const ROSE = preload("res://scripts/characters/我的世界/wither/rose.gd")
 const BEACON = preload("res://scenes/creatures/我的世界/凋零信标.tscn")
@@ -27,6 +32,8 @@ var _buff:String = ""
 var _buff_left:float = 0.0
 var _regen_clock:float = 0.0
 var _summon_blast_left:float = 0.0
+var _summon_sound_played:bool = false
+var _idle_left:float = 8.0
 var _effects:Array[WeakRef] = []
 var reflected_count:int = 0
 
@@ -87,6 +94,8 @@ func _reflect_shot(shot:ball) -> void:
 
 func on_actual_health_damage_received(actual:float,before:float) -> void:
 	super.on_actual_health_damage_received(actual,before)
+	if actual > 0 and summoned and health > 0:
+		_emit_sound("hurt%d" % _mc_rng.randi_range(1,4),global_position)
 	if actual > 0 and summoned and not heart_dropped and health > 0 and health <= Max_health*0.5 and is_multiplayer_authority():
 		heart_dropped = true
 		var child:ball = BEACON.instantiate() as ball
@@ -105,16 +114,28 @@ func tick_physics(state:State,delta:float) -> void:
 	if health <= 0 or not is_combat_runtime_active(): return
 	if not is_multiplayer_authority(): return
 	if not summoned:
+		if not _summon_sound_played:
+			_summon_sound_played = true
+			_emit_sound("spawn",global_position)
 		summon_time = minf(summon_time+delta,summon_duration)
 		_summon_visual()
 		queue_redraw()
 		if summon_time >= summon_duration:
 			summoned = true
-			if image is Sprite2D: (image as Sprite2D).visible = true
+			if image is Sprite2D:
+				(image as Sprite2D).visible = true
+				(image as Sprite2D).texture = BODY
+				(image as Sprite2D).rotation = 0.0
+				(image as Sprite2D).scale = Vector2.ONE
 			_summon_blast_left = 0.25
 			if multiplayer.has_multiplayer_peer(): _sync_event.rpc("awake",global_position)
 			_blast(global_position,110.0,45.0,null,false)
+			_emit_sound("explode",global_position)
 		return
+	_idle_left -= delta
+	if _idle_left <= 0:
+		_idle_left = _mc_rng.randf_range(8.0,14.0)
+		_emit_sound("idle%d" % _mc_rng.randi_range(1,2),global_position)
 	_buff_left = maxf(_buff_left-delta,0.0)
 	if _buff_left <= 0: _buff = ""
 	if _buff == "regeneration":
@@ -143,12 +164,14 @@ func tick_physics(state:State,delta:float) -> void:
 		if _charge_windup <= 0: _charge_remaining = 130.0
 	elif _charge_remaining > 0:
 		var travel:float = minf(500.0*delta,_charge_remaining)
-		var next:Vector2 = global_position + _charge_dir*travel
-		if not mc_position_clear(next,42.0): _charge_remaining = 0.0
-		else:
-			var old:Vector2 = global_position
-			global_position = next
-			_charge_remaining -= travel
+		var old:Vector2 = global_position
+		# Even the special charge uses the normal CharacterBody collision solver.
+		velocity = _charge_dir*500.0+Repel
+		move_and_slide()
+		var next:Vector2 = global_position
+		var moved:float = old.distance_to(next)
+		_charge_remaining = maxf(_charge_remaining-moved,0.0) if moved > 0.1 else 0.0
+		if moved > 0.1:
 			for node:Node in SubmissionCharacterTools.targeting_candidates(self):
 				if node is ball and mc_enemy(node) and not _charge_hits.has(node.get_instance_id()):
 					var enemy:ball = node as ball
@@ -161,6 +184,7 @@ func tick_physics(state:State,delta:float) -> void:
 		_charge_windup = 0.45
 		_charge_left = charge_interval
 		_charge_hits.clear()
+		_emit_sound("shoot",global_position)
 	_sync_left -= delta
 	if _sync_left <= 0:
 		_sync_left = 0.15
@@ -170,16 +194,9 @@ func move(speed:float,delta:float) -> void:
 	if not summoned or _charge_remaining > 0 or _charge_windup > 0:
 		velocity = Vector2.ZERO
 		return
-	var target:ball = mc_nearest(delta)
-	if target == null: return
-	var vector:Vector2 = target.global_position-global_position
-	var desired:Vector2 = vector.normalized() if vector.length() > 200.0 else (-vector.normalized() if vector.length() < 110.0 else Vector2.ZERO)
-	direction = vector.normalized()
-	var ratio:float = 1.1 if _buff == "speed" else 1.0
-	velocity = desired*speed*ratio+Repel
-	var next:Vector2 = global_position+velocity*delta
-	if mc_body_position_clear(next): global_position = next
-	Repel = Vector2.ZERO
+	# The regular ball AI/player direction, collision response, speed modifiers,
+	# knockback and crowd separation must all come from the common move path.
+	super.move(speed*(1.1 if _buff == "speed" else 1.0),delta)
 
 func _fire_skull(point:Vector2) -> void:
 	var skull:Node2D = SKULL.new()
@@ -187,7 +204,7 @@ func _fire_skull(point:Vector2) -> void:
 	skull.global_position = global_position+(point-global_position).normalized()*58.0
 	skull.call("configure",self,(point-global_position).normalized())
 	skull.add_to_group("BattleTransient")
-	if multiplayer.has_multiplayer_peer(): _sync_event.rpc("shot",global_position)
+	_emit_sound("shoot",global_position)
 func _grow_rose() -> void:
 	var rect:Rect2 = mc_arena_rect().grow(-30.0)
 	var where:Vector2 = global_position
@@ -201,6 +218,7 @@ func _grow_rose() -> void:
 	rose.global_position = where
 	rose.call("configure",self)
 	rose.add_to_group("BattleTransient")
+	_emit_sound("rose",where)
 func impact(target:ball,amount:float,point:Vector2) -> float:
 	if not is_multiplayer_authority() or not mc_enemy(target) or is_damage_output_disabled(): return 0.0
 	var before:float = maxf(target.health,0.0)
@@ -233,24 +251,23 @@ func apply_beacon_buff(kind:String) -> void:
 	_buff = kind
 	_buff_left = 6.0
 	_regen_clock = 0.0
+func _emit_sound(event:String,point:Vector2) -> void:
+	VANILLA_SOUND.play(self,event,point)
+	if multiplayer.has_multiplayer_peer(): _sync_event.rpc(event,point)
 func _draw() -> void:
 	if _summon_blast_left > 0:
-		draw_circle(Vector2.ZERO,110.0,Color(0.4,0.25,0.47,0.2)*(_summon_blast_left/0.25))
-		draw_arc(Vector2.ZERO,110.0,0,TAU,48,Color(0.9,0.7,0.95,0.85)*(_summon_blast_left/0.25),3.0)
+		draw_texture_rect(FLASH,Rect2(-110,-110,220,220),false,Color(1,1,1,_summon_blast_left/0.25))
 	if summoned or summon_time <= 0 or health <= 0: return
 	var t:float = summon_time/maxf(summon_duration,0.01)
-	var sand:Color = Color("5a483d")
-	draw_rect(Rect2(-15,15,30,30),sand)
-	if t > 0.20: draw_rect(Rect2(-15,-27,30,42),sand)
-	if t > 0.35: draw_rect(Rect2(-57,-26,42,23),sand)
-	if t > 0.48: draw_rect(Rect2(15,-26,42,23),sand)
+	draw_texture_rect(SOUL_SAND,Rect2(-15,15,30,30),false)
+	if t > 0.20: draw_texture_rect(SOUL_SAND,Rect2(-15,-27,30,42),false)
+	if t > 0.35: draw_texture_rect(SOUL_SAND,Rect2(-57,-26,42,23),false)
+	if t > 0.48: draw_texture_rect(SOUL_SAND,Rect2(15,-26,42,23),false)
 	for i:int in range(3):
 		if t > 0.53+float(i)*0.10:
 			var x:float = float(i-1)*42.0
-			draw_rect(Rect2(x-16,-54,32,29),Color("35363c"))
-			draw_rect(Rect2(x-10,-45,7,5),Color.BLACK)
-			draw_rect(Rect2(x+3,-45,7,5),Color.BLACK)
-	if t > 0.8: draw_arc(Vector2.ZERO,110.0 if summon_time >= summon_duration-0.4 else 85.0,0,TAU,48,Color(0.63,0.54,0.75,0.7),3.0)
+			draw_texture_rect(HEAD,Rect2(x-16,-54,32,32),false)
+	if t > 0.8: draw_texture_rect(FLASH,Rect2(-85,-85,170,170),false,Color(1,1,1,(t-0.8)*2.0))
 func _process(delta:float) -> void:
 	_summon_blast_left = maxf(_summon_blast_left-delta,0.0)
 	if not summoned: _summon_visual()
@@ -264,6 +281,7 @@ func _summon_visual() -> void:
 	var t:float = summon_time/maxf(summon_duration,0.01)
 	(image as Sprite2D).visible = t >= 0.8
 	if t >= 0.8:
+		(image as Sprite2D).texture = ASSEMBLING
 		(image as Sprite2D).rotation = TAU*2.0*clampf((t-0.8)/0.2,0.0,1.0)
 		(image as Sprite2D).scale = Vector2.ONE*lerpf(0.35,1.0,clampf((t-0.8)/0.2,0.0,1.0))
 func get_ai_attack_threats(_receiver:ball) -> Array:
@@ -282,13 +300,19 @@ func _sync_appearance(time:float,awake:bool,dropped:bool,buff:String) -> void:
 	_buff = buff
 	if awake and image is Sprite2D:
 		(image as Sprite2D).visible = true
+		(image as Sprite2D).texture = BODY
+		(image as Sprite2D).rotation = 0.0
 		(image as Sprite2D).scale = Vector2.ONE
 	else: _summon_visual()
 	queue_redraw()
 @rpc("authority","call_remote","reliable")
-func _sync_event(kind:String,_point:Vector2) -> void:
-	if kind == "awake": _summon_blast_left = 0.25
+func _sync_event(kind:String,point:Vector2) -> void:
+	if kind == "awake":
+		_summon_blast_left = 0.25
+		if image is Sprite2D: (image as Sprite2D).texture = BODY
+	else: VANILLA_SOUND.play(self,kind,point)
 func Die() -> void:
+	if health <= 0 and summoned and is_multiplayer_authority(): _emit_sound("death",global_position)
 	if is_instance_valid(beacon): beacon.queue_free()
 	for ref:WeakRef in _effects:
 		var effect:Node = ref.get_ref()
