@@ -5,7 +5,8 @@ const CONFIG_PATH:String = "user://battle_recording.cfg"
 const DEFAULT_TAIL_SECONDS:float = 5.0
 const MIN_TAIL_SECONDS:float = 0.0
 const MAX_TAIL_SECONDS:float = 600.0
-# Persisted capture-only layout. Never changes the player's camera.
+# Shared gameplay/video framing. Keep the existing recording/composition key so
+# previously saved choices survive moving the control into Settings -> Parameters.
 const FULL:int = 0
 const FOLLOW:int = 1
 const FOLLOW_OVERVIEW:int = 2
@@ -38,7 +39,7 @@ static func clamp_composition(value:int) -> int:
 
 func save_composition(value:int) -> bool:
 	if value < FULL or value > FOLLOW_OVERVIEW:
-		last_error = "未知的录制构图模式。"
+		last_error = "未知的画面取景模式。"
 		return false
 	var config := ConfigFile.new()
 	config.load(config_path)

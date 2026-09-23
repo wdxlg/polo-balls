@@ -1,5 +1,11 @@
 # 对战录制（2026-09-23，从当前状态离线计算）
 
+## 游戏与成片共用取景（2026-09-24）
+
+- 「画面取景」现在位于**设置 → 参数**，从录制分类移除；可选择「完整地图」「交战跟拍」「交战跟拍 + 小全图」。即使没有启动录制，选择后也会立刻更新游戏主 Camera2D，第三档还会在游戏窗口显示小全图；设置面板打开时小窗隐藏。
+- 中文和英文录制视口逐帧取用已构图的主镜头，不重复推拉；录像小全图仍单独渲染到对应成片。保留 `user://battle_recording.cfg` 的 `recording/composition` 键，旧配置自动沿用；非 World 场景保留独立录制构图。录制中选项锁定。
+- GPU 可视测试：`tests/preview_recording_compositions.gd` **51/51**，验证参数分类、非录制游戏镜头变化、游戏小全图、三档双语实时视口同帧取景、右键离线跟拍同镜头及保存截图。对比图位于 `user://recordings/composition_visual_smoke/`，包含各档 `_game.png` 与 `_zh.png`、`_en.png`。回归：`tests/test_battle_recording.gd` GPU **44/44**，`tests/test_recording_offline.gd` GPU **46/46**，`tests/test_recording_paths.gd` headless **18/18**。从工程根目录以 `E:/godot/polo-balls-tools/offline-engine/runtime/Godot.4.7.2.offline.exe --script res://tests/preview_recording_compositions.gd` 运行；路径测试额外加 `--headless`。
+
 ## 左键实时长弓卡顿与过载中止（2026-09-24）
 
 - 实机重现：50×50 地图、真实天堂陨落长弓 + 敌人、每秒主动射一箭（比默认冷却更密集），裂缝/箭雨持续叠加。未录制的前 3 秒物理推进约 **52–54 帧/墙钟秒**；旧版左键录制仅约 **37.1 帧/墙钟秒**，约 3 秒后报“当前负载已使对战明显减速……请减少人物或特效”。失败时编码队列峰值约 **75 MB/路**，远低于 **256 MiB/路** 上限；这是实时模拟过慢保护触发，**不是特效计数或编码缓存已满**。

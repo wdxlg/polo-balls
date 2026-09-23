@@ -83,6 +83,18 @@ var _follow_zoom:float = 1.0
 var _camera_initialized:bool = false
 var _overview_viewport:SubViewport = null
 var _recording_title:Label = null
+var _player_composition_mode:int = -1
+var _player_camera:Camera2D = null
+var _player_camera_center:Vector2 = Vector2.ZERO
+var _player_camera_zoom:float = 1.0
+var _player_camera_initialized:bool = false
+var _player_composition_map:String = ""
+var _last_player_capture_transform:Transform2D = Transform2D.IDENTITY
+var _last_player_capture_frame:int = -1
+var _player_overview_viewport:SubViewport = null
+var _player_overview_layer:CanvasLayer = null
+var _player_overview_root:Control = null
+var _player_overview_label:Label = null
 var _pause_boundary:bool = false
 var _empty_sim_grabs:int = 0
 var _capture_size:Vector2i = Vector2i.ZERO
@@ -132,6 +144,14 @@ var _overlay_abort:Button = null
 func _ready() -> void:
 	# 录制不能因为游戏暂停（esc）而停摆：遮罩、进度、中止按钮都要继续响应。
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	# Game autoload updates World.Camera2D at priority 0. Apply the shared framing
+	# afterwards, including when no recording is active; never run on the EN variant.
+	process_priority = 10
+	set_process(not _is_variant)
+
+
+func _process(delta:float) -> void:
+	if not _is_variant: _sync_player_composition(delta)
 
 
 func _wall_usec() -> int:
@@ -261,6 +281,8 @@ func get_composition() -> int:
 func set_composition(value:int) -> bool:
 	if is_busy(): return _fail("请先停止录制并等待保存完成，再修改取景。")
 	if not preferences.save_composition(value): return _fail(preferences.last_error)
+	_player_camera_initialized = false
+	_player_composition_mode = -1
 	_last_error = ""
 	return true
 
@@ -829,16 +851,28 @@ func _prepare_next_capture() -> void:
 	var logical_size:Vector2 = main.get_visible_rect().size
 	var scale_to_output := Transform2D.IDENTITY.scaled(Vector2(_capture_size) / logical_size)
 	var base:Transform2D = scale_to_output * main.global_canvas_transform * main.get_canvas_transform()
+	if not _is_variant and is_instance_valid(_secondary):
+		_secondary._player_composition_mode = _player_composition_mode
+		_secondary._player_camera = _player_camera
+	# A World battle now uses the same live Camera2D for play and both video languages.
+	# Do not layer the old private tracking zoom on top of the already-composed view.
+	var shared_view:bool = _player_composition_mode == _composition and is_instance_valid(_player_camera) and main.get_camera_2d() == _player_camera
 	if not _is_variant:
-		_update_recording_camera(base)
-		if is_instance_valid(_secondary):
-			_secondary._follow_screen_center = _follow_screen_center
-			_secondary._follow_zoom = _follow_zoom
-			_secondary._camera_initialized = _camera_initialized
-	var anchor:Vector2 = Vector2(_capture_size) * 0.5
-	var camera := Transform2D.IDENTITY.scaled(Vector2.ONE * _follow_zoom)
-	camera.origin = anchor - _follow_screen_center * _follow_zoom
-	_sim_viewport.canvas_transform = camera * base
+		if not shared_view:
+			_update_recording_camera(base)
+			if is_instance_valid(_secondary):
+				_secondary._follow_screen_center = _follow_screen_center
+				_secondary._follow_zoom = _follow_zoom
+				_secondary._camera_initialized = _camera_initialized
+	if shared_view:
+		_last_player_capture_transform = base
+		_last_player_capture_frame = Engine.get_process_frames()
+		_sim_viewport.canvas_transform = base
+	else:
+		var anchor:Vector2 = Vector2(_capture_size) * 0.5
+		var camera := Transform2D.IDENTITY.scaled(Vector2.ONE * _follow_zoom)
+		camera.origin = anchor - _follow_screen_center * _follow_zoom
+		_sim_viewport.canvas_transform = camera * base
 	if is_instance_valid(_overview_viewport):
 		_update_overview_camera()
 		_overview_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
@@ -849,8 +883,82 @@ func _prepare_next_capture() -> void:
 	if is_instance_valid(_secondary): _secondary._prepare_next_capture()
 
 
-# All tracking calculations use scene positions, while only the recorder's
-# private viewport receives the transform. Neither LIVE nor SIM moves Camera2D.
+# For non-World / test-only recording scenes, preserve the original standalone
+# framing. In World battles the player's Camera2D owns the framing instead.
+func _sync_player_composition(delta:float) -> void:
+	var world:Node = _world()
+	var main:Viewport = get_viewport()
+	if world == null or not world.is_ancestor_of(self) or not world.has_method("_current_map_node"):
+		_player_composition_mode = -1
+		_clear_player_overview()
+		return
+	var camera:Camera2D = world.get_node_or_null("Camera2D") as Camera2D
+	if camera == null or main.get_camera_2d() != camera:
+		_player_composition_mode = -1
+		_clear_player_overview()
+		return
+	var rect:Rect2 = _map_visual_rect()
+	var view:Vector2 = main.get_visible_rect().size
+	if not rect.has_area() or view.x < 16.0 or view.y < 16.0:
+		_player_composition_mode = -1
+		_clear_player_overview()
+		return
+	var composition:int = preferences.get_composition()
+	var map_name:String = str(world.get("now_choose_map"))
+	# Story-driven camera locks and direct player control take priority over the
+	# automatic composition. The video still mirrors the actual player view.
+	if bool(world.get("_dead_save_force_non_follow_camera")) or (Game.should_follow_controlled_character() and Game.get_local_controlled_character() is Node2D):
+		_player_camera_initialized = false
+		_player_camera = camera
+		_player_composition_mode = composition
+		_sync_player_overview(composition, rect, view)
+		return
+	# World updates the base zoom every frame before this priority-10 callback.
+	# Use the unmodified zoom accessor rather than the last composed camera.zoom.
+	var base_zoom:float = maxf(float(world.get_effective_camera_zoom()), 0.001)
+	var full_factor:float = clampf(minf(view.x * 0.87 / maxf(rect.size.x * base_zoom, 1.0), view.y * 0.55 / maxf(rect.size.y * base_zoom, 1.0)), 0.85, 1.55)
+	var target_center:Vector2 = rect.get_center()
+	var target_zoom:float = base_zoom * full_factor
+	if composition != PreferencesScript.FULL:
+		var bounds:Rect2 = Rect2()
+		var found:bool = false
+		for actor:Node in get_tree().get_nodes_in_group("Ball"):
+			if not is_instance_valid(actor) or not actor is Node2D or not world.is_ancestor_of(actor) or not actor.is_inside_tree() or not actor.visible: continue
+			var point:Vector2 = (actor as Node2D).global_position
+			if not found:
+				bounds = Rect2(point, Vector2.ZERO)
+				found = true
+			else:
+				bounds = bounds.expand(point)
+		if found:
+			target_center = bounds.get_center()
+			var span_x:float = maxf(bounds.size.x * base_zoom, 225.0 * view.x / 1080.0)
+			var span_y:float = maxf(bounds.size.y * base_zoom, 245.0 * view.y / 1920.0)
+			var follow_factor:float = minf(view.x * 0.62 / span_x, view.y * 0.44 / span_y)
+			target_zoom = base_zoom * clampf(follow_factor, full_factor, 2.9 if composition == PreferencesScript.FOLLOW else 2.5)
+	if not _player_camera_initialized or _player_camera != camera or _player_composition_mode != composition or _player_composition_map != map_name:
+		_player_camera_center = target_center
+		_player_camera_zoom = target_zoom
+		_player_camera_initialized = true
+	else:
+		var alpha:float = 1.0 - exp(-5.0 * clampf(delta, 0.0, 0.1))
+		_player_camera_center = _player_camera_center.lerp(target_center, alpha)
+		_player_camera_zoom = lerpf(_player_camera_zoom, target_zoom, alpha)
+	var offset:Variant = world.get("mouse_offset")
+	var manual_offset:Vector2 = offset if offset is Vector2 else Vector2.ZERO
+	var composed_center:Vector2 = _player_camera_center + manual_offset
+	# Existing cinematic and hit reactions keep their center override.
+	var focus:float = maxf(float(world.get("_cinematic_focus_weight")), float(world.get("_damage_focus_weight")))
+	if focus > 0.0: composed_center = composed_center.lerp(camera.global_position, clampf(focus, 0.0, 1.0))
+	camera.zoom = Vector2.ONE * _player_camera_zoom
+	camera.global_position = composed_center
+	camera.force_update_scroll()
+	_player_camera = camera
+	_player_composition_mode = composition
+	_player_composition_map = map_name
+	_sync_player_overview(composition, rect, view)
+
+
 func _map_visual_rect() -> Rect2:
 	var world:Node = _world()
 	if world != null and world.has_method("_current_map_node") and world.has_method("return_map_visual_rect"):
@@ -900,6 +1008,81 @@ func _update_overview_camera() -> void:
 	var xform := Transform2D.IDENTITY.scaled(Vector2.ONE * zoom)
 	xform.origin = size * 0.5 - rect.get_center() * zoom
 	_overview_viewport.canvas_transform = xform
+
+
+func _clear_player_overview() -> void:
+	if is_instance_valid(_player_overview_layer): _player_overview_layer.queue_free()
+	if is_instance_valid(_player_overview_viewport): _player_overview_viewport.queue_free()
+	_player_overview_layer = null
+	_player_overview_viewport = null
+	_player_overview_root = null
+	_player_overview_label = null
+
+
+func _sync_player_overview(composition:int, rect:Rect2, view:Vector2) -> void:
+	if composition != PreferencesScript.FOLLOW_OVERVIEW or DisplayServer.get_name() == "headless":
+		_clear_player_overview()
+		return
+	if not is_instance_valid(_player_overview_viewport):
+		var overview := SubViewport.new()
+		overview.name = "PlayerBattleOverview"
+		overview.disable_3d = true
+		overview.gui_disable_input = true
+		overview.size = Vector2i(400, 400)
+		overview.world_2d = get_viewport().world_2d
+		overview.canvas_cull_mask = 1 # Battle world only; not UI or recording overlays.
+		overview.render_target_update_mode = SubViewport.UPDATE_DISABLED
+		add_child(overview)
+		_player_overview_viewport = overview
+		var layer := CanvasLayer.new()
+		layer.name = "PlayerCompositionOverview"
+		layer.layer = OVERLAY_LAYER - 1 # Above game, below the offline progress mask.
+		add_child(layer)
+		_player_overview_layer = layer
+		var frame := Control.new()
+		frame.name = "OverviewFrame"
+		frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		frame.visibility_layer = CAPTURE_MASK_BIT
+		layer.add_child(frame)
+		_player_overview_root = frame
+		var border := ColorRect.new()
+		border.color = Color(0.03, 0.10, 0.17, 0.96)
+		border.size = Vector2(414, 414)
+		border.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		border.visibility_layer = CAPTURE_MASK_BIT
+		frame.add_child(border)
+		var picture := TextureRect.new()
+		picture.name = "PlayerFullMapInset"
+		picture.position = Vector2(7, 7)
+		picture.size = Vector2(400, 400)
+		picture.texture = overview.get_texture()
+		picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		picture.visibility_layer = CAPTURE_MASK_BIT
+		frame.add_child(picture)
+		var tag := Label.new()
+		tag.position = Vector2(16, 12)
+		tag.size = Vector2(170, 39)
+		tag.add_theme_color_override("font_color", Color.WHITE)
+		tag.add_theme_color_override("font_outline_color", Color.BLACK)
+		tag.add_theme_constant_override("outline_size", 5)
+		tag.add_theme_font_size_override("font_size", 22)
+		tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tag.visibility_layer = CAPTURE_MASK_BIT
+		frame.add_child(tag)
+		_player_overview_label = tag
+	var size:Vector2 = Vector2(_player_overview_viewport.size)
+	var zoom:float = minf(size.x * 0.92 / rect.size.x, size.y * 0.92 / rect.size.y)
+	var xform := Transform2D.IDENTITY.scaled(Vector2.ONE * zoom)
+	xform.origin = size * 0.5 - rect.get_center() * zoom
+	_player_overview_viewport.canvas_transform = xform
+	_player_overview_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
+	var scale:float = minf(view.x / 1080.0, view.y / 1920.0)
+	_player_overview_root.position = Vector2(view.x - 442.0 * scale, 292.0 * scale)
+	_player_overview_root.scale = Vector2.ONE * scale
+	_player_overview_label.text = "全图" if str(Game.current_locale).begins_with("zh") else "OVERVIEW"
+	var world:Node = _world()
+	var settings:CanvasItem = world.get_node_or_null("CanvasLayer/Control/Game_Setting") as CanvasItem if world != null else null
+	_player_overview_layer.visible = settings == null or not settings.is_visible_in_tree()
 
 
 func _grab_image() -> Image:

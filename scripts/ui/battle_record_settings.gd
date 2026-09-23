@@ -8,6 +8,7 @@ var open_button:Button
 var tail_spin:SpinBox
 var tail_label:Label
 var composition_select:OptionButton
+var composition_feedback:Label
 
 func setup(target:Node) -> void:
 	recorder = target
@@ -56,12 +57,19 @@ func setup(target:Node) -> void:
 	tail_spin.value_changed.connect(_tail_changed)
 	tail_spin.get_line_edit().add_theme_font_size_override("font_size", 9)
 	tail_row.add_child(tail_spin)
+	# The recording panel already lives under SettingsStack. Put the camera option in
+	# its sibling Parameters category, not among recording-only directory/tail options.
+	var parameter_box:VBoxContainer = null
+	var recording_box:Node = get_parent()
+	if recording_box != null and recording_box.get_parent() != null:
+		parameter_box = recording_box.get_parent().get_node_or_null("CategoryBox_parameters") as VBoxContainer
+	var composition_container:VBoxContainer = parameter_box if parameter_box != null else self
 	var layout_row := HBoxContainer.new()
 	layout_row.name = "CompositionRow"
 	layout_row.add_theme_constant_override("separation", 6)
-	add_child(layout_row)
+	composition_container.add_child(layout_row)
 	var layout_label := Label.new()
-	layout_label.text = "成片取景"
+	layout_label.text = "画面取景"
 	layout_label.add_theme_font_size_override("font_size", 9)
 	layout_row.add_child(layout_label)
 	composition_select = OptionButton.new()
@@ -71,9 +79,14 @@ func setup(target:Node) -> void:
 	composition_select.add_item("交战跟拍 · 自动推拉", recorder.preferences.FOLLOW)
 	composition_select.add_item("交战跟拍 + 小全图", recorder.preferences.FOLLOW_OVERVIEW)
 	composition_select.select(recorder.get_composition())
-	composition_select.tooltip_text = "只影响最终中英文录像，不改变玩家操作视口；下次开录生效。"
+	composition_select.tooltip_text = "立即改变游戏内的实际镜头；中英文录像沿用相同视野。小全图也会显示在游戏画面中；录制中锁定。"
 	composition_select.item_selected.connect(_composition_changed)
 	layout_row.add_child(composition_select)
+	composition_feedback = Label.new()
+	composition_feedback.name = "CompositionFeedback"
+	composition_feedback.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	composition_feedback.text = "选择后立即改变游戏内画面；录像沿用同一取景。"
+	composition_container.add_child(composition_feedback)
 	feedback = Label.new()
 	feedback.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	feedback.text = "「设置」选择文件夹，或直接输入路径后按回车。设置会记住；录制中不能更改。"
@@ -140,13 +153,13 @@ func _tail_changed(value:float) -> void:
 func _composition_changed(index:int) -> void:
 	if recorder.is_busy():
 		composition_select.select(recorder.get_composition())
-		feedback.text = "录制中不能更改成片取景。"
+		composition_feedback.text = "录制中不能更改画面取景。"
 		return
 	if recorder.set_composition(composition_select.get_item_id(index)):
-		feedback.text = "已保存成片取景：%s；下次录像生效。" % composition_select.get_item_text(index)
+		composition_feedback.text = "已切换画面取景：%s；游戏画面立即生效，录像同步。" % composition_select.get_item_text(index)
 	else:
 		composition_select.select(recorder.get_composition())
-		feedback.text = recorder.get_last_error()
+		composition_feedback.text = recorder.get_last_error()
 
 func _fmt(value:float) -> String:
 	return str(int(value)) if is_equal_approx(value, floorf(value)) else "%.1f" % value
