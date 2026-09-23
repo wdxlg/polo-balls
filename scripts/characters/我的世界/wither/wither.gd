@@ -62,7 +62,7 @@ func _create_live_model() -> void:
 	if not image is Sprite2D: return
 	_bedrock_viewport = SubViewport.new()
 	_bedrock_viewport.name = "MojangBedrockWitherLive3D"
-	_bedrock_viewport.size = Vector2i(192,192)
+	_bedrock_viewport.size = Vector2i(384,384)
 	_bedrock_viewport.transparent_bg = true
 	_bedrock_viewport.own_world_3d = true
 	_bedrock_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
@@ -70,17 +70,17 @@ func _create_live_model() -> void:
 	var camera:=Camera3D.new()
 	_bedrock_camera = camera
 	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
-	camera.size = 4.3
-	camera.position = Vector3(0,1.68,-6)
+	camera.size = 5.2 # Include the inflated shield and upward-looking central head.
+	camera.position = Vector3(0,2.0,-6)
 	_bedrock_viewport.add_child(camera)
-	camera.look_at(Vector3(0,1.68,0),Vector3.UP)
+	camera.look_at(Vector3(0,2.0,0),Vector3.UP)
 	camera.current = true
 	_bedrock_model = LIVE_RIG.new() as Node3D
 	_bedrock_viewport.add_child(_bedrock_model)
 	var sprite:Sprite2D = image as Sprite2D
 	sprite.texture = _bedrock_viewport.get_texture()
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	sprite.scale = Vector2.ONE*0.85
+	sprite.scale = Vector2.ONE*(0.425*5.2/4.3) # Preserve world texels per model unit despite extra camera margins.
 func get_preview_texture() -> Texture2D:
 	if _bedrock_viewport != null: return _bedrock_viewport.get_texture()
 	return BODY

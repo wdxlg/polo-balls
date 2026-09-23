@@ -9,7 +9,9 @@
     "entity/wither.entity.json": "01234b71ae6d6439534f6ad9b8b378d4183ab588ae4af48b8ac364cec9dc9e1f",
     "textures/entity/wither_boss/wither.png": "cb4d8aeabd1f0a258aa2fc9cab01e6a124cbc75cd9676d25d13ea98a00875a05",
     "textures/entity/wither_boss/wither_invulnerable.png": "c806fa5e03c908a607247a35ba5c958f2bbe55ae9112d9377eb3363f22ed38fd",
-    "textures/entity/wither_boss/wither_armor_blue.png": "96b844e6ce25a076633954f3540e0864dfc94077fa7bc81200350e179fa51edc"
+    "textures/entity/wither_boss/wither_armor_blue.png": "96b844e6ce25a076633954f3540e0864dfc94077fa7bc81200350e179fa51edc",
+    "textures/entity/wither_boss/wither_armor_white.png": "4d0eb4c7e8036afd26777de3dea3c3f50e40b4a2a8698da3b2c95d818a801a1b",
+    "render_controllers/wither_boss_armor.render_controllers.json": "3c43c6c8ca1f6f109a8818522d5cef3404ccd2d5ce10913ee6cf8ea96f9cbaa4"
   },
   "runtime": "Original geometry and Molang formulas interpreted as live Godot 3D bones; not an exported static image."
 }

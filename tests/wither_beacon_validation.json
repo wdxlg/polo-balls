@@ -1,0 +1,30 @@
+{
+  "head_before": "d3e57c3a052b2f6aef8719634820f46e3e73ff42",
+  "gpu": "D3D12 RTX 4060 Laptop GPU",
+  "revision_checks": 42,
+  "revision_failures": 0,
+  "existing_live_checks": 54,
+  "existing_live_failures": 0,
+  "smoke": "9 script/scene loads + existing behavior assertions; exit 0",
+  "armor_viewport": [
+    384,
+    384
+  ],
+  "armor_bounds_t1": [
+    63,
+    50,
+    321,
+    361
+  ],
+  "armor_changed_pixels_between_phases": 37145,
+  "screenshots": {
+    "armor_0.png": "220feeea2e5b44a181754edda6aec41a69a82212379f9448476e916ebaf30ab1",
+    "armor_1.png": "18db18d90b60fa51661f781a47264ae021019c2a18f70664ac08964efa391118",
+    "battle.png": "915c00085154b3c452c2e6fc6695871a087a629a7a0458bce4d812c4e05f69e6"
+  },
+  "notes": [
+    "Real World and GPU, plus live state-machine steps",
+    "No two-client multiplayer or mass-Wither performance validation",
+    "Existing shader case/UID and 204 ObjectDB exit warnings remain"
+  ]
+}

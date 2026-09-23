@@ -5,6 +5,9 @@ const FOLDER = "res://Images/characters/我的世界/wither/bedrock/"
 const BODY = preload("res://Images/characters/我的世界/wither/bedrock/wither.png")
 const INVULNERABLE = preload("res://Images/characters/我的世界/wither/bedrock/wither_invulnerable.png")
 const ARMOR_BLUE = preload("res://Images/characters/我的世界/wither/bedrock/wither_armor_blue.png")
+const ARMOR_WHITE = preload("res://Images/characters/我的世界/wither/bedrock/wither_armor_white.png")
+var armor_blue_material:StandardMaterial3D
+var armor_white_material:StandardMaterial3D
 var bones:Dictionary = {}
 var armor_bones:Dictionary = {}
 var body_meshes:Array[MeshInstance3D] = []
@@ -31,6 +34,14 @@ func _ready() -> void:
 	add_child(armor_layer)
 	var temporary:Array[MeshInstance3D] = []
 	_build(armor_data["geometry.witherBoss.armor.v1.8"],armor_layer,ARMOR_BLUE,armor_bones,temporary)
+	armor_blue_material = _armor_material(ARMOR_BLUE,0.65)
+	armor_white_material = _armor_material(ARMOR_WHITE,0.45)
+	for mesh:MeshInstance3D in temporary:
+		mesh.material_override = armor_blue_material
+		var white:=MeshInstance3D.new()
+		white.mesh = mesh.mesh
+		white.material_override = armor_white_material
+		mesh.get_parent().add_child(white)
 	armor_layer.visible = false
 
 func _load_json(path:String) -> Dictionary:
@@ -57,6 +68,17 @@ func _material(texture:Texture2D) -> StandardMaterial3D:
 	material.vertex_color_use_as_albedo = true
 	return material
 
+func _armor_material(texture:Texture2D,opacity:float) -> StandardMaterial3D:
+	var material:StandardMaterial3D = _material(texture)
+	# Energy overlay, not an opaque second skin. Keep the face/body legible.
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	material.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	material.cull_mode = BaseMaterial3D.CULL_BACK
+	material.albedo_color.a = opacity
+	material.texture_repeat = true
+	return material
+
 func _build(geometry:Dictionary,parent:Node3D,texture:Texture2D,output:Dictionary,meshes:Array[MeshInstance3D]) -> void:
 	var pivots:Dictionary = {}
 	var material:StandardMaterial3D = _material(texture)
@@ -76,7 +98,7 @@ func _build(geometry:Dictionary,parent:Node3D,texture:Texture2D,output:Dictionar
 		for raw_cube:Variant in bone.get("cubes",[]):
 			var cube:Dictionary = raw_cube
 			var instance:=MeshInstance3D.new()
-			instance.mesh = _cube_mesh(cube,pivot,texture.get_size(),float(bone.get("inflate",0.0)))
+			instance.mesh = _cube_mesh(cube,pivot,Vector2(float(geometry.get("texturewidth",64)),float(geometry.get("textureheight",64))),float(bone.get("inflate",0.0)))
 			instance.material_override = material
 			node.add_child(instance)
 			meshes.append(instance)
@@ -155,6 +177,11 @@ func animate(original_life_time:float,heading:Vector2,awake:bool,assembly_progre
 		var material:StandardMaterial3D = _material(INVULNERABLE if show_invulnerable else BODY)
 		for mesh:MeshInstance3D in body_meshes: mesh.material_override = material
 	armor_layer.visible = awake and shielded
+	# Mojang's original armor render controllers. Use actor simulation time,
+	# not shader TIME: pause and offline export must retain the same phase.
+	var scroll:float = fposmod(original_life_time*0.2,1.0)
+	armor_blue_material.uv1_offset = Vector3(scroll,scroll,0.0)
+	armor_white_material.uv1_offset = Vector3(fposmod(cos(deg_to_rad(original_life_time*22.92))*3.0,1.0),scroll,0.0)
 	# Preserve the original summoning spin, but never yaw the awakened body.
 	rotation = Vector3(_body_pitch,0.0,_body_roll) if awake else Vector3(0.0,TAU*2.0*clampf((assembly_progress-0.8)/0.2,0.0,1.0),0.0)
 	position.y = sin(original_life_time*3.7)*0.02 if awake else 0.0

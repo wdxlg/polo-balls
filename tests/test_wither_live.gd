@@ -167,11 +167,15 @@ func run() -> void:
 	check(beacon.landed or beacon.global_position.y > drop_y,"falling heart obeys gravity or collides with ground")
 	wither.on_actual_health_damage_received(1.0,251.0)
 	check(wither.beacon == beacon,"half-health trigger cannot duplicate the beacon")
-	beacon.landed = true
+	beacon.state_machine.set_physics_process(false)
+	var floor_body:StaticBody2D = obstacle(Vector2(20,100),true)
+	(floor_body.get_child(0).shape as RectangleShape2D).size = Vector2(360,12)
 	beacon.global_position = center+Vector2(20,40)
-	enemy.global_position = center+Vector2(140,40)
+	enemy.global_position = center+Vector2(20,-100)
 	await physics_frame
-	beacon.beam_direction = Vector2.RIGHT
+	beacon.step_mob(0.4)
+	check(beacon.landed and beacon._activated,"real beacon body lands on full-size collider")
+	beacon.beam_direction = Vector2.UP
 	beacon.beam_end = beacon._clipped_beam()
 	beacon.warning_left = 0.6
 	beacon.step_mob(0.61)
@@ -180,6 +184,7 @@ func run() -> void:
 	for i:int in range(3): beacon.step_mob(0.5)
 	check(enemy.health < before,"ground beacon beam damages enemy through periodic ticks")
 	check(beacon.beams_fired == 1 and not wither._buff.is_empty(),"completed beam grants exactly one random Wither effect")
+	floor_body.queue_free()
 	# Let the real character state machine tick, rather than calling its skill helpers.
 	wither._rose_left = 0.05
 	wither._shot_left = 0.05
