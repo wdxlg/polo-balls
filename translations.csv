@@ -2,6 +2,12 @@ keys,zh,en
 UI_LANGUAGE,语言,Language
 UI_REMATCH,重打,Rematch
 UI_REMATCH_TOOLTIP,左键：完全重演上一把（相同初始方向与随机结果）；右键：相同地图/人物/位置，重新随机,"Left click: replay the previous match with the same initial directions and random results; right click: reuse the same map, characters, and positions with fresh randomness."
+UI_RECORD,录制,Record
+UI_RECORD_STOP,停止,Stop
+UI_RECORD_TOOLTIP,左键：录制当前对决画面，按钮变红表示正在录制，再点一次停止并输出 mp4；右键：以低倍速模拟重打上一把并直接输出 mp4，对局不在游戏画面中呈现,"Left click: record the current match; the button turns red while recording, click again to stop and write the mp4. Right click: replay the previous match at low speed as a simulation and write the mp4 directly, without showing the match in the game view."
+UI_RECORD_ABORT,中止录制,Abort recording
+UI_RECORD_SIM_BUSY,正在模拟录制对局…,Simulating match for recording…
+UI_RECORD_SIM_WRAPPING,对局结束，正在收尾…,Match over - wrapping up…
 UI_NOW_TEAM,当前队伍：,Now Team:
 UI_NOW_CHAR,当前角色：,Now Char:
 UI_NOW_TYPE,当前分类：,Now Type:

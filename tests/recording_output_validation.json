@@ -1,0 +1,38 @@
+[
+  {
+    "name": "live_2026-09-23_08-11-33_10645076.mp4",
+    "codec": "h264",
+    "width": 540,
+    "height": 960,
+    "fps": 30.0,
+    "frames": 37,
+    "duration": "1.233333",
+    "bytes": 21340,
+    "decoded_all_frames": true,
+    "audio_tracks": 0
+  },
+  {
+    "name": "sim_2026-09-23_08-11-35_12387430.mp4",
+    "codec": "h264",
+    "width": 540,
+    "height": 960,
+    "fps": 60.0,
+    "frames": 18,
+    "duration": "0.300000",
+    "bytes": 42746,
+    "decoded_all_frames": true,
+    "audio_tracks": 0
+  },
+  {
+    "name": "sim_2026-09-23_08-11-37_13917875.mp4",
+    "codec": "h264",
+    "width": 540,
+    "height": 960,
+    "fps": 60.0,
+    "frames": 96,
+    "duration": "1.600000",
+    "bytes": 306749,
+    "decoded_all_frames": true,
+    "audio_tracks": 0
+  }
+]

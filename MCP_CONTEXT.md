@@ -39,5 +39,6 @@
 
 - 旧 `global/注释.gd` 的完整原文已迁至 `docs/archive/legacy_global_notes.md`。它是历史资料，可能包含已过时的规则、命令和环境描述；按任务需要检索，不自动执行其中命令。与当前用户要求或本文件冲突时，以当前要求为准。
 - 轮换展示框与挑战规则：`tests/ROTATION_FRAMES_CHALLENGE.md`。阅读时仍需核对当前代码，不能仅凭旧测试记录声称当前版本已通过。
+- 录制按钮、实时/模拟录制与验证范围：`tests/BATTLE_RECORDING.md`；当前输出为无音轨画面，不能宣称已经录入游戏音效。
 - MCP 自动附带说明的安装、备份和验证方式：`tools/mcp_context/README.md`。
 - 实际入口通常包括 `scripts/world.gd`、`global/game.gd`、`ui/control.gd`、`classes/ball.gd` 与 `scripts/training/combat_threat_analyzer.gd`；按任务定位，不随意扩大修改范围。

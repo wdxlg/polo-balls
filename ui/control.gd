@@ -16,6 +16,7 @@ var team_button_group:ButtonGroup = ButtonGroup.new()
 
 # 运行时设置 UI。重打已提升为顶部工具栏正式功能，不再属于设置页。
 var language_button:Button
+var _battle_record_controls:Node
 
 #========================================================
 # 竖屏 UI 布局 + 原版鼠标视差
@@ -83,6 +84,9 @@ func _refresh_runtime_translations() -> void:
 		toolbar_rematch_button.text = Game.ui_t("UI_REMATCH")
 		toolbar_rematch_button.tooltip_text = Game.ui_t("UI_REMATCH_TOOLTIP")
 
+	if is_instance_valid(_battle_record_controls):
+		_battle_record_controls.refresh()
+
 	_refresh_settings_category_texts()
 
 
@@ -140,6 +144,7 @@ func _refresh_static_ui_texts(node:Node) -> void:
 
 
 func _ready() -> void:
+	_ensure_battle_record_controls()
 	team_button_group.allow_unpress = true
 	var tree = get_tree()
 	var world:World = tree.current_scene
@@ -1784,6 +1789,25 @@ func _request_toolbar_rematch(exact_replay:bool) -> void:
 	multi_player.hide()
 	Game.request_world_rematch(exact_replay)
 	call_deferred("_refresh_runtime_translations")
+
+
+func _ensure_battle_record_controls() -> Node:
+	if not is_instance_valid(_battle_record_controls):
+		_battle_record_controls = preload("res://scripts/ui/battle_record_controls.gd").new()
+		_battle_record_controls.name = "BattleRecordControls"
+		add_child(_battle_record_controls)
+		_battle_record_controls.setup($Settings/HBoxContainer/Record)
+	return _battle_record_controls
+
+
+func _on_record_button_up() -> void:
+	_ensure_battle_record_controls().toggle_live()
+
+
+func _on_record_button_gui_input(event:InputEvent) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+		_ensure_battle_record_controls().start_simulated()
+		$Settings/HBoxContainer/Record.accept_event()
 
 
 func _on_rematch_button_up() -> void:

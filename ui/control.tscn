@@ -26,6 +26,10 @@ region = Rect2(50, 194, 12, 11)
 atlas = ExtResource("2_2mc8b")
 region = Rect2(20, 149, 7, 7)
 
+[sub_resource type="AtlasTexture" id="AtlasTexture_rc0rd"]
+atlas = ExtResource("2_2mc8b")
+region = Rect2(21, 197, 6, 6)
+
 [sub_resource type="AtlasTexture" id="AtlasTexture_dx307"]
 atlas = ExtResource("2_2mc8b")
 region = Rect2(3, 243, 10, 9)
@@ -152,6 +156,13 @@ size_flags_vertical = 4
 focus_behavior_recursive = 1
 text = "重打"
 icon = SubResource("AtlasTexture_sm8s4")
+
+[node name="Record" type="Button" parent="Settings/HBoxContainer" unique_id=1463782905]
+layout_mode = 2
+size_flags_vertical = 4
+focus_behavior_recursive = 1
+text = "录制"
+icon = SubResource("AtlasTexture_rc0rd")
 
 [node name="Map" type="Button" parent="Settings/HBoxContainer" unique_id=225512993]
 layout_mode = 2
@@ -629,6 +640,8 @@ grow_vertical = 2
 [connection signal="button_up" from="Settings/HBoxContainer/Reset" to="." method="_on_reset_button_up"]
 [connection signal="button_up" from="Settings/HBoxContainer/Rematch" to="." method="_on_rematch_button_up"]
 [connection signal="gui_input" from="Settings/HBoxContainer/Rematch" to="." method="_on_rematch_button_gui_input"]
+[connection signal="button_up" from="Settings/HBoxContainer/Record" to="." method="_on_record_button_up"]
+[connection signal="gui_input" from="Settings/HBoxContainer/Record" to="." method="_on_record_button_gui_input"]
 [connection signal="button_up" from="Settings/HBoxContainer/Map" to="." method="_on_map_button_up"]
 [connection signal="button_up" from="Settings/HBoxContainer/MultiPlayer" to="." method="_on_multi_player_button_up"]
 [connection signal="button_up" from="Team/Team/CreateButton" to="." method="_on_create_button_button_up"]
