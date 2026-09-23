@@ -3,43 +3,43 @@
   "failures": 0,
   "results": [
     {
-      "name": "live_2026-09-23_08-35-10_10789315.mp4",
+      "name": "live_2026-09-23_08-49-07_10261796.mp4",
       "width": 1080,
       "height": 1920,
       "fps": 60,
-      "frames": 128,
-      "video_duration": "2.133333",
-      "audio_duration": "2.133000",
-      "audio_rms": 0.21775231733100442,
-      "ui_rejection_db": 74.93,
+      "frames": 126,
+      "video_duration": "2.100000",
+      "audio_duration": "2.100000",
+      "audio_rms": 0.21707662397710778,
+      "ui_rejection_db": 76.87,
       "decoded_all_frames": true,
       "codecs": [
         "h264",
         "aac"
       ],
       "flash_times": [
-        1.0,
-        1.6666666666666667
+        0.9833333333333333,
+        1.6166666666666667
       ],
       "beep_times": [
         1.0050000000000001,
-        1.655
+        1.625
       ],
       "sync_offsets_seconds": [
-        0.005,
-        -0.0117
+        0.0217,
+        0.0083
       ]
     },
     {
-      "name": "sim_2026-09-23_08-35-14_14804070.mp4",
+      "name": "sim_2026-09-23_08-49-11_14276506.mp4",
       "width": 1080,
       "height": 1920,
       "fps": 60,
       "frames": 18,
       "video_duration": "0.300000",
       "audio_duration": "0.300000",
-      "audio_rms": 0.19193495912704295,
-      "ui_rejection_db": 129.67,
+      "audio_rms": 0.19146250586608368,
+      "ui_rejection_db": 134.57,
       "decoded_all_frames": true,
       "codecs": [
         "h264",
@@ -47,15 +47,15 @@
       ]
     },
     {
-      "name": "sim_2026-09-23_08-35-16_16626097.mp4",
+      "name": "sim_2026-09-23_08-49-13_16080785.mp4",
       "width": 1080,
       "height": 1920,
       "fps": 60,
       "frames": 96,
       "video_duration": "1.600000",
       "audio_duration": "1.600000",
-      "audio_rms": 0.19840042023359641,
-      "ui_rejection_db": 69.33,
+      "audio_rms": 0.19830521872087667,
+      "ui_rejection_db": 73.92,
       "decoded_all_frames": true,
       "codecs": [
         "h264",

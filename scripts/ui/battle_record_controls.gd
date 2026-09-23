@@ -8,6 +8,7 @@ var output_path:LineEdit
 var message_label:Label
 var last_message:String = ""
 var last_output:String = ""
+var _refresh_elapsed:float = 0.0
 
 func setup(target:Button) -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -26,7 +27,7 @@ func setup(target:Button) -> void:
 	var body := VBoxContainer.new()
 	message_label = Label.new()
 	message_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	message_label.custom_minimum_size = Vector2(600, 85)
+	message_label.custom_minimum_size = Vector2(0, 85)
 	body.add_child(message_label)
 	# A read-only LineEdit is not translated by the global text scanner.
 	# Never place filesystem paths in translated labels/tooltips ("Go" in "Godot" is a character name).
@@ -37,17 +38,36 @@ func setup(target:Button) -> void:
 	result_dialog.get_label().hide()
 	result_dialog.add_button("打开输出文件夹 / Open folder", false, "folder")
 	result_dialog.custom_action.connect(func(action:StringName):
-		if action == &"folder": OS.shell_open(recorder.get_output_directory()))
+		if action == &"folder": OS.shell_open(last_output.get_base_dir() if last_output.ends_with(".mp4") else recorder.get_output_directory()))
 	add_child(result_dialog)
 	refresh()
 
 func toggle_live() -> void:
-	if not recorder.toggle_live(): _show_message(recorder.get_last_error())
+	var starting:bool = recorder.is_idle()
+	if starting: last_output = ""
+	if not recorder.toggle_live():
+		_show_message(recorder.get_last_error())
+	elif starting:
+		_close_setup_panels()
+		if Game.can_local_manage_world() and (Game.now_stop_state or get_tree().paused):
+			Game.continue_game()
 	refresh()
+
+func _close_setup_panels() -> void:
+	for path:String in ["Team", "Map", "Game_Setting", "MultiPlayer"]:
+		var panel:CanvasItem = get_parent().get_node_or_null(path)
+		if panel != null: panel.hide()
+
+func _process(delta:float) -> void:
+	_refresh_elapsed += delta
+	if _refresh_elapsed >= 0.2:
+		_refresh_elapsed = 0.0
+		refresh()
 
 func start_simulated() -> void:
 	# Close setup panels before rematch, otherwise the world stays in placement mode.
 	if recorder.get_mode() == 0 and not recorder.is_busy():
+		last_output = ""
 		if Game.can_local_manage_world() and recorder._world() != null and recorder._world().has_rematch_setup():
 			for path:String in ["Team", "Map", "Game_Setting", "MultiPlayer"]:
 				var panel:CanvasItem = get_parent().get_node_or_null(path)
@@ -61,8 +81,15 @@ func refresh() -> void:
 	var saving:bool = not active and recorder.is_busy()
 	button.text = "保存中…" if saving else Game.ui_t("UI_RECORD_STOP" if active else "UI_RECORD")
 	button.modulate = Color(1.0, 0.35, 0.35) if active else Color.WHITE
+	var reason:String = recorder.get_pause_reason() if active else ""
+	if active and not reason.is_empty():
+		button.text = "待录" if recorder._frame_index == 0 else "暂停"
+		button.modulate = Color(1.0, 0.8, 0.3)
 	button.disabled = saving
-	button.tooltip_text = "左键：开始/停止高清对战录制；右键：慢速重打并生成正常速度的有声对战视频。" + "\n输出：user://recordings（保存后可打开文件夹）" + "\n1080×1920 / 60fps · 仅对战画面和游戏声音 · 暂停不计入成片"
+	button.tooltip_text = "左键：开始/停止高清对战录制；右键：慢速重打并生成正常速度的有声对战视频。" + "\n默认：user://recordings；在设置 → 录制中选择保存目录" + "\n1080×1920 / 60fps · 仅对战画面和游戏声音 · 暂停不计入成片"
+
+	if active:
+		button.tooltip_text += "\n已录 %d 帧。%s 再点一次停止。" % [recorder._frame_index, reason]
 
 func _on_finished(path:String, frames:int) -> void:
 	refresh()
@@ -79,4 +106,4 @@ func _show_message(message:String) -> void:
 		last_message += "\n注意：" + recorder.get_last_error()
 	message_label.text = last_message
 	output_path.text = ProjectSettings.globalize_path(last_output) if not last_output.is_empty() else recorder.get_output_directory()
-	result_dialog.popup_centered(Vector2i(660, 220))
+	result_dialog.popup_centered(Vector2i(clampi(get_window().size.x - 32, 320, 660), 260))

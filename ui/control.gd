@@ -722,7 +722,7 @@ var settings_scroll:ScrollContainer
 var settings_stack:VBoxContainer
 var settings_category_boxes:Dictionary = {}
 var settings_tab_buttons:Dictionary = {}
-const SETTINGS_CATEGORY_ORDER:Array[String] = ["training", "parameters", "effects"]
+const SETTINGS_CATEGORY_ORDER:Array[String] = ["training", "parameters", "effects", "recording"]
 var current_settings_category:String = "training"
 var effect_preview_panel:Control
 var _effect_preview_size_preset:String = "large"
@@ -824,6 +824,10 @@ func add_game_set() -> void:
 	_build_training_settings(settings_category_boxes["training"] as VBoxContainer)
 	_build_parameter_settings(settings_category_boxes["parameters"] as VBoxContainer)
 	_build_effect_preview_settings(settings_category_boxes["effects"] as VBoxContainer)
+	var recording_panel := preload("res://scripts/ui/battle_record_settings.gd").new()
+	recording_panel.name = "RecordingSettings"
+	(settings_category_boxes["recording"] as VBoxContainer).add_child(recording_panel)
+	recording_panel.setup(_ensure_battle_record_controls().recorder)
 
 	_refresh_settings_category_texts()
 	_show_settings_category("training")
@@ -1376,6 +1380,8 @@ func _show_settings_category(category:String) -> void:
 
 
 func _refresh_settings_category_texts() -> void:
+	if settings_tab_buttons.has("recording"):
+		(settings_tab_buttons["recording"] as Button).text = "录制"
 	_sync_map_background_setting()
 	if settings_tab_buttons.has("training"):
 		(settings_tab_buttons["training"] as Button).text = Game.ui_t("SETTINGS_CATEGORY_TRAINING")

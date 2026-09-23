@@ -46,6 +46,12 @@ signal mode_changed(mode:int)
 ## path 为最终产物（mp4，或降级后的 PNG 目录），frames 为写出的帧数。
 signal recording_finished(path:String, frames:int)
 
+const PreferencesScript = preload("res://scripts/ui/battle_record_preferences.gd")
+var preferences:RefCounted = PreferencesScript.new()
+var _session_output_root:String = ""
+var _last_pause_reason:String = ""
+var _encoder_stderr:FileAccess
+var _encoder_exit:int = -1
 var _last_error:String = ""
 var mode:int = Mode.IDLE
 
@@ -180,7 +186,23 @@ func stop() -> void:
 
 
 func get_output_directory() -> String:
-	return ProjectSettings.globalize_path(OUTPUT_ROOT)
+	return preferences.get_directory()
+
+
+func set_output_directory(path:String) -> bool:
+	if is_busy(): return _fail("请先停止录制并等待保存完成，再修改目录。")
+	if not preferences.save_directory(path): return _fail(preferences.last_error)
+	_last_error = ""
+	return true
+
+
+func get_pause_reason() -> String:
+	if get_tree().paused or Game.now_stop_state: return "对局暂停中，请按 Esc 继续。"
+	if Engine.time_scale <= 0.000001: return "游戏速度为零，请调高速度。"
+	var world:Node = _world()
+	var team:CanvasItem = world.get_node_or_null("CanvasLayer/Control/Team") if world != null else null
+	if team != null and team.is_visible_in_tree(): return "队伍布阵界面打开，请收起布阵界面。"
+	return ""
 
 
 func _enter_mode(next_mode:int) -> void:
@@ -208,6 +230,12 @@ func _begin_session(output_fps:float, tag:String) -> bool:
 
 	_output_fps = maxf(output_fps, 1.0)
 	_frame_interval = 1.0 / _output_fps
+	var location:Dictionary = preferences.validate(get_output_directory())
+	if not location.ok: return _fail("录制目录不可用：" + location.error + " 可在设置 → 录制中更改。")
+	_session_output_root = location.directory
+	_encoder_stderr = null
+	_encoder_exit = -1
+	_last_pause_reason = ""
 	_capture_size = OUTPUT_SIZE
 	_frame_index = 0
 	_previous_image = null
@@ -224,10 +252,9 @@ func _begin_session(output_fps:float, tag:String) -> bool:
 	_session_dir = ""
 
 	var stamp:String = Time.get_datetime_string_from_system(false, true).replace(":", "-").replace(" ", "_") + "_%d" % Time.get_ticks_usec()
-	_out_path = "%s/%s_%s.mp4" % [OUTPUT_ROOT, tag, stamp]
+	_out_path = "%s/%s_%s.mp4" % [_session_output_root, tag, stamp]
 	_video_path = _out_path.get_basename() + ".video.mp4"
 	_audio_path = _out_path.get_basename() + ".audio.f32"
-	DirAccess.make_dir_recursive_absolute(OUTPUT_ROOT)
 	_audio = AudioCaptureScript.new()
 	if not _audio.begin(_audio_path):
 		_audio.finish()
@@ -237,7 +264,7 @@ func _begin_session(output_fps:float, tag:String) -> bool:
 		return true
 
 	# 降级路线：先把帧存成 PNG 序列，结束时再尝试合成 mp4。
-	_session_dir = "%s/%s_%s" % [OUTPUT_ROOT, tag, stamp]
+	_session_dir = "%s/%s_%s" % [_session_output_root, tag, stamp]
 	if DirAccess.make_dir_recursive_absolute(_session_dir) == OK:
 		_png_fallback = true
 		push_warning("battle_recorder: 没有可用的 ffmpeg 管道，改为输出 PNG 序列：%s" % ProjectSettings.globalize_path(_session_dir))
@@ -287,6 +314,7 @@ func _open_pipe_encoder() -> bool:
 	if not (stdio is FileAccess) or not (stdio as FileAccess).is_open():
 		push_warning("battle_recorder: ffmpeg 管道不可写，回退到 PNG 序列。")
 		return false
+	_encoder_stderr = handles.get("stderr") as FileAccess
 	_pipe = stdio as FileAccess
 	_pipe_pid = int(handles.get("pid", 0))
 	return true
@@ -316,7 +344,8 @@ func _finish_session() -> void:
 		_pipe = null
 		if _pipe_pid > 0:
 			await _wait_for_process(_pipe_pid, 20.0)
-		if frame_count > 0 and FileAccess.file_exists(_video_path) and OS.get_process_exit_code(_pipe_pid) == 0:
+		_encoder_exit = OS.get_process_exit_code(_pipe_pid)
+		if frame_count > 0 and FileAccess.file_exists(_video_path) and _encoder_exit == 0:
 			finished_path = _video_path
 		_pipe_pid = 0
 	elif _png_fallback and frame_count > 0:
@@ -337,9 +366,21 @@ func _finish_session() -> void:
 			_fail("音画合成失败。原始视频和音频已保留在输出目录，可恢复。")
 	if finished_path.is_empty():
 		if _last_error.is_empty():
-			_fail("编码失败或没有有效画面，请检查 ffmpeg 和输出目录权限。")
+			if frame_count == 0:
+				_fail("没有录到有效画面：" + (_last_pause_reason if not _last_pause_reason.is_empty() else "开始后尚未生成首帧就停止了。") + " 本次未生成视频，并非目录权限或编码器故障。")
+			else:
+				var detail:String = ""
+				if _encoder_stderr != null and _encoder_stderr.is_open():
+					detail = _encoder_stderr.get_buffer(mini(8192, int(_encoder_stderr.get_length()))).get_string_from_utf8().strip_edges()
+				_fail("编码器未正常完成（退出码 %d，已写入 %d 帧）。%s" % [_encoder_exit, frame_count, detail])
 	else:
 		print("battle_recorder: 录制完成 %d 帧 -> %s" % [frame_count, ProjectSettings.globalize_path(finished_path)])
+	if _encoder_stderr != null and _encoder_stderr.is_open(): _encoder_stderr.close()
+	_encoder_stderr = null
+	if frame_count == 0:
+		# Only remove this session's empty temporary files, never earlier user recordings.
+		DirAccess.remove_absolute(_video_path)
+		DirAccess.remove_absolute(_audio_path)
 	_previous_image = null
 	_finalizing = false
 	recording_finished.emit(finished_path, frame_count)
@@ -354,12 +395,7 @@ func _release_sim_world_state() -> void:
 #========================================================
 
 func _capture_is_paused() -> bool:
-	if get_tree().paused or Game.now_stop_state or Engine.time_scale <= 0.000001:
-		return true
-	var world:Node = _world()
-	var team:CanvasItem = world.get_node_or_null("CanvasLayer/Control/Team") if world != null else null
-	return team != null and team.is_visible_in_tree()
-
+	return not get_pause_reason().is_empty()
 
 func _capture_loop() -> void:
 	_last_tick_usec = Time.get_ticks_usec()
@@ -371,6 +407,7 @@ func _capture_loop() -> void:
 		var real_delta:float = float(now_usec - _last_tick_usec) / 1000000.0
 		_last_tick_usec = now_usec
 		var paused_now:bool = _capture_is_paused()
+		if paused_now: _last_pause_reason = get_pause_reason()
 		var scale_now:float = Engine.time_scale if mode == Mode.SIM else 1.0
 		var skip:bool = paused_now or _last_capture_paused
 		_audio.drain(_last_capture_scale, skip)
