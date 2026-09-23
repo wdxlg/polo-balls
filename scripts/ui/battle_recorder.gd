@@ -73,6 +73,9 @@ var _finalizing:bool = false
 var _capture_viewport:Viewport = null
 var _sim_viewport:SubViewport = null
 var _resolve_viewport:SubViewport = null
+var _readback_device:RenderingDevice = null
+var _readback_texture:RID = RID()
+var _readback_checked:bool = false
 var _capture_vignette:ColorRect = null
 var _pause_boundary:bool = false
 var _empty_sim_grabs:int = 0
@@ -108,6 +111,10 @@ var _tail_seconds:float = 5.0
 ## 等世界重置（清空 / 重打 / 删人）后再次分出胜负才开始倒计时。SIM 保持原行为：已结束就直接录尾帧。
 var _stale_match_over:bool = false
 var _last_progress_push:float = -1.0
+## Diagnostic only; set BATTLE_RECORD_PROFILE=1 to print 60-frame wall-clock breakdowns.
+var _profile_enabled:bool = false
+var _profile_buckets:PackedInt64Array = PackedInt64Array([0, 0, 0, 0, 0])
+var _profile_frames:int = 0
 
 var _overlay:CanvasLayer = null
 var _overlay_backdrop:ColorRect = null
@@ -636,26 +643,34 @@ func _capture_loop() -> void:
 
 
 func _offline_capture_loop() -> void:
+	_profile_enabled = OS.get_environment("BATTLE_RECORD_PROFILE") == "1"
+	_profile_buckets.fill(0)
+	_profile_frames = 0
 	while mode == Mode.SIM:
+		var t0:int = _wall_usec() if _profile_enabled else 0
 		var initial:bool = _offline_startup
 		var requested:bool = initial or not _capture_is_paused()
 		if requested: _prepare_next_capture()
 		await RenderingServer.frame_post_draw
+		var t1:int = _wall_usec() if _profile_enabled else 0
 		if mode != Mode.SIM: break
 		if not initial and (not requested or _capture_is_paused() or _pause_boundary):
 			_pause_boundary = false
 			continue
-		var image:Image = _grab_image()
-		var english:Image = _secondary._grab_image()
-		if image == null or english == null:
+		var image:PackedByteArray = _grab_offline_rgba()
+		var english:PackedByteArray = _secondary._grab_offline_rgba()
+		var t2:int = _wall_usec() if _profile_enabled else 0
+		if image.size() != _capture_size.x * _capture_size.y * 4 or english.size() != _capture_size.x * _capture_size.y * 4:
 			_fail("离线帧读取失败，已停止；不会跳过物理过程后假装正常输出。")
 			stop()
 			break
 		# OFFLINE may wait for encoding: the engine clock cannot advance during this wait.
 		# LIVE never waits here. Handle window/abort events while applying backpressure.
 		if not _wait_offline_capacity(): break
-		_write_frame(image)
-		_secondary._write_frame(english)
+		var t3:int = _wall_usec() if _profile_enabled else 0
+		_write_offline_rgba(image)
+		_secondary._write_offline_rgba(english)
+		var t4:int = _wall_usec() if _profile_enabled else 0
 		if mode != Mode.SIM or not _secondary._last_error.is_empty():
 			if not _secondary._last_error.is_empty(): _fail(_secondary._last_error)
 			stop()
@@ -664,6 +679,18 @@ func _offline_capture_loop() -> void:
 			_offline.resume_current_world()
 			_offline_startup = false
 		_audio.render_offline(_frame_index, _output_fps)
+		if _profile_enabled:
+			var t5:int = _wall_usec()
+			_profile_buckets[0] += t1 - t0
+			_profile_buckets[1] += t2 - t1
+			_profile_buckets[2] += t3 - t2
+			_profile_buckets[3] += t4 - t3
+			_profile_buckets[4] += t5 - t4
+			_profile_frames += 1
+			if _profile_frames == 60:
+				print("RECORD_PROFILE wall_ms_per_frame scene_draw=%.2f readback=%.2f queue_wait=%.2f enqueue=%.2f audio=%.2f; codec=%s; queue_zh=%d; queue_en=%d" % [float(_profile_buckets[0]) / 60000.0, float(_profile_buckets[1]) / 60000.0, float(_profile_buckets[2]) / 60000.0, float(_profile_buckets[3]) / 60000.0, float(_profile_buckets[4]) / 60000.0, _video_codec, _writer.peak_bytes if _writer != null else 0, _secondary._writer.peak_bytes if _secondary._writer != null else 0])
+				_profile_buckets.fill(0)
+				_profile_frames = 0
 		if not _audio.error.is_empty():
 			_fail(_audio.error)
 			stop()
@@ -738,6 +765,41 @@ func _viewport_uses_hdr(source:Viewport) -> bool:
 	if RenderingServer.has_method("viewport_is_using_hdr_2d"):
 		return bool(RenderingServer.call("viewport_is_using_hdr_2d", source.get_viewport_rid()))
 	return source.use_hdr_2d
+
+
+func _grab_offline_rgba() -> PackedByteArray:
+	# SIM's GPU resolve is already 8-bit sRGB. Avoid creating an Image and
+	# copying its pixels back into bytes before writing to ffmpeg.
+	if not _readback_checked:
+		_readback_checked = true
+		if is_instance_valid(_capture_viewport) and not _viewport_uses_hdr(_capture_viewport):
+			_readback_device = RenderingServer.get_rendering_device()
+			if _readback_device != null:
+				var texture:RID = RenderingServer.texture_get_rd_texture(_capture_viewport.get_texture().get_rid())
+				if texture.is_valid():
+					var fmt:RDTextureFormat = _readback_device.texture_get_format(texture)
+					if fmt.format == RenderingDevice.DATA_FORMAT_R8G8B8A8_UNORM and fmt.width == _capture_size.x and fmt.height == _capture_size.y and (fmt.usage_bits & RenderingDevice.TEXTURE_USAGE_CAN_COPY_FROM_BIT) != 0:
+						_readback_texture = texture
+	if _readback_texture.is_valid():
+		var raw:PackedByteArray = _readback_device.texture_get_data(_readback_texture, 0)
+		if raw.size() == _capture_size.x * _capture_size.y * 4:
+			return raw
+	# Other rendering backends retain the original conversion path.
+	var image:Image = _grab_image()
+	if image == null or image.is_empty(): return PackedByteArray()
+	if image.get_size() != _capture_size: image.resize(_capture_size.x, _capture_size.y, Image.INTERPOLATE_NEAREST)
+	return image.get_data()
+
+
+func _write_offline_rgba(data:PackedByteArray) -> void:
+	if _writer != null:
+		if not _writer.enqueue(data, 1):
+			_fail(_writer.get_error())
+			stop()
+			return
+		_frame_index += 1
+	elif _png_fallback:
+		_write_frame(Image.create_from_data(_capture_size.x, _capture_size.y, false, Image.FORMAT_RGBA8, data))
 
 
 func _write_frame(image:Image, count:int = 1) -> void:
@@ -853,6 +915,9 @@ void fragment() {
 
 func _free_sim_capture_viewport() -> void:
 	if is_instance_valid(_secondary): _secondary._free_sim_capture_viewport()
+	_readback_texture = RID()
+	_readback_device = null
+	_readback_checked = false
 	_capture_vignette = null
 	if is_instance_valid(_resolve_viewport):
 		if _capture_viewport == _resolve_viewport: _capture_viewport = null
