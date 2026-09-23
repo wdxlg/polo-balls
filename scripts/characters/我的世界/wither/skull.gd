@@ -1,7 +1,7 @@
 extends Node2D
 const HEAD = preload("res://Images/characters/我的世界/wither/wither_skull.png")
-const SKULL_DIAMETER:float = 16.0
-const HIT_RADIUS:float = 8.0
+const SKULL_DIAMETER:float = 10.0
+const HIT_RADIUS:float = 5.0
 ## Sweep the path each physics frame, explode on the first target or solid wall.
 var source_ref:WeakRef
 var heading:Vector2 = Vector2.RIGHT

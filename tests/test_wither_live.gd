@@ -68,6 +68,12 @@ func run() -> void:
 	wither._blast(enemy.global_position,64.0,45.0,enemy,true)
 	check(is_equal_approx(before-enemy.health,75.0),"one skull direct impact settles exactly 75 damage, not another splash")
 	check(enemy.get_node_or_null("WitherStatus") != null,"skull applies visible Wither status")
+	var potion_particles:Array[Node] = get_nodes_in_group("WitherPotionParticle")
+	check(not potion_particles.is_empty(),"Wither impact emits Witch-style black potion particles immediately")
+	if not potion_particles.is_empty():
+		var particle:Sprite2D = potion_particles.back() as Sprite2D
+		check(particle.get_script().resource_path.ends_with("女巫药水粒子.gd") and particle.get_parent() == world,"Wither particles reuse the eight-frame Witch sprite in world space")
+		check(particle.self_modulate.r < 0.16 and particle.self_modulate.g < 0.16 and particle.self_modulate.b < 0.16,"Wither particle tint is near black")
 	wither._blast(enemy.global_position,64.0,45.0,enemy,true)
 	check(enemy.get_node_or_null("WitherStatus") != null,"second impact refreshes one status instead of stacking nodes")
 	# Sweep a real skull into a real enemy. The reused effect must survive the
@@ -84,10 +90,13 @@ func run() -> void:
 		var visual:Node = explosions_after.back()
 		check(is_equal_approx(visual.radius,64.0) and not visual.play_audio,"skull explosion uses the shared effect and keeps one sound")
 	var status:Node = enemy.get_node("WitherStatus")
+	var particle_count:int = get_nodes_in_group("WitherPotionParticle").size()
+	status._process(0.2)
+	check(get_nodes_in_group("WitherPotionParticle").size() > particle_count,"black Witch-style potion particles continue while Wither is active")
 	status.tick_left = 1.0
 	before = enemy.health
 	status._physics_process(1.1)
-	check(is_equal_approx(before-enemy.health,4.0),"Wither status applies one periodic tick of four actual damage")
+	check(is_equal_approx(before-enemy.health,enemy.Max_health*0.02),"each Wither tick deals 2% of maximum health, not a fixed 4 points")
 	var rose:Node2D = load("res://scripts/characters/我的世界/wither/rose.gd").new()
 	world.add_child(rose,true)
 	rose.global_position = enemy.global_position
@@ -97,6 +106,11 @@ func run() -> void:
 	check(status.remaining > 2.9,"touching a rose refreshes the same Wither status")
 	check(rose.get_ai_hazard_info().get("radius",0.0) == 11.0,"rose threat radius matches its reduced sprite")
 	rose.queue_free()
+	status.remaining = 3.0
+	status.tick_left = 1.0
+	before = enemy.health
+	status._physics_process(3.4)
+	check(is_equal_approx(before-enemy.health,enemy.Max_health*0.06),"three-second Wither performs exactly three 2%-max-health ticks even with a long physics frame")
 	wither.health = 250
 	wither.on_actual_health_damage_received(1.0,251.0)
 	check(wither.heart_dropped and is_instance_valid(wither.beacon),"first half-health crossing summons one attackable beacon")

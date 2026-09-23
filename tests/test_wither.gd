@@ -55,7 +55,7 @@ func _run_behaviors() -> void:
         assert(head.size == Vector2(26,26) and is_equal_approx(head.get_center().x,float(i-1)*30.0),"three skull blocks align with the same-size T-grid")
     var skull:Node2D = load("res://scripts/characters/我的世界/wither/skull.gd").new()
     skull.configure(wither,Vector2.RIGHT)
-    assert(skull.SKULL_DIAMETER == 16.0 and skull.get_ai_hazard_info()["radius"] == 8.0,"small skull sprite and threat agree")
+    assert(skull.SKULL_DIAMETER == 10.0 and skull.get_ai_hazard_info()["radius"] == 5.0,"small skull sprite and threat agree")
     skull.free()
     var rose:Node2D = load("res://scripts/characters/我的世界/wither/rose.gd").new()
     rose.configure(wither)
