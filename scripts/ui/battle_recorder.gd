@@ -59,6 +59,9 @@ var _session_active:bool = false
 var _finalizing:bool = false
 var _capture_viewport:Viewport = null
 var _sim_viewport:SubViewport = null
+var _resolve_viewport:SubViewport = null
+var _capture_vignette:ColorRect = null
+var _pause_boundary:bool = false
 var _empty_sim_grabs:int = 0
 var _capture_size:Vector2i = Vector2i.ZERO
 
@@ -97,6 +100,13 @@ var _overlay_abort:Button = null
 func _ready() -> void:
 	# 录制不能因为游戏暂停（esc）而停摆：遮罩、进度、中止按钮都要继续响应。
 	process_mode = Node.PROCESS_MODE_ALWAYS
+
+
+func _input(event:InputEvent) -> void:
+	# Latch Esc even if pause and resume both occur between two rendered frames.
+	# Do not consume the event: Game remains responsible for actually pausing.
+	if is_recording() and event.is_action_pressed("esc"):
+		_pause_boundary = true
 
 
 #========================================================
@@ -198,6 +208,8 @@ func set_output_directory(path:String) -> bool:
 
 func get_pause_reason() -> String:
 	if get_tree().paused or Game.now_stop_state: return "对局暂停中，请按 Esc 继续。"
+	if Game.stop_background.is_visible_in_tree() or Game.stop_text.is_visible_in_tree():
+		return "暂停画面或恢复倒计时中，请等待对局继续。"
 	if Engine.time_scale <= 0.000001: return "游戏速度为零，请调高速度。"
 	var world:Node = _world()
 	var team:CanvasItem = world.get_node_or_null("CanvasLayer/Control/Team") if world != null else null
@@ -208,6 +220,7 @@ func get_pause_reason() -> String:
 func _enter_mode(next_mode:int) -> void:
 	mode = next_mode
 	_session_active = true
+	_pause_boundary = false
 	_audio.effect.clear_buffer()
 	_last_capture_paused = _capture_is_paused()
 	_last_capture_scale = Engine.time_scale if mode == Mode.SIM else 1.0
@@ -400,7 +413,8 @@ func _capture_is_paused() -> bool:
 func _capture_loop() -> void:
 	_last_tick_usec = Time.get_ticks_usec()
 	while mode != Mode.IDLE:
-		if not _capture_is_paused(): _prepare_next_capture()
+		var capture_requested:bool = not _capture_is_paused()
+		if capture_requested: _prepare_next_capture()
 		await RenderingServer.frame_post_draw
 		if mode == Mode.IDLE: break
 		var now_usec:int = Time.get_ticks_usec()
@@ -409,7 +423,8 @@ func _capture_loop() -> void:
 		var paused_now:bool = _capture_is_paused()
 		if paused_now: _last_pause_reason = get_pause_reason()
 		var scale_now:float = Engine.time_scale if mode == Mode.SIM else 1.0
-		var skip:bool = paused_now or _last_capture_paused
+		var skip:bool = not capture_requested or paused_now or _last_capture_paused or _pause_boundary
+		_pause_boundary = false
 		_audio.drain(_last_capture_scale, skip)
 		_last_capture_paused = paused_now
 		_last_capture_scale = scale_now
@@ -451,14 +466,17 @@ func _prepare_next_capture() -> void:
 	var logical_size:Vector2 = main.get_visible_rect().size
 	var scale_to_output := Transform2D.IDENTITY.scaled(Vector2(_capture_size) / logical_size)
 	_sim_viewport.canvas_transform = scale_to_output * main.global_canvas_transform * main.get_canvas_transform()
+	_sync_capture_vignette()
 	_sim_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
+	if is_instance_valid(_resolve_viewport):
+		_resolve_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 
 
 func _grab_image() -> Image:
 	var source:Viewport = _capture_viewport if is_instance_valid(_capture_viewport) else get_viewport()
 	var image:Image = source.get_texture().get_image()
 	if image == null or image.is_empty():
-		if is_instance_valid(_sim_viewport) and source == _sim_viewport:
+		if is_instance_valid(_sim_viewport) and (source == _sim_viewport or source == _resolve_viewport):
 			_empty_sim_grabs += 1
 			if _empty_sim_grabs == 3:
 				_fail("离屏抓帧失败，已停止录制以免输出遮罩画面。")
@@ -521,9 +539,13 @@ func _setup_sim_capture_viewport() -> void:
 	sub.transparent_bg = false
 	sub.gui_disable_input = true
 	sub.size = _capture_size
-	# Render directly in SDR/sRGB: no quantize-then-gamma-convert readback.
-	sub.use_hdr_2d = false
-	sub.canvas_item_default_texture_filter = Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_NEAREST
+	# Match the player's linear-light blending and material rendering, not just
+	# isolated opaque color swatches. Resolve to sRGB on GPU before 8-bit readback.
+	sub.use_hdr_2d = _viewport_uses_hdr(main)
+	sub.canvas_item_default_texture_filter = main.canvas_item_default_texture_filter
+	sub.msaa_2d = main.msaa_2d
+	sub.snap_2d_transforms_to_pixel = main.snap_2d_transforms_to_pixel
+	sub.snap_2d_vertices_to_pixel = main.snap_2d_vertices_to_pixel
 	# 与主视口共享 2D 世界，但把遮罩所在的可见层剔除掉。
 	sub.world_2d = main.world_2d
 	sub.canvas_cull_mask = CAPTURE_ALL_MASK & ~CAPTURE_MASK_BIT
@@ -531,9 +553,69 @@ func _setup_sim_capture_viewport() -> void:
 	add_child(sub)
 	_sim_viewport = sub
 	_capture_viewport = sub
+	# Whitelist the permanent world vignette only; never clone Stop_Ui or toolbar.
+	var layer := CanvasLayer.new()
+	layer.name = "BattleVisualEffects"
+	layer.layer = 99
+	sub.add_child(layer)
+	_capture_vignette = Game.vignette.duplicate(0) as ColorRect
+	layer.add_child(_capture_vignette)
+	_capture_vignette.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_sync_capture_vignette()
+	if sub.use_hdr_2d:
+		_setup_color_resolve(sub)
+
+
+func _sync_capture_vignette() -> void:
+	if not is_instance_valid(_capture_vignette): return
+	_capture_vignette.visible = Game.vignette.is_visible_in_tree()
+	_capture_vignette.material = Game.vignette.material
+	_capture_vignette.modulate = Game.vignette.modulate
+	_capture_vignette.self_modulate = Game.vignette.self_modulate
+	# Pause/resume changes this parameter for the menu animation, not the battle.
+	_capture_vignette.set_instance_shader_parameter("SCALE", Game.vignette_start)
+
+
+func _setup_color_resolve(source:SubViewport) -> void:
+	var target := SubViewport.new()
+	target.name = "BattleRecordSRGB"
+	target.disable_3d = true
+	target.gui_disable_input = true
+	target.use_hdr_2d = false
+	target.size = _capture_size
+	target.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	add_child(target)
+	var shader := Shader.new()
+	shader.code = """
+shader_type canvas_item;
+render_mode unshaded;
+uniform sampler2D frame_texture : filter_nearest;
+void fragment() {
+	vec3 linear_rgb = max(texture(frame_texture, UV).rgb, vec3(0.0));
+	vec3 srgb = mix(12.92 * linear_rgb,
+		1.055 * pow(linear_rgb, vec3(1.0 / 2.4)) - 0.055,
+		step(vec3(0.0031308), linear_rgb));
+	COLOR = vec4(srgb, 1.0);
+}
+"""
+	var material := ShaderMaterial.new()
+	material.shader = shader
+	material.set_shader_parameter("frame_texture", source.get_texture())
+	var rect := ColorRect.new()
+	rect.material = material
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	target.add_child(rect)
+	rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_resolve_viewport = target
+	_capture_viewport = target
 
 
 func _free_sim_capture_viewport() -> void:
+	_capture_vignette = null
+	if is_instance_valid(_resolve_viewport):
+		if _capture_viewport == _resolve_viewport: _capture_viewport = null
+		_resolve_viewport.queue_free()
+	_resolve_viewport = null
 	if not is_instance_valid(_sim_viewport):
 		_sim_viewport = null
 		return

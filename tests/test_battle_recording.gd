@@ -52,6 +52,10 @@ func run() -> void:
 	world.control.settings_bar.visible = true
 	controls = world.control._battle_record_controls
 	recorder = controls.recorder
+	# Never read/write the user's persisted choice during automated capture tests.
+	DirAccess.remove_absolute("user://test_battle_recording.cfg")
+	recorder.preferences = recorder.PreferencesScript.new("user://test_battle_recording.cfg")
+	recorder.preferences.directory = "user://recordings"
 	button = controls.button
 	check(is_instance_valid(recorder), "recorder instantiated by actual UI scene")
 	check(button.is_connected("button_up", world.control._on_record_button_up), "left signal wired")
@@ -102,7 +106,7 @@ func run() -> void:
 		check(button.modulate.g < 0.5, "active button turns red")
 		await settle(1.0)
 		check(recorder._capture_size == Vector2i(1080, 1920), "native Full HD render despite half-size window")
-		check(recorder._sim_viewport.use_hdr_2d == false, "SDR output avoids incorrect HDR readback conversion")
+		check(recorder._sim_viewport.use_hdr_2d == recorder._viewport_uses_hdr(root), "capture matches game HDR rendering")
 		var capture:Image = recorder._grab_image()
 		var main_image:Image = root.get_texture().get_image()
 		var main_point:Vector2 = root.get_final_transform() * (marker.get_global_transform_with_canvas() * (marker.size * 0.5))
@@ -179,7 +183,7 @@ func run() -> void:
 		await wait_idle()
 		check(is_equal_approx(Engine.time_scale, original_scale), "abort restores time scale")
 		check(AudioServer.is_bus_mute(bus) == was_muted, "abort restores audio mute state")
-		check(not recorder._overlay_backdrop.visible and recorder._sim_viewport == null, "abort clears overlay and capture viewport")
+		check(not recorder._overlay_backdrop.visible and recorder._sim_viewport == null and recorder._resolve_viewport == null, "abort clears overlay and capture viewport")
 		check(outputs.size() == 2 and not outputs[1].path.is_empty(), "SIM abort saves playable portion")
 		await click(MOUSE_BUTTON_RIGHT)
 		check(recorder.get_mode() == 2, "SIM can restart after abort")
