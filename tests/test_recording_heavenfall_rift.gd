@@ -108,7 +108,7 @@ func run() -> void:
 	check(en.changed > 300,"English recording viewport shows crack")
 	var rd: RenderingDevice = RenderingServer.get_rendering_device()
 	if rd != null:
-		var bytes: PackedByteArray = recorder._grab_offline_rgba()
+		var bytes: PackedByteArray = recorder._grab_capture_rgba()
 		var legacy: PackedByteArray = recorder._grab_image().get_data()
 		check(bytes.size() == 1080*1920*4 and bytes == legacy,"direct GPU RGBA readback is byte-identical to the original image path")
 	recorder.stop()

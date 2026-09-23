@@ -56,7 +56,7 @@ var _secondary:Node
 var _locale_mirror:Node
 var _is_variant:bool = false
 var _locale:String = "zh"
-var _previous_secondary_image:Image
+var _previous_secondary_image:PackedByteArray = PackedByteArray()
 var last_outputs:Dictionary = {}
 var _match_snapshot:Dictionary = {}
 const PreferencesScript = preload("res://scripts/ui/battle_record_preferences.gd")
@@ -94,7 +94,8 @@ var _audio_path:String = ""
 var _audio:RefCounted
 var _last_capture_paused:bool = false
 var _last_capture_scale:float = 1.0
-var _previous_image:Image
+var _previous_image:PackedByteArray = PackedByteArray()
+var _live_pending:Array[Dictionary] = []
 var _session_dir:String = ""
 var _pipe:FileAccess = null
 var _pipe_pid:int = 0
@@ -307,8 +308,9 @@ func _begin_session(output_fps:float, tag:String) -> bool:
 	_speed_warmup = 1.0
 	_timing_invalid = false
 	last_outputs.clear()
-	_previous_secondary_image = null
-	_previous_image = null
+	_previous_secondary_image = PackedByteArray()
+	_previous_image = PackedByteArray()
+	_live_pending.clear()
 	_game_time = 0.0
 	_accumulator = 0.0
 	_last_progress_push = -1.0
@@ -479,8 +481,9 @@ func _finish_session() -> void:
 	_secondary = null
 	if _frame_index == 0 or (last_outputs.size() == 2 and str(last_outputs.zh).ends_with(".mp4") and str(last_outputs.en).ends_with(".mp4")):
 		DirAccess.remove_absolute(_audio_path)
-	_previous_image = null
-	_previous_secondary_image = null
+	_previous_image = PackedByteArray()
+	_previous_secondary_image = PackedByteArray()
+	_live_pending.clear()
 	_finalizing = false
 	recording_finished.emit(path, _frame_index)
 
@@ -557,11 +560,17 @@ func _capture_loop() -> void:
 	if mode == Mode.SIM:
 		_offline_capture_loop()
 		return
+	_profile_enabled = OS.get_environment("BATTLE_RECORD_PROFILE") == "1"
+	_profile_buckets.fill(0)
+	_profile_frames = 0
 	_last_tick_usec = _wall_usec()
 	while mode != Mode.IDLE:
+		var draw_begin:int = _wall_usec() if _profile_enabled else 0
 		var capture_requested:bool = not _capture_is_paused()
 		if capture_requested: _prepare_next_capture()
 		await RenderingServer.frame_post_draw
+		var draw_end:int = _wall_usec() if _profile_enabled else 0
+		_flush_live_pending()
 		if mode == Mode.IDLE: break
 		for output:Node in [self, _secondary]:
 			if output._writer != null and not output._writer.get_error().is_empty():
@@ -584,10 +593,11 @@ func _capture_loop() -> void:
 			stop()
 			break
 		if skip:
+			if not _live_pending.is_empty(): await _drain_live_pending()
 			_speed_real = 0.0
 			_speed_physics_start = _physics_clock
-			_previous_image = null
-			_previous_secondary_image = null
+			_previous_image = PackedByteArray()
+			_previous_secondary_image = PackedByteArray()
 			continue
 		# Physics is the independent speed witness, not video FPS/container duration.
 		# Never silently deliver a long slow-motion video under sustained overload.
@@ -614,22 +624,46 @@ func _capture_loop() -> void:
 			stop()
 			break
 		if wanted > 0:
-			var image:Image = _grab_image()
-			var english:Image = _secondary._grab_image()
-			if image == null or english == null: continue
-			# Queue each distinct image once. Repeats are written off the game thread.
-			var repeat_old:int = wanted - 1 if _previous_image != null else 0
-			if repeat_old > 0:
-				_write_frame(_previous_image, repeat_old)
-				_secondary._write_frame(_previous_secondary_image, repeat_old)
-			_write_frame(image, wanted - repeat_old)
-			_secondary._write_frame(english, wanted - repeat_old)
-			if not _secondary._last_error.is_empty():
-				_fail("英文编码失败：" + _secondary._last_error)
-				stop()
+			var read_begin:int = _wall_usec() if _profile_enabled else 0
+			# The first frame validates both RD textures; unsupported formats keep the
+			# original synchronous path. Later frames read back without stalling draw.
+			var async_ready:bool = _writer != null and _secondary._writer != null and _readback_texture.is_valid() and _secondary._readback_texture.is_valid() and _readback_device.has_method("texture_get_data_async")
+			if async_ready:
+				if _live_pending.size() >= 8:
+					_timing_invalid = true
+					_fail("异步读回积压，录制已停止且未生成正式成片。")
+					stop()
+					break
+				var record:Dictionary = {"zh":PackedByteArray(), "en":PackedByteArray(), "wanted":wanted}
+				_live_pending.append(record)
+				var zh_result:Error = _readback_device.texture_get_data_async(_readback_texture, 0, _on_live_readback.bind(record, "zh"))
+				var en_result:Error = _secondary._readback_device.texture_get_data_async(_secondary._readback_texture, 0, _on_live_readback.bind(record, "en"))
+				if zh_result != OK or en_result != OK:
+					_timing_invalid = true
+					_fail("异步读回请求失败，录制已停止且未生成正式成片。")
+					stop()
+					break
+				# Expose the captured frame count now, not when callbacks return during
+				# a later paused frame. The writer enqueues these reserved frames later.
+				_frame_index += wanted
+				_secondary._frame_index += wanted
+			else:
+				var image:PackedByteArray = _grab_capture_rgba()
+				var english:PackedByteArray = _secondary._grab_capture_rgba()
+				if image.size() != _capture_size.x * _capture_size.y * 4 or english.size() != _capture_size.x * _capture_size.y * 4: continue
+				_write_live_pair(image, english, wanted)
+			var read_end:int = _wall_usec() if _profile_enabled else 0
 			_accumulator -= wanted * _frame_interval
-			_previous_image = image
-			_previous_secondary_image = english
+			if _profile_enabled:
+				var write_end:int = _wall_usec()
+				_profile_buckets[0] += draw_end - draw_begin
+				_profile_buckets[1] += read_end - read_begin
+				_profile_buckets[2] += write_end - read_end
+				_profile_frames += 1
+				if _profile_frames == 60:
+					print("RECORD_LIVE_PROFILE wall_ms_per_capture scene_draw=%.2f readback=%.2f enqueue=%.2f; codec=%s; queue_zh=%d; queue_en=%d" % [float(_profile_buckets[0]) / 60000.0, float(_profile_buckets[1]) / 60000.0, float(_profile_buckets[2]) / 60000.0, _video_codec, _writer.peak_bytes if _writer != null else 0, _secondary._writer.peak_bytes if _secondary._writer != null else 0])
+					_profile_buckets.fill(0)
+					_profile_frames = 0
 		if mode == Mode.SIM:
 			_update_sim_progress(game_delta)
 			if _sim_finished: break
@@ -639,7 +673,53 @@ func _capture_loop() -> void:
 			if _sim_finished:
 				stop()
 				break
+	await _drain_live_pending()
 	_finish_session()
+
+
+func _on_live_readback(data:PackedByteArray, record:Dictionary, locale:String) -> void:
+	# Both callbacks carry the texture's pixels at request time, not completion time.
+	record[locale] = data
+
+
+func _flush_live_pending() -> void:
+	while not _live_pending.is_empty():
+		var record:Dictionary = _live_pending[0]
+		if (record.zh as PackedByteArray).is_empty() or (record.en as PackedByteArray).is_empty(): break
+		_live_pending.pop_front()
+		if _timing_invalid: continue
+		if record.zh.size() != _capture_size.x * _capture_size.y * 4 or record.en.size() != _capture_size.x * _capture_size.y * 4:
+			_timing_invalid = true
+			_fail("异步读回帧大小错误，录制已停止且未生成正式成片。")
+			stop()
+			break
+		_write_live_pair(record.zh, record.en, record.wanted, true)
+
+
+func _write_live_pair(image:PackedByteArray, english:PackedByteArray, wanted:int, reserved:bool = false) -> void:
+	# Repeats and both locale queues must preserve capture order and wall timing.
+	var repeat_old:int = wanted - 1 if not _previous_image.is_empty() else 0
+	if repeat_old > 0:
+		_write_capture_rgba(_previous_image, repeat_old, not reserved)
+		_secondary._write_capture_rgba(_previous_secondary_image, repeat_old, not reserved)
+	_write_capture_rgba(image, wanted - repeat_old, not reserved)
+	_secondary._write_capture_rgba(english, wanted - repeat_old, not reserved)
+	if not _secondary._last_error.is_empty():
+		_fail("英文编码失败：" + _secondary._last_error)
+		stop()
+	_previous_image = image
+	_previous_secondary_image = english
+
+
+func _drain_live_pending() -> void:
+	var deadline:int = _wall_usec() + 1000000
+	while not _live_pending.is_empty() and _wall_usec() < deadline:
+		await RenderingServer.frame_post_draw
+		_flush_live_pending()
+	if not _live_pending.is_empty():
+		_timing_invalid = true
+		_fail("异步读回收尾超时，录制已停止且未生成正式成片。")
+		_live_pending.clear()
 
 
 func _offline_capture_loop() -> void:
@@ -657,8 +737,8 @@ func _offline_capture_loop() -> void:
 		if not initial and (not requested or _capture_is_paused() or _pause_boundary):
 			_pause_boundary = false
 			continue
-		var image:PackedByteArray = _grab_offline_rgba()
-		var english:PackedByteArray = _secondary._grab_offline_rgba()
+		var image:PackedByteArray = _grab_capture_rgba()
+		var english:PackedByteArray = _secondary._grab_capture_rgba()
 		var t2:int = _wall_usec() if _profile_enabled else 0
 		if image.size() != _capture_size.x * _capture_size.y * 4 or english.size() != _capture_size.x * _capture_size.y * 4:
 			_fail("离线帧读取失败，已停止；不会跳过物理过程后假装正常输出。")
@@ -668,8 +748,8 @@ func _offline_capture_loop() -> void:
 		# LIVE never waits here. Handle window/abort events while applying backpressure.
 		if not _wait_offline_capacity(): break
 		var t3:int = _wall_usec() if _profile_enabled else 0
-		_write_offline_rgba(image)
-		_secondary._write_offline_rgba(english)
+		_write_capture_rgba(image)
+		_secondary._write_capture_rgba(english)
 		var t4:int = _wall_usec() if _profile_enabled else 0
 		if mode != Mode.SIM or not _secondary._last_error.is_empty():
 			if not _secondary._last_error.is_empty(): _fail(_secondary._last_error)
@@ -767,8 +847,8 @@ func _viewport_uses_hdr(source:Viewport) -> bool:
 	return source.use_hdr_2d
 
 
-func _grab_offline_rgba() -> PackedByteArray:
-	# SIM's GPU resolve is already 8-bit sRGB. Avoid creating an Image and
+func _grab_capture_rgba() -> PackedByteArray:
+	# Both capture modes' GPU resolve is already 8-bit sRGB. Avoid creating an Image and
 	# copying its pixels back into bytes before writing to ffmpeg.
 	if not _readback_checked:
 		_readback_checked = true
@@ -791,15 +871,16 @@ func _grab_offline_rgba() -> PackedByteArray:
 	return image.get_data()
 
 
-func _write_offline_rgba(data:PackedByteArray) -> void:
+func _write_capture_rgba(data:PackedByteArray, count:int = 1, count_index:bool = true) -> void:
+	if data.is_empty() or count <= 0: return
 	if _writer != null:
-		if not _writer.enqueue(data, 1):
+		if not _writer.enqueue(data, count):
 			_fail(_writer.get_error())
 			stop()
 			return
-		_frame_index += 1
+		if count_index: _frame_index += count
 	elif _png_fallback:
-		_write_frame(Image.create_from_data(_capture_size.x, _capture_size.y, false, Image.FORMAT_RGBA8, data))
+		_write_frame(Image.create_from_data(_capture_size.x, _capture_size.y, false, Image.FORMAT_RGBA8, data), count)
 
 
 func _write_frame(image:Image, count:int = 1) -> void:
