@@ -62,7 +62,7 @@ func refresh() -> void:
 	button.text = "保存中…" if saving else Game.ui_t("UI_RECORD_STOP" if active else "UI_RECORD")
 	button.modulate = Color(1.0, 0.35, 0.35) if active else Color.WHITE
 	button.disabled = saving
-	button.tooltip_text = Game.ui_t("UI_RECORD_TOOLTIP") + "\n输出：user://recordings（保存后可打开文件夹）" + "\n当前为无声画面录制。"
+	button.tooltip_text = "左键：开始/停止高清对战录制；右键：慢速重打并生成正常速度的有声对战视频。" + "\n输出：user://recordings（保存后可打开文件夹）" + "\n1080×1920 / 60fps · 仅对战画面和游戏声音 · 暂停不计入成片"
 
 func _on_finished(path:String, frames:int) -> void:
 	refresh()
@@ -71,10 +71,12 @@ func _on_finished(path:String, frames:int) -> void:
 		_show_message("录制未完成：" + recorder.get_last_error())
 	else:
 		var kind:String = "MP4" if path.ends_with(".mp4") else "PNG 图片序列（未找到可用的编码器）"
-		_show_message("已保存 %s，%d 帧（无音轨）。" % [kind, frames])
+		_show_message(("已保存 %s，%d 帧（含游戏声音）。" if path.ends_with(".mp4") else "已保存 %s，%d 帧；音频保留为 .audio.f32 临时文件，尚未合成视频。") % [kind, frames])
 
 func _show_message(message:String) -> void:
 	last_message = message if not message.is_empty() else "录制正在收尾，请稍后再试。"
+	if not recorder.get_last_error().is_empty() and not last_output.is_empty():
+		last_message += "\n注意：" + recorder.get_last_error()
 	message_label.text = last_message
 	output_path.text = ProjectSettings.globalize_path(last_output) if not last_output.is_empty() else recorder.get_output_directory()
 	result_dialog.popup_centered(Vector2i(660, 220))

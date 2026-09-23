@@ -75,23 +75,81 @@ func run() -> void:
 		controls.result_dialog.hide()
 	else:
 		root.size = Vector2i(540, 960)
-		root.content_scale_size = Vector2i(540, 960)
+		# Keep the actual project logical viewport (1080x1920), only the window is small.
 		await settle(0.5)
 		world.control.apply_portrait_layout()
 		recorder.recording_finished.connect(func(path:String, frames:int):
-			outputs.append({"path":ProjectSettings.globalize_path(path), "frames":frames, "fps":recorder._output_fps}))
+			outputs.append({"path":ProjectSettings.globalize_path(path), "frames":frames, "fps":recorder._output_fps, "audio_samples":recorder._audio.samples_written, "audio_peak":recorder._audio.peak, "game_time":recorder._game_time, "tail":recorder._sim_tail_left, "scale":Engine.time_scale}))
+		var audio_bus:int = AudioServer.get_bus_index(&"GameplayRecord")
+		var effects_before:int = AudioServer.get_bus_effect_count(audio_bus)
+		var game_tone:AudioStreamPlayer = make_tone(440.0, &"GameplayRecord")
+		var ui_tone:AudioStreamPlayer = make_tone(1760.0, &"UI")
+		var marker := ColorRect.new()
+		marker.color = Color.MAGENTA
+		marker.position = Vector2(40, 120)
+		marker.size = Vector2(180, 180)
+		marker.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		world.control.get_parent().add_child(marker)
+		var chart := ColorRect.new()
+		chart.color = Color(0.2, 0.4, 0.6)
+		chart.position = world.camera_2d.get_screen_center_position() - Vector2(10, 10)
+		chart.size = Vector2(20, 20)
+		chart.z_index = 900
+		chart.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		world.add_child(chart)
 		await click(MOUSE_BUTTON_LEFT)
 		check(recorder.get_mode() == 1, "actual left mouse starts LIVE")
 		check(button.modulate.g < 0.5, "active button turns red")
 		await settle(1.0)
-		paused = true
+		check(recorder._capture_size == Vector2i(1080, 1920), "native Full HD render despite half-size window")
+		check(recorder._sim_viewport.use_hdr_2d == false, "SDR output avoids incorrect HDR readback conversion")
+		var capture:Image = recorder._grab_image()
+		var main_image:Image = root.get_texture().get_image()
+		var main_point:Vector2 = root.get_final_transform() * (marker.get_global_transform_with_canvas() * (marker.size * 0.5))
+		var output_point:Vector2 = main_point * Vector2(capture.get_size()) / Vector2(main_image.get_size())
+		var ui_pixel:Color = main_image.get_pixelv(Vector2i(main_point))
+		var output_pixel:Color = capture.get_pixelv(Vector2i(output_point))
+		check(ui_pixel.r > 0.8 and ui_pixel.b > 0.8 and ui_pixel.g < 0.2, "UI witness really exists in player window")
+		check(not (output_pixel.r > 0.8 and output_pixel.b > 0.8 and output_pixel.g < 0.2), "toolbar canvas and UI witness excluded from recording")
+		var chart_point:Vector2 = recorder._sim_viewport.canvas_transform * (chart.global_position + chart.size * 0.5)
+		check(chart_point.distance_to(Vector2(540, 960)) < 5.0, "camera framing stays centered at native output resolution")
+		var color:Color = capture.get_pixelv(Vector2i(chart_point))
+		check(absf(color.r - 0.2) < 0.03 and absf(color.g - 0.4) < 0.03 and absf(color.b - 0.6) < 0.03, "known sRGB chart preserves color without double gamma")
+		capture.save_png("user://recordings/test_clean_fullhd.png")
+		main_image.save_png("user://recordings/test_player_with_ui.png")
+		var beacon:AudioStreamPlayer = make_tone(880.0, &"GameplayRecord")
+		chart.color = Color.WHITE
+		await settle(0.25)
+		chart.color = Color(0.2, 0.4, 0.6)
+		beacon.stop()
+		await settle(0.2)
+		game.stop_game()
+		await settle(0.2)
 		var before:int = recorder._frame_index
+		var samples_before:int = recorder._audio.samples_written
+		await settle(0.7)
+		check(recorder._frame_index == before, "paused time is omitted from LIVE output")
+		check(recorder._audio.samples_written == samples_before, "paused audio is omitted with video")
+		game.continue_game()
 		await settle(0.3)
-		check(recorder._frame_index > before, "LIVE capture continues while paused")
+		beacon.play()
+		chart.color = Color.WHITE
+		await settle(0.25)
+		chart.color = Color(0.2, 0.4, 0.6)
+		beacon.stop()
+		await settle(0.2)
+		check(recorder._frame_index > before, "recording resumes after Esc pause")
+		game.stop_game()
+		await settle(0.1)
 		await click(MOUSE_BUTTON_LEFT)
+		beacon.queue_free()
 		check(recorder.get_mode() == 0, "actual left mouse stops LIVE while paused")
 		await wait_idle()
-		paused = false
+		game.continue_game()
+		check(AudioServer.get_bus_effect_count(audio_bus) == effects_before, "audio tap removed after LIVE")
+		marker.queue_free()
+		chart.queue_free()
+		check(outputs[0].audio_peak > 0.01, "LIVE captured non-silent game sound")
 		check(outputs.size() == 1 and not outputs[0].path.is_empty() and outputs[0].frames > 0, "LIVE wrote video frames")
 		check(not button.disabled and button.modulate == Color.WHITE, "idle button restored after save")
 		await settle(0.3)
@@ -131,6 +189,10 @@ func run() -> void:
 		check(outputs.size() == 3 and not outputs[2].path.is_empty(), "SIM auto-finishes after series completion")
 		check(is_equal_approx(Engine.time_scale, original_scale), "auto finish restores time scale")
 		check(not button.disabled, "record button reusable after automatic finish")
+		check(AudioServer.get_bus_effect_count(audio_bus) == effects_before, "audio tap removed after SIM and restart")
+		check(outputs[1].audio_peak > 0.01 and outputs[2].audio_peak > 0.01, "SIM records non-silent game sound")
+		game_tone.queue_free()
+		ui_tone.queue_free()
 		var manifest := FileAccess.open("user://recordings/test_recording_manifest.json", FileAccess.WRITE)
 		manifest.store_string(JSON.stringify(outputs, "\t"))
 		manifest.close()
@@ -141,3 +203,22 @@ func run() -> void:
 	game.Game_Settings = saved
 	print("BATTLE_RECORDING: %d checks / %d failures" % [checks, failures])
 	quit(1 if failures else 0)
+
+func make_tone(frequency:float, bus:StringName) -> AudioStreamPlayer:
+	var bytes := PackedByteArray()
+	var rate:int = 48000
+	bytes.resize(rate * 2)
+	for i:int in range(rate):
+		bytes.encode_s16(i * 2, int(sin(TAU * frequency * i / rate) * 6500.0))
+	var sound := AudioStreamWAV.new()
+	sound.format = AudioStreamWAV.FORMAT_16_BITS
+	sound.mix_rate = rate
+	sound.data = bytes
+	sound.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	sound.loop_end = rate
+	var player := AudioStreamPlayer.new()
+	player.stream = sound
+	player.bus = bus
+	root.add_child(player)
+	player.play()
+	return player

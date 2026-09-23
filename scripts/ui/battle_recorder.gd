@@ -2,8 +2,7 @@ extends Node
 ## 对决录制器（顶部工具栏“录制”按钮的后端）。
 ##
 ## 两种模式都把原始像素直接喂给 ffmpeg 的 stdin 编码成 mp4，不在磁盘上留中间图片：
-##   左键 LIVE —— 实时录制当前画面。按固定 30fps 定帧率重采样，卡顿/暂停时重复上一帧，
-##                保证成片时长与真实时间一致。
+##   左键 LIVE —— 独立 1080×1920 / 60fps 纯对战画面 + 游戏总线音频；暂停不计入成片。
 ##   右键 SIM  —— 模拟录制：把世界时间压到 0.25 倍重打上一把，抓帧永远跟得上物理步进，
 ##                对局只画进离屏 SubViewport（玩家看到的是全屏遮罩 + 中止按钮），
 ##                分出胜负后自动收尾并直接输出 mp4。
@@ -19,9 +18,12 @@ extends Node
 const CAPTURE_MASK_BIT:int = 1 << 19
 const CAPTURE_ALL_MASK:int = (1 << 20) - 1
 
-const LIVE_OUTPUT_FPS:float = 30.0
+const LIVE_OUTPUT_FPS:float = 60.0
+const OUTPUT_SIZE:Vector2i = Vector2i(1080, 1920)
+const VIDEO_CRF:String = "14"
+const AudioCaptureScript = preload("res://scripts/ui/battle_record_audio.gd")
 const SIM_OUTPUT_FPS:float = 60.0
-## 模拟录制的世界倍率：0.25 = 4 倍慢放。每帧抓帧预算约 66ms，读回 + H264 都跟得上。
+## 0.25 倍慢放降低模拟抓帧压力；音频与画面按同一时间倍率还原。
 const SIM_TIME_SCALE:float = 0.25
 const SIM_MAX_GAME_SECONDS:float = 300.0
 const SIM_MIN_GAME_SECONDS:float = 3.0
@@ -29,16 +31,14 @@ const SIM_TAIL_GAME_SECONDS:float = 1.5
 const TIME_SCALE_KEY:String = "battle_record_sim"
 const OUTPUT_ROOT:String = "user://recordings"
 const OVERLAY_LAYER:int = 2000
-## 单个绘制帧最多补几张重复帧；超过说明是断点/长时间卡顿，丢掉积压而不是灌一堆静止帧。
-const MAX_FRAMES_PER_DRAW:int = 4
+## 两秒内卡顿保留帧时钟；更严重的阻塞明确停止，不静默缩短视频造成音画漂移。
+const MAX_FRAMES_PER_DRAW:int = 120
 const FFMPEG_CANDIDATES:Array = [
 	"C:/ffmpeg/bin/ffmpeg.exe",
 	"/usr/bin/ffmpeg",
 	"/usr/local/bin/ffmpeg",
 	"/opt/homebrew/bin/ffmpeg",
 ]
-## 见 global/audios.gd 的 GAMEPLAY_BUS：只有游戏声走这条总线。
-const GAMEPLAY_BUS_NAME:StringName = &"GameplayRecord"
 
 enum Mode { IDLE, LIVE, SIM }
 
@@ -64,6 +64,12 @@ var _accumulator:float = 0.0
 var _last_tick_usec:int = 0
 
 var _out_path:String = ""
+var _video_path:String = ""
+var _audio_path:String = ""
+var _audio:RefCounted
+var _last_capture_paused:bool = false
+var _last_capture_scale:float = 1.0
+var _previous_image:Image
 var _session_dir:String = ""
 var _pipe:FileAccess = null
 var _pipe_pid:int = 0
@@ -75,9 +81,6 @@ var _sim_tail_left:float = -1.0
 var _sim_saw_two_sides:bool = false
 var _sim_finished:bool = false
 var _last_progress_push:float = -1.0
-
-var _audio_muted_by_us:bool = false
-var _audio_bus_was_muted:bool = false
 
 var _overlay:CanvasLayer = null
 var _overlay_backdrop:ColorRect = null
@@ -135,7 +138,7 @@ func start_live() -> bool:
 		return _fail("录制正在进行或保存中，请稍后再试。")
 	if not _begin_session(LIVE_OUTPUT_FPS, "live"):
 		return false
-	_capture_viewport = get_viewport()
+	_setup_sim_capture_viewport()
 	_enter_mode(Mode.LIVE)
 	return true
 
@@ -156,7 +159,6 @@ func start_simulated() -> bool:
 
 	_setup_sim_capture_viewport()
 	_show_overlay()
-	_mute_gameplay_audio(true)
 	# 先压时间倍率再重打，重置与出场演出也在慢放里进行，抓帧不会漏。
 	if bool(Game.now_stop_state):
 		Game.continue_game()
@@ -184,6 +186,9 @@ func get_output_directory() -> String:
 func _enter_mode(next_mode:int) -> void:
 	mode = next_mode
 	_session_active = true
+	_audio.effect.clear_buffer()
+	_last_capture_paused = _capture_is_paused()
+	_last_capture_scale = Engine.time_scale if mode == Mode.SIM else 1.0
 	mode_changed.emit(mode)
 	_capture_loop()
 
@@ -203,8 +208,9 @@ func _begin_session(output_fps:float, tag:String) -> bool:
 
 	_output_fps = maxf(output_fps, 1.0)
 	_frame_interval = 1.0 / _output_fps
-	_capture_size = size
+	_capture_size = OUTPUT_SIZE
 	_frame_index = 0
+	_previous_image = null
 	_game_time = 0.0
 	_accumulator = 0.0
 	_last_progress_push = -1.0
@@ -219,7 +225,13 @@ func _begin_session(output_fps:float, tag:String) -> bool:
 
 	var stamp:String = Time.get_datetime_string_from_system(false, true).replace(":", "-").replace(" ", "_") + "_%d" % Time.get_ticks_usec()
 	_out_path = "%s/%s_%s.mp4" % [OUTPUT_ROOT, tag, stamp]
+	_video_path = _out_path.get_basename() + ".video.mp4"
+	_audio_path = _out_path.get_basename() + ".audio.f32"
 	DirAccess.make_dir_recursive_absolute(OUTPUT_ROOT)
+	_audio = AudioCaptureScript.new()
+	if not _audio.begin(_audio_path):
+		_audio.finish()
+		return _fail(_audio.error)
 
 	if _open_pipe_encoder():
 		return true
@@ -231,6 +243,7 @@ func _begin_session(output_fps:float, tag:String) -> bool:
 		push_warning("battle_recorder: 没有可用的 ffmpeg 管道，改为输出 PNG 序列：%s" % ProjectSettings.globalize_path(_session_dir))
 		return true
 
+	_audio.finish()
 	return _fail("无法创建录制输出目录，录制取消。")
 
 
@@ -248,22 +261,22 @@ func _open_pipe_encoder() -> bool:
 		"-r", "%.6f" % _output_fps,
 		"-i", "-",
 	]
-	if _capture_size.x % 2 != 0 or _capture_size.y % 2 != 0:
-		# libx264 只接受偶数尺寸。
-		args.append("-vf")
-		args.append("scale=trunc(iw/2)*2:trunc(ih/2)*2")
+	args.append_array([
+		"-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2:out_color_matrix=bt709:out_range=tv",
+		"-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709",
+	])
 	args.append("-an")
 	args.append("-c:v")
 	args.append("libx264")
 	args.append("-preset")
 	args.append("veryfast")
 	args.append("-crf")
-	args.append("20")
+	args.append(VIDEO_CRF)
 	args.append("-pix_fmt")
 	args.append("yuv420p")
 	args.append("-movflags")
 	args.append("+faststart")
-	args.append(ProjectSettings.globalize_path(_out_path))
+	args.append(ProjectSettings.globalize_path(_video_path))
 
 	var result:Variant = OS.execute_with_pipe(ffmpeg, args, true)
 	if typeof(result) != TYPE_DICTIONARY:
@@ -287,6 +300,8 @@ func _finish_session() -> void:
 	if mode != Mode.IDLE:
 		mode = Mode.IDLE
 		mode_changed.emit(mode)
+	if _audio != null:
+		_audio.finish()
 	_release_sim_world_state()
 	_free_sim_capture_viewport()
 	_hide_overlay()
@@ -301,65 +316,93 @@ func _finish_session() -> void:
 		_pipe = null
 		if _pipe_pid > 0:
 			await _wait_for_process(_pipe_pid, 20.0)
-		if frame_count > 0 and FileAccess.file_exists(_out_path) and OS.get_process_exit_code(_pipe_pid) == 0:
-			finished_path = _out_path
+		if frame_count > 0 and FileAccess.file_exists(_video_path) and OS.get_process_exit_code(_pipe_pid) == 0:
+			finished_path = _video_path
 		_pipe_pid = 0
 	elif _png_fallback and frame_count > 0:
 		finished_path = _session_dir
 		var ffmpeg:String = _resolve_ffmpeg()
 		if not ffmpeg.is_empty():
-			await _mux_png_sequence(ffmpeg, _session_dir, _out_path, _output_fps)
-			if FileAccess.file_exists(_out_path) and _last_mux_ok:
-				finished_path = _out_path
+			await _mux_png_sequence(ffmpeg, _session_dir, _video_path, _output_fps)
+			if FileAccess.file_exists(_video_path) and _last_mux_ok:
+				finished_path = _video_path
 
+	if finished_path == _video_path:
+		if await _mux_game_audio():
+			finished_path = _out_path
+			DirAccess.remove_absolute(_video_path)
+			DirAccess.remove_absolute(_audio_path)
+		else:
+			finished_path = ""
+			_fail("音画合成失败。原始视频和音频已保留在输出目录，可恢复。")
 	if finished_path.is_empty():
 		if _last_error.is_empty():
 			_fail("编码失败或没有有效画面，请检查 ffmpeg 和输出目录权限。")
 	else:
 		print("battle_recorder: 录制完成 %d 帧 -> %s" % [frame_count, ProjectSettings.globalize_path(finished_path)])
+	_previous_image = null
 	_finalizing = false
 	recording_finished.emit(finished_path, frame_count)
 
 
 func _release_sim_world_state() -> void:
 	Game.release_time_scale_override(TIME_SCALE_KEY)
-	_mute_gameplay_audio(false)
 
 
 #========================================================
 # 抓帧主循环
 #========================================================
 
+func _capture_is_paused() -> bool:
+	if get_tree().paused or Game.now_stop_state or Engine.time_scale <= 0.000001:
+		return true
+	var world:Node = _world()
+	var team:CanvasItem = world.get_node_or_null("CanvasLayer/Control/Team") if world != null else null
+	return team != null and team.is_visible_in_tree()
+
+
 func _capture_loop() -> void:
 	_last_tick_usec = Time.get_ticks_usec()
 	while mode != Mode.IDLE:
-		_prepare_next_capture()
+		if not _capture_is_paused(): _prepare_next_capture()
 		await RenderingServer.frame_post_draw
-		if mode == Mode.IDLE:
-			break
-
+		if mode == Mode.IDLE: break
 		var now_usec:int = Time.get_ticks_usec()
-		var real_delta:float = clampf(float(now_usec - _last_tick_usec) / 1000000.0, 0.0, 0.25)
+		var real_delta:float = float(now_usec - _last_tick_usec) / 1000000.0
 		_last_tick_usec = now_usec
-		# 模拟模式下世界按 Engine.time_scale 推进，成片仍按正常速度播放。
-		var game_delta:float = real_delta * Engine.time_scale if mode == Mode.SIM else real_delta
+		var paused_now:bool = _capture_is_paused()
+		var scale_now:float = Engine.time_scale if mode == Mode.SIM else 1.0
+		var skip:bool = paused_now or _last_capture_paused
+		_audio.drain(_last_capture_scale, skip)
+		_last_capture_paused = paused_now
+		_last_capture_scale = scale_now
+		if not _audio.error.is_empty():
+			_fail(_audio.error)
+			stop()
+			break
+		if skip:
+			_previous_image = null
+			continue
+		var game_delta:float = real_delta * scale_now
 		_game_time += game_delta
 		_accumulator += game_delta
-
-		var image:Image = _grab_image()
-		var guard:int = 0
-		while mode != Mode.IDLE and _accumulator >= _frame_interval and guard < MAX_FRAMES_PER_DRAW:
-			_accumulator -= _frame_interval
-			_write_frame(image)
-			guard += 1
-		if _accumulator > _frame_interval * 2.0:
-			# 长时间卡顿（断点 / 切后台）：丢掉积压，别在停止时一次性灌入几十张静止帧。
-			_accumulator = 0.0
-
+		var wanted:int = int(_accumulator / _frame_interval)
+		if wanted > MAX_FRAMES_PER_DRAW:
+			_fail("录制遇到超过两秒的渲染阻塞，已停止，避免产生音画不同步的视频。")
+			stop()
+			break
+		if wanted > 0:
+			var image:Image = _grab_image()
+			for index:int in range(wanted):
+				if mode == Mode.IDLE: break
+				# Fill elapsed gaps with the OLD image, not a future hit/flash.
+				# Otherwise a delayed render makes visual events precede their audio.
+				_write_frame(_previous_image if index < wanted - 1 and _previous_image != null else image)
+				_accumulator -= _frame_interval
+			_previous_image = image
 		if mode == Mode.SIM:
 			_update_sim_progress(game_delta)
-			if _sim_finished:
-				break
+			if _sim_finished: break
 	_finish_session()
 
 
@@ -367,7 +410,10 @@ func _prepare_next_capture() -> void:
 	if not is_instance_valid(_sim_viewport):
 		return
 	# 共享 world_2d 的离屏视口不会自动跟随主相机，每帧手动同步画布变换。
-	_sim_viewport.canvas_transform = get_viewport().get_canvas_transform()
+	var main:Viewport = get_viewport()
+	var logical_size:Vector2 = main.get_visible_rect().size
+	var scale_to_output := Transform2D.IDENTITY.scaled(Vector2(_capture_size) / logical_size)
+	_sim_viewport.canvas_transform = scale_to_output * main.global_canvas_transform * main.get_canvas_transform()
 	_sim_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 
 
@@ -397,14 +443,14 @@ func _grab_image() -> Image:
 func _viewport_uses_hdr(source:Viewport) -> bool:
 	if RenderingServer.has_method("viewport_is_using_hdr_2d"):
 		return bool(RenderingServer.call("viewport_is_using_hdr_2d", source.get_viewport_rid()))
-	return bool(ProjectSettings.get_setting("rendering/viewport/hdr_2d", false))
+	return source.use_hdr_2d
 
 
 func _write_frame(image:Image) -> void:
 	if image == null or image.is_empty():
 		return
 	if image.get_size() != _capture_size:
-		image.resize(_capture_size.x, _capture_size.y)
+		image.resize(_capture_size.x, _capture_size.y, Image.INTERPOLATE_NEAREST)
 	if _pipe != null and _pipe.is_open():
 		if _pipe_pid > 0 and not OS.is_process_running(_pipe_pid):
 			_fail("编码器意外退出，录制已停止。请检查输出目录空间及 ffmpeg。")
@@ -417,8 +463,12 @@ func _write_frame(image:Image) -> void:
 			return
 		_frame_index += 1
 		return
-	if _png_fallback and image.save_png("%s/frame_%05d.png" % [_session_dir, _frame_index]) == OK:
-		_frame_index += 1
+	if _png_fallback:
+		if image.save_png("%s/frame_%05d.png" % [_session_dir, _frame_index]) == OK:
+			_frame_index += 1
+		else:
+			_fail("写入录制图片失败，请检查磁盘空间。")
+			stop()
 
 
 #========================================================
@@ -434,7 +484,9 @@ func _setup_sim_capture_viewport() -> void:
 	sub.transparent_bg = false
 	sub.gui_disable_input = true
 	sub.size = _capture_size
-	sub.use_hdr_2d = main.use_hdr_2d
+	# Render directly in SDR/sRGB: no quantize-then-gamma-convert readback.
+	sub.use_hdr_2d = false
+	sub.canvas_item_default_texture_filter = Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_NEAREST
 	# 与主视口共享 2D 世界，但把遮罩所在的可见层剔除掉。
 	sub.world_2d = main.world_2d
 	sub.canvas_cull_mask = CAPTURE_ALL_MASK & ~CAPTURE_MASK_BIT
@@ -559,23 +611,6 @@ func _sim_match_over() -> bool:
 	return false
 
 
-## 模拟录制期间静音游戏声：整场都在 0.25 倍慢放，原声只会是一长串怪响。
-func _mute_gameplay_audio(mute:bool) -> void:
-	var bus:int = AudioServer.get_bus_index(GAMEPLAY_BUS_NAME)
-	if bus < 0:
-		return
-	if mute:
-		if not _audio_muted_by_us:
-			_audio_bus_was_muted = AudioServer.is_bus_mute(bus)
-			_audio_muted_by_us = true
-		AudioServer.set_bus_mute(bus, true)
-		return
-	if _audio_muted_by_us:
-		AudioServer.set_bus_mute(bus, _audio_bus_was_muted)
-	_audio_muted_by_us = false
-	_audio_bus_was_muted = false
-
-
 #========================================================
 # ffmpeg 定位 / 降级合成 / 进程等待
 #========================================================
@@ -604,8 +639,9 @@ func _mux_png_sequence(ffmpeg:String, dir_path:String, out_path:String, fps:floa
 		"-y", "-hide_banner", "-loglevel", "error",
 		"-framerate", "%.6f" % fps,
 		"-i", ProjectSettings.globalize_path(dir_path) + "/frame_%05d.png",
-		"-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2",
-		"-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
+		"-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2:out_color_matrix=bt709:out_range=tv",
+		"-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709",
+		"-c:v", "libx264", "-preset", "veryfast", "-crf", VIDEO_CRF,
 		"-pix_fmt", "yuv420p", "-movflags", "+faststart",
 		ProjectSettings.globalize_path(out_path),
 	])
@@ -613,6 +649,25 @@ func _mux_png_sequence(ffmpeg:String, dir_path:String, out_path:String, fps:floa
 		return
 	await _wait_for_process(pid, 120.0)
 	_last_mux_ok = OS.get_process_exit_code(pid) == 0
+
+
+func _mux_game_audio() -> bool:
+	var ffmpeg:String = _resolve_ffmpeg()
+	if ffmpeg.is_empty() or _audio == null: return false
+	var duration:float = float(_frame_index) / _output_fps
+	var pid:int = OS.create_process(ffmpeg, [
+		"-y", "-hide_banner", "-loglevel", "error",
+		"-i", ProjectSettings.globalize_path(_video_path),
+		"-f", "f32le", "-ar", str(_audio.sample_rate), "-ac", "2",
+		"-i", ProjectSettings.globalize_path(_audio_path),
+		"-map", "0:v:0", "-map", "1:a:0", "-c:v", "copy",
+		"-c:a", "aac", "-ar", "48000", "-b:a", "320k", "-af", "apad",
+		"-t", "%.6f" % duration, "-movflags", "+faststart",
+		ProjectSettings.globalize_path(_out_path),
+	])
+	if pid <= 0: return false
+	await _wait_for_process(pid, 120.0)
+	return OS.get_process_exit_code(pid) == 0 and FileAccess.file_exists(_out_path)
 
 
 func _wait_for_process(pid:int, timeout_seconds:float) -> void:
@@ -634,6 +689,7 @@ func _world() -> Node:
 
 
 func _exit_tree() -> void:
+	if _audio != null: _audio.finish()
 	if _pipe != null and _pipe.is_open():
 		_pipe.close()
 	if _session_active:
