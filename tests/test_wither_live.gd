@@ -57,6 +57,19 @@ func run() -> void:
 	check(enemy.get_node_or_null("WitherStatus") != null,"skull applies visible Wither status")
 	wither._blast(enemy.global_position,64.0,45.0,enemy,true)
 	check(enemy.get_node_or_null("WitherStatus") != null,"second impact refreshes one status instead of stacking nodes")
+	# Sweep a real skull into a real enemy. The reused effect must survive the
+	# projectile freeing itself and must not also play a second explosion sound.
+	var skull:Node2D = load("res://scripts/characters/我的世界/wither/skull.gd").new()
+	world.add_child(skull,true)
+	skull.global_position = enemy.global_position-Vector2(80,0)
+	skull.configure(wither,Vector2.RIGHT)
+	var explosions_before:int = get_nodes_in_group("MCExplosion").size()
+	skull._physics_process(0.5)
+	var explosions_after:Array[Node] = get_nodes_in_group("MCExplosion")
+	check(skull.exploded and explosions_after.size() == explosions_before+1,"real skull impact spawns exactly one shared MC explosion")
+	if explosions_after.size() > explosions_before:
+		var visual:Node = explosions_after.back()
+		check(is_equal_approx(visual.radius,64.0) and not visual.play_audio,"skull explosion uses the shared effect and keeps one sound")
 	var status:Node = enemy.get_node("WitherStatus")
 	status.tick_left = 1.0
 	before = enemy.health
@@ -69,6 +82,7 @@ func run() -> void:
 	status.remaining = 1.0
 	rose._physics_process(0.6)
 	check(status.remaining > 2.9,"touching a rose refreshes the same Wither status")
+	check(rose.get_ai_hazard_info().get("radius",0.0) == 11.0,"rose threat radius matches its reduced sprite")
 	rose.queue_free()
 	wither.health = 250
 	wither.on_actual_health_damage_received(1.0,251.0)

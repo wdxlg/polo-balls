@@ -42,6 +42,35 @@ func _run_behaviors() -> void:
     assert(wither.health == 500, "assembly must be immune to direct damage")
     wither.summon_time = 2.8
     assert(wither.get_ai_attack_threats(null).size() == 1, "summon explosion must declare its real radius")
+    # Each soul-sand block is one equally sized square in a contiguous T.
+    var bottom:Rect2 = wither.summon_sand_rect(0)
+    var upper:Rect2 = wither.summon_sand_rect(1)
+    var left:Rect2 = wither.summon_sand_rect(2)
+    var right:Rect2 = wither.summon_sand_rect(3)
+    for block:Rect2 in [bottom,upper,left,right]:
+        assert(block.size == Vector2(30,30),"soul-sand blocks must use identical square tiles")
+    assert(bottom.position.y == upper.end.y and left.end.x == upper.position.x and right.position.x == upper.end.x,"T-shaped construction blocks must touch without stretching")
+    for i:int in range(3):
+        var head:Rect2 = wither.summon_head_rect(i)
+        assert(head.size == Vector2(26,26) and is_equal_approx(head.get_center().x,float(i-1)*30.0),"three skull blocks align with the same-size T-grid")
+    var skull:Node2D = load("res://scripts/characters/我的世界/wither/skull.gd").new()
+    skull.configure(wither,Vector2.RIGHT)
+    assert(skull.SKULL_DIAMETER == 16.0 and skull.get_ai_hazard_info()["radius"] == 8.0,"small skull sprite and threat agree")
+    skull.free()
+    var rose:Node2D = load("res://scripts/characters/我的世界/wither/rose.gd").new()
+    rose.configure(wither)
+    rose.age = 0.6
+    assert(rose.ROSE_DIAMETER == 20.0 and rose.get_ai_hazard_info()["radius"] == 11.0,"small rose and contact radius agree")
+    rose.free()
+    wither._show_explosion(Vector2.ZERO,64.0)
+    var local_effect:Node = arena.get_node("MCLocalEffects").get_child(0)
+    assert(local_effect.is_in_group("MCExplosion") and local_effect.radius == 64.0 and not local_effect.play_audio,"use shared Minecraft explosion visual without duplicate sound")
+    wither._sync_event("awake",Vector2.ZERO)
+    var awake_visual:Node = arena.get_node("MCLocalEffects").get_child(1)
+    assert(awake_visual.is_in_group("MCExplosion") and awake_visual.radius == 110.0 and not awake_visual.play_audio,"networked awakening uses the shared effect at the original radius")
+    wither._sync_event("skull_blast",Vector2.ZERO)
+    var skull_visual:Node = arena.get_node("MCLocalEffects").get_child(2)
+    assert(skull_visual.is_in_group("MCExplosion") and skull_visual.radius == 64.0 and not skull_visual.play_audio,"networked skull blast uses exactly the same shared effect")
     wither.summoned = true
     wither.health = 250
     wither.on_actual_health_damage_received(1.0,251.0)
@@ -52,6 +81,6 @@ func _run_behaviors() -> void:
     assert(wither.beacon == first, "heart must not be created twice")
     wither.apply_beacon_buff("haste")
     assert(wither._buff == "haste" and wither._buff_left == 6.0)
-    print("WITHER BEHAVIOR: assembly immunity, threat, unique heart, beacon health and buff pass")
+    print("WITHER BEHAVIOR: equal T-blocks, smaller skull/rose, reusable explosion, immunity, threat, heart and buff pass")
     arena.queue_free()
     quit(0)

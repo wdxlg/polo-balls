@@ -4,7 +4,10 @@ const BODY = preload("res://Images/characters/我的世界/wither/wither_front.p
 const LIVE_RIG = preload("res://scripts/characters/我的世界/wither/bedrock_rig.gd")
 const SOUL_SAND = preload("res://Images/characters/我的世界/wither/soul_sand.png")
 const HEAD = preload("res://Images/characters/我的世界/wither/wither_skull.png")
-const FLASH = preload("res://Images/characters/我的世界/wither/flash.png")
+const MC_EXPLOSION_SCENE:PackedScene = preload("res://scenes/effects/我的世界/MC爆炸.tscn")
+const MC_EXPLOSION = preload("res://scripts/effects/我的世界/mc_explosion.gd")
+const SUMMON_BLOCK_SIZE:float = 30.0
+const SUMMON_HEAD_SIZE:float = 26.0
 const VANILLA_SOUND = preload("res://scripts/characters/我的世界/wither/audio.gd")
 const SKULL = preload("res://scripts/characters/我的世界/wither/skull.gd")
 const ROSE = preload("res://scripts/characters/我的世界/wither/rose.gd")
@@ -31,7 +34,6 @@ var _sync_left:float = 0.0
 var _buff:String = ""
 var _buff_left:float = 0.0
 var _regen_clock:float = 0.0
-var _summon_blast_left:float = 0.0
 var _summon_sound_played:bool = false
 var _idle_left:float = 8.0
 var _effects:Array[WeakRef] = []
@@ -47,6 +49,7 @@ func _ready() -> void:
 	mc_audio_role = ""
 	super._ready()
 	_create_live_model()
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	if image is Sprite2D: (image as Sprite2D).visible = false
 	queue_redraw()
 
@@ -156,9 +159,9 @@ func tick_physics(state:State,delta:float) -> void:
 			summoned = true
 			if image is Sprite2D:
 				(image as Sprite2D).visible = true
-			_summon_blast_left = 0.25
 			if multiplayer.has_multiplayer_peer(): _sync_event.rpc("awake",global_position)
 			_blast(global_position,110.0,45.0,null,false)
+			_show_explosion(global_position,110.0)
 			_emit_sound("explode",global_position)
 		return
 	_idle_left -= delta
@@ -239,7 +242,7 @@ func _grow_rose() -> void:
 	var where:Vector2 = global_position
 	for i:int in range(14):
 		var point:Vector2 = Vector2(_mc_rng.randf_range(rect.position.x,rect.end.x),_mc_rng.randf_range(rect.position.y,rect.end.y))
-		if mc_position_clear(point,26.0):
+		if mc_position_clear(point,14.0):
 			where = point
 			break
 	var rose:Node2D = ROSE.new()
@@ -280,25 +283,39 @@ func apply_beacon_buff(kind:String) -> void:
 	_buff = kind
 	_buff_left = 6.0
 	_regen_clock = 0.0
+func _show_explosion(point:Vector2,visual_radius:float) -> void:
+	# Use the same shared, self-cleaning Minecraft visual as Creeper explosions.
+	# Combat damage and the original Wither explosion sound are settled elsewhere.
+	var effect:Node2D = MC_EXPLOSION_SCENE.instantiate() as Node2D
+	if effect == null: return
+	effect.set("radius",visual_radius)
+	effect.set("play_audio",false)
+	effect.name = "WitherExplosionVisual"
+	effect.position = point
+	MC_EXPLOSION.runtime_container(self).add_child(effect,true)
+	effect.global_position = point
+func _sync_skull_explosion(point:Vector2) -> void:
+	if multiplayer.has_multiplayer_peer(): _sync_event.rpc("skull_blast",point)
+func summon_sand_rect(index:int) -> Rect2:
+	# Four identical square soul-sand blocks in the original T layout.
+	var cells:Array[Vector2i] = [Vector2i(0,1),Vector2i(0,0),Vector2i(-1,0),Vector2i(1,0)]
+	var column:Vector2i = cells[index]
+	return Rect2(Vector2(float(column.x)*SUMMON_BLOCK_SIZE-SUMMON_BLOCK_SIZE*0.5,float(column.y)*SUMMON_BLOCK_SIZE-SUMMON_BLOCK_SIZE*0.5),Vector2.ONE*SUMMON_BLOCK_SIZE)
+func summon_head_rect(index:int) -> Rect2:
+	return Rect2(float(index-1)*SUMMON_BLOCK_SIZE-SUMMON_HEAD_SIZE*0.5,-SUMMON_BLOCK_SIZE-SUMMON_HEAD_SIZE*0.5, SUMMON_HEAD_SIZE,SUMMON_HEAD_SIZE)
 func _emit_sound(event:String,point:Vector2) -> void:
 	VANILLA_SOUND.play(self,event,point)
 	if multiplayer.has_multiplayer_peer(): _sync_event.rpc(event,point)
 func _draw() -> void:
-	if _summon_blast_left > 0:
-		draw_texture_rect(FLASH,Rect2(-110,-110,220,220),false,Color(1,1,1,_summon_blast_left/0.25))
 	if summoned or summon_time <= 0 or health <= 0: return
 	var t:float = summon_time/maxf(summon_duration,0.01)
-	draw_texture_rect(SOUL_SAND,Rect2(-15,15,30,30),false)
-	if t > 0.20: draw_texture_rect(SOUL_SAND,Rect2(-15,-27,30,42),false)
-	if t > 0.35: draw_texture_rect(SOUL_SAND,Rect2(-57,-26,42,23),false)
-	if t > 0.48: draw_texture_rect(SOUL_SAND,Rect2(15,-26,42,23),false)
+	draw_texture_rect(SOUL_SAND,summon_sand_rect(0),false)
+	if t > 0.20: draw_texture_rect(SOUL_SAND,summon_sand_rect(1),false)
+	if t > 0.35: draw_texture_rect(SOUL_SAND,summon_sand_rect(2),false)
+	if t > 0.48: draw_texture_rect(SOUL_SAND,summon_sand_rect(3),false)
 	for i:int in range(3):
-		if t > 0.53+float(i)*0.10:
-			var x:float = float(i-1)*42.0
-			draw_texture_rect(HEAD,Rect2(x-16,-54,32,32),false)
-	if t > 0.8: draw_texture_rect(FLASH,Rect2(-85,-85,170,170),false,Color(1,1,1,(t-0.8)*2.0))
+		if t > 0.53+float(i)*0.10: draw_texture_rect(HEAD,summon_head_rect(i),false)
 func _process(delta:float) -> void:
-	_summon_blast_left = maxf(_summon_blast_left-delta,0.0)
 	if not summoned: _summon_visual()
 	if _bedrock_model != null:
 		_animation_life += delta if is_combat_runtime_active() else 0.0
@@ -329,8 +346,8 @@ func _sync_appearance(time:float,awake:bool,dropped:bool,buff:String) -> void:
 	queue_redraw()
 @rpc("authority","call_remote","reliable")
 func _sync_event(kind:String,point:Vector2) -> void:
-	if kind == "awake":
-		_summon_blast_left = 0.25
+	if kind == "awake": _show_explosion(point,110.0)
+	elif kind == "skull_blast": _show_explosion(point,64.0)
 	else: VANILLA_SOUND.play(self,kind,point)
 func Die() -> void:
 	if health <= 0 and summoned and is_multiplayer_authority(): _emit_sound("death",global_position)

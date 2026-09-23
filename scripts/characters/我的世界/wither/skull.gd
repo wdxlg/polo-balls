@@ -1,7 +1,7 @@
 extends Node2D
 const HEAD = preload("res://Images/characters/我的世界/wither/wither_skull.png")
-const FLASH = preload("res://Images/characters/我的世界/wither/flash.png")
-const SMOKE = preload("res://Images/characters/我的世界/wither/big_smoke_0.png")
+const SKULL_DIAMETER:float = 16.0
+const HIT_RADIUS:float = 8.0
 ## Sweep the path each physics frame, explode on the first target or solid wall.
 var source_ref:WeakRef
 var heading:Vector2 = Vector2.RIGHT
@@ -37,22 +37,18 @@ func _physics_process(delta:float) -> void:
 		var direct:ball = collider as ball if collider is ball else null
 		var center:Vector2 = Vector2(hit.position)-heading*3.0
 		source.call("_blast",center,64.0,45.0,direct,true)
+		source.call("_show_explosion",center,64.0)
 		source.call("_emit_sound","explode",center)
-		global_position = center
+		if source.multiplayer.has_multiplayer_peer(): source.call("_sync_skull_explosion",center)
 		exploded = true
 		remove_from_group("AI_Hazard")
-		queue_redraw()
-		get_tree().create_timer(0.16).timeout.connect(queue_free)
+		queue_free()
 		return
 	if not exploded: global_position = end
 func _draw() -> void:
-	if exploded:
-		draw_texture_rect(FLASH,Rect2(-64,-64,128,128),false,Color(1,1,1,0.75))
-		draw_texture_rect(SMOKE,Rect2(-32,-32,64,64),false)
-		return
-	draw_texture_rect(HEAD,Rect2(-16,-16,32,32),false)
-	draw_texture_rect(SMOKE,Rect2(-27,-9,14,18),false,Color(1,1,1,0.55))
+	if exploded: return
+	draw_texture_rect(HEAD,Rect2(-SKULL_DIAMETER*0.5,-SKULL_DIAMETER*0.5,SKULL_DIAMETER,SKULL_DIAMETER),false)
 func get_ai_hazard_info() -> Dictionary:
 	var source:ball = _source()
 	if exploded or source == null: return {}
-	return {"shape":"circle","position":global_position,"velocity":heading*speed,"radius":15.0,"damage":75.0,"source":source,"danger_duration":0.1,"kind":"wither_skull"}
+	return {"shape":"circle","position":global_position,"velocity":heading*speed,"radius":HIT_RADIUS,"damage":75.0,"source":source,"danger_duration":0.1,"kind":"wither_skull"}
