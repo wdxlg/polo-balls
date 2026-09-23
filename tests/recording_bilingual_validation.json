@@ -5,18 +5,18 @@
   "pairs": [
     {
       "mode": "bilingual_live",
-      "frames": 76,
-      "video_duration": 1.266667,
+      "frames": 62,
+      "video_duration": 1.033333,
       "audio_identical": true,
-      "audio_rms": 0.1966745700334926,
-      "battle_mean_rgb_error_255": 1.1421783625730994e-05
+      "audio_rms": 0.19624003328443676,
+      "battle_mean_rgb_error_255": 0.0
     },
     {
       "mode": "original_live",
-      "frames": 119,
-      "video_duration": 1.983333,
+      "frames": 99,
+      "video_duration": 1.65,
       "audio_identical": true,
-      "audio_rms": 0.21924763260645141,
+      "audio_rms": 0.21844405106783077,
       "battle_mean_rgb_error_255": 0.0
     },
     {
@@ -24,7 +24,7 @@
       "frames": 18,
       "video_duration": 0.3,
       "audio_identical": true,
-      "audio_rms": 0.19185157455365326,
+      "audio_rms": 0.1919645548802822,
       "battle_mean_rgb_error_255": 0.0
     },
     {
@@ -32,8 +32,8 @@
       "frames": 96,
       "video_duration": 1.6,
       "audio_identical": true,
-      "audio_rms": 0.1982278693215105,
-      "battle_mean_rgb_error_255": 0.07279308931327161
+      "audio_rms": 0.19848238444553715,
+      "battle_mean_rgb_error_255": 0.0
     }
   ]
 }

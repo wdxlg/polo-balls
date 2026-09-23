@@ -139,7 +139,7 @@ func run() -> void:
 	recorder.stop()
 	await wait_idle()
 	check(recorder.last_outputs.size() == 2, "one session saves two final localized MP4 files")
-	check(str(recorder.last_outputs.zh).get_file().begins_with("中文_钻石剑 vs 木剑 vs 牛_") and str(recorder.last_outputs.en).get_file().begins_with("English_Diamond Sword vs Wooden Sword vs Cow_"), "both final filenames contain language and initial matchup")
+	check(str(recorder.last_outputs.zh).get_file().begins_with("中文_钻石剑 vs 木剑 vs 牛_") and str(recorder.last_outputs.en).get_file().begins_with("英文_钻石剑 vs 木剑 vs 牛_"), "both final filenames contain language and initial matchup")
 	check(text.visibility_layer == original_visibility and root.canvas_cull_mask == mask, "source visibility and window restored after recording")
 	check(game.current_locale == original_locale and TranslationServer.get_locale() == server_locale, "user language still unchanged after finalization")
 	check(controls.english_path.text == recorder.last_outputs.en, "result dialog exposes both saved paths")

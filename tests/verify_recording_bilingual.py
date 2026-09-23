@@ -16,7 +16,7 @@ pairs=[('bilingual_live',m['outputs'],m['frames'])]
 original=json.loads((folder/'test_recording_manifest.json').read_text(encoding='utf-8'))
 for index,item in enumerate(original):
  p=Path(item['path']);suffix=re.search(r'_(\d{4}-\d\d-\d\d_\d\d-\d\d-\d\d_\d+)\.mp4$',p.name).group(1)
- english=list(p.parent.glob('English_*_'+suffix+'.mp4'))
+ english=list(p.parent.glob('英文_*_'+suffix+'.mp4'))
  check(len(english)==1,'matching English file exists for original regression output')
  pairs.append((['original_live','sim_abort','sim_finish'][index],{'zh':str(p),'en':str(english[0])},item['frames']))
 check(m['failures']==0,'bilingual GPU suite passes')

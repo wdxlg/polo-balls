@@ -7,12 +7,12 @@
     "mean": 0.0011711876575995,
     "samples": 198
   },
-  "codec_mean_rgb_error_255": 0.9562289562289562,
-  "codec_max_rgb_error_255": 19,
+  "codec_mean_rgb_error_255": 0.9242424242424242,
+  "codec_max_rgb_error_255": 9,
   "codec_p95_rgb_error_255": 2,
   "paused_marker_frames": 0,
-  "frames": 89,
-  "video_duration": 1.483333,
-  "audio_duration": 1.483,
-  "wall_seconds": 4.493
+  "frames": 78,
+  "video_duration": 1.3,
+  "audio_duration": 1.3,
+  "wall_seconds": 4.585
 }

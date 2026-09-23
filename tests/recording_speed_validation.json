@@ -1,0 +1,70 @@
+{
+  "checks": 43,
+  "failures": 0,
+  "gpu_checks": 37,
+  "runs": [
+    {
+      "mode": "live_hardware",
+      "codec": "h264_nvenc",
+      "physics_per_wall_second": 1.0022791051607827,
+      "physics_per_video_second": 1.002510596703167,
+      "flash_times": [
+        1.65,
+        2.1666666666666665,
+        2.6666666666666665,
+        3.183333333333333,
+        3.716666666666667,
+        4.183333333333334
+      ],
+      "flash_intervals": [
+        0.5166666666666666,
+        0.5,
+        0.5166666666666666,
+        0.5333333333333337,
+        0.4666666666666668
+      ],
+      "peak_queue_bytes_per_language": 91238400,
+      "audio_identical": true
+    },
+    {
+      "mode": "live_software",
+      "codec": "libx264",
+      "physics_per_wall_second": 0.9977898953817794,
+      "physics_per_video_second": 0.9975055710686643,
+      "flash_times": [
+        1.6666666666666667,
+        2.1333333333333333,
+        2.65,
+        3.1333333333333333,
+        3.6666666666666665,
+        4.166666666666667
+      ],
+      "flash_intervals": [
+        0.46666666666666656,
+        0.5166666666666666,
+        0.4833333333333334,
+        0.5333333333333332,
+        0.5000000000000004
+      ],
+      "peak_queue_bytes_per_language": 16588800,
+      "audio_identical": true
+    },
+    {
+      "mode": "sim",
+      "codec": "h264_nvenc",
+      "physics_per_wall_second": 0.25089996986820834,
+      "physics_per_video_second": 1.0053461544984943,
+      "flash_times": [
+        0.7833333333333333,
+        1.2833333333333334,
+        1.7833333333333334
+      ],
+      "flash_intervals": [
+        0.5000000000000001,
+        0.5
+      ],
+      "peak_queue_bytes_per_language": 33177600,
+      "audio_identical": true
+    }
+  ]
+}

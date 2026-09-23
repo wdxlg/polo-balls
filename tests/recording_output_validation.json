@@ -3,43 +3,43 @@
   "failures": 0,
   "results": [
     {
-      "name": "\u4e2d\u6587_\u81ea\u7531\u5bf9\u6218_2026-09-23_09-52-20_10513251.mp4",
+      "name": "\u4e2d\u6587_\u81ea\u7531\u5bf9\u6218_2026-09-23_10-20-41_10160557.mp4",
       "width": 1080,
       "height": 1920,
       "fps": 60,
-      "frames": 119,
-      "video_duration": "1.983333",
-      "audio_duration": "1.983000",
-      "audio_rms": 0.21924763260645141,
-      "ui_rejection_db": 72.92,
+      "frames": 99,
+      "video_duration": "1.650000",
+      "audio_duration": "1.650000",
+      "audio_rms": 0.21844405106783077,
+      "ui_rejection_db": 76.05,
       "decoded_all_frames": true,
       "codecs": [
         "h264",
         "aac"
       ],
       "flash_times": [
-        0.8666666666666667,
-        1.55
+        0.5166666666666666,
+        1.1833333333333333
       ],
       "beep_times": [
-        0.89,
-        1.56
+        0.525,
+        1.22
       ],
       "sync_offsets_seconds": [
-        0.0233,
-        0.01
+        0.0083,
+        0.0367
       ]
     },
     {
-      "name": "\u4e2d\u6587_\u9010\u4e2a\u6311\u6218_left vs right_2026-09-23_09-52-24_15049472.mp4",
+      "name": "\u4e2d\u6587_\u9010\u4e2a\u6311\u6218_left vs right_2026-09-23_10-20-45_14741000.mp4",
       "width": 1080,
       "height": 1920,
       "fps": 60,
       "frames": 18,
       "video_duration": "0.300000",
       "audio_duration": "0.300000",
-      "audio_rms": 0.19185157455365326,
-      "ui_rejection_db": 134.47,
+      "audio_rms": 0.1919645548802822,
+      "ui_rejection_db": 134.88,
       "decoded_all_frames": true,
       "codecs": [
         "h264",
@@ -47,15 +47,15 @@
       ]
     },
     {
-      "name": "\u4e2d\u6587_\u9010\u4e2a\u6311\u6218_left vs right_2026-09-23_09-52-27_17361640.mp4",
+      "name": "\u4e2d\u6587_\u9010\u4e2a\u6311\u6218_left vs right_2026-09-23_10-20-48_16978028.mp4",
       "width": 1080,
       "height": 1920,
       "fps": 60,
       "frames": 96,
       "video_duration": "1.600000",
       "audio_duration": "1.600000",
-      "audio_rms": 0.1982278693215105,
-      "ui_rejection_db": 75.27,
+      "audio_rms": 0.19848238444553715,
+      "ui_rejection_db": 76.37,
       "decoded_all_frames": true,
       "codecs": [
         "h264",

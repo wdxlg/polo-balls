@@ -46,6 +46,16 @@ signal mode_changed(mode:int)
 ## path 为最终产物（mp4，或降级后的 PNG 目录），frames 为写出的帧数。
 signal recording_finished(path:String, frames:int)
 
+const WriterScript = preload("res://scripts/ui/battle_record_writer.gd")
+static var _nvenc_available:int = -1
+var _writer:RefCounted
+var _force_software:bool = false
+var _video_codec:String = ""
+var _physics_clock:float = 0.0
+var _speed_real:float = 0.0
+var _speed_physics_start:float = 0.0
+var _speed_warmup:float = 1.0
+var _timing_invalid:bool = false
 const NamingScript = preload("res://scripts/ui/battle_record_naming.gd")
 const LocaleScript = preload("res://scripts/ui/battle_record_locale.gd")
 var _secondary:Node
@@ -109,6 +119,11 @@ var _overlay_abort:Button = null
 func _ready() -> void:
 	# 录制不能因为游戏暂停（esc）而停摆：遮罩、进度、中止按钮都要继续响应。
 	process_mode = Node.PROCESS_MODE_ALWAYS
+
+
+func _physics_process(delta:float) -> void:
+	if _session_active and not _is_variant and not _capture_is_paused():
+		_physics_clock += delta / maxf(Engine.time_scale, 0.000001)
 
 
 func _input(event:InputEvent) -> void:
@@ -260,6 +275,11 @@ func _begin_session(output_fps:float, tag:String) -> bool:
 	_last_pause_reason = ""
 	_capture_size = OUTPUT_SIZE
 	_frame_index = 0
+	_physics_clock = 0.0
+	_speed_real = 0.0
+	_speed_physics_start = 0.0
+	_speed_warmup = 1.0
+	_timing_invalid = false
 	last_outputs.clear()
 	_previous_secondary_image = null
 	_previous_image = null
@@ -288,6 +308,7 @@ func _begin_session(output_fps:float, tag:String) -> bool:
 	_secondary._locale = "en"
 	_secondary.name = "EnglishRecording"
 	add_child(_secondary)
+	_secondary._force_software = _force_software
 	_secondary._match_snapshot = _match_snapshot
 	_secondary._capture_size = _capture_size
 	_secondary._output_fps = _output_fps
@@ -339,11 +360,13 @@ func _open_pipe_encoder() -> bool:
 	])
 	args.append("-an")
 	args.append("-c:v")
-	args.append("libx264")
-	args.append("-preset")
-	args.append("veryfast")
-	args.append("-crf")
-	args.append(VIDEO_CRF)
+	_video_codec = _select_video_codec(ffmpeg)
+	args.append(_video_codec)
+	if _video_codec == "h264_nvenc":
+		args.append_array(["-preset", "p4", "-tune", "ull", "-zerolatency", "1", "-delay", "0", "-rc", "constqp", "-qp", "16", "-bf", "0"])
+	else:
+		# Bound CPU contention; two veryfast encoders used to starve game physics.
+		args.append_array(["-preset", "ultrafast", "-threads", "2", "-crf", VIDEO_CRF])
 	args.append("-pix_fmt")
 	args.append("yuv420p")
 	args.append("-movflags")
@@ -363,7 +386,38 @@ func _open_pipe_encoder() -> bool:
 	_encoder_stderr = handles.get("stderr") as FileAccess
 	_pipe = stdio as FileAccess
 	_pipe_pid = int(handles.get("pid", 0))
+	_writer = WriterScript.new()
+	if not _writer.begin(_pipe):
+		_pipe.close()
+		OS.kill(_pipe_pid)
+		_pipe = null
+		_writer = null
+		return false
 	return true
+
+
+func _select_video_codec(ffmpeg:String) -> String:
+	if _force_software: return "libx264"
+	if _nvenc_available < 0:
+		var output:Array = []
+		_nvenc_available = 1 if OS.execute(ffmpeg, ["-hide_banner", "-loglevel", "error",
+			"-f", "lavfi", "-i", "color=s=1080x1920:r=60", "-frames:v", "1", "-an",
+			"-c:v", "h264_nvenc", "-preset", "p4", "-f", "null", "-"], output, true) == 0 else 0
+	return "h264_nvenc" if _nvenc_available == 1 else "libx264"
+
+
+func _drain_writer() -> void:
+	if _writer == null: return
+	_writer.close_when_empty()
+	var deadline:int = Time.get_ticks_msec() + 20000
+	while _writer.is_running() and Time.get_ticks_msec() < deadline:
+		await get_tree().create_timer(0.02, true, false, true).timeout
+	if _writer.is_running():
+		if OS.is_process_running(_pipe_pid): OS.kill(_pipe_pid)
+		_fail("编码器收尾超时，已停止。")
+	_writer.join()
+	if not _writer.get_error().is_empty(): _fail(_writer.get_error())
+	_writer = null
 
 
 func _finish_session() -> void:
@@ -381,6 +435,12 @@ func _finish_session() -> void:
 		_locale_mirror.queue_free()
 	_locale_mirror = null
 	_hide_overlay()
+	if is_instance_valid(_secondary):
+		# A rejected enqueue must not leave language variants with different lengths.
+		var common_frames:int = mini(_frame_index, _secondary._frame_index)
+		_frame_index = common_frames
+		_secondary._frame_index = common_frames
+		_secondary._timing_invalid = _timing_invalid
 	var path:String = await _finish_video_output()
 	if not path.is_empty(): last_outputs["zh"] = path
 	if is_instance_valid(_secondary):
@@ -403,6 +463,7 @@ func _finish_video_output() -> String:
 	var frame_count:int = _frame_index
 
 	if _pipe != null:
+		await _drain_writer()
 		if _pipe.is_open():
 			_pipe.flush()
 			_pipe.close()
@@ -421,6 +482,10 @@ func _finish_video_output() -> String:
 			if FileAccess.file_exists(_video_path) and _last_mux_ok:
 				finished_path = _video_path
 
+	if _timing_invalid:
+		if _encoder_stderr != null and _encoder_stderr.is_open(): _encoder_stderr.close()
+		_encoder_stderr = null
+		return "" # Keep raw materials, do not advertise a slowed final video.
 	if finished_path == _video_path:
 		if await _mux_game_audio():
 			finished_path = _out_path
@@ -465,6 +530,11 @@ func _capture_loop() -> void:
 		if capture_requested: _prepare_next_capture()
 		await RenderingServer.frame_post_draw
 		if mode == Mode.IDLE: break
+		for output:Node in [self, _secondary]:
+			if output._writer != null and not output._writer.get_error().is_empty():
+				_fail(output._writer.get_error())
+				stop()
+		if mode == Mode.IDLE: break
 		var now_usec:int = Time.get_ticks_usec()
 		var real_delta:float = float(now_usec - _last_tick_usec) / 1000000.0
 		_last_tick_usec = now_usec
@@ -481,9 +551,27 @@ func _capture_loop() -> void:
 			stop()
 			break
 		if skip:
+			_speed_real = 0.0
+			_speed_physics_start = _physics_clock
 			_previous_image = null
 			_previous_secondary_image = null
 			continue
+		# Physics is the independent speed witness, not video FPS/container duration.
+		# Never silently deliver a long slow-motion video under sustained overload.
+		if _speed_warmup > 0.0:
+			_speed_warmup -= real_delta
+			_speed_physics_start = _physics_clock
+		else:
+			_speed_real += real_delta
+			if _speed_real >= 2.0:
+				var progress:float = (_physics_clock - _speed_physics_start) / _speed_real
+				_speed_real = 0.0
+				_speed_physics_start = _physics_clock
+				if progress < 0.9:
+					_timing_invalid = true
+					_fail("当前负载已使对战明显减速，录制已停止且未生成正式成片。临时材料已保留，请减少人物或特效后重试。")
+					stop()
+					break
 		var game_delta:float = real_delta * scale_now
 		_game_time += game_delta
 		_accumulator += game_delta
@@ -496,17 +584,17 @@ func _capture_loop() -> void:
 			var image:Image = _grab_image()
 			var english:Image = _secondary._grab_image()
 			if image == null or english == null: continue
-			for index:int in range(wanted):
-				if mode == Mode.IDLE: break
-				# Fill elapsed gaps with the OLD image, not a future hit/flash.
-				# Otherwise a delayed render makes visual events precede their audio.
-				_write_frame(_previous_image if index < wanted - 1 and _previous_image != null else image)
-				_secondary._write_frame(_previous_secondary_image if index < wanted - 1 and _previous_secondary_image != null else english)
-				if not _secondary._last_error.is_empty():
-					_fail("英文编码失败：" + _secondary._last_error)
-					stop()
-					break
-				_accumulator -= _frame_interval
+			# Queue each distinct image once. Repeats are written off the game thread.
+			var repeat_old:int = wanted - 1 if _previous_image != null else 0
+			if repeat_old > 0:
+				_write_frame(_previous_image, repeat_old)
+				_secondary._write_frame(_previous_secondary_image, repeat_old)
+			_write_frame(image, wanted - repeat_old)
+			_secondary._write_frame(english, wanted - repeat_old)
+			if not _secondary._last_error.is_empty():
+				_fail("英文编码失败：" + _secondary._last_error)
+				stop()
+			_accumulator -= wanted * _frame_interval
 			_previous_image = image
 			_previous_secondary_image = english
 		if mode == Mode.SIM:
@@ -559,29 +647,25 @@ func _viewport_uses_hdr(source:Viewport) -> bool:
 	return source.use_hdr_2d
 
 
-func _write_frame(image:Image) -> void:
-	if image == null or image.is_empty():
-		return
+func _write_frame(image:Image, count:int = 1) -> void:
+	if image == null or image.is_empty() or count <= 0: return
 	if image.get_size() != _capture_size:
 		image.resize(_capture_size.x, _capture_size.y, Image.INTERPOLATE_NEAREST)
-	if _pipe != null and _pipe.is_open():
-		if _pipe_pid > 0 and not OS.is_process_running(_pipe_pid):
-			_fail("编码器意外退出，录制已停止。请检查输出目录空间及 ffmpeg。")
+	if _writer != null:
+		if not _writer.enqueue(image.get_data(), count):
+			_fail(_writer.get_error())
 			stop()
 			return
-		_pipe.store_buffer(image.get_data())
-		if _pipe.get_error() != OK:
-			_fail("写入录像失败，录制已停止。请检查磁盘空间。")
-			stop()
-			return
-		_frame_index += 1
+		_frame_index += count
 		return
 	if _png_fallback:
-		if image.save_png("%s/frame_%05d.png" % [_session_dir, _frame_index]) == OK:
-			_frame_index += 1
-		else:
-			_fail("写入录制图片失败，请检查磁盘空间。")
-			stop()
+		for index:int in range(count):
+			if image.save_png("%s/frame_%05d.png" % [_session_dir, _frame_index]) == OK:
+				_frame_index += 1
+			else:
+				_fail("写入录制图片失败，请检查磁盘空间。")
+				stop()
+				return
 
 
 #========================================================
@@ -873,6 +957,11 @@ func _world() -> Node:
 
 
 func _exit_tree() -> void:
+	if _writer != null:
+		_writer.close_when_empty()
+		if OS.is_process_running(_pipe_pid): OS.kill(_pipe_pid)
+		_writer.join()
+		_writer = null
 	if is_instance_valid(_locale_mirror): _locale_mirror.finish()
 	if _audio != null: _audio.finish()
 	if _pipe != null and _pipe.is_open():

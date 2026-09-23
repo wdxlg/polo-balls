@@ -65,9 +65,9 @@ static func title(data:Dictionary, locale:String) -> String:
 	return (prefix + "_" if not prefix.is_empty() else "") + matchup
 
 static func filename(data:Dictionary, locale:String, stamp:String, root:String) -> String:
-	var text:String = title(data, locale)
+	var text:String = title(data, "zh")
 	for invalid:String in ["<", ">", ":", '"', "/", "\\", "|", "?", "*", "\n", "\r", "\t"]: text = text.replace(invalid, "-")
-	var prefix:String = "中文_" if locale == "zh" else "English_"
+	var prefix:String = "中文_" if locale == "zh" else "英文_"
 	# Reserve room for .video.mp4 / .audio.f32 and keep Windows paths below MAX_PATH.
 	var budget:int = mini(160, 238 - root.length() - prefix.length() - stamp.length() - 16)
 	if budget < 12: return ""
