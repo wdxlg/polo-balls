@@ -7705,7 +7705,18 @@ func _apply_or_record_initial_battle_direction(character:ball) -> void:
 	character.set_meta(&"battle_initial_direction_processed",true)
 
 
+func _remember_random_setup(setup_id:int,random_choice:bool) -> void:
+	# Preserve provenance in both queues and setup snapshots without changing spawn APIs.
+	if not random_choice: return
+	for entries:Array in [_battle_setup,_rotation_rosters["left"],_rotation_rosters["right"]]:
+		for index:int in range(entries.size() - 1,-1,-1):
+			if int(entries[index].get("id",-1)) == setup_id:
+				entries[index]["random_choice"] = true
+				break
+
+
 func create_char(team:String,char:String,poi:Vector2):
+	var random_choice:bool = char == "random"
 	if char == "random":
 		char = return_random_char()
 	# Preserve click order while cold resources load; reset cancels pending requests.
@@ -7723,6 +7734,7 @@ func create_char(team:String,char:String,poi:Vector2):
 		_mc_pending_placements.pop_front()
 		var prepared:PackedScene = _mc_prewarmer.scenes.get(char)
 		if prepared != null: _character_scene_cache[prepared.resource_path] = prepared
+	var placement_id:int = _battle_setup_next_id
 	# 轮放/Boss 的队伍归属优先读取 Team0/Team1；未选队伍才按放置位置分左右。
 	# 其他明确选择的队伍在这两个模式里无效，不能创建人物。
 	if Game.is_rotation_training_mode() and not _restoring_battle_setup:
@@ -7730,17 +7742,20 @@ func create_char(team:String,char:String,poi:Vector2):
 		if rotation_side.is_empty():
 			return
 		_enqueue_rotation_character(team,char,poi,rotation_side)
+		_remember_random_setup(placement_id,random_choice)
 		return
 	if Game.is_boss_training_mode() and Game.is_training_boss_wheel_battle_enabled() and not _restoring_battle_setup:
 		var wheel_side:String = _special_two_team_side(team, poi)
 		if wheel_side.is_empty():
 			return
 		_enqueue_rotation_character(team,char,poi,wheel_side)
+		_remember_random_setup(placement_id,random_choice)
 		return
 	if team == "random":
 		team = control.return_random_team()
 	if Game.is_timed_training_mode() and not _restoring_battle_setup:
 		_enqueue_timed_character(team,char,poi)
+		_remember_random_setup(placement_id,random_choice)
 		return
 	if Game.is_boss_training_mode():
 		var boss_side:String = _special_two_team_side(team, poi)
@@ -7760,6 +7775,7 @@ func create_char(team:String,char:String,poi:Vector2):
 		"id": setup_id,
 		"team": team,
 		"char": char,
+		"random_choice": random_choice,
 		"x": poi.x,
 		"y": poi.y,
 	}

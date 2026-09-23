@@ -4,6 +4,7 @@ const RecorderScript = preload("res://scripts/ui/battle_recorder.gd")
 var recorder:Node
 var button:Button
 var result_dialog:AcceptDialog
+var english_path:LineEdit
 var output_path:LineEdit
 var message_label:Label
 var last_message:String = ""
@@ -34,6 +35,9 @@ func setup(target:Button) -> void:
 	output_path = LineEdit.new()
 	output_path.editable = false
 	body.add_child(output_path)
+	english_path = LineEdit.new()
+	english_path.editable = false
+	body.add_child(english_path)
 	result_dialog.add_child(body)
 	result_dialog.get_label().hide()
 	result_dialog.add_button("打开输出文件夹 / Open folder", false, "folder")
@@ -44,7 +48,9 @@ func setup(target:Button) -> void:
 
 func toggle_live() -> void:
 	var starting:bool = recorder.is_idle()
-	if starting: last_output = ""
+	if starting:
+		last_output = ""
+		english_path.text = ""
 	if not recorder.toggle_live():
 		_show_message(recorder.get_last_error())
 	elif starting:
@@ -86,7 +92,7 @@ func refresh() -> void:
 		button.text = "待录" if recorder._frame_index == 0 else "暂停"
 		button.modulate = Color(1.0, 0.8, 0.3)
 	button.disabled = saving
-	button.tooltip_text = "左键：开始/停止高清对战录制；右键：慢速重打并生成正常速度的有声对战视频。" + "\n默认：user://recordings；在设置 → 录制中选择保存目录" + "\n1080×1920 / 60fps · 仅对战画面和游戏声音 · 暂停不计入成片"
+	button.tooltip_text = "左键：开始/停止高清对战录制；右键：慢速重打并生成正常速度的有声对战视频。" + "\n默认：user://recordings；在设置 → 录制中选择保存目录" + "\n每次输出中文 + English 两份视频 · 1080×1920 / 60fps · 仅对战画面和游戏声音 · 暂停不计入成片"
 
 	if active:
 		button.tooltip_text += "\n已录 %d 帧。%s 再点一次停止。" % [recorder._frame_index, reason]
@@ -94,10 +100,11 @@ func refresh() -> void:
 func _on_finished(path:String, frames:int) -> void:
 	refresh()
 	last_output = path
+	english_path.text = str(recorder.last_outputs.get("en", ""))
 	if path.is_empty():
 		_show_message("录制未完成：" + recorder.get_last_error())
 	else:
-		var kind:String = "MP4" if path.ends_with(".mp4") else "PNG 图片序列（未找到可用的编码器）"
+		var kind:String = "%d 个语言版本 MP4" % recorder.last_outputs.size() if path.ends_with(".mp4") else "PNG 图片序列（未找到可用的编码器）"
 		_show_message(("已保存 %s，%d 帧（含游戏声音）。" if path.ends_with(".mp4") else "已保存 %s，%d 帧；音频保留为 .audio.f32 临时文件，尚未合成视频。") % [kind, frames])
 
 func _show_message(message:String) -> void:

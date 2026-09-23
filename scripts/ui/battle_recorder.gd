@@ -46,6 +46,15 @@ signal mode_changed(mode:int)
 ## path 为最终产物（mp4，或降级后的 PNG 目录），frames 为写出的帧数。
 signal recording_finished(path:String, frames:int)
 
+const NamingScript = preload("res://scripts/ui/battle_record_naming.gd")
+const LocaleScript = preload("res://scripts/ui/battle_record_locale.gd")
+var _secondary:Node
+var _locale_mirror:Node
+var _is_variant:bool = false
+var _locale:String = "zh"
+var _previous_secondary_image:Image
+var last_outputs:Dictionary = {}
+var _match_snapshot:Dictionary = {}
 const PreferencesScript = preload("res://scripts/ui/battle_record_preferences.gd")
 var preferences:RefCounted = PreferencesScript.new()
 var _session_output_root:String = ""
@@ -251,6 +260,8 @@ func _begin_session(output_fps:float, tag:String) -> bool:
 	_last_pause_reason = ""
 	_capture_size = OUTPUT_SIZE
 	_frame_index = 0
+	last_outputs.clear()
+	_previous_secondary_image = null
 	_previous_image = null
 	_game_time = 0.0
 	_accumulator = 0.0
@@ -265,26 +276,47 @@ func _begin_session(output_fps:float, tag:String) -> bool:
 	_session_dir = ""
 
 	var stamp:String = Time.get_datetime_string_from_system(false, true).replace(":", "-").replace(" ", "_") + "_%d" % Time.get_ticks_usec()
-	_out_path = "%s/%s_%s.mp4" % [_session_output_root, tag, stamp]
+	_match_snapshot = NamingScript.snapshot(_world(), tag == "sim")
+	var zh_name:String = NamingScript.filename(_match_snapshot, "zh", stamp, _session_output_root)
+	var en_name:String = NamingScript.filename(_match_snapshot, "en", stamp, _session_output_root)
+	if zh_name.is_empty() or en_name.is_empty(): return _fail("保存目录路径过长，请选择更短的录制目录。")
+	_out_path = _session_output_root.path_join(zh_name)
 	_video_path = _out_path.get_basename() + ".video.mp4"
 	_audio_path = _out_path.get_basename() + ".audio.f32"
+	_secondary = get_script().new()
+	_secondary._is_variant = true
+	_secondary._locale = "en"
+	_secondary.name = "EnglishRecording"
+	add_child(_secondary)
+	_secondary._match_snapshot = _match_snapshot
+	_secondary._capture_size = _capture_size
+	_secondary._output_fps = _output_fps
+	_secondary._out_path = _session_output_root.path_join(en_name)
+	_secondary._video_path = _secondary._out_path.get_basename() + ".video.mp4"
+	_secondary._audio_path = _audio_path
 	_audio = AudioCaptureScript.new()
 	if not _audio.begin(_audio_path):
 		_audio.finish()
+		_secondary.queue_free()
+		_secondary = null
 		return _fail(_audio.error)
 
-	if _open_pipe_encoder():
-		return true
+	_secondary._audio = _audio
+	if _open_video_output() and _secondary._open_video_output(): return true
+	# Clean up partial startup without leaving an encoder or audio tap behind.
+	_session_active = true
+	_fail("无法建立中英文双语编码输出，请检查编码器和目录空间。")
+	_finish_session()
+	return false
 
-	# 降级路线：先把帧存成 PNG 序列，结束时再尝试合成 mp4。
-	_session_dir = "%s/%s_%s" % [_session_output_root, tag, stamp]
+
+func _open_video_output() -> bool:
+	if _open_pipe_encoder(): return true
+	_session_dir = _out_path.get_basename() + "_frames"
 	if DirAccess.make_dir_recursive_absolute(_session_dir) == OK:
 		_png_fallback = true
-		push_warning("battle_recorder: 没有可用的 ffmpeg 管道，改为输出 PNG 序列：%s" % ProjectSettings.globalize_path(_session_dir))
 		return true
-
-	_audio.finish()
-	return _fail("无法创建录制输出目录，录制取消。")
+	return false
 
 
 func _open_pipe_encoder() -> bool:
@@ -316,6 +348,7 @@ func _open_pipe_encoder() -> bool:
 	args.append("yuv420p")
 	args.append("-movflags")
 	args.append("+faststart")
+	args.append_array(["-metadata", "title=" + NamingScript.title(_match_snapshot, _locale), "-metadata:s:v:0", "language=" + ("zho" if _locale == "zh" else "eng")])
 	args.append(ProjectSettings.globalize_path(_video_path))
 
 	var result:Variant = OS.execute_with_pipe(ffmpeg, args, true)
@@ -334,19 +367,38 @@ func _open_pipe_encoder() -> bool:
 
 
 func _finish_session() -> void:
-	if not _session_active:
-		return
+	if not _session_active: return
 	_session_active = false
 	_finalizing = true
 	if mode != Mode.IDLE:
 		mode = Mode.IDLE
 		mode_changed.emit(mode)
-	if _audio != null:
-		_audio.finish()
+	if _audio != null: _audio.finish()
 	_release_sim_world_state()
 	_free_sim_capture_viewport()
+	if is_instance_valid(_locale_mirror):
+		_locale_mirror.finish()
+		_locale_mirror.queue_free()
+	_locale_mirror = null
 	_hide_overlay()
+	var path:String = await _finish_video_output()
+	if not path.is_empty(): last_outputs["zh"] = path
+	if is_instance_valid(_secondary):
+		var english:String = await _secondary._finish_video_output()
+		if not english.is_empty(): last_outputs["en"] = english
+		if not _secondary._last_error.is_empty():
+			_fail((_last_error + "\n" if not _last_error.is_empty() else "") + "英文输出：" + _secondary._last_error)
+		_secondary.queue_free()
+	_secondary = null
+	if _frame_index == 0 or (last_outputs.size() == 2 and str(last_outputs.zh).ends_with(".mp4") and str(last_outputs.en).ends_with(".mp4")):
+		DirAccess.remove_absolute(_audio_path)
+	_previous_image = null
+	_previous_secondary_image = null
+	_finalizing = false
+	recording_finished.emit(path, _frame_index)
 
+
+func _finish_video_output() -> String:
 	var finished_path:String = ""
 	var frame_count:int = _frame_index
 
@@ -373,7 +425,6 @@ func _finish_session() -> void:
 		if await _mux_game_audio():
 			finished_path = _out_path
 			DirAccess.remove_absolute(_video_path)
-			DirAccess.remove_absolute(_audio_path)
 		else:
 			finished_path = ""
 			_fail("音画合成失败。原始视频和音频已保留在输出目录，可恢复。")
@@ -393,10 +444,7 @@ func _finish_session() -> void:
 	if frame_count == 0:
 		# Only remove this session's empty temporary files, never earlier user recordings.
 		DirAccess.remove_absolute(_video_path)
-		DirAccess.remove_absolute(_audio_path)
-	_previous_image = null
-	_finalizing = false
-	recording_finished.emit(finished_path, frame_count)
+	return finished_path
 
 
 func _release_sim_world_state() -> void:
@@ -434,6 +482,7 @@ func _capture_loop() -> void:
 			break
 		if skip:
 			_previous_image = null
+			_previous_secondary_image = null
 			continue
 		var game_delta:float = real_delta * scale_now
 		_game_time += game_delta
@@ -445,13 +494,21 @@ func _capture_loop() -> void:
 			break
 		if wanted > 0:
 			var image:Image = _grab_image()
+			var english:Image = _secondary._grab_image()
+			if image == null or english == null: continue
 			for index:int in range(wanted):
 				if mode == Mode.IDLE: break
 				# Fill elapsed gaps with the OLD image, not a future hit/flash.
 				# Otherwise a delayed render makes visual events precede their audio.
 				_write_frame(_previous_image if index < wanted - 1 and _previous_image != null else image)
+				_secondary._write_frame(_previous_secondary_image if index < wanted - 1 and _previous_secondary_image != null else english)
+				if not _secondary._last_error.is_empty():
+					_fail("英文编码失败：" + _secondary._last_error)
+					stop()
+					break
 				_accumulator -= _frame_interval
 			_previous_image = image
+			_previous_secondary_image = english
 		if mode == Mode.SIM:
 			_update_sim_progress(game_delta)
 			if _sim_finished: break
@@ -470,6 +527,7 @@ func _prepare_next_capture() -> void:
 	_sim_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 	if is_instance_valid(_resolve_viewport):
 		_resolve_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
+	if is_instance_valid(_secondary): _secondary._prepare_next_capture()
 
 
 func _grab_image() -> Image:
@@ -548,7 +606,7 @@ func _setup_sim_capture_viewport() -> void:
 	sub.snap_2d_vertices_to_pixel = main.snap_2d_vertices_to_pixel
 	# 与主视口共享 2D 世界，但把遮罩所在的可见层剔除掉。
 	sub.world_2d = main.world_2d
-	sub.canvas_cull_mask = CAPTURE_ALL_MASK & ~CAPTURE_MASK_BIT
+	sub.canvas_cull_mask = CAPTURE_ALL_MASK & ~CAPTURE_MASK_BIT & ~(LocaleScript.EN_BIT if _locale == "zh" else LocaleScript.ZH_BIT)
 	sub.render_target_update_mode = SubViewport.UPDATE_DISABLED
 	add_child(sub)
 	_sim_viewport = sub
@@ -564,6 +622,12 @@ func _setup_sim_capture_viewport() -> void:
 	_sync_capture_vignette()
 	if sub.use_hdr_2d:
 		_setup_color_resolve(sub)
+	if not _is_variant and is_instance_valid(_secondary):
+		_secondary._setup_sim_capture_viewport()
+		if not is_instance_valid(_locale_mirror):
+			_locale_mirror = LocaleScript.new()
+			add_child(_locale_mirror)
+			_locale_mirror.begin(_world(), main)
 
 
 func _sync_capture_vignette() -> void:
@@ -611,6 +675,7 @@ void fragment() {
 
 
 func _free_sim_capture_viewport() -> void:
+	if is_instance_valid(_secondary): _secondary._free_sim_capture_viewport()
 	_capture_vignette = null
 	if is_instance_valid(_resolve_viewport):
 		if _capture_viewport == _resolve_viewport: _capture_viewport = null
@@ -808,6 +873,7 @@ func _world() -> Node:
 
 
 func _exit_tree() -> void:
+	if is_instance_valid(_locale_mirror): _locale_mirror.finish()
 	if _audio != null: _audio.finish()
 	if _pipe != null and _pipe.is_open():
 		_pipe.close()

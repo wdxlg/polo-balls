@@ -1,0 +1,39 @@
+{
+  "checks": 63,
+  "failures": 0,
+  "gpu_checks": 32,
+  "pairs": [
+    {
+      "mode": "bilingual_live",
+      "frames": 76,
+      "video_duration": 1.266667,
+      "audio_identical": true,
+      "audio_rms": 0.1966745700334926,
+      "battle_mean_rgb_error_255": 1.1421783625730994e-05
+    },
+    {
+      "mode": "original_live",
+      "frames": 119,
+      "video_duration": 1.983333,
+      "audio_identical": true,
+      "audio_rms": 0.21924763260645141,
+      "battle_mean_rgb_error_255": 0.0
+    },
+    {
+      "mode": "sim_abort",
+      "frames": 18,
+      "video_duration": 0.3,
+      "audio_identical": true,
+      "audio_rms": 0.19185157455365326,
+      "battle_mean_rgb_error_255": 0.0
+    },
+    {
+      "mode": "sim_finish",
+      "frames": 96,
+      "video_duration": 1.6,
+      "audio_identical": true,
+      "audio_rms": 0.1982278693215105,
+      "battle_mean_rgb_error_255": 0.07279308931327161
+    }
+  ]
+}

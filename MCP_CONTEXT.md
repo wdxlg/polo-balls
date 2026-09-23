@@ -39,6 +39,6 @@
 
 - 旧 `global/注释.gd` 的完整原文已迁至 `docs/archive/legacy_global_notes.md`。它是历史资料，可能包含已过时的规则、命令和环境描述；按任务需要检索，不自动执行其中命令。与当前用户要求或本文件冲突时，以当前要求为准。
 - 轮换展示框与挑战规则：`tests/ROTATION_FRAMES_CHALLENGE.md`。阅读时仍需核对当前代码，不能仅凭旧测试记录声称当前版本已通过。
-- 录制按钮、实时/模拟录制与验证范围：`tests/BATTLE_RECORDING.md`；原生 1080×1920/60fps 纯对战画面与游戏音轨，排除工具栏/鼠标/暂停 UI，暂停和布阵时间不进入成片；支持设置 → 录制中选择并记忆保存目录；渲染颜色匹配主窗口 HDR 与常驻暗角，排除 Esc 暂停/恢复倒计时及其画面；右键是低速重新模拟而非旧录像回放；详见验证范围。
+- 录制按钮、实时/模拟录制与验证范围：`tests/BATTLE_RECORDING.md`；原生 1080×1920/60fps 纯对战画面与游戏音轨，排除工具栏/鼠标/暂停 UI，暂停和布阵时间不进入成片；支持设置 → 录制中选择并记忆保存目录；渲染颜色匹配主窗口 HDR 与常驻暗角，排除 Esc 暂停/恢复倒计时及其画面；右键是低速重新模拟而非旧录像回放；每次同局输出中文/英文两份，按语言、特殊模式、初始对阵命名，随机队伍按人数命名；详见验证范围。
 - MCP 自动附带说明的安装、备份和验证方式：`tools/mcp_context/README.md`。
 - 实际入口通常包括 `scripts/world.gd`、`global/game.gd`、`ui/control.gd`、`classes/ball.gd` 与 `scripts/training/combat_threat_analyzer.gd`；按任务定位，不随意扩大修改范围。
