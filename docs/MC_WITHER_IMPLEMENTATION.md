@@ -1,6 +1,8 @@
-# 凋零角色：当前实现与验收边界
+# 凋零角色：基岩版实时三维动画与验收边界
 
 入口：`scenes/characters/我的世界/凋零.tscn`；信标是仅供召唤的 `scenes/creatures/我的世界/凋零信标.tscn`，不进入独立选角列表。纹理及烘焙精灵在 `Images/characters/我的世界/wither/`，音效在 `audio/characters/我的世界/wither/`，脚本在 `scripts/characters/我的世界/wither/`。
+
+**当前纠正（基岩版原版实时动画）：** 之前 Java 纹理重排生成的 `wither_front.png`/`wither_assembling.png` 只能作静态图，不满足原版人物动画要求；战斗中不再显示它们。新 `bedrock_rig.gd` 从 Mojang 官方 `bedrock-samples` 的 `wither_boss.geo.json` 建立可旋转的六骨骼三维模型，把原版 `wither_boss.animation.json`/控制器中的头部寻敌及躯干余弦摆动公式实时施加到每根骨骼。角色的 `Image` 直接显示不断更新的透明 `SubViewport` 三维画面，召唤时使用原版无敌材质与旋转，半血时显示原版膨胀护甲模型/蓝色材质；这不是播放单张贴图，也不是烘焙的动画帧。固定使用 Mojang `bedrock-samples` 提交 `46ba6ea985fb5a92d79a9419198f10dda14c199d`，`bedrock/SOURCE_MANIFEST.json` 含原文件路径与 SHA-256。基岩版源文件只作为模型与动画资源，游戏数值仍按本项目的定制规则执行。头部视线输入由 2D 战场的目标方向映射，三维投影/渲染器是 Godot 而非直接运行 Minecraft 客户端；不声称像素级复刻客户端输出。选择界面尚未实例化角色时可回退为静态缩略图；进入战斗后必须使用动态三维视口。
 
 **资源与移动修订（2026-09-24）：** 之前的 `wither.svg`、`beacon.svg` 是非原版手绘占位，已从运行时全部替换；源码已删除占位文件。`fetch_vanilla_assets.py` 从 Mojang Java 1.21.11 官方 client.jar（SHA-1 `ba2df812c2d12e0219c489c4cd9a5e1f0760f5bd`）和资产索引（SHA-1 `adb0a43fae291fd88ee27d85a372ba6f2072b0a3`）提取 10 张游戏纹理、15 个原版声音，并逐一核验哈希。`SOURCE_MANIFEST.json` 列出精确 jar 路径和每个源素材 SHA-1。仅以原版 UV/方块纹理为像素来源，通过最近邻重排生成 2D 凋零、无敌凋零、骷髅头、信标精灵；药水/爆炸/魂沙/玫瑰/激光也改用原版纹理，凋零出生、开火、受伤、死亡、闲置、爆炸及信标声改用原版事件。伤害反馈继续复用项目已核实为 MC 原版的暴击/受伤音效。资源的使用和再分发须遵守 Mojang EULA / usage guidelines，不把衍生精灵描述成 Minecraft 官方提供的 2D 成品。常态 `wither.move()` 改为 `super.move()`，遵守统一 0.6 倍基础移速、操控/AI 方向、击退、碰撞及其他角色通用移动行为，不再按距离悬浮/停滞或直接改 `global_position`；冲撞单独用 `CharacterBody2D.move_and_slide()` 做真实碰撞。信标落地后的水平巡航仍按指定机制独立处理。
 
@@ -10,7 +12,9 @@
 
 **原型历史验证（不代表当前修订已通过）：** 上一版 GDScript 使用 `gdtoolkit` 的 `gdparse` 静态语法检查成功。使用项目指定的 `../polo-balls-tools/offline-engine/runtime/Godot.4.7.2.offline.exe --headless --path . --script`：`tests/test_wither.gd` 当时的 7/7 资源加载以及开局免伤、威胁声明、半血信标唯一性与增益入口通过；`tests/test_wither_live.gd` 在真实 World/Map50x50 场景中 **16 项检查、0 失败**，覆盖直击 75 不重复溅射、每秒 4 点持续伤害、玫瑰触碰刷新同一状态、半血信标仅生成一次、重力下落、激光周期伤害/随机增益，以及真实物理帧自动生成玫瑰和发射骷髅。日志在 `.godot/agent_wither_smoke.log` 和 `.godot/agent_wither_live.log`。Godot 测试只用无头渲染，尚不等于真实 GPU 视觉验收。
 
-**当前修订验证：** 官方 jar / 资产索引及逐个 OGG SHA-1 全部通过，自动构建 10 种原始纹理、15 个音效和 4 个派生贴图。独立离线引擎编辑器导入 PNG/OGG 成功；无头 smoke 加载 8/8 脚本和场景及 10 张关键贴图，World 场景现在 18 项检查、0 失败（新增真实位移及统一 0.6 倍移速检查）。资源语法与运行时结果只代表无头环境，不等于 GPU 视觉/实际听音验收。
+**当前修订验证（首轮 Java 素材阶段）：** 官方 jar / 资产索引及逐个 OGG SHA-1 全部通过，自动构建 10 种原始纹理、15 个音效和 4 个派生贴图。独立离线引擎编辑器导入 PNG/OGG 成功；无头 smoke 加载 8/8 脚本和场景及 10 张关键贴图，World 场景现在 18 项检查、0 失败（新增真实位移及统一 0.6 倍移速检查）。资源语法与运行时结果只代表无头环境，不等于 GPU 视觉/实际听音验收。
+
+**基岩版实时模型验证：** 官方 Mojang 模型/动画/控制器/纹理 8 个源文件逐件 SHA-256 验证；无头引擎 9/9 脚本/场景加载成功，真实 World 24 项检查、0 失败，覆盖实时三维视口、六骨骼、原版肋骨摆动公式、头部转向、半血护甲及跨物理帧持续动画。另外使用项目离线 Godot 在非无头 OpenGL 3.3（NVIDIA RTX 4060）独立透明 192×192 `SubViewport` 实际渲染基岩版模型，10080 像素非透明；人工核对三头白眼、躯干与肋骨可见。最初发现普通 Alpha 混合会让背面遮住眼睛，已改为深度写入的 alpha-scissor；此 GPU 快照只证明模型/UV/材质/相机可渲染，完整游戏画面、实际听音和联机仍待验收。
 
 **待验收/已知边界：** 项目根目录的 `godot.exe` 不是本项目指定的独立引擎，用它尝试检查时出现了已有的 `addons/csvedit` DELIM 与旧素材预加载错误且脚本长时间不返回；已仅终止本轮的测试进程。**独立离线引擎已完成上面的有效测试**，但尚未在真实 GPU 画面中核对魂沙/旋转/爆炸、药水粒子、撞墙骷髅头、玫瑰黑化恢复、地面移动、冲撞及激光遮挡，也未做主观听音、胜率平衡或双端联机。当前投射物反射使用项目标准 `ball` 射手接口；非标准自定义射线弹及各 transient 特效的远端复制尚未双端验证。无头 World 测试结束时会有已存在的 shader UID 大小写警告及 ObjectDB 退出清理提示。
 

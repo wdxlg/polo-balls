@@ -1,7 +1,7 @@
 extends "res://scripts/characters/我的世界/mc_mob_base.gd"
 ## 召唤 -> 骷髅/玫瑰/冲撞 -> 半血下界之心。所有伤害由权威端结算。
 const BODY = preload("res://Images/characters/我的世界/wither/wither_front.png")
-const ASSEMBLING = preload("res://Images/characters/我的世界/wither/wither_assembling.png")
+const LIVE_RIG = preload("res://scripts/characters/我的世界/wither/bedrock_rig.gd")
 const SOUL_SAND = preload("res://Images/characters/我的世界/wither/soul_sand.png")
 const HEAD = preload("res://Images/characters/我的世界/wither/wither_skull.png")
 const FLASH = preload("res://Images/characters/我的世界/wither/flash.png")
@@ -36,6 +36,9 @@ var _summon_sound_played:bool = false
 var _idle_left:float = 8.0
 var _effects:Array[WeakRef] = []
 var reflected_count:int = 0
+var _bedrock_viewport:SubViewport
+var _bedrock_model:Node3D
+var _animation_life:float = 0.0
 
 func _ready() -> void:
 	Has_Collision_Damage = false
@@ -43,10 +46,39 @@ func _ready() -> void:
 	Can_Skill = false
 	mc_audio_role = ""
 	super._ready()
+	_create_live_model()
 	if image is Sprite2D: (image as Sprite2D).visible = false
 	queue_redraw()
 
-func get_preview_texture() -> Texture2D: return BODY
+func _create_live_model() -> void:
+	if not image is Sprite2D: return
+	_bedrock_viewport = SubViewport.new()
+	_bedrock_viewport.name = "MojangBedrockWitherLive3D"
+	_bedrock_viewport.size = Vector2i(192,192)
+	_bedrock_viewport.transparent_bg = true
+	_bedrock_viewport.own_world_3d = true
+	_bedrock_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	add_child(_bedrock_viewport)
+	var camera:=Camera3D.new()
+	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
+	camera.size = 4.3
+	camera.position = Vector3(0,1.68,-6)
+	_bedrock_viewport.add_child(camera)
+	camera.look_at(Vector3(0,1.68,0),Vector3.UP)
+	camera.current = true
+	_bedrock_model = LIVE_RIG.new() as Node3D
+	_bedrock_viewport.add_child(_bedrock_model)
+	var sprite:Sprite2D = image as Sprite2D
+	sprite.texture = _bedrock_viewport.get_texture()
+	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	sprite.scale = Vector2.ONE*0.85
+func get_preview_texture() -> Texture2D:
+	if _bedrock_viewport != null: return _bedrock_viewport.get_texture()
+	return BODY
+func _get_hit_effect_visual_texture() -> Texture2D:
+	# CPU-only shadow sampling cannot read a live GPU ViewportTexture in headless
+	# mode. Keep the original-source 2D silhouette solely for this sampler.
+	return BODY
 func get_next_state(state:State) -> int:
 	if not is_multiplayer_authority(): return -1
 	var next:int = State.Die if health <= 0 else (State.Move if summoned and is_combat_runtime_active() and not dizziness else State.Stand)
@@ -124,9 +156,6 @@ func tick_physics(state:State,delta:float) -> void:
 			summoned = true
 			if image is Sprite2D:
 				(image as Sprite2D).visible = true
-				(image as Sprite2D).texture = BODY
-				(image as Sprite2D).rotation = 0.0
-				(image as Sprite2D).scale = Vector2.ONE
 			_summon_blast_left = 0.25
 			if multiplayer.has_multiplayer_peer(): _sync_event.rpc("awake",global_position)
 			_blast(global_position,110.0,45.0,null,false)
@@ -271,19 +300,15 @@ func _draw() -> void:
 func _process(delta:float) -> void:
 	_summon_blast_left = maxf(_summon_blast_left-delta,0.0)
 	if not summoned: _summon_visual()
-	if summoned and image is Sprite2D:
-		(image as Sprite2D).rotation = sin(Time.get_ticks_msec()*0.0015)*0.055
-		(image as Sprite2D).position.y = sin(Time.get_ticks_msec()*0.002)*5.0
+	if _bedrock_model != null:
+		_animation_life += delta if is_combat_runtime_active() else 0.0
+		_bedrock_model.call("animate",_animation_life,direction,summoned,summon_time/maxf(summon_duration,0.01),health <= Max_health*0.5)
 	if health <= 0: return
 	queue_redraw()
 func _summon_visual() -> void:
 	if not image is Sprite2D: return
 	var t:float = summon_time/maxf(summon_duration,0.01)
 	(image as Sprite2D).visible = t >= 0.8
-	if t >= 0.8:
-		(image as Sprite2D).texture = ASSEMBLING
-		(image as Sprite2D).rotation = TAU*2.0*clampf((t-0.8)/0.2,0.0,1.0)
-		(image as Sprite2D).scale = Vector2.ONE*lerpf(0.35,1.0,clampf((t-0.8)/0.2,0.0,1.0))
 func get_ai_attack_threats(_receiver:ball) -> Array:
 	if health <= 0: return []
 	if not summoned and summon_time > summon_duration-0.4:
@@ -300,16 +325,12 @@ func _sync_appearance(time:float,awake:bool,dropped:bool,buff:String) -> void:
 	_buff = buff
 	if awake and image is Sprite2D:
 		(image as Sprite2D).visible = true
-		(image as Sprite2D).texture = BODY
-		(image as Sprite2D).rotation = 0.0
-		(image as Sprite2D).scale = Vector2.ONE
 	else: _summon_visual()
 	queue_redraw()
 @rpc("authority","call_remote","reliable")
 func _sync_event(kind:String,point:Vector2) -> void:
 	if kind == "awake":
 		_summon_blast_left = 0.25
-		if image is Sprite2D: (image as Sprite2D).texture = BODY
 	else: VANILLA_SOUND.play(self,kind,point)
 func Die() -> void:
 	if health <= 0 and summoned and is_multiplayer_authority(): _emit_sound("death",global_position)

@@ -26,6 +26,18 @@ func run() -> void:
 	enemy.Damage_reduction = 0.0
 	enemy.block = 0
 	check(wither.health == 500 and not wither.summoned,"Wither enters battle at placed position and full health")
+	check(wither.image.texture is ViewportTexture and wither._bedrock_model.bones.size() == 6,"Mojang Bedrock six-bone model renders in a live 3D viewport")
+	wither._bedrock_model.animate(0.0,Vector2.ZERO,false,0.9,false)
+	var previous_head_angle:float = wither._bedrock_model.bones["head1"].rotation_degrees.y
+	wither._bedrock_model.animate(1.0,Vector2.RIGHT,false,0.9,false)
+	check(wither._bedrock_model.bones["head1"].rotation_degrees.y != previous_head_angle,"original head tracking rotates a live 3D head bone")
+	check(wither._bedrock_model.bones["upperbodypart2"].rotation_degrees.x != 0.0,"original body movement formula animates ribs")
+	wither._bedrock_model.animate(2.0,Vector2.LEFT,true,1.0,true)
+	check(wither._bedrock_model.armor_layer.visible,"half-health Bedrock shield uses a separately animated vanilla armor rig")
+	check(absf(wither._bedrock_model.bones["upperbodypart2"].rotation_degrees.x-(0.065+0.05*cos(4.0))*180.0)<0.01,"rib angle follows official Bedrock Molang expression")
+	var rig_angle_before:float = wither._bedrock_model.bones["upperbodypart2"].rotation_degrees.x
+	await create_timer(0.25).timeout
+	check(absf(wither._bedrock_model.bones["upperbodypart2"].rotation_degrees.x-rig_angle_before)>0.01,"real frame updates continue to animate the 3D bone without manually calling animate")
 	wither.take_damage(100.0)
 	check(wither.health == 500,"summoning is immune to damage")
 	wither.summoned = true

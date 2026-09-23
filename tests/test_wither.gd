@@ -1,7 +1,7 @@
 extends SceneTree
 ## Dependency/scene smoke check. Run with godot --headless --script res://tests/test_wither.gd.
 func _initialize() -> void:
-    var names:Array[String] = ["wither", "skull", "rose", "status", "beacon", "audio"]
+    var names:Array[String] = ["wither", "skull", "rose", "status", "beacon", "audio", "bedrock_rig"]
     var errors:int = 0
     for name:String in names:
         var path:String = "res://scripts/characters/我的世界/wither/%s.gd" % name
@@ -19,10 +19,12 @@ func _initialize() -> void:
         if texture == null or texture.get_width() == 0:
             push_error("WITHER OFFICIAL TEXTURE FAILED: " + path)
             errors += 1
+    for path:String in ["wither_boss.geo.json", "wither_boss.animation.json", "wither_boss.animation_controllers.json", "wither.png", "wither_invulnerable.png", "wither_armor_blue.png"]:
+        assert(FileAccess.file_exists("res://Images/characters/我的世界/wither/bedrock/"+path), "missing official Bedrock Wither: "+path)
     if errors > 0:
         quit(1)
         return
-    print("WITHER SMOKE: 8/8 scripts and scenes loadable")
+    print("WITHER SMOKE: 9/9 scripts and scenes loadable")
     call_deferred("_run_behaviors")
 
 func _run_behaviors() -> void:
@@ -34,6 +36,8 @@ func _run_behaviors() -> void:
     wither.Team = "WitherTeam"
     arena.add_child(wither)
     assert(wither.health == 500 and not wither.summoned)
+    assert(wither._bedrock_viewport != null and wither.image.texture == wither._bedrock_viewport.get_texture(), "body must be a live 3D ViewportTexture, not a baked sprite")
+    assert(wither._bedrock_model.bones.size() == 6, "real Mojang model has six independently movable bones")
     wither.take_damage(70.0)
     assert(wither.health == 500, "assembly must be immune to direct damage")
     wither.summon_time = 2.8
