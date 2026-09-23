@@ -1,0 +1,65 @@
+[gd_scene load_steps=11 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/我的世界/铜剑.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/copper_sword/copper_sword.png" id="3_sword"]
+[ext_resource type="Shader" path="res://scripts/characters/我的世界/copper_sword/oxidation.gdshader" id="4_rust"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/copper_sword/copper_block.png" id="5_clean"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/copper_sword/exposed_copper.png" id="6_exposed"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/copper_sword/weathered_copper.png" id="7_weathered"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/copper_sword/oxidized_copper.png" id="8_oxidized"]
+
+[sub_resource type="ShaderMaterial" id="CopperMaterial"]
+shader = ExtResource("4_rust")
+shader_parameter/copper_clean = ExtResource("5_clean")
+shader_parameter/copper_exposed = ExtResource("6_exposed")
+shader_parameter/copper_weathered = ExtResource("7_weathered")
+shader_parameter/copper_oxidized = ExtResource("8_oxidized")
+
+[sub_resource type="CapsuleShape2D" id="Grip"]
+resource_local_to_scene = true
+radius = 11.25
+height = 63.75
+
+[node name="铜剑" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+z_index = 2
+dir_left = false
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("我的世界", "近战", "成长", "雷电", "控制")
+Max_health = 600
+Damage = 32
+Speed = 118.0
+Health_Restore = 0
+Can_Attack = true
+Can_Skill = true
+Attack_Cooling = 0.44
+Skill_Cooling = 999.0
+When_Coliide_Tween = false
+motion_blur_enabled = false
+motion_stretch_enabled = false
+AfterImage_Speed = 0.0
+
+[node name="Image" parent="Graphics" index="0"]
+material = SubResource("CopperMaterial")
+texture = ExtResource("3_sword")
+texture_filter = 1
+scale = Vector2(7.5, 7.5)
+offset = Vector2(0, 0)
+
+[node name="CollisionShape2D" parent="." index="1"]
+shape = SubResource("Grip")
+metadata/_character_auto_fit_v3_manual = true
+
+[node name="CharacterAutoFit" parent="." index="2"]
+enabled = false
+
+[node name="CollisionShape2D" parent="hitbox" index="0"]
+shape = SubResource("Grip")
+metadata/_character_auto_fit_v3_manual = true
+
+[node name="CollisionShape2D" parent="hurtbox" index="0"]
+shape = SubResource("Grip")
+metadata/_character_auto_fit_v3_manual = true
+
+[editable path="Health_Bar"]

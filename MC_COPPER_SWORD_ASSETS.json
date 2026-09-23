@@ -1,0 +1,40 @@
+{
+  "source_repository": "https://github.com/Mojang/bedrock-samples",
+  "commit": "46ba6ea985fb5a92d79a9419198f10dda14c199d",
+  "assets": [
+    {
+      "path": "Images/characters/我的世界/copper_sword/copper_sword.png",
+      "source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/46ba6ea985fb5a92d79a9419198f10dda14c199d/resource_pack/textures/items/copper_sword.png",
+      "sha256": "a244ad9554b36ad31ad65b12ef0300de5e762ac7271447191e71e2955fe634dc",
+      "bytes": 198
+    },
+    {
+      "path": "Images/characters/我的世界/copper_sword/copper_block.png",
+      "source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/46ba6ea985fb5a92d79a9419198f10dda14c199d/resource_pack/textures/blocks/copper_block.png",
+      "sha256": "f2a4e847dbf7ffee41cda7a1695661e637fc11e53b0d7a28d7cdee76fb41981d",
+      "bytes": 268
+    },
+    {
+      "path": "Images/characters/我的世界/copper_sword/exposed_copper.png",
+      "source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/46ba6ea985fb5a92d79a9419198f10dda14c199d/resource_pack/textures/blocks/exposed_copper.png",
+      "sha256": "f4fcba201af0f8d979c53e681247419117ae51076c1717948eb6a166715fdb55",
+      "bytes": 281
+    },
+    {
+      "path": "Images/characters/我的世界/copper_sword/weathered_copper.png",
+      "source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/46ba6ea985fb5a92d79a9419198f10dda14c199d/resource_pack/textures/blocks/weathered_copper.png",
+      "sha256": "a6c9862236c513902067390fce49f811af6075583e1c3d45e179bff6f6dc0462",
+      "bytes": 281
+    },
+    {
+      "path": "Images/characters/我的世界/copper_sword/oxidized_copper.png",
+      "source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/46ba6ea985fb5a92d79a9419198f10dda14c199d/resource_pack/textures/blocks/oxidized_copper.png",
+      "sha256": "17eed8682317770fd3f2985873eeae17506f38274f5eace9a42e86c7c5eee06c",
+      "bytes": 281
+    }
+  ],
+  "audio": "Reused unmodified vanilla assets in new5/audio.gd and mc16_sound_bank.gd. Existing provenance: MC16_NATIVE_FEEDBACK_ASSETS.json and existing Minecraft audio manifests.",
+  "presentation": "Copper sword PNG and all four copper-block PNGs are byte-identical upstream files. Runtime shader blends original copper-block oxidation pigments into the original sword metal pixels, preserving its alpha/bevel and wooden grip. Rusting swords are custom character gameplay, not an assertion that vanilla provides oxidized sword items. Lightning and enchantment effects reuse trident_lightning.gd and trident_charge_visual.gd.",
+  "rights": "(c) Mojang AB. All rights reserved. Subject to Minecraft EULA. Public availability is not permission for commercial use or redistribution; review applicable permissions before release.",
+  "license_source": "https://github.com/Mojang/bedrock-samples/blob/46ba6ea985fb5a92d79a9419198f10dda14c199d/LICENSE.md"
+}
