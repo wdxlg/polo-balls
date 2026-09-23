@@ -7,6 +7,7 @@ var choose_button:Button
 var open_button:Button
 var tail_spin:SpinBox
 var tail_label:Label
+var composition_select:OptionButton
 
 func setup(target:Node) -> void:
 	recorder = target
@@ -55,6 +56,24 @@ func setup(target:Node) -> void:
 	tail_spin.value_changed.connect(_tail_changed)
 	tail_spin.get_line_edit().add_theme_font_size_override("font_size", 9)
 	tail_row.add_child(tail_spin)
+	var layout_row := HBoxContainer.new()
+	layout_row.name = "CompositionRow"
+	layout_row.add_theme_constant_override("separation", 6)
+	add_child(layout_row)
+	var layout_label := Label.new()
+	layout_label.text = "成片取景"
+	layout_label.add_theme_font_size_override("font_size", 9)
+	layout_row.add_child(layout_label)
+	composition_select = OptionButton.new()
+	composition_select.name = "RecordingComposition"
+	composition_select.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	composition_select.add_item("完整地图 · 竖屏排版", recorder.preferences.FULL)
+	composition_select.add_item("交战跟拍 · 自动推拉", recorder.preferences.FOLLOW)
+	composition_select.add_item("交战跟拍 + 小全图", recorder.preferences.FOLLOW_OVERVIEW)
+	composition_select.select(recorder.get_composition())
+	composition_select.tooltip_text = "只影响最终中英文录像，不改变玩家操作视口；下次开录生效。"
+	composition_select.item_selected.connect(_composition_changed)
+	layout_row.add_child(composition_select)
 	feedback = Label.new()
 	feedback.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	feedback.text = "「设置」选择文件夹，或直接输入路径后按回车。设置会记住；录制中不能更改。"
@@ -84,6 +103,7 @@ func _process(_delta:float) -> void:
 	if recorder == null: return
 	var busy:bool = recorder.is_busy()
 	choose_button.disabled = busy
+	composition_select.disabled = busy
 	tail_spin.editable = not busy
 	path_edit.editable = not busy
 
@@ -115,6 +135,17 @@ func _tail_changed(value:float) -> void:
 		tail_spin.set_value_no_signal(recorder.preferences.get_tail_seconds())
 		feedback.text = "已保存：分出胜负后继续录制 %s 秒。" % _fmt(recorder.preferences.get_tail_seconds())
 	else:
+		feedback.text = recorder.get_last_error()
+
+func _composition_changed(index:int) -> void:
+	if recorder.is_busy():
+		composition_select.select(recorder.get_composition())
+		feedback.text = "录制中不能更改成片取景。"
+		return
+	if recorder.set_composition(composition_select.get_item_id(index)):
+		feedback.text = "已保存成片取景：%s；下次录像生效。" % composition_select.get_item_text(index)
+	else:
+		composition_select.select(recorder.get_composition())
 		feedback.text = recorder.get_last_error()
 
 func _fmt(value:float) -> String:

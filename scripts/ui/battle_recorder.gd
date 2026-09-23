@@ -77,6 +77,12 @@ var _readback_device:RenderingDevice = null
 var _readback_texture:RID = RID()
 var _readback_checked:bool = false
 var _capture_vignette:ColorRect = null
+var _composition:int = 0
+var _follow_screen_center:Vector2 = Vector2.ZERO
+var _follow_zoom:float = 1.0
+var _camera_initialized:bool = false
+var _overview_viewport:SubViewport = null
+var _recording_title:Label = null
 var _pause_boundary:bool = false
 var _empty_sim_grabs:int = 0
 var _capture_size:Vector2i = Vector2i.ZERO
@@ -249,6 +255,15 @@ func set_output_directory(path:String) -> bool:
 func get_tail_seconds() -> float:
 	return preferences.get_tail_seconds()
 
+func get_composition() -> int:
+	return preferences.get_composition()
+
+func set_composition(value:int) -> bool:
+	if is_busy(): return _fail("请先停止录制并等待保存完成，再修改取景。")
+	if not preferences.save_composition(value): return _fail(preferences.last_error)
+	_last_error = ""
+	return true
+
 
 func set_tail_seconds(seconds:float) -> bool:
 	if is_busy(): return _fail("请先停止录制并等待保存完成，再修改续录时间。")
@@ -317,6 +332,8 @@ func _begin_session(output_fps:float, tag:String) -> bool:
 	_sim_tail_left = -1.0
 	_sim_finished = false
 	_tail_seconds = preferences.get_tail_seconds()
+	_composition = preferences.get_composition()
+	_camera_initialized = false
 	_stale_match_over = tag == "live" and _match_over_now()
 	_empty_sim_grabs = 0
 	_pipe = null
@@ -340,6 +357,7 @@ func _begin_session(output_fps:float, tag:String) -> bool:
 	_secondary._force_software = _force_software
 	_secondary._match_snapshot = _match_snapshot
 	_secondary._capture_size = _capture_size
+	_secondary._composition = _composition
 	_secondary._output_fps = _output_fps
 	_secondary._out_path = _session_output_root.path_join(en_name)
 	_secondary._video_path = _secondary._out_path.get_basename() + ".video.mp4"
@@ -810,12 +828,78 @@ func _prepare_next_capture() -> void:
 	var main:Viewport = get_viewport()
 	var logical_size:Vector2 = main.get_visible_rect().size
 	var scale_to_output := Transform2D.IDENTITY.scaled(Vector2(_capture_size) / logical_size)
-	_sim_viewport.canvas_transform = scale_to_output * main.global_canvas_transform * main.get_canvas_transform()
+	var base:Transform2D = scale_to_output * main.global_canvas_transform * main.get_canvas_transform()
+	if not _is_variant:
+		_update_recording_camera(base)
+		if is_instance_valid(_secondary):
+			_secondary._follow_screen_center = _follow_screen_center
+			_secondary._follow_zoom = _follow_zoom
+			_secondary._camera_initialized = _camera_initialized
+	var anchor:Vector2 = Vector2(_capture_size) * 0.5
+	var camera := Transform2D.IDENTITY.scaled(Vector2.ONE * _follow_zoom)
+	camera.origin = anchor - _follow_screen_center * _follow_zoom
+	_sim_viewport.canvas_transform = camera * base
+	if is_instance_valid(_overview_viewport):
+		_update_overview_camera()
+		_overview_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 	_sync_capture_vignette()
 	_sim_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 	if is_instance_valid(_resolve_viewport):
 		_resolve_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 	if is_instance_valid(_secondary): _secondary._prepare_next_capture()
+
+
+# All tracking calculations use scene positions, while only the recorder's
+# private viewport receives the transform. Neither LIVE nor SIM moves Camera2D.
+func _map_visual_rect() -> Rect2:
+	var world:Node = _world()
+	if world != null and world.has_method("_current_map_node") and world.has_method("return_map_visual_rect"):
+		var map_node:Node = world._current_map_node()
+		if map_node != null: return world.return_map_visual_rect(map_node)
+	return Rect2()
+
+func _update_recording_camera(base:Transform2D) -> void:
+	var anchor:Vector2 = Vector2(_capture_size) * 0.5
+	var map_rect:Rect2 = _map_visual_rect()
+	var map_center:Vector2 = base * map_rect.get_center() if map_rect.has_area() else anchor
+	var map_span:Vector2 = base.basis_xform(map_rect.size).abs() if map_rect.has_area() else Vector2(_capture_size) * 0.75
+	var full_zoom:float = clampf(minf(float(_capture_size.x) * 0.87 / maxf(map_span.x, 1.0), float(_capture_size.y) * 0.55 / maxf(map_span.y, 1.0)), 0.85, 1.55)
+	var target_center:Vector2 = map_center
+	var target_zoom:float = full_zoom
+	if _composition != PreferencesScript.FULL:
+		var bounds:Rect2 = Rect2()
+		var found:bool = false
+		for actor:Node in get_tree().get_nodes_in_group("Ball"):
+			if not is_instance_valid(actor) or not actor is Node2D or not actor.is_inside_tree() or not actor.visible: continue
+			var point:Vector2 = base * (actor as Node2D).global_position
+			if not found:
+				bounds = Rect2(point, Vector2.ZERO)
+				found = true
+			else:
+				bounds = bounds.expand(point)
+		if found:
+			target_center = bounds.get_center()
+			# Let a pair occupy ~62% of the frame, but ease back as they separate.
+			var fighting_zoom:float = minf(float(_capture_size.x) * 0.62 / maxf(bounds.size.x, 225.0), float(_capture_size.y) * 0.44 / maxf(bounds.size.y, 245.0))
+			target_zoom = clampf(fighting_zoom, full_zoom, 2.9 if _composition == PreferencesScript.FOLLOW else 2.5)
+	if not _camera_initialized:
+		_follow_screen_center = target_center
+		_follow_zoom = target_zoom
+		_camera_initialized = true
+	else:
+		# Fixed-step smoothing works for both deterministic SIM and live captures.
+		var alpha:float = 1.0 - exp(-5.0 / _output_fps)
+		_follow_screen_center = _follow_screen_center.lerp(target_center, alpha)
+		_follow_zoom = lerpf(_follow_zoom, target_zoom, alpha)
+
+func _update_overview_camera() -> void:
+	var rect:Rect2 = _map_visual_rect()
+	if not rect.has_area(): return
+	var size:Vector2 = Vector2(_overview_viewport.size)
+	var zoom:float = minf(size.x * 0.92 / rect.size.x, size.y * 0.92 / rect.size.y)
+	var xform := Transform2D.IDENTITY.scaled(Vector2.ONE * zoom)
+	xform.origin = size * 0.5 - rect.get_center() * zoom
+	_overview_viewport.canvas_transform = xform
 
 
 func _grab_image() -> Image:
@@ -940,6 +1024,7 @@ func _setup_sim_capture_viewport() -> void:
 	layer.add_child(_capture_vignette)
 	_capture_vignette.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_sync_capture_vignette()
+	_setup_recording_composition(sub)
 	if sub.use_hdr_2d:
 		_setup_color_resolve(sub)
 	if not _is_variant and is_instance_valid(_secondary):
@@ -948,6 +1033,84 @@ func _setup_sim_capture_viewport() -> void:
 			_locale_mirror = LocaleScript.new()
 			add_child(_locale_mirror)
 			_locale_mirror.begin(_world(), main)
+
+
+func _setup_recording_composition(sub:SubViewport) -> void:
+	var overlay := CanvasLayer.new()
+	overlay.name = "RecordingComposition"
+	overlay.layer = 100
+	sub.add_child(overlay)
+	# The camera may bring the arena border behind the title in tracking mode.
+	# Give the match identity a stable high-contrast safe zone in every layout.
+	var header := ColorRect.new()
+	header.color = Color(0.018, 0.06, 0.105, 0.66)
+	header.position = Vector2(0, 76)
+	header.size = Vector2(_capture_size.x, 212)
+	header.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay.add_child(header)
+	# Screen-space labels stay legible while the combat viewport pans and zooms.
+	var eyebrow := Label.new()
+	eyebrow.text = ("对战实况" if _locale == "zh" else "BATTLE REPLAY")
+	eyebrow.position = Vector2(60, 93)
+	eyebrow.size = Vector2(960, 46)
+	eyebrow.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	eyebrow.add_theme_font_size_override("font_size", 24)
+	eyebrow.add_theme_color_override("font_color", Color(0.72, 0.91, 1.0))
+	eyebrow.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.85))
+	eyebrow.add_theme_constant_override("shadow_offset_y", 2)
+	overlay.add_child(eyebrow)
+	_recording_title = Label.new()
+	_recording_title.name = "MatchTitle"
+	_recording_title.text = NamingScript.title(_match_snapshot, _locale).replace("_", "  ")
+	_recording_title.position = Vector2(60, 149)
+	_recording_title.size = Vector2(960, 130)
+	_recording_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_recording_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_recording_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_recording_title.add_theme_font_size_override("font_size", 39)
+	_recording_title.add_theme_color_override("font_color", Color.WHITE)
+	_recording_title.add_theme_color_override("font_outline_color", Color(0.02, 0.06, 0.12))
+	_recording_title.add_theme_constant_override("outline_size", 9)
+	overlay.add_child(_recording_title)
+	if _composition != PreferencesScript.FOLLOW_OVERVIEW: return
+	var overview := SubViewport.new()
+	overview.name = "BattleOverview"
+	overview.disable_3d = true
+	overview.gui_disable_input = true
+	overview.size = Vector2i(400, 400)
+	overview.world_2d = sub.world_2d
+	overview.use_hdr_2d = false
+	overview.canvas_cull_mask = 1 # World only; exclude language text / recording mask.
+	overview.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	add_child(overview)
+	_overview_viewport = overview
+	var border := ColorRect.new()
+	border.position = Vector2(638, 292)
+	border.size = Vector2(414, 414)
+	border.color = Color(0.03, 0.10, 0.17, 0.96)
+	overlay.add_child(border)
+	var picture := TextureRect.new()
+	picture.name = "FullMapInset"
+	picture.position = Vector2(645, 299)
+	picture.size = Vector2(400, 400)
+	picture.texture = overview.get_texture()
+	picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay.add_child(picture)
+	var tag_back := ColorRect.new()
+	tag_back.position = Vector2(652, 304)
+	tag_back.size = Vector2(166, 39)
+	tag_back.color = Color(0.02, 0.09, 0.16, 0.88)
+	overlay.add_child(tag_back)
+	var tag := Label.new()
+	tag.text = "全图" if _locale == "zh" else "OVERVIEW"
+	tag.position = Vector2(660, 307)
+	tag.size = Vector2(148, 36)
+	tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tag.add_theme_font_size_override("font_size", 22)
+	tag.add_theme_color_override("font_color", Color.WHITE)
+	tag.add_theme_color_override("font_outline_color", Color(0.03, 0.09, 0.14))
+	tag.add_theme_constant_override("outline_size", 5)
+	overlay.add_child(tag)
 
 
 func _sync_capture_vignette() -> void:
@@ -1000,6 +1163,11 @@ func _free_sim_capture_viewport() -> void:
 	_readback_device = null
 	_readback_checked = false
 	_capture_vignette = null
+	_recording_title = null
+	_camera_initialized = false
+	if is_instance_valid(_overview_viewport):
+		_overview_viewport.queue_free()
+	_overview_viewport = null
 	if is_instance_valid(_resolve_viewport):
 		if _capture_viewport == _resolve_viewport: _capture_viewport = null
 		_resolve_viewport.queue_free()

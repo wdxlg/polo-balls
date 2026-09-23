@@ -5,9 +5,15 @@ const CONFIG_PATH:String = "user://battle_recording.cfg"
 const DEFAULT_TAIL_SECONDS:float = 5.0
 const MIN_TAIL_SECONDS:float = 0.0
 const MAX_TAIL_SECONDS:float = 600.0
+# Persisted capture-only layout. Never changes the player's camera.
+const FULL:int = 0
+const FOLLOW:int = 1
+const FOLLOW_OVERVIEW:int = 2
+const DEFAULT_COMPOSITION:int = FULL
 var config_path:String
 var directory:String = ""
 var tail_seconds:float = DEFAULT_TAIL_SECONDS
+var composition:int = DEFAULT_COMPOSITION
 var last_error:String = ""
 
 func _init(path:String = CONFIG_PATH) -> void:
@@ -16,12 +22,33 @@ func _init(path:String = CONFIG_PATH) -> void:
 	if config.load(config_path) == OK:
 		directory = str(config.get_value("recording", "output_directory", ""))
 		tail_seconds = clamp_tail(float(config.get_value("recording", "tail_seconds", DEFAULT_TAIL_SECONDS)))
+		composition = clamp_composition(int(config.get_value("recording", "composition", DEFAULT_COMPOSITION)))
 
 func get_directory() -> String:
 	return ProjectSettings.globalize_path(directory if not directory.is_empty() else DEFAULT_DIRECTORY)
 
 func get_tail_seconds() -> float:
 	return tail_seconds
+
+func get_composition() -> int:
+	return composition
+
+static func clamp_composition(value:int) -> int:
+	return value if value >= FULL and value <= FOLLOW_OVERVIEW else DEFAULT_COMPOSITION
+
+func save_composition(value:int) -> bool:
+	if value < FULL or value > FOLLOW_OVERVIEW:
+		last_error = "未知的录制构图模式。"
+		return false
+	var config := ConfigFile.new()
+	config.load(config_path)
+	config.set_value("recording", "composition", value)
+	var error:int = config.save(config_path)
+	if error != OK:
+		last_error = "无法保存录制设置：" + error_string(error)
+		return false
+	composition = value
+	return true
 
 static func clamp_tail(value:float) -> float:
 	if is_nan(value) or is_inf(value): return DEFAULT_TAIL_SECONDS
