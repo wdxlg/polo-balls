@@ -4,6 +4,7 @@ const BEACON_TEXTURE = preload("res://Images/characters/我的世界/wither/beac
 const HEART_TEXTURE = preload("res://Images/characters/我的世界/wither/nether_star.png")
 const VANILLA_SOUND = preload("res://scripts/characters/我的世界/wither/audio.gd")
 const BEAM_VISUAL = preload("res://scripts/characters/我的世界/wither/beacon_beam.gd")
+const RING_VISUAL = preload("res://scripts/characters/我的世界/wither/beacon_ring.gd")
 const PROFILE = preload("res://scripts/characters/我的世界/wither/beacon_profile.gd")
 const GRAVITY:float = 1200.0
 const TERMINAL_SPEED:float = 1100.0
@@ -11,6 +12,8 @@ const EPSILON:float = 0.0000001
 const BUFFS:Array[String] = ["speed","haste","strength","resistance","regeneration"]
 var _activated:bool = false
 var _beam_visual:Node2D
+var _ring_back:Node2D
+var _ring_front:Node2D
 var _body:CollisionShape2D
 var _damage_shape:=RectangleShape2D.new()
 var _pulse_index:int = 0
@@ -37,10 +40,19 @@ func _ready() -> void:
 	texture_filter=CanvasItem.TEXTURE_FILTER_NEAREST
 	_body=get_node("CollisionShape2D")
 	if is_instance_valid(Master) and Master is PhysicsBody2D: add_collision_exception_with(Master)
+	_ring_back=RING_VISUAL.new()
+	_ring_back.name="BeaconTopRingBack"
+	_ring_back.top_level=true
+	add_child(_ring_back)
 	_beam_visual=BEAM_VISUAL.new()
 	_beam_visual.name="VanillaBeaconBeam"
 	_beam_visual.top_level=true # Animation, damage and threat all use world units.
 	add_child(_beam_visual)
+	_ring_front=RING_VISUAL.new()
+	_ring_front.name="BeaconTopRingFront"
+	_ring_front.top_level=true
+	_ring_front.front_half=true
+	add_child(_ring_front)
 	add_to_group("AI_Hazard")
 	add_to_group("WitherBeacon")
 func get_preview_texture() -> Texture2D: return BEACON_TEXTURE
@@ -59,7 +71,7 @@ func step_mob(delta:float) -> void:
 	var target:ball=U.nearest(self)
 	var remaining:float=maxf(delta,0.0)
 	# Split at physics steps AND phase/pulse boundaries. Even a slow frame samples
-	# a moving ray at each scheduled hit, not fifteen hits at its final location.
+	# a moving ray at each scheduled hit, not all accumulated hits at its final location.
 	while remaining>EPSILON:
 		if _activated and warning_left<=EPSILON and firing_left<=EPSILON and beam_timer<=EPSILON and is_instance_valid(target):
 			warning_left=PROFILE.WARNING
@@ -89,7 +101,7 @@ func step_mob(delta:float) -> void:
 				if warning_left<=EPSILON:
 					warning_left=0.0
 					firing_left=PROFILE.FIRING
-					# Midpoint samples: 0.05, 0.15 ... 1.45 = 15 pulses/36 base damage.
+					# Midpoint samples: 0.05, 0.15 ... 4.95 = 50 pulses/300 base damage.
 					tick_left=PROFILE.INTERVAL*0.5
 					_pulse_index=0
 					_emit_sound("beacon_power")
@@ -119,7 +131,8 @@ func _damage_tick(master:ball) -> void:
 	if not rect.has_area(): return
 	_damage_shape.size=rect.size
 	var transform:Transform2D=Transform2D(0.0,rect.get_center())
-	for node:Node in SubmissionCharacterTools.targeting_candidates(master):
+	for node:Variant in SubmissionCharacterTools.targeting_candidates(master):
+		if not is_instance_valid(node): continue
 		if not node is ball or not master.call("mc_enemy",node): continue
 		var enemy:ball=node as ball
 		if enemy.self_hurtbox==null: continue
@@ -150,8 +163,11 @@ func _gravity_step(dt:float,horizontal:float) -> void:
 		if image is Sprite2D: image.visible=true
 		_emit_sound("beacon_activate")
 func beam_origin() -> Vector2:
-	var half_height:float=_body.shape.get_rect().size.y*absf(_body.global_scale.y)*0.5 if is_instance_valid(_body) else 33.0
-	return global_position+Vector2(0,-half_height)
+	# Emitter is the projected centre of the glass TOP face, not the image's
+	# highest silhouette corner. Ignore charge shake: physics remains stable.
+	var image_scale:float=_body.shape.get_rect().size.x/float(BEACON_TEXTURE.get_width())
+	var offset_y:float=(RING_VISUAL.TOP_SURFACE_UV.y-0.5)*float(BEACON_TEXTURE.get_height())*image_scale*absf(_body.global_scale.y)
+	return global_position+Vector2(0,offset_y)
 func _clipped_beam() -> Vector2:
 	var origin:Vector2=beam_origin()
 	var source:ball=Master as ball if is_instance_valid(Master) and Master is ball else null
@@ -180,6 +196,8 @@ func Die() -> void:
 	warning_left=0.0
 	firing_left=0.0
 	if is_instance_valid(_beam_visual): _beam_visual.hide()
+	if is_instance_valid(_ring_back): _ring_back.hide()
+	if is_instance_valid(_ring_front): _ring_front.hide()
 	if is_instance_valid(Master) and Master.has_method("apply_beacon_buff"): Master.call("apply_beacon_buff","")
 	super.Die()
 func visual_mob() -> void:
@@ -218,4 +236,9 @@ func _process(delta:float) -> void:
 	if is_instance_valid(_beam_visual):
 		_beam_visual.global_transform=Transform2D(0.0,beam_origin())
 		_beam_visual.call("update_beam",maxf(beam_origin().y-beam_end.y,0.0),_view_clock,beam_width(),beam_opacity(),warning_left>0 and health>0,firing_left>0 and health>0)
+	var ring_age:float=PROFILE.FIRING-firing_left if firing_left>0 and warning_left<=0 else -1.0
+	for ring:Node2D in [_ring_back,_ring_front]:
+		if is_instance_valid(ring):
+			ring.global_transform=Transform2D(0.0,beam_origin())
+			ring.call("update_ring",ring_age,body_width(),health>0 and not _death_sound_done)
 	queue_redraw()

@@ -1,11 +1,11 @@
 extends RefCounted
 ## One simulation-time envelope for movement, visible width, collision and threat.
 const WARNING:float = 0.6
-const FIRING:float = 1.5
+const FIRING:float = 5.0
 const RECOVERY:float = 0.35
 const INTERVAL:float = 0.1
-const PULSES:int = 15
-const DAMAGE:float = 36.0 / PULSES
+const PULSES:int = 50
+const DAMAGE:float = 6.0
 static func smooth_phase(value:float) -> float:
 	var t:float=clampf(value,0.0,1.0)
 	return t*t*(3.0-2.0*t)
@@ -33,8 +33,6 @@ static func opacity(warning:float,firing:float) -> float:
 static func shake(warning:float) -> float:
 	return smooth_phase(1.0-warning/WARNING) if warning>0 else 0.0
 
-static func pulse_damage(index:int) -> float:
-	# The project's health settlement rounds fractional damage up. Apportion
-	# the integer budget (2,2,3,2,3...) so 15 hits stay 36, not 15*ceil(2.4)=45.
-	var i:int=clampi(index,0,PULSES-1)
-	return floorf(float(i+1)*36.0/PULSES)-floorf(float(i)*36.0/PULSES)
+static func pulse_damage(_index:int) -> float:
+	# User-selected balance: 50 integer hits x 6 = 300 base damage over 5 seconds.
+	return DAMAGE

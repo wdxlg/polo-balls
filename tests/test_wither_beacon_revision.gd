@@ -89,15 +89,16 @@ func run() -> void:
 	analyzer._physics_process(0.1)
 	var attack_drawn:bool = false
 	for region:Dictionary in analyzer.get_world_threats():
-		if region.get("kind","")=="wither_beacon_beam" and region.damage in [2.0,3.0] and region.get("debug_role","")=="damage": attack_drawn=true
+		if region.get("kind","")=="wither_beacon_beam" and region.damage==6.0 and region.get("debug_role","")=="damage": attack_drawn=true
 	check(attack_drawn,"actual threat display switches to active damage during emission")
 	if DisplayServer.get_name()!="headless": await RenderingServer.frame_post_draw
-	check(is_equal_approx(before-enemy.health,12.0),"vertical beam settles five high-frequency pulses totaling 12 damage above the beacon")
+	check(is_equal_approx(before-enemy.health,30.0),"vertical beam settles five high-frequency pulses totaling 30 damage above the beacon")
 	enemy.global_position = center+Vector2(130,57)
 	before = enemy.health
 	beacon.step_mob(0.5)
 	check(enemy.health==before and beacon.beam_end.x==beacon.beam_origin().x,"side enemy cannot bend the beam or take its damage")
 	beacon.step_mob(0.5)
+	beacon.step_mob(beacon.firing_left)
 	check(beacon.beams_fired==1 and not wither._buff.is_empty(),"beam keeps the original one-buff-per-cycle behavior")
 	analyzer._physics_process(0.1)
 	var lingering:bool = false
@@ -112,7 +113,11 @@ func run() -> void:
 	var roof:StaticBody2D = slab(Vector2(0,-70),Vector2(100,8))
 	enemy.global_position = center+Vector2(0,-160)
 	await physics_frame
-	beacon.firing_left = 1.5
+	beacon.global_position = center+Vector2(0,87.4)
+	beacon.fall_speed = 0.0
+	before = enemy.health
+	beacon._pulse_index = 0
+	beacon.firing_left = beacon.PROFILE.FIRING
 	beacon.tick_left = 0.5
 	beacon.step_mob(0.5)
 	check(absf(beacon.beam_end.y-(center.y-66.0))<0.1,"upward beam clips against underside of real terrain")

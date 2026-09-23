@@ -181,7 +181,7 @@ func run() -> void:
 	beacon.step_mob(0.61)
 	check(beacon.firing_left > 0 and beacon.get_ai_hazard_info().get("shape","") == "rect","beam warning becomes an actual animated rectangular threat")
 	before = enemy.health
-	for i:int in range(3): beacon.step_mob(0.5)
+	for i:int in range(10): beacon.step_mob(0.5)
 	check(enemy.health < before,"ground beacon beam damages enemy through periodic ticks")
 	check(beacon.beams_fired == 1 and not wither._buff.is_empty(),"completed beam grants exactly one random Wither effect")
 	floor_body.queue_free()

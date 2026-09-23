@@ -1,48 +1,61 @@
 {
-  "before": "501bf80c02f82cd119cebd6d0b1e63a1f8e055fd",
-  "cycle_checks": 37,
+  "before": "09c3bf3a47da82902f92c9404e53f6936faf1d64",
+  "cycle_checks": 49,
   "cycle_failures": 0,
   "regression_checks": 42,
   "regression_failures": 0,
   "wither_live_checks": 54,
   "wither_live_failures": 0,
+  "headless_smoke_exit": 0,
   "damage": {
+    "duration": 5,
     "interval": 0.1,
-    "pulses": 15,
-    "integer_pattern": [
-      2,
-      2,
-      3,
-      2,
-      3
-    ],
-    "base_total": 36,
+    "pulses": 50,
+    "per_pulse": 6,
+    "base_total": 300,
     "tested_steps": [
       0.016666666666666666,
       0.03333333333333333,
-      2.1
+      5.6
     ],
     "health_before": 1000,
-    "health_after": 964
+    "health_after": 700
   },
-  "gpu_frames": 70,
+  "ring": {
+    "lifetime": 0.46,
+    "plane_ratio": 0.40561610125071507,
+    "top_surface_uv": [
+      0.5,
+      0.196
+    ],
+    "manual_gpu_frames": [
+      18,
+      20,
+      23,
+      27
+    ],
+    "damage": false
+  },
+  "gpu_frames": 180,
   "frame_size": [
     384,
     512
   ],
+  "preview_seconds": 6,
   "measured_cyan_width_row100": {
     "2": 0,
     "19": 86,
     "35": 66,
-    "56": 31,
-    "60": 0,
-    "66": 0
+    "161": 33,
+    "165": 0,
+    "170": 0
   },
   "measurement_threshold": "B > R+10 and B > 120; dim charge/fade may fall below detection",
-  "preview_sha256": "9ab23c013792fe8c3eb5862ad9eef14e2d8455af02760ac5d6cc7cb39b82875a",
+  "preview_sha256": "55b374b686fea930bf0049f6d55466cf90566dd0ae21d718a4fc3ad392fec691",
   "warnings": [
     "Existing shader UID/case warning",
-    "Existing World fixture exit ObjectDB leak warning"
+    "Existing World fixture exit ObjectDB leak warning",
+    "Shared mc_nearest stale-cache typed-loop issue seen on initial capture, not fixed globally; owner pose disabled in isolated final capture"
   ],
   "not_tested": [
     "Two-client multiplayer",
