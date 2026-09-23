@@ -72,6 +72,30 @@ func _run_behaviors() -> void:
     var skull_visual:Node = arena.get_node("MCLocalEffects").get_child(2)
     assert(skull_visual.is_in_group("MCExplosion") and skull_visual.radius == 64.0 and not skull_visual.play_audio,"networked skull blast uses exactly the same shared effect")
     wither.summoned = true
+    var rig:Node3D = wither._bedrock_model
+    rig.animate(0.0,Vector2.DOWN,true,1.0,false,[Vector2.LEFT,Vector2.DOWN,Vector2.RIGHT],1.0)
+    assert(rig.bones["head1"].rotation.y < -0.4 and rig.bones["head3"].rotation.y > 0.4, "three heads must track distinct aim directions, not move in lockstep")
+    assert(absf(rig.rotation.y) < 0.01,"down-facing body shows its front")
+    wither.set_character_visual_flip_h(true)
+    assert(not wither.is_character_visual_flipped_h(),"3D yaw must not be reversed again by a 2D sprite mirror")
+    var mouths:Array[Vector2] = []
+    for i:int in range(3): mouths.append(wither.head_muzzle_world_position(i))
+    assert(mouths[0].distance_to(mouths[1]) > 3.0 and mouths[0].distance_to(mouths[2]) > 3.0,"projected head mouths must be separated in the arena")
+    rig.animate(0.0,Vector2.RIGHT,true,1.0,false,[Vector2.RIGHT,Vector2.RIGHT,Vector2.RIGHT],1.0)
+    assert(absf(rig.rotation.y-PI*0.5) < 0.01,"body turns right in world-space, not merely changing eye angle")
+    rig.animate(0.0,Vector2.UP,true,1.0,false,[Vector2.UP,Vector2.UP,Vector2.UP],1.0)
+    assert(absf(absf(rig.rotation.y)-PI) < 0.01,"body turns its back when moving up")
+    rig.animate(0.0,Vector2.DOWN,true,1.0,false,[Vector2.DOWN,Vector2.DOWN,Vector2.DOWN],1.0)
+    mouths.clear()
+    for i:int in range(3): mouths.append(wither.head_muzzle_world_position(i))
+    var target_point:Vector2 = wither.global_position+Vector2(210,70)
+    for i:int in range(3):
+        wither._fire_skull(target_point)
+        var shots:Array[Node] = get_nodes_in_group("AI_Hazard")
+        var shot:Node2D = shots.back() as Node2D
+        assert(shot.global_position.distance_to(mouths[[0,2,1][i]]) < 0.5,"each skull must leave the live corresponding head mouth")
+        assert(shot.heading.dot((target_point-mouths[[0,2,1][i]]).normalized()) > 0.999,"skull trajectory must be recomputed from its real head origin")
+    assert(wither._next_shoot_head == 0,"center-left-right muzzle sequence must wrap")
     wither.health = 250
     wither.on_actual_health_damage_received(1.0,251.0)
     assert(wither.heart_dropped and is_instance_valid(wither.beacon), "first half-health crossing must create the heart")
@@ -81,6 +105,6 @@ func _run_behaviors() -> void:
     assert(wither.beacon == first, "heart must not be created twice")
     wither.apply_beacon_buff("haste")
     assert(wither._buff == "haste" and wither._buff_left == 6.0)
-    print("WITHER BEHAVIOR: equal T-blocks, smaller skull/rose, reusable explosion, immunity, threat, heart and buff pass")
+    print("WITHER BEHAVIOR: body yaw, independent head tracking, three projected muzzle origins, equal T-blocks, shared explosion and heart pass")
     arena.queue_free()
     quit(0)

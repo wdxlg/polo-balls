@@ -40,7 +40,12 @@ var _effects:Array[WeakRef] = []
 var reflected_count:int = 0
 var _bedrock_viewport:SubViewport
 var _bedrock_model:Node3D
+var _bedrock_camera:Camera3D
 var _animation_life:float = 0.0
+var _next_shoot_head:int = 0
+var _remote_body_heading:Vector2 = Vector2.DOWN
+var _remote_look_position:Vector2 = Vector2.ZERO
+var _remote_aim_valid:bool = false
 
 func _ready() -> void:
 	Has_Collision_Damage = false
@@ -63,6 +68,7 @@ func _create_live_model() -> void:
 	_bedrock_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	add_child(_bedrock_viewport)
 	var camera:=Camera3D.new()
+	_bedrock_camera = camera
 	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
 	camera.size = 4.3
 	camera.position = Vector3(0,1.68,-6)
@@ -82,6 +88,10 @@ func _get_hit_effect_visual_texture() -> Texture2D:
 	# CPU-only shadow sampling cannot read a live GPU ViewportTexture in headless
 	# mode. Keep the original-source 2D silhouette solely for this sampler.
 	return BODY
+func set_character_visual_flip_h(_flipped:bool) -> void:
+	# ball.move otherwise mirrors the complete 3D ViewportTexture after yawing
+	# its model, making screen-facing heads and projectile origins disagree.
+	super.set_character_visual_flip_h(false)
 func get_next_state(state:State) -> int:
 	if not is_multiplayer_authority(): return -1
 	var next:int = State.Die if health <= 0 else (State.Move if summoned and is_combat_runtime_active() and not dizziness else State.Stand)
@@ -181,7 +191,8 @@ func tick_physics(state:State,delta:float) -> void:
 	var target:ball = mc_nearest(delta)
 	if _windup > 0:
 		_windup -= delta
-		if _windup <= 0 and target != null and health > 0: _fire_skull(target.global_position)
+		if _windup <= 0 and target != null and health > 0:
+			_fire_skull(player_control_aim_world_position(target.global_position) if has_player_control_aim() else target.global_position)
 	elif _shot_left <= 0 and target != null and not dizziness and is_damage_output_disabled() == false:
 		_windup = 0.5
 		_shot_left = skull_interval*(0.9 if _buff == "haste" else 1.0)
@@ -220,7 +231,9 @@ func tick_physics(state:State,delta:float) -> void:
 	_sync_left -= delta
 	if _sync_left <= 0:
 		_sync_left = 0.15
-		if multiplayer.has_multiplayer_peer(): _sync_appearance.rpc(summon_time,summoned,heart_dropped,_buff)
+		if multiplayer.has_multiplayer_peer():
+			var body_heading:Vector2 = _visual_body_heading()
+			_sync_appearance.rpc(summon_time,summoned,heart_dropped,_buff,body_heading,_visual_look_point(body_heading))
 
 func move(speed:float,delta:float) -> void:
 	if not summoned or _charge_remaining > 0 or _charge_windup > 0:
@@ -230,13 +243,32 @@ func move(speed:float,delta:float) -> void:
 	# knockback and crowd separation must all come from the common move path.
 	super.move(speed*(1.1 if _buff == "speed" else 1.0),delta)
 
+func head_muzzle_world_position(index:int) -> Vector2:
+	if _bedrock_model == null or _bedrock_camera == null or _bedrock_viewport == null or not image is Sprite2D:
+		return global_position
+	var heads:Dictionary = _bedrock_model.get("bones")
+	var bone:Node3D = heads.get("head%d" % (clampi(index,0,2)+1)) as Node3D
+	if bone == null: return global_position
+	# Minecraft head cube face: central head 8x8, side heads 6x6.
+	var mouth:Vector3 = Vector3(0.0,0.25,-0.29) if index == 0 else Vector3(0.0,0.1875,-0.23)
+	var projected:Vector2 = _bedrock_camera.unproject_position(bone.to_global(mouth))
+	return (image as Sprite2D).to_global(projected-Vector2(_bedrock_viewport.size)*0.5)
 func _fire_skull(point:Vector2) -> void:
+	# Central -> left -> right: use the LIVE animated head's projected mouth,
+	# not a guessed fixed offset from the character root.
+	# Mojang head3 is screen-left and head2 is screen-right in this camera.
+	var head_index:int = [0,2,1][_next_shoot_head]
+	_next_shoot_head = (_next_shoot_head+1)%3
+	var origin:Vector2 = head_muzzle_world_position(head_index)
+	var heading:Vector2 = point-origin
+	if heading.length_squared() <= 0.000001: heading = _visual_body_heading()
 	var skull:Node2D = SKULL.new()
 	get_tree().current_scene.add_child(skull,true)
-	skull.global_position = global_position+(point-global_position).normalized()*58.0
-	skull.call("configure",self,(point-global_position).normalized())
+	skull.global_position = origin
+	skull.call("configure",self,heading.normalized())
 	skull.add_to_group("BattleTransient")
-	_emit_sound("shoot",global_position)
+	if _bedrock_model != null: _bedrock_model.call("recoil_head",head_index)
+	_emit_sound("shoot",origin)
 func _grow_rose() -> void:
 	var rect:Rect2 = mc_arena_rect().grow(-30.0)
 	var where:Vector2 = global_position
@@ -315,11 +347,39 @@ func _draw() -> void:
 	if t > 0.48: draw_texture_rect(SOUL_SAND,summon_sand_rect(3),false)
 	for i:int in range(3):
 		if t > 0.53+float(i)*0.10: draw_texture_rect(HEAD,summon_head_rect(i),false)
+func _visual_body_heading() -> Vector2:
+	if _charge_windup > 0 or _charge_remaining > 0: return _charge_dir.normalized()
+	if is_player_controlled():
+		if _windup > 0 and has_player_control_aim(): return player_control_aim_direction(Vector2.DOWN)
+		if player_control_direction.length_squared() > 0.000001: return player_control_direction.normalized()
+		if has_player_control_aim(): return player_control_aim_direction(Vector2.DOWN)
+	if _windup > 0:
+		var attack_target:ball = mc_nearest(0.0)
+		if attack_target != null:
+			var attack_delta:Vector2 = attack_target.global_position-global_position
+			if attack_delta.length_squared() > 0.000001: return attack_delta.normalized()
+	if summoned and velocity.length_squared() > 36.0: return velocity.normalized()
+	if direction.length_squared() > 0.000001: return direction.normalized()
+	return Vector2.DOWN
+func _visual_look_point(body_heading:Vector2) -> Vector2:
+	if is_player_controlled() and has_player_control_aim(): return player_control_aim_world_position(global_position+body_heading*250.0)
+	var target:ball = mc_nearest(0.0) if is_multiplayer_authority() else null
+	if target == null and is_instance_valid(Target_Enemy) and Target_Enemy is ball: target = Target_Enemy as ball
+	if target != null and target.health > 0: return target.global_position
+	return global_position+body_heading*250.0
+func _update_live_pose(delta:float) -> void:
+	if _bedrock_model == null: return
+	_animation_life += delta if is_combat_runtime_active() else 0.0
+	var body_heading:Vector2 = _remote_body_heading if not is_multiplayer_authority() and _remote_aim_valid else _visual_body_heading()
+	var look_position:Vector2 = _remote_look_position if not is_multiplayer_authority() and _remote_aim_valid else _visual_look_point(body_heading)
+	var per_head:Array[Vector2] = []
+	for i:int in range(3):
+		var difference:Vector2 = look_position-head_muzzle_world_position(i)
+		per_head.append(difference.normalized() if difference.length_squared() > 0.000001 else body_heading)
+	_bedrock_model.call("animate",_animation_life,body_heading,summoned,summon_time/maxf(summon_duration,0.01),health <= Max_health*0.5,per_head,delta)
 func _process(delta:float) -> void:
 	if not summoned: _summon_visual()
-	if _bedrock_model != null:
-		_animation_life += delta if is_combat_runtime_active() else 0.0
-		_bedrock_model.call("animate",_animation_life,direction,summoned,summon_time/maxf(summon_duration,0.01),health <= Max_health*0.5)
+	_update_live_pose(delta)
 	if health <= 0: return
 	queue_redraw()
 func _summon_visual() -> void:
@@ -335,11 +395,14 @@ func get_ai_attack_threats(_receiver:ball) -> Array:
 	return []
 func get_debug_attack_regions() -> Array: return get_ai_attack_threats(null)
 @rpc("authority","call_remote","unreliable_ordered")
-func _sync_appearance(time:float,awake:bool,dropped:bool,buff:String) -> void:
+func _sync_appearance(time:float,awake:bool,dropped:bool,buff:String,body_heading:Vector2,look_position:Vector2) -> void:
 	summon_time = time
 	summoned = awake
 	heart_dropped = dropped
 	_buff = buff
+	_remote_body_heading = body_heading
+	_remote_look_position = look_position
+	_remote_aim_valid = true
 	if awake and image is Sprite2D:
 		(image as Sprite2D).visible = true
 	else: _summon_visual()

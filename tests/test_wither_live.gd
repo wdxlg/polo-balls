@@ -27,10 +27,11 @@ func run() -> void:
 	enemy.block = 0
 	check(wither.health == 500 and not wither.summoned,"Wither enters battle at placed position and full health")
 	check(wither.image.texture is ViewportTexture and wither._bedrock_model.bones.size() == 6,"Mojang Bedrock six-bone model renders in a live 3D viewport")
-	wither._bedrock_model.animate(0.0,Vector2.ZERO,false,0.9,false)
+	wither._bedrock_model.animate(0.0,Vector2.DOWN,false,0.9,false,[Vector2.DOWN,Vector2.DOWN,Vector2.DOWN],1.0)
 	var previous_head_angle:float = wither._bedrock_model.bones["head1"].rotation_degrees.y
-	wither._bedrock_model.animate(1.0,Vector2.RIGHT,false,0.9,false)
+	wither._bedrock_model.animate(1.0,Vector2.DOWN,false,0.9,false,[Vector2.RIGHT,Vector2.LEFT,Vector2.DOWN],1.0)
 	check(wither._bedrock_model.bones["head1"].rotation_degrees.y != previous_head_angle,"original head tracking rotates a live 3D head bone")
+	check(wither._bedrock_model.bones["head1"].rotation.y != wither._bedrock_model.bones["head2"].rotation.y,"separate Wither heads track separate target directions")
 	check(wither._bedrock_model.bones["upperbodypart2"].rotation_degrees.x != 0.0,"original body movement formula animates ribs")
 	wither._bedrock_model.animate(2.0,Vector2.LEFT,true,1.0,true)
 	check(wither._bedrock_model.armor_layer.visible,"half-health Bedrock shield uses a separately animated vanilla armor rig")
@@ -51,6 +52,18 @@ func run() -> void:
 	wither.move(110.0,1.0/60.0)
 	check(wither.global_position.x > start_x,"summoned Wither actually moves with no target requirement")
 	check(absf(wither.velocity.x-66.0) < 0.1,"Wither uses common ball.move baseline speed multiplier")
+	wither._update_live_pose(1.0)
+	check(absf(wrapf(wither._bedrock_model.rotation.y-PI*0.5,-PI,PI)) < 0.05,"moving right turns the actual model right, not left or merely mirroring a sprite")
+	check(not wither.is_character_visual_flipped_h(),"real Wither yaw must not be horizontally mirrored by the base movement")
+	var skull_target:Vector2 = enemy.global_position
+	for i:int in range(3):
+		var muzzle:Vector2 = wither.head_muzzle_world_position([0,2,1][i])
+		wither._fire_skull(skull_target)
+		var real_shots:Array[Node] = get_nodes_in_group("AI_Hazard")
+		var fired:Node2D = real_shots.back() as Node2D
+		check(fired.global_position.distance_to(muzzle) < 0.5,"skull %d originates from its currently posed 3D mouth"%i)
+		check(fired.heading.dot((skull_target-muzzle).normalized()) > 0.999,"skull %d aims from its own muzzle"%i)
+		fired.queue_free()
 	var before:float = enemy.health
 	wither._blast(enemy.global_position,64.0,45.0,enemy,true)
 	check(is_equal_approx(before-enemy.health,75.0),"one skull direct impact settles exactly 75 damage, not another splash")
