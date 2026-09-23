@@ -1,8 +1,13 @@
 extends RefCounted
 const DEFAULT_DIRECTORY:String = "user://recordings"
 const CONFIG_PATH:String = "user://battle_recording.cfg"
+## 对局分出胜负后继续录制的秒数（游戏时间）。两种模式共用；0 表示胜负一出立即收尾。
+const DEFAULT_TAIL_SECONDS:float = 5.0
+const MIN_TAIL_SECONDS:float = 0.0
+const MAX_TAIL_SECONDS:float = 600.0
 var config_path:String
 var directory:String = ""
+var tail_seconds:float = DEFAULT_TAIL_SECONDS
 var last_error:String = ""
 
 func _init(path:String = CONFIG_PATH) -> void:
@@ -10,9 +15,29 @@ func _init(path:String = CONFIG_PATH) -> void:
 	var config := ConfigFile.new()
 	if config.load(config_path) == OK:
 		directory = str(config.get_value("recording", "output_directory", ""))
+		tail_seconds = clamp_tail(float(config.get_value("recording", "tail_seconds", DEFAULT_TAIL_SECONDS)))
 
 func get_directory() -> String:
 	return ProjectSettings.globalize_path(directory if not directory.is_empty() else DEFAULT_DIRECTORY)
+
+func get_tail_seconds() -> float:
+	return tail_seconds
+
+static func clamp_tail(value:float) -> float:
+	if is_nan(value) or is_inf(value): return DEFAULT_TAIL_SECONDS
+	return clampf(value, MIN_TAIL_SECONDS, MAX_TAIL_SECONDS)
+
+func save_tail_seconds(value:float) -> bool:
+	var clamped:float = clamp_tail(value)
+	var config := ConfigFile.new()
+	config.load(config_path) # 保留已保存的目录；文件不存在时从空配置开始。
+	config.set_value("recording", "tail_seconds", clamped)
+	var error:int = config.save(config_path)
+	if error != OK:
+		last_error = "无法保存录制设置：" + error_string(error)
+		return false
+	tail_seconds = clamped
+	return true
 
 func validate(candidate:String) -> Dictionary:
 	last_error = ""
@@ -44,6 +69,7 @@ func save_directory(candidate:String) -> bool:
 	var result:Dictionary = validate(candidate)
 	if not result.ok: return false
 	var config := ConfigFile.new()
+	config.load(config_path) # 目录与续录秒数同文件保存，互不覆盖。
 	config.set_value("recording", "output_directory", result.directory)
 	var error:int = config.save(config_path)
 	if error != OK:

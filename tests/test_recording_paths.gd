@@ -24,6 +24,18 @@ func run() -> void:
 	check(panel.recorder == recorder, "settings tab uses actual recorder")
 	check(world.control.settings_tab_buttons.recording.text == "录制", "recording settings tab labeled")
 	check(panel.folder_dialog.file_mode == FileDialog.FILE_MODE_OPEN_DIR and panel.folder_dialog.use_native_dialog, "native folder selector configured")
+	var buttons:Array = []
+	for child in panel.get_children():
+		if child is HBoxContainer:
+			for inner in child.get_children():
+				if inner is Button: buttons.append(inner.text)
+	check(buttons == ["打开", "设置"], "recording panel keeps exactly the open and set buttons: " + str(buttons))
+	check(panel.tail_spin != null and is_equal_approx(panel.tail_spin.value, 5.0) and is_equal_approx(recorder.get_tail_seconds(), 5.0), "post-match tail defaults to 5 seconds")
+	panel.tail_spin.value = 2.5
+	check(is_equal_approx(recorder.get_tail_seconds(), 2.5) and is_equal_approx(prefs_script.new(config_path).get_tail_seconds(), 2.5), "tail seconds saved and reloaded from disk")
+	panel.tail_spin.value = -3.0
+	check(is_equal_approx(recorder.get_tail_seconds(), 0.0) and is_equal_approx(panel.tail_spin.value, 0.0), "negative tail clamps to zero")
+	panel.tail_spin.value = 5.0
 	var custom:String = ProjectSettings.globalize_path("user://录制路径测试 中文 空格/%d" % Time.get_ticks_usec())
 	panel.folder_dialog.dir_selected.emit(custom)
 	check(recorder.get_output_directory() == custom, "folder picker selection saves Unicode path")
@@ -31,20 +43,21 @@ func run() -> void:
 	check(FileAccess.file_exists(config_path), "preference saved to disk")
 	var reloaded:RefCounted = prefs_script.new(config_path)
 	check(reloaded.get_directory() == custom, "new instance reloads saved directory")
+	check(is_equal_approx(reloaded.get_tail_seconds(), 5.0), "saving the directory keeps the tail setting in the same file")
 	check(panel.path_edit.text == custom, "path shown unmodified in LineEdit")
 	var blocker:String = custom.path_join("not_a_directory.txt")
 	var handle := FileAccess.open(blocker, FileAccess.WRITE)
 	handle.store_string("fixture")
 	handle.close()
 	panel.path_edit.text = blocker
-	panel.save_button.pressed.emit()
+	panel.path_edit.text_submitted.emit(blocker)
 	check(recorder.get_output_directory() == custom, "invalid file-as-directory leaves old path intact")
 	check(panel.feedback.text.contains("文件"), "invalid path reports specific problem")
 	panel.path_edit.text = "relative/folder"
-	panel.save_button.pressed.emit()
+	panel.path_edit.text_submitted.emit("relative/folder")
 	check(recorder.get_output_directory() == custom and panel.feedback.text.contains("完整"), "relative path refused")
 	panel.path_edit.text = custom
-	panel.save_button.pressed.emit()
+	panel.path_edit.text_submitted.emit(custom)
 	if DisplayServer.get_name() != "headless":
 		# Reproduce user's entry route: team open + Esc paused -> toolbar left click.
 		world.control.game_setting.hide()
@@ -59,8 +72,24 @@ func run() -> void:
 		check(recorder._out_path.begins_with(custom + "/"), "session writes to selected directory")
 		check(not recorder.set_output_directory(custom.path_join("other")), "cannot change active session directory")
 		check(recorder.get_output_directory() == custom, "active session destination stable")
-		await click(MOUSE_BUTTON_LEFT)
+		check(not recorder.set_tail_seconds(9.0) and is_equal_approx(recorder.get_tail_seconds(), 5.0), "cannot change tail seconds during an active session")
+		check(recorder.get_tail_left() < 0.0, "undecided match has no tail countdown")
+		# Real match end: World's victory bell rings -> LIVE keeps recording tail seconds of game time, then stops by itself.
+		recorder.preferences.tail_seconds = 1.0
+		recorder._tail_seconds = 1.0
+		var frames_at_bell:int = recorder._frame_index
+		world._victory_bell_played = true
+		await settle(0.3)
+		check(recorder.is_recording() and recorder.get_tail_left() >= 0.0 and recorder.get_tail_left() < 1.0, "victory bell starts the post-match countdown while still recording")
+		var auto_end:int = Time.get_ticks_msec() + 6000
+		while recorder.is_recording() and Time.get_ticks_msec() < auto_end: await settle(0.05)
+		check(not recorder.is_recording(), "LIVE stops on its own after the configured tail")
+		var tail_frames:int = recorder._frame_index - frames_at_bell
+		check(tail_frames >= 48 and tail_frames <= 90, "tail recorded about one second of frames after the bell: %d" % tail_frames)
+		world._victory_bell_played = false
+		recorder.preferences.tail_seconds = 5.0
 		await wait_idle()
+		check(recorder.get_mode() == 0 and not recorder.is_busy(), "automatic stop finalizes without another toolbar click")
 		check(controls.last_output.begins_with(custom + "/") and controls.last_output.ends_with(".mp4"), "custom Unicode directory receives final MP4")
 		check(FileAccess.file_exists(controls.last_output), "saved custom MP4 exists")
 		var manifest := FileAccess.open("user://test_recording_paths_manifest.json", FileAccess.WRITE)
@@ -84,7 +113,8 @@ func run() -> void:
 		await settle(0.3)
 		await RenderingServer.frame_post_draw
 		root.get_texture().get_image().save_png("user://test_recording_settings.png")
-	panel.reset_button.pressed.emit()
+	panel.path_edit.text = prefs_script.DEFAULT_DIRECTORY
+	panel.path_edit.text_submitted.emit(panel.path_edit.text)
 	check(recorder.get_output_directory() == ProjectSettings.globalize_path("user://recordings"), "reset default saved correctly")
 	check(prefs_script.new(config_path).get_directory() == recorder.get_output_directory(), "default survives reload")
 	DirAccess.remove_absolute(config_path)

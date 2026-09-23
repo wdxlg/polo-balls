@@ -91,7 +91,9 @@ func refresh() -> void:
 	button.tooltip_text = "左键：开始/停止高清对战录制；右键：从当前状态离线计算对局，不重打；尽快生成正常速度的有声视频。" + "\n默认：user://recordings；在设置 → 录制中选择保存目录" + "\n每次输出中文 + 英文两份视频 · 1080×1920 / 60fps · 仅对战画面和游戏声音 · 暂停不计入成片"
 
 	if active:
-		button.tooltip_text += "\n已录 %d 帧。%s 再点一次停止。" % [recorder._frame_index, reason]
+		var tail_left:float = recorder.get_tail_left()
+		var tail_text:String = "胜负已分，%.1f 秒后自动停止。" % maxf(tail_left, 0.0) if tail_left >= 0.0 else "分出胜负后再录 %.1f 秒自动停止；" % recorder.get_tail_seconds()
+		button.tooltip_text += "\n已录 %d 帧。%s%s再点一次立即停止。" % [recorder._frame_index, reason, tail_text]
 
 func _on_finished(path:String, frames:int) -> void:
 	refresh()

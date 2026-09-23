@@ -24,7 +24,7 @@ const AudioCaptureScript = preload("res://scripts/ui/battle_record_audio.gd")
 const SIM_OUTPUT_FPS:float = 60.0
 const SIM_MAX_GAME_SECONDS:float = 300.0
 const SIM_MIN_GAME_SECONDS:float = 3.0
-const SIM_TAIL_GAME_SECONDS:float = 1.5
+## 胜负分出后继续录制的秒数由设置 → 录制决定（preferences.tail_seconds，默认 5 秒）；两种模式共用。
 const OUTPUT_ROOT:String = "user://recordings"
 const OVERLAY_LAYER:int = 2000
 ## 两秒内卡顿保留帧时钟；更严重的阻塞明确停止，不静默缩短视频造成音画漂移。
@@ -106,6 +106,10 @@ var _offline_startup:bool = false
 var _sim_tail_left:float = -1.0
 var _sim_saw_two_sides:bool = false
 var _sim_finished:bool = false
+var _tail_seconds:float = 5.0
+## 仅 LIVE：开始录制时上一局的胜负状态还残留（胜利铃已响 / 队列已结束），不能当成本局结束；
+## 等世界重置（清空 / 重打 / 删人）后再次分出胜负才开始倒计时。SIM 保持原行为：已结束就直接录尾帧。
+var _stale_match_over:bool = false
 var _last_progress_push:float = -1.0
 
 var _overlay:CanvasLayer = null
@@ -237,6 +241,17 @@ func set_output_directory(path:String) -> bool:
 	return true
 
 
+func get_tail_seconds() -> float:
+	return preferences.get_tail_seconds()
+
+
+func set_tail_seconds(seconds:float) -> bool:
+	if is_busy(): return _fail("请先停止录制并等待保存完成，再修改续录时间。")
+	if not preferences.save_tail_seconds(seconds): return _fail(preferences.last_error)
+	_last_error = ""
+	return true
+
+
 func get_pause_reason() -> String:
 	if get_tree().paused or Game.now_stop_state: return "对局暂停中，请按 Esc 继续。"
 	if Game.stop_background.is_visible_in_tree() or Game.stop_text.is_visible_in_tree():
@@ -296,6 +311,8 @@ func _begin_session(output_fps:float, tag:String) -> bool:
 	_sim_tail_left = -1.0
 	_sim_saw_two_sides = false
 	_sim_finished = false
+	_tail_seconds = preferences.get_tail_seconds()
+	_stale_match_over = tag == "live" and _match_over_now()
 	_empty_sim_grabs = 0
 	_pipe = null
 	_pipe_pid = 0
@@ -613,6 +630,12 @@ func _capture_loop() -> void:
 		if mode == Mode.SIM:
 			_update_sim_progress(game_delta)
 			if _sim_finished: break
+		elif mode == Mode.LIVE:
+			# 实时录制同样在胜负分出后再录 N 秒游戏时间（暂停不计），然后自动停止收尾。
+			_update_match_end_tail(game_delta)
+			if _sim_finished:
+				stop()
+				break
 	_finish_session()
 
 
@@ -917,7 +940,7 @@ func _on_overlay_abort_pressed() -> void:
 func _update_sim_progress(game_delta:float) -> void:
 	if _sim_tail_left < 0.0:
 		if _sim_match_over() or _game_time >= SIM_MAX_GAME_SECONDS:
-			_sim_tail_left = SIM_TAIL_GAME_SECONDS
+			_sim_tail_left = _tail_seconds
 	else:
 		_sim_tail_left -= game_delta
 		if _sim_tail_left <= 0.0:
@@ -928,17 +951,36 @@ func _update_sim_progress(game_delta:float) -> void:
 		_update_overlay_text()
 
 
+## LIVE 用：只看胜负，不受 SIM 的 300 秒上限约束；倒计时用游戏时间。
+func _update_match_end_tail(game_delta:float) -> void:
+	if _sim_tail_left < 0.0:
+		# 没有对局场景时实时录制照常进行（例如录菜单），不把“无世界”当成胜负已分。
+		var world:Node = _world()
+		if world != null and is_instance_valid(world):
+			if _stale_match_over:
+				if not _match_over_now(): _stale_match_over = false
+			elif _sim_match_over():
+				_sim_tail_left = _tail_seconds
+	else:
+		_sim_tail_left -= game_delta
+		if _sim_tail_left <= 0.0:
+			_sim_finished = true
+
+
+## 胜负已分后剩余的续录秒数；未分出胜负时为 -1。
+func get_tail_left() -> float:
+	return _sim_tail_left
+
+
 ## 对局是否已经分出胜负：优先用世界自己的胜利铃，其次看存活阵营收敛到一个。
 func _sim_match_over() -> bool:
 	var world:Node = _world()
 	if world == null or not is_instance_valid(world):
 		return true
-	var played:Variant = world.get("_victory_bell_played")
-	if played != null and bool(played):
+	if _match_over_now():
 		return true
-	# 队列换人期间可能短暂无人，不能把它误判为整场结束。
 	if world.has_method("_queue_battle_mode_active") and bool(world.call("_queue_battle_mode_active")):
-		return bool(world.get("_rotation_finished"))
+		return false
 	if _game_time < SIM_MIN_GAME_SECONDS:
 		return false
 	if not world.has_method("_collect_alive_victory_sides"):
@@ -950,6 +992,20 @@ func _sim_match_over() -> bool:
 			_sim_saw_two_sides = true
 		elif _sim_saw_two_sides and count <= 1:
 			return true
+	return false
+
+
+## 世界此刻是否已明确宣告结束：胜利铃已响，或队列对战已全部打完。不含存活阵营推断。
+func _match_over_now() -> bool:
+	var world:Node = _world()
+	if world == null or not is_instance_valid(world):
+		return false
+	var played:Variant = world.get("_victory_bell_played")
+	if played != null and bool(played):
+		return true
+	# 队列换人期间可能短暂无人，不能把它误判为整场结束。
+	if world.has_method("_queue_battle_mode_active") and bool(world.call("_queue_battle_mode_active")):
+		return bool(world.get("_rotation_finished"))
 	return false
 
 
