@@ -1,2 +1,6 @@
 # Normalize EOL for all files that Git considers text files.
 * text=auto eol=lf
+
+# Windows offline launchers must survive a fresh checkout.
+"启动离线录制版.cmd" text eol=crlf
+"启动离线版编辑器.cmd" text eol=crlf

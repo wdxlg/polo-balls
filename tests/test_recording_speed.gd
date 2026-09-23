@@ -68,17 +68,9 @@ func run() -> void:
 	var baseline:float = (clock.elapsed-p)/(float(Time.get_ticks_usec()-t)/1e6)
 	check(baseline > 0.92 and baseline < 1.08,"baseline physical motion advances at normal speed")
 	var results:Array = []
-	for kind:String in ["live_hardware","live_software","sim"]:
+	for kind:String in ["live_hardware","live_software"]:
 		recorder._force_software = kind == "live_software"
-		if kind == "sim":
-			game.Game_Settings.Training_Mode_Type = "rotation"
-			world.control.team.show()
-			for side:String in ["left","right"]:
-				world._enqueue_rotation_character("",side,world._rotation_spawn_position(side),side,"res://scenes/ball.tscn")
-			world.control.team.hide()
-			world._update_special_training_modes(0)
-			check(recorder.start_simulated(),"SIM starts with real rematch setup")
-		else: check(recorder.start_live(),kind + " starts")
+		check(recorder.start_live(),kind + " starts")
 		await wall_wait(1.2)
 		if not recorder.is_recording():
 			check(false,kind + " unexpectedly stopped: " + recorder.get_last_error())
@@ -89,7 +81,7 @@ func run() -> void:
 		var start_video:float = recorder._game_time
 		var start_physics:float = clock.elapsed
 		var scale:float = Engine.time_scale
-		var stats:Dictionary = await measure(clock, 7.0 if kind == "sim" else 3.0, scale)
+		var stats:Dictionary = await measure(clock, 3.0, scale)
 		stats.kind = kind
 		stats.codec = recorder._video_codec
 		check(stats.codec == ("libx264" if kind == "live_software" else "h264_nvenc"),kind + " exercises the intended encoder on this RTX test machine")
@@ -99,7 +91,7 @@ func run() -> void:
 		var rate:float = stats.physics / stats.wall / scale
 		var video_rate:float = stats.physics / stats.video
 		check(rate > 0.90 and rate < 1.10,kind + " capture does not slow the intended physical simulation")
-		check(absf(video_rate - (1.0 if kind == "sim" else scale)) < 0.08,kind + " video seconds match independent physical progress")
+		check(absf(video_rate - scale) < 0.08,kind + " video seconds match independent physical progress")
 		check(recorder.is_recording() and recorder.get_last_error().is_empty(),kind + " has no overload/error stop")
 		var writer:RefCounted = recorder._writer
 		var english_writer:RefCounted = recorder._secondary._writer

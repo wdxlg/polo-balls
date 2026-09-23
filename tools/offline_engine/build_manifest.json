@@ -1,0 +1,26 @@
+{
+  "source_ref": "ed1daf0bf",
+  "source_url": "https://github.com/godotengine/godot/tree/ed1daf0bf",
+  "source_archive_sha256": "f4fda09a2c5307a719f2879fab4d4bbce16ee64a0e20dfb9f59061a901670a86",
+  "engine_version": "4.7.2",
+  "original_engine_untouched": "E:/steam/steamapps/common/Godot Engine/godot.windows.opt.tools.64.exe",
+  "runtime_path": "E:\\godot\\polo-balls-tools\\offline-engine\\runtime",
+  "build_arguments": [
+    "platform=windows",
+    "target=editor",
+    "arch=x86_64",
+    "d3d12=yes",
+    "production=yes",
+    "lto=none",
+    "debug_symbols=no",
+    "-j8"
+  ],
+  "patch_sha256": "f9efea07c8aa8a97a623bbab996ba73bd982ca1e29f3d283876214b03337f1f2",
+  "files": {
+    "COPYRIGHT.txt": "cb1980c88089573bcacd7221d777c689bb8bbd778799f24c27fca0fe5f774d6d",
+    "D3D12Core.dll": "560f9574372a52ab66ad95ee1222f1eb4c9f6161d8f6b7b025d89f684b07246c",
+    "d3d12SDKLayers.dll": "bcec9e1315fb4dbc767371926fb5eb8281de1b3ab1fb530a636b3c193a9a2bbd",
+    "Godot.4.7.2.offline.exe": "8d5ec781d346f264efb27f815cd7b8648c3c4e261493068c47e846a0508f7748",
+    "LICENSE.txt": "b0435e3b3e4e55238f05f4b306f30524a1b2e20147810d436eaa554fa6855c80"
+  }
+}

@@ -3,9 +3,8 @@ extends Node
 ##
 ## 两种模式都把原始像素直接喂给 ffmpeg 的 stdin 编码成 mp4，不在磁盘上留中间图片：
 ##   左键 LIVE —— 独立 1080×1920 / 60fps 纯对战画面 + 游戏总线音频；暂停不计入成片。
-##   右键 SIM  —— 模拟录制：把世界时间压到 0.25 倍重打上一把，抓帧永远跟得上物理步进，
-##                对局只画进离屏 SubViewport（玩家看到的是全屏遮罩 + 中止按钮），
-##                分出胜负后自动收尾并直接输出 mp4。
+##   右键 SIM  —— 从点击瞬间的现有场景继续，以固定游戏时间步离线计算；不重打、不重建角色。
+##                使用本项目独立引擎的固定帧时钟/离线音频接口，按机器能力尽快输出正常速度视频。
 ## 找不到 ffmpeg（或引擎没有管道接口）时降级为 PNG 序列，结束时再尽力补一次合成；
 ## 任何情况都会把最终产物路径打到控制台，不会静默失败。
 ##
@@ -23,12 +22,9 @@ const OUTPUT_SIZE:Vector2i = Vector2i(1080, 1920)
 const VIDEO_CRF:String = "14"
 const AudioCaptureScript = preload("res://scripts/ui/battle_record_audio.gd")
 const SIM_OUTPUT_FPS:float = 60.0
-## 0.25 倍慢放降低模拟抓帧压力；音频与画面按同一时间倍率还原。
-const SIM_TIME_SCALE:float = 0.25
 const SIM_MAX_GAME_SECONDS:float = 300.0
 const SIM_MIN_GAME_SECONDS:float = 3.0
 const SIM_TAIL_GAME_SECONDS:float = 1.5
-const TIME_SCALE_KEY:String = "battle_record_sim"
 const OUTPUT_ROOT:String = "user://recordings"
 const OVERLAY_LAYER:int = 2000
 ## 两秒内卡顿保留帧时钟；更严重的阻塞明确停止，不静默缩短视频造成音画漂移。
@@ -105,6 +101,8 @@ var _png_fallback:bool = false
 var _resolved_ffmpeg:String = ""
 var _last_mux_ok:bool = false
 
+var _offline:RefCounted
+var _offline_startup:bool = false
 var _sim_tail_left:float = -1.0
 var _sim_saw_two_sides:bool = false
 var _sim_finished:bool = false
@@ -119,6 +117,10 @@ var _overlay_abort:Button = null
 func _ready() -> void:
 	# 录制不能因为游戏暂停（esc）而停摆：遮罩、进度、中止按钮都要继续响应。
 	process_mode = Node.PROCESS_MODE_ALWAYS
+
+
+func _wall_usec() -> int:
+	return int(Time.call("get_wall_ticks_usec")) if Time.has_method("get_wall_ticks_usec") else Time.get_ticks_usec()
 
 
 func _physics_process(delta:float) -> void:
@@ -183,27 +185,31 @@ func start_live() -> bool:
 	return true
 
 
-## 右键：低倍速模拟重打上一把并直接输出。需要有可重打的布阵。
+## 右键：原地继续当前对局，固定时间步离线输出；绝不调用 rematch/reset。
 func start_simulated() -> bool:
-	if mode != Mode.IDLE or is_busy():
-		return _fail("录制正在进行或保存中，请稍后再试。")
+	if mode != Mode.IDLE or is_busy(): return _fail("录制正在进行或保存中，请稍后再试。")
 	if Game.network_role != "offline" and Game.multiplayer.has_multiplayer_peer():
-		return _fail("模拟录制仅支持本地对局；联网时请使用左键实时录制。")
-	if not Game.can_local_manage_world():
-		return _fail("当前没有管理对局的权限；请使用左键实时录制。")
+		return _fail("离线模拟仅支持本地对局；联网时请使用左键实时录制。")
+	if not Game.can_local_manage_world(): return _fail("当前没有管理对局的权限。")
+	if not Engine.has_method("set_recording_fixed_fps") or not AudioServer.has_method("render_offline_audio") or not Time.has_method("get_wall_ticks_usec"):
+		return _fail("右键需要本项目的离线引擎。请使用“启动离线录制版.cmd”重新运行游戏，再从需要的当前状态开始模拟；原版引擎仍可左键实时录制。")
 	var world:Node = _world()
-	if world == null or not world.has_method("has_rematch_setup") or not bool(world.call("has_rematch_setup")):
-		return _fail("没有可重打的布阵。请先放置对战角色，再右键模拟录制；左键可直接录当前画面。")
+	if world == null: return _fail("当前没有对局场景。")
+	var actors:Array = get_tree().get_nodes_in_group("Ball")
+	var queued:bool = world.has_method("_queue_battle_mode_active") and world._queue_battle_mode_active() and not world._rotation_finished
+	if actors.is_empty() and not queued: return _fail("当前没有可继续的对局。请先放置角色；不会重新载入上一局布阵。")
+	_offline = load("res://scripts/ui/battle_record_offline.gd").new()
+	if not _offline.begin(self):
+		var reason:String = _offline.error
+		_offline = null
+		return _fail(reason)
+	_offline_startup = true
 	if not _begin_session(SIM_OUTPUT_FPS, "sim"):
+		_release_sim_world_state()
 		return false
-
 	_setup_sim_capture_viewport()
 	_show_overlay()
-	# 先压时间倍率再重打，重置与出场演出也在慢放里进行，抓帧不会漏。
-	if bool(Game.now_stop_state):
-		Game.continue_game()
-	Game.request_time_scale_override(TIME_SCALE_KEY, SIM_TIME_SCALE, Color(0, 0, 0, 0))
-	Game.request_world_rematch(true)
+	_offline.hide_preview()
 	_enter_mode(Mode.SIM)
 	return true
 
@@ -212,6 +218,7 @@ func start_simulated() -> bool:
 func stop() -> void:
 	if mode == Mode.IDLE:
 		return
+	if mode == Mode.SIM: Game.stop_game(false)
 	mode = Mode.IDLE
 	mode_changed.emit(mode)
 	# 正常路径由 _capture_loop 收尾；树已经不再绘制时这里兜底，避免状态卡死。
@@ -245,7 +252,7 @@ func _enter_mode(next_mode:int) -> void:
 	mode = next_mode
 	_session_active = true
 	_pause_boundary = false
-	_audio.effect.clear_buffer()
+	if _audio.effect != null: _audio.effect.clear_buffer()
 	_last_capture_paused = _capture_is_paused()
 	_last_capture_scale = Engine.time_scale if mode == Mode.SIM else 1.0
 	mode_changed.emit(mode)
@@ -295,8 +302,8 @@ func _begin_session(output_fps:float, tag:String) -> bool:
 	_png_fallback = false
 	_session_dir = ""
 
-	var stamp:String = Time.get_datetime_string_from_system(false, true).replace(":", "-").replace(" ", "_") + "_%d" % Time.get_ticks_usec()
-	_match_snapshot = NamingScript.snapshot(_world(), tag == "sim")
+	var stamp:String = Time.get_datetime_string_from_system(false, true).replace(":", "-").replace(" ", "_") + "_%d" % _wall_usec()
+	_match_snapshot = NamingScript.snapshot(_world(), false)
 	var zh_name:String = NamingScript.filename(_match_snapshot, "zh", stamp, _session_output_root)
 	var en_name:String = NamingScript.filename(_match_snapshot, "en", stamp, _session_output_root)
 	if zh_name.is_empty() or en_name.is_empty(): return _fail("保存目录路径过长，请选择更短的录制目录。")
@@ -316,7 +323,7 @@ func _begin_session(output_fps:float, tag:String) -> bool:
 	_secondary._video_path = _secondary._out_path.get_basename() + ".video.mp4"
 	_secondary._audio_path = _audio_path
 	_audio = AudioCaptureScript.new()
-	if not _audio.begin(_audio_path):
+	if not _audio.begin(_audio_path, tag == "sim"):
 		_audio.finish()
 		_secondary.queue_free()
 		_secondary = null
@@ -409,8 +416,8 @@ func _select_video_codec(ffmpeg:String) -> String:
 func _drain_writer() -> void:
 	if _writer == null: return
 	_writer.close_when_empty()
-	var deadline:int = Time.get_ticks_msec() + 20000
-	while _writer.is_running() and Time.get_ticks_msec() < deadline:
+	var deadline:int = int(_wall_usec() / 1000) + 20000
+	while _writer.is_running() and int(_wall_usec() / 1000) < deadline:
 		await get_tree().create_timer(0.02, true, false, true).timeout
 	if _writer.is_running():
 		if OS.is_process_running(_pipe_pid): OS.kill(_pipe_pid)
@@ -512,8 +519,11 @@ func _finish_video_output() -> String:
 	return finished_path
 
 
-func _release_sim_world_state() -> void:
-	Game.release_time_scale_override(TIME_SCALE_KEY)
+func _release_sim_world_state(keep_result:bool = true) -> void:
+	if _offline != null:
+		_offline.finish(keep_result)
+		_offline = null
+	_offline_startup = false
 
 
 #========================================================
@@ -524,7 +534,10 @@ func _capture_is_paused() -> bool:
 	return not get_pause_reason().is_empty()
 
 func _capture_loop() -> void:
-	_last_tick_usec = Time.get_ticks_usec()
+	if mode == Mode.SIM:
+		_offline_capture_loop()
+		return
+	_last_tick_usec = _wall_usec()
 	while mode != Mode.IDLE:
 		var capture_requested:bool = not _capture_is_paused()
 		if capture_requested: _prepare_next_capture()
@@ -535,7 +548,7 @@ func _capture_loop() -> void:
 				_fail(output._writer.get_error())
 				stop()
 		if mode == Mode.IDLE: break
-		var now_usec:int = Time.get_ticks_usec()
+		var now_usec:int = _wall_usec()
 		var real_delta:float = float(now_usec - _last_tick_usec) / 1000000.0
 		_last_tick_usec = now_usec
 		var paused_now:bool = _capture_is_paused()
@@ -601,6 +614,67 @@ func _capture_loop() -> void:
 			_update_sim_progress(game_delta)
 			if _sim_finished: break
 	_finish_session()
+
+
+func _offline_capture_loop() -> void:
+	while mode == Mode.SIM:
+		var initial:bool = _offline_startup
+		var requested:bool = initial or not _capture_is_paused()
+		if requested: _prepare_next_capture()
+		await RenderingServer.frame_post_draw
+		if mode != Mode.SIM: break
+		if not initial and (not requested or _capture_is_paused() or _pause_boundary):
+			_pause_boundary = false
+			continue
+		var image:Image = _grab_image()
+		var english:Image = _secondary._grab_image()
+		if image == null or english == null:
+			_fail("离线帧读取失败，已停止；不会跳过物理过程后假装正常输出。")
+			stop()
+			break
+		# OFFLINE may wait for encoding: the engine clock cannot advance during this wait.
+		# LIVE never waits here. Handle window/abort events while applying backpressure.
+		if not _wait_offline_capacity(): break
+		_write_frame(image)
+		_secondary._write_frame(english)
+		if mode != Mode.SIM or not _secondary._last_error.is_empty():
+			if not _secondary._last_error.is_empty(): _fail(_secondary._last_error)
+			stop()
+			break
+		if initial:
+			_offline.resume_current_world()
+			_offline_startup = false
+		_audio.render_offline(_frame_index, _output_fps)
+		if not _audio.error.is_empty():
+			_fail(_audio.error)
+			stop()
+			break
+		_game_time = _frame_index / _output_fps
+		_update_sim_progress(_frame_interval)
+		if _sim_finished: break
+	_finish_session()
+
+
+func _wait_offline_capacity() -> bool:
+	var deadline:int = int(_wall_usec() / 1000) + 20000
+	while mode == Mode.SIM:
+		var ready:bool = true
+		for output:Node in [self, _secondary]:
+			if output._writer == null: continue # PNG fallback is synchronous.
+			var message:String = output._writer.get_error()
+			if not message.is_empty():
+				_fail(message)
+				stop()
+				return false
+			ready = ready and output._writer.can_accept(_capture_size.x * _capture_size.y * 4)
+		if ready: return true
+		if int(_wall_usec() / 1000) >= deadline:
+			_fail("离线编码器超过 20 秒无进展，已停止并保留已计算片段。")
+			stop()
+			return false
+		DisplayServer.process_events()
+		OS.delay_usec(1000)
+	return false
 
 
 func _prepare_next_capture() -> void:
@@ -828,10 +902,10 @@ func _hide_overlay() -> void:
 func _update_overlay_text() -> void:
 	if _overlay_label == null:
 		return
-	var state_text:String = Game.ui_t("UI_RECORD_SIM_BUSY")
+	var state_text:String = "从当前状态离线计算中（非重打）"
 	if _sim_tail_left >= 0.0:
-		state_text = Game.ui_t("UI_RECORD_SIM_WRAPPING")
-	_overlay_label.text = "%s\n%.1fs / %d" % [state_text, _game_time, _frame_index]
+		state_text = "对局已结束，正在完成尾帧"
+	_overlay_label.text = "%s\n已生成 %.1f 秒 / %d 帧\n按机器能力计算，成片为正常速度" % [state_text, _game_time, _frame_index]
 	if _overlay_abort != null:
 		_overlay_abort.text = Game.ui_t("UI_RECORD_ABORT")
 
@@ -967,4 +1041,4 @@ func _exit_tree() -> void:
 	if _pipe != null and _pipe.is_open():
 		_pipe.close()
 	if _session_active:
-		_release_sim_world_state()
+		_release_sim_world_state(false)

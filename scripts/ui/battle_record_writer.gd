@@ -35,6 +35,12 @@ func enqueue(data:PackedByteArray, count:int) -> bool:
 	_wake.post()
 	return true
 
+func can_accept(data_bytes:int, count:int = 1) -> bool:
+	_mutex.lock()
+	var ready:bool = not _closing and _error.is_empty() and _bytes + data_bytes <= MAX_BYTES and _frames + count <= MAX_FRAMES
+	_mutex.unlock()
+	return ready
+
 func get_error() -> String:
 	_mutex.lock()
 	var message:String = _error

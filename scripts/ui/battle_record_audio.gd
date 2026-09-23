@@ -12,7 +12,7 @@ var error:String = ""
 var _position:float = 0.0
 var _path:String = ""
 
-func begin(path:String) -> bool:
+func begin(path:String, offline:bool = false) -> bool:
 	var bus:int = AudioServer.get_bus_index(BUS)
 	if bus < 0:
 		error = "找不到 GameplayRecord 游戏音频总线。"
@@ -23,6 +23,7 @@ func begin(path:String) -> bool:
 	if file == null:
 		error = "无法创建录制音频临时文件。"
 		return false
+	if offline: return true
 	effect = AudioEffectCapture.new()
 	effect.buffer_length = 5.0
 	AudioServer.add_bus_effect(bus, effect)
@@ -65,6 +66,22 @@ func drain(timeline_scale:float, discard:bool = false) -> void:
 		file.store_buffer(output.to_byte_array())
 		samples_written += written
 		if file.get_error() != OK: error = "写入录制音频失败，请检查磁盘空间。"
+
+func render_offline(frame_number:int, fps:float) -> void:
+	if file == null: return
+	# Integer cumulative target also supports 44.1kHz without per-frame rounding drift.
+	var target:int = int(round(frame_number * sample_rate / fps))
+	var count:int = target - samples_written
+	if count <= 0: return
+	var pcm:PackedVector2Array = AudioServer.call("render_offline_audio", count, BUS)
+	if pcm.size() != count:
+		error = "离线音频混合未返回完整采样，已停止。"
+		return
+	for sample:Vector2 in pcm: peak = maxf(peak, maxf(absf(sample.x), absf(sample.y)))
+	file.store_buffer(pcm.to_byte_array())
+	samples_written += count
+	if file.get_error() != OK: error = "写入离线音频失败，请检查磁盘空间。"
+
 
 func finish() -> void:
 	if effect != null:

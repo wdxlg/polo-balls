@@ -71,13 +71,9 @@ func _process(delta:float) -> void:
 		refresh()
 
 func start_simulated() -> void:
-	# Close setup panels before rematch, otherwise the world stays in placement mode.
 	if recorder.get_mode() == 0 and not recorder.is_busy():
 		last_output = ""
-		if Game.can_local_manage_world() and recorder._world() != null and recorder._world().has_rematch_setup():
-			for path:String in ["Team", "Map", "Game_Setting", "MultiPlayer"]:
-				var panel:CanvasItem = get_parent().get_node_or_null(path)
-				if panel != null: panel.hide()
+		english_path.text = ""
 	if not recorder.start_simulated(): _show_message(recorder.get_last_error())
 	refresh()
 
@@ -92,7 +88,7 @@ func refresh() -> void:
 		button.text = "待录" if recorder._frame_index == 0 else "暂停"
 		button.modulate = Color(1.0, 0.8, 0.3)
 	button.disabled = saving
-	button.tooltip_text = "左键：开始/停止高清对战录制；右键：慢速重打并生成正常速度的有声对战视频。" + "\n默认：user://recordings；在设置 → 录制中选择保存目录" + "\n每次输出中文 + English 两份视频 · 1080×1920 / 60fps · 仅对战画面和游戏声音 · 暂停不计入成片"
+	button.tooltip_text = "左键：开始/停止高清对战录制；右键：从当前状态离线计算对局，不重打；尽快生成正常速度的有声视频。" + "\n默认：user://recordings；在设置 → 录制中选择保存目录" + "\n每次输出中文 + 英文两份视频 · 1080×1920 / 60fps · 仅对战画面和游戏声音 · 暂停不计入成片"
 
 	if active:
 		button.tooltip_text += "\n已录 %d 帧。%s 再点一次停止。" % [recorder._frame_index, reason]

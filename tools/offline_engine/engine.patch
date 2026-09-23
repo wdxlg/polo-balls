@@ -1,0 +1,325 @@
+--- a/main/main.cpp
++++ b/main/main.cpp
+@@ -4926,7 +4926,22 @@
+ 	const uint64_t ticks = OS::get_singleton()->get_ticks_usec();
+ 	Engine::get_singleton()->_frame_ticks = ticks;
+ 	main_timer_sync.set_cpu_ticks_usec(ticks);
+-	main_timer_sync.set_fixed_fps(fixed_fps);
++	// Session-local fixed clock: existing scene/native state remains in this process.
++	const int recording_fps = Engine::get_singleton()->get_recording_fixed_fps();
++	static int previous_recording_fps = -1;
++	if (recording_fps != previous_recording_fps) {
++		// Do not carry wall-clock jitter/deficit history across clock domains.
++		main_timer_sync = MainTimerSync();
++		main_timer_sync.init(ticks);
++		previous_recording_fps = recording_fps;
++	}
++	const int iteration_fixed_fps = recording_fps > 0 ? recording_fps : fixed_fps;
++	main_timer_sync.set_fixed_fps(iteration_fixed_fps);
++	if (recording_fps > 0) {
++		SceneTree *record_tree = SceneTree::get_singleton();
++		if (!record_tree || !record_tree->is_paused()) Time::get_singleton()->advance_recording_clock(recording_fps);
++	}
++
+ 
+ 	const uint64_t ticks_elapsed = ticks - last_ticks;
+ 
+@@ -4953,7 +4968,7 @@
+ 	last_ticks = ticks;
+ 
+ 	const int max_physics_steps = Engine::get_singleton()->get_user_max_physics_steps_per_frame();
+-	if (fixed_fps == -1 && advance.physics_steps > max_physics_steps) {
++	if (iteration_fixed_fps == -1 && advance.physics_steps > max_physics_steps) {
+ 		process_step -= (advance.physics_steps - max_physics_steps) * physics_step;
+ 		advance.physics_steps = max_physics_steps;
+ 	}
+@@ -5082,9 +5097,9 @@
+ 								 DisplayServer::get_singleton()->has_additional_outputs()) &&
+ 			RenderingServer::get_singleton()->is_render_loop_enabled();
+ 
+-	if (wants_present || has_pending_resources_for_processing) {
++	if (wants_present || has_pending_resources_for_processing || recording_fps > 0) {
+ 		wants_present |= force_redraw_requested;
+-		if ((!force_redraw_requested) && OS::get_singleton()->is_in_low_processor_usage_mode()) {
++		if (recording_fps < 0 && (!force_redraw_requested) && OS::get_singleton()->is_in_low_processor_usage_mode()) {
+ 			if (RenderingServer::get_singleton()->has_changed()) {
+ 				RenderingServer::get_singleton()->draw(wants_present, scaled_step); // flush visual commands
+ 				Engine::get_singleton()->increment_frames_drawn();
+@@ -5167,7 +5182,7 @@
+ 	}
+ #endif
+ 
+-	if (fixed_fps != -1) {
++	if (iteration_fixed_fps != -1) {
+ 		return exit;
+ 	}
+ 
+--- a/core/config/engine.h
++++ b/core/config/engine.h
+@@ -66,6 +66,7 @@
+ 	double physics_jitter_fix = 0.5;
+ 	double _fps = 1;
+ 	int _max_fps = 0;
++	int recording_fixed_fps = -1;
+ 	int _audio_output_latency = 0;
+ 	double _time_scale = 1.0;
+ 	double _game_time_scale = 1.0;
+@@ -125,6 +126,8 @@
+ 	void set_physics_jitter_fix(double p_threshold);
+ 	double get_physics_jitter_fix() const;
+ 
++	void set_recording_fixed_fps(int p_fps);
++	int get_recording_fixed_fps() const;
+ 	virtual void set_max_fps(int p_fps);
+ 	virtual int get_max_fps() const;
+ 
+--- a/core/config/engine.cpp
++++ b/core/config/engine.cpp
+@@ -29,6 +29,7 @@
+ /**************************************************************************/
+ 
+ #include "engine.h"
++#include "core/os/time.h"
+ 
+ #include "core/authors.gen.h"
+ #include "core/config/project_settings.h"
+@@ -82,6 +83,16 @@
+ 
+ double Engine::get_physics_jitter_fix() const {
+ 	return physics_jitter_fix;
++}
++
++void Engine::set_recording_fixed_fps(int p_fps) {
++	ERR_FAIL_COND(p_fps != -1 && (p_fps < 1 || p_fps > 240));
++	Time::get_singleton()->set_recording_clock(p_fps > 0);
++	recording_fixed_fps = p_fps;
++}
++
++int Engine::get_recording_fixed_fps() const {
++	return recording_fixed_fps;
+ }
+ 
+ void Engine::set_max_fps(int p_fps) {
+--- a/core/core_bind.h
++++ b/core/core_bind.h
+@@ -584,6 +584,8 @@
+ 	double get_physics_jitter_fix() const;
+ 	double get_physics_interpolation_fraction() const;
+ 
++	void set_recording_fixed_fps(int p_fps);
++	int get_recording_fixed_fps() const;
+ 	void set_max_fps(int p_fps);
+ 	int get_max_fps() const;
+ 
+--- a/core/core_bind.cpp
++++ b/core/core_bind.cpp
+@@ -1919,6 +1919,14 @@
+ 	return ::Engine::get_singleton()->get_physics_interpolation_fraction();
+ }
+ 
++void Engine::set_recording_fixed_fps(int p_fps) {
++	::Engine::get_singleton()->set_recording_fixed_fps(p_fps);
++}
++
++int Engine::get_recording_fixed_fps() const {
++	return ::Engine::get_singleton()->get_recording_fixed_fps();
++}
++
+ void Engine::set_max_fps(int p_fps) {
+ 	::Engine::get_singleton()->set_max_fps(p_fps);
+ }
+@@ -2104,6 +2112,8 @@
+ 	ClassDB::bind_method(D_METHOD("set_physics_jitter_fix", "physics_jitter_fix"), &Engine::set_physics_jitter_fix);
+ 	ClassDB::bind_method(D_METHOD("get_physics_jitter_fix"), &Engine::get_physics_jitter_fix);
+ 	ClassDB::bind_method(D_METHOD("get_physics_interpolation_fraction"), &Engine::get_physics_interpolation_fraction);
++	ClassDB::bind_method(D_METHOD("set_recording_fixed_fps", "fps"), &Engine::set_recording_fixed_fps);
++	ClassDB::bind_method(D_METHOD("get_recording_fixed_fps"), &Engine::get_recording_fixed_fps);
+ 	ClassDB::bind_method(D_METHOD("set_max_fps", "max_fps"), &Engine::set_max_fps);
+ 	ClassDB::bind_method(D_METHOD("get_max_fps"), &Engine::get_max_fps);
+ 
+--- a/servers/audio/audio_server.h
++++ b/servers/audio/audio_server.h
+@@ -212,6 +212,10 @@
+ 	uint32_t buffer_size = 0;
+ 	uint64_t mix_count = 0;
+ 	uint64_t mix_frames = 0;
++	bool offline_audio = false; // Protected by the audio driver lock.
++	bool offline_pull = false;
++	int offline_bus = -1;
++	Vector<Vector2> *offline_pcm = nullptr;
+ #ifdef DEBUG_ENABLED
+ 	SafeNumeric<uint64_t> prof_time;
+ #endif
+@@ -461,6 +465,9 @@
+ 
+ 	/* MISC config */
+ 
++	void set_offline_audio(bool p_enabled);
++	bool is_offline_audio();
++	Vector<Vector2> render_offline_audio(int p_frames, const StringName &p_bus);
+ 	virtual void lock();
+ 	virtual void unlock();
+ 
+--- a/servers/audio/audio_server.cpp
++++ b/servers/audio/audio_server.cpp
+@@ -270,6 +270,11 @@
+ //////////////////////////////////////////////
+ 
+ void AudioServer::_driver_process(int p_frames, int32_t *p_buffer) {
++	if (offline_audio && !offline_pull) {
++		// Hardware still receives silence, but cannot advance voices/DSP while exporting.
++		memset(p_buffer, 0, sizeof(int32_t) * p_frames * get_channel_count() * 2);
++		return;
++	}
+ 	mix_count++;
+ 	int todo = p_frames;
+ 
+@@ -295,6 +300,15 @@
+ 
+ 		int from = buffer_size - to_mix;
+ 		int from_buf = p_frames - todo;
++		if (offline_pcm && offline_bus >= 0) {
++			Bus *record_bus = buses[offline_bus];
++			const float gain = master->mute ? 0.0f : Math::db_to_linear(master->volume_db);
++			Vector2 *dst = offline_pcm->ptrw();
++			for (int j = 0; j < to_copy; j++) {
++				const AudioFrame sample = record_bus->channels[0].active ? record_bus->channels[0].buffer[from + j] : AudioFrame(0, 0);
++				dst[from_buf + j] = Vector2(CLAMP(sample.left * gain, -1.0f, 1.0f), CLAMP(sample.right * gain, -1.0f, 1.0f));
++			}
++		}
+ 
+ 		//master master, send to output
+ 		int cs = master->channels.size();
+@@ -1664,6 +1678,42 @@
+ 
+ /* MISC config */
+ 
++void AudioServer::set_offline_audio(bool p_enabled) {
++	lock();
++	offline_audio = p_enabled;
++	unlock();
++}
++
++bool AudioServer::is_offline_audio() {
++	lock();
++	bool enabled = offline_audio;
++	unlock();
++	return enabled;
++}
++
++Vector<Vector2> AudioServer::render_offline_audio(int p_frames, const StringName &p_bus) {
++	ERR_FAIL_COND_V(p_frames < 1 || p_frames > 65536, Vector<Vector2>());
++	lock();
++	int bus = get_bus_index(p_bus);
++	if (!offline_audio || bus < 0) {
++		unlock();
++		ERR_FAIL_V_MSG(Vector<Vector2>(), "Offline audio is disabled or recording bus is missing.");
++	}
++	Vector<Vector2> result;
++	result.resize(p_frames);
++	Vector<int32_t> silent_device_output;
++	silent_device_output.resize(p_frames * get_channel_count() * 2);
++	offline_pcm = &result;
++	offline_bus = bus;
++	offline_pull = true;
++	_driver_process(p_frames, silent_device_output.ptrw());
++	offline_pull = false;
++	offline_bus = -1;
++	offline_pcm = nullptr;
++	unlock();
++	return result;
++}
++
+ void AudioServer::lock() {
+ 	AudioDriver::get_singleton()->lock();
+ }
+@@ -2032,6 +2082,9 @@
+ }
+ 
+ void AudioServer::_bind_methods() {
++	ClassDB::bind_method(D_METHOD("set_offline_audio", "enabled"), &AudioServer::set_offline_audio);
++	ClassDB::bind_method(D_METHOD("is_offline_audio"), &AudioServer::is_offline_audio);
++	ClassDB::bind_method(D_METHOD("render_offline_audio", "frames", "bus"), &AudioServer::render_offline_audio);
+ 	ClassDB::bind_method(D_METHOD("set_bus_count", "amount"), &AudioServer::set_bus_count);
+ 	ClassDB::bind_method(D_METHOD("get_bus_count"), &AudioServer::get_bus_count);
+ 
+--- a/core/os/time.h
++++ b/core/os/time.h
+@@ -31,6 +31,7 @@
+ #pragma once
+ 
+ #include "core/object/object.h"
++#include <atomic>
+ #include "core/os/time_enums.h"
+ #include "core/variant/type_info.h"
+ 
+@@ -48,6 +49,10 @@
+ 	GDCLASS(Time, Object);
+ 	static void _bind_methods();
+ 	static Time *singleton;
++	std::atomic<int64_t> recording_tick_usec{-1};
++	std::atomic<int64_t> recording_offset_usec{0};
++	uint64_t recording_origin_usec = 0;
++	uint64_t recording_frames = 0;
+ 
+ public:
+ 	static Time *get_singleton();
+@@ -76,6 +81,10 @@
+ 	double get_unix_time_from_system() const;
+ 	uint64_t get_ticks_msec() const;
+ 	uint64_t get_ticks_usec() const;
++	uint64_t get_wall_ticks_usec() const;
++	uint64_t get_wall_ticks_msec() const;
++	void set_recording_clock(bool p_enabled);
++	void advance_recording_clock(int p_fps);
+ 
+ 	Time();
+ 	virtual ~Time();
+--- a/core/os/time.cpp
++++ b/core/os/time.cpp
+@@ -382,14 +382,43 @@
+ }
+ 
+ uint64_t Time::get_ticks_msec() const {
++	return get_ticks_usec() / 1000;
++}
++
++uint64_t Time::get_ticks_usec() const {
++	const int64_t tick = recording_tick_usec.load();
++	return tick >= 0 ? uint64_t(tick) : uint64_t(int64_t(OS::get_singleton()->get_ticks_usec()) + recording_offset_usec.load());
++}
++
++uint64_t Time::get_wall_ticks_usec() const {
++	return OS::get_singleton()->get_ticks_usec();
++}
++
++uint64_t Time::get_wall_ticks_msec() const {
+ 	return OS::get_singleton()->get_ticks_msec();
+ }
+ 
+-uint64_t Time::get_ticks_usec() const {
+-	return OS::get_singleton()->get_ticks_usec();
++void Time::set_recording_clock(bool p_enabled) {
++	if (p_enabled && recording_tick_usec.load() < 0) {
++		recording_origin_usec = get_ticks_usec();
++		recording_frames = 0;
++		recording_tick_usec.store(recording_origin_usec);
++	} else if (!p_enabled && recording_tick_usec.load() >= 0) {
++		// Keep pending tick-based cooldowns continuous when returning to real time.
++		recording_offset_usec.store(recording_tick_usec.load() - int64_t(OS::get_singleton()->get_ticks_usec()));
++		recording_tick_usec.store(-1);
++	}
++}
++
++void Time::advance_recording_clock(int p_fps) {
++	if (recording_tick_usec.load() < 0 || p_fps <= 0) return;
++	++recording_frames;
++	recording_tick_usec.store(recording_origin_usec + recording_frames * 1000000ULL / p_fps);
+ }
+ 
+ void Time::_bind_methods() {
++	ClassDB::bind_method(D_METHOD("get_wall_ticks_usec"), &Time::get_wall_ticks_usec);
++	ClassDB::bind_method(D_METHOD("get_wall_ticks_msec"), &Time::get_wall_ticks_msec);
+ 	ClassDB::bind_method(D_METHOD("get_datetime_dict_from_unix_time", "unix_time_val"), &Time::get_datetime_dict_from_unix_time);
+ 	ClassDB::bind_method(D_METHOD("get_date_dict_from_unix_time", "unix_time_val"), &Time::get_date_dict_from_unix_time);
+ 	ClassDB::bind_method(D_METHOD("get_time_dict_from_unix_time", "unix_time_val"), &Time::get_time_dict_from_unix_time);

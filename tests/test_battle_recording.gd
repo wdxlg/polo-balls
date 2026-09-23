@@ -70,7 +70,7 @@ func run() -> void:
 	right.button_index = MOUSE_BUTTON_RIGHT
 	right.pressed = true
 	button.gui_input.emit(right)
-	check(recorder.is_idle(), "empty SIM setup does not enter recording")
+	check(recorder.is_idle(), "empty current world does not enter offline recording")
 	check(controls.result_dialog.visible and not controls.last_message.is_empty(), "invalid SIM shows actionable message")
 	controls.result_dialog.hide()
 	if DisplayServer.get_name() == "headless":
@@ -166,7 +166,7 @@ func run() -> void:
 			world._enqueue_rotation_character("", side, world._rotation_spawn_position(side), side, "res://scenes/ball.tscn")
 		world.control.team.hide()
 		world._update_special_training_modes(0.0)
-		check(world.has_rematch_setup(), "SIM fixture has actual rematch setup")
+		check(not world._rotation_rosters.left.is_empty(), "SIM fixture has a currently active queue battle")
 		var bus:int = AudioServer.get_bus_index(&"GameplayRecord")
 		var was_muted:bool = AudioServer.is_bus_mute(bus)
 		var original_scale:float = Engine.time_scale
@@ -186,7 +186,7 @@ func run() -> void:
 		check(not recorder._overlay_backdrop.visible and recorder._sim_viewport == null and recorder._resolve_viewport == null, "abort clears overlay and capture viewport")
 		check(outputs.size() == 2 and not outputs[1].path.is_empty(), "SIM abort saves playable portion")
 		await click(MOUSE_BUTTON_RIGHT)
-		check(recorder.get_mode() == 2, "SIM can restart after abort")
+		check(recorder.get_mode() == 2, "SIM can continue from its stopped current state after abort")
 		await settle(0.4)
 		world._rotation_finished = true
 		await wait_idle()
