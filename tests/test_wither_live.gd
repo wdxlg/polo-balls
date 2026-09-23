@@ -53,8 +53,21 @@ func run() -> void:
 	check(wither.global_position.x > start_x,"summoned Wither actually moves with no target requirement")
 	check(absf(wither.velocity.x-66.0) < 0.1,"Wither uses common ball.move baseline speed multiplier")
 	wither._update_live_pose(1.0)
-	check(absf(wrapf(wither._bedrock_model.rotation.y-PI*0.5,-PI,PI)) < 0.05,"moving right turns the actual model right, not left or merely mirroring a sprite")
-	check(not wither.is_character_visual_flipped_h(),"real Wither yaw must not be horizontally mirrored by the base movement")
+	check(absf(wither._bedrock_model.rotation.y) < 0.01 and wither._bedrock_model.rotation.z > 0.2,"moving right tilts a still-front-facing body instead of turning it")
+	check(wither._bedrock_model.bones["head1"].rotation.y > 0.8,"while moving right, the central head looks at the enemy to the right")
+	check(not wither.is_character_visual_flipped_h(),"the base movement must not mirror the live tilted 3D model")
+	var original_enemy_position:Vector2 = enemy.global_position
+	enemy.global_position = wither.global_position+Vector2(-180,0)
+	wither._update_live_pose(1.0)
+	check(wither._bedrock_model.rotation.z > 0.2 and wither._bedrock_model.bones["head1"].rotation.y < -0.8,"enemy crossing left turns only the head, not the right-leaning torso")
+	enemy.global_position = wither.global_position+Vector2(0,180)
+	wither.velocity = Vector2.ZERO
+	wither._update_live_pose(1.0)
+	check(absf(wither._bedrock_model.rotation.x)+absf(wither._bedrock_model.rotation.z) < 0.01,"stopping movement straightens the body while an enemy remains visible")
+	check(wither._bedrock_model.bones["head1"].rotation.x < -0.25 and absf(wither._bedrock_model.bones["head1"].rotation.y) < 0.3,"an enemy below makes the head tilt down rather than flip backward")
+	enemy.global_position = original_enemy_position
+	wither.velocity = Vector2.RIGHT*66.0
+	wither._update_live_pose(1.0)
 	var skull_target:Vector2 = enemy.global_position
 	for i:int in range(3):
 		var muzzle:Vector2 = wither.head_muzzle_world_position([0,2,1][i])

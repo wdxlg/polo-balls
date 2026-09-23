@@ -43,7 +43,7 @@ var _bedrock_model:Node3D
 var _bedrock_camera:Camera3D
 var _animation_life:float = 0.0
 var _next_shoot_head:int = 0
-var _remote_body_heading:Vector2 = Vector2.UP
+var _remote_body_heading:Vector2 = Vector2.ZERO
 var _remote_look_position:Vector2 = Vector2.ZERO
 var _remote_aim_valid:bool = false
 
@@ -89,8 +89,8 @@ func _get_hit_effect_visual_texture() -> Texture2D:
 	# mode. Keep the original-source 2D silhouette solely for this sampler.
 	return BODY
 func set_character_visual_flip_h(_flipped:bool) -> void:
-	# ball.move otherwise mirrors the complete 3D ViewportTexture after yawing
-	# its model, making screen-facing heads and projectile origins disagree.
+	# ball.move otherwise mirrors the 3D ViewportTexture after the model
+	# leans, making head tracking and projected skull origins disagree.
 	super.set_character_visual_flip_h(false)
 func get_next_state(state:State) -> int:
 	if not is_multiplayer_authority(): return -1
@@ -261,7 +261,7 @@ func _fire_skull(point:Vector2) -> void:
 	_next_shoot_head = (_next_shoot_head+1)%3
 	var origin:Vector2 = head_muzzle_world_position(head_index)
 	var heading:Vector2 = point-origin
-	if heading.length_squared() <= 0.000001: heading = _visual_body_heading()
+	if heading.length_squared() <= 0.000001: heading = Vector2.UP
 	var skull:Node2D = SKULL.new()
 	get_tree().current_scene.add_child(skull,true)
 	skull.global_position = origin
@@ -356,25 +356,16 @@ func _draw() -> void:
 	for i:int in range(3):
 		if t > 0.53+float(i)*0.10: draw_texture_rect(HEAD,summon_head_rect(i),false)
 func _visual_body_heading() -> Vector2:
-	if _charge_windup > 0 or _charge_remaining > 0: return _charge_dir.normalized()
-	if is_player_controlled():
-		if _windup > 0 and has_player_control_aim(): return player_control_aim_direction(Vector2.UP)
-		if player_control_direction.length_squared() > 0.000001: return player_control_direction.normalized()
-		if has_player_control_aim(): return player_control_aim_direction(Vector2.UP)
-	if _windup > 0:
-		var attack_target:ball = mc_nearest(0.0)
-		if attack_target != null:
-			var attack_delta:Vector2 = attack_target.global_position-global_position
-			if attack_delta.length_squared() > 0.000001: return attack_delta.normalized()
-	if summoned and velocity.length_squared() > 36.0: return velocity.normalized()
-	if direction.length_squared() > 0.000001: return direction.normalized()
-	return Vector2.UP
-func _visual_look_point(body_heading:Vector2) -> Vector2:
-	if is_player_controlled() and has_player_control_aim(): return player_control_aim_world_position(global_position+body_heading*250.0)
+	# Lean only while actually moving; target position / mouse aim must not
+	# turn or tip the torso. Charges use their real collision-solved velocity.
+	if not summoned or velocity.length_squared() <= 36.0: return Vector2.ZERO
+	return velocity.normalized()
+func _visual_look_point(_body_heading:Vector2) -> Vector2:
+	if is_player_controlled() and has_player_control_aim(): return player_control_aim_world_position(global_position+Vector2.UP*250.0)
 	var target:ball = mc_nearest(0.0) if is_multiplayer_authority() else null
 	if target == null and is_instance_valid(Target_Enemy) and Target_Enemy is ball: target = Target_Enemy as ball
 	if target != null and target.health > 0: return target.global_position
-	return global_position+body_heading*250.0
+	return global_position+Vector2.UP*250.0
 func _update_live_pose(delta:float) -> void:
 	if _bedrock_model == null: return
 	_animation_life += delta if is_combat_runtime_active() else 0.0
@@ -383,7 +374,7 @@ func _update_live_pose(delta:float) -> void:
 	var per_head:Array[Vector2] = []
 	for i:int in range(3):
 		var difference:Vector2 = look_position-head_muzzle_world_position(i)
-		per_head.append(difference.normalized() if difference.length_squared() > 0.000001 else body_heading)
+		per_head.append(difference.normalized() if difference.length_squared() > 0.000001 else Vector2.UP)
 	_bedrock_model.call("animate",_animation_life,body_heading,summoned,summon_time/maxf(summon_duration,0.01),health <= Max_health*0.5,per_head,delta)
 func _process(delta:float) -> void:
 	if not summoned: _summon_visual()

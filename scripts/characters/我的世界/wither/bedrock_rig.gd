@@ -10,8 +10,8 @@ var armor_bones:Dictionary = {}
 var body_meshes:Array[MeshInstance3D] = []
 var armor_layer:Node3D
 var current_invulnerable:bool = false
-var _body_yaw:float = 0.0
-var _facing_initialized:bool = false
+var _body_pitch:float = 0.0
+var _body_roll:float = 0.0
 var _head_yaw:Array[float] = [0.0,0.0,0.0]
 var _head_pitch:Array[float] = [0.0,0.0,0.0]
 var _head_recoil:Array[float] = [0.0,0.0,0.0]
@@ -123,24 +123,22 @@ func animate(original_life_time:float,heading:Vector2,awake:bool,assembly_progre
 	var base_rotation:float = cos(original_life_time*2.0)
 	var upper_rotation:float = (0.065+0.05*base_rotation)*180.0
 	var tail_rotation:float = (0.2+0.1*base_rotation)*180.0
-	# 2D up shows the real front (white eyes), down shows the back.
-	# Keep right/left turns on the matching screen side of the camera.
-	var body_direction:Vector2 = heading.normalized() if heading.length_squared() > 0.000001 else Vector2.DOWN
-	var desired_body_yaw:float = atan2(body_direction.x,-body_direction.y)
-	if not _facing_initialized:
-		_body_yaw = desired_body_yaw
-		_facing_initialized = true
-	else: _body_yaw = lerp_angle(_body_yaw,desired_body_yaw,clampf(frame_delta*7.0,0.0,1.0))
-	# The side heads are separate bones and follow their OWN projected muzzle-to-
-	# target vectors. Never derive their pose from the movement direction alone.
+	# Keep the white-eyed front facing the camera. Movement only leans the
+	# torso: pitch for up/down, roll for left/right. No walking yaw or mirror.
+	var moving:Vector2 = heading.normalized() if heading.length_squared() > 0.000001 else Vector2.ZERO
+	var body_weight:float = clampf(frame_delta*7.0,0.0,1.0)
+	_body_pitch = lerpf(_body_pitch,-moving.y*0.20,body_weight)
+	_body_roll = lerpf(_body_roll,moving.x*0.26,body_weight)
+	# Each head independently tracks the target's SCREEN position: yaw moves
+	# its eyes left/right, pitch moves them up/down. In particular, an enemy
+	# below the character makes the head look down, not spin to its back.
 	for i:int in range(3):
-		var aim_direction:Vector2 = head_directions[i].normalized() if i < head_directions.size() and head_directions[i].length_squared() > 0.000001 else body_direction
-		var global_yaw:float = atan2(aim_direction.x,-aim_direction.y)
-		var relative_yaw:float = clampf(wrapf(global_yaw-_body_yaw,-PI,PI),-1.15,1.15)
-		var pitch:float = clampf(-aim_direction.y*0.30,-0.30,0.30)
+		var aim_direction:Vector2 = head_directions[i].normalized() if i < head_directions.size() and head_directions[i].length_squared() > 0.000001 else Vector2.UP
+		var desired_yaw:float = clampf(asin(clampf(aim_direction.x,-1.0,1.0)),-1.1,1.1)
+		var desired_pitch:float = -aim_direction.y*0.38
 		var weight:float = clampf(frame_delta*(9.0-float(i)*1.4),0.0,1.0)
-		_head_yaw[i] = lerp_angle(_head_yaw[i],relative_yaw,weight)
-		_head_pitch[i] = lerpf(_head_pitch[i],pitch,weight)
+		_head_yaw[i] = lerpf(_head_yaw[i],desired_yaw,weight)
+		_head_pitch[i] = lerpf(_head_pitch[i],desired_pitch,weight)
 		_head_recoil[i] = maxf(_head_recoil[i]-frame_delta*4.0,0.0)
 	for group:Dictionary in [bones,armor_bones]:
 		(group["upperbodypart2"] as Node3D).rotation_degrees.x = upper_rotation
@@ -157,7 +155,8 @@ func animate(original_life_time:float,heading:Vector2,awake:bool,assembly_progre
 		var material:StandardMaterial3D = _material(INVULNERABLE if show_invulnerable else BODY)
 		for mesh:MeshInstance3D in body_meshes: mesh.material_override = material
 	armor_layer.visible = awake and shielded
-	rotation.y = TAU*2.0*clampf((assembly_progress-0.8)/0.2,0.0,1.0) if not awake else _body_yaw
+	# Preserve the original summoning spin, but never yaw the awakened body.
+	rotation = Vector3(_body_pitch,0.0,_body_roll) if awake else Vector3(0.0,TAU*2.0*clampf((assembly_progress-0.8)/0.2,0.0,1.0),0.0)
 	position.y = sin(original_life_time*3.7)*0.02 if awake else 0.0
 	# Official client entity pre_animation: swell_adjustment = swell^4,
 	# wobble = 1 + sin(swell * 5730 degrees) * swell * 0.01.
