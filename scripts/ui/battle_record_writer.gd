@@ -1,6 +1,8 @@
 extends RefCounted
 ## Only this worker owns FileAccess writes/closes. Never block the game on ffmpeg stdin.
-const MAX_BYTES:int = 128 * 1024 * 1024
+## Two 1080x1920 encoders can briefly queue more than 16 raw frames during NVENC
+## startup. Keep a bounded half-second cushion per language, not an unbounded queue.
+const MAX_BYTES:int = 256 * 1024 * 1024
 const MAX_FRAMES:int = 120
 var _thread := Thread.new()
 var _mutex := Mutex.new()

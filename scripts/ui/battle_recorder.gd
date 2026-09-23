@@ -22,8 +22,6 @@ const OUTPUT_SIZE:Vector2i = Vector2i(1080, 1920)
 const VIDEO_CRF:String = "14"
 const AudioCaptureScript = preload("res://scripts/ui/battle_record_audio.gd")
 const SIM_OUTPUT_FPS:float = 60.0
-const SIM_MAX_GAME_SECONDS:float = 300.0
-const SIM_MIN_GAME_SECONDS:float = 3.0
 ## 胜负分出后继续录制的秒数由设置 → 录制决定（preferences.tail_seconds，默认 5 秒）；两种模式共用。
 const OUTPUT_ROOT:String = "user://recordings"
 const OVERLAY_LAYER:int = 2000
@@ -104,7 +102,6 @@ var _last_mux_ok:bool = false
 var _offline:RefCounted
 var _offline_startup:bool = false
 var _sim_tail_left:float = -1.0
-var _sim_saw_two_sides:bool = false
 var _sim_finished:bool = false
 var _tail_seconds:float = 5.0
 ## 仅 LIVE：开始录制时上一局的胜负状态还残留（胜利铃已响 / 队列已结束），不能当成本局结束；
@@ -309,7 +306,6 @@ func _begin_session(output_fps:float, tag:String) -> bool:
 	_accumulator = 0.0
 	_last_progress_push = -1.0
 	_sim_tail_left = -1.0
-	_sim_saw_two_sides = false
 	_sim_finished = false
 	_tail_seconds = preferences.get_tail_seconds()
 	_stale_match_over = tag == "live" and _match_over_now()
@@ -939,7 +935,7 @@ func _on_overlay_abort_pressed() -> void:
 
 func _update_sim_progress(game_delta:float) -> void:
 	if _sim_tail_left < 0.0:
-		if _sim_match_over() or _game_time >= SIM_MAX_GAME_SECONDS:
+		if _sim_match_over():
 			_sim_tail_left = _tail_seconds
 	else:
 		_sim_tail_left -= game_delta
@@ -959,7 +955,7 @@ func _update_match_end_tail(game_delta:float) -> void:
 		if world != null and is_instance_valid(world):
 			if _stale_match_over:
 				if not _match_over_now(): _stale_match_over = false
-			elif _sim_match_over():
+			elif _match_over_now():
 				_sim_tail_left = _tail_seconds
 	else:
 		_sim_tail_left -= game_delta
@@ -972,27 +968,12 @@ func get_tail_left() -> float:
 	return _sim_tail_left
 
 
-## 对局是否已经分出胜负：优先用世界自己的胜利铃，其次看存活阵营收敛到一个。
+## 对局结束以世界正式结算为准；存活阵营短暂收敛不等于一场比赛结束。
 func _sim_match_over() -> bool:
 	var world:Node = _world()
 	if world == null or not is_instance_valid(world):
 		return true
-	if _match_over_now():
-		return true
-	if world.has_method("_queue_battle_mode_active") and bool(world.call("_queue_battle_mode_active")):
-		return false
-	if _game_time < SIM_MIN_GAME_SECONDS:
-		return false
-	if not world.has_method("_collect_alive_victory_sides"):
-		return false
-	var sides:Variant = world.call("_collect_alive_victory_sides")
-	if sides is Dictionary:
-		var count:int = (sides as Dictionary).size()
-		if count >= 2:
-			_sim_saw_two_sides = true
-		elif _sim_saw_two_sides and count <= 1:
-			return true
-	return false
+	return _match_over_now()
 
 
 ## 世界此刻是否已明确宣告结束：胜利铃已响，或队列对战已全部打完。不含存活阵营推断。
