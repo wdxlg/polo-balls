@@ -1,6 +1,6 @@
 extends "res://scripts/training/test_mc_new5.gd"
 const PROFILE=preload("res://scripts/characters/我的世界/wither/beacon_profile.gd")
-const ARTIFACTS:String="user://beacon_volume/"
+const ARTIFACTS:String="user://beacon_emitter/"
 var beacon:Node2D
 var wither:Node2D
 var enemy:Node2D
@@ -66,10 +66,10 @@ func run() -> void:
 	check(is_equal_approx(PROFILE.speed_factor(.6,0),1) and is_equal_approx(PROFILE.speed_factor(.3,0),.75),"charge smoothly decelerates")
 	check(absf(PROFILE.speed_factor(.00001,0)-.5)<.001 and is_equal_approx(PROFILE.speed_factor(0,PROFILE.FIRING),.5),"emission starts at continuous half speed")
 	check(is_equal_approx(PROFILE.speed_factor(0,.175),.75) and is_equal_approx(PROFILE.speed_factor(0,0),1),"final 0.35s smoothly restores full speed")
-	var width:float=beacon.body_width()
+	var width:float=beacon.emitter_width()
 	check(PROFILE.width(width,.6,0)<width*.1,"preparation begins with a thin ray")
-	check(PROFILE.width(width,0,PROFILE.FIRING-.08)>width and PROFILE.width(width,0,PROFILE.FIRING-.08)<width*1.2,"burst overshoots slightly beyond body width")
-	check(PROFILE.width(width,0,PROFILE.FIRING-.2)<width*.9 and absf(PROFILE.width(width,0,PROFILE.FIRING-.6)-width*.9)<width*.01,"burst recoils and elastically settles")
+	check(PROFILE.width(width,0,PROFILE.FIRING-.08)>width and PROFILE.width(width,0,PROFILE.FIRING-.08)<width*1.2,"burst overshoots above the anchored blue core")
+	check(PROFILE.width(width,0,PROFILE.FIRING-.2)<width and absf(PROFILE.width(width,0,PROFILE.FIRING-.6)-width)<width*.01,"burst recoils and elastically settles")
 	check(PROFILE.width(width,0,.175)<PROFILE.width(width,0,.35) and PROFILE.opacity(0,.175)<PROFILE.opacity(0,.35),"shutdown narrows and fades simultaneously")
 	check(PROFILE.width(width,0,0)==0 and PROFILE.opacity(0,0)==0,"shutdown ends at zero width and opacity")
 	for dt:float in [1.0/60.0,1.0/30.0,PROFILE.WARNING+PROFILE.FIRING]:
@@ -113,7 +113,7 @@ func run() -> void:
 	check(beacon._ring_back.ARC.resource_path.ends_with("pixel_arc.gd"),"ring reuses the heavy mace pixel-circle renderer")
 	check(beacon._ring_back.get_index()<beacon._beam_visual.get_index() and beacon._beam_visual.get_index()<beacon._ring_front.get_index(),"rear ring draws behind the shaft and front ring above it")
 	check(beacon._ring_front.PLANE_RATIO>.35 and beacon._ring_front.PLANE_RATIO<.45,"ellipse tilt matches original beacon top-face camera projection")
-	check(beacon._ring_front.global_position==beacon.beam_origin() and beacon.beam_origin().y>beacon.global_position.y-6.6,"ring and ray originate at top-face centre, not highest bounding-box corner")
+	check(beacon._ring_front.global_position==beacon.ring_origin() and beacon.ring_origin().y<beacon.beam_origin().y,"ring stays on glass top while laser originates deeper in blue core")
 	check(not beacon._ring_front.is_in_group("AI_Hazard") and not beacon._ring_front.has_method("get_ai_hazard_info"),"blue ring is cosmetic and cannot add unrequested area damage")
 	var initial_radius:float=beacon._ring_front.radius
 	advance(.12)
@@ -157,13 +157,26 @@ func run() -> void:
 			right=maxf(right,vertex.x)
 			clipped_ok=clipped_ok and vertex.y<=.00001
 		projected_ok=projected_ok and absf(right-left-width)<.0001
-	check(projected_ok,"rotating projected prism preserves exact full gameplay width at every tested angle")
+	check(projected_ok,"projected prism helper preserves exact full gameplay width")
 	check(clipped_ok,"all prism faces terminate at or above ray origin, never below damage rectangle")
-	check(volume.projected_section(width,0.0)!=volume.projected_section(width,.6),"real projected corners move across the shaft, not billboard UV sliding")
+	check(volume.prism_angle()==0.0,"prism orientation stays aligned to the blue cube instead of detaching as it turns")
 	var frozen_angle:float=volume.prism_angle()
 	beacon._process(.5)
-	check(volume.prism_angle()==frozen_angle,"wall-time rendering cannot rotate paused prism")
+	check(volume.prism_angle()==frozen_angle,"wall-time rendering cannot change aligned prism orientation")
 	check(volume.beam_material.get_shader_parameter("faceted")==true,"firing enables original tiled texture with lit facet edges")
+	var model_core:Dictionary=model.elements[2]
+	check(model_core.from==[3.0,3.0,3.0] and model_core.to==[13.0,14.0,13.0],"emitter dimensions come from original inner blue block, not 16-unit glass")
+	var source:PackedVector2Array=volume.source_section(volume.core_width)
+	var expected_source:PackedVector2Array=beacon.EMITTER.core_top(beacon.body_width())
+	var all_corners:bool=true
+	for i:int in range(4):
+		all_corners=all_corners and (beacon.beam_origin()+source[i]).distance_to(beacon.global_position+expected_source[i])<.001
+	check(all_corners,"all four launch corners coincide with original core top even during width overshoot")
+	check(absf(PROFILE.width(width,0,1.0)-width)<.0001 and width<beacon.body_width()*.63,"steady beam is exactly blue-core width, smaller than glass body")
+	check(volume.show_behind_parent and beacon._ring_back.show_behind_parent,"front glass and solid core occlude buried laser while rear ring stays behind it")
+	check(volume._glow.visible and volume._glow.material.shader.code.contains("blend_add"),"active column has an actual additive soft halo, not only a brighter surface")
+	check(beacon._core_glow.visible and beacon._core_glow.material.blend_mode==CanvasItemMaterial.BLEND_MODE_ADD,"inner blue cube receives matching additive source emission")
+	check(not volume._glow.is_in_group("AI_Hazard") and not beacon._core_glow.is_in_group("AI_Hazard"),"light halos do not create extra damage or threat areas")
 	var old_shape:Shape2D=enemy.self_hurtbox.get_child(0).shape
 	var probe:=CircleShape2D.new()
 	probe.radius=.1
@@ -208,6 +221,19 @@ func run() -> void:
 			camera.position=beacon.global_position+Vector2(0,-25)
 			await RenderingServer.frame_post_draw
 			view.get_texture().get_image().save_png(ARTIFACTS+"frame_%03d.png"%i)
+		# Same stationary GPU frame with/without additive layers: measures real light.
+		beacon.warning_left=0
+		beacon.firing_left=3.0
+		beacon._process(0)
+		beacon.set_process(false)
+		await RenderingServer.frame_post_draw
+		var glow_on_error:int=view.get_texture().get_image().save_png(ARTIFACTS+"glow_on.png")
+		beacon._beam_visual._glow.hide()
+		beacon._core_glow.hide()
+		await RenderingServer.frame_post_draw
+		var glow_off_error:int=view.get_texture().get_image().save_png(ARTIFACTS+"glow_off.png")
+		check(glow_on_error==OK and glow_off_error==OK,"paired same-frame GPU captures isolate real halo and source-core emission")
+		beacon.set_process(true)
 		view.queue_free()
 		check(true,"180 actual GPU frames cover the full 5-second beam and top ring")
 	beacon.warning_left=0
@@ -215,8 +241,8 @@ func run() -> void:
 	beacon._process(0)
 	check(beacon._ring_front.visible,"death fixture begins with active ring")
 	beacon.Die()
-	check(not beacon._beam_visual.visible and not beacon._ring_front.visible and not beacon._ring_back.visible and beacon.get_ai_hazard_info().is_empty(),"death cancels all beam damage and animation")
-	print("BEACON_VOLUME: %d checks / %d failures"%[checks,failures])
+	check(not beacon._beam_visual.visible and not beacon._core_glow.visible and not beacon._ring_front.visible and not beacon._ring_back.visible and beacon.get_ai_hazard_info().is_empty(),"death cancels all beam damage and animation")
+	print("BEACON_EMITTER: %d checks / %d failures"%[checks,failures])
 	print("PULSE_TIMES=",times)
 	await clear_units()
 	finish(0 if failures==0 else 1)

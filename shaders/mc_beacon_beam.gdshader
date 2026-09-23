@@ -13,4 +13,5 @@ void fragment() {
 	float edge = faceted ? pow(1.0 - clamp(min(UV.x, 1.0 - UV.x) * 16.0, 0.0, 1.0), 2.0) : 0.0;
 	COLOR = texel * vertex_tint;
 	COLOR.rgb *= 1.0 + edge * 0.12;
+	if (faceted) { COLOR.rgb += texel.rgb * vec3(0.035, 0.075, 0.12); }
 }

@@ -4,6 +4,8 @@ const BEACON_TEXTURE = preload("res://Images/characters/我的世界/wither/beac
 const HEART_TEXTURE = preload("res://Images/characters/我的世界/wither/nether_star.png")
 const VANILLA_SOUND = preload("res://scripts/characters/我的世界/wither/audio.gd")
 const BEAM_VISUAL = preload("res://scripts/characters/我的世界/wither/beacon_beam.gd")
+const EMITTER=preload("res://scripts/characters/我的世界/wither/beacon_emitter.gd")
+const GLOW=preload("res://scripts/characters/我的世界/wither/beacon_glow.gd")
 const RING_VISUAL = preload("res://scripts/characters/我的世界/wither/beacon_ring.gd")
 const PROFILE = preload("res://scripts/characters/我的世界/wither/beacon_profile.gd")
 const GRAVITY:float = 1200.0
@@ -12,6 +14,7 @@ const EPSILON:float = 0.0000001
 const BUFFS:Array[String] = ["speed","haste","strength","resistance","regeneration"]
 var _activated:bool = false
 var _beam_visual:Node2D
+var _core_glow:Node2D
 var _ring_back:Node2D
 var _ring_front:Node2D
 var _body:CollisionShape2D
@@ -43,11 +46,17 @@ func _ready() -> void:
 	_ring_back=RING_VISUAL.new()
 	_ring_back.name="BeaconTopRingBack"
 	_ring_back.top_level=true
+	_ring_back.show_behind_parent=true
 	add_child(_ring_back)
 	_beam_visual=BEAM_VISUAL.new()
 	_beam_visual.name="VanillaBeaconBeam"
 	_beam_visual.top_level=true # Animation, damage and threat all use world units.
 	add_child(_beam_visual)
+	_core_glow=GLOW.new()
+	_core_glow.name="BeaconCoreEmission"
+	_core_glow.on_core=true
+	_core_glow.top_level=true
+	add_child(_core_glow)
 	_ring_front=RING_VISUAL.new()
 	_ring_front.name="BeaconTopRingFront"
 	_ring_front.top_level=true
@@ -62,7 +71,8 @@ func stand(_delta:float): Repel=Vector2.ZERO
 func movement_multiplier() -> float: return PROFILE.speed_factor(warning_left,firing_left)
 func body_width() -> float:
 	return _body.shape.get_rect().size.x*absf(_body.global_scale.x)
-func beam_width() -> float: return PROFILE.width(body_width(),warning_left,firing_left)
+func emitter_width() -> float: return EMITTER.core_width(body_width())
+func beam_width() -> float: return PROFILE.width(emitter_width(),warning_left,firing_left)
 func beam_opacity() -> float: return PROFILE.opacity(warning_left,firing_left)
 func step_mob(delta:float) -> void:
 	var master:ball=Master as ball if is_instance_valid(Master) and Master is ball else null
@@ -163,11 +173,10 @@ func _gravity_step(dt:float,horizontal:float) -> void:
 		if image is Sprite2D: image.visible=true
 		_emit_sound("beacon_activate")
 func beam_origin() -> Vector2:
-	# Emitter is the projected centre of the glass TOP face, not the image's
-	# highest silhouette corner. Ignore charge shake: physics remains stable.
-	var image_scale:float=_body.shape.get_rect().size.x/float(BEACON_TEXTURE.get_width())
-	var offset_y:float=(RING_VISUAL.TOP_SURFACE_UV.y-0.5)*float(BEACON_TEXTURE.get_height())*image_scale*absf(_body.global_scale.y)
-	return global_position+Vector2(0,offset_y)
+	return global_position+EMITTER.beam_tip(body_width())
+func ring_origin() -> Vector2:
+	# The launch ring stays on the glass TOP plane; only the emitter moves inside.
+	return global_position+EMITTER.glass_center(body_width())
 func _clipped_beam() -> Vector2:
 	var origin:Vector2=beam_origin()
 	var source:ball=Master as ball if is_instance_valid(Master) and Master is ball else null
@@ -196,6 +205,7 @@ func Die() -> void:
 	warning_left=0.0
 	firing_left=0.0
 	if is_instance_valid(_beam_visual): _beam_visual.hide()
+	if is_instance_valid(_core_glow): _core_glow.hide()
 	if is_instance_valid(_ring_back): _ring_back.hide()
 	if is_instance_valid(_ring_front): _ring_front.hide()
 	if is_instance_valid(Master) and Master.has_method("apply_beacon_buff"): Master.call("apply_beacon_buff","")
@@ -235,10 +245,13 @@ func _process(delta:float) -> void:
 	super._process(delta)
 	if is_instance_valid(_beam_visual):
 		_beam_visual.global_transform=Transform2D(0.0,beam_origin())
-		_beam_visual.call("update_beam",maxf(beam_origin().y-beam_end.y,0.0),_view_clock,beam_width(),beam_opacity(),warning_left>0 and health>0,firing_left>0 and health>0)
+		_beam_visual.call("update_beam",maxf(beam_origin().y-beam_end.y,0.0),_view_clock,beam_width(),beam_opacity(),warning_left>0 and health>0,firing_left>0 and health>0,emitter_width())
+	if is_instance_valid(_core_glow):
+		_core_glow.global_transform=Transform2D(0.0,global_position)
+		_core_glow.update_glow(emitter_width(),0.0,beam_opacity() if health>0 and not _death_sound_done else 0.0,body_width())
 	var ring_age:float=PROFILE.FIRING-firing_left if firing_left>0 and warning_left<=0 else -1.0
 	for ring:Node2D in [_ring_back,_ring_front]:
 		if is_instance_valid(ring):
-			ring.global_transform=Transform2D(0.0,beam_origin())
+			ring.global_transform=Transform2D(0.0,ring_origin())
 			ring.call("update_ring",ring_age,body_width(),health>0 and not _death_sound_done)
 	queue_redraw()

@@ -1,6 +1,6 @@
 {
-  "before": "ffa8dc53fc8b6bc8475be6d2b6e43868826adde1",
-  "cycle_checks": 54,
+  "before": "a1ff20e8b42d19f8662bf318ea4316e2536ff246",
+  "cycle_checks": 62,
   "cycle_failures": 0,
   "regression_checks": 42,
   "regression_failures": 0,
@@ -21,16 +21,38 @@
     "health_before": 1000,
     "health_after": 700
   },
+  "emitter": {
+    "source": "vanilla inner core, not glass shell",
+    "model_from": [
+      3,
+      3,
+      3
+    ],
+    "model_to": [
+      13,
+      14,
+      13
+    ],
+    "camera": [
+      2,
+      1.6,
+      3
+    ],
+    "model_pixel_scale": 8.648648648648647,
+    "sprite_width": 196,
+    "example_body_width": 12.4,
+    "example_emitter_width": 7.587735723323597,
+    "four_corners_match_source": true,
+    "orientation_fixed_to_core": true,
+    "front_glass_occludes_buried_beam": true,
+    "steady_width_equals_core": true,
+    "initial_upper_overshoot": 1.16,
+    "base_width_capped_to_core": true,
+    "glow_has_damage": false
+  },
   "ring": {
+    "unchanged_glass_top_plane": true,
     "lifetime": 0.46,
-    "plane_ratio": 0.40561610125071507,
-    "top_surface_uv": [
-      0.5,
-      0.196
-    ],
-    "manual_gpu_frames": [
-      20
-    ],
     "damage": false
   },
   "gpu_frames": 180,
@@ -39,34 +61,59 @@
     512
   ],
   "preview_seconds": 6,
-  "measurement_threshold": "B > R+10 and B > 120; dim charge/fade may fall below detection",
-  "preview_sha256": "cdff6bd532de501db5774808a65de82bd095bb3e66e438fbb673de64db2218d1",
+  "manual_gpu_frames": [
+    12,
+    20,
+    90,
+    170
+  ],
+  "preview_path": "user://beacon_emitter/beacon_emitter.mp4",
+  "preview_sha256": "dfcc68de7fe26fd28f3a65b143f455c4c3c588a836494d5f99f3b44a1c4ad0e3",
+  "gpu_emission_measurements": {
+    "comparison": "same frozen GPU frame with only additive halo/core layers toggled",
+    "halo_left_rect": [
+      150,
+      80,
+      165,
+      260
+    ],
+    "halo_right_rect": [
+      220,
+      80,
+      235,
+      260
+    ],
+    "core_rect": [
+      181,
+      403,
+      204,
+      415
+    ],
+    "halo_left_delta_rgb": [
+      3.826,
+      12.933,
+      19.085
+    ],
+    "halo_right_delta_rgb": [
+      3.451,
+      11.805,
+      17.381
+    ],
+    "core_delta_rgb": [
+      18.101,
+      55.467,
+      63.612
+    ],
+    "ending_frame170_bright_blue_pixels": 0,
+    "ending_threshold": "B > R+10 and B > 120, y100 x140:244"
+  },
   "warnings": [
     "Existing shader UID/case warning",
     "Existing World fixture exit ObjectDB leak warning",
-    "Shared mc_nearest stale-cache typed-loop issue seen on initial capture, not fixed globally; owner pose disabled in isolated final capture"
+    "Shared mc_nearest old stale-cache typed-loop issue not fixed globally; owner pose disabled in isolated capture"
   ],
   "not_tested": [
     "Two-client multiplayer",
     "Mass-beacon performance"
-  ],
-  "preview_path": "user://beacon_volume/beacon_volume.mp4",
-  "volume": {
-    "projection": "orthographic prism faces, camera (2,1.6,3)",
-    "inner_width_ratio": 0.68,
-    "rotation_radians_per_second": 0.38,
-    "manual_gpu_frames": [
-      20,
-      45,
-      90,
-      140
-    ],
-    "frame90_column_mean_rgb_y80_259": {
-      "180": 224.74,
-      "200": 107.69
-    },
-    "ending_frame170_bright_blue_pixels": 0,
-    "full_volume_matches_damage_width": true,
-    "physics_balance_and_ring_sources_unchanged": true
-  }
+  ]
 }

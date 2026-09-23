@@ -24,7 +24,7 @@ static func width(body_width:float,warning:float,firing:float) -> float:
 		size=lerpf(thin*1.7,body_width*1.16,1.0-pow(1.0-t,3.0))
 	else:
 		var t:float=elapsed-0.08
-		size=body_width*(0.90+0.26*exp(-10.0*t)*cos(28.0*t))
+		size=body_width*(1.00+0.16*exp(-10.0*t)*cos(28.0*t))
 	return maxf(size,0.0)*(1.0-smooth_phase(1.0-firing/RECOVERY))
 static func opacity(warning:float,firing:float) -> float:
 	if warning>0: return lerpf(0.45,0.95,smooth_phase(1.0-warning/WARNING))
