@@ -22,7 +22,7 @@ INDEX_URL = 'https://piston-meta.mojang.com/v1/packages/adb0a43fae291fd88ee27d85
 INDEX_SHA1 = 'adb0a43fae291fd88ee27d85a372ba6f2072b0a3'
 TEXTURES = [
     'entity/wither/wither.png', 'entity/wither/wither_invulnerable.png',
-    'entity/beacon_beam.png', 'block/soul_sand.png', 'block/wither_rose.png',
+    'entity/beacon_beam.png', 'block/soul_sand.png', 'block/wither_rose.png', 'block/poppy.png',
     'block/beacon.png', 'item/nether_star.png', 'particle/effect_0.png',
     'particle/flash.png', 'particle/big_smoke_0.png',
 ]

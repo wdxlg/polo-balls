@@ -11,7 +11,9 @@ var exploded:bool = false
 func configure(source:ball,direction:Vector2) -> void:
 	source_ref = weakref(source)
 	heading = direction.normalized()
-	rotation = heading.angle()
+	# This is a front-facing skull icon, not a side-view rocket. Spinning it
+	# with its flight direction puts the Minecraft eyes/mouth upside down.
+	rotation = 0.0
 	add_to_group("AI_Hazard")
 func _source() -> ball:
 	var node:Variant = source_ref.get_ref() if source_ref != null else null

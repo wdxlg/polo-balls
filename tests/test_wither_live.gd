@@ -76,16 +76,24 @@ func run() -> void:
 		check(particle.self_modulate.r < 0.16 and particle.self_modulate.g < 0.16 and particle.self_modulate.b < 0.16,"Wither particle tint is near black")
 	wither._blast(enemy.global_position,64.0,45.0,enemy,true)
 	check(enemy.get_node_or_null("WitherStatus") != null,"second impact refreshes one status instead of stacking nodes")
-	# Sweep a real skull into a real enemy. The reused effect must survive the
-	# projectile freeing itself and must not also play a second explosion sound.
+	# Sweep a real skull into a real enemy and a nearby ordinary flower.
+	# This checks the actual projectile path, not only a manual _blast call.
+	var nearby_flower:Node2D = load("res://scripts/characters/我的世界/wither/rose.gd").new()
+	world.add_child(nearby_flower,true)
+	nearby_flower.global_position = enemy.global_position-Vector2(30,0)
+	nearby_flower.configure(wither)
+	nearby_flower.age = 0.6
 	var skull:Node2D = load("res://scripts/characters/我的世界/wither/skull.gd").new()
 	world.add_child(skull,true)
 	skull.global_position = enemy.global_position-Vector2(80,0)
 	skull.configure(wither,Vector2.RIGHT)
+	check(skull.rotation == 0.0 and skull.heading == Vector2.RIGHT,"skull face stays upright in real World while flying right")
 	var explosions_before:int = get_nodes_in_group("MCExplosion").size()
 	skull._physics_process(0.5)
 	var explosions_after:Array[Node] = get_nodes_in_group("MCExplosion")
 	check(skull.exploded and explosions_after.size() == explosions_before+1,"real skull impact spawns exactly one shared MC explosion")
+	check(nearby_flower.withered,"a real skull impact converts an ordinary poppy inside its blast")
+	nearby_flower.queue_free()
 	if explosions_after.size() > explosions_before:
 		var visual:Node = explosions_after.back()
 		check(is_equal_approx(visual.radius,64.0) and not visual.play_audio,"skull explosion uses the shared effect and keeps one sound")
@@ -101,11 +109,34 @@ func run() -> void:
 	world.add_child(rose,true)
 	rose.global_position = enemy.global_position
 	rose.configure(wither)
+	rose.age = 0.6
+	check(rose.get_ai_hazard_info().get("radius",0.0) == 11.0 and rose.get_ai_hazard_info().get("kind","") == "ordinary_rose","ordinary poppy keeps the small trap radius and is not yet a Wither rose")
 	status.remaining = 1.0
-	rose._physics_process(0.6)
-	check(status.remaining > 2.9,"touching a rose refreshes the same Wither status")
-	check(rose.get_ai_hazard_info().get("radius",0.0) == 11.0,"rose threat radius matches its reduced sprite")
-	rose.queue_free()
+	before = enemy.health
+	rose._physics_process(0.016)
+	check(rose.consumed and rose.is_queued_for_deletion() and is_equal_approx(before-enemy.health,4.0),"stepping on an ordinary poppy deals the prior 4 damage and consumes it")
+	check(is_equal_approx(status.remaining,1.0),"ordinary poppy does not add or refresh Wither status")
+	var converted:Node2D = load("res://scripts/characters/我的世界/wither/rose.gd").new()
+	world.add_child(converted,true)
+	converted.global_position = enemy.global_position+Vector2(90,0)
+	converted.configure(wither)
+	converted.age = 0.6
+	var far_flower:Node2D = load("res://scripts/characters/我的世界/wither/rose.gd").new()
+	world.add_child(far_flower,true)
+	far_flower.global_position = converted.global_position+Vector2(170,0)
+	far_flower.configure(wither)
+	far_flower.age = 0.6
+	wither._blast(converted.global_position,64.0,0.0,null,false)
+	check(not converted.withered,"awakening blast does not transform poppies")
+	wither._blast(converted.global_position,64.0,0.0,null,true)
+	check(converted.withered and converted.is_in_group("WitherRose"),"skull blast converts only roses within its area")
+	check(not far_flower.withered,"poppies outside the skull blast remain ordinary")
+	converted.global_position = enemy.global_position
+	before = enemy.health
+	converted._physics_process(0.016)
+	check(converted.consumed and converted.is_queued_for_deletion() and is_equal_approx(before-enemy.health,4.0),"transformed rose deals the same 4 damage and disappears when stepped on")
+	check(status.remaining > 2.9,"transformed rose refreshes the same Wither status")
+	far_flower.queue_free()
 	status.remaining = 3.0
 	status.tick_left = 1.0
 	before = enemy.health
@@ -142,7 +173,7 @@ func run() -> void:
 	wither._charge_left = 999.0
 	wither.state_machine.set_physics_process(true)
 	await create_timer(2.0).timeout
-	check(get_nodes_in_group("WitherRose").size() > 0,"live physics grows a Wither rose")
+	check(get_nodes_in_group("WitherFlower").size() > 0,"live physics grows ordinary poppies first")
 	check(wither._shot_left > 1.0,"live physics triggers the scheduled skull attack")
 	await clear_units()
 	finish(0 if failures == 0 else 1)

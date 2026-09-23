@@ -43,7 +43,7 @@ var _bedrock_model:Node3D
 var _bedrock_camera:Camera3D
 var _animation_life:float = 0.0
 var _next_shoot_head:int = 0
-var _remote_body_heading:Vector2 = Vector2.DOWN
+var _remote_body_heading:Vector2 = Vector2.UP
 var _remote_look_position:Vector2 = Vector2.ZERO
 var _remote_aim_valid:bool = false
 
@@ -199,7 +199,7 @@ func tick_physics(state:State,delta:float) -> void:
 	if _rose_left <= 0:
 		_rose_left = rose_interval
 		var own_roses:int = 0
-		for rose:Node in get_tree().get_nodes_in_group("WitherRose"):
+		for rose:Node in get_tree().get_nodes_in_group("WitherFlower"):
 			if is_instance_valid(rose) and rose.get("source_ref") is WeakRef and rose.get("source_ref").get_ref() == self: own_roses += 1
 		if own_roses < 3: _grow_rose()
 	if _charge_windup > 0:
@@ -305,6 +305,14 @@ func apply_wither(target:ball) -> void:
 		target.add_child(status)
 	status.call("refresh",self)
 func _blast(center:Vector2,radius:float,damage:float,direct:ball,apply_effect:bool) -> void:
+	# Only skull blasts convert nearby ordinary poppies; the awakening blast
+	# must not turn every flower into a Wither rose.
+	if apply_effect:
+		for rose:Node in get_tree().get_nodes_in_group("WitherFlower"):
+			if is_instance_valid(rose) and not rose.is_queued_for_deletion() and rose is Node2D:
+				var flower:Node2D = rose as Node2D
+				if flower.global_position.distance_to(center) <= radius and mc_line_clear(center,flower.global_position):
+					flower.call("become_wither")
 	for node:Node in SubmissionCharacterTools.targeting_candidates(self):
 		if node is ball and mc_enemy(node):
 			var target:ball = node as ball
@@ -350,9 +358,9 @@ func _draw() -> void:
 func _visual_body_heading() -> Vector2:
 	if _charge_windup > 0 or _charge_remaining > 0: return _charge_dir.normalized()
 	if is_player_controlled():
-		if _windup > 0 and has_player_control_aim(): return player_control_aim_direction(Vector2.DOWN)
+		if _windup > 0 and has_player_control_aim(): return player_control_aim_direction(Vector2.UP)
 		if player_control_direction.length_squared() > 0.000001: return player_control_direction.normalized()
-		if has_player_control_aim(): return player_control_aim_direction(Vector2.DOWN)
+		if has_player_control_aim(): return player_control_aim_direction(Vector2.UP)
 	if _windup > 0:
 		var attack_target:ball = mc_nearest(0.0)
 		if attack_target != null:
@@ -360,7 +368,7 @@ func _visual_body_heading() -> Vector2:
 			if attack_delta.length_squared() > 0.000001: return attack_delta.normalized()
 	if summoned and velocity.length_squared() > 36.0: return velocity.normalized()
 	if direction.length_squared() > 0.000001: return direction.normalized()
-	return Vector2.DOWN
+	return Vector2.UP
 func _visual_look_point(body_heading:Vector2) -> Vector2:
 	if is_player_controlled() and has_player_control_aim(): return player_control_aim_world_position(global_position+body_heading*250.0)
 	var target:ball = mc_nearest(0.0) if is_multiplayer_authority() else null

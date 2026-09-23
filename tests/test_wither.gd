@@ -56,11 +56,17 @@ func _run_behaviors() -> void:
     var skull:Node2D = load("res://scripts/characters/我的世界/wither/skull.gd").new()
     skull.configure(wither,Vector2.RIGHT)
     assert(skull.SKULL_DIAMETER == 10.0 and skull.get_ai_hazard_info()["radius"] == 5.0,"small skull sprite and threat agree")
+    for direction:Vector2 in [Vector2.UP,Vector2.DOWN,Vector2.LEFT,Vector2.RIGHT]:
+        skull.configure(wither,direction)
+        assert(skull.rotation == 0.0 and skull.heading == direction,"flying skull icon stays upright while collision/trajectory follows the real heading")
     skull.free()
     var rose:Node2D = load("res://scripts/characters/我的世界/wither/rose.gd").new()
     rose.configure(wither)
     rose.age = 0.6
     assert(rose.ROSE_DIAMETER == 20.0 and rose.get_ai_hazard_info()["radius"] == 11.0,"small rose and contact radius agree")
+    assert(not rose.withered and rose.get_ai_hazard_info()["kind"] == "ordinary_rose" and rose.NORMAL_TEXTURE.resource_path.ends_with("poppy.png"),"spawned flower is the original Minecraft poppy, not a Wither rose")
+    rose.become_wither()
+    assert(rose.withered and rose.get_ai_hazard_info()["kind"] == "wither_rose","skull blast can convert a normal flower")
     rose.free()
     wither._show_explosion(Vector2.ZERO,64.0)
     var local_effect:Node = arena.get_node("MCLocalEffects").get_child(0)
@@ -74,8 +80,8 @@ func _run_behaviors() -> void:
     wither.summoned = true
     var rig:Node3D = wither._bedrock_model
     rig.animate(0.0,Vector2.DOWN,true,1.0,false,[Vector2.LEFT,Vector2.DOWN,Vector2.RIGHT],1.0)
-    assert(rig.bones["head1"].rotation.y < -0.4 and rig.bones["head3"].rotation.y > 0.4, "three heads must track distinct aim directions, not move in lockstep")
-    assert(absf(rig.rotation.y) < 0.01,"down-facing body shows its front")
+    assert(rig.bones["head1"].rotation.y > 0.4 and rig.bones["head3"].rotation.y < -0.4, "three heads must track distinct aim directions, not move in lockstep")
+    assert(absf(absf(rig.rotation.y)-PI) < 0.01,"down-facing body shows its back")
     wither.set_character_visual_flip_h(true)
     assert(not wither.is_character_visual_flipped_h(),"3D yaw must not be reversed again by a 2D sprite mirror")
     var mouths:Array[Vector2] = []
@@ -84,7 +90,7 @@ func _run_behaviors() -> void:
     rig.animate(0.0,Vector2.RIGHT,true,1.0,false,[Vector2.RIGHT,Vector2.RIGHT,Vector2.RIGHT],1.0)
     assert(absf(rig.rotation.y-PI*0.5) < 0.01,"body turns right in world-space, not merely changing eye angle")
     rig.animate(0.0,Vector2.UP,true,1.0,false,[Vector2.UP,Vector2.UP,Vector2.UP],1.0)
-    assert(absf(absf(rig.rotation.y)-PI) < 0.01,"body turns its back when moving up")
+    assert(absf(rig.rotation.y) < 0.01,"body shows its original white-eyed front when moving up")
     rig.animate(0.0,Vector2.DOWN,true,1.0,false,[Vector2.DOWN,Vector2.DOWN,Vector2.DOWN],1.0)
     mouths.clear()
     for i:int in range(3): mouths.append(wither.head_muzzle_world_position(i))
@@ -105,6 +111,6 @@ func _run_behaviors() -> void:
     assert(wither.beacon == first, "heart must not be created twice")
     wither.apply_beacon_buff("haste")
     assert(wither._buff == "haste" and wither._buff_left == 6.0)
-    print("WITHER BEHAVIOR: body yaw, independent head tracking, three projected muzzle origins, equal T-blocks, shared explosion and heart pass")
+    print("WITHER BEHAVIOR: correct front/back yaw, upright skull, poppy-to-Wither-rose lifecycle, projected muzzles and shared effects pass")
     arena.queue_free()
     quit(0)

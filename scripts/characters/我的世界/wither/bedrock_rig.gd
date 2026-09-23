@@ -123,9 +123,10 @@ func animate(original_life_time:float,heading:Vector2,awake:bool,assembly_progre
 	var base_rotation:float = cos(original_life_time*2.0)
 	var upper_rotation:float = (0.065+0.05*base_rotation)*180.0
 	var tail_rotation:float = (0.2+0.1*base_rotation)*180.0
-	# 2D down is camera-facing, right turns the actual 3D body to screen right.
+	# 2D up shows the real front (white eyes), down shows the back.
+	# Keep right/left turns on the matching screen side of the camera.
 	var body_direction:Vector2 = heading.normalized() if heading.length_squared() > 0.000001 else Vector2.DOWN
-	var desired_body_yaw:float = atan2(body_direction.x,body_direction.y)
+	var desired_body_yaw:float = atan2(body_direction.x,-body_direction.y)
 	if not _facing_initialized:
 		_body_yaw = desired_body_yaw
 		_facing_initialized = true
@@ -134,7 +135,7 @@ func animate(original_life_time:float,heading:Vector2,awake:bool,assembly_progre
 	# target vectors. Never derive their pose from the movement direction alone.
 	for i:int in range(3):
 		var aim_direction:Vector2 = head_directions[i].normalized() if i < head_directions.size() and head_directions[i].length_squared() > 0.000001 else body_direction
-		var global_yaw:float = atan2(aim_direction.x,aim_direction.y)
+		var global_yaw:float = atan2(aim_direction.x,-aim_direction.y)
 		var relative_yaw:float = clampf(wrapf(global_yaw-_body_yaw,-PI,PI),-1.15,1.15)
 		var pitch:float = clampf(-aim_direction.y*0.30,-0.30,0.30)
 		var weight:float = clampf(frame_delta*(9.0-float(i)*1.4),0.0,1.0)
