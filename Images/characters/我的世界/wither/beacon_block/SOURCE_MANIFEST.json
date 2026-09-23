@@ -1,0 +1,11 @@
+{
+  "version": "Minecraft Java Edition 1.21.11",
+  "client_url": "https://piston-data.mojang.com/v1/objects/ba2df812c2d12e0219c489c4cd9a5e1f0760f5bd/client.jar",
+  "client_sha1": "ba2df812c2d12e0219c489c4cd9a5e1f0760f5bd",
+  "files": {
+    "models/block/beacon.json": "04abc04bab23a8e42eac76e0b30402d69090334beb69fcad0917247f3e80ce71",
+    "textures/block/glass.png": "cb89c706dce86eac3123cef087d359b5f23098b658a468fb91662b4a9922bcd0",
+    "textures/block/obsidian.png": "d9c7dc812d8e8b995e22caff2b10c1fc663b5e127a94c20a7476cfd88af2cd82",
+    "textures/block/beacon.png": "d42a2fbc58cd9953e0e921754a1b9254902eaa679f4f3d0120f266e0df795f4b"
+  }
+}

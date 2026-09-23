@@ -179,7 +179,7 @@ func run() -> void:
 	beacon.beam_end = beacon._clipped_beam()
 	beacon.warning_left = 0.6
 	beacon.step_mob(0.61)
-	check(beacon.firing_left > 0 and beacon.get_ai_hazard_info().get("shape","") == "segment","beam warning becomes an actual line threat")
+	check(beacon.firing_left > 0 and beacon.get_ai_hazard_info().get("shape","") == "rect","beam warning becomes an actual animated rectangular threat")
 	before = enemy.health
 	for i:int in range(3): beacon.step_mob(0.5)
 	check(enemy.health < before,"ground beacon beam damages enemy through periodic ticks")

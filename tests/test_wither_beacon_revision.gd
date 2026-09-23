@@ -44,7 +44,7 @@ func run() -> void:
 	await physics_frame
 	beacon.step_mob(0.5)
 	check(beacon.landed and beacon._activated,"swept full body lands and activates")
-	check(absf(beacon.global_position.y-(center.y+94.0-beacon._body.shape.get_rect().size.y*absf(beacon._body.global_scale.y)*0.5))<0.1,"landing height matches the actual 74-high collider, not a 20px ray")
+	check(absf(beacon.global_position.y-(center.y+94.0-beacon._body.shape.get_rect().size.y*absf(beacon._body.global_scale.y)*0.5))<0.1,"landing height matches the actual collider height, not a 20px ray")
 	var grounded_y:float = beacon.global_position.y
 	enemy.global_position = center+Vector2(140,-140)
 	var old_x:float = beacon.global_position.x
@@ -70,7 +70,7 @@ func run() -> void:
 	beacon.step_mob(0.016)
 	check(beacon.warning_left>0 and beacon.beam_direction==Vector2.UP,"beam begins warning vertically, not toward a target vector")
 	var threat:Dictionary = beacon.get_ai_hazard_info(enemy)
-	check(threat.start==beacon.beam_origin() and threat.end==beacon.beam_end and threat.radius==7.0,"declared threat uses the exact beam origin, clipped endpoint and 14px width")
+	check(threat.start==beacon.beam_origin() and threat.end==beacon.beam_end and is_equal_approx(threat.radius,beacon.beam_width()*0.5),"declared threat uses the exact beam origin, clipped endpoint and animated width")
 	check(threat.end.x==threat.start.x and threat.end.y<threat.start.y,"warning segment points straight up")
 	var analyzer:Node2D = load("res://scripts/training/combat_threat_analyzer.gd").new()
 	world.add_child(analyzer)
@@ -78,7 +78,7 @@ func run() -> void:
 	analyzer._physics_process(0.1)
 	var warning_drawn:bool = false
 	for region:Dictionary in analyzer.get_world_threats():
-		if region.source_id==beacon.get_instance_id() and region.get("debug_role","")=="detection" and region.shape=="segment": warning_drawn=true
+		if region.source_id==beacon.get_instance_id() and region.get("debug_role","")=="detection" and region.shape=="rect": warning_drawn=true
 	check(warning_drawn and analyzer.visible and threat.damage==0,"actual threat display shows blue windup, not current damage")
 	if DisplayServer.get_name()!="headless": await RenderingServer.frame_post_draw
 	check(threat.danger_in>0,"windup carries delayed danger instead of claiming current damage")
@@ -89,10 +89,10 @@ func run() -> void:
 	analyzer._physics_process(0.1)
 	var attack_drawn:bool = false
 	for region:Dictionary in analyzer.get_world_threats():
-		if region.get("kind","")=="wither_beacon_beam" and region.damage==12.0 and region.get("debug_role","")=="damage": attack_drawn=true
+		if region.get("kind","")=="wither_beacon_beam" and region.damage in [2.0,3.0] and region.get("debug_role","")=="damage": attack_drawn=true
 	check(attack_drawn,"actual threat display switches to active damage during emission")
 	if DisplayServer.get_name()!="headless": await RenderingServer.frame_post_draw
-	check(is_equal_approx(before-enemy.health,12.0),"vertical beam settles one original 12-damage tick above the beacon")
+	check(is_equal_approx(before-enemy.health,12.0),"vertical beam settles five high-frequency pulses totaling 12 damage above the beacon")
 	enemy.global_position = center+Vector2(130,57)
 	before = enemy.health
 	beacon.step_mob(0.5)
