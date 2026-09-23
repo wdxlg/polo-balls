@@ -1,6 +1,6 @@
 {
-  "before": "09c3bf3a47da82902f92c9404e53f6936faf1d64",
-  "cycle_checks": 49,
+  "before": "ffa8dc53fc8b6bc8475be6d2b6e43868826adde1",
+  "cycle_checks": 54,
   "cycle_failures": 0,
   "regression_checks": 42,
   "regression_failures": 0,
@@ -29,10 +29,7 @@
       0.196
     ],
     "manual_gpu_frames": [
-      18,
-      20,
-      23,
-      27
+      20
     ],
     "damage": false
   },
@@ -42,16 +39,8 @@
     512
   ],
   "preview_seconds": 6,
-  "measured_cyan_width_row100": {
-    "2": 0,
-    "19": 86,
-    "35": 66,
-    "161": 33,
-    "165": 0,
-    "170": 0
-  },
   "measurement_threshold": "B > R+10 and B > 120; dim charge/fade may fall below detection",
-  "preview_sha256": "55b374b686fea930bf0049f6d55466cf90566dd0ae21d718a4fc3ad392fec691",
+  "preview_sha256": "cdff6bd532de501db5774808a65de82bd095bb3e66e438fbb673de64db2218d1",
   "warnings": [
     "Existing shader UID/case warning",
     "Existing World fixture exit ObjectDB leak warning",
@@ -60,5 +49,24 @@
   "not_tested": [
     "Two-client multiplayer",
     "Mass-beacon performance"
-  ]
+  ],
+  "preview_path": "user://beacon_volume/beacon_volume.mp4",
+  "volume": {
+    "projection": "orthographic prism faces, camera (2,1.6,3)",
+    "inner_width_ratio": 0.68,
+    "rotation_radians_per_second": 0.38,
+    "manual_gpu_frames": [
+      20,
+      45,
+      90,
+      140
+    ],
+    "frame90_column_mean_rgb_y80_259": {
+      "180": 224.74,
+      "200": 107.69
+    },
+    "ending_frame170_bright_blue_pixels": 0,
+    "full_volume_matches_damage_width": true,
+    "physics_balance_and_ring_sources_unchanged": true
+  }
 }

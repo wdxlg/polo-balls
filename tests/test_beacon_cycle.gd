@@ -1,6 +1,6 @@
 extends "res://scripts/training/test_mc_new5.gd"
 const PROFILE=preload("res://scripts/characters/我的世界/wither/beacon_profile.gd")
-const ARTIFACTS:String="user://beacon_ring/"
+const ARTIFACTS:String="user://beacon_volume/"
 var beacon:Node2D
 var wither:Node2D
 var enemy:Node2D
@@ -144,7 +144,26 @@ func run() -> void:
 	beacon._process(0)
 	var threat:Dictionary=beacon.get_ai_hazard_info(enemy)
 	check(threat.shape=="rect" and threat.half_extents*2==beacon.beam_rect().size and threat.damage==PROFILE.pulse_damage(beacon._pulse_index),"threat matches animated physical rectangle and pulse damage")
-	check(is_equal_approx(beacon._beam_visual.core_width,beacon.beam_rect().size.x),"bright core width matches real damage width")
+	check(is_equal_approx(beacon._beam_visual.core_width,beacon.beam_rect().size.x),"full translucent volume width matches real damage width")
+	var volume:Node2D=beacon._beam_visual
+	var projected_ok:bool=true
+	var clipped_ok:bool=true
+	for angle:float in [0.0,.4,1.4,2.9]:
+		var section:PackedVector2Array=volume.projected_section(width,angle)
+		var left:float=INF
+		var right:float=-INF
+		for vertex:Vector2 in section:
+			left=minf(left,vertex.x)
+			right=maxf(right,vertex.x)
+			clipped_ok=clipped_ok and vertex.y<=.00001
+		projected_ok=projected_ok and absf(right-left-width)<.0001
+	check(projected_ok,"rotating projected prism preserves exact full gameplay width at every tested angle")
+	check(clipped_ok,"all prism faces terminate at or above ray origin, never below damage rectangle")
+	check(volume.projected_section(width,0.0)!=volume.projected_section(width,.6),"real projected corners move across the shaft, not billboard UV sliding")
+	var frozen_angle:float=volume.prism_angle()
+	beacon._process(.5)
+	check(volume.prism_angle()==frozen_angle,"wall-time rendering cannot rotate paused prism")
+	check(volume.beam_material.get_shader_parameter("faceted")==true,"firing enables original tiled texture with lit facet edges")
 	var old_shape:Shape2D=enemy.self_hurtbox.get_child(0).shape
 	var probe:=CircleShape2D.new()
 	probe.radius=.1
@@ -197,7 +216,7 @@ func run() -> void:
 	check(beacon._ring_front.visible,"death fixture begins with active ring")
 	beacon.Die()
 	check(not beacon._beam_visual.visible and not beacon._ring_front.visible and not beacon._ring_back.visible and beacon.get_ai_hazard_info().is_empty(),"death cancels all beam damage and animation")
-	print("BEACON_RING: %d checks / %d failures"%[checks,failures])
+	print("BEACON_VOLUME: %d checks / %d failures"%[checks,failures])
 	print("PULSE_TIMES=",times)
 	await clear_units()
 	finish(0 if failures==0 else 1)
