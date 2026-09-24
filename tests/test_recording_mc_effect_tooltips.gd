@@ -1,0 +1,135 @@
+extends "res://tests/test_battle_recording.gd"
+
+## GPU/encoder regression: compare actual video-source pixels with each
+## original CanvasLayer on/off, then write both MP4s in both recording modes.
+var actors:Array[Node2D] = []
+
+
+func _changed_pixels(on:Image,off:Image,copy:MCPreviewTooltip) -> int:
+	var panel:Control = copy._panel
+	var rectangle:Rect2i = Rect2i(Vector2i(panel.position.round()),Vector2i((panel.size * panel.scale).round()))
+	rectangle = rectangle.intersection(Rect2i(Vector2i.ZERO,on.get_size()))
+	var count:int = 0
+	for y:int in range(rectangle.position.y,rectangle.end.y,3):
+		for x:int in range(rectangle.position.x,rectangle.end.x,3):
+			var a:Color = on.get_pixel(x,y)
+			var b:Color = off.get_pixel(x,y)
+			if maxf(absf(a.r-b.r),maxf(absf(a.g-b.g),absf(a.b-b.b))) > 0.07:
+				count += 1
+	return count
+
+
+func compare_recorded_pixels(actor:Node2D,locale:String) -> void:
+	var source:MCPreviewTooltip = actor.get_node("Minecraft信息框")
+	var mirror:Node = recorder._effect_tooltips
+	var copy:MCPreviewTooltip = mirror.copies[source.get_instance_id()][locale] as MCPreviewTooltip
+	var variant:Node = recorder if locale == "zh" else recorder._secondary
+	mirror.sync()
+	variant._prepare_next_capture()
+	await RenderingServer.frame_post_draw
+	var on:Image = variant._grab_image()
+	source.hide()
+	mirror.sync()
+	variant._prepare_next_capture()
+	await RenderingServer.frame_post_draw
+	var off:Image = variant._grab_image()
+	source.show()
+	mirror.sync()
+	var changed:int = _changed_pixels(on,off,copy)
+	print("TOOLTIP_PIXELS ",actor.name," ",locale," ",changed," panel=",copy._panel.position," size=",copy._panel.size)
+	check(on.get_size() == Vector2i(1080,1920) and changed > 100,"rendered "+actor.name+" tooltip present in "+locale+" video source")
+
+
+func capture_mode(sim:bool) -> void:
+	var mode_name:String = "SIM" if sim else "LIVE"
+	check(recorder.start_simulated() if sim else recorder.start_live(),mode_name+": starts real bilingual encoder")
+	if recorder.is_idle():
+		print("RECORD_TOOLTIP_START_ERROR ",recorder.get_last_error())
+		return
+	await settle(0.3)
+	var copyset:Node = recorder._effect_tooltips
+	copyset.sync()
+	check(copyset.copies.size() == 2,mode_name+": both effects exist in the capture pair")
+	if copyset.copies.size() != 2:
+		recorder.stop()
+		await wait_idle()
+		return
+	var potion_source:MCPreviewTooltip = actors[0].get_node("Minecraft信息框")
+	var enchant_source:MCPreviewTooltip = actors[1].get_node("Minecraft信息框")
+	var pot_zh:MCPreviewTooltip = copyset.copies[potion_source.get_instance_id()].zh
+	var pot_en:MCPreviewTooltip = copyset.copies[potion_source.get_instance_id()].en
+	var ench_zh:MCPreviewTooltip = copyset.copies[enchant_source.get_instance_id()].zh
+	var ench_en:MCPreviewTooltip = copyset.copies[enchant_source.get_instance_id()].en
+	var composition:CanvasLayer = recorder._sim_viewport.get_node("RecordingComposition") as CanvasLayer
+	check(pot_zh.layer > composition.layer and ench_zh.layer > composition.layer,mode_name+": effects cannot be covered by video headers")
+	check(pot_zh._potion_names[0].text == "生命恢复" and pot_en._potion_names[0].text == "Regeneration",mode_name+": potion names in both languages")
+	check((ench_zh._panel.get_child(2) as Label).text == "附魔书" and (ench_en._panel.get_child(2) as Label).text == "Enchanted Book",mode_name+": enchantment names in both languages")
+	for actor:Node2D in actors:
+		for locale:String in ["zh","en"]:
+			await compare_recorded_pixels(actor,locale)
+	await settle(0.15)
+	var recorded_frames:int = recorder._frame_index
+	recorder.stop()
+	await wait_idle()
+	check(recorded_frames >= 2,mode_name+": actual video frames encoded")
+	check(recorder.last_outputs.size() == 2,mode_name+": two language videos saved")
+	for locale:String in ["zh","en"]:
+		var path:String = str(recorder.last_outputs.get(locale,""))
+		check(not path.is_empty() and FileAccess.file_exists(path) and FileAccess.get_file_as_bytes(path).size() > 10000,mode_name+": valid nonempty "+locale+" video at "+path)
+	check(recorder._effect_tooltips == null,mode_name+": capture copies removed on stop")
+	game.now_stop_state = false
+	if game.has_method("continue_game"): game.continue_game()
+	await settle(0.05)
+
+
+func run() -> void:
+	create_timer(140.0,true,false,true).timeout.connect(func(): print("TOOLTIP_VIDEO_TIMEOUT");quit(2))
+	game = root.get_node("Game")
+	var saved:Dictionary = game.Game_Settings.duplicate(true)
+	var saved_locale:String = game.current_locale
+	game.set_language("zh",false)
+	game.Game_Settings.Training_Mode_Type = "manual"
+	game.Game_Settings.Training_Mode = false
+	game.Game_Settings.Training_Boss_Intro = false
+	game.Game_Settings.Camera_Move = false
+	game.Game_Settings.Shaking_Camera = false
+	game.Game_Settings.Map_Background = "blue"
+	game.now_stop_state = false
+	world = load("res://scenes/world.tscn").instantiate()
+	world.tree_entered.connect(func(): current_scene = world,CONNECT_ONE_SHOT)
+	root.add_child(world)
+	if is_instance_valid(world._mc_prewarmer): world._mc_prewarmer.free()
+	root.size = Vector2i(540,960)
+	await settle(0.5)
+	world.now_choose_map = "Map10x10"
+	world.refresh_map_presentation()
+	world.control.team.hide()
+	world.control.hide()
+	controls = world.control._battle_record_controls
+	recorder = controls.recorder
+	recorder.preferences = recorder.PreferencesScript.new("user://tooltip_recording_test.cfg")
+	recorder.preferences.directory = "user://recordings/tooltip_recording_test"
+	recorder.preferences.tail_seconds = 60.0
+	recorder.set_composition(recorder.preferences.FULL)
+	world._battle_setup.clear()
+	var center:Vector2 = world.return_map_world_rect(world._current_map_node()).get_center()
+	for index:int in range(2):
+		var character:String = "药水测试盔甲架" if index == 0 else "附魔测试盔甲架"
+		var actor:Node2D = (load("res://scenes/characters/默认/"+character+".tscn") as PackedScene).instantiate()
+		actor.set("randomize_on_spawn",false)
+		actor.process_mode = Node.PROCESS_MODE_DISABLED
+		actor.set("Team","Team"+str(index))
+		actor.position = center + Vector2(-85 if index == 0 else 85,-120 if index == 0 else 120)
+		world.add_child(actor,true)
+		actors.append(actor)
+		world._battle_setup.append({"id":index+1,"team":"Team"+str(index),"char":character})
+	await settle(0.1)
+	await capture_mode(false)
+	recorder.set_composition(recorder.preferences.FOLLOW)
+	await capture_mode(true)
+	world.queue_free()
+	await process_frame
+	game.Game_Settings = saved
+	game.set_language(saved_locale,false)
+	print("MC_TOOLTIP_VIDEO_RESULT checks=%d failures=%d" % [checks,failures])
+	quit(1 if failures > 0 else 0)

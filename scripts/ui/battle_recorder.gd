@@ -21,6 +21,7 @@ const LIVE_OUTPUT_FPS:float = 60.0
 const OUTPUT_SIZE:Vector2i = Vector2i(1080, 1920)
 const VIDEO_CRF:String = "14"
 const AudioCaptureScript = preload("res://scripts/ui/battle_record_audio.gd")
+const EffectTooltipsScript = preload("res://scripts/ui/battle_record_effect_tooltips.gd")
 const SIM_OUTPUT_FPS:float = 60.0
 ## 胜负分出后继续录制的秒数由设置 → 录制决定（preferences.tail_seconds，默认 5 秒）；两种模式共用。
 const OUTPUT_ROOT:String = "user://recordings"
@@ -54,6 +55,7 @@ const NamingScript = preload("res://scripts/ui/battle_record_naming.gd")
 const LocaleScript = preload("res://scripts/ui/battle_record_locale.gd")
 var _secondary:Node
 var _locale_mirror:Node
+var _effect_tooltips:Node
 var _is_variant:bool = false
 var _locale:String = "zh"
 var _previous_secondary_image:PackedByteArray = PackedByteArray()
@@ -1216,6 +1218,11 @@ func _setup_sim_capture_viewport() -> void:
 			_locale_mirror = LocaleScript.new()
 			add_child(_locale_mirror)
 			_locale_mirror.begin(_world(), main)
+		# CanvasLayers belong to the player Viewport, not its shared World2D.
+		# Add locale-specific copies to BOTH real video sources (LIVE and SIM).
+		_effect_tooltips = EffectTooltipsScript.new()
+		add_child(_effect_tooltips)
+		_effect_tooltips.begin(_sim_viewport,_secondary._sim_viewport)
 
 
 func _setup_recording_composition(sub:SubViewport) -> void:
@@ -1341,6 +1348,10 @@ void fragment() {
 
 
 func _free_sim_capture_viewport() -> void:
+	if is_instance_valid(_effect_tooltips):
+		_effect_tooltips.finish()
+		_effect_tooltips.queue_free()
+	_effect_tooltips = null
 	if is_instance_valid(_secondary): _secondary._free_sim_capture_viewport()
 	_readback_texture = RID()
 	_readback_device = null

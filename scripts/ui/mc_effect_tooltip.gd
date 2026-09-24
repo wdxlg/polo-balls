@@ -15,6 +15,10 @@ const POTION_RIGHT_PADDING:float = 6.0
 const POTION_MIN_WIDTH:float = 40.0
 
 var target:Node2D
+## A recorder copy can render in an offscreen Viewport while following a target
+## from the main world. Empty means use the player's current battle language.
+var locale_override:String = ""
+var content_version:int = 0
 var display_scale:float = 3.0
 var right_gap:float = 8.0
 var screen_margin:float = 8.0
@@ -62,6 +66,7 @@ func _ready() -> void:
 func set_potion_entries(entries:Array[MCPreviewPotionEffect]) -> void:
 	_kind = &"potion"
 	_potions = entries.duplicate()
+	content_version += 1
 	_elapsed = 0.0
 	_rebuild()
 
@@ -71,12 +76,15 @@ func set_enchantment_entries(item_name:String, entries:Array[MCPreviewEnchantmen
 	_item_title = item_name
 	_item_title_en = english_item_name
 	_enchants = entries.duplicate()
+	content_version += 1
 	_rebuild()
 
 
 func _on_language_changed(_locale:String) -> void:
 	# Keep ticking the existing effects instead of restarting their timers when
-	# labels and text-measured nine-slice frames are rebuilt for the new language.
+	# labels and text-measured nine-slice frames are rebuilt. Fixed-language
+	# recorder copies also rebuild: the game's Chinese UI sweep runs before this
+	# signal and may have visited their labels.
 	_rebuild(true)
 
 
@@ -154,8 +162,19 @@ func _text_width(value:String,font:Font) -> float:
 
 
 func _localized(source:String,english_name:String) -> String:
-	if _game != null and str(_game.get("current_locale")).begins_with("en"):
-		return english_name if not english_name.is_empty() else str(_game.call("t",source))
+	var current_locale:String = str(_game.get("current_locale")) if _game != null else "zh"
+	var locale:String = locale_override if not locale_override.is_empty() else current_locale
+	if locale.begins_with("en"):
+		if not english_name.is_empty():
+			return english_name
+		if _game != null:
+			if locale == current_locale:
+				return str(_game.call("t",source))
+			# The two recording outputs may have different locales from the player.
+			# Use the same translation table without changing Game.current_locale.
+			var localizer:Object = _game.get("_localization") as Object
+			if localizer != null and localizer.has_method("_t_for_locale"):
+				return str(localizer.call("_t_for_locale",source,locale,false))
 	return source
 
 
@@ -198,6 +217,9 @@ func _make_label(value:String,color:Color,font:Font,rect:Rect2) -> Label:
 	label.position = rect.position
 	label.size = rect.size
 	_panel.add_child(label)
+	if not locale_override.is_empty():
+		# The global Chinese UI sweep must not replace English text in the video.
+		label.remove_from_group(&"_runtime_localization_controls")
 	return label
 
 
@@ -293,10 +315,20 @@ func _build_enchantments() -> void:
 func _update_position() -> void:
 	if _panel == null or _panel.size == Vector2.ZERO or not is_instance_valid(target) or not target.is_inside_tree():
 		return
-	var bounds:Rect2 = Rect2(target.get_global_transform_with_canvas().origin - Vector2(1.0,1.0),Vector2(2.0,2.0))
+	var screen_transform:Transform2D = target.get_global_transform_with_canvas()
+	# A recording SubViewport shares World2D but has its OWN camera/framing.
+	# get_global_transform_with_canvas() on the actor still uses the main Viewport;
+	# project world coordinates through the capture Viewport instead.
+	var foreign_target:bool = target.get_viewport() != get_viewport()
+	var world_to_screen:Transform2D = Transform2D.IDENTITY
+	if foreign_target:
+		var viewport:Viewport = get_viewport()
+		world_to_screen = viewport.get_stretch_transform() * viewport.global_canvas_transform * viewport.canvas_transform
+		screen_transform = world_to_screen * target.get_global_transform()
+	var bounds:Rect2 = Rect2(screen_transform.origin - Vector2(1.0,1.0),Vector2(2.0,2.0))
 	var image:Sprite2D = target.get_node_or_null("Graphics/Image") as Sprite2D
 	if image != null:
-		bounds = (image.get_global_transform_with_canvas() * image.get_rect()).abs()
+		bounds = ((world_to_screen * image.get_global_transform() if foreign_target else image.get_global_transform_with_canvas()) * image.get_rect()).abs()
 	var visible_rect:Rect2 = get_viewport().get_visible_rect()
 	if not bounds.intersects(visible_rect,true):
 		_panel.hide()
