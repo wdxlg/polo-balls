@@ -1,0 +1,240 @@
+--- a/scripts/characters/我的世界/硫方怪.gd
++++ b/scripts/characters/我的世界/硫方怪.gd
+@@ -2,6 +2,7 @@
+ ## Minecraft 26.2 Sulfur Cube. The official block archetypes are adapted to
+ ## auto-cycling PvP: the block is visible INSIDE the original translucent shell.
+ const AUDIO = preload("res://scripts/characters/我的世界/sulfur_cube_audio.gd")
++const HIT_GAIN = preload("res://scripts/effects/我的世界/hit_audio_gain.gd")
+ const BLAST_FX = preload("res://scripts/effects/我的世界/sulfur_cube_blast.gd")
+ const MODEL = preload("res://scripts/characters/我的世界/sulfur_cube_model.gd")
+ 
+@@ -47,6 +48,11 @@
+ var _hop_timer:float = 0.18
+ var _landing_wait:float = -1.0
+ var _sound_time:Dictionary = {}
++var _sound_duration_ms:Dictionary = {}
++var _motion_audio_until_ms:int = 0
++var _motion_audio_player:AudioStreamPlayer2D
++var _previous_motion_position:Vector2
++var _motion_sample_valid:bool = false
+ var _sulfur_died:bool = false
+ var _model_viewport:SubViewport
+ var _native_model:Node3D
+@@ -55,7 +61,9 @@
+ 	mc_audio_role = "sulfur_cube" # No borrowed Slime voices or animation frames.
+ 	Has_Collision_Damage = false
+ 	Hit_Audio = ""
+-	Dead_Audio = ""
++	# The native creature death voice supplements, never replaces, the game's
++	# standard death bell. mc_mob_base.Die() plays only the creature sound.
++	if Dead_Audio.is_empty(): Dead_Audio = "DeadBell"
+ 	Collide_Audio = ""
+ 	Block_Audio = ""
+ 	BlockBreak_Audio = ""
+@@ -67,6 +75,8 @@
+ 	if self_hitbox != null: self_hitbox.set_deferred("monitoring",false)
+ 	_create_live_model()
+ 	_apply_visual()
++	_previous_motion_position = global_position
++	_motion_sample_valid = true
+ 
+ func get_preview_texture() -> Texture2D:
+ 	# Off-tree selection portraits cannot render a SubViewport. This native-UV
+@@ -170,6 +180,12 @@
+ 
+ func tick_physics(state:State,delta:float) -> void:
+ 	var can_tick:bool = mc_live()
++	# Check the ACTUAL previous-tick displacement, not the desired velocity.
++	# Discard an initial spawn/teleport jump so a stationary cube never steps.
++	var displacement:float = global_position.distance_to(_previous_motion_position)
++	_previous_motion_position = global_position
++	var moved:bool = _motion_sample_valid and displacement > 0.20 and displacement < maxf(36.0,Speed*delta*3.0)
++	_motion_sample_valid = true
+ 	if can_tick:
+ 		_clock += delta
+ 		_surge_left = maxf(_surge_left-delta,0.0)
+@@ -177,13 +193,22 @@
+ 			if _landing_wait > 0.0:
+ 				_landing_wait -= delta
+ 				if _landing_wait <= 0.0:
+-					_landing_wait = -1.0
+-					_emit_sound(&"squish")
+-			_hop_timer -= delta
+-			if _hop_timer <= 0.0:
+-				_hop_timer = 1.9 if is_large_battle_performance_mode() else 0.9
+-				_landing_wait = 0.43
+-				_emit_sound(&"jump")
++					if moved and not is_instance_valid(_emit_sound(&"squish")):
++						# A jump variant can last 0.8–0.9 s, longer than the
++						# visual 0.43 s landing. Wait until it actually ends.
++						_landing_wait = 0.05
++					else:
++						_landing_wait = -1.0
++			if moved:
++				_hop_timer -= delta
++				if _hop_timer <= 0.0 and _landing_wait < 0.0:
++					if is_instance_valid(_emit_sound(&"jump")):
++						_hop_timer = 1.9 if is_large_battle_performance_mode() else 0.9
++						_landing_wait = 0.43
++					else:
++						_hop_timer = 0.05
++			else:
++				_landing_wait = -1.0
+ 		if block_mode == Block.EMPTY:
+ 			_opening += delta
+ 			if _opening >= first_block_delay: set_block(Block.WOOD)
+@@ -270,11 +295,12 @@
+ 		target.Buff_Dic[id]["硫方怪蜂蜜黏滞"] = debuff
+ 
+ static func sulfur_impact_event(actual:float) -> StringName:
+-	return &"entity.player.attack.crit" if actual > 50.0 else &"entity.player.hurt"
++	return StringName(HIT_GAIN.damage_event(actual))
+ 
+ static func sulfur_impact_gain(actual:float) -> float:
+-	# Boost each native hit without borrowing an uncommitted shared-audio helper.
+-	return 6.0*(1.0-50.0/(50.0+actual)) if actual > 0.0 and not is_nan(actual) else 0.0
++	# The shared Minecraft policy starts at the source's 0 dB (1x) and rises
++	# with effective HP damage, up to its capped +6 dB; no -2 dB hit baseline.
++	return HIT_GAIN.damage_gain(actual)
+ 
+ func _damage_with_impact(target:ball,amount:float,point:Vector2) -> bool:
+ 	if not is_multiplayer_authority() or not is_combat_runtime_active() or is_damage_output_disabled() or not mc_enemy(target) or amount <= 0.0: return false
+@@ -333,20 +359,32 @@
+ 	get_tree().current_scene.add_child(fx)
+ 	fx.global_position = point
+ 
+-func _emit_sound(event:StringName,point:Vector2 = Vector2.INF) -> void:
+-	if not is_multiplayer_authority(): return
++func _emit_sound(event:StringName,point:Vector2 = Vector2.INF) -> AudioStreamPlayer2D:
++	if not is_multiplayer_authority(): return null
+ 	var location:Vector2 = global_position if point == Vector2.INF else point
+-	if multiplayer.has_multiplayer_peer(): _sulfur_sound.rpc(event,location,-2.0)
+-	_sulfur_sound(event,location,-2.0)
++	var player:AudioStreamPlayer2D = _sulfur_sound(event,location,-2.0)
++	if is_instance_valid(player) and multiplayer.has_multiplayer_peer(): _sulfur_sound.rpc(event,location,-2.0)
++	return player
+ 
+ @rpc("authority","call_remote","reliable")
+ func _sulfur_sound(event:StringName,point:Vector2,volume:float) -> AudioStreamPlayer2D:
+-	# Throttle ambient cues per actor/event; outgoing damage samples are sent
+-	# separately via _sulfur_impact and are never swallowed by this debounce.
++	# Sound starts are separated by the LAST actually selected Ogg variant's
++	# length / pitch, never just by a fixed interval. Jump and landing squish
++	# share one non-overlapping movement channel on each network peer.
+ 	var now:int = Time.get_ticks_msec()
+-	if now - int(_sound_time.get(event,-10000)) < 90: return null
++	var movement_sound:bool = event in [&"jump",&"squish"]
++	if movement_sound and (now < _motion_audio_until_ms or (is_instance_valid(_motion_audio_player) and _motion_audio_player.playing)): return null
++	if now - int(_sound_time.get(event,-100000)) < maxi(90,int(_sound_duration_ms.get(event,0))): return null
++	var player:AudioStreamPlayer2D = AUDIO.play(self,event,point,volume)
++	if not is_instance_valid(player): return null
+ 	_sound_time[event] = now
+-	return AUDIO.play(self,event,point,volume)
++	if movement_sound:
++		var playback_rate:float = maxf(player.pitch_scale*AudioServer.playback_speed_scale,0.01)
++		var length_ms:int = maxi(1,ceili(player.stream.get_length()*1000.0/playback_rate))
++		_sound_duration_ms[event] = length_ms
++		_motion_audio_until_ms = now+length_ms
++		_motion_audio_player = player
++	return player
+ 
+ func mc_play(event:String,volume:float = -4.0) -> AudioStreamPlayer2D:
+ 	# Inherited hurt/death callbacks route through THIS cube's original voices,
+@@ -379,3 +417,6 @@
+ 	if _sulfur_died: return
+ 	_sulfur_died = true
+ 	super.Die()
++	# mc_mob_base.Die() intentionally supplies the vanilla creature death,
++	# but does not call ball.Die(); keep the normal project death bell as well.
++	if not Dead_Audio.is_empty(): Audios.play_sfx(Dead_Audio,{},true)
+--- a/tests/test_mc_sulfur_cube.gd
++++ b/tests/test_mc_sulfur_cube.gd
+@@ -197,6 +197,41 @@
+ 	check(appearing_block.scale.x > initial_block_scale and appearing_block.scale.x <= 1.0,"new inner block visibly grows into place rather than swapping the whole character sprite")
+ 	check(cube.collision_shape_2d.shape.radius == CUBE.CONTACT_RADIUS and absf(float(attack_region(cube).get("radius",0.0))-cube.get_crowd_separation_radius_world())<0.01,"wood threat matches actual scaled CircleShape2D rather than its 43 local-unit radius")
+ 	await capture("wood")
++	# The native jump/squish clips are this mob's available movement sounds:
++	# no step/ambient event exists in the official Java 26.2 sounds.json.
++	cube.Can_Attack = false
++	cube._hop_timer = -0.01
++	cube._previous_motion_position = cube.global_position
++	cube.tick_physics(0,0.05)
++	check(sulfur_events("jump").is_empty() and sulfur_events("squish").is_empty(),"stationary cube makes no counterfeit footsteps or jump/landing sounds")
++	cube._hop_timer = -0.01
++	cube._previous_motion_position = cube.global_position-Vector2(1000,0)
++	cube.tick_physics(0,0.05)
++	check(sulfur_events("jump").is_empty(),"spawn/teleport displacement does not trigger a movement sound")
++	cube._hop_timer = -0.01
++	cube._previous_motion_position = cube.global_position
++	cube.global_position += Vector2(0.7,0)
++	cube.tick_physics(0,0.05)
++	var native_steps:Array[Node] = sulfur_events("jump")
++	check(native_steps.size()==1 and native_steps[0].stream != null,"real position change triggers one original sulfur cube jump sound")
++	if native_steps.size()==1:
++		var step:AudioStreamPlayer2D = native_steps[0] as AudioStreamPlayer2D
++		var effective_rate:float = maxf(step.pitch_scale*AudioServer.playback_speed_scale,0.01)
++		var clip_ms:int = ceili(step.stream.get_length()*1000.0/effective_rate)
++		check(cube._motion_audio_until_ms-int(cube._sound_time.get(&"jump",0)) >= clip_ms,"movement sound spacing uses selected clip duration and pitch")
++		check(not is_instance_valid(cube._emit_sound(&"squish")) and sulfur_events("squish").is_empty(),"landing cannot overlap a still-playing jump variation")
++		# Simulate the selected jump clip finishing; test the landing channel
++		# deterministically without waiting for the offline engine's audio clock.
++		step.stop()
++		cube._motion_audio_until_ms = Time.get_ticks_msec()-1
++		cube._landing_wait = 0.02
++		cube._previous_motion_position = cube.global_position
++		cube.global_position += Vector2(0.7,0)
++		cube.tick_physics(0,0.05)
++		check(sulfur_events("squish").size()==1,"moving cube can play the original landing squish after the previous clip ends")
++	cube.global_position = center
++	cube._previous_motion_position = center
++	cube.Can_Attack = true
+ 	var friend_before:float = ally.health
+ 	var enemy_before:float = enemy.health
+ 	cube._pulse_contact()
+@@ -207,6 +242,7 @@
+ 	check(ordinary_hits.size() == 1 and float(ordinary_hits[0].volume_db) > 0.0 and ordinary_hits[0].get_meta("mc_damage_source",0) == cube.get_instance_id(),"one vanilla hurt sample from actual below-50 HP damage, amplified above default")
+ 	var ordinary_gain:float = float(ordinary_hits[0].volume_db)
+ 	check(CUBE.sulfur_impact_event(50.0) == &"entity.player.hurt" and CUBE.sulfur_impact_event(50.1) == &"entity.player.attack.crit","sulfur cube's original-MC hit-to-crit threshold is strictly above fifty")
++	check(CUBE.sulfur_impact_gain(0.0)==0.0 and CUBE.sulfur_impact_gain(200.0)>CUBE.sulfur_impact_gain(28.0) and CUBE.sulfur_impact_gain(200.0)<=6.0,"Minecraft hit audio starts at source 0 dB, grows with actual HP lost and caps safely")
+ 	cube.state_machine.last_state_dis["Skill"] = cube.Skill_Cooling+0.1
+ 	cube.state_machine.set_physics_process(true)
+ 	await physics_frame
+@@ -243,9 +279,13 @@
+ 	await capture("honey")
+ 	cube.Skill()
+ 	check(cube.block_mode == CUBE.Block.IRON and native_block_visible(CUBE.Block.IRON,"iron_block"),"iron changes the six-sided original block and remains defensive")
++	cube.hurt_voice_chance = 1.0 # Force probabilistic original hurt sample for the regression.
+ 	var before_iron:float = cube.health
+ 	cube.take_damage(100.0)
+ 	check(cube.health < before_iron and cube.health > before_iron-55.0,"iron reduces incoming damage without full immunity")
++	check(sulfur_events("hurt").size()==1,"actual incoming HP damage can trigger one original sulfur cube hurt voice")
++	cube.take_damage(0.0)
++	check(sulfur_events("hurt").size()==1,"zero damage does not retrigger the creature's hurt voice")
+ 	await capture("iron")
+ 	cube.Skill()
+ 	check(cube.block_mode == CUBE.Block.TNT and absf(cube.fuse_left-CUBE.TNT_FUSE_SECONDS)<0.001,"TNT insertion begins a visible fuse")
+@@ -297,6 +337,10 @@
+ 	check(cube.get_debug_attack_regions().is_empty(),"death removes all declared threat regions")
+ 	cube.Die()
+ 	check(sulfur_events("death").size() == 1,"death hook plays original sulfur cube death sound")
++	var bell:AudioStreamPlayer = root.get_node("Audios").get_node_or_null("Sfx/DeadBell") as AudioStreamPlayer
++	check(bell != null and bell.playing,"death also plays the project's default death bell")
++	cube.Die()
++	check(sulfur_events("death").size() == 1,"repeated death callback does not duplicate the original creature voice")
+ 	world.queue_free()
+ 	await process_frame
+ 	game.Game_Settings = saved
+--- a/tests/test_mc_sulfur_cube_network.gd
++++ b/tests/test_mc_sulfur_cube_network.gd
+@@ -109,6 +109,11 @@
+ 	guest_unit.Skill()
+ 	guest_unit.set_block(CUBE.Block.IRON)
+ 	check(guest_unit.block_mode == CUBE.Block.WOOD and host_unit.block_mode == CUBE.Block.WOOD,"guest cannot initiate another block state")
++	host_unit._hop_timer = -0.01
++	host_unit._previous_motion_position = host_unit.global_position
++	host_unit.global_position += Vector2(0.7,0)
++	host_unit.tick_physics(0,0.05)
++	check(await until(func(): return sulfur_sound_count("jump") >= 2,2.0),"real host displacement plays one original jump sound on both ENet peers")
+ 	host_unit.set_block(CUBE.Block.TNT)
+ 	var primed:bool = await until(func(): return guest_unit.block_mode == CUBE.Block.TNT and absf(guest_unit.fuse_left-CUBE.TNT_FUSE_SECONDS) < 0.12)
+ 	check(primed and guest_unit._native_model.block_mode == CUBE.Block.TNT,"network replicates the guest's internal 3D TNT block and fuse seconds")
