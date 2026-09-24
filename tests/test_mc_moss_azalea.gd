@@ -43,6 +43,7 @@ func run() -> void:
 	var three:Vector2 = origin+Vector2(240,0)
 	moss.patches.assign([{"point":origin,"layers":1,"serial":1},{"point":two,"layers":2,"serial":2},{"point":three,"layers":3,"serial":3}])
 	var canopy:Node2D = moss.get_node("MossAzaleaCanopy")
+	check(is_equal_approx(canopy.nearby_alpha,0.60),"both azalea variants keep at least 60% opacity when shaded")
 	check(canopy.top_level and not canopy.z_as_relative and canopy.z_index > moss.image.z_index and canopy.z_index > 101,"both bush variants render above ground, fighters and elytra")
 	check(canopy.AZALEA.get_size() == Vector2(16,22) and canopy.FLOWERING.get_size() == Vector2(16,22) and canopy.AZALEA != canopy.FLOWERING,"nonflowering and flowering native-texture bushes are distinct real assets")
 	var cells:Dictionary = canopy._canopy_cells()
