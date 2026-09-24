@@ -1,0 +1,221 @@
+{
+  "source": "Mojang official Minecraft Java Edition client JAR",
+  "version": "1.21.4",
+  "client_url": "https://piston-data.mojang.com/v1/objects/a7e5a6024bfd3cd614625aa05629adf760020304/client.jar",
+  "client_sha1": "a7e5a6024bfd3cd614625aa05629adf760020304",
+  "verification": "Client SHA-1 verified before extraction; original PNG bytes were not modified.",
+  "assets": [
+    {
+      "filename": "effect_background_large.png",
+      "jar_path": "assets/minecraft/textures/gui/sprites/container/inventory/effect_background_large.png",
+      "sha256": "a1390b2799f799775763b87c7e1196e47082ee4421d038187e579199d04e3a3e"
+    },
+    {
+      "filename": "tooltip_background.png",
+      "jar_path": "assets/minecraft/textures/gui/sprites/tooltip/background.png",
+      "sha256": "844aa8f558db719d252114b4712ad5977d4c088e7e0df8fc9ed93706bfe4e0c4"
+    },
+    {
+      "filename": "tooltip_frame.png",
+      "jar_path": "assets/minecraft/textures/gui/sprites/tooltip/frame.png",
+      "sha256": "b9be0c1336e35fa59a8e5b4f01ebe2ff417f682a776c2e5560bee195e619f151"
+    },
+    {
+      "filename": "mob_effect/absorption.png",
+      "jar_path": "assets/minecraft/textures/mob_effect/absorption.png",
+      "sha256": "9da320bca432d1f7f45bcdb3b1642c26ea5c7fd3208b458888441ca8f4a92d47"
+    },
+    {
+      "filename": "mob_effect/bad_omen.png",
+      "jar_path": "assets/minecraft/textures/mob_effect/bad_omen.png",
+      "sha256": "5b9875ac4ae397a5ceecd0c51197b66783fc8a9f8eb1051307799b6d488a2971"
+    },
+    {
+      "filename": "mob_effect/blindness.png",
+      "jar_path": "assets/minecraft/textures/mob_effect/blindness.png",
+      "sha256": "710231af41145fe5637bad43b44d35e3586116f37af350220bb403b74b32e951"
+    },
+    {
+      "filename": "mob_effect/conduit_power.png",
+      "jar_path": "assets/minecraft/textures/mob_effect/conduit_power.png",
+      "sha256": "932c2da1f729954144486e35661c756959ebddd64e66bc599c424451682df65b"
+    },
+    {
+      "filename": "mob_effect/darkness.png",
+      "jar_path": "assets/minecraft/textures/mob_effect/darkness.png",
+      "sha256": "a4e38c8302886f5cf9dd4895e3db38acea5c9cb7596568e728bcbfc7a5c3c35b"
+    },
+    {
+      "filename": "mob_effect/dolphins_grace.png",
+      "jar_path": "assets/minecraft/textures/mob_effect/dolphins_grace.png",
+      "sha256": "7769a1c1b3b88df0d3bce3dc1bebbab2c168cc7c136708ff47fcab692596d155"
+    },
+    {
+      "filename": "mob_effect/fire_resistance.png",
+      "jar_path": "assets/minecraft/textures/mob_effect/fire_resistance.png",
+      "sha256": "cee9ba396dada44be8ef3898c9138616e96d6a86b55a1f2add79cc4af063ed15"
+    },
+    {
+      "filename": "mob_effect/glowing.png",
+      "jar_path": "assets/minecraft/textures/mob_effect/glowing.png",
+      "sha256": "118627a3e48f5119f893b7b6abe3aadddb339db91736924266ec4baf4706f044"
+    },
+    {
+      "filename": "mob_effect/haste.png",
+      "jar_path": "assets/minecraft/textures/mob_effect/haste.png",
+      "sha256": "b74dea51205d93bb9b04c21dfdf30707ffd61f0ab4d33245aefceecbfe328ba2"
+    },
+    {
+      "filename": "mob_effect/health_boost.png",
+      "jar_path": "assets/minecraft/textures/mob_effect/health_boost.png",
+      "sha256": "9b689d9bba214c903acf975fe88cb2dfb3130de72eb02327c580bf743ca98885"
+    },
+    {
+      "filename": "mob_effect/hero_of_the_village.png",
+      "jar_path": "assets/minecraft/textures/mob_effect/hero_of_the_village.png",
+      "sha256": "1b39f5d4ad5dffee35ba54b098888a6f280de8f792cb8a6055372c7d6949e71d"
+    },
+    {
+      "filename": "mob_effect/hunger.png",
+      "jar_path": "assets/minecraft/textures/mob_effect/hunger.png",
+      "sha256": "c8a43881c8a0a571354bdfab4b67b2f2791ca9d39119ecc8e634cdecfc1c059d"
+    },
+    {
+      "filename": "mob_effect/infested.png",
+      "jar_path": "assets/minecraft/textures/mob_effect/infested.png",
+      "sha256": "716c0c6a8a5dc1a6e54e640fee58b2b30f28953412ec2d4951412f288502a6a2"
+    },
+    {
+      "filename": "mob_effect/instant_damage.png",
+      "jar_path": "assets/minecraft/textures/mob_effect/instant_damage.png",
+      "sha256": "14b2ce9074bc783003644a7f664d2aa1805fa960fe95960e2624209a3471255e"
+    },
+    {
+      "filename": "mob_effect/instant_health.png",
+      "jar_path": "assets/minecraft/textures/mob_effect/instant_health.png",
+      "sha256": "3f2194931fbf14387039520b3d29d4b31df0f630a3fcd5f23b928c215e042bbe"
+    },
+    {
+      "filename": "mob_effect/invisibility.png",
+      "jar_path": "assets/minecraft/textures/mob_effect/invisibility.png",
+      "sha256": "f74509eea6eaa42218d49cd7763197e6613f85aa74f6cda597f7e8d9866330b5"
+    },
+    {
+      "filename": "mob_effect/jump_boost.png",
+      "jar_path": "assets/minecraft/textures/mob_effect/jump_boost.png",
+      "sha256": "41388fafc2a7fe57f5932a4faac0d7ce6c930b7ce47ac26235daa18cd5aef4f0"
+    },
+    {
+      "filename": "mob_effect/levitation.png",
+      "jar_path": "assets/minecraft/textures/mob_effect/levitation.png",
+      "sha256": "8d8667b0cbafa4106da094969c1f75cbdbbd87a47ed04042c5741265d206421a"
+    },
+    {
+      "filename": "mob_effect/luck.png",
+      "jar_path": "assets/minecraft/textures/mob_effect/luck.png",
+      "sha256": "6289a3a1c99042f5b98cc7f635ac1a4c1d313e88de71667690452fb9095d0b18"
+    },
+    {
+      "filename": "mob_effect/mining_fatigue.png",
+      "jar_path": "assets/minecraft/textures/mob_effect/mining_fatigue.png",
+      "sha256": "c16e4a454f6be63aca317f3c36c11a62c58c4dd0ddab0aecef8f0f4afc05ec83"
+    },
+    {
+      "filename": "mob_effect/nausea.png",
+      "jar_path": "assets/minecraft/textures/mob_effect/nausea.png",
+      "sha256": "b4bd529e0a3330a3565f3e3cfad68c7bcf34475f632b1a2e1cdf7ab6adba25cf"
+    },
+    {
+      "filename": "mob_effect/night_vision.png",
+      "jar_path": "assets/minecraft/textures/mob_effect/night_vision.png",
+      "sha256": "1becf03263afbea3aa8615f9bdba5af86f8e73577c430e8a25d6c4fcbfc9d0b3"
+    },
+    {
+      "filename": "mob_effect/oozing.png",
+      "jar_path": "assets/minecraft/textures/mob_effect/oozing.png",
+      "sha256": "63105b842b31ebf75a77813400df788071c15f763d872fe496f8f50d0cf6b345"
+    },
+    {
+      "filename": "mob_effect/poison.png",
+      "jar_path": "assets/minecraft/textures/mob_effect/poison.png",
+      "sha256": "9645e52d3ba82d4aea34eb57e6852a0c1d54478b3ef2c28e9670408f55c268e4"
+    },
+    {
+      "filename": "mob_effect/raid_omen.png",
+      "jar_path": "assets/minecraft/textures/mob_effect/raid_omen.png",
+      "sha256": "e9b243fd5d75adbe141198c16788af3b4bdd361316b96dd321756d34c3707791"
+    },
+    {
+      "filename": "mob_effect/regeneration.png",
+      "jar_path": "assets/minecraft/textures/mob_effect/regeneration.png",
+      "sha256": "09bd2e8e8669322ab4a2b57ddf17a9a4518d074da6c0033d5e7b2a6c25ee2d30"
+    },
+    {
+      "filename": "mob_effect/resistance.png",
+      "jar_path": "assets/minecraft/textures/mob_effect/resistance.png",
+      "sha256": "815dec530cf9a76a46c9741c568212ed87ee42373da1a43b37a6e050d3aa0e44"
+    },
+    {
+      "filename": "mob_effect/saturation.png",
+      "jar_path": "assets/minecraft/textures/mob_effect/saturation.png",
+      "sha256": "03c1fb7bbefc54cc3298e863ee6eaa0d72e4a8d80a80e43b8db22a941773c2b0"
+    },
+    {
+      "filename": "mob_effect/slow_falling.png",
+      "jar_path": "assets/minecraft/textures/mob_effect/slow_falling.png",
+      "sha256": "af08549911d8a5d3f1b2c9b4680fb3205c32ee8815a3d403de82cd91a94c5ca1"
+    },
+    {
+      "filename": "mob_effect/slowness.png",
+      "jar_path": "assets/minecraft/textures/mob_effect/slowness.png",
+      "sha256": "464cdf67291398c8e98c7e67c56c891ad923f20a51faad07d2a3a99e6ed48e2c"
+    },
+    {
+      "filename": "mob_effect/speed.png",
+      "jar_path": "assets/minecraft/textures/mob_effect/speed.png",
+      "sha256": "ba388036b839b85b04f300aaf81cbf73c452f43ecc4becdfb7296535962086a9"
+    },
+    {
+      "filename": "mob_effect/strength.png",
+      "jar_path": "assets/minecraft/textures/mob_effect/strength.png",
+      "sha256": "2f12f31477ec7e241212924f564816de737eb639e18139297960248852f21a4f"
+    },
+    {
+      "filename": "mob_effect/trial_omen.png",
+      "jar_path": "assets/minecraft/textures/mob_effect/trial_omen.png",
+      "sha256": "6de4961462dd57b48d528ac128ad45680aa60362554f0b48281334f5027137e3"
+    },
+    {
+      "filename": "mob_effect/unluck.png",
+      "jar_path": "assets/minecraft/textures/mob_effect/unluck.png",
+      "sha256": "52155fb42b22b131419c8473a027aa9b1560d06cc2f08f36080ac89ef9173349"
+    },
+    {
+      "filename": "mob_effect/water_breathing.png",
+      "jar_path": "assets/minecraft/textures/mob_effect/water_breathing.png",
+      "sha256": "aca71bb909882ea11faeaf2c89713efc0b2ef446ac0eca7d237dd54a1aaba5be"
+    },
+    {
+      "filename": "mob_effect/weakness.png",
+      "jar_path": "assets/minecraft/textures/mob_effect/weakness.png",
+      "sha256": "2c28c388a57e7afb888c94505e05c9ffb7aa5efe8f67eab37b3ee727d4c27866"
+    },
+    {
+      "filename": "mob_effect/weaving.png",
+      "jar_path": "assets/minecraft/textures/mob_effect/weaving.png",
+      "sha256": "e2057a70dd027941e5c4e883869ccc431e93ff444cc0955fa20702222c48ec48"
+    },
+    {
+      "filename": "mob_effect/wind_charged.png",
+      "jar_path": "assets/minecraft/textures/mob_effect/wind_charged.png",
+      "sha256": "9dad3486243f91b2de54814820565ffd3d2e73bda00aefb4ef7798975fe90d38"
+    },
+    {
+      "filename": "mob_effect/wither.png",
+      "jar_path": "assets/minecraft/textures/mob_effect/wither.png",
+      "sha256": "c19851eec31e86d6cf05fcae91101580ad189c9dcf0582d77ac3680458f5e1ad"
+    }
+  ],
+  "rights": "Minecraft textures belong to Mojang/Microsoft; inclusion does not grant a new license.",
+  "usage": "Potion 120x32 background uses nine-slice expansion; tooltip 100x100 background/frame use their official 9px/10px nine-slice margins. Mob-effect icons are the original 18x18 PNGs."
+}

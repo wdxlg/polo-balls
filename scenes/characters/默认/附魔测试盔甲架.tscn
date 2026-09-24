@@ -1,0 +1,51 @@
+[gd_scene load_steps=12 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/characters/默认/移动盔甲架.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/默认/效果测试盔甲架.gd" id="2_script"]
+[ext_resource type="Script" path="res://scripts/ui/mc_preview_enchantment.gd" id="3_entry"]
+
+[sub_resource type="Resource" id="EnchantPierce"]
+script = ExtResource("3_entry")
+enchantment_name = "穿透"
+level = 4
+
+[sub_resource type="Resource" id="EnchantSharpness"]
+script = ExtResource("3_entry")
+enchantment_name = "锋利"
+level = 5
+
+[sub_resource type="Resource" id="EnchantProtection"]
+script = ExtResource("3_entry")
+enchantment_name = "保护"
+level = 4
+
+[sub_resource type="Resource" id="EnchantUnbreaking"]
+script = ExtResource("3_entry")
+enchantment_name = "耐久"
+level = 3
+
+[sub_resource type="Resource" id="EnchantEfficiency"]
+script = ExtResource("3_entry")
+enchantment_name = "效率"
+level = 5
+
+[sub_resource type="Resource" id="EnchantPower"]
+script = ExtResource("3_entry")
+enchantment_name = "力量"
+level = 5
+
+[sub_resource type="Resource" id="EnchantSmite"]
+script = ExtResource("3_entry")
+enchantment_name = "亡灵杀手"
+level = 3
+
+[sub_resource type="Resource" id="EnchantMending"]
+script = ExtResource("3_entry")
+enchantment_name = "经验修补"
+level = 1
+
+[node name="附魔测试盔甲架" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+tooltip_mode = 1
+tooltip_title = "附魔书"
+enchantment_pool = Array[Resource]([SubResource("EnchantPierce"), SubResource("EnchantSharpness"), SubResource("EnchantProtection"), SubResource("EnchantUnbreaking"), SubResource("EnchantEfficiency"), SubResource("EnchantPower"), SubResource("EnchantSmite"), SubResource("EnchantMending")])

@@ -1,0 +1,79 @@
+extends SceneTree
+
+## Actual GPU preview: two stands placed at the edge of a clipped map Control.
+## The vanilla tooltips must remain visible OUTSIDE the map's clip rectangle.
+func _initialize() -> void:
+	call_deferred("_run")
+
+
+func _run() -> void:
+	create_timer(40.0).timeout.connect(func() -> void: quit(2))
+	root.content_scale_mode = Window.CONTENT_SCALE_MODE_DISABLED
+	root.size = Vector2i(1000,700)
+	var backdrop := ColorRect.new()
+	backdrop.name = "OutsideMapBackdrop"
+	backdrop.color = Color("363437")
+	backdrop.size = Vector2(1000,700)
+	root.add_child(backdrop)
+	var map := Control.new()
+	map.name = "ClipToMapOnly"
+	map.clip_contents = true
+	map.position = Vector2(110,95)
+	map.size = Vector2(405,510)
+	root.add_child(map)
+	current_scene = map
+	var floor := ColorRect.new()
+	floor.color = Color("29372f")
+	floor.size = map.size
+	map.add_child(floor)
+	var border := ColorRect.new()
+	border.color = Color("788174")
+	border.position = map.position + Vector2(map.size.x,-2)
+	border.size = Vector2(2,map.size.y + 4)
+	root.add_child(border)
+
+	var potion:Node2D = (load("res://scenes/characters/默认/药水测试盔甲架.tscn") as PackedScene).instantiate()
+	potion.position = Vector2(345,155)
+	potion.process_mode = Node.PROCESS_MODE_DISABLED
+	potion.set("Team","A")
+	map.add_child(potion,true)
+	var potion_samples:Array[MCPreviewPotionEffect] = [potion.get("potion_pool")[0],potion.get("potion_pool")[1]]
+	potion.call("set_displayed_potions",potion_samples)
+	var enchant:Node2D = (load("res://scenes/characters/默认/附魔测试盔甲架.tscn") as PackedScene).instantiate()
+	enchant.position = Vector2(345,355)
+	enchant.process_mode = Node.PROCESS_MODE_DISABLED
+	enchant.set("Team","A")
+	map.add_child(enchant,true)
+	var enchant_samples:Array[MCPreviewEnchantment] = [enchant.get("enchantment_pool")[0]]
+	enchant.call("set_displayed_enchantments","附魔书",enchant_samples)
+	await RenderingServer.frame_post_draw
+	await RenderingServer.frame_post_draw
+	var image:Image = root.get_texture().get_image()
+	var output:String = "user://mc_effect_tooltips/preview.png"
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://mc_effect_tooltips"))
+	var saved:Error = image.save_png(output)
+	var real_map_right:int = int(map.position.x + map.size.x)
+	var panel_p:Control = potion.get("preview_tooltip").get_node("VanillaTooltip")
+	var panel_e:Control = enchant.get("preview_tooltip").get_node("VanillaTooltip")
+	var rect_p:Rect2 = Rect2(panel_p.position,panel_p.size * panel_p.scale)
+	var rect_e:Rect2 = Rect2(panel_e.position,panel_e.size * panel_e.scale)
+	var extends_past_map:bool = rect_p.end.x > real_map_right + 50 and rect_e.end.x > real_map_right + 25
+	var right_of_actor:bool = rect_p.position.x > potion.get_global_transform_with_canvas().origin.x and rect_e.position.x > enchant.get_global_transform_with_canvas().origin.x
+	# Compare actual rendered frames with and without both tooltips. Comparing to
+	# the source ColorRect would mistake the project's HDR/vignette for tooltip pixels.
+	potion.get("preview_tooltip").set_process(false)
+	enchant.get("preview_tooltip").set_process(false)
+	panel_p.hide()
+	panel_e.hide()
+	await RenderingServer.frame_post_draw
+	await RenderingServer.frame_post_draw
+	var without:Image = root.get_texture().get_image()
+	var outside_changed:int = 0
+	for y:int in range(145,535):
+		for x:int in range(real_map_right + 12,mini(real_map_right + 200,image.get_width())):
+			var pixel:Color = image.get_pixel(x,y)
+			var baseline:Color = without.get_pixel(x,y)
+			if absf(pixel.r - baseline.r) + absf(pixel.g - baseline.g) + absf(pixel.b - baseline.b) > 0.18:
+				outside_changed += 1
+	print("MC_TOOLTIP_GPU saved=",saved == OK," path=",ProjectSettings.globalize_path(output)," image=",image.get_size()," outside_pixels=",outside_changed," beyond_map=",extends_past_map," right_of_actor=",right_of_actor," potion_rect=",rect_p," enchant_rect=",rect_e)
+	quit(0 if saved == OK and outside_changed > 200 and extends_past_map and right_of_actor else 1)

@@ -1,0 +1,69 @@
+[gd_scene load_steps=20 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/characters/默认/移动盔甲架.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/默认/效果测试盔甲架.gd" id="2_script"]
+[ext_resource type="Script" path="res://scripts/ui/mc_preview_potion_effect.gd" id="3_entry"]
+[ext_resource type="Texture2D" path="res://Images/UI/minecraft_tooltips/mob_effect/regeneration.png" id="4_regen"]
+[ext_resource type="Texture2D" path="res://Images/UI/minecraft_tooltips/mob_effect/speed.png" id="5_speed"]
+[ext_resource type="Texture2D" path="res://Images/UI/minecraft_tooltips/mob_effect/strength.png" id="6_strength"]
+[ext_resource type="Texture2D" path="res://Images/UI/minecraft_tooltips/mob_effect/fire_resistance.png" id="7_fire"]
+[ext_resource type="Texture2D" path="res://Images/UI/minecraft_tooltips/mob_effect/night_vision.png" id="8_night"]
+[ext_resource type="Texture2D" path="res://Images/UI/minecraft_tooltips/mob_effect/jump_boost.png" id="9_jump"]
+[ext_resource type="Texture2D" path="res://Images/UI/minecraft_tooltips/mob_effect/water_breathing.png" id="10_water"]
+[ext_resource type="Texture2D" path="res://Images/UI/minecraft_tooltips/mob_effect/resistance.png" id="11_resist"]
+
+[sub_resource type="Resource" id="PotionRegen"]
+script = ExtResource("3_entry")
+effect_name = "生命恢复"
+icon = ExtResource("4_regen")
+duration_seconds = 240
+
+[sub_resource type="Resource" id="PotionSpeed"]
+script = ExtResource("3_entry")
+effect_name = "迅捷"
+icon = ExtResource("5_speed")
+level = 2
+duration_seconds = 145
+
+[sub_resource type="Resource" id="PotionStrength"]
+script = ExtResource("3_entry")
+effect_name = "力量"
+icon = ExtResource("6_strength")
+level = 2
+duration_seconds = 215
+
+[sub_resource type="Resource" id="PotionFire"]
+script = ExtResource("3_entry")
+effect_name = "抗火"
+icon = ExtResource("7_fire")
+duration_seconds = 360
+
+[sub_resource type="Resource" id="PotionNight"]
+script = ExtResource("3_entry")
+effect_name = "夜视"
+icon = ExtResource("8_night")
+duration_seconds = 193
+
+[sub_resource type="Resource" id="PotionJump"]
+script = ExtResource("3_entry")
+effect_name = "跳跃提升"
+icon = ExtResource("9_jump")
+level = 3
+duration_seconds = 172
+
+[sub_resource type="Resource" id="PotionWater"]
+script = ExtResource("3_entry")
+effect_name = "水下呼吸"
+icon = ExtResource("10_water")
+duration_seconds = 121
+
+[sub_resource type="Resource" id="PotionResist"]
+script = ExtResource("3_entry")
+effect_name = "抗性提升"
+icon = ExtResource("11_resist")
+level = 2
+duration_seconds = 310
+
+[node name="药水测试盔甲架" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+potion_pool = Array[Resource]([SubResource("PotionRegen"), SubResource("PotionSpeed"), SubResource("PotionStrength"), SubResource("PotionFire"), SubResource("PotionNight"), SubResource("PotionJump"), SubResource("PotionWater"), SubResource("PotionResist")])
