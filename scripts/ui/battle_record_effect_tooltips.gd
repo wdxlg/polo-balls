@@ -23,7 +23,7 @@ func _copy_settings(source:MCPreviewTooltip,mirror:MCPreviewTooltip) -> void:
 
 func _make_copy(source:MCPreviewTooltip,locale:String) -> MCPreviewTooltip:
 	var copy := MCPreviewTooltip.new()
-	copy.name = "RecordedMinecraftTooltip_" + locale
+	copy.name = "RecordedMinecraftTooltip_" + locale + "_" + str(source.get_instance_id())
 	copy.target = source.target
 	copy.locale_override = locale
 	_copy_settings(source,copy)
@@ -76,36 +76,46 @@ func sync() -> void:
 	for actor:Node in get_tree().get_nodes_in_group("Ball"):
 		if not actor is Node2D:
 			continue
-		var source:MCPreviewTooltip = actor.get_node_or_null("Minecraft信息框") as MCPreviewTooltip
-		if source == null or not source.is_inside_tree() or source.target != actor:
-			continue
-		var id:int = source.get_instance_id()
-		active[id] = true
-		if not copies.has(id):
-			copies[id] = {"source":source,"version":-1,
-				"zh":_make_copy(source,"zh"),"en":_make_copy(source,"en")}
-		var item:Dictionary = copies[id]
-		for locale:String in ["zh","en"]:
-			var mirror:MCPreviewTooltip = item[locale] as MCPreviewTooltip
-			if not is_instance_valid(mirror):
+		# A combatant can show BOTH a preview stand frame and real effects.
+		# Process the preview first so its recorded copy can be the layout anchor.
+		for tooltip_name:String in ["Minecraft信息框","Minecraft药水状态框"]:
+			var source:MCPreviewTooltip = actor.get_node_or_null(tooltip_name) as MCPreviewTooltip
+			if source == null or not source.is_inside_tree() or source.target != actor:
 				continue
-			if int(item.version) != source.content_version:
-				_apply_content(source,mirror)
-			elif _needs_refresh(source,mirror):
-				mirror._rebuild(true)
-			if source._kind == &"potion":
-				var changed:bool = false
-				for index:int in range(mini(mirror._time_labels.size(),source._time_labels.size())):
-					mirror._remaining_seconds[index] = source._remaining_seconds[index]
-					var time:String = source._time_labels[index].text
-					if mirror._time_labels[index].text != time:
-						mirror._time_labels[index].text = time
-						changed = true
-				if changed:
-					mirror._refresh_potion_widths()
-			mirror.visible = source.visible
-			mirror._process(0.0)
-		item.version = source.content_version
+			var id:int = source.get_instance_id()
+			active[id] = true
+			if not copies.has(id):
+				copies[id] = {"source":source,"version":-1,
+					"zh":_make_copy(source,"zh"),"en":_make_copy(source,"en")}
+			var item:Dictionary = copies[id]
+			for locale:String in ["zh","en"]:
+				var mirror:MCPreviewTooltip = item[locale] as MCPreviewTooltip
+				if not is_instance_valid(mirror):
+					continue
+				if tooltip_name == "Minecraft药水状态框":
+					var original:Node = actor.get_node_or_null("Minecraft信息框")
+					if original != null and copies.has(original.get_instance_id()):
+						var primary_copies:Dictionary = copies[original.get_instance_id()]
+						mirror.stack_below = primary_copies.get(locale) as CanvasLayer
+					else:
+						mirror.stack_below = null
+				if int(item.version) != source.content_version:
+					_apply_content(source,mirror)
+				elif _needs_refresh(source,mirror):
+					mirror._rebuild(true)
+				if source._kind == &"potion":
+					var changed:bool = false
+					for index:int in range(mini(mirror._time_labels.size(),source._time_labels.size())):
+						mirror._remaining_seconds[index] = source._remaining_seconds[index]
+						var time:String = source._time_labels[index].text
+						if mirror._time_labels[index].text != time:
+							mirror._time_labels[index].text = time
+							changed = true
+					if changed:
+						mirror._refresh_potion_widths()
+				mirror.visible = source.visible
+				mirror._process(0.0)
+			item.version = source.content_version
 	for id:int in copies.keys():
 		if not active.has(id):
 			_drop(id)

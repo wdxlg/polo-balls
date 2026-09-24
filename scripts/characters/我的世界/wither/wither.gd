@@ -11,6 +11,7 @@ const ROSE = preload("res://scripts/characters/我的世界/wither/rose.gd")
 const BEACON = preload("res://scenes/creatures/我的世界/凋零信标.tscn")
 const AUDIO = preload("res://scripts/characters/我的世界/new5/audio.gd")
 const HIT_GAIN = preload("res://scripts/effects/我的世界/hit_audio_gain.gd")
+const ACTIVE_TOOLTIP = preload("res://scripts/ui/mc_active_effect_tooltip.gd")
 # Entire intro is now the spin; no hidden block-construction portion.
 @export var summon_duration:float = 3.0
 @export var skull_interval:float = 5.0
@@ -31,7 +32,6 @@ var _charge_hits:Dictionary = {}
 var _sync_left:float = 0.0
 var _buff:String = ""
 var _buff_left:float = 0.0
-var _regen_clock:float = 0.0
 var _summon_sound_played:bool = false
 var _idle_left:float = 8.0
 var _effects:Array[WeakRef] = []
@@ -181,11 +181,6 @@ func tick_physics(state:State,delta:float) -> void:
 		_emit_sound("idle%d" % _mc_rng.randi_range(1,2),global_position)
 	_buff_left = maxf(_buff_left-delta,0.0)
 	if _buff_left <= 0: _buff = ""
-	if _buff == "regeneration":
-		_regen_clock += delta
-		if _regen_clock >= 1.0:
-			_regen_clock -= 1.0
-			health = minf(health+2.0,Max_health)
 	_shot_left -= delta
 	_rose_left -= delta
 	_charge_left -= delta
@@ -234,7 +229,7 @@ func tick_physics(state:State,delta:float) -> void:
 		_sync_left = 0.15
 		if multiplayer.has_multiplayer_peer():
 			var body_heading:Vector2 = _visual_body_heading()
-			_sync_appearance.rpc(summon_time,summoned,heart_dropped,_buff,body_heading,_visual_look_point(body_heading))
+			_sync_appearance.rpc(summon_time,summoned,heart_dropped,_buff,_buff_left,body_heading,_visual_look_point(body_heading))
 
 func move(speed:float,delta:float) -> void:
 	if not summoned or _charge_remaining > 0 or _charge_windup > 0:
@@ -305,6 +300,7 @@ func apply_wither(target:ball) -> void:
 		status.name = "WitherStatus"
 		target.add_child(status)
 	status.call("refresh",self)
+	ACTIVE_TOOLTIP.ensure(target)
 func _blast(center:Vector2,radius:float,damage:float,direct:ball,apply_effect:bool) -> void:
 	# Only skull blasts convert nearby ordinary poppies; the awakening blast
 	# must not turn every flower into a Wither rose.
@@ -322,8 +318,15 @@ func _blast(center:Vector2,radius:float,damage:float,direct:ball,apply_effect:bo
 			if impact(target,75.0 if target == direct else damage,center) > 0 and apply_effect: apply_wither(target)
 func apply_beacon_buff(kind:String) -> void:
 	_buff = kind
-	_buff_left = 6.0
-	_regen_clock = 0.0
+	_buff_left = 6.0 if not kind.is_empty() else 0.0
+	# The Wither flies and cannot jump, just as in vanilla Minecraft; Jump Boost
+	# is still a genuine timed effect, not a made-up bonus to its charge damage.
+	if not kind.is_empty():
+		ACTIVE_TOOLTIP.ensure(self)
+	else:
+		var tooltip:Node = get_node_or_null("Minecraft药水状态框")
+		if tooltip != null:
+			tooltip.call("refresh_display")
 func _show_explosion(point:Vector2,visual_radius:float) -> void:
 	# Use the same shared, self-cleaning Minecraft visual as Creeper explosions.
 	# Combat damage and the original Wither explosion sound are settled elsewhere.
@@ -379,11 +382,20 @@ func get_ai_attack_threats(_receiver:ball) -> Array:
 	return []
 func get_debug_attack_regions() -> Array: return get_ai_attack_threats(null)
 @rpc("authority","call_remote","unreliable_ordered")
-func _sync_appearance(time:float,awake:bool,dropped:bool,buff:String,body_heading:Vector2,look_position:Vector2) -> void:
+func _sync_appearance(time:float,awake:bool,dropped:bool,buff:String,buff_left:float,body_heading:Vector2,look_position:Vector2) -> void:
 	summon_time = time
 	summoned = awake
 	heart_dropped = dropped
 	_buff = buff
+	_buff_left = maxf(buff_left,0.0)
+	# The old packet carried the name but omitted the timer. Keep the on-screen
+	# replica tied to the authority's actual six-second beacon countdown.
+	if not _buff.is_empty() and _buff_left > 0.0:
+		ACTIVE_TOOLTIP.ensure(self)
+	else:
+		var tooltip:Node = get_node_or_null("Minecraft药水状态框")
+		if tooltip != null:
+			tooltip.call("refresh_display")
 	_remote_body_heading = body_heading
 	_remote_look_position = look_position
 	_remote_aim_valid = true

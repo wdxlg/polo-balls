@@ -74,10 +74,10 @@ func run() -> void:
 	check(get_nodes_in_group("MCExplosion").size()==effects_before+1,"next tick cannot replay awakening")
 	check(actor.global_position==origin,"intro does not teleport or move the placed character")
 	# Appearance messages use the same phase convention at zero and halfway.
-	actor._sync_appearance(0,false,false,"",Vector2.ZERO,origin+Vector2.UP*250)
+	actor._sync_appearance(0,false,false,"",0.0,Vector2.ZERO,origin+Vector2.UP*250)
 	actor._update_live_pose(0)
 	check(actor.image.visible and absf(actor._bedrock_model.rotation.y)<.001,"synced intro time zero shows new model immediately")
-	actor._sync_appearance(1.5,false,false,"",Vector2.ZERO,origin+Vector2.UP*250)
+	actor._sync_appearance(1.5,false,false,"",0.0,Vector2.ZERO,origin+Vector2.UP*250)
 	actor._update_live_pose(0)
 	check(absf(actor._bedrock_model.rotation.y-TAU)<.001,"synced half-intro phase matches the new spin mapping")
 	# Check a long physics step independently; no block phase or double awakening.

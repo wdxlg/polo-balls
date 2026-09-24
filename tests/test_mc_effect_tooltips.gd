@@ -175,9 +175,29 @@ func _run() -> void:
 	potion_ui._process(2.0)
 	check(potion_ui._time_labels[0].text == before_pause,"visual countdown pauses with the scene tree")
 	paused = false
+	# A demonstration stand can ALSO be hit by an actual Witch potion. Neither
+	# frame may cover the other or replace the stand's editable preview content.
+	potion.position = Vector2(200,440)
+	var one_preview:Array[MCPreviewPotionEffect] = [source_effects[0] as MCPreviewPotionEffect]
+	potion.call("set_displayed_potions",one_preview)
+	potion_ui._process(0.0)
+	var potion_behavior:GDScript = load("res://scripts/effects/我的世界/女巫药水效果.gd") as GDScript
+	potion_behavior.call("apply_effect",potion,"regen")
+	var real_ui:MCPreviewTooltip = potion.get_node_or_null("Minecraft药水状态框") as MCPreviewTooltip
+	check(real_ui != null and potion_ui._potion_names[0].text == "生命恢复","real status adds a separate frame without replacing the armor stand preview")
+	if real_ui != null:
+		real_ui.call("refresh_display")
+		var real_panel:Control = real_ui._panel
+		var demo_rect:Rect2 = Rect2(potion_panel.position,potion_panel.size * potion_panel.scale)
+		var real_rect:Rect2 = Rect2(real_panel.position,real_panel.size * real_panel.scale)
+		check(real_ui.stack_below == potion_ui and potion_panel.visible and real_panel.visible,"preview and live frames both render above the map")
+		check(not demo_rect.intersects(real_rect),"real status frame avoids overlapping the same actor's demonstration frame")
 	potion.hide()
 	potion_ui._process(0.0)
 	check(not potion_panel.visible,"hiding a stand hides its tooltip immediately")
+	if real_ui != null:
+		real_ui.call("refresh_display")
+		check(not real_ui._panel.visible,"hiding the target hides its real effect frame too")
 	potion.show()
 	potion_ui._process(0.0)
 	check(potion_panel.visible,"tooltip reappears with its owner")

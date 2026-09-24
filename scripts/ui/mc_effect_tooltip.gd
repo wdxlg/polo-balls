@@ -15,6 +15,9 @@ const POTION_RIGHT_PADDING:float = 6.0
 const POTION_MIN_WIDTH:float = 40.0
 
 var target:Node2D
+## Optional earlier frame on the same target (e.g. an armor stand's demo box).
+## The real status box moves around it instead of hiding the demo content.
+var stack_below:CanvasLayer
 ## A recorder copy can render in an offscreen Viewport while following a target
 ## from the main world. Empty means use the player's current battle language.
 var locale_override:String = ""
@@ -347,6 +350,50 @@ func _update_position() -> void:
 		clampf(desired.x,inside.x,maxf(inside.x,far_edge.x)),
 		clampf(desired.y,inside.y,maxf(inside.y,far_edge.y))
 	).round()
+	if is_instance_valid(stack_below) and stack_below != self and stack_below.get_viewport() == get_viewport() and stack_below.visible:
+		var first:Control = stack_below.get_node_or_null("VanillaTooltip") as Control
+		if first != null and first.visible:
+			var first_box:Rect2 = Rect2(first.position,first.size * first.scale)
+			if Rect2(_panel.position,scaled_size).intersects(first_box):
+				var gap:float = 8.0
+				var below:float = first_box.end.y + gap
+				var above:float = first_box.position.y - scaled_size.y - gap
+				if below + scaled_size.y <= visible_rect.end.y - screen_margin:
+					_panel.position.y = ceilf(below)
+				elif above >= inside.y:
+					_panel.position.y = floorf(above)
+				elif first_box.end.x + gap + scaled_size.x <= visible_rect.end.x - screen_margin:
+					_panel.position.x = ceilf(first_box.end.x + gap)
+				elif first_box.position.x - gap - scaled_size.x >= inside.x:
+					_panel.position.x = floorf(first_box.position.x - gap - scaled_size.x)
+				else:
+					# A tall live list beside a tall demo may not fit unscaled in any
+					# direction. Choose the largest available disjoint region rather
+					# than painting one tooltip on top of the other.
+					var full_width:float = visible_rect.size.x - screen_margin * 2.0
+					var full_height:float = visible_rect.size.y - screen_margin * 2.0
+					var regions:Array[Rect2] = [
+						Rect2(Vector2(first_box.end.x + gap,inside.y),Vector2(visible_rect.end.x - screen_margin - first_box.end.x - gap,full_height)),
+						Rect2(inside,Vector2(first_box.position.x - gap - inside.x,full_height)),
+						Rect2(Vector2(inside.x,first_box.end.y + gap),Vector2(full_width,visible_rect.end.y - screen_margin - first_box.end.y - gap)),
+						Rect2(inside,Vector2(full_width,first_box.position.y - gap - inside.y)),
+					]
+					var best_scale:float = 0.0
+					var best_region:Rect2
+					for region:Rect2 in regions:
+						if region.size.x <= 0.0 or region.size.y <= 0.0:
+							continue
+						var candidate:float = minf(_panel.scale.x,minf(region.size.x / _panel.size.x,region.size.y / _panel.size.y))
+						if candidate > best_scale:
+							best_scale = candidate
+							best_region = region
+					if best_scale > 0.0:
+						_panel.scale = Vector2.ONE * best_scale
+						scaled_size = _panel.size * _panel.scale
+						_panel.position = Vector2(
+							clampf(desired.x,best_region.position.x,best_region.end.x - scaled_size.x),
+							clampf(desired.y,best_region.position.y,best_region.end.y - scaled_size.y)
+						).round()
 	_panel.show()
 
 

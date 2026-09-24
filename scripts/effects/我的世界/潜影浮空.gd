@@ -1,5 +1,6 @@
 extends Node
 const PARTICLE = preload("res://scripts/effects/我的世界/女巫药水粒子.gd")
+const ACTIVE_TOOLTIP = preload("res://scripts/ui/mc_active_effect_tooltip.gd")
 const META:StringName = &"mc_shulker_levitation"
 var target:ball
 var remaining:float = 3.0
@@ -34,6 +35,8 @@ static func apply(unit:ball,source:Node,duration:float = 3.0) -> void:
 	unit.add_child(effect)
 	unit.set_meta(META,weakref(effect))
 	effect.begin()
+	if not effect.is_queued_for_deletion():
+		ACTIVE_TOOLTIP.ensure(unit)
 
 func begin() -> void:
 	_world = get_tree().current_scene

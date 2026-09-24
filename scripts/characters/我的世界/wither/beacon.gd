@@ -11,7 +11,9 @@ const PROFILE = preload("res://scripts/characters/我的世界/wither/beacon_pro
 const GRAVITY:float = 1200.0
 const TERMINAL_SPEED:float = 1100.0
 const EPSILON:float = 0.0000001
-const BUFFS:Array[String] = ["speed","haste","strength","resistance","regeneration"]
+# The five vanilla level-I PRIMARY beacon effects; regeneration requires the
+# secondary/full-pyramid tier and must not appear in the basic selection.
+const BUFFS:Array[String] = ["speed","haste","resistance","jump_boost","strength"]
 var _activated:bool = false
 var _beam_visual:Node2D
 var _core_glow:Node2D

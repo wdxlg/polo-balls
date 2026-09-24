@@ -2,6 +2,7 @@ extends RefCounted
 
 const STATUS_SCRIPT = preload("res://scripts/effects/我的世界/女巫药水状态.gd")
 const DAMAGE_SFX = preload("res://scripts/effects/我的世界/女巫药水伤害音效.gd")
+const ACTIVE_TOOLTIP = preload("res://scripts/ui/mc_active_effect_tooltip.gd")
 
 const INSTANT_HEAL:String = "instant_heal"
 const REGEN:String = "regen"
@@ -151,6 +152,10 @@ static func apply_effect(target:ball,effect_type:String,source:Variant = null) -
 			var slow_mul:float = _scaled_mul_from_neutral(target,0.58,effect_ratio)
 			_apply_buff(target,"女巫_缓慢",Buff.new(2,8.0,Buff.Buff_types.Speed,slow_mul,Buff.Algorithms.mul))
 			_ensure_status(target,SLOWNESS,8.0,source_node,particle_options)
+	# Only actual sustained statuses appear. Instant healing/damage never leave
+	# a misleading countdown; immune targets returned before any status creation.
+	if effect_type != INSTANT_HEAL and effect_type != INSTANT_DAMAGE:
+		ACTIVE_TOOLTIP.ensure(target)
 
 
 static func _potion_effect_ratio(target:ball,positive:bool) -> float:

@@ -100,6 +100,8 @@ func run() -> void:
 	beacon.step_mob(0.5)
 	beacon.step_mob(beacon.firing_left)
 	check(beacon.beams_fired==1 and not wither._buff.is_empty(),"beam keeps the original one-buff-per-cycle behavior")
+	var live:MCPreviewTooltip = wither.get_node_or_null("Minecraft药水状态框") as MCPreviewTooltip
+	check(beacon.BUFFS.has(wither._buff) and live != null and live._potions[0].icon.resource_path.ends_with("/" + wither._buff + ".png"),"each finished emission gives the Wither one displayed primary beacon effect")
 	analyzer._physics_process(0.1)
 	var lingering:bool = false
 	for region:Dictionary in analyzer.get_world_threats():
@@ -175,6 +177,7 @@ func run() -> void:
 	check(beacon._beam_visual.visible,"death cleanup fixture begins with a visible windup beam")
 	beacon.Die()
 	check(wither._buff.is_empty(),"destroying beacon removes its current summoner buff")
+	check(live != null and not live.visible,"destroying beacon immediately removes the Wither's effect frame")
 	check(not beacon._beam_visual.visible and beacon.get_ai_hazard_info().is_empty() and beacon.get_debug_detection_regions().is_empty(),"death immediately clears beam visual, damage and windup display")
 	var beacon_id:int = beacon.get_instance_id()
 	beacon.queue_free()
