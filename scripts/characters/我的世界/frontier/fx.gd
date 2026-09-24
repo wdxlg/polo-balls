@@ -2,6 +2,7 @@ extends Node2D
 ## Bounded native-texture effects. Ground tiles are visual only; gameplay lives on the authority.
 const NATIVE = preload("res://scripts/characters/我的世界/minecart/native_particles.gd")
 const MOSS_DEBRIS = preload("res://scripts/characters/我的世界/frontier/moss_debris.gd")
+const BLOCK_FRAGMENTS = preload("res://scripts/effects/我的世界/block_fragments.gd")
 const MOSS_GROUND_Z:int = -3
 const MOSS:Texture2D = preload("res://Images/characters/我的世界/frontier/moss_tile.png")
 const GRASS:Texture2D = preload("res://Images/characters/我的世界/frontier/grass.png")
@@ -44,10 +45,14 @@ func burst(kind:String,point:Vector2,end_point:Vector2) -> void:
 		hearing_signals.append({"point":point,"heading":Vector2.ZERO,"age":0.0,"arrived":false,"fade":0.0})
 		queue_redraw()
 		return
-	if kind in ["moss_dig","moss_emerge","moss_break","moss_place"] and is_instance_valid(actor):
+	if kind == "moss_break" and is_instance_valid(actor):
+		var debris:Node2D = BLOCK_FRAGMENTS.spawn_texture(actor,MOSS,point,actor.CELL/float(MOSS.get_width()),{"z_layer":4,"scatter_radius":actor.CELL*0.5,"arc_height_min":12.0,"arc_height_max":28.0})
+		debris.add_to_group("MCMossBreakDebris")
+		return
+	if kind in ["moss_dig","moss_emerge","moss_place"] and is_instance_valid(actor):
 		var debris:Node2D = MOSS_DEBRIS.new()
 		add_child(debris)
-		debris.setup(actor,point,kind != "moss_dig",actor.CELL,kind == "moss_break",kind == "moss_place")
+		debris.setup(actor,point,kind != "moss_dig",actor.CELL,kind == "moss_place")
 		return
 	if kind == "sonic":
 		if beams.size() >= 3: beams.pop_front()

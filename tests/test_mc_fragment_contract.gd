@@ -1,0 +1,80 @@
+extends "res://tests/test_mc_frontier.gd"
+## Independent contract: item death exits arena; destroyed block pixels arc, land and fade.
+const TABLE = preload("res://Images/characters/我的世界/frontier/table_block.png")
+const MOSS = preload("res://Images/characters/我的世界/frontier/moss_tile.png")
+
+func run() -> void:
+	var center:Vector2 = await setup_world()
+	# The test runner registers Game during setup; load gameplay scripts afterwards.
+	var items:Script = load("res://scripts/effects/我的世界/item_fragments.gd")
+	var blocks:Script = load("res://scripts/effects/我的世界/block_fragments.gd")
+	create_timer(45.0).timeout.connect(func(): finish(2))
+	var sword:Node2D = actor("钻石剑",center)
+	await physics_frame
+	var item_fx:Node2D = items.spawn(sword,{"gravity":770.0,"launch_up_min":200.0,"launch_up_max":200.0,"horizontal_speed":0.0,"spin_speed":0.0})
+	item_fx.set_process(false)
+	check(item_fx.is_in_group("MCItemFragments") and not item_fx.is_in_group("MCBlockFragments") and item_fx.pieces.size()>=4,"item death entry is separate and crops current character art")
+	check(is_equal_approx(item_fx.gravity,770.0) and is_equal_approx(item_fx.pieces[0].velocity.x,0.0) and is_equal_approx(item_fx.pieces[0].velocity.y,-200.0) and is_equal_approx(item_fx.pieces[0].spin,0.0),"item shard speed, spin and gravity are configurable at spawn")
+	item_fx.queue_free()
+	await process_frame
+	sword.health = 0
+	sword.Die()
+	var death_fx:Array[Node] = get_nodes_in_group("MCItemFragments")
+	check(death_fx.size()==1 and get_nodes_in_group("MCBlockFragments").is_empty(),"real item death uses item-only fragmentation once")
+	if death_fx.size()==1: death_fx[0].set_process(false)
+	var source := Sprite2D.new()
+	source.texture = TABLE
+	source.global_position = center+Vector2(90,0)
+	world.add_child(source)
+	var cracks := Sprite2D.new()
+	cracks.name = "MCBlockCracksFixture"
+	cracks.texture = TABLE
+	source.add_child(cracks)
+	var block:Node2D = blocks.spawn_obstacle(source,{}, {"scatter_radius":12.0,"arc_height_min":20.0,"arc_height_max":20.0,"flight_min":0.5,"flight_max":0.5,"ground_hold":0.1,"fade_time":0.2,"max_pieces":4})
+	block.set_process(false)
+	check(block.is_in_group("MCBlockFragments") and not block.is_in_group("MCItemFragments") and block.pieces.size()==4,"block uses shared block effect, bounded original pixels and skips cracks overlay")
+	check(block.pieces[0].sprite.texture.atlas==TABLE and block.pieces[0].height==20.0 and block.scatter_radius==12.0,"block shards keep source texture and configured arc parameters")
+	source.queue_free()
+	await process_frame
+	check(is_instance_valid(block),"block particles outlive destroyed source")
+	var first:Dictionary = block.pieces[0]
+	block.advance(0.25)
+	check(first.sprite.global_position.y < first.start.lerp(first.landing,0.5).y and not first.landed,"airborne midpoint is above the ground path")
+	block.advance(0.25)
+	check(first.landed and first.sprite.global_position.is_equal_approx(first.landing) and first.sprite.modulate.a>0.99,"shard visibly lands before fading")
+	block.advance(0.15)
+	check(first.sprite.global_position.is_equal_approx(first.landing) and first.sprite.modulate.a<1.0,"landed shard stays on ground and fades")
+	block.advance(0.16)
+	check(block.is_queued_for_deletion(),"block effect clears shortly after landing, not upon leaving the map")
+	var polygon := Polygon2D.new()
+	polygon.polygon = PackedVector2Array([Vector2(-16,-16),Vector2(16,-16),Vector2(16,16),Vector2(-16,16)])
+	polygon.color = Color(0.4,0.6,0.3)
+	world.add_child(polygon)
+	polygon.global_position = center+Vector2(140,0)
+	var polygon_fx:Node2D = blocks.spawn_obstacle(polygon)
+	polygon_fx.set_process(false)
+	check(not polygon_fx.pieces.is_empty() and polygon_fx.pieces[0].sprite is Polygon2D and polygon_fx.pieces[0].sprite.color==polygon.color,"plain Polygon2D obstacle cuts and lands using its own color")
+	polygon.queue_free()
+	var layer := TileMapLayer.new()
+	var tileset := TileSet.new()
+	var atlas := TileSetAtlasSource.new()
+	atlas.texture = MOSS
+	atlas.texture_region_size = Vector2i(16,16)
+	atlas.create_tile(Vector2i.ZERO)
+	tileset.add_source(atlas,1)
+	layer.tile_set = tileset
+	world.add_child(layer)
+	layer.global_position = center+Vector2(180,0)
+	layer.set_cell(Vector2i.ZERO,1,Vector2i.ZERO)
+	var tile_fx:Node2D = blocks.spawn_obstacle(layer,{"cell":Vector2i.ZERO})
+	tile_fx.set_process(false)
+	check(not tile_fx.pieces.is_empty() and tile_fx.pieces[0].sprite.texture.atlas.atlas==MOSS,"TileMapLayer cuts the actual atlas cell, not the whole tile sheet")
+	layer.queue_free()
+	var bench:Node2D = load("res://scripts/characters/我的世界/frontier/sword_workbench.gd").new()
+	world.add_child(bench)
+	bench.global_position = center+Vector2(220,0)
+	bench.shatter_local()
+	var bench_fx:Array[Node] = get_nodes_in_group("MCSwordBenchDebris")
+	check(bench_fx.size()==1 and bench_fx[0].is_in_group("MCBlockFragments") and not bench_fx[0].pieces.is_empty(),"destroyed sword workbench uses shared block arc, not character death")
+	print("MC FRAGMENT RESULT checks=",checks," failures=",failures)
+	finish(0 if failures==0 else 1)

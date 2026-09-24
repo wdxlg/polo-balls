@@ -4,7 +4,7 @@ extends Node
 const PROFILE=preload("res://scripts/effects/我的世界/mc_obstacle_properties.gd")
 const CRACKS=[preload("res://Images/Status/BlockDamage/destroy_stage_3.png"),preload("res://Images/Status/BlockDamage/destroy_stage_7.png")]
 const CRACK_SHADER=preload("res://scripts/effects/我的世界/ghast_block_cracks.gdshader")
-const FRAGMENTS=preload("res://scripts/effects/我的世界/item_fragments.gd")
+const FRAGMENTS=preload("res://scripts/effects/我的世界/block_fragments.gd")
 var records:Dictionary={}
 static func ensure(context:Node) -> Node:
 	var world:Node=context.get_tree().current_scene
