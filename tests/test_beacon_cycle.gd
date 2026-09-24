@@ -50,6 +50,7 @@ func run() -> void:
 	wither.health=250
 	wither.on_actual_health_damage_received(1,251)
 	beacon=wither.beacon
+	check(beacon.BUFFS == ["speed","haste","resistance","strength"],"Wither beacon cannot randomly grant Jump Boost or regeneration")
 	beacon.state_machine.set_physics_process(false)
 	enemy=spawn("",Vector2(0,-140),"Team1")
 	enemy.Max_health=1000
@@ -79,7 +80,7 @@ func run() -> void:
 	var hp_before_launch:float=enemy.health
 	advance(.01)
 	var launch_buff:String=beacon.last_buff
-	check(beacon.warning_left==0 and absf(beacon.firing_left-PROFILE.FIRING)<.0001 and beacon.damage_ticks==0 and enemy.health==hp_before_launch and beacon.BUFFS.has(launch_buff) and wither._buff==launch_buff and is_equal_approx(wither._buff_left,6.0),"firing grants exactly one primary effect before the first damage pulse")
+	check(beacon.warning_left==0 and absf(beacon.firing_left-PROFILE.FIRING)<.0001 and beacon.damage_ticks==0 and enemy.health==hp_before_launch and beacon.BUFFS.has(launch_buff) and launch_buff!="jump_boost" and wither._buff==launch_buff and is_equal_approx(wither._buff_left,6.0),"firing grants only an allowed primary effect before the first damage pulse")
 	# A non-default sentinel detects any accidental second application at finish.
 	wither._buff_left=2.0
 	advance(PROFILE.FIRING+.01)

@@ -42,7 +42,7 @@ func run() -> void:
 	var effects:GDScript = load("res://scripts/effects/我的世界/mc_status_effects.gd") as GDScript
 	var levitation_script:GDScript = load("res://scripts/effects/我的世界/潜影浮空.gd") as GDScript
 	var primaries:Array = beacon_script.get_script_constant_map().get("BUFFS",[])
-	check(primaries == ["speed","haste","resistance","jump_boost","strength"],"beacon has all five level-I primary effects, not secondary regeneration")
+	check(primaries == ["speed","haste","resistance","strength"],"Wither beacon grants four level-I primaries, without Jump Boost or regeneration")
 	var wither:Node2D = spawn("凋灵",Vector2(-120,-40))
 	var witch:Node2D = spawn("女巫",Vector2(-150,80))
 	var victim:Node2D = spawn("",Vector2(70,10),"Team1")
@@ -79,8 +79,8 @@ func run() -> void:
 	wither._buff = ""
 	ui.call("refresh_display")
 	check(_kinds(wither).is_empty() and not ui.visible,"expired beacon status removes its frame")
-	wither.apply_beacon_buff("jump_boost")
-	check(_kinds(wither).has("jump_boost") and ui.visible,"a later beam wakes the existing hidden frame")
+	wither.apply_beacon_buff("haste")
+	check(_kinds(wither).has("haste") and ui.visible,"a later valid beacon effect wakes the existing hidden frame")
 	# The same appearance packet now carries both kind and remaining time to a
 	# remote Wither (the other status nodes have no multiplayer replication yet).
 	wither._sync_appearance(wither.summon_time,true,false,"speed",2.4,Vector2.ZERO,Vector2.UP)
