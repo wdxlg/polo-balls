@@ -1,0 +1,27 @@
+extends RefCounted
+# Unmodified vanilla OGG assets. Official URLs/hashes: MC16_NATIVE_FEEDBACK_ASSETS.json
+const EVENTS:Dictionary = {
+	"entity.experience_orb.pickup": [preload("res://audio/characters/溺尸/trident.refill_ding.ogg")],
+	"block.enchantment_table.use": [preload("res://audio/characters/溺尸/trident.enchant_1.ogg"), preload("res://audio/characters/溺尸/trident.enchant_2.ogg"), preload("res://audio/characters/溺尸/trident.enchant_3.ogg")],
+	"entity.lightning_bolt.thunder": [preload("res://audio/characters/我的世界/苦力怕/thunder1.ogg"), preload("res://audio/characters/我的世界/苦力怕/thunder2.ogg"), preload("res://audio/characters/我的世界/苦力怕/thunder3.ogg")],
+	"entity.generic.explode": [preload("res://audio/characters/我的世界/苦力怕/explode1.ogg"), preload("res://audio/characters/我的世界/苦力怕/explode2.ogg"), preload("res://audio/characters/我的世界/苦力怕/explode3.ogg"), preload("res://audio/characters/我的世界/苦力怕/explode4.ogg")],
+	"block.redstone_torch.burnout": [preload("res://audio/characters/溺尸/trident.wire_fizz.ogg")],
+	"entity.spider.step": [preload("res://audio/characters/蜘蛛/spider.step_1.ogg"), preload("res://audio/characters/蜘蛛/spider.step_2.ogg"), preload("res://audio/characters/蜘蛛/spider.step_3.ogg"), preload("res://audio/characters/蜘蛛/spider.step_4.ogg")],
+	"entity.spider.lunge": [preload("res://audio/characters/蜘蛛/spider.ambient_1.ogg"), preload("res://audio/characters/蜘蛛/spider.ambient_2.ogg"), preload("res://audio/characters/蜘蛛/spider.ambient_3.ogg"), preload("res://audio/characters/蜘蛛/spider.ambient_4.ogg")],
+	"block.cobweb.place": [preload("res://audio/characters/蜘蛛/cobweb.break_1.ogg"), preload("res://audio/characters/蜘蛛/cobweb.break_2.ogg"), preload("res://audio/characters/蜘蛛/cobweb.break_3.ogg"), preload("res://audio/characters/蜘蛛/cobweb.break_4.ogg"), preload("res://audio/characters/蜘蛛/cobweb.break_5.ogg"), preload("res://audio/characters/蜘蛛/cobweb.break_6.ogg")],
+	"block.cobweb.step": [preload("res://audio/characters/蜘蛛/cobweb.step_1.ogg"), preload("res://audio/characters/蜘蛛/cobweb.step_2.ogg"), preload("res://audio/characters/蜘蛛/cobweb.step_3.ogg"), preload("res://audio/characters/蜘蛛/cobweb.step_4.ogg"), preload("res://audio/characters/蜘蛛/cobweb.step_5.ogg"), preload("res://audio/characters/蜘蛛/cobweb.step_6.ogg")],
+	"entity.drowned.step": [preload("res://audio/characters/溺尸/drowned.step_1.ogg"), preload("res://audio/characters/溺尸/drowned.step_2.ogg"), preload("res://audio/characters/溺尸/drowned.step_3.ogg"), preload("res://audio/characters/溺尸/drowned.step_4.ogg"), preload("res://audio/characters/溺尸/drowned.step_5.ogg")],
+	"item.trident.throw": [preload("res://audio/characters/溺尸/trident.native_throw_1.ogg"), preload("res://audio/characters/溺尸/trident.throw_2.ogg")],
+	"item.trident.hit": [preload("res://audio/characters/溺尸/trident.hit_1.ogg"), preload("res://audio/characters/溺尸/trident.hit_2.ogg"), preload("res://audio/characters/溺尸/trident.hit_3.ogg")],
+	"item.trident.hit_ground": [preload("res://audio/characters/溺尸/trident.hit_ground_1.ogg"), preload("res://audio/characters/溺尸/trident.hit_ground_2.ogg"), preload("res://audio/characters/溺尸/trident.hit_ground_3.ogg"), preload("res://audio/characters/溺尸/trident.hit_ground_4.ogg")],
+	"item.trident.return": [preload("res://audio/characters/溺尸/trident.return_1.ogg"), preload("res://audio/characters/溺尸/trident.return_2.ogg"), preload("res://audio/characters/溺尸/trident.return_3.ogg")],
+	"item.trident.riptide_1": [preload("res://audio/characters/溺尸/trident.charge_1.ogg")],
+	"item.trident.thunder": [preload("res://audio/characters/溺尸/trident.thunder_1.ogg"), preload("res://audio/characters/溺尸/trident.thunder_2.ogg")],
+	"entity.item.pickup": [preload("res://audio/characters/溺尸/trident.pickup_1.ogg")],
+	"entity.spider.ambient": [preload("res://audio/characters/蜘蛛/spider.ambient_1.ogg"), preload("res://audio/characters/蜘蛛/spider.ambient_2.ogg"), preload("res://audio/characters/蜘蛛/spider.ambient_3.ogg"), preload("res://audio/characters/蜘蛛/spider.ambient_4.ogg")],
+	"entity.spider.hurt": [preload("res://audio/characters/蜘蛛/spider.hurt_1.ogg"), preload("res://audio/characters/蜘蛛/spider.hurt_2.ogg"), preload("res://audio/characters/蜘蛛/spider.hurt_3.ogg"), preload("res://audio/characters/蜘蛛/spider.hurt_4.ogg")],
+	"entity.spider.death": [preload("res://audio/characters/蜘蛛/spider.death_1.ogg")],
+	"entity.drowned.ambient": [preload("res://audio/characters/溺尸/drowned.ambient_1.ogg"), preload("res://audio/characters/溺尸/drowned.ambient_2.ogg"), preload("res://audio/characters/溺尸/drowned.ambient_3.ogg"), preload("res://audio/characters/溺尸/drowned.ambient_4.ogg"), preload("res://audio/characters/溺尸/drowned.ambient_5.ogg")],
+	"entity.drowned.hurt": [preload("res://audio/characters/溺尸/drowned.hurt_1.ogg"), preload("res://audio/characters/溺尸/drowned.hurt_2.ogg"), preload("res://audio/characters/溺尸/drowned.hurt_3.ogg")],
+	"entity.drowned.death": [preload("res://audio/characters/溺尸/drowned.death_1.ogg"), preload("res://audio/characters/溺尸/drowned.death_2.ogg")],
+}

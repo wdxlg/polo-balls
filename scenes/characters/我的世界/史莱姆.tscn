@@ -1,0 +1,63 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/我的世界/new5/slime.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/new5/slime_00.png" id="3_visual"]
+
+[sub_resource type="SceneReplicationConfig" id="SlimeIdentityReplication"]
+properties/0/path = NodePath(".:slime_family")
+properties/0/spawn = true
+properties/0/replication_mode = 2
+properties/1/path = NodePath(".:continuation_victory_key")
+properties/1/spawn = true
+properties/1/replication_mode = 2
+properties/2/path = NodePath(".:continuation_presentation_key")
+properties/2/spawn = true
+properties/2/replication_mode = 2
+properties/3/path = NodePath(".:continuation_setup_id")
+properties/3/spawn = true
+properties/3/replication_mode = 2
+
+[sub_resource type="CircleShape2D" id="BodyShape"]
+resource_local_to_scene = true
+radius = 65.0
+
+[node name="史莱姆" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("我的世界", "特殊")
+Max_health = 420
+Damage = 22
+Speed = 90.0
+Attack_Cooling = 999.0
+Skill_Cooling = 999.0
+Health_Restore = 0
+Can_Skill = false
+
+[node name="Image" parent="Graphics" index="0"]
+texture = ExtResource("3_visual")
+texture_filter = 1
+scale = Vector2(1.25, 1.25)
+offset = Vector2(0, 0)
+
+[node name="CollisionShape2D" parent="." index="1"]
+shape = SubResource("BodyShape")
+metadata/_character_auto_fit_v3_manual = true
+
+[node name="CharacterAutoFit" parent="." index="2"]
+enabled = false
+
+[node name="CollisionShape2D" parent="hitbox" index="0"]
+shape = SubResource("BodyShape")
+metadata/_character_auto_fit_v3_manual = true
+
+[node name="CollisionShape2D" parent="hurtbox" index="0"]
+shape = SubResource("BodyShape")
+metadata/_character_auto_fit_v3_manual = true
+
+[node name="SlimeIdentitySync" type="MultiplayerSynchronizer" parent="."]
+root_path = NodePath("..")
+replication_interval = 0.1
+replication_config = SubResource("SlimeIdentityReplication")
+
+[editable path="Health_Bar"]

@@ -1,0 +1,69 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/我的世界/钻石长矛.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/diamond_spear/diamond_spear_in_hand.png" id="3_spear"]
+
+[sub_resource type="RectangleShape2D" id="Body"]
+resource_local_to_scene = true
+size = Vector2(146, 14)
+
+[sub_resource type="RectangleShape2D" id="Hurt"]
+resource_local_to_scene = true
+size = Vector2(160, 30)
+
+[node name="钻石长矛" instance=ExtResource("1_base")]
+editor_description = "原版钻石长矛：移动蓄速，600速度叠满4根虚影，800升级为本体先穿刺、虚影随后逐根穿过并带残影。每轮虚影锁定出手时的目标旧位置，不追踪；连刺前快后重。侧敌触发不降速180度旋扫；前方闪穿不检查敌后角色占位，仍检查墙体与实际地面，落点不断速。"
+script = ExtResource("2_script")
+dir_left = false
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("我的世界", "近战", "加速", "突刺", "虚影", "瞬移")
+Negative_Tags = PackedStringArray("转向降速", "眩晕重置速度")
+Max_health = 500
+Damage = 26
+Speed = 240.0
+Attack_Cooling = 0.65
+Skill_Cooling = 4.5
+Health_Restore = 0
+max_block = 0
+Can_Attack = true
+Can_Skill = true
+direction = Vector2(0, 0)
+motion_blur_enabled = false
+motion_stretch_enabled = false
+AfterImage_Speed = -1.0
+
+[node name="Image" parent="Graphics" index="0"]
+z_as_relative = false
+texture = ExtResource("3_spear")
+texture_filter = 1
+scale = Vector2(3.535534, 3.535534)
+rotation = 2.3561945
+
+[node name="CollisionShape2D" parent="." index="1"]
+shape = SubResource("Body")
+metadata/_character_auto_fit_v3_manual = true
+
+[node name="CharacterAutoFit" parent="." index="2"]
+enabled = false
+
+[node name="hitbox" parent="." index="5"]
+collision_layer = 0
+collision_mask = 0
+monitoring = false
+monitorable = false
+
+[node name="CollisionShape2D" parent="hitbox" index="0"]
+disabled = true
+
+[node name="hurtbox" parent="." index="6"]
+collision_layer = 2
+collision_mask = 0
+monitoring = false
+monitorable = true
+
+[node name="CollisionShape2D" parent="hurtbox" index="0"]
+shape = SubResource("Hurt")
+metadata/_character_auto_fit_v3_manual = true
+
+[editable path="Health_Bar"]

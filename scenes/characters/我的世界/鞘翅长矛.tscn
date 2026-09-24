@@ -1,0 +1,42 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/characters/我的世界/鞘翅重锤.tscn" id="1_flight"]
+[ext_resource type="Script" path="res://scripts/characters/我的世界/鞘翅长矛.gd" id="2_spear"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/elytra_spear/netherite_spear.png" id="3_visual"]
+
+[sub_resource type="RectangleShape2D" id="SpearHurtShape"]
+resource_local_to_scene = true
+size = Vector2(164, 14)
+
+[node name="鞘翅长矛" instance=ExtResource("1_flight")]
+script = ExtResource("2_spear")
+editor_description = "200血。沿用鞘翅重锤滑翔、烟花与越界飞行；下界合金矛尖低速顶人并转开，高速贯穿，伤害随实际飞行速度提高。没有木矛移动蓄速、命中提速、穿刺爆发或穿后扣速，也没有重锤连砸。"
+Type_Tags = PackedStringArray("我的世界", "近战", "飞行", "突刺", "穿透")
+Negative_Tags = PackedStringArray("低血量")
+Max_health = 200
+Damage = 18
+Attack_Cooling = 0.25
+motion_blur_enabled = false
+motion_stretch_enabled = false
+AfterImage_Speed = 342.0
+AfterImage_Spacing = 5.0
+AfterImage_Lifetime = 0.22
+AfterImage_Alpha = 0.5
+AfterImage_Blur_Pixels = 0.0
+AfterImage_End_Blur_Pixels = 0.6
+AfterImage_Smear_Pixels = 0.0
+
+[node name="Image" parent="Graphics" index="0"]
+z_as_relative = false
+z_index = 101
+texture = ExtResource("3_visual")
+texture_filter = 1
+scale = Vector2(3.75, 3.75)
+rotation = 0.785398
+offset = Vector2(0, 0)
+
+[node name="CollisionShape2D" parent="hurtbox" index="0"]
+shape = SubResource("SpearHurtShape")
+metadata/_character_auto_fit_v3_manual = true
+
+[editable path="Health_Bar"]

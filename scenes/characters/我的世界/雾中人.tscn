@@ -1,0 +1,39 @@
+[gd_scene load_steps=5 format=3]
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1"]
+[ext_resource type="Script" path="res://scripts/characters/我的世界/fog_man/actor.gd" id="2"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/fog_man/idle_00.png" id="3"]
+[sub_resource type="RectangleShape2D" id="Body"]
+resource_local_to_scene = true
+size = Vector2(50, 190)
+[node name="雾中人" instance=ExtResource("1")]
+script = ExtResource("2")
+Type_Tags = PackedStringArray("我的世界", "潜行", "雾", "特殊")
+Max_health = 600
+Damage = 45
+Speed = 75.0
+Health_Restore = 0
+Has_Collision_Damage = false
+Can_Attack = true
+Can_Skill = true
+Attack_Cooling = 999.0
+Skill_Cooling = 999.0
+motion_blur_enabled = false
+motion_stretch_enabled = false
+AfterImage_Speed = 0.0
+[node name="Image" parent="Graphics" index="0"]
+texture = ExtResource("3")
+texture_filter = 1
+scale = Vector2(1.4,1.4)
+offset = Vector2(0,-20)
+[node name="CollisionShape2D" parent="." index="1"]
+shape = SubResource("Body")
+metadata/_character_auto_fit_v3_manual = true
+[node name="CharacterAutoFit" parent="." index="2"]
+enabled = false
+[node name="CollisionShape2D" parent="hitbox" index="0"]
+shape = SubResource("Body")
+metadata/_character_auto_fit_v3_manual = true
+[node name="CollisionShape2D" parent="hurtbox" index="0"]
+shape = SubResource("Body")
+metadata/_character_auto_fit_v3_manual = true
+[editable path="Health_Bar"]

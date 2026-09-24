@@ -1,0 +1,73 @@
+[gd_scene format=3 uid="uid://c7wcnl2u31fxs"]
+
+[ext_resource type="PackedScene" uid="uid://dgfmejo2auorn" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" uid="uid://cgndfmbe6r1y" path="res://scripts/characters/我的世界/bat/bat.gd" id="2_script"]
+[ext_resource type="Texture2D" uid="uid://du4vfoho38550" path="res://Images/characters/我的世界/蝙蝠/fly_00.png" id="3_visual"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_kqk1e"]
+resource_local_to_scene = true
+size = Vector2(49, 34)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_yb3od"]
+resource_local_to_scene = true
+size = Vector2(49, 34)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_vny01"]
+resource_local_to_scene = true
+size = Vector2(49, 34)
+
+[node name="蝙蝠" unique_id=1555173298 instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+initial_bat_health = 70
+initial_count = 5
+bat_damage = 5
+vampire_damage = 10
+vampire_health_per_damage = 30
+feeding_damage_reduction = 0.75
+bat_speed = 90.0
+vampire_speed = 120.0
+bat_duration = 12.0
+vampire_duration = 7.0
+detection_range = 45.0
+bite_cooldown = 3.0
+attach_duration = 2.0
+drain_interval = 0.5
+shield_attack_interval = 0.25
+gather_speed = 220.0
+gather_arrival_radius = 5.0
+gather_min_duration = 0.45
+mc_audio_role = ""
+hurt_voice_chance = 0.45
+ambient_gap_min = 3.0
+ambient_gap_max = 7.0
+Type_Tags = PackedStringArray("我的世界", "特殊")
+Damage = 5
+Speed = 90.0
+Max_health = 70
+Can_Attack = false
+Can_Skill = false
+AfterImage_Speed = 0.0
+motion_stretch_enabled = false
+motion_blur_enabled = false
+motion_blur_effect_strength = 0.0
+
+[node name="Image" parent="Graphics" parent_id_path=PackedInt32Array(1055880812) index="0" unique_id=1294062553]
+scale = Vector2(0.55, 0.55)
+texture = ExtResource("3_visual")
+
+[node name="CollisionShape2D" parent="." index="1" unique_id=434200601]
+shape = SubResource("RectangleShape2D_kqk1e")
+metadata/_character_auto_fit_v3_manual = true
+
+[node name="CharacterAutoFit" parent="." index="2" unique_id=1101643520]
+enabled = false
+
+[node name="CollisionShape2D" parent="hitbox" parent_id_path=PackedInt32Array(28640507) index="0" unique_id=390337144]
+shape = SubResource("RectangleShape2D_yb3od")
+metadata/_character_auto_fit_v3_manual = true
+
+[node name="CollisionShape2D" parent="hurtbox" parent_id_path=PackedInt32Array(586576587) index="0" unique_id=58230542]
+shape = SubResource("RectangleShape2D_vny01")
+metadata/_character_auto_fit_v3_manual = true
+
+[editable path="Health_Bar"]

@@ -1,0 +1,63 @@
+[gd_scene format=3]
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/creatures/铁傀儡村民.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/iron_golem/villager_0_preview.png" id="3_visual"]
+[sub_resource type="RectangleShape2D" id="shape_body"]
+resource_local_to_scene = true
+size = Vector2(64, 110)
+[sub_resource type="RectangleShape2D" id="shape_hit"]
+resource_local_to_scene = true
+size = Vector2(64, 110)
+[sub_resource type="RectangleShape2D" id="shape_hurt"]
+resource_local_to_scene = true
+size = Vector2(64, 110)
+[sub_resource type="SceneReplicationConfig" id="PairReplication"]
+properties/0/path = NodePath(".:visual_clip")
+properties/0/spawn = true
+properties/0/replication_mode = 2
+properties/1/path = NodePath(".:visual_clock")
+properties/1/spawn = true
+properties/1/replication_mode = 1
+properties/2/path = NodePath(".:visual_stage")
+properties/2/spawn = true
+properties/2/replication_mode = 2
+properties/3/path = NodePath(".:visual_rage")
+properties/3/spawn = true
+properties/3/replication_mode = 2
+properties/4/path = NodePath(".:continuation_victory_key")
+properties/4/spawn = true
+properties/4/replication_mode = 2
+properties/5/path = NodePath(".:continuation_presentation_key")
+properties/5/spawn = true
+properties/5/replication_mode = 2
+[node name="铁傀儡村民" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+Type_Tags = PackedStringArray("我的世界", "特殊")
+Max_health = 180
+Damage = 70
+Speed = 72.0
+Health_Restore = 0
+Has_Collision_Damage = false
+Can_Attack = false
+Can_Skill = false
+[node name="Image" parent="Graphics" index="0"]
+texture = ExtResource("3_visual")
+scale = Vector2(0.8, 0.8)
+position = Vector2(0, -8.4)
+texture_filter = 1
+[node name="CollisionShape2D" parent="." index="1"]
+shape = SubResource("shape_body")
+metadata/_character_auto_fit_v3_manual = true
+[node name="CharacterAutoFit" parent="." index="2"]
+enabled = false
+[node name="CollisionShape2D" parent="hitbox" index="0"]
+shape = SubResource("shape_hit")
+metadata/_character_auto_fit_v3_manual = true
+[node name="CollisionShape2D" parent="hurtbox" index="0"]
+shape = SubResource("shape_hurt")
+metadata/_character_auto_fit_v3_manual = true
+[node name="PairSync" type="MultiplayerSynchronizer" parent="."]
+root_path = NodePath("..")
+replication_interval = 0.1
+replication_config = SubResource("PairReplication")
+[editable path="Health_Bar"]

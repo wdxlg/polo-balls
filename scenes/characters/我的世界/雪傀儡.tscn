@@ -1,0 +1,52 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1"]
+[ext_resource type="Script" path="res://scripts/characters/我的世界/snow_golem/snow_golem.gd" id="2"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/snow_golem/pumpkin_center.png" id="3"]
+
+[sub_resource type="RectangleShape2D" id="Body"]
+resource_local_to_scene = true
+size = Vector2(90, 142)
+
+[sub_resource type="RectangleShape2D" id="Hurt"]
+resource_local_to_scene = true
+size = Vector2(90, 142)
+
+[node name="雪傀儡" instance=ExtResource("1")]
+script = ExtResource("2")
+Has_Collision_Damage = false
+dir_left = true
+Type_Tags = PackedStringArray("我的世界", "远程", "雪球", "寒冷", "冻结", "雪径", "召唤")
+Max_health = 360
+Damage = 9
+Speed = 80.0
+Attack_Cooling = 2.0
+Skill_Cooling = 999.0
+Health_Restore = 0
+Can_Attack = true
+Can_Skill = false
+motion_blur_enabled = false
+motion_stretch_enabled = false
+AfterImage_Speed = 0.0
+
+[node name="Image" parent="Graphics" index="0"]
+texture = ExtResource("3")
+texture_filter = 1
+scale = Vector2(1, 1)
+offset = Vector2(0, -15)
+
+[node name="CollisionShape2D" parent="." index="1"]
+shape = SubResource("Body")
+metadata/_character_auto_fit_v3_manual = true
+
+[node name="CharacterAutoFit" parent="." index="2"]
+enabled = false
+
+[node name="CollisionShape2D" parent="hitbox" index="0"]
+disabled = true
+
+[node name="CollisionShape2D" parent="hurtbox" index="0"]
+shape = SubResource("Hurt")
+metadata/_character_auto_fit_v3_manual = true
+
+[editable path="Health_Bar"]

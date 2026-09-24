@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/characters/我的世界/new6/heavenfall_bolt.gd" id="1_script"]
+
+[node name="天陨箭矢" type="Area2D"]
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("1_script")
+z_index = 8

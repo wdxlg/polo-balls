@@ -1,0 +1,248 @@
+[gd_resource type="SpriteFrames" load_steps=119 format=3]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_idle_00.png" id="f0"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_idle_01.png" id="f1"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_idle_02.png" id="f2"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_idle_03.png" id="f3"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_idle_04.png" id="f4"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_idle_05.png" id="f5"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_idle_06.png" id="f6"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_idle_07.png" id="f7"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_idle_08.png" id="f8"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_idle_09.png" id="f9"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_idle_10.png" id="f10"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_idle_11.png" id="f11"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_walk_00.png" id="f12"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_walk_01.png" id="f13"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_walk_02.png" id="f14"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_walk_03.png" id="f15"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_walk_04.png" id="f16"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_walk_05.png" id="f17"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_walk_06.png" id="f18"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_walk_07.png" id="f19"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_walk_08.png" id="f20"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_walk_09.png" id="f21"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_walk_10.png" id="f22"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_walk_11.png" id="f23"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_walk_12.png" id="f24"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_walk_13.png" id="f25"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_walk_14.png" id="f26"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_walk_15.png" id="f27"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_emerge_00.png" id="f28"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_emerge_01.png" id="f29"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_emerge_02.png" id="f30"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_emerge_03.png" id="f31"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_emerge_04.png" id="f32"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_emerge_05.png" id="f33"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_emerge_06.png" id="f34"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_emerge_07.png" id="f35"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_emerge_08.png" id="f36"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_emerge_09.png" id="f37"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_emerge_10.png" id="f38"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_emerge_11.png" id="f39"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_emerge_12.png" id="f40"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_emerge_13.png" id="f41"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_emerge_14.png" id="f42"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_emerge_15.png" id="f43"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_emerge_16.png" id="f44"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_emerge_17.png" id="f45"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_emerge_18.png" id="f46"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_emerge_19.png" id="f47"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_emerge_20.png" id="f48"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_emerge_21.png" id="f49"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_emerge_22.png" id="f50"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_emerge_23.png" id="f51"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_attack_00.png" id="f52"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_attack_01.png" id="f53"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_attack_02.png" id="f54"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_attack_03.png" id="f55"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_attack_04.png" id="f56"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_attack_05.png" id="f57"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_attack_06.png" id="f58"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_attack_07.png" id="f59"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_attack_08.png" id="f60"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_attack_09.png" id="f61"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_sonic_00.png" id="f62"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_sonic_01.png" id="f63"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_sonic_02.png" id="f64"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_sonic_03.png" id="f65"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_sonic_04.png" id="f66"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_sonic_05.png" id="f67"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_sonic_06.png" id="f68"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_sonic_07.png" id="f69"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_sonic_08.png" id="f70"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_sonic_09.png" id="f71"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_sonic_10.png" id="f72"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_sonic_11.png" id="f73"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_sonic_12.png" id="f74"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_sonic_13.png" id="f75"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_sonic_14.png" id="f76"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_sonic_15.png" id="f77"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_sonic_16.png" id="f78"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_sonic_17.png" id="f79"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_sonic_18.png" id="f80"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_sonic_19.png" id="f81"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_sonic_20.png" id="f82"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_sonic_21.png" id="f83"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_sonic_22.png" id="f84"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_sonic_23.png" id="f85"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_dig_00.png" id="f86"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_dig_01.png" id="f87"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_dig_02.png" id="f88"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_dig_03.png" id="f89"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_dig_04.png" id="f90"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_dig_05.png" id="f91"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_dig_06.png" id="f92"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_dig_07.png" id="f93"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_dig_08.png" id="f94"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_dig_09.png" id="f95"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_dig_10.png" id="f96"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_dig_11.png" id="f97"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_dig_12.png" id="f98"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_dig_13.png" id="f99"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_dig_14.png" id="f100"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_dig_15.png" id="f101"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_dig_16.png" id="f102"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_dig_17.png" id="f103"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_dig_18.png" id="f104"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_dig_19.png" id="f105"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_sniff_00.png" id="f106"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_sniff_01.png" id="f107"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_sniff_02.png" id="f108"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_sniff_03.png" id="f109"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_sniff_04.png" id="f110"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_sniff_05.png" id="f111"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_sniff_06.png" id="f112"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_sniff_07.png" id="f113"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_sniff_08.png" id="f114"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_sniff_09.png" id="f115"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_sniff_10.png" id="f116"]
+
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/warden_sniff_11.png" id="f117"]
+
+[resource]
+animations = [
+{"name":&"idle","loop":true,"speed":3.819719,"frames":[{"duration":1.0,"texture":ExtResource("f0")},{"duration":1.0,"texture":ExtResource("f1")},{"duration":1.0,"texture":ExtResource("f2")},{"duration":1.0,"texture":ExtResource("f3")},{"duration":1.0,"texture":ExtResource("f4")},{"duration":1.0,"texture":ExtResource("f5")},{"duration":1.0,"texture":ExtResource("f6")},{"duration":1.0,"texture":ExtResource("f7")},{"duration":1.0,"texture":ExtResource("f8")},{"duration":1.0,"texture":ExtResource("f9")},{"duration":1.0,"texture":ExtResource("f10")},{"duration":1.0,"texture":ExtResource("f11")}]},
+{"name":&"walk","loop":true,"speed":16.000000,"frames":[{"duration":1.0,"texture":ExtResource("f12")},{"duration":1.0,"texture":ExtResource("f13")},{"duration":1.0,"texture":ExtResource("f14")},{"duration":1.0,"texture":ExtResource("f15")},{"duration":1.0,"texture":ExtResource("f16")},{"duration":1.0,"texture":ExtResource("f17")},{"duration":1.0,"texture":ExtResource("f18")},{"duration":1.0,"texture":ExtResource("f19")},{"duration":1.0,"texture":ExtResource("f20")},{"duration":1.0,"texture":ExtResource("f21")},{"duration":1.0,"texture":ExtResource("f22")},{"duration":1.0,"texture":ExtResource("f23")},{"duration":1.0,"texture":ExtResource("f24")},{"duration":1.0,"texture":ExtResource("f25")},{"duration":1.0,"texture":ExtResource("f26")},{"duration":1.0,"texture":ExtResource("f27")}]},
+{"name":&"emerge","loop":false,"speed":3.614458,"frames":[{"duration":1.0,"texture":ExtResource("f28")},{"duration":1.0,"texture":ExtResource("f29")},{"duration":1.0,"texture":ExtResource("f30")},{"duration":1.0,"texture":ExtResource("f31")},{"duration":1.0,"texture":ExtResource("f32")},{"duration":1.0,"texture":ExtResource("f33")},{"duration":1.0,"texture":ExtResource("f34")},{"duration":1.0,"texture":ExtResource("f35")},{"duration":1.0,"texture":ExtResource("f36")},{"duration":1.0,"texture":ExtResource("f37")},{"duration":1.0,"texture":ExtResource("f38")},{"duration":1.0,"texture":ExtResource("f39")},{"duration":1.0,"texture":ExtResource("f40")},{"duration":1.0,"texture":ExtResource("f41")},{"duration":1.0,"texture":ExtResource("f42")},{"duration":1.0,"texture":ExtResource("f43")},{"duration":1.0,"texture":ExtResource("f44")},{"duration":1.0,"texture":ExtResource("f45")},{"duration":1.0,"texture":ExtResource("f46")},{"duration":1.0,"texture":ExtResource("f47")},{"duration":1.0,"texture":ExtResource("f48")},{"duration":1.0,"texture":ExtResource("f49")},{"duration":1.0,"texture":ExtResource("f50")},{"duration":1.0,"texture":ExtResource("f51")}]},
+{"name":&"attack","loop":false,"speed":30.000300,"frames":[{"duration":1.0,"texture":ExtResource("f52")},{"duration":1.0,"texture":ExtResource("f53")},{"duration":1.0,"texture":ExtResource("f54")},{"duration":1.0,"texture":ExtResource("f55")},{"duration":1.0,"texture":ExtResource("f56")},{"duration":1.0,"texture":ExtResource("f57")},{"duration":1.0,"texture":ExtResource("f58")},{"duration":1.0,"texture":ExtResource("f59")},{"duration":1.0,"texture":ExtResource("f60")},{"duration":1.0,"texture":ExtResource("f61")}]},
+{"name":&"sonic","loop":false,"speed":8.000000,"frames":[{"duration":1.0,"texture":ExtResource("f62")},{"duration":1.0,"texture":ExtResource("f63")},{"duration":1.0,"texture":ExtResource("f64")},{"duration":1.0,"texture":ExtResource("f65")},{"duration":1.0,"texture":ExtResource("f66")},{"duration":1.0,"texture":ExtResource("f67")},{"duration":1.0,"texture":ExtResource("f68")},{"duration":1.0,"texture":ExtResource("f69")},{"duration":1.0,"texture":ExtResource("f70")},{"duration":1.0,"texture":ExtResource("f71")},{"duration":1.0,"texture":ExtResource("f72")},{"duration":1.0,"texture":ExtResource("f73")},{"duration":1.0,"texture":ExtResource("f74")},{"duration":1.0,"texture":ExtResource("f75")},{"duration":1.0,"texture":ExtResource("f76")},{"duration":1.0,"texture":ExtResource("f77")},{"duration":1.0,"texture":ExtResource("f78")},{"duration":1.0,"texture":ExtResource("f79")},{"duration":1.0,"texture":ExtResource("f80")},{"duration":1.0,"texture":ExtResource("f81")},{"duration":1.0,"texture":ExtResource("f82")},{"duration":1.0,"texture":ExtResource("f83")},{"duration":1.0,"texture":ExtResource("f84")},{"duration":1.0,"texture":ExtResource("f85")}]},
+{"name":&"dig","loop":false,"speed":4.000000,"frames":[{"duration":1.0,"texture":ExtResource("f86")},{"duration":1.0,"texture":ExtResource("f87")},{"duration":1.0,"texture":ExtResource("f88")},{"duration":1.0,"texture":ExtResource("f89")},{"duration":1.0,"texture":ExtResource("f90")},{"duration":1.0,"texture":ExtResource("f91")},{"duration":1.0,"texture":ExtResource("f92")},{"duration":1.0,"texture":ExtResource("f93")},{"duration":1.0,"texture":ExtResource("f94")},{"duration":1.0,"texture":ExtResource("f95")},{"duration":1.0,"texture":ExtResource("f96")},{"duration":1.0,"texture":ExtResource("f97")},{"duration":1.0,"texture":ExtResource("f98")},{"duration":1.0,"texture":ExtResource("f99")},{"duration":1.0,"texture":ExtResource("f100")},{"duration":1.0,"texture":ExtResource("f101")},{"duration":1.0,"texture":ExtResource("f102")},{"duration":1.0,"texture":ExtResource("f103")},{"duration":1.0,"texture":ExtResource("f104")},{"duration":1.0,"texture":ExtResource("f105")}]},
+{"name":&"sniff","loop":false,"speed":3.614458,"frames":[{"duration":1.0,"texture":ExtResource("f106")},{"duration":1.0,"texture":ExtResource("f107")},{"duration":1.0,"texture":ExtResource("f108")},{"duration":1.0,"texture":ExtResource("f109")},{"duration":1.0,"texture":ExtResource("f110")},{"duration":1.0,"texture":ExtResource("f111")},{"duration":1.0,"texture":ExtResource("f112")},{"duration":1.0,"texture":ExtResource("f113")},{"duration":1.0,"texture":ExtResource("f114")},{"duration":1.0,"texture":ExtResource("f115")},{"duration":1.0,"texture":ExtResource("f116")},{"duration":1.0,"texture":ExtResource("f117")}]}
+]

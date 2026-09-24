@@ -1,0 +1,8 @@
+{
+  "source": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.11/assets/minecraft/textures/item/netherite_spear_in_hand.png",
+  "version": "Minecraft Java 1.21.11",
+  "upstream": "Mojang vanilla texture via minecraft-assets mirror",
+  "sha256": "a1c9442d7b9b93f6c88ac19540d457dd15753e547e9c0dbce335258c50daf0ed",
+  "modifications": "none",
+  "asset": "netherite_spear_in_hand.png"
+}

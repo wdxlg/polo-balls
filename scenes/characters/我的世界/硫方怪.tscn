@@ -1,0 +1,63 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/我的世界/硫方怪.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/sulfur_cube/empty.png" id="3_empty"]
+
+[sub_resource type="CircleShape2D" id="SulfurBody"]
+resource_local_to_scene = true
+radius = 43.0
+
+[sub_resource type="SceneReplicationConfig" id="SulfurBlockReplication"]
+properties/0/path = NodePath(".:block_mode")
+properties/0/spawn = true
+properties/0/replication_mode = 2
+properties/1/path = NodePath(".:fuse_left")
+properties/1/spawn = true
+properties/1/replication_mode = 1
+
+[node name="硫方怪" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("我的世界", "特殊", "近战")
+Max_health = 320
+Damage = 24
+Speed = 112.0
+Health_Restore = 0
+Attack_Cooling = 1.55
+Skill_Cooling = 5.6
+Can_Attack = true
+Can_Skill = true
+motion_blur_enabled = false
+AfterImage_Speed = 0.0
+
+[node name="Image" parent="Graphics" index="0"]
+texture = ExtResource("3_empty")
+texture_filter = 1
+scale = Vector2(1, 1)
+offset = Vector2(0, 0)
+
+[node name="CollisionShape2D" parent="." index="1"]
+shape = SubResource("SulfurBody")
+metadata/_character_auto_fit_v3_manual = true
+
+[node name="CharacterAutoFit" parent="." index="2"]
+enabled = false
+
+[node name="hitbox" parent="." index="5"]
+monitoring = false
+
+[node name="CollisionShape2D" parent="hitbox" index="0"]
+shape = SubResource("SulfurBody")
+metadata/_character_auto_fit_v3_manual = true
+
+[node name="CollisionShape2D" parent="hurtbox" index="0"]
+shape = SubResource("SulfurBody")
+metadata/_character_auto_fit_v3_manual = true
+
+[node name="SulfurBlockSync" type="MultiplayerSynchronizer" parent="."]
+root_path = NodePath("..")
+replication_interval = 0.1
+replication_config = SubResource("SulfurBlockReplication")
+
+[editable path="Health_Bar"]

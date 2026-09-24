@@ -1,0 +1,282 @@
+[gd_resource type="SpriteFrames" format=3 uid="uid://dydn24hdxj8k1"]
+
+[ext_resource type="Texture2D" uid="uid://ctkbc0vwekacw" path="res://Images/characters/我的世界/new6/sheep_frames.png" id="atlas"]
+
+[sub_resource type="AtlasTexture" id="sheared_idle_0"]
+atlas = ExtResource("atlas")
+region = Rect2(0, 384, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="sheared_idle_1"]
+atlas = ExtResource("atlas")
+region = Rect2(128, 384, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="sheared_idle_2"]
+atlas = ExtResource("atlas")
+region = Rect2(256, 384, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="sheared_idle_3"]
+atlas = ExtResource("atlas")
+region = Rect2(384, 384, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="sheared_idle_4"]
+atlas = ExtResource("atlas")
+region = Rect2(512, 384, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="sheared_idle_5"]
+atlas = ExtResource("atlas")
+region = Rect2(640, 384, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="sheared_idle_6"]
+atlas = ExtResource("atlas")
+region = Rect2(768, 384, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="sheared_idle_7"]
+atlas = ExtResource("atlas")
+region = Rect2(896, 384, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="sheared_walk_0"]
+atlas = ExtResource("atlas")
+region = Rect2(0, 256, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="sheared_walk_1"]
+atlas = ExtResource("atlas")
+region = Rect2(128, 256, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="sheared_walk_2"]
+atlas = ExtResource("atlas")
+region = Rect2(256, 256, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="sheared_walk_3"]
+atlas = ExtResource("atlas")
+region = Rect2(384, 256, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="sheared_walk_4"]
+atlas = ExtResource("atlas")
+region = Rect2(512, 256, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="sheared_walk_5"]
+atlas = ExtResource("atlas")
+region = Rect2(640, 256, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="sheared_walk_6"]
+atlas = ExtResource("atlas")
+region = Rect2(768, 256, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="sheared_walk_7"]
+atlas = ExtResource("atlas")
+region = Rect2(896, 256, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="wool_idle_0"]
+atlas = ExtResource("atlas")
+region = Rect2(0, 128, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="wool_idle_1"]
+atlas = ExtResource("atlas")
+region = Rect2(128, 128, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="wool_idle_2"]
+atlas = ExtResource("atlas")
+region = Rect2(256, 128, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="wool_idle_3"]
+atlas = ExtResource("atlas")
+region = Rect2(384, 128, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="wool_idle_4"]
+atlas = ExtResource("atlas")
+region = Rect2(512, 128, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="wool_idle_5"]
+atlas = ExtResource("atlas")
+region = Rect2(640, 128, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="wool_idle_6"]
+atlas = ExtResource("atlas")
+region = Rect2(768, 128, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="wool_idle_7"]
+atlas = ExtResource("atlas")
+region = Rect2(896, 128, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="wool_walk_0"]
+atlas = ExtResource("atlas")
+region = Rect2(0, 0, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="wool_walk_1"]
+atlas = ExtResource("atlas")
+region = Rect2(128, 0, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="wool_walk_2"]
+atlas = ExtResource("atlas")
+region = Rect2(256, 0, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="wool_walk_3"]
+atlas = ExtResource("atlas")
+region = Rect2(384, 0, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="wool_walk_4"]
+atlas = ExtResource("atlas")
+region = Rect2(512, 0, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="wool_walk_5"]
+atlas = ExtResource("atlas")
+region = Rect2(640, 0, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="wool_walk_6"]
+atlas = ExtResource("atlas")
+region = Rect2(768, 0, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="wool_walk_7"]
+atlas = ExtResource("atlas")
+region = Rect2(896, 0, 128, 128)
+filter_clip = true
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("sheared_idle_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("sheared_idle_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("sheared_idle_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("sheared_idle_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("sheared_idle_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("sheared_idle_5")
+}, {
+"duration": 1.0,
+"texture": SubResource("sheared_idle_6")
+}, {
+"duration": 1.0,
+"texture": SubResource("sheared_idle_7")
+}],
+"loop": 1,
+"name": &"sheared_idle",
+"speed": 4.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("sheared_walk_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("sheared_walk_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("sheared_walk_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("sheared_walk_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("sheared_walk_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("sheared_walk_5")
+}, {
+"duration": 1.0,
+"texture": SubResource("sheared_walk_6")
+}, {
+"duration": 1.0,
+"texture": SubResource("sheared_walk_7")
+}],
+"loop": 1,
+"name": &"sheared_walk",
+"speed": 10.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("wool_idle_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("wool_idle_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("wool_idle_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("wool_idle_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("wool_idle_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("wool_idle_5")
+}, {
+"duration": 1.0,
+"texture": SubResource("wool_idle_6")
+}, {
+"duration": 1.0,
+"texture": SubResource("wool_idle_7")
+}],
+"loop": 1,
+"name": &"wool_idle",
+"speed": 4.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("wool_walk_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("wool_walk_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("wool_walk_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("wool_walk_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("wool_walk_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("wool_walk_5")
+}, {
+"duration": 1.0,
+"texture": SubResource("wool_walk_6")
+}, {
+"duration": 1.0,
+"texture": SubResource("wool_walk_7")
+}],
+"loop": 1,
+"name": &"wool_walk",
+"speed": 10.0
+}]

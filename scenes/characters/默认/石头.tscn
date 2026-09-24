@@ -1,0 +1,44 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/characters/默认/石头.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/默认/石头/石头.png" id="2_texture"]
+[ext_resource type="Script" path="res://scripts/effects/我的世界/mc_obstacle_properties.gd" id="3_obstacle"]
+
+[sub_resource type="RectangleShape2D" id="StoneShape"]
+size = Vector2(23, 25.5)
+
+[sub_resource type="SceneReplicationConfig" id="StoneReplication"]
+properties/0/path = NodePath(".:position")
+properties/0/spawn = true
+properties/0/replication_mode = 2
+properties/1/path = NodePath(".:rotation")
+properties/1/spawn = true
+properties/1/replication_mode = 2
+properties/2/path = NodePath(".:scale")
+properties/2/spawn = true
+properties/2/replication_mode = 2
+
+[node name="石头" type="StaticBody2D" groups=["PlaceableObstacle", "BattleTransient"]]
+z_index = 2
+collision_layer = 1
+collision_mask = 2
+disable_mode = 2
+script = ExtResource("1_script")
+
+[node name="MCObstacleProperties" type="Node" parent="."]
+script = ExtResource("3_obstacle")
+
+[node name="Graphics" type="Node2D" parent="."]
+
+[node name="Image" type="Sprite2D" parent="Graphics"]
+texture = ExtResource("2_texture")
+texture_filter = 1
+scale = Vector2(0.025, 0.025)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("StoneShape")
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
+delta_interval = 0.1
+replication_interval = 0.1
+replication_config = SubResource("StoneReplication")
