@@ -69,11 +69,20 @@ func prepare_death_return_recreate(state:Dictionary) -> void:
 		_growth_started = false
 
 
+# 入树时先决定幼兔生命上限，早于父类 @onready health = Max_health。
+# 出生不是从成年生命扣到幼兔生命，不能触发伤害镜头、暴击粒子或受击钩子。
+func _enter_tree() -> void:
+	if is_baby and _adult_max_health <= 0:
+		_adult_max_health = Max_health
+		Max_health = mini(maxi(baby_max_health,1),maxi(_adult_max_health,1))
+
+
 func _ready() -> void:
 	# 在父类初始化前确定家庭队伍，确保随后生成的第二只兔子和繁殖幼兔继承同一阵营。
 	if not is_baby:
 		_ensure_initial_rabbit_team()
-	_adult_max_health = Max_health
+	if not is_baby:
+		_adult_max_health = Max_health
 	_adult_scale = scale
 
 	# 在父类读取 image 节点前先放入正确纹理，确保碰撞反馈/残影系统拿到 Sprite2D。
@@ -84,11 +93,7 @@ func _ready() -> void:
 		sprite.texture = adult_texture
 
 	if is_baby:
-		Max_health = mini(maxi(baby_max_health,1),maxi(_adult_max_health,1))
 		default_properties["Max_health"] = Max_health
-		health_bar.suppress_floating_text = true
-		health = Max_health
-		health_bar.suppress_floating_text = false
 		scale = _adult_scale * baby_scale_ratio
 
 	super._ready()

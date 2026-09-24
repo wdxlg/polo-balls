@@ -1,0 +1,37 @@
+{
+  "date": "2026-09-24",
+  "before_head": "280a721a5169a17d8540ddfe60124964415cf45c",
+  "scope": "Rabbit newborn initialization; production camera and impact code unchanged",
+  "baseline": {
+    "checks": 58,
+    "failures": 8,
+    "synthetic_damage": 109,
+    "health_transition": [
+      145,
+      36
+    ]
+  },
+  "after": {
+    "birth_checks": 58,
+    "gpu_checks": 8,
+    "existing_rabbit_knife_checks": 14,
+    "total_checks": 80,
+    "failures": 0
+  },
+  "gpu": {
+    "births": 2,
+    "frames": 90,
+    "health_losses": [],
+    "max_camera_position_delta": 0.0,
+    "max_critical_particles": 0,
+    "max_damage_focus_weight": 0.0,
+    "max_zoom_delta": 0.0
+  },
+  "limitations": [
+    "Controlled single-player fixtures with frozen actor movement, actual World and production camera/impact layer",
+    "No dual-client multiplayer or mass-battle performance testing",
+    "Two pre-existing shader UID/case warnings remain"
+  ],
+  "checkpoint": "E:/godot/polo-balls-checkpoints/rabbit_birth_feedback_20260924_104546",
+  "other_work_preservation": "Only own rabbit initialization hunks and one MCP index line are staged; pre-existing developmental rabbit changes and other dirty files remain uncommitted"
+}

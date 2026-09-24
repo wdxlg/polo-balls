@@ -48,4 +48,5 @@
 - 右键双语录制对使用屏幕纹理/BackBufferCopy 的效果必须检查真实 GPU 画面，不只检查物理节点：长弓裂缝录制与实际画面一致性及同步 RGBA 读回提速，回归入口 `tests/test_recording_heavenfall_rift.gd`、`tests/test_recording_heavenfall_e2e.gd`，性能边界和基线问题见 `tests/BATTLE_RECORDING.md`。
 - 左键实时录制长弓压力测试与双语异步 RGBA 读回入口：`tests/test_recording_live_heavenfall.gd`；必须以墙钟同时对比**物理推进和真实绘制帧率**、确认两份 1080×1920/60fps 视频与编码队列。正常射速可录完但视觉绘制仍明显低于普通游玩，高于正常射速仍可过载；不可仅凭容器帧率声称无卡顿。未完成边界见 `tests/BATTLE_RECORDING.md`。
 - MCP 自动附带说明的安装、备份和验证方式：`tools/mcp_context/README.md`。
+- 兔子幼兔出生须在父类生命初始化前设置幼兔上限，不能先生成成年生命再扣到幼兔生命，以免繁殖误触发推镜、暴击粒子和受击抖动；真正伤害反馈、繁殖爱心/音效及成长保留。复现、GPU 镜头稳定性与回退范围见 `tests/RABBIT_BIRTH_FEEDBACK.md`。
 - 实际入口通常包括 `scripts/world.gd`、`global/game.gd`、`ui/control.gd`、`classes/ball.gd` 与 `scripts/training/combat_threat_analyzer.gd`；按任务定位，不随意扩大修改范围。
