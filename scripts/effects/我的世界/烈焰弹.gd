@@ -79,7 +79,7 @@ func _physics_process(delta:float) -> void:
 	var collider:Variant = hit.get("collider",null)
 	var target:ball = _resolve_ball_from_collider(collider)
 	if target != null and _can_damage(target):
-		var applied:bool = target.receive_positional_damage(source.attack_damage(_damage_multiplier),global_position,false,source)
+		var applied:bool = target.receive_fire_positional_damage(source.attack_damage(_damage_multiplier),global_position,false,source)
 		if applied:
 			MC_DAMAGE_SFX.play(target,global_position)
 			_apply_burn(source,target,_burn_duration,source.attack_damage(_burn_tick_damage_multiplier))

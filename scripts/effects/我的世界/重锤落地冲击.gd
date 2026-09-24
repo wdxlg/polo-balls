@@ -26,6 +26,21 @@ const FLOOR_SAMPLER:Script = preload("res://scripts/effects/地表渲染采样.g
 @export_range(0.0,1.50,0.01) var block_min_ground_hold:float = 0.20
 @export_range(0.0,1.80,0.01) var block_max_ground_hold:float = 0.72
 
+@export_category("共用落地冲击 / 选装组件")
+@export var show_impact_ring:bool = true
+@export var show_impact_streaks:bool = true
+@export_range(0.0,4.0,0.05) var block_source_center_bias_exponent:float = 0.0 # 0=沿用重锤均匀散布
+@export var block_source_radius_min_scale:float = 0.48
+@export var block_source_radius_max_scale:float = 0.88
+@export var block_travel_min:float = 7.0
+@export var block_travel_max:float = -1.0 # -1=根据影响半径自动选取
+@export var block_travel_edge_factor:float = 1.0
+@export var block_landing_jitter:float = 4.0
+@export var block_delay_max:float = 0.065
+@export var block_center_height:float = 0.0 # 0=沿用重锤随机高度
+@export var block_edge_height:float = 12.0
+@export var block_height_falloff:float = 1.35
+
 var _elapsed:float = 0.0
 var _radius:float = 42.0
 var _rng := RandomNumberGenerator.new()
@@ -66,6 +81,7 @@ func _prepare_floor_sampler() -> void:
 
 func _build_streaks() -> void:
 	_streaks.clear()
+	if not show_impact_streaks: return
 	var low:int = mini(line_min_count,line_max_count)
 	var high:int = maxi(line_min_count,line_max_count)
 	var count:int = _rng.randi_range(maxi(low,1),maxi(high,maxi(low,1)))
@@ -95,7 +111,8 @@ func _build_block_particles() -> void:
 	for source_index:int in range(source_count):
 		# sqrt(rand) 让采样点在面积上均匀，而不是全部挤在中心。
 		var source_angle:float = TAU * (float(source_index) / float(maxi(source_count,1))) + _rng.randf_range(-0.52,0.52)
-		var source_radius:float = sqrt(_rng.randf_range(0.05,1.0)) * _radius * _rng.randf_range(0.48,0.88)
+		var radial:float = pow(_rng.randf_range(0.0,1.0),block_source_center_bias_exponent) if block_source_center_bias_exponent>0.0 else sqrt(_rng.randf_range(0.05,1.0))
+		var source_radius:float = radial * _radius * _rng.randf_range(block_source_radius_min_scale,block_source_radius_max_scale)
 		var source_world:Vector2 = global_position + Vector2.RIGHT.rotated(source_angle) * source_radius
 		if map_rect.size.x > 1.0 and map_rect.size.y > 1.0:
 			source_world.x = clampf(source_world.x,map_rect.position.x + 1.0,map_rect.end.x - 1.0)
@@ -116,10 +133,12 @@ func _build_block_particles() -> void:
 			if outward.length_squared() <= 0.000001:
 				outward = Vector2.RIGHT.rotated(_rng.randf_range(0.0,TAU))
 			outward = outward.normalized().rotated(_rng.randf_range(-0.55,0.55))
-			var travel:float = _rng.randf_range(7.0,maxf(12.0,_radius * 0.36))
+			var center_weight:float = pow(1.0-clampf(start.length()/maxf(_radius,1.0),0.0,1.0),block_height_falloff)
+			var travel:float = _rng.randf_range(block_travel_min,maxf(block_travel_min,block_travel_max if block_travel_max>=0.0 else maxf(12.0,_radius*0.36)))
+			travel *= lerpf(block_travel_edge_factor,1.0,center_weight)
 			var landing:Vector2 = start + outward * travel + Vector2(
-				_rng.randf_range(-4.0,4.0),
-				_rng.randf_range(-4.0,4.0)
+				_rng.randf_range(-block_landing_jitter,block_landing_jitter),
+				_rng.randf_range(-block_landing_jitter,block_landing_jitter)
 			)
 			var landing_world:Vector2 = global_position + landing
 			if map_rect.size.x > 1.0 and map_rect.size.y > 1.0:
@@ -131,8 +150,8 @@ func _build_block_particles() -> void:
 			var flight_time:float = _rng.randf_range(minf(block_min_flight_time,block_max_flight_time),maxf(block_min_flight_time,block_max_flight_time))
 			var hold_time:float = _rng.randf_range(minf(block_min_ground_hold,block_max_ground_hold),maxf(block_min_ground_hold,block_max_ground_hold))
 			var fade_time:float = _rng.randf_range(0.18,0.38)
-			var delay:float = _rng.randf_range(0.0,0.065)
-			var height_value:float = _rng.randf_range(minf(block_min_height,block_max_height),maxf(block_min_height,block_max_height))
+			var delay:float = _rng.randf_range(0.0,block_delay_max)
+			var height_value:float = lerpf(block_edge_height,block_center_height,center_weight)*_rng.randf_range(0.82,1.22) if block_center_height>0.0 else _rng.randf_range(minf(block_min_height,block_max_height),maxf(block_min_height,block_max_height))
 			# 每一颗碎屑都按它自己的真实出生点重新取当前地板像素。
 			# 这样来源点跨过蠹虫石砖/破洞边界时，同一簇里也能正确出现石砖色与原背景色。
 			var sampled:Color = _sample_floor_color(global_position + start)
@@ -197,7 +216,7 @@ func _draw() -> void:
 
 func _draw_ring_and_streaks() -> void:
 	var p:float = clampf(_elapsed / maxf(lifetime,0.02),0.0,1.0)
-	if p < 1.0:
+	if show_impact_ring and p < 1.0:
 		var expand:float = 1.0 - pow(1.0 - p,3.1)
 		var alpha:float = pow(1.0 - p,1.28)
 		var radius_value:float = lerpf(_radius,_radius * maxf(ring_end_scale,1.0),expand)
@@ -205,6 +224,7 @@ func _draw_ring_and_streaks() -> void:
 		draw_arc(Vector2.ZERO,radius_value,0.0,TAU,64,Color(1.0,1.0,1.0,0.40 * alpha),3.6,true)
 		draw_arc(Vector2.ZERO,radius_value,0.0,TAU,64,Color(1.0,1.0,1.0,0.98 * alpha),1.35,true)
 
+	if not show_impact_streaks: return
 	for data:Dictionary in _streaks:
 		var delay:float = float(data.get("delay",0.0))
 		var local_elapsed:float = _elapsed - delay

@@ -6,6 +6,7 @@ var _native_mob_animation:Node
 const NORMAL_TEXTURE:Texture2D = preload("res://Images/characters/我的世界/苦力怕/苦力怕.webp")
 const CHARGED_TEXTURE:Texture2D = preload("res://Images/characters/我的世界/苦力怕/闪电苦力怕.webp")
 const LIGHTNING_SCENE:PackedScene = preload("res://scenes/effects/我的世界/雷电.tscn")
+const MC_ABILITIES = preload("res://scripts/effects/我的世界/mc_combat_abilities.gd")
 const EXPLOSION_EFFECT_SCENE:PackedScene = preload("res://scenes/effects/魔角猎人_爆炸特效.tscn")
 const CREEPER_HEAD_SCENE:PackedScene = preload("res://scenes/creatures/我的世界/苦力怕头.tscn")
 const DEATH_SMOKE_FRAMES:SpriteFrames = preload("res://scenes/effects/我的世界/蠹虫死亡烟雾.tres")
@@ -446,15 +447,12 @@ func _summon_self_lightning() -> void:
 	var seed_value:int = Game.battle_rng_seed_or("scripts/characters/我的世界/苦力怕.gd:seed_value",maxi(abs(int(Time.get_ticks_usec()) ^ int(get_instance_id()) ^ _rng.randi()),1))
 	var delay:float = maxf(lightning_warning_delay,0.05)
 	_broadcast_lightning_visual(point,seed_value,delay)
-	var timer:SceneTreeTimer = get_tree().create_timer(delay)
-	timer.timeout.connect(_finish_self_lightning,CONNECT_ONE_SHOT)
 
 
-func _finish_self_lightning() -> void:
+func _finish_self_lightning(point:Vector2) -> void:
 	if _exploded or health <= 0 or not is_multiplayer_authority():
 		return
-	# 伤害也在真正落雷这一刻重新取脚底坐标，与视觉落点一致。
-	var point:Vector2 = _self_foot_world_position()
+	# Only the authoritative visible strike drives gameplay; use its true impact point.
 	if not _charged:
 		_set_charged_everywhere(true)
 	_apply_lightning_area(point)
@@ -509,15 +507,12 @@ func _broadcast_lightning_visual(point:Vector2,seed_value:int,warning_delay:floa
 
 @rpc("authority","call_local","reliable")
 func _rpc_play_lightning(point:Vector2,seed_value:int,impact_radius:float,warning_delay:float) -> void:
-	var effect:Node2D = LIGHTNING_SCENE.instantiate() as Node2D
-	if effect == null:
-		return
-	if effect.has_method("setup"):
-		effect.call("setup",point,seed_value,impact_radius,warning_delay)
 	# 这是 RPC 在每个 peer 本地创建的纯视觉节点，不挂到 World 根节点的
 	# MultiplayerSpawner.spawn_path 下；同时强制可读名称，避免 @Node2D@ 保留名。
-	effect.name = "CreeperLightningVisual"
-	add_child(effect,true)
+	MC_ABILITIES.lightning(self,point,seed_value,impact_radius,warning_delay,{
+		"scene":LIGHTNING_SCENE,"name":"CreeperLightningVisual",
+		"on_impact":_finish_self_lightning if is_multiplayer_authority() else Callable()
+	})
 
 
 func _apply_lightning_area(point:Vector2) -> void:

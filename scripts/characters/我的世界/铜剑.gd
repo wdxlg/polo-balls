@@ -2,6 +2,7 @@ extends "res://scripts/characters/我的世界/new5/base.gd"
 ## Left/right at rest; continuous, accelerating, full-angle alternating cuts in combat.
 const SWORD:Texture2D = preload("res://Images/characters/我的世界/copper_sword/copper_sword.png")
 const LIGHTNING = preload("res://scripts/effects/我的世界/trident_lightning.gd")
+const MC_ABILITIES = preload("res://scripts/effects/我的世界/mc_combat_abilities.gd")
 const CHARGE_VISUAL = preload("res://scripts/characters/我的世界/copper_sword/charge_visual.gd")
 const SWING_TRAIL = preload("res://scripts/characters/我的世界/copper_sword/swing_trail.gd")
 const NATIVE_FEEDBACK = preload("res://scripts/effects/我的世界/mc16_native_feedback.gd")
@@ -467,15 +468,14 @@ func _summon_lightning(point:Vector2,cleansing:bool) -> void:
 @rpc("authority","call_remote","reliable")
 func _show_copper_lightning(point:Vector2,seed_value:int,cleansing:bool) -> void:
 	if health<=0: return
-	var effect:Node2D = LIGHTNING.new()
-	effect.name = "CopperCleanseLightning" if cleansing else "CopperHitLightning"
-	effect.caster = self
-	effect.fixed_impact = not cleansing
+	var callback:Callable = _on_lightning_impact.bind(cleansing) if is_multiplayer_authority() else Callable()
+	var effect:Node2D = MC_ABILITIES.lightning(self,point,seed_value,lightning_radius,lightning_warning if cleansing else hit_lightning_warning,{
+		"script":LIGHTNING,"name":"CopperCleanseLightning" if cleansing else "CopperHitLightning",
+		"fields":{"caster":self,"fixed_impact":not cleansing},"on_impact":callback
+	})
+	if effect == null: return
 	effect.set_meta("copper_cleanse",cleansing)
-	effect.setup(point,seed_value,lightning_radius,lightning_warning if cleansing else hit_lightning_warning)
-	if is_multiplayer_authority(): effect.impact_started.connect(_on_lightning_impact.bind(cleansing))
 	if cleansing: _cleanse_effect = effect
-	add_child(effect,true)
 
 func _self_foot_world_position() -> Vector2: return global_position
 

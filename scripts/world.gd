@@ -3350,6 +3350,9 @@ func set_menu() -> void:
 # ========================================================
 func _clear_battle_transients() -> void:
 	var seen:Dictionary = {}
+	# 共享地形破坏保留了原始碰撞和贴图，必须在清理对象前立即恢复。
+	var terrain_damage:Node = get_node_or_null("GhastObstacleDamage")
+	if terrain_damage != null: terrain_damage.reset_all()
 
 	# 新版所有运行时战斗对象统一进 BattleTransient。
 	# 其余组名保留用于兼容已经生成的旧版本对象。

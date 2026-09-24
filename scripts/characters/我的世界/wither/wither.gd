@@ -311,7 +311,9 @@ func _break_charge_obstacles(from:Vector2,to:Vector2) -> void:
 				if not corridor.intersects(_charge_world_rect(obstacle,update.rect),true): continue
 			else: continue
 			_charge_broken[key] = true
-			if not moss: update.hits = 3 # A direct Wither charge shatters in one pass.
+			if not moss:
+				update.hits = 3 # Legacy hit counter for older clients and tests.
+				update.force_progress = 100.0 # Full shatter even for tuned hard obstacles.
 			broken.append(update)
 		# Placeable terrain stones opt out of Ghast explosions, but they are
 		# ordinary physical obstacles for this Wither-specific all-clearing ram.
