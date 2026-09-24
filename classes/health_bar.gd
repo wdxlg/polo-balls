@@ -15,6 +15,11 @@ var damage_text := preload("res://scenes/damage_text.tscn")
 
 var damage_text_offset_range:float = 10
 var _bar_tweens:Dictionary = {}
+const HEALTH_NUMBER_HIT_SCALE:float = 1.25
+const HEALTH_NUMBER_HIT_GROW_TIME:float = 0.075
+const HEALTH_NUMBER_HIT_SETTLE_TIME:float = 0.32
+var _health_number_base_scale:Vector2 = Vector2.ONE
+var _health_number_hit_tween:Tween = null
 ## 0 disables the visual drop limit for characters requiring complete feedback.
 @export var max_live_damage_texts:int = 80
 
@@ -87,6 +92,9 @@ func _ready() -> void:
 	_normal_label_shadow_color = label.get_theme_color("font_shadow_color")
 	_normal_label_outline_size = label.get_theme_constant("outline_size")
 	_label_base_font_size = label.get_theme_font_size("font_size")
+	_health_number_base_scale = label.scale
+	# 缩放只作用于数字；随 Label 布局变化仍以数字中心为轴，不挪动血条。
+	label.pivot_offset_ratio = Vector2(0.5,0.5)
 	health_changed.connect(when_value_changed.bind(health_bar))
 	block_changed.connect(when_value_changed.bind(block_bar))
 	energy_changed.connect(when_value_changed.bind(energy_bar))
@@ -288,6 +296,35 @@ func _fit_label_text() -> void:
 		label.add_theme_font_size_override("font_size",font_size)
 
 
+func _stop_health_number_hit_pulse() -> void:
+	if _health_number_hit_tween != null and _health_number_hit_tween.is_valid():
+		_health_number_hit_tween.kill()
+	_health_number_hit_tween = null
+	if is_instance_valid(label):
+		label.scale = _health_number_base_scale
+
+
+func _pulse_health_number_on_hit() -> void:
+	_stop_health_number_hit_pulse()
+	_health_number_hit_tween = create_tween()
+	_health_number_hit_tween.tween_property(
+		label,"scale",_health_number_base_scale * HEALTH_NUMBER_HIT_SCALE,HEALTH_NUMBER_HIT_GROW_TIME
+	).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_health_number_hit_tween.tween_property(
+		label,"scale",_health_number_base_scale,HEALTH_NUMBER_HIT_SETTLE_TIME
+	).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+
+
+func pulse_health_number_on_silent_damage() -> void:
+	# Sans 等逐帧伤害会静默更新血量以免刷屏；由真正结算伤害的调用者显式通知。
+	# 一个完整脉冲结束前不再创建 Tween，避免 60Hz 伤害反复重置动画。
+	if _invincible_display or not _is_character_health_bar_owner():
+		return
+	if _health_number_hit_tween != null and _health_number_hit_tween.is_running():
+		return
+	_pulse_health_number_on_hit()
+
+
 func Set_Health_Text(health_text:int) -> void:
 	_set_label_text("INF" if _invincible_display else str(health_text))
 
@@ -298,6 +335,7 @@ func set_invincible_display(enabled:bool,animate_glow:bool = true) -> void:
 	_invincible_display = enabled
 
 	if enabled:
+		_stop_health_number_hit_pulse()
 		_kill_bar_tween(health_bar)
 		if _karma_bar != null and is_instance_valid(_karma_bar):
 			_karma_bar.visible = false
@@ -395,6 +433,10 @@ func when_value_changed(last_value:int,value:int,max_value:int,if_tween:bool,bar
 		value = clampi(value,0,max_value)
 	else:
 		value = 0
+	# 只响应角色真实生命下降；护盾/能量变化、回血、静默状态迁移以及 INF
+	# 不播放。连续受击会停止前一次 Tween 并从原尺寸重新起跳，不会叠乘。
+	if bar == health_bar and last_value > value and not suppress_floating_text and _is_character_health_bar_owner():
+		_pulse_health_number_on_hit()
 
 	if if_tween:
 		_kill_bar_tween(bar)

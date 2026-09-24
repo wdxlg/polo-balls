@@ -2446,7 +2446,7 @@ func apply_sans_frame_hit(target:ball,impact_position:Vector2,karma_amount:float
 		target.health_bar.suppress_floating_text = true
 
 	# Sans 的攻击是“帧伤”：每个实际重叠的 physics frame 固定扣 1 HP，
-	# 不创建通用 HitBurst/Tween/受击音，避免持续接触时每秒造 60 组临时节点。
+	# 不为每帧创建通用 HitBurst/攻击 Tween/受击音；血条数字反馈单独节流。
 	target.health = maxi(int(target.health) - 1,0)
 
 	if target.health_bar != null:
@@ -2454,6 +2454,8 @@ func apply_sans_frame_hit(target:ball,impact_position:Vector2,karma_amount:float
 
 	var actual_damage:float = maxf(before_health - float(target.health),0.0)
 	if actual_damage > 0.0:
+		if is_instance_valid(target.health_bar):
+			target.health_bar.pulse_health_number_on_silent_damage()
 		target.record_combat_damage_source(self,before_health)
 		if Game.has_method("report_combat_damage"):
 			Game.report_combat_damage(self,target,actual_damage,before_health)
