@@ -1,0 +1,53 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/我的世界/frontier/moss.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/frontier/moss_block.png" id="3_visual"]
+[ext_resource type="Script" path="res://scripts/characters/我的世界/frontier/moss_azalea.gd" id="4_canopy"]
+
+[sub_resource type="RectangleShape2D" id="Body"]
+resource_local_to_scene = true
+size = Vector2(100, 84)
+
+[node name="苔藓" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+z_index = 2
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("我的世界", "方块")
+Max_health = 550
+Damage = 16
+Speed = 55.0
+Health_Restore = 0
+Can_Attack = true
+Can_Skill = true
+Attack_Cooling = 999.0
+Skill_Cooling = 999.0
+motion_blur_enabled = false
+motion_stretch_enabled = false
+AfterImage_Speed = 0.0
+
+[node name="Image" parent="Graphics" index="0"]
+texture = ExtResource("3_visual")
+texture_filter = 1
+scale = Vector2(1, 1)
+offset = Vector2(0, 0)
+
+[node name="CollisionShape2D" parent="." index="1"]
+shape = SubResource("Body")
+metadata/_character_auto_fit_v3_manual = true
+
+[node name="CharacterAutoFit" parent="." index="2"]
+enabled = false
+
+[node name="CollisionShape2D" parent="hitbox" index="0"]
+shape = SubResource("Body")
+metadata/_character_auto_fit_v3_manual = true
+
+[node name="CollisionShape2D" parent="hurtbox" index="0"]
+shape = SubResource("Body")
+metadata/_character_auto_fit_v3_manual = true
+
+[node name="MossAzaleaCanopy" type="Node2D" parent="."]
+script = ExtResource("4_canopy")
+
+[editable path="Health_Bar"]
