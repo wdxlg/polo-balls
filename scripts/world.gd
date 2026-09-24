@@ -1922,6 +1922,12 @@ func _update_large_battle_crowd_separation(units:Array,delta:float) -> void:
 						var radius_j:float = _battle_spatial_radii[j]
 						if unit_j == null or radius_j <= 0.0:
 							continue
+						# Same-cohort bats already exclude body collisions; soft separation must agree.
+						# get_meta(key, null) still logs an error for missing keys in Godot.
+						# Most fighters are not bats, so guard both lookups in this hot pair loop.
+						if unit_i.has_meta(&"mc_bat_cohort") and unit_j.has_meta(&"mc_bat_cohort"):
+							if unit_i.get_meta(&"mc_bat_cohort") == unit_j.get_meta(&"mc_bat_cohort"):
+								continue
 						var pos_j:Vector2 = _battle_spatial_positions[j]
 						var difference:Vector2 = pos_i-pos_j
 						var distance_sq:float = difference.length_squared()
