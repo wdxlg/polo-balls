@@ -313,6 +313,21 @@ func _break_charge_obstacles(from:Vector2,to:Vector2) -> void:
 			_charge_broken[key] = true
 			if not moss: update.hits = 3 # A direct Wither charge shatters in one pass.
 			broken.append(update)
+		# Placeable terrain stones opt out of Ghast explosions, but they are
+		# ordinary physical obstacles for this Wither-specific all-clearing ram.
+		# They are transient scene nodes, not map ground or boundary colliders.
+		for node:Node in get_tree().get_nodes_in_group("PlaceableObstacle"):
+			if not node is StaticBody2D or not world.is_ancestor_of(node) or node.is_queued_for_deletion(): continue
+			if not bool(node.get_meta("ghast_indestructible",false)) or bool(node.get_meta("mc_map_boundary",false)) or bool(node.get_meta("map_safety_frame",false)): continue
+			var stone:StaticBody2D = node as StaticBody2D
+			var id:String = "placed:%d" % stone.get_instance_id()
+			if _charge_broken.has(id): continue
+			var shape:CollisionShape2D = stone.get_node_or_null("CollisionShape2D") as CollisionShape2D
+			if shape == null or shape.disabled or shape.shape == null or not corridor.intersects(_charge_world_rect(shape,shape.shape.get_rect()),true): continue
+			_charge_broken[id] = true
+			var path:NodePath = world.get_path_to(stone)
+			if multiplayer.has_multiplayer_peer(): _charge_placed_obstacle_destroy.rpc(path)
+			_charge_placed_obstacle_destroy(path)
 		if broken.is_empty(): continue
 		if multiplayer.has_multiplayer_peer(): _charge_obstacle_damage.rpc(broken)
 		manager.apply_updates(broken)
@@ -340,6 +355,15 @@ func _break_charge_builder_walls(from:Vector2,to:Vector2) -> void:
 func _charge_obstacle_damage(updates:Array) -> void:
 	CHARGE_RESET.ensure(self)
 	OBSTACLES.ensure(self).apply_updates(updates)
+
+@rpc("authority","call_remote","reliable")
+func _charge_placed_obstacle_destroy(path:NodePath) -> void:
+	var world:Node = get_tree().current_scene
+	if world == null: return
+	var node:Node = world.get_node_or_null(path)
+	if not node is StaticBody2D or not node.is_in_group("PlaceableObstacle") or node.is_queued_for_deletion(): return
+	if not bool(node.get_meta("ghast_indestructible",false)) or bool(node.get_meta("mc_map_boundary",false)) or bool(node.get_meta("map_safety_frame",false)): return
+	Game.free_node(node)
 
 func move(speed:float,delta:float) -> void:
 	if not summoned or _charge_remaining > 0 or _charge_windup > 0:

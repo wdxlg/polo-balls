@@ -32,6 +32,9 @@ func run() -> void:
 	var crate:StaticBody2D = obstacle(Vector2(-145,0),true)
 	var second:StaticBody2D = obstacle(Vector2(15,0),false)
 	var off_path:StaticBody2D = obstacle(Vector2(-145,190),false)
+	var stone:StaticBody2D = load("res://scenes/characters/默认/石头.tscn").instantiate() as StaticBody2D
+	world.add_child(stone,true)
+	stone.global_position = center+Vector2(-95,0)
 	var layer:TileMapLayer = world._current_map_node() as TileMapLayer
 	var initial_visible:bool = layer.visible
 	var initial_collision:bool = layer.collision_enabled
@@ -59,6 +62,7 @@ func run() -> void:
 	wither.tick_physics(wither.State.Move,0.6)
 	check(wither.global_position.x > second.global_position.x,"charge crosses both colliding props without sliding or stopping")
 	check(not crate.visible and not second.visible,"every in-path static obstacle shatters on first contact")
+	check(not is_instance_valid(stone) or stone.is_queued_for_deletion(),"placed stone immune to Ghast blasts is also destroyed by Wither charge")
 	check(off_path.visible and off_path.collision_layer == 1,"obstacle outside swept body is preserved")
 	var terrain:Node = world.get_node("GhastObstacleDamage")
 	check(not terrain.colliding(layer.get_cell_tile_data(cell),layer.tile_set),"colliding map tile in the charge corridor becomes traversable floor")
