@@ -1,0 +1,103 @@
+extends "res://tests/test_mc_frontier.gd"
+## Headless contracts for all IDs, unrestricted metadata and native-texture glint.
+const FIRST = preload("res://Images/Status/BlockDamage/destroy_stage_3.png")
+const SECOND = preload("res://Images/Status/BlockDamage/destroy_stage_7.png")
+
+func run() -> void:
+	var center:Vector2 = await setup_world()
+	create_timer(60.0).timeout.connect(func(): finish(2))
+	var catalog:Script = load("res://scripts/effects/我的世界/mc_enchantment_catalog.gd")
+	var enchant:Script = load("res://scripts/effects/我的世界/mc_enchantments.gd")
+	var ids:Array[String] = catalog.all_ids()
+	check(ids.size()==43 and ids.has("lunge") and ids.has("wind_burst") and ids.has("binding_curse"),"latest Java catalog contains 43 unique original IDs")
+	for id:String in ids:
+		check(catalog.has_id("minecraft:"+id) and not catalog.display_name(id).is_empty() and not catalog.display_name(id,true).is_empty(),"both localized names and namespaced ID: "+id)
+	check(catalog.display_line("thorns",3)=="荆棘 III" and catalog.display_line("power",4,true)=="Power IV","English power is distinct from potion Strength; roman numerals match")
+	check(catalog.display_level(1000000)=="1000000","unrestricted levels have bounded-length display")
+	var sword := Sprite2D.new()
+	sword.texture = FIRST
+	world.add_child(sword)
+	sword.global_position = center
+	check(enchant.apply(sword,"minecraft:thorns",1000000),"non-armour sword-like sprite accepts Thorns above vanilla level")
+	for id:String in ids: check(enchant.apply(sword,id,1),"all enchantments attach to the same untyped object: "+id)
+	check(enchant.apply(sword,"thorns",1000000),"enchant can be reapplied without lowering its level")
+	var data:Dictionary = enchant.levels_of(sword)
+	check(data.size()==43 and int(data.thorns)==1000000 and data.has("binding_curse") and data.has("vanishing_curse"),"every ID and incompatible combination coexist without item restrictions")
+	check(not enchant.apply(sword,"thorns",0) and not enchant.apply(sword,"not_an_enchantment",1),"invalid level and unknown ID rejected without erasing existing entries")
+	data.erase("thorns")
+	check(enchant.levels_of(sword).has("thorns"),"readback returns a defensive copy")
+	var component:Node = enchant.ensure(sword)
+	check(component.get_parent()==sword and component.enchantments.size()==43,"one opt-in component carries enchantments on an arbitrary object")
+	var shine:Sprite2D = sword.get_node_or_null("MCEnchantGlint") as Sprite2D
+	check(shine!=null and shine.texture==sword.texture and shine.material is ShaderMaterial,"glint duplicates the live source texture as an additive alpha mask")
+	check(FileAccess.get_sha256("res://Images/characters/我的世界/native_frames/trident_masks/enchanted_item_glint.png")=="99cf0defcbe422c8b91a42886f469d89cfbaba157371d8142d01ba7e8055a631","glint uses the project's byte-exact Mojang texture")
+	var t0:float = float((shine.material as ShaderMaterial).get_shader_parameter("glint_time"))
+	component._process(0.3)
+	var t1:float = float((shine.material as ShaderMaterial).get_shader_parameter("glint_time"))
+	check(t1>t0,"native glint animation advances in game time")
+	game.now_stop_state = true
+	component._process(1.0)
+	check(is_equal_approx(float((shine.material as ShaderMaterial).get_shader_parameter("glint_time")),t1),"custom battle pause freezes glint, not just gameplay")
+	game.now_stop_state = false
+	sword.texture = SECOND
+	sword.flip_h = true
+	component._process(0.02)
+	check(shine.texture==SECOND and shine.flip_h and shine.is_visible_in_tree(),"source texture swaps and flip follow without replacing the base sprite")
+	sword.hide()
+	check(not shine.is_visible_in_tree(),"hidden object hides its glint")
+	sword.show()
+	var entries:Array[MCPreviewEnchantment] = enchant.preview_entries(sword)
+	check(entries.size()==43 and entries[ids.find("thorns")].level_text_override=="1000000","all enchantments can be handed to existing bilingual tooltip resources")
+	var generic := Node2D.new()
+	world.add_child(generic)
+	generic.global_position = center+Vector2(90,0)
+	var image := Sprite2D.new()
+	image.texture = FIRST
+	generic.add_child(image)
+	check(enchant.apply(generic,"sharpness",1),"non-Minecraft generic object accepts enchantments")
+	var helper:Node = enchant.ensure(generic)
+	check(image.get_node_or_null("MCEnchantGlint")!=null,"generic object discovers its nested visual")
+	var frames := SpriteFrames.new()
+	frames.add_animation(&"idle")
+	frames.add_frame(&"idle",FIRST)
+	frames.add_frame(&"idle",SECOND)
+	var animated := AnimatedSprite2D.new()
+	animated.sprite_frames = frames
+	animated.animation = &"idle"
+	generic.add_child(animated)
+	var polygon := Polygon2D.new()
+	polygon.polygon = PackedVector2Array([Vector2(-12,-12),Vector2(12,-12),Vector2(12,12),Vector2(-12,12)])
+	generic.add_child(polygon)
+	var control := TextureRect.new()
+	control.texture = FIRST
+	control.size = Vector2(32,32)
+	generic.add_child(control)
+	var color := ColorRect.new()
+	color.size = Vector2(16,16)
+	generic.add_child(color)
+	helper._process(0.3)
+	var animated_glint:Sprite2D = animated.get_node_or_null("MCEnchantGlint") as Sprite2D
+	check(animated_glint!=null and animated_glint.texture==FIRST and polygon.get_node_or_null("MCEnchantGlint") is Polygon2D,"animation and untextured polygon get masked glint")
+	check(control.get_node_or_null("MCEnchantGlint") is TextureRect and color.get_node_or_null("MCEnchantGlint") is ColorRect,"existing UI/colour visuals can display the glint too")
+	animated.frame = 1
+	helper._process(0.01)
+	check(animated_glint.texture==SECOND,"animated glint follows actual current frame")
+	enchant.remove(generic,"sharpness")
+	check(enchant.levels_of(generic).is_empty() and helper._slots.is_empty(),"removing final enchantment clears overlays and data")
+	var blank := Node.new()
+	world.add_child(blank)
+	var preset:Node = load("res://scripts/effects/我的世界/mc_enchantments.gd").new()
+	preset.enchantments = {"minecraft:thorns":17,"sharpness":-1}
+	blank.add_child(preset)
+	check(enchant.levels_of(blank)=={"thorns":17},"editor-style component works on any Node and sanitizes presets")
+	check(enchant.ensure(blank)==preset and enchant.apply(blank,"lunge",200) and enchant.levels_of(blank).lunge==200,"manually named component is reused rather than duplicated")
+	enchant.remove(blank,"lunge")
+	check(not enchant.levels_of(blank).has("lunge"),"removal finds manually named components too")
+	var name_conflict := Node.new()
+	name_conflict.name = "MinecraftEnchantments"
+	var parent := Node.new()
+	world.add_child(parent)
+	parent.add_child(name_conflict)
+	check(enchant.apply(parent,"thorns",5) and enchant.levels_of(parent)=={"thorns":5},"unrelated child with preferred name cannot block enchantment")
+	print("MC ENCHANTMENTS RESULT checks=",checks," failures=",failures)
+	finish(0 if failures==0 else 1)

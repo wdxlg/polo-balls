@@ -1,0 +1,39 @@
+# 全项目通用附魔数据与原版流光
+
+本阶段只接入**附魔目录、可配置数据和视觉光效**；不实现荆棘反伤、引雷等实际能力，不提供附魔台、获取途径或游戏内附魔按钮。现有对象不会被自动赋予附魔，后续玩法可调用本页入口。此实现与原有的三叉戟专用附魔视觉并存，不更改三叉戟埋地裁剪。
+
+## 使用入口
+
+适用于任意项目 `Node`，包括非 Minecraft 角色、武器、投射物、道具、障碍及 UI 容器。附魔数据在该对象的直属子组件中；纯逻辑节点也可储存数据，**只有下列支持的可绘制节点**才产生可见流光：`Sprite2D`、`AnimatedSprite2D`、`Polygon2D`、`TextureRect`、`ColorRect`。组件会递归扫描对象下的这些绘制节点，随动态创建、删除、帧切换、纹理更换与可见性变化更新；不修改原图、碰撞或伤害。非此列表的自定义 `_draw`、粒子、3D 模型等目前只有数据，没有自动视觉适配。
+
+**场景编辑器配置**：在目标对象下创建 `Node` 子节点，附加 `res://scripts/effects/我的世界/mc_enchantments.gd`，在 Inspector 的 `enchantments` 字典填入 `ID: 正整数等级`，例如 `thorns: 17`、`lunge: 200`。节点名称可自定，组件入场后会校验并规范化 ID。保存场景时按 Godot 正常保存该子节点。运行时增删用 API；仅手工修改字典并不会立即刷新光效。
+
+**脚本配置**（`item` 可以是任意 `Node`，无需类型标记）：
+
+```gdscript
+const ENCHANT = preload("res://scripts/effects/我的世界/mc_enchantments.gd")
+const CATALOG = preload("res://scripts/effects/我的世界/mc_enchantment_catalog.gd")
+
+ENCHANT.apply(item, "minecraft:thorns", 17) # 剑也可附荆棘；自动创建子组件
+ENCHANT.apply(item, "lunge", 200)            # 任意组合与正整数等级
+var levels:Dictionary = ENCHANT.levels_of(item) # 返回副本，例如 {"thorns":17,"lunge":200}
+ENCHANT.remove(item, "thorns")                # 删除单项；删完最后一项清除光效
+
+var component:Node = ENCHANT.ensure(item)      # 获取/创建同一个直属子组件
+component.replace_all({"protection":999,"sharpness":8}) # 批量替换并刷新
+# component.set_level("unbreaking", 1000) / component.remove_level("lunge")
+
+var entries:Array[MCPreviewEnchantment] = ENCHANT.preview_entries(item)
+# entries 可交给已有的 mc_effect_tooltip.gd 展示；不自动创建 UI。
+print(CATALOG.display_line("thorns",17)) # 荆棘 XVII
+```
+
+目录 `mc_enchantment_catalog.gd` 包含当前 Java 原版 43 个 ID 的中英名称，含 `lunge`（疾冲）。接受裸 ID 或 `minecraft:` 前缀、大小写与外侧空白；未知 ID 和非正整数不写入。**不实施原版的装备类别、等级上限、附魔互斥条件**：例如剑可同时带荆棘、保护、疾冲，等级只受 Godot 的 64 位整数表示范围约束。若需读取目录，用 `CATALOG.all_ids()`、`display_name(id, english)`、`display_level(level)`；超出罗马数字常见范围（3999）的等级显示十进制，避免巨长字符串。
+
+光效复用已有三叉戟的 Mojang `Images/characters/我的世界/native_frames/trident_masks/enchanted_item_glint.png` 及独立的通用 canvas shader `mc_enchantment_glint.gdshader`；按绘制节点形状叠加双向流动，不为无附魔对象增加负担。按场景暂停及 `/root/Game.now_stop_state` 暂停流动；不接入属性/命中/伤害系统。纹理来源、固定版本和许可见同目录 `ENCHANT_GLINT_SOURCE.json`；Shader 仅是本项目的 2D 适配，不声称精确复刻原版 3D 渲染。
+
+## 验证与边界
+
+- 官方 Godot headless：`godot.windows.opt.tools.64.exe --headless --path . --script res://tests/test_mc_enchantments.gd`，112/112 通过（2026-09-25）。覆盖 43 个名称/ID、百万级等级、不限类别/互斥组合、手动子组件及命名冲突、动态纹理/动画、多种绘制节点、暂停、移除、原版纹理哈希。
+- 官方 Godot 图形模式（不要加 `--headless`）：`godot.windows.opt.tools.64.exe --path . --script res://tests/test_mc_enchantments_visual.gd`。渲染显示回读结果：流光像素 4096、9 秒相位变化像素 3884、PNG 写入成功（`user://mc_enchantments_visual/enchanted.png`）；已查看样图呈紫色交错动态纹理，不再是整块纯紫。此为独立绘制样本，不代表所有实战场景已逐一画面验收；支持列表之外的渲染机制需单独接视觉适配，特定场景若另有遮罩、裁剪或子视口也应以实机画面验收。
+- 回退只针对本次附魔组件、目录、shader、测试和文档；项目工作区中其他未提交任务的改动不随本次提交回退。
