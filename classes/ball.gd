@@ -6803,7 +6803,15 @@ func receive_spatial_damage(
 		if actual_health_damage > 0.0 and source != null and Game.has_method("report_combat_damage"):
 			Game.report_combat_damage(source, self, actual_health_damage, before_health)
 		return actual_health_damage > 0.0
-	return receive_positional_damage(damage,impact_position,ignore_block,source)
+	# Area/skill callers may tag explosion, fall, projectile, etc.; restore the
+	# context immediately so a later unrelated hit cannot inherit that resistance.
+	var previous_enchant_element:Variant = get_meta("_mc_enchant_element",null)
+	var typed_element:String = str(damage_space.get("element","")) if damage_space is Dictionary else ""
+	if not typed_element.is_empty(): set_meta("_mc_enchant_element",typed_element)
+	var accepted_damage:bool = receive_positional_damage(damage,impact_position,ignore_block,source)
+	if previous_enchant_element == null: remove_meta("_mc_enchant_element")
+	else: set_meta("_mc_enchant_element",previous_enchant_element)
+	return accepted_damage
 
 
 func receive_spatial_raw_health_damage(damage:float,damage_space:Variant) -> bool:
@@ -6838,6 +6846,18 @@ func _on_hitbox_on_hit(hurt: hurtbox) -> void:
 	# 投射物会读取 Master 的状态，因此红牌期间已经飞出去的子弹仍会正常碰撞/销毁，
 	# 但不会继续造成伤害。
 	var outgoing_damage:float = attack_damage(current_hit_damage_multiplier())
+	# Enchantment modifiers run at the authoritative damage point, before block/HP;
+	# weapons under a character register their component on the combat owner.
+	var enchant_caster:ball = Master if Master != null and is_instance_valid(Master) else self
+	if outgoing_damage > 0.0 and (enchant_caster.has_meta("mc_enchant_components") or enchant_caster.has_node("MinecraftEnchantments")):
+		var enchant_script:Script = load("res://scripts/effects/我的世界/mc_enchantments.gd")
+		var tags:Array = []
+		var family:String = str(target.get_meta("mc_creature_family",""))
+		if not family.is_empty(): tags.append(family)
+		var shot_mode:String = "ranged" if _is_ranged_hit_source(self) else "melee"
+		var info:Dictionary = enchant_script.resolve_event(enchant_caster,"damage_out",{"damage":outgoing_damage,"mode":shot_mode,"target_tags":tags,"base_damage":outgoing_damage})
+		outgoing_damage = float(info.get("damage",outgoing_damage))
+		if float(info.get("armor_penetration",0.0)) > 0.0: target.set_meta("_mc_enchant_armor_penetration",float(info.armor_penetration))
 
 	if outgoing_damage > 0.0 and (target.block < outgoing_damage or ignore_block):
 		if Unique_Hit_Audio != null:
@@ -6857,8 +6877,14 @@ func _on_hitbox_on_hit(hurt: hurtbox) -> void:
 	)
 
 	if outgoing_damage > 0.0:
-		target.hit_white(ignore_block)
-		target.take_damage(outgoing_damage,ignore_block)
+		var old_enchant_element:Variant = target.get_meta("_mc_enchant_element",null)
+		if _is_ranged_hit_source(self): target.set_meta("_mc_enchant_element","projectile")
+		if not target._route_boat_damage(outgoing_damage,hit_source_position,ignore_block,self):
+			target.hit_white(ignore_block)
+			target.take_damage(outgoing_damage,ignore_block)
+		if old_enchant_element == null: target.remove_meta("_mc_enchant_element")
+		else: target.set_meta("_mc_enchant_element",old_enchant_element)
+		target.remove_meta("_mc_enchant_armor_penetration")
 
 	var health_loss:float = maxf(before_health - float(target.health),0.0)
 	var block_loss:float = maxf(before_block - float(target.block),0.0)
@@ -7006,7 +7032,12 @@ func receive_positional_damage(
 func take_damage(damage:float,ignore_block:bool = false) -> void:
 	var before_health:float = float(health)
 	var before_block:float = float(block)
-	damage *= 1 - Damage_reduction
+	if damage > 0.0 and (has_meta("mc_enchant_components") or has_node("MinecraftEnchantments")):
+		var enchant_script:Script = load("res://scripts/effects/我的世界/mc_enchantments.gd")
+		var element:String = str(get_meta("_blood_damage_element",get_meta("_mc_enchant_element","physical")))
+		damage = float(enchant_script.resolve_event(self,"damage_in",{"damage":damage,"element":element}).get("damage",damage))
+	var reduction:float = Damage_reduction * (1.0-clampf(float(get_meta("_mc_enchant_armor_penetration",0.0)),0.0,0.9))
+	damage *= 1.0-reduction
 
 	if not ignore_block and damage > 0:
 		if block >= damage:

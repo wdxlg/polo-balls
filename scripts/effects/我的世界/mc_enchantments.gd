@@ -1,16 +1,19 @@
 extends Node
-## Opt-in metadata + visual glint for ANY game object. No gameplay buffs or enchanting UI.
+## Opt-in enchantment component. Effects are resolved by mc_enchantment_effects.gd.
 ## Add this as a child of an object and edit `enchantments` in the Inspector, or call apply().
 ## Sprite2D, AnimatedSprite2D, Polygon2D, TextureRect, and ColorRect are masked individually.
 const CATALOG = preload("res://scripts/effects/我的世界/mc_enchantment_catalog.gd")
+const EFFECTS = preload("res://scripts/effects/我的世界/mc_enchantment_effects.gd")
 const SHADER = preload("res://scripts/effects/我的世界/mc_enchantment_glint.gdshader")
 const NATIVE_GLINT = preload("res://Images/characters/我的世界/native_frames/trident_masks/enchanted_item_glint.png")
 const NODE_NAME:String = "MinecraftEnchantments"
 const GLINT_NAME:String = "MCEnchantGlint"
-@export var enchantments:Dictionary = {} # minecraft ID -> any positive integer level
+const MAX_LEVEL:int = 32767
+@export var enchantments:Dictionary = {} # minecraft ID -> 1..32767 (no vanilla item restrictions)
 var _slots:Dictionary = {} # visual instance id -> weak source / overlay
 var _clock:float = 0.0
 var _rescan_left:float = 0.0
+var _combat_actor:Node = null
 
 static func ensure(target:Node) -> Node:
 	if not is_instance_valid(target) or target.is_queued_for_deletion(): return null
@@ -29,7 +32,7 @@ static func _component(target:Node) -> Node:
 	return null
 
 static func apply(target:Node,kind:String,level:int = 1) -> bool:
-	if not CATALOG.has_id(kind) or level <= 0: return false
+	if not CATALOG.has_id(kind) or level <= 0 or level > MAX_LEVEL: return false
 	var component:Node = ensure(target)
 	return component != null and bool(component.call("set_level",kind,level))
 
@@ -40,6 +43,19 @@ static func remove(target:Node,kind:String) -> void:
 static func levels_of(target:Node) -> Dictionary:
 	var component:Node = _component(target)
 	return component.enchantments.duplicate() if component != null else {}
+
+## For systems that already own an event (mining, fishing, shooting, equipment,
+## XP, mobility, elemental damage). Returned values are deterministic and
+## side-effect-free; the authoritative caller applies them exactly once.
+static func resolve_event(target:Node,event:String,context:Dictionary = {}) -> Dictionary:
+	var values:Dictionary = levels_of(target)
+	if is_instance_valid(target) and target.has_meta("mc_enchant_components"):
+		for weak:Variant in target.get_meta("mc_enchant_components",[]):
+			var component:Node = weak.get_ref() if weak is WeakRef else null
+			if not is_instance_valid(component) or component.is_queued_for_deletion(): continue
+			for id:String in component.enchantments:
+				values[id] = maxi(int(values.get(id,0)),int(component.enchantments[id]))
+	return EFFECTS.resolve(values,event,context)
 
 static func preview_entries(target:Node) -> Array[MCPreviewEnchantment]:
 	## May be given to an existing mc_effect_tooltip, without changing test-armour-stand UI.
@@ -59,15 +75,67 @@ func _ready() -> void:
 	var valid:Dictionary = {}
 	for raw:Variant in enchantments:
 		var id:String = CATALOG.canonical(str(raw))
-		if CATALOG.has_id(id) and enchantments[raw] is int and int(enchantments[raw]) > 0: valid[id] = enchantments[raw]
+		if CATALOG.has_id(id) and enchantments[raw] is int and int(enchantments[raw]) > 0 and int(enchantments[raw]) <= MAX_LEVEL: valid[id] = enchantments[raw]
 	enchantments = valid
+	_bind_combat_signals()
 	_reconcile()
 	set_process(not enchantments.is_empty())
 
+func _bind_combat_signals() -> void:
+	var node:Node = get_parent()
+	while node != null and not (node is ball): node = node.get_parent()
+	if node == null: return
+	_combat_actor = node
+	var refs:Array = node.get_meta("mc_enchant_components",[])
+	refs.append(weakref(self))
+	node.set_meta("mc_enchant_components",refs)
+	var hit:Node = node.get_node_or_null("hitbox")
+	var hurt:Node = node.get_node_or_null("hurtbox")
+	if hit is hitbox and not hit.on_hit.is_connected(_on_combat_hit): hit.on_hit.connect(_on_combat_hit)
+	if hurt is hurtbox and not hurt.on_hurt.is_connected(_on_combat_hurt): hurt.on_hurt.connect(_on_combat_hurt)
+
+func _on_combat_hit(hurt:hurtbox) -> void:
+	var actor:ball = _combat_actor as ball
+	var target:ball = hurt.get_parent() as ball if is_instance_valid(hurt) else null
+	if actor == null or target == null or target == actor or target.health <= 0 or not actor.is_multiplayer_authority(): return
+	if not actor.is_combat_runtime_active(): return
+	# Hitbox has already performed normal friendly-fire/avoidance validation.
+	var base:float = actor.attack_damage()
+	if base <= 0.0: return
+	var mode:String = "ranged" if actor._is_ranged_hit_source(actor) else "melee"
+	var tags:Array = []
+	var family:String = str(target.get_meta("mc_creature_family",""))
+	if not family.is_empty(): tags.append(family)
+	var proc:Dictionary = EFFECTS.resolve(enchantments,"on_hit",{"mode":mode,"target_tags":tags})
+	var dist:float = float(proc.get("knockback_distance",0.0))
+	if dist > 0.0:
+		var direction:Vector2 = (target.global_position-actor.global_position).normalized()
+		if direction != Vector2.ZERO: target.apply_knockback(direction,dist,420.0,0.0,0.0,{"source":actor})
+	var burn:float = float(proc.get("burn_seconds",0.0))
+	if burn > 0.0 and target.can_receive_fire_status():
+		var status:Node = target.get_node_or_null("MinecraftBlazeBurn")
+		if status != null and status.has_method("refresh"): status.call("refresh",actor,burn,float(proc.get("burn_damage",0.0)))
+		else:
+			status = load("res://scripts/status/战争女神_灼烧.gd").new()
+			status.name = "MinecraftBlazeBurn"
+			target.add_child(status,true)
+			status.call("setup",target,actor,burn,0.55,float(proc.get("burn_damage",0.0)))
+	var stun:float = float(proc.get("stun_seconds",0.0))
+	if stun > 0.0: target.apply_stun(stun,actor)
+
+func _on_combat_hurt(hit:hitbox) -> void:
+	var owner_ball:ball = _combat_actor as ball
+	var attacker:ball = hit.get_parent() as ball if is_instance_valid(hit) else null
+	if owner_ball == null or attacker == null or owner_ball.health <= 0 or attacker.health <= 0: return
+	if not owner_ball.is_multiplayer_authority() or not owner_ball.is_combat_runtime_active(): return
+	if attacker.attack_damage() <= 0.0: return
+	var retaliation:float = float(EFFECTS.resolve(enchantments,"on_hurt").get("retaliation_damage",0.0))
+	if retaliation > 0.0: attacker.receive_positional_damage(retaliation,owner_ball.global_position,false,owner_ball)
+
 func set_level(kind:String,level:int) -> bool:
 	var id:String = CATALOG.canonical(kind)
-	if not CATALOG.has_id(id) or level <= 0: return false
-	enchantments[id] = level # No slot, mutual-exclusion, or vanilla level restrictions.
+	if not CATALOG.has_id(id) or level <= 0 or level > MAX_LEVEL: return false
+	enchantments[id] = level # No item class or mutual-exclusion restrictions.
 	_reconcile()
 	set_process(true)
 	return true
@@ -81,7 +149,7 @@ func replace_all(values:Dictionary) -> void:
 	var valid:Dictionary = {}
 	for raw:Variant in values:
 		var id:String = CATALOG.canonical(str(raw))
-		if CATALOG.has_id(id) and values[raw] is int and int(values[raw]) > 0: valid[id] = values[raw]
+		if CATALOG.has_id(id) and values[raw] is int and int(values[raw]) > 0 and int(values[raw]) <= MAX_LEVEL: valid[id] = values[raw]
 	enchantments = valid
 	_reconcile()
 	set_process(not enchantments.is_empty())
