@@ -30,10 +30,12 @@ var time_font:Font = NUMBER_FONT
 var text_size:int = FONT_SIZE
 
 var _panel:Control
+var _game:Node
 var _kind:StringName = &"potion"
 var _potions:Array[MCPreviewPotionEffect] = []
 var _enchants:Array[MCPreviewEnchantment] = []
 var _item_title:String = "附魔书"
+var _item_title_en:String = ""
 var _potion_backgrounds:Array[NinePatchRect] = []
 var _potion_names:Array[Label] = []
 var _time_labels:Array[Label] = []
@@ -50,6 +52,11 @@ func _ready() -> void:
 	_panel.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	add_child(_panel)
 	_panel.hide()
+	# Resolve the autoload at runtime: this class_name script is also parsed by
+	# SceneTree test runners before autoload singletons are registered.
+	_game = get_node_or_null("/root/Game")
+	if _game != null and _game.has_signal("language_changed"):
+		_game.connect("language_changed",_on_language_changed)
 
 
 func set_potion_entries(entries:Array[MCPreviewPotionEffect]) -> void:
@@ -59,11 +66,18 @@ func set_potion_entries(entries:Array[MCPreviewPotionEffect]) -> void:
 	_rebuild()
 
 
-func set_enchantment_entries(item_name:String, entries:Array[MCPreviewEnchantment]) -> void:
+func set_enchantment_entries(item_name:String, entries:Array[MCPreviewEnchantment], english_item_name:String = "") -> void:
 	_kind = &"enchantment"
 	_item_title = item_name
+	_item_title_en = english_item_name
 	_enchants = entries.duplicate()
 	_rebuild()
+
+
+func _on_language_changed(_locale:String) -> void:
+	# Keep ticking the existing effects instead of restarting their timers when
+	# labels and text-measured nine-slice frames are rebuilt for the new language.
+	_rebuild(true)
 
 
 func _process(delta:float) -> void:
@@ -109,13 +123,22 @@ func _clear_panel() -> void:
 	_panel.hide()
 
 
-func _rebuild() -> void:
+func _rebuild(preserve_timers:bool = false) -> void:
 	if _panel == null:
 		return
+	var prior_seconds:Array[int] = []
+	if preserve_timers:
+		prior_seconds = _remaining_seconds.duplicate()
 	_clear_panel()
 	_panel.scale = Vector2.ONE * maxf(display_scale,0.5)
 	if _kind == &"potion":
 		_build_potions()
+		for index:int in range(mini(prior_seconds.size(),_remaining_seconds.size())):
+			_remaining_seconds[index] = prior_seconds[index]
+			if _potions[index].duration_text_override.is_empty():
+				_time_labels[index].text = _duration(prior_seconds[index])
+		if not prior_seconds.is_empty():
+			_refresh_potion_widths()
 	else:
 		_build_enchantments()
 	_update_position()
@@ -128,6 +151,12 @@ func _max_logical_width() -> float:
 
 func _text_width(value:String,font:Font) -> float:
 	return font.get_string_size(value,HORIZONTAL_ALIGNMENT_LEFT,-1,text_size).x
+
+
+func _localized(source:String,english_name:String) -> String:
+	if _game != null and str(_game.get("current_locale")).begins_with("en"):
+		return english_name if not english_name.is_empty() else str(_game.call("t",source))
+	return source
 
 
 func _potion_row_width(name:String,time:String) -> float:
@@ -158,6 +187,9 @@ func _make_patch(texture:Texture2D,border:int,size_value:Vector2) -> NinePatchRe
 func _make_label(value:String,color:Color,font:Font,rect:Rect2) -> Label:
 	var label := Label.new()
 	label.text = value
+	# These strings use the battle language, which can differ from the UI locale
+	# when "in-game translation only" is enabled. Never auto-translate them again.
+	label.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	label.add_theme_font_override("font",font)
 	label.add_theme_font_size_override("font_size",text_size)
 	label.add_theme_color_override("font_color",color)
@@ -230,7 +262,7 @@ func _build_enchantments() -> void:
 	# simply fitting text to the NinePatchRect size leaves it outside the border.
 	const TEXT_INSET:float = 14.0
 	const TEXT_TOP:float = 13.0
-	var labels:Array[String] = [_item_title]
+	var labels:Array[String] = [_localized(_item_title,_item_title_en)]
 	var colors:Array[Color] = [title_color]
 	for enchant:MCPreviewEnchantment in _enchants:
 		if enchant == null:
@@ -315,9 +347,11 @@ func _duration_for(effect:MCPreviewPotionEffect) -> String:
 
 func _potion_name(effect:MCPreviewPotionEffect) -> String:
 	var suffix:String = effect.level_text_override if not effect.level_text_override.is_empty() else (_roman(effect.level) if effect.level > 1 else "")
-	return effect.effect_name if suffix.is_empty() else effect.effect_name + " " + suffix
+	var name:String = _localized(effect.effect_name,effect.english_name)
+	return name if suffix.is_empty() else name + " " + suffix
 
 
 func _enchant_name(enchant:MCPreviewEnchantment) -> String:
 	var suffix:String = enchant.level_text_override if not enchant.level_text_override.is_empty() else _roman(enchant.level)
-	return enchant.enchantment_name if suffix.is_empty() else enchant.enchantment_name + " " + suffix
+	var name:String = _localized(enchant.enchantment_name,enchant.english_name)
+	return name if suffix.is_empty() else name + " " + suffix

@@ -7,45 +7,54 @@
 [sub_resource type="Resource" id="EnchantPierce"]
 script = ExtResource("3_entry")
 enchantment_name = "穿透"
+english_name = "Piercing"
 level = 4
 
 [sub_resource type="Resource" id="EnchantSharpness"]
 script = ExtResource("3_entry")
 enchantment_name = "锋利"
+english_name = "Sharpness"
 level = 5
 
 [sub_resource type="Resource" id="EnchantProtection"]
 script = ExtResource("3_entry")
 enchantment_name = "保护"
+english_name = "Protection"
 level = 4
 
 [sub_resource type="Resource" id="EnchantUnbreaking"]
 script = ExtResource("3_entry")
 enchantment_name = "耐久"
+english_name = "Unbreaking"
 level = 3
 
 [sub_resource type="Resource" id="EnchantEfficiency"]
 script = ExtResource("3_entry")
 enchantment_name = "效率"
+english_name = "Efficiency"
 level = 5
 
 [sub_resource type="Resource" id="EnchantPower"]
 script = ExtResource("3_entry")
 enchantment_name = "力量"
+english_name = "Power"
 level = 5
 
 [sub_resource type="Resource" id="EnchantSmite"]
 script = ExtResource("3_entry")
 enchantment_name = "亡灵杀手"
+english_name = "Smite"
 level = 3
 
 [sub_resource type="Resource" id="EnchantMending"]
 script = ExtResource("3_entry")
 enchantment_name = "经验修补"
+english_name = "Mending"
 level = 1
 
 [node name="附魔测试盔甲架" instance=ExtResource("1_base")]
 script = ExtResource("2_script")
 tooltip_mode = 1
 tooltip_title = "附魔书"
+tooltip_title_en = "Enchanted Book"
 enchantment_pool = Array[Resource]([SubResource("EnchantPierce"), SubResource("EnchantSharpness"), SubResource("EnchantProtection"), SubResource("EnchantUnbreaking"), SubResource("EnchantEfficiency"), SubResource("EnchantPower"), SubResource("EnchantSmite"), SubResource("EnchantMending")])

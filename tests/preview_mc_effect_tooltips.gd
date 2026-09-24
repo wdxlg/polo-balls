@@ -8,6 +8,8 @@ func _initialize() -> void:
 
 func _run() -> void:
 	create_timer(40.0).timeout.connect(func() -> void: quit(2))
+	var english:bool = OS.get_cmdline_user_args().has("--english")
+	root.get_node("Game").call("set_language","en" if english else "zh",false)
 	root.content_scale_mode = Window.CONTENT_SCALE_MODE_DISABLED
 	root.size = Vector2i(1000,700)
 	var backdrop := ColorRect.new()
@@ -49,7 +51,7 @@ func _run() -> void:
 	await RenderingServer.frame_post_draw
 	await RenderingServer.frame_post_draw
 	var image:Image = root.get_texture().get_image()
-	var output:String = "user://mc_effect_tooltips/preview.png"
+	var output:String = "user://mc_effect_tooltips/preview_en.png" if english else "user://mc_effect_tooltips/preview.png"
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://mc_effect_tooltips"))
 	var saved:Error = image.save_png(output)
 	var real_map_right:int = int(map.position.x + map.size.x)
@@ -61,7 +63,15 @@ func _run() -> void:
 	var regen_frame:NinePatchRect = potion_ui._potion_backgrounds[0]
 	var regen_text:Label = potion_ui._potion_names[0]
 	var right_padding:float = regen_frame.size.x - regen_text.position.x - potion_ui._text_width(regen_text.text,potion_ui.text_font)
-	var hugs_regeneration:bool = regen_text.text == "生命恢复" and regen_frame.size.x < 120.0 and right_padding >= 5.0 and right_padding <= 8.0
+	var correct_language:bool = regen_text.text == ("Regeneration" if english else "生命恢复") and potion_ui._potion_names[1].text == ("Speed II" if english else "迅捷 II")
+	correct_language = correct_language and (panel_e.get_child(2) as Label).text == ("Enchanted Book" if english else "附魔书")
+	correct_language = correct_language and (panel_e.get_child(3) as Label).text == ("Piercing IV" if english else "穿透 IV")
+	var all_rows_fit:bool = true
+	for index:int in range(potion_ui._potion_backgrounds.size()):
+		var content:float = maxf(potion_ui._text_width(potion_ui._potion_names[index].text,potion_ui.text_font),potion_ui._text_width(potion_ui._time_labels[index].text,potion_ui.time_font))
+		var padding:float = potion_ui._potion_backgrounds[index].size.x - potion_ui._potion_names[index].position.x - content
+		all_rows_fit = all_rows_fit and padding >= 5.0 and padding <= 8.0
+	var hugs_regeneration:bool = correct_language and all_rows_fit and (english or regen_frame.size.x < 120.0)
 	var extends_past_map:bool = rect_p.end.x > real_map_right + 50 and rect_e.end.x > real_map_right + 25
 	var right_of_actor:bool = rect_p.position.x > potion.get_global_transform_with_canvas().origin.x and rect_e.position.x > enchant.get_global_transform_with_canvas().origin.x
 	# Compare actual rendered frames with and without both tooltips. Comparing to
@@ -87,5 +97,5 @@ func _run() -> void:
 		var frame_pixel:Color = image.get_pixel(clear_x,clear_y)
 		var empty_pixel:Color = without.get_pixel(clear_x,clear_y)
 		clear_after_frame = absf(frame_pixel.r - empty_pixel.r) + absf(frame_pixel.g - empty_pixel.g) + absf(frame_pixel.b - empty_pixel.b) < 0.025
-	print("MC_TOOLTIP_GPU saved=",saved == OK," path=",ProjectSettings.globalize_path(output)," image=",image.get_size()," outside_pixels=",outside_changed," beyond_map=",extends_past_map," right_of_actor=",right_of_actor," regen_row_width=",regen_frame.size.x," right_padding=",right_padding," clear_after_frame=",clear_after_frame," potion_rect=",rect_p," enchant_rect=",rect_e)
+	print("MC_TOOLTIP_GPU locale=",("en" if english else "zh")," saved=",saved == OK," path=",ProjectSettings.globalize_path(output)," image=",image.get_size()," outside_pixels=",outside_changed," beyond_map=",extends_past_map," right_of_actor=",right_of_actor," translations_ok=",correct_language," rows_fit=",all_rows_fit," regen_row_width=",regen_frame.size.x," right_padding=",right_padding," clear_after_frame=",clear_after_frame," potion_rect=",rect_p," enchant_rect=",rect_e)
 	quit(0 if saved == OK and outside_changed > 200 and extends_past_map and right_of_actor and hugs_regeneration and clear_after_frame else 1)

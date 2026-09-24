@@ -15,12 +15,14 @@
 [sub_resource type="Resource" id="PotionRegen"]
 script = ExtResource("3_entry")
 effect_name = "生命恢复"
+english_name = "Regeneration"
 icon = ExtResource("4_regen")
 duration_seconds = 240
 
 [sub_resource type="Resource" id="PotionSpeed"]
 script = ExtResource("3_entry")
 effect_name = "迅捷"
+english_name = "Speed"
 icon = ExtResource("5_speed")
 level = 2
 duration_seconds = 145
@@ -28,6 +30,7 @@ duration_seconds = 145
 [sub_resource type="Resource" id="PotionStrength"]
 script = ExtResource("3_entry")
 effect_name = "力量"
+english_name = "Strength"
 icon = ExtResource("6_strength")
 level = 2
 duration_seconds = 215
@@ -35,18 +38,21 @@ duration_seconds = 215
 [sub_resource type="Resource" id="PotionFire"]
 script = ExtResource("3_entry")
 effect_name = "抗火"
+english_name = "Fire Resistance"
 icon = ExtResource("7_fire")
 duration_seconds = 360
 
 [sub_resource type="Resource" id="PotionNight"]
 script = ExtResource("3_entry")
 effect_name = "夜视"
+english_name = "Night Vision"
 icon = ExtResource("8_night")
 duration_seconds = 193
 
 [sub_resource type="Resource" id="PotionJump"]
 script = ExtResource("3_entry")
 effect_name = "跳跃提升"
+english_name = "Jump Boost"
 icon = ExtResource("9_jump")
 level = 3
 duration_seconds = 172
@@ -54,12 +60,14 @@ duration_seconds = 172
 [sub_resource type="Resource" id="PotionWater"]
 script = ExtResource("3_entry")
 effect_name = "水下呼吸"
+english_name = "Water Breathing"
 icon = ExtResource("10_water")
 duration_seconds = 121
 
 [sub_resource type="Resource" id="PotionResist"]
 script = ExtResource("3_entry")
 effect_name = "抗性提升"
+english_name = "Resistance"
 icon = ExtResource("11_resist")
 level = 2
 duration_seconds = 310

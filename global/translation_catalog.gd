@@ -800,7 +800,10 @@ const TABLE:Dictionary = {
 		"时砂司祭": "时砂司祭",
 		"疲倦的人_悲伤形态": "疲倦的人_悲伤形态",
 		"疲倦的人_愤怒形态": "疲倦的人_愤怒形态",
-		"AI": "AI"
+		"AI": "AI",
+		"药水测试盔甲架": "药水测试盔甲架",
+		"附魔测试盔甲架": "附魔测试盔甲架",
+		"附魔书": "附魔书"
 	},
 	"en": {
 		"UI_LANGUAGE": "Language",
@@ -1598,6 +1601,9 @@ const TABLE:Dictionary = {
 		"时砂司祭": "Timesand Priest",
 		"疲倦的人_悲伤形态": "Tired Person (Sad Form)",
 		"疲倦的人_愤怒形态": "Tired Person (Angry Form)",
-		"AI": "AI"
+		"AI": "AI",
+		"药水测试盔甲架": "Potion Test Armor Stand",
+		"附魔测试盔甲架": "Enchantment Test Armor Stand",
+		"附魔书": "Enchanted Book"
 	}
 }

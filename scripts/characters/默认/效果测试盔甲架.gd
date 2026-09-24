@@ -18,6 +18,7 @@ extends "res://scripts/characters/默认/移动盔甲架.gd"
 
 @export_group("附魔：首行黄色物品名，下方为附魔行")
 @export var tooltip_title:String = "附魔书"
+@export var tooltip_title_en:String = ""
 @export var tooltip_title_color:Color = Color("ffff55")
 @export var enchantment_pool:Array[Resource] = []
 @export var custom_enchant_background:Texture2D
@@ -69,7 +70,7 @@ func _ready() -> void:
 		var selected:Array[MCPreviewEnchantment] = []
 		for index:int in chosen:
 			selected.append(enchantment_pool[index] as MCPreviewEnchantment)
-		set_displayed_enchantments(tooltip_title,selected)
+		set_displayed_enchantments(tooltip_title,selected,tooltip_title_en)
 
 
 func _sample_indices() -> Array[int]:
@@ -105,9 +106,9 @@ func set_displayed_potions(entries:Array[MCPreviewPotionEffect]) -> void:
 		preview_tooltip.set_potion_entries(displayed_potions)
 
 
-func set_displayed_enchantments(item_name:String,entries:Array[MCPreviewEnchantment]) -> void:
+func set_displayed_enchantments(item_name:String,entries:Array[MCPreviewEnchantment],english_item_name:String = "") -> void:
 	tooltip_mode = 1
 	tooltip_title = item_name
 	displayed_enchantments = entries.duplicate()
 	if is_instance_valid(preview_tooltip):
-		preview_tooltip.set_enchantment_entries(tooltip_title,displayed_enchantments)
+		preview_tooltip.set_enchantment_entries(tooltip_title,displayed_enchantments,english_item_name)

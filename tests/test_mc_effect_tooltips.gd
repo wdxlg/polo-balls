@@ -30,6 +30,8 @@ func _spawn(scene:PackedScene,position:Vector2) -> Node2D:
 
 func _run() -> void:
 	create_timer(50).timeout.connect(func() -> void: quit(2))
+	# Use the Chinese baseline even when the player last saved English settings.
+	root.get_node("Game").call("set_language","zh",false)
 	arena = Node2D.new()
 	arena.name = "MCTooltipTestArena"
 	root.add_child(arena)

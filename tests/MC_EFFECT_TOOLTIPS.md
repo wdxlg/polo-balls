@@ -4,13 +4,14 @@
 
 - 默认分类直接可选 `药水测试盔甲架`、`附魔测试盔甲架`；两者继承原来的移动盔甲架，仍是速度 100、无主动攻击／身体伤害的测试目标。仅显示模拟的药水/附魔**文字与图标**，不向角色施加实际增益、伤害或命中音效，也不创建新的伤害威胁。
 - 药水框逐条显示原版图标、名称/可选等级和逐秒倒计时。附魔框首行黄色物品名、以下每行附魔名+罗马等级；空等级或自定义等级文案也可设。随机从场景的候选资源中无放回选 **2–4** 条（可编辑范围），每次重新出生再抽；设置 `randomize_on_spawn=false` 可显示候选池全部内容。
+- **中英双语**：默认两架盔甲架名称已进入角色选择器翻译表，8 条药水、8 条附魔以及黄色物品标题均有独立英文文案；例如药水「力量」显示 `Strength`，弓附魔「力量」显示 `Power`。切换 Game 语言时现有信息框即时重排，倒计时不重置；「仅局内翻译」开启时框内仍按战斗语言显示英文，不受外层界面中文设置影响。时间数字与罗马等级不变。
 - 共用 `scripts/ui/mc_effect_tooltip.gd`：九宫格保持原版边角、扩展中心区域，不直接将整张像素贴图拉糊。药水背景**每条独立**贴合名称和时间两行中较宽的一行，文字后仅留约 6 个逻辑像素（默认 3 倍缩放为 18 屏幕像素）；原版 120×32 PNG 是素材尺寸，**不是最小显示宽度**。时间字数变化时行宽和整体定位随之刷新。附魔框仍按最长内容和总行数扩展；超出视口时整体等比缩小。信息框在盔甲架**右侧**跟随身体，放在独立屏幕空间 `CanvasLayer`，越过地图外沿/裁剪层仍可见；非常靠近视口右侧时优先将完整框收进屏幕，可能与角色位置重叠。角色隐藏、死亡、完全离屏或删除后不留旧框。
 
 ## 自定义方式
 
-1. 打开 `scenes/characters/默认/药水测试盔甲架.tscn`：`potion_pool` 的每个 `MCPreviewPotionEffect` 子资源可改名称、任意 `Texture2D` 图标、等级、等级文案覆盖、持续秒数/时间文案覆盖、文字颜色。出生随机范围、像素倍数、右侧间隔、屏幕安全边距和字体/字号均在盔甲架根节点 Inspector 调整；可选提供新背景贴图及对应九宫格边距。
-2. 打开 `scenes/characters/默认/附魔测试盔甲架.tscn`：根节点 `tooltip_title`/`tooltip_title_color` 配首行；`enchantment_pool` 每个 `MCPreviewEnchantment` 可改附魔名称、等级/文案覆盖、文字颜色。背景和描边贴图/九宫格边距也可替换。
-3. 运行时可以调用盔甲架的 `set_displayed_potions(Array[MCPreviewPotionEffect])` 或 `set_displayed_enchantments(item_name, Array[MCPreviewEnchantment])`，立即重排整个原版边框。原版 PNG 无需重绘，动态换行、较长名称和多行高度都有检查。
+1. 打开 `scenes/characters/默认/药水测试盔甲架.tscn`：`potion_pool` 的每个 `MCPreviewPotionEffect` 子资源可改中文 `effect_name` 和对应英文 `english_name`、任意 `Texture2D` 图标、等级、等级文案覆盖、持续秒数/时间文案覆盖、文字颜色。出生随机范围、像素倍数、右侧间隔、屏幕安全边距和字体/字号均在盔甲架根节点 Inspector 调整；可选提供新背景贴图及对应九宫格边距。
+2. 打开 `scenes/characters/默认/附魔测试盔甲架.tscn`：根节点 `tooltip_title`/`tooltip_title_en`/`tooltip_title_color` 配双语首行；`enchantment_pool` 每个 `MCPreviewEnchantment` 可改中文 `enchantment_name` 和英文 `english_name`、等级/文案覆盖、文字颜色。背景和描边贴图/九宫格边距也可替换。英文名留空时尝试 `Game.t(中文名)` 的翻译表；无翻译则保留原文，不猜测自定义名称。
+3. 运行时可以调用盔甲架的 `set_displayed_potions(Array[MCPreviewPotionEffect])` 或 `set_displayed_enchantments(item_name, Array[MCPreviewEnchantment], english_item_name="")`，立即重排整个原版边框。第三个可选参数给运行时自定义黄色标题配英文；原来的双参数调用保持可用。原版 PNG 无需重绘，动态换行、较长名称和多行高度都有检查。
 
 ## 资源来源
 
@@ -24,9 +25,13 @@
 ```powershell
 & ..\polo-balls-tools\offline-engine\runtime\Godot.4.7.2.offline.exe --headless --path . --editor --recovery-mode --import
 & ..\polo-balls-tools\offline-engine\runtime\Godot.4.7.2.offline.exe --headless --path . --script res://tests/test_mc_effect_tooltips.gd
+& ..\polo-balls-tools\offline-engine\runtime\Godot.4.7.2.offline.exe --headless --path . --script res://tests/test_mc_effect_tooltips_locale.gd
 & ..\polo-balls-tools\offline-engine\runtime\Godot.4.7.2.offline.exe --path . --script res://tests/preview_mc_effect_tooltips.gd
+& ..\polo-balls-tools\offline-engine\runtime\Godot.4.7.2.offline.exe --path . --script res://tests/preview_mc_effect_tooltips.gd -- --english
 ```
 
 - 静态/运行时夹具：此次运行 **46 项检查、0 失败**（检查数随药水随机条目个数略有变化）；两场景加载并出现在默认分类索引，移动速度和无攻击属性、无重复随机、倒计时/暂停、字体及标题顺序、长文本九宫格自适应、异常长列表视口缩放、跟随/临屏回收/隐藏均已验证。新增以「生命恢复」短标题、不同宽度的第二行和长时间文案检验每行独立伸缩、右边距，以及 `1:00:00` 倒数成 `59:59` 后的收缩。
+- 语言回归：**40 项检查、0 失败**；逐项检验 8 种药水、8 种附魔的英文与资源原名对应、角色选择名称与黄色标题、导出安全翻译表、每行英文宽度/背景边角、实时中英切换后倒计时不重置、「仅局内翻译」、运行时自定义中英文文案及原双参数接口。
 - **真实 D3D12/Forward+ GPU**：生成用户目录 `user://mc_effect_tooltips/preview.png` 的 1000×700 画面；两个盔甲架贴近一个实际启用了 `clip_contents=true` 的测试地图边缘。关闭信息框前后逐像素对比，地图外有 **7230 个像素**明确来自原版信息框，两个框均保持在角色右侧且越过地图边界。「生命恢复」行九宫格宽 **73 逻辑像素**（默认 3 倍即 219 屏幕像素），名字右侧留 **6 逻辑像素**；GPU 对比确认背景右侧取样处已恢复为背景色、没有继续绘制原来 120px 的宽度。人工查看线性→sRGB 校正后的截图，药水/附魔背景、图标、标题/行色与参考形式吻合。
+- 英文 GPU 预览保存为 `user://mc_effect_tooltips/preview_en.png`：地图外实际变化 **7440 像素**；`Regeneration` 一行宽 **101 逻辑像素**（303 屏幕像素），右留 **6 逻辑像素**，`Enchanted Book` 附魔框宽 330 屏幕像素；两框均在角色右侧、地图边界外可见，实际帧后侧背景取样处无绘制。
 - 现存基线警告：`scenes/ball.tscn` 的 `set_rgb_color.gdshader` UID 无效、文件路径大小写不一致；与本改动无关。未做真实双客户端同步、录制画面或全地图逐一回归，不能将上述夹具/局部 GPU 结果冒充这些验证。
