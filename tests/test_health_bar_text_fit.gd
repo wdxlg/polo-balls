@@ -13,6 +13,7 @@ func run() -> void:
 	var world:Node = load("res://scenes/world.tscn").instantiate()
 	world.tree_entered.connect(func(): current_scene = world,CONNECT_ONE_SHOT)
 	root.add_child(world)
+	if is_instance_valid(world._mc_prewarmer): world._mc_prewarmer.free()
 	world.control.hide()
 	var unit:Node2D = load("res://scenes/characters/我的世界/蠹虫.tscn").instantiate()
 	unit.Team = "Team0"
@@ -22,7 +23,9 @@ func run() -> void:
 	await process_frame
 	var hb:Control = unit.health_bar
 	var label:Label = hb.label
-	check(label.get_theme_constant("outline_size") >= 190,"white outline is thicker (%d)" % label.get_theme_constant("outline_size"))
+	check(label.get_theme_color("font_color") == Color.WHITE,"health digits have white fill")
+	check(label.get_theme_color("font_outline_color") == Color.BLACK,"health digits have black outline")
+	check(label.get_theme_constant("outline_size") >= 190,"black outline stays thick (%d)" % label.get_theme_constant("outline_size"))
 	var base:int = hb._label_base_font_size
 	check(base == 900,"base font size recorded (%d)" % base)
 	var font:Font = label.get_theme_font("font")
@@ -39,5 +42,6 @@ func run() -> void:
 	check(label.text == "INF" and label.get_theme_constant("outline_size") >= 190,"INF keeps thick outline")
 	hb.set_invincible_display(false)
 	check(label.get_theme_constant("outline_size") == hb._normal_label_outline_size,"leaving INF restores normal outline")
+	check(label.get_theme_color("font_color") == Color.WHITE and label.get_theme_color("font_outline_color") == Color.BLACK,"leaving INF restores white text and black outline")
 	print("HB_TEXT checks=",checks," failures=",failures)
 	quit(0 if failures == 0 else 1)
