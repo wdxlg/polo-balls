@@ -1189,6 +1189,14 @@ func _find_ball_ancestor(node:Node) -> Node:
 		current = current.get_parent()
 	return null
 
+func _find_deletable_ancestor(node:Node) -> Node:
+	var current:Node = node
+	while current != null:
+		if current.is_in_group("Ball") or current.is_in_group("PlaceableObstacle"):
+			return current
+		current = current.get_parent()
+	return null
+
 
 func _ball_visual_contains_world_point(character:Node,world_point:Vector2) -> bool:
 	if character == null or not is_instance_valid(character):
@@ -1249,20 +1257,21 @@ func _delete_char_at_authority(position:Vector2) -> void:
 		var collider_variant:Variant = hit.get("collider",null)
 		if not collider_variant is Node:
 			continue
-		var target:Node = _find_ball_ancestor(collider_variant as Node)
+		var target:Node = _find_deletable_ancestor(collider_variant as Node)
 		if target == null or not is_instance_valid(target):
 			continue
 		candidates[target.get_instance_id()] = target
 
 	# V83：很多角色的手调碰撞箱会明显小于人物图片，轮放预览还可能完全叠在一起。
 	# 物理点查询没命中时，再按实际显示 Sprite 的矩形做一次视觉点击兜底。
-	# 这里只决定“鼠标指的是谁”，真正删除的仍是 Ball 根节点，不修改任何战斗碰撞规则。
+	# 这里只决定“鼠标指的是谁”，删除人物或地形根节点，不修改任何战斗碰撞规则。
 	if candidates.is_empty():
-		for node:Node in get_tree().get_nodes_in_group("Ball"):
-			if node == null or not is_instance_valid(node) or node.is_queued_for_deletion():
-				continue
-			if _ball_visual_contains_world_point(node,position):
-				candidates[node.get_instance_id()] = node
+		for group_name:String in ["Ball","PlaceableObstacle"]:
+			for node:Node in get_tree().get_nodes_in_group(group_name):
+				if node == null or not is_instance_valid(node) or node.is_queued_for_deletion():
+					continue
+				if _ball_visual_contains_world_point(node,position):
+					candidates[node.get_instance_id()] = node
 
 	if candidates.is_empty():
 		return

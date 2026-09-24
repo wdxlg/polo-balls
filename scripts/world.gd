@@ -4625,6 +4625,7 @@ func _configured_manual_victory_side_count() -> int:
 		if not entry_value is Dictionary:
 			continue
 		var entry:Dictionary = entry_value as Dictionary
+		if str(entry.get("kind","")) == "obstacle": continue
 		var team_name:String = str(entry.get("team","")).strip_edges()
 		var key:String = ""
 		if not team_name.is_empty():
@@ -7901,10 +7902,30 @@ func _spawn_character_from_setup(entry:Dictionary) -> ball:
 		push_warning("无法加载角色场景: " + char_name)
 		return null
 
+	var spawned:Node2D = char_scene.instantiate() as Node2D
+	if spawned == null:
+		push_warning("角色/地形场景根节点不是 Node2D: " + char_name)
+		return null
+	# 可放置地形不是 ball：不设置 Team、生命、Boss 数值，也不登记为战斗单位。
+	if spawned.is_in_group("PlaceableObstacle"):
+		spawned.global_position = Vector2(float(entry.get("x",0.0)),float(entry.get("y",0.0)))
+		var obstacle_id:int = int(entry.get("id",-1))
+		spawned.set_meta("battle_setup_id",obstacle_id)
+		# 仍记录位置供重演，但地形不能占用阵营席位或触发胜负判定。
+		var setup_index:int = _battle_setup_index(obstacle_id)
+		if setup_index >= 0:
+			_battle_setup[setup_index]["kind"] = "obstacle"
+			_battle_setup[setup_index]["team"] = ""
+		add_child(spawned,true)
+		return null
+	if not spawned is ball:
+		push_warning("场景不是战斗角色或可放置地形: " + char_name)
+		spawned.free()
+		return null
 	_ensure_battle_random_started()
 	var setup_id_for_seed:int = int(entry.get("id",-1))
 	Game.reseed_battle_global("character_spawn:%d:%s" % [setup_id_for_seed,char_name])
-	var new_char:ball = char_scene.instantiate()
+	var new_char:ball = spawned as ball
 	new_char.Team = str(entry.get("team", ""))
 	new_char.global_position = Vector2(
 		float(entry.get("x", 0.0)),
@@ -8070,7 +8091,8 @@ func create_ghost_ball():
 	var char_scene:PackedScene = _get_character_scene_any(now_choose_char)
 	if char_scene == null:
 		return null
-	var char:ball = char_scene.instantiate()
+	var char:Node2D = char_scene.instantiate() as Node2D
+	if char == null: return null
 
 	# 预览对象不会加入 SceneTree，所以角色根节点的 _ready() 不会执行。
 	# 一些角色把正式立绘留到 _ready() 里才自动加载，若这里不先补上，
