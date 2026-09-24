@@ -1,10 +1,19 @@
 extends RefCounted
 ## Own only session-level clocks/UI. The World and every live node remain in place.
+## Reuse an already-rendered recording frame for a small, wall-clock-throttled player preview.
+const PREVIEW_SIZE:Vector2i = Vector2i(360, 640)
+const PREVIEW_INTERVAL_USEC:int = 500000
 var error:String = ""
 var owner:Node
 var _saved:Dictionary = {}
 var _panels:Array = []
 var _resumed:bool = false
+var _preview_viewport:SubViewport
+var _preview_image:TextureRect
+var _preview_dim:ColorRect
+var _preview_last_frame:int = -1
+var _preview_last_wall_usec:int = 0
+var _preview_updates:int = 0
 
 func begin(recorder:Node) -> bool:
 	owner = recorder
@@ -39,9 +48,93 @@ func begin(recorder:Node) -> bool:
 
 func hide_preview() -> void:
 	for entry:Dictionary in _panels: entry.node.hide()
-	# One cheap opaque progress panel in the player window, not a third battlefield.
-	# The recorder's offscreen viewports have independent masks and stay visible.
+	# Keep the expensive World out of the player viewport. The recording viewports
+	# retain their own masks and render every video frame independently.
 	owner.get_viewport().canvas_cull_mask = owner.CAPTURE_MASK_BIT
+	_show_battle_preview()
+
+func _show_battle_preview() -> void:
+	var source:Viewport = owner._capture_viewport as Viewport
+	var backdrop:ColorRect = owner._overlay_backdrop as ColorRect
+	if not is_instance_valid(source) or not is_instance_valid(backdrop): return
+	var progress:Label = owner._overlay_label as Label
+	if is_instance_valid(progress):
+		progress.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.9))
+		progress.add_theme_constant_override("outline_size", 8)
+	# This viewport contains only a single textured quad, never a third World.
+	# A cached 1/3-size GPU blit is much cheaper than re-rendering combat or
+	# downloading/upscaling a full-resolution frame on the CPU every step.
+	_preview_viewport = SubViewport.new()
+	_preview_viewport.name = "BattleRecordPreviewCache"
+	_preview_viewport.disable_3d = true
+	_preview_viewport.gui_disable_input = true
+	_preview_viewport.size = PREVIEW_SIZE
+	_preview_viewport.world_2d = World2D.new()
+	_preview_viewport.canvas_cull_mask = 1
+	_preview_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	owner.add_child(_preview_viewport)
+	var source_image := TextureRect.new()
+	source_image.name = "RecordedFrame"
+	source_image.texture = source.get_texture() # Resolved sRGB frame, after vignette.
+	source_image.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	source_image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	source_image.stretch_mode = TextureRect.STRETCH_SCALE
+	source_image.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_preview_viewport.add_child(source_image)
+	source_image.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+
+	_preview_image = TextureRect.new()
+	_preview_image.name = "BattleFrame"
+	_preview_image.texture = _preview_viewport.get_texture()
+	_preview_image.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	_preview_image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_preview_image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	_preview_image.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_preview_image.visibility_layer = owner.CAPTURE_MASK_BIT
+	backdrop.add_child(_preview_image)
+	_preview_image.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	backdrop.move_child(_preview_image, 0)
+	_preview_dim = ColorRect.new()
+	_preview_dim.name = "PreviewTextContrast"
+	_preview_dim.color = Color(0.0, 0.0, 0.0, 0.26)
+	_preview_dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_preview_dim.visibility_layer = owner.CAPTURE_MASK_BIT
+	backdrop.add_child(_preview_dim)
+	_preview_dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	backdrop.move_child(_preview_dim, 1) # Progress and abort button stay on top.
+	_preview_last_frame = -1
+	_preview_last_wall_usec = 0
+	_preview_updates = 0
+	RenderingServer.frame_post_draw.connect(_on_preview_frame)
+
+func _on_preview_frame() -> void:
+	if _saved.is_empty() or not is_instance_valid(owner) or not is_instance_valid(_preview_viewport): return
+	if not owner.is_recording() or DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_MINIMIZED: return
+	var frame:int = owner._frame_index
+	if frame <= 0 or frame == _preview_last_frame: return
+	var now:int = int(Time.call("get_wall_ticks_usec"))
+	if _preview_last_wall_usec > 0 and now - _preview_last_wall_usec < PREVIEW_INTERVAL_USEC: return
+	# UPDATE_ONCE freezes the last battle frame between refreshes. This never
+	# enters either encoder path and does not cause an additional video readback.
+	_preview_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
+	_preview_last_wall_usec = now
+	_preview_last_frame = frame
+	_preview_updates += 1
+
+func _clear_battle_preview() -> void:
+	if RenderingServer.frame_post_draw.is_connected(_on_preview_frame):
+		RenderingServer.frame_post_draw.disconnect(_on_preview_frame)
+	if is_instance_valid(_preview_image):
+		_preview_image.hide()
+		_preview_image.texture = null
+		_preview_image.queue_free()
+	if is_instance_valid(_preview_dim):
+		_preview_dim.hide()
+		_preview_dim.queue_free()
+	if is_instance_valid(_preview_viewport): _preview_viewport.queue_free()
+	_preview_image = null
+	_preview_dim = null
+	_preview_viewport = null
 
 func resume_current_world() -> void:
 	_resumed = true
@@ -57,6 +150,7 @@ func resume_current_world() -> void:
 
 func finish(keep_result:bool = true) -> void:
 	if _saved.is_empty(): return
+	_clear_battle_preview() # Before the recording source viewport is released.
 	if _resumed and keep_result: Game.stop_game(false)
 	Engine.call("set_recording_fixed_fps", _saved.fixed)
 	if not is_equal_approx(Game.get_base_game_time_scale(),float(_saved.base_scale)):
