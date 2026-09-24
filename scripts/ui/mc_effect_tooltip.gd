@@ -10,6 +10,9 @@ const PIXEL_FONT:Font = preload("res://fonts/BoutiqueBitmap9x9_1.92.ttf")
 const NUMBER_FONT:Font = preload("res://fonts/Mojangles.ttf")
 const FONT_SIZE:int = 10
 const ICON_SIZE:float = 18.0
+const POTION_TEXT_X:float = 27.0
+const POTION_RIGHT_PADDING:float = 6.0
+const POTION_MIN_WIDTH:float = 40.0
 
 var target:Node2D
 var display_scale:float = 3.0
@@ -31,6 +34,8 @@ var _kind:StringName = &"potion"
 var _potions:Array[MCPreviewPotionEffect] = []
 var _enchants:Array[MCPreviewEnchantment] = []
 var _item_title:String = "附魔书"
+var _potion_backgrounds:Array[NinePatchRect] = []
+var _potion_names:Array[Label] = []
 var _time_labels:Array[Label] = []
 var _remaining_seconds:Array[int] = []
 var _elapsed:float = 0.0
@@ -74,13 +79,19 @@ func _process(delta:float) -> void:
 		return
 	if _kind == &"potion" and not _time_labels.is_empty() and not get_tree().paused:
 		_elapsed += maxf(delta,0.0)
+		var time_changed:bool = false
 		while _elapsed >= 1.0:
 			_elapsed -= 1.0
 			for index:int in range(_remaining_seconds.size()):
 				_remaining_seconds[index] = maxi(_remaining_seconds[index] - 1,0)
 				var effect:MCPreviewPotionEffect = _potions[index]
 				if effect != null and effect.duration_text_override.is_empty():
-					_time_labels[index].text = _duration(_remaining_seconds[index])
+					var updated:String = _duration(_remaining_seconds[index])
+					if _time_labels[index].text != updated:
+						_time_labels[index].text = updated
+						time_changed = true
+		if time_changed:
+			_refresh_potion_widths()
 	_update_position()
 
 
@@ -90,6 +101,8 @@ func _clear_panel() -> void:
 	for child:Node in _panel.get_children():
 		_panel.remove_child(child)
 		child.queue_free()
+	_potion_backgrounds.clear()
+	_potion_names.clear()
 	_time_labels.clear()
 	_remaining_seconds.clear()
 	_panel.size = Vector2.ZERO
@@ -115,6 +128,13 @@ func _max_logical_width() -> float:
 
 func _text_width(value:String,font:Font) -> float:
 	return font.get_string_size(value,HORIZONTAL_ALIGNMENT_LEFT,-1,text_size).x
+
+
+func _potion_row_width(name:String,time:String) -> float:
+	# The vanilla source is 120px wide, but it is a nine-slice, not a minimum
+	# size: every effect's visible frame ends just after its longer text line.
+	var content_width:float = maxf(_text_width(name,text_font),_text_width(time,time_font))
+	return minf(maxf(POTION_MIN_WIDTH,ceilf(POTION_TEXT_X + content_width + POTION_RIGHT_PADDING)),_max_logical_width())
 
 
 func _text_height(value:String,font:Font,width:float) -> float:
@@ -157,21 +177,19 @@ func _build_potions() -> void:
 	_potions = displayed
 	if displayed.is_empty():
 		return
-	var max_text_width:float = 0.0
-	for effect:MCPreviewPotionEffect in displayed:
-		max_text_width = maxf(max_text_width,_text_width(_potion_name(effect),text_font))
-		max_text_width = maxf(max_text_width,_text_width(_duration_for(effect),time_font))
-	var row_width:float = minf(maxf(120.0,ceilf(max_text_width + 33.0)),_max_logical_width())
-	var text_width:float = maxf(8.0,row_width - 32.0)
+	var widest_row:float = 0.0
 	var y:float = 0.0
 	for effect:MCPreviewPotionEffect in displayed:
 		var name:String = _potion_name(effect)
 		var time:String = _duration_for(effect)
+		var row_width:float = _potion_row_width(name,time)
+		var text_width:float = maxf(8.0,row_width - POTION_TEXT_X - POTION_RIGHT_PADDING)
 		var title_height:float = _text_height(name,text_font,text_width)
 		var timer_height:float = _text_height(time,time_font,text_width)
 		var row_height:float = maxf(32.0,ceilf(5.0 + title_height + timer_height + 3.0))
 		var background:NinePatchRect = _make_patch(potion_background,potion_border,Vector2(row_width,row_height))
 		background.position.y = y
+		_potion_backgrounds.append(background)
 		if effect.icon != null:
 			var image := TextureRect.new()
 			image.texture = effect.icon
@@ -182,12 +200,26 @@ func _build_potions() -> void:
 			image.position = Vector2(6.0,y + floorf((row_height - ICON_SIZE) / 2.0))
 			image.size = Vector2.ONE * ICON_SIZE
 			_panel.add_child(image)
-		_make_label(name,effect.name_color,text_font,Rect2(27.0,y + 2.0,text_width,title_height + 1.0))
-		var time_label:Label = _make_label(time,effect.duration_color,time_font,Rect2(27.0,y + 3.0 + title_height,text_width,timer_height + 1.0))
+		var name_label:Label = _make_label(name,effect.name_color,text_font,Rect2(POTION_TEXT_X,y + 2.0,text_width,title_height + 1.0))
+		_potion_names.append(name_label)
+		var time_label:Label = _make_label(time,effect.duration_color,time_font,Rect2(POTION_TEXT_X,y + 3.0 + title_height,text_width,timer_height + 1.0))
 		_time_labels.append(time_label)
 		_remaining_seconds.append(maxi(effect.duration_seconds,0))
+		widest_row = maxf(widest_row,row_width)
 		y += row_height + 2.0
-	_panel.size = Vector2(row_width,y - 2.0)
+	_panel.size = Vector2(widest_row,y - 2.0)
+
+
+func _refresh_potion_widths() -> void:
+	var widest_row:float = 0.0
+	for index:int in range(_potion_backgrounds.size()):
+		var row_width:float = _potion_row_width(_potion_names[index].text,_time_labels[index].text)
+		_potion_backgrounds[index].size.x = row_width
+		var text_width:float = maxf(8.0,row_width - POTION_TEXT_X - POTION_RIGHT_PADDING)
+		_potion_names[index].size.x = text_width
+		_time_labels[index].size.x = text_width
+		widest_row = maxf(widest_row,row_width)
+	_panel.size.x = widest_row
 
 
 func _build_enchantments() -> void:

@@ -90,6 +90,38 @@ func _run() -> void:
 	check(enchant_ui._roman(4) == "IV" and enchant_ui._roman(50) == "L","Roman levels display correctly")
 	check(enchant_ui._duration(64) == "01:04" and enchant_ui._duration(3670) == "1:01:10","effect durations format correctly")
 	check(enchant_ui._item_title == "附魔书" and enchant_ui.title_color == Color("ffff55"),"yellow title precedes enchantment lines")
+	# The 120px-wide vanilla image is nine-sliced, not a minimum width. Each
+	# potion row must wrap its own longer line (name or time), not the widest row.
+	var source_effects:Array[Resource] = potion.get("potion_pool")
+	var short_effect := MCPreviewPotionEffect.new()
+	short_effect.effect_name = "短"
+	short_effect.duration_text_override = "0:01"
+	var two_entries:Array[MCPreviewPotionEffect] = [source_effects[0] as MCPreviewPotionEffect,short_effect]
+	potion.call("set_displayed_potions",two_entries)
+	var regen_frame:NinePatchRect = potion_ui._potion_backgrounds[0]
+	var short_frame:NinePatchRect = potion_ui._potion_backgrounds[1]
+	var regen_text_width:float = potion_ui._text_width(potion_ui._potion_names[0].text,potion_ui.text_font)
+	var regen_time_width:float = potion_ui._text_width(potion_ui._time_labels[0].text,potion_ui.time_font)
+	var regen_right_gap:float = regen_frame.size.x - potion_ui._potion_names[0].position.x - regen_text_width
+	var regen_width:float = regen_frame.size.x
+	check(potion_ui._potion_names[0].text == "生命恢复" and regen_text_width >= regen_time_width,"regeneration title is the widest content of its row")
+	check(regen_frame.size.x < 120.0 and regen_right_gap >= 5.0 and regen_right_gap <= 8.0,"vanilla frame ends just after regeneration text, without a fixed 120px width")
+	check(short_frame.size.x < regen_frame.size.x and potion_panel.size.x == regen_frame.size.x,"shorter effect uses its own narrower background while the panel tracks the longest row")
+	var short_content_width:float = maxf(potion_ui._text_width(potion_ui._potion_names[1].text,potion_ui.text_font),potion_ui._text_width(potion_ui._time_labels[1].text,potion_ui.time_font))
+	var short_right_gap:float = short_frame.size.x - potion_ui._potion_names[1].position.x - short_content_width
+	check(short_right_gap >= 5.0 and short_right_gap <= 8.0,"short potion row leaves only a small right inset after its longest line")
+	short_effect.duration_text_override = "00:00:00:00:00"
+	potion.call("set_displayed_potions",two_entries)
+	check(potion_ui._potion_backgrounds[1].size.x > regen_width and potion_panel.size.x == potion_ui._potion_backgrounds[1].size.x,"a longer custom time expands only its own row and panel")
+	var clock_effect := MCPreviewPotionEffect.new()
+	clock_effect.effect_name = "短"
+	clock_effect.duration_seconds = 3600
+	var clock_entries:Array[MCPreviewPotionEffect] = [clock_effect]
+	potion.call("set_displayed_potions",clock_entries)
+	var hour_width:float = potion_ui._potion_backgrounds[0].size.x
+	potion_ui._process(1.0)
+	check(potion_ui._time_labels[0].text == "59:59" and potion_ui._potion_backgrounds[0].size.x < hour_width and potion_panel.size.x == potion_ui._potion_backgrounds[0].size.x,"shorter countdown shrinks both the row and panel in place")
+	potion.call("set_displayed_potions",two_entries)
 	# Placing a stand near a map edge must not clip a popup into the map surface.
 	# This test also checks the popup follows a moving owner in screen coordinates.
 	potion_ui._process(0.0)

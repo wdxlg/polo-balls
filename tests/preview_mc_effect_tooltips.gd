@@ -53,10 +53,15 @@ func _run() -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://mc_effect_tooltips"))
 	var saved:Error = image.save_png(output)
 	var real_map_right:int = int(map.position.x + map.size.x)
-	var panel_p:Control = potion.get("preview_tooltip").get_node("VanillaTooltip")
+	var potion_ui:MCPreviewTooltip = potion.get("preview_tooltip") as MCPreviewTooltip
+	var panel_p:Control = potion_ui.get_node("VanillaTooltip")
 	var panel_e:Control = enchant.get("preview_tooltip").get_node("VanillaTooltip")
 	var rect_p:Rect2 = Rect2(panel_p.position,panel_p.size * panel_p.scale)
 	var rect_e:Rect2 = Rect2(panel_e.position,panel_e.size * panel_e.scale)
+	var regen_frame:NinePatchRect = potion_ui._potion_backgrounds[0]
+	var regen_text:Label = potion_ui._potion_names[0]
+	var right_padding:float = regen_frame.size.x - regen_text.position.x - potion_ui._text_width(regen_text.text,potion_ui.text_font)
+	var hugs_regeneration:bool = regen_text.text == "生命恢复" and regen_frame.size.x < 120.0 and right_padding >= 5.0 and right_padding <= 8.0
 	var extends_past_map:bool = rect_p.end.x > real_map_right + 50 and rect_e.end.x > real_map_right + 25
 	var right_of_actor:bool = rect_p.position.x > potion.get_global_transform_with_canvas().origin.x and rect_e.position.x > enchant.get_global_transform_with_canvas().origin.x
 	# Compare actual rendered frames with and without both tooltips. Comparing to
@@ -75,5 +80,12 @@ func _run() -> void:
 			var baseline:Color = without.get_pixel(x,y)
 			if absf(pixel.r - baseline.r) + absf(pixel.g - baseline.g) + absf(pixel.b - baseline.b) > 0.18:
 				outside_changed += 1
-	print("MC_TOOLTIP_GPU saved=",saved == OK," path=",ProjectSettings.globalize_path(output)," image=",image.get_size()," outside_pixels=",outside_changed," beyond_map=",extends_past_map," right_of_actor=",right_of_actor," potion_rect=",rect_p," enchant_rect=",rect_e)
-	quit(0 if saved == OK and outside_changed > 200 and extends_past_map and right_of_actor else 1)
+	var clear_x:int = int(panel_p.position.x + (regen_frame.size.x + 8.0) * panel_p.scale.x)
+	var clear_y:int = int(panel_p.position.y + (regen_frame.position.y + regen_frame.size.y * 0.5) * panel_p.scale.y)
+	var clear_after_frame:bool = false
+	if clear_x >= 0 and clear_x < image.get_width() and clear_y >= 0 and clear_y < image.get_height():
+		var frame_pixel:Color = image.get_pixel(clear_x,clear_y)
+		var empty_pixel:Color = without.get_pixel(clear_x,clear_y)
+		clear_after_frame = absf(frame_pixel.r - empty_pixel.r) + absf(frame_pixel.g - empty_pixel.g) + absf(frame_pixel.b - empty_pixel.b) < 0.025
+	print("MC_TOOLTIP_GPU saved=",saved == OK," path=",ProjectSettings.globalize_path(output)," image=",image.get_size()," outside_pixels=",outside_changed," beyond_map=",extends_past_map," right_of_actor=",right_of_actor," regen_row_width=",regen_frame.size.x," right_padding=",right_padding," clear_after_frame=",clear_after_frame," potion_rect=",rect_p," enchant_rect=",rect_e)
+	quit(0 if saved == OK and outside_changed > 200 and extends_past_map and right_of_actor and hugs_regeneration and clear_after_frame else 1)
