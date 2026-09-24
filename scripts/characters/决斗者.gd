@@ -829,7 +829,9 @@ func _apply_confirmed_weakspot_damage(
 	var before_block:float = float(block)
 	if raw_health:
 		hit_white_visual_only()
-		health -= maxi(int(round(damage)),0)
+		# 与 ball 的原始伤害入口一致：绕过护甲/抗性，但不绕过药水伤害吸收。
+		var raw_amount:int = maxi(int(round(damage)),0)
+		health -= maxi(int(round(_consume_minecraft_absorption(float(raw_amount)))),0)
 	else:
 		hit_white(ignore_block)
 		super.take_damage(damage,ignore_block)
@@ -844,6 +846,10 @@ func receive_spatial_damage(
 ) -> bool:
 	if damage <= 0.0:
 		return false
+	# 自定义破绽判定仍需保留基类的溺水免疫；不豁免普通水伤害。
+	if damage_space is Dictionary and str((damage_space as Dictionary).get("element","")) == "drowning":
+		if has_minecraft_status("water_breathing") or has_minecraft_status("conduit_power"):
+			return false
 	if not _damage_space_hits_weakspot(damage_space):
 		_clear_weakspot_damage_permission()
 		_play_immune_sound()
