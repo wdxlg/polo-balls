@@ -67,7 +67,7 @@ func _run() -> void:
 		quit(2)
 		return
 	check(potion_ui.get_parent() == potion and enchant_ui.get_parent() == enchant,"tooltips are freed with their owners")
-	check(potion_ui.layer > 0 and enchant_ui.layer > 0,"tooltips draw above the map, not in the map layer")
+	check(potion_ui.top_level and enchant_ui.top_level and not potion_ui.z_as_relative and not enchant_ui.z_as_relative and potion_ui.z_index == MCPreviewTooltip.TOOLTIP_Z and enchant_ui.z_index == MCPreviewTooltip.TOOLTIP_Z,"both frames draw between map ground and foreground world entities")
 	check(float(potion.get("Speed")) > 0.0 and float(enchant.get("Speed")) > 0.0,"both armor stands retain movement")
 	check(not bool(potion.get("Has_Collision_Damage")) and not bool(enchant.get("Can_Attack")),"preview stands never deal combat damage")
 	var potion_entries:Array[MCPreviewPotionEffect] = potion.get("displayed_potions")
@@ -135,7 +135,7 @@ func _run() -> void:
 	potion.position.x = get_root().get_visible_rect().size.x - 35.0
 	potion_ui._process(0.0)
 	check(potion_panel.position.x + potion_panel.size.x * potion_panel.scale.x <= get_root().get_visible_rect().end.x - potion_ui.screen_margin + 0.01,"entire popup stays on-screen at the right edge")
-	check(potion_ui.get_parent() is Node2D and potion_ui is CanvasLayer,"map clipping cannot affect an independent CanvasLayer")
+	check(potion_ui.get_parent() is Node2D and potion_ui.top_level and potion_ui.get_viewport() == root,"top-level world frame ignores its actor's map clipping")
 	var original_size:Vector2 = potion_panel.size
 	var custom_effect := MCPreviewPotionEffect.new()
 	custom_effect.effect_name = "一条足够长、可自己编辑名字图标等级时间的药水效果"

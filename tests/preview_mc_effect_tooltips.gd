@@ -15,6 +15,7 @@ func _run() -> void:
 	var backdrop := ColorRect.new()
 	backdrop.name = "OutsideMapBackdrop"
 	backdrop.color = Color("363437")
+	backdrop.z_index = -8
 	backdrop.size = Vector2(1000,700)
 	root.add_child(backdrop)
 	var map := Control.new()
@@ -26,6 +27,7 @@ func _run() -> void:
 	current_scene = map
 	var floor := ColorRect.new()
 	floor.color = Color("29372f")
+	floor.z_index = -4 # Like World tiles, below tooltip(-3) and armor stands(0).
 	floor.size = map.size
 	map.add_child(floor)
 	var border := ColorRect.new()

@@ -3959,10 +3959,12 @@ func _setup_map_outside_mask() -> void:
 
 	# BackBufferCopy 在真实场景背景之后、普通角色（通常 z=0）之前执行。
 	# TileMap 运行时不可见，所以这里不会把用于规划区域的格子背景重新显示出来。
+	# 角色状态框是世界画布的绝对 Z=-3；先复制它，再画 Z=-2 的普通战斗对象，
+	# 地图外遮罩仍裁掉越界的角色/投射物，但不会擦除延伸到地图外的信息框。
 	map_clip_backbuffer = BackBufferCopy.new()
 	map_clip_backbuffer.name = "MapClipBackBuffer"
 	map_clip_backbuffer.copy_mode = BackBufferCopy.COPY_MODE_VIEWPORT
-	map_clip_backbuffer.z_index = -1
+	map_clip_backbuffer.z_index = 0
 	add_child(map_clip_backbuffer)
 
 	var clip_shader := Shader.new()

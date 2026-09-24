@@ -1,8 +1,11 @@
 class_name MCPreviewTooltip
-extends CanvasLayer
+extends Node2D
 
-## Vanilla sprites with their original nine-slice margins. The CanvasLayer stays in
-## screen space, independent of map tiles, camera zoom and world clipping.
+## Vanilla sprites with their original nine-slice margins. Keep the frame
+## screen-aligned outside map clipping, but draw it in the WORLD canvas rather
+## than a higher CanvasLayer: combatants, projectiles and obstacles cover it.
+const TOOLTIP_Z:int = -3 # World ground -4/-5, foreground entities -2 or higher.
+const PLAYER_ONLY_BIT:int = 1 << 19 # Battle capture excludes original UI.
 const EFFECT_BACKGROUND:Texture2D = preload("res://Images/UI/minecraft_tooltips/effect_background_large.png")
 const TOOLTIP_BACKGROUND:Texture2D = preload("res://Images/UI/minecraft_tooltips/tooltip_background.png")
 const TOOLTIP_FRAME:Texture2D = preload("res://Images/UI/minecraft_tooltips/tooltip_frame.png")
@@ -17,7 +20,7 @@ const POTION_MIN_WIDTH:float = 40.0
 var target:Node2D
 ## Optional earlier frame on the same target (e.g. an armor stand's demo box).
 ## The real status box moves around it instead of hiding the demo content.
-var stack_below:CanvasLayer
+var stack_below:MCPreviewTooltip
 ## A recorder copy can render in an offscreen Viewport while following a target
 ## from the main world. Empty means use the player's current battle language.
 var locale_override:String = ""
@@ -50,8 +53,19 @@ var _remaining_seconds:Array[int] = []
 var _elapsed:float = 0.0
 
 
+func _init() -> void:
+	# The battle locale mirroring already handles these frames separately; never
+	# rescan their labels as ordinary world text when the canvas is shared.
+	set_meta("recording_copy",true)
+
+
 func _ready() -> void:
-	layer = 2 # Above the map, but below modal HUD layers.
+	# top_level bypasses the actor's map clipping/transform. Absolute world Z
+	# keeps ground below the frame and every ordinary foreground draw above it.
+	top_level = true
+	z_as_relative = false
+	z_index = TOOLTIP_Z
+	if visibility_layer == 1: visibility_layer = PLAYER_ONLY_BIT
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_panel = Control.new()
 	_panel.name = "VanillaTooltip"
@@ -318,6 +332,10 @@ func _build_enchantments() -> void:
 func _update_position() -> void:
 	if _panel == null or _panel.size == Vector2.ZERO or not is_instance_valid(target) or not target.is_inside_tree():
 		return
+	# Use the current Viewport's inverse camera (including zoom/rotation). The
+	# frame is still laid out in screen pixels even though it now shares the
+	# default world canvas with entities. Recordings have independent cameras.
+	transform = get_viewport().get_canvas_transform().affine_inverse()
 	var screen_transform:Transform2D = target.get_global_transform_with_canvas()
 	# A recording SubViewport shares World2D but has its OWN camera/framing.
 	# get_global_transform_with_canvas() on the actor still uses the main Viewport;

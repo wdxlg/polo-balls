@@ -26,11 +26,11 @@ func _make_copy(source:MCPreviewTooltip,locale:String) -> MCPreviewTooltip:
 	copy.name = "RecordedMinecraftTooltip_" + locale + "_" + str(source.get_instance_id())
 	copy.target = source.target
 	copy.locale_override = locale
+	# The two captures share World2D. Route each world-canvas copy ONLY to its
+	# language Viewport; hide both from the player and the opposite recording.
+	copy.visibility_layer = 1 << (17 if locale == "zh" else 18)
 	_copy_settings(source,copy)
 	(viewports[locale] as SubViewport).add_child(copy)
-	# Keep effects readable even when a recording composition (layer 100)
-	# contains a header or map inset; do not clone any unrelated player HUD.
-	copy.layer = 101
 	# Timers belong to the original, not to an extra always-processing mirror.
 	copy.process_mode = Node.PROCESS_MODE_DISABLED
 	return copy
@@ -96,7 +96,7 @@ func sync() -> void:
 					var original:Node = actor.get_node_or_null("Minecraft信息框")
 					if original != null and copies.has(original.get_instance_id()):
 						var primary_copies:Dictionary = copies[original.get_instance_id()]
-						mirror.stack_below = primary_copies.get(locale) as CanvasLayer
+						mirror.stack_below = primary_copies.get(locale) as MCPreviewTooltip
 					else:
 						mirror.stack_below = null
 				if int(item.version) != source.content_version:

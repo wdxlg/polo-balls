@@ -1,7 +1,7 @@
 extends "res://tests/test_battle_recording.gd"
 
 ## GPU/encoder regression: compare actual video-source pixels with each
-## original CanvasLayer on/off, then write both MP4s in both recording modes.
+## language-isolated world-depth frame on/off, then write both MP4 pairs.
 var actors:Array[Node2D] = []
 
 
@@ -72,7 +72,7 @@ func capture_mode(sim:bool) -> void:
 	var real_zh:MCPreviewTooltip = copyset.copies[active_source.get_instance_id()].zh
 	var real_en:MCPreviewTooltip = copyset.copies[active_source.get_instance_id()].en
 	var composition:CanvasLayer = recorder._sim_viewport.get_node("RecordingComposition") as CanvasLayer
-	check(pot_zh.layer > composition.layer and ench_zh.layer > composition.layer and real_zh.layer > composition.layer,mode_name+": effects cannot be covered by video headers")
+	check(pot_zh.top_level and ench_zh.top_level and real_zh.top_level and pot_zh.z_index == MCPreviewTooltip.TOOLTIP_Z and ench_zh.z_index == pot_zh.z_index and real_zh.z_index == pot_zh.z_index and composition.layer > 0 and pot_zh.visibility_layer == (1 << 17) and pot_en.visibility_layer == (1 << 18),mode_name+": bilingual frames use world depth below foreground and remain isolated to each video")
 	check(pot_zh._potion_names[0].text == "生命恢复" and pot_en._potion_names[0].text == "Regeneration",mode_name+": potion names in both languages")
 	check((ench_zh._panel.get_child(2) as Label).text == "附魔书" and (ench_en._panel.get_child(2) as Label).text == "Enchanted Book",mode_name+": enchantment names in both languages")
 	check(real_zh._potion_names[0].text == "迅捷" and real_en._potion_names[0].text == "Speed" and real_zh._potion_names[1].text == "中毒" and real_en._potion_names[1].text == "Poison",mode_name+": real effects are each recorded in their own language")
@@ -151,7 +151,7 @@ func run() -> void:
 		world._battle_setup.append({"id":index+1,"team":"Team"+str(index),"char":character})
 	await settle(0.1)
 	# Give the demo stand REAL effects as well. Freeze actor physics like the
-	# preview fixture: the recorder still sees both independent CanvasLayers.
+	# preview fixture: the recorder still sees both independent world-depth frames.
 	actors[0].set("Max_health",10000.0)
 	actors[0].set("health",10000.0)
 	var witch_effects:GDScript = load("res://scripts/effects/我的世界/女巫药水效果.gd") as GDScript

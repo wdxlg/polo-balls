@@ -2,6 +2,8 @@
 
 > 此文是**上一版实现与当时测试结果的历史记录**：当时女巫各效果强度及凋零百分比伤害尚未统一。当前 39 种原版等级公式、公共状态节点与最新验证请以 [`MC_UNIFIED_STATUS_EFFECTS.md`](MC_UNIFIED_STATUS_EFFECTS.md) 为准；以下旧数值不得再当作现行规则。
 
+> 2026-09-25 补注：此页旧文中的“独立 CanvasLayer”和“信标完整发射结束后才给效果”已过期。真实状态框与演示药水／附魔框现共用**前景单位之下、地图地面之上**的世界画布层级，实测见 [`MC_EFFECT_TOOLTIPS.md`](MC_EFFECT_TOOLTIPS.md) 末节；凋灵信标在**正式发射开始时**给效果，时序见 [`BEACON_CYCLE.md`](BEACON_CYCLE.md)。下方旧数据仍保留作历史对照。
+
 ## 范围与规则
 
 - `scripts/ui/mc_active_effect_tooltip.gd` 是**实际受影响角色**身上的独立 `CanvasLayer`，借用 `MCPreviewTooltip` 的 Mojang 原版图标、逐行自适应背景、双语名称及右侧屏幕空间定位；不替换默认分区药水／附魔测试盔甲架的可编辑、纯展示数据。演示盔甲架若真被药水命中，两框共存并自动避让；附近空间不足时状态框缩放到另一侧的可用区域。

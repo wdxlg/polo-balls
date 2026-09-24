@@ -34,6 +34,8 @@ func run() -> void:
 	var saved_locale:String = game.get("current_locale")
 	game.call("set_language","zh",false)
 	root.size = Vector2i(1080,1920)
+	var player_mask:int = root.canvas_cull_mask
+	root.canvas_cull_mask &= ~((1 << 17) | (1 << 18))
 	stage = Node2D.new()
 	root.add_child(stage)
 	current_scene = stage
@@ -43,6 +45,9 @@ func run() -> void:
 		viewport.size = Vector2i(1080,1920)
 		viewport.disable_3d = true
 		viewport.world_2d = root.world_2d
+		# Same masks as the live bilingual recorder: exclude player-only frames
+		# and the opposite language from this shared-world capture.
+		viewport.canvas_cull_mask = 1 | (1 << (17 if language == "zh" else 18))
 		viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 		root.add_child(viewport)
 		viewport.canvas_transform = Transform2D.IDENTITY.translated(Vector2(200 if language == "zh" else 320,0))
@@ -76,7 +81,7 @@ func run() -> void:
 	var en_enchant:MCPreviewTooltip = _copy(enchant,"en")
 	check(zh_potion.get_viewport() == zh and en_potion.get_viewport() == en,"copies live in the actual language-specific capture Viewports")
 	check(source.get_viewport() == root,"original stays on the player Viewport")
-	check(source.layer == 2 and zh_potion.layer == 101 and en_enchant.layer == 101,"video frames stay above composition without changing the player HUD")
+	check(source.top_level and zh_potion.top_level and en_enchant.top_level and source.z_index == MCPreviewTooltip.TOOLTIP_Z and zh_potion.z_index == source.z_index and en_enchant.z_index == source.z_index and source.visibility_layer == (1 << 19) and zh_potion.visibility_layer == (1 << 17) and en_enchant.visibility_layer == (1 << 18),"player and bilingual capture frames share foreground-safe world depth but use separate visibility masks")
 	check(zh_potion._potion_names[0].text == "生命恢复" and en_potion._potion_names[0].text == "Regeneration","one frame contains Chinese AND English effect names")
 	check((zh_enchant._panel.get_child(2) as Label).text == "附魔书" and (en_enchant._panel.get_child(2) as Label).text == "Enchanted Book","enchantment titles are bilingual")
 	check((en_enchant._panel.get_child(3) as Label).text == "Piercing IV","enchantment rows are translated")
@@ -91,6 +96,7 @@ func run() -> void:
 	en.canvas_transform = Transform2D.IDENTITY.translated(Vector2(470,0))
 	mirror.sync()
 	check(en_potion._panel.position.x > center.x + 100.0,"recording positioning follows its OWN camera instead of the player camera")
+	check(en_potion.transform.is_equal_approx(en.canvas_transform.affine_inverse()),"recording tooltip cancels only its own viewport camera transform")
 	# The actor disappears from the player's camera, but must appear in the
 	# independently framed recordings. Never gate on source._panel.visible.
 	potion.position = Vector2(-350,500)
@@ -125,5 +131,6 @@ func run() -> void:
 	en.queue_free()
 	await process_frame
 	game.call("set_language",saved_locale,false)
+	root.canvas_cull_mask = player_mask
 	print("MC_TOOLTIP_MIRROR_RESULT checks=%d failures=%d" % [checks,failures])
 	quit(1 if failures > 0 else 0)

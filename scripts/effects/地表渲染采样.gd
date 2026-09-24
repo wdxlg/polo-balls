@@ -54,7 +54,9 @@ func capture(rect:Rect2) -> Dictionary:
 	return _snapshot
 
 func _mark_floor_items(node:Node,parent_z:int,changed:Dictionary) -> void:
-	if node is Viewport or node is CanvasLayer: return
+	# Screen-following tooltips and recording text are not map ground. Their
+	# world-canvas visibility bits must not be cleared during a ground snapshot.
+	if node is Viewport or node is CanvasLayer or node.has_meta("recording_copy"): return
 	var final_z:int = parent_z
 	if node is CanvasItem:
 		var item:CanvasItem = node as CanvasItem
