@@ -19,8 +19,8 @@ const BLOCK_TEXTURES:Array[Texture2D] = [
 	preload("res://Images/characters/我的世界/sulfur_cube/source/tnt_side.png"),
 ]
 const OUTER_SIZE:float = 2.0
-const INNER_SIZE:float = 1.78
-const BLOCK_SIZE:float = 1.36
+const INNER_SIZE:float = 2.0*16.0/18.0
+const BLOCK_SIZE:float = 2.0*16.0/18.0 # Vanilla: full 16px block within the 18px outer model.
 const FACE_NORMALS:Array[Vector3] = [Vector3.FORWARD,Vector3.RIGHT,Vector3.BACK,Vector3.LEFT,Vector3.UP,Vector3.DOWN]
 const FACE_ROTATIONS:Array[Vector3] = [Vector3.ZERO,Vector3(0,PI/2,0),Vector3(0,PI,0),Vector3(0,-PI/2,0),Vector3(-PI/2,0,0),Vector3(PI/2,0,0)]
 # front, right, back, left, top, bottom from Mojang's two UV crosses.
@@ -46,19 +46,21 @@ func _ready() -> void:
 	inner_block.name = "InterchangeableBlock"
 	add_child(inner_block)
 	for face:int in range(6):
-		# In the camera-facing wall the original pale body must be translucent;
-		# otherwise the physically separate block is hidden behind a flat square.
-		make_face(outer_shell,OUTER_SIZE,face,_shell_material(OUTER,OUTER_UV[face],18,0.12 if face == 0 else 0.34))
-		make_face(inner_shell,INNER_SIZE,face,_shell_material(INNER,INNER_UV[face],16,0.04 if face == 0 else 0.12))
+		# Match SulfurCubeRenderer: the translucent 18px outside is ALWAYS drawn;
+		# its 16px inner jelly is rendered ONLY when no block is absorbed.
+		make_face(outer_shell,OUTER_SIZE,face,_shell_material(OUTER,OUTER_UV[face],18))
+		make_face(inner_shell,INNER_SIZE,face,_shell_material(INNER,INNER_UV[face],16))
 	set_block(block_mode)
 
-func _shell_material(texture:Texture2D,origin:Vector2i,texels:int,opacity:float) -> ShaderMaterial:
+func _shell_material(texture:Texture2D,origin:Vector2i,texels:int) -> ShaderMaterial:
 	var material := ShaderMaterial.new()
 	material.shader = SHELL_SHADER
+	# Translucent inner gel must submit BEFORE the outer face: otherwise its
+	# opaque white pixels erase the original eyes and mouth on an empty cube.
+	material.render_priority = 1 if texture == OUTER else -1
 	material.set_shader_parameter("native_atlas",texture)
 	material.set_shader_parameter("atlas_origin",Vector2(origin)/128.0)
 	material.set_shader_parameter("atlas_span",Vector2.ONE*float(texels)/128.0)
-	material.set_shader_parameter("shell_opacity",opacity)
 	return material
 
 func make_face(parent:Node3D,side:float,face:int,material:Material) -> MeshInstance3D:
@@ -84,6 +86,7 @@ func set_block(mode:int) -> void:
 		child.queue_free()
 	_magma_materials.clear()
 	inner_block.visible = block_mode > 0
+	inner_shell.visible = block_mode == 0
 	if block_mode == 0: return
 	for face:int in range(6):
 		var texture:Texture2D = BLOCK_TEXTURES[block_mode]
@@ -105,15 +108,17 @@ func set_block(mode:int) -> void:
 
 func animate(time:float,delta:float,playing:bool,fuse_left:float) -> void:
 	if outer_shell == null: return
-	var bounce:float = sin(time*TAU*1.15)
-	outer_shell.scale = Vector3(1.0-0.035*bounce,1.0+0.07*bounce,1.0-0.035*bounce)
-	outer_shell.rotation.y = 0.09*sin(time*1.3)
-	inner_shell.rotation.y = -0.12*sin(time*1.1)
+	# Minecraft AbstractCubeMobRenderer stretches vertically and contracts X/Z
+	# by the reciprocal factor. The outer shell and its contents deform TOGETHER.
+	var squish:float = 0.105*sin(time*TAU*1.15) if playing else 0.0
+	var vertical:float = 1.0+squish
+	var body_scale := Vector3(1.0/vertical,vertical,1.0/vertical)
+	outer_shell.scale = body_scale
+	inner_shell.scale = body_scale
 	if block_mode == 0: return
 	if playing: _swap_left = maxf(_swap_left-delta,0.0)
 	var appear:float = 1.0-_swap_left/0.24
-	inner_block.scale = Vector3.ONE*lerpf(0.3,1.0,1.0-pow(1.0-appear,3.0))
-	inner_block.rotation = Vector3(0,0.15*sin(time*1.7),0.06*sin(time*2.4))
+	inner_block.scale = body_scale*lerpf(0.3,1.0,1.0-pow(1.0-appear,3.0))
 	if block_mode == 3:
 		var frame:int = int(time*6.0)%3
 		for material:StandardMaterial3D in _magma_materials:
