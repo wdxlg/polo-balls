@@ -26,6 +26,19 @@ func run() -> void:
 	source.texture = TABLE
 	source.global_position = center+Vector2(90,0)
 	world.add_child(source)
+	var generic:Node2D = items.spawn_visual(source,{"horizontal_speed":0.0,"spin_speed":0.0})
+	generic.set_process(false)
+	check(generic.is_in_group("MCItemFragments") and not generic.is_in_group("MCBlockFragments") and generic.pieces.size()>=4,"flying shards can cut a plain Sprite2D without any character methods")
+	var generic_before:Vector2 = generic.pieces[0].sprite.global_position
+	generic.advance(0.1)
+	check(generic.pieces[0].sprite.global_position.y<generic_before.y,"generic non-character shards still launch upward")
+	generic.queue_free()
+	await process_frame
+	var virtual:Node2D = items.spawn_texture(world,MOSS,center+Vector2(100,60),1.5)
+	virtual.set_process(false)
+	check(not virtual.pieces.is_empty() and virtual.pieces[0].sprite.texture.atlas==MOSS,"flying effect also accepts a bare source texture")
+	virtual.queue_free()
+	await process_frame
 	var cracks := Sprite2D.new()
 	cracks.name = "MCBlockCracksFixture"
 	cracks.texture = TABLE
@@ -54,6 +67,10 @@ func run() -> void:
 	var polygon_fx:Node2D = blocks.spawn_obstacle(polygon)
 	polygon_fx.set_process(false)
 	check(not polygon_fx.pieces.is_empty() and polygon_fx.pieces[0].sprite is Polygon2D and polygon_fx.pieces[0].sprite.color==polygon.color,"plain Polygon2D obstacle cuts and lands using its own color")
+	var generic_polygon:Node2D = items.spawn_visual(polygon)
+	generic_polygon.set_process(false)
+	check(not generic_polygon.pieces.is_empty() and generic_polygon.pieces[0].sprite is Polygon2D,"flying fragmentation also accepts a generic Polygon2D")
+	generic_polygon.queue_free()
 	polygon.queue_free()
 	var layer := TileMapLayer.new()
 	var tileset := TileSet.new()
@@ -69,6 +86,10 @@ func run() -> void:
 	var tile_fx:Node2D = blocks.spawn_obstacle(layer,{"cell":Vector2i.ZERO})
 	tile_fx.set_process(false)
 	check(not tile_fx.pieces.is_empty() and tile_fx.pieces[0].sprite.texture.atlas.atlas==MOSS,"TileMapLayer cuts the actual atlas cell, not the whole tile sheet")
+	var generic_tile:Node2D = items.spawn_visual(layer,{}, {"cell":Vector2i.ZERO})
+	generic_tile.set_process(false)
+	check(not generic_tile.pieces.is_empty() and generic_tile.pieces[0].sprite.texture.atlas.atlas==MOSS,"flying fragmentation accepts a TileMapLayer cell without a character")
+	generic_tile.queue_free()
 	layer.queue_free()
 	var bench:Node2D = load("res://scripts/characters/我的世界/frontier/sword_workbench.gd").new()
 	world.add_child(bench)

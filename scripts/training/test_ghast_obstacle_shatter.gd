@@ -34,24 +34,19 @@ func run() -> void:
 	var manager:Node=load("res://scripts/effects/我的世界/ghast_obstacle_damage.gd").ensure(ghast)
 	for i:int in range(2): blast(ghast,point)
 	check(table.visible and not table.is_queued_for_deletion(),"table intact through first two blasts")
-	var previous:int=get_nodes_in_group("MCBlockFragments").size()
+	var previous:int=get_nodes_in_group("MCItemFragments").size()
 	blast(ghast,point)
 	check(table.is_queued_for_deletion() and not table.visible,"third blast actually removes table")
 	check(get_nodes_in_group("MinecraftSmithingTable").is_empty(),"destroyed table immediately stops being usable for smithing")
 	check(world.get_meta("mc_smithing_table_destroyed",false),"table destruction is remembered for the current round")
-	check(get_nodes_in_group("MCBlockFragments").size()==previous+1,"obstacle uses distinct landing block fragmentation")
-	var fx:Node2D=get_nodes_in_group("MCBlockFragments").back()
+	check(get_nodes_in_group("MCItemFragments").size()==previous+1,"obstacle keeps the original flying fragmentation effect")
+	var fx:Node2D=get_nodes_in_group("MCItemFragments").back()
 	check(fx.pieces.size()>1,"table breaks into multiple texture pieces")
 	for piece:Dictionary in fx.pieces:
 		check(piece.sprite.texture.atlas.resource_path.contains("锻造台"),"fragments come from the actual table art, not the crack overlay")
 	var before:Vector2=fx.pieces[0].sprite.global_position
 	fx.advance(0.05)
-	check(fx.pieces[0].sprite.global_position!=before,"block shards launch toward their ground landings")
-	var piece:Dictionary=fx.pieces[0]
-	fx.advance(piece.flight*0.5-0.05)
-	check(piece.sprite.global_position.y < piece.start.lerp(piece.landing,0.5).y,"block shards visibly arc above ground")
-	fx.advance(piece.flight*0.5)
-	check(piece.landed and piece.sprite.global_position.is_equal_approx(piece.landing),"block shards actually land")
+	check(fx.pieces[0].sprite.global_position!=before,"original obstacle fragments launch and fall without changing the obstacle flow")
 	await process_frame
 	for i:int in range(8):
 		arena._ensure_table()
