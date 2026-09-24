@@ -1,5 +1,7 @@
 keys,zh,en
 UI_LANGUAGE,语言,Language
+凋灵,凋灵,Wither
+凋灵信标,凋灵信标,Wither Beacon
 UI_REMATCH,重打,Rematch
 UI_REMATCH_TOOLTIP,左键：完全重演上一把（相同初始方向与随机结果）；右键：相同地图/人物/位置，重新随机,"Left click: replay the previous match with the same initial directions and random results; right click: reuse the same map, characters, and positions with fresh randomness."
 UI_RECORD,录制,Record

@@ -101,7 +101,7 @@ func run() -> void:
 	check(float(potency("instant_heal",2).instant_health) == 8.0 and float(potency("instant_damage",2).instant_damage) == 12.0,"Java instant healing 4/8 HP, damage 6/12 HP")
 	check(int(potency("regen",1).period_ticks) == 50 and int(potency("regen",3).period_ticks) == 12 and int(potency("poison",2).period_ticks) == 12 and int(potency("wither",2).period_ticks) == 20,"periodic amplifier shifts the 50/25/40-tick intervals")
 	check(is_equal_approx(float(potency("levitation",2).upward_acceleration),0.1) and is_equal_approx(float(potency("hunger",2).exhaustion_per_tick),0.01),"Levitation and Hunger levels derive contextual potency")
-	var wither:Node2D = spawn("凋零",Vector2(-160,-50))
+	var wither:Node2D = spawn("凋灵",Vector2(-160,-50))
 	var witch:Node2D = spawn("女巫",Vector2(-190,85))
 	var victim:Node2D = spawn("",Vector2(90,10),"Team1")
 	for unit:Node2D in [wither,witch,victim]: unit.process_mode = Node.PROCESS_MODE_DISABLED

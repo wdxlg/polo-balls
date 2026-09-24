@@ -179,6 +179,9 @@ func _canonical_character_name(char_name:String) -> String:
 	# 兼容旧录像/旧配置：资源已经改名，但历史数据里的“雨衣男”仍应生成伞夫。
 	if char_name == "雨衣男":
 		return "伞夫"
+	# Wither is 凋灵; 凋零 names the status effect, not the character.
+	if char_name == "凋零":
+		return "凋灵"
 	return char_name
 
 

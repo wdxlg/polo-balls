@@ -28,7 +28,7 @@ func run() -> void:
 	iron.cooldown_left=100
 	var victim:Node2D=dummy(center+Vector2(0,80))
 	var bait:Node2D=dummy(center+Vector2(400,-200))
-	var owner:Node2D=spawn("res://scenes/characters/我的世界/凋零.tscn",center+Vector2(-400,-300),"Team0")
+	var owner:Node2D=spawn("res://scenes/characters/我的世界/凋灵.tscn",center+Vector2(-400,-300),"Team0")
 	owner.summoned=true
 	owner.health=250
 	owner.on_actual_health_damage_received(1,251)

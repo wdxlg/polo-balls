@@ -1,5 +1,5 @@
 extends "res://scripts/training/test_mc_new5.gd"
-const SCENE:String="res://scenes/characters/我的世界/凋零.tscn"
+const SCENE:String="res://scenes/characters/我的世界/凋灵.tscn"
 const ARTIFACTS:String="user://wither_intro/"
 func check(ok:bool,label:String) -> void:
 	super.check(ok,label)
@@ -27,6 +27,14 @@ func run() -> void:
 	check(await load("res://tests/mc_animation_test_cleanup.gd").wait_for_preloads(self),"preview resources finish loading")
 	center=world.return_map_world_rect(world.map_group["Map50x50"]).get_center()
 	await clear_units()
+	var roster:Array[String]=world.return_all_character_names()
+	check(roster.has("凋灵") and not roster.has("凋零"),"selector indexes the canonical Wither mob as 凋灵 only")
+	var legacy_scene:PackedScene=world._get_character_scene_any("凋零")
+	check(legacy_scene!=null and legacy_scene.resource_path==SCENE,"old character name still resolves to the renamed scene")
+	var catalog:Dictionary=load("res://global/translation_catalog.gd").TABLE
+	check(catalog.zh.get("凋灵")=="凋灵" and catalog.en.get("凋灵")=="Wither" and catalog.en.get("凋灵信标")=="Wither Beacon","Chinese and English mob/beacon names match the roster")
+	check(game._localization._t_for_locale("凋灵","zh",false)=="凋灵" and game._localization._t_for_locale("凋灵","en",false)=="Wither","runtime UI localization actually presents the original Wither name")
+	check(load("res://scripts/effects/我的世界/mc_status_effects.gd").SPECS["wither"].zh=="凋零","wither potion effect keeps its distinct official name 凋零")
 	var packed:PackedScene=load(SCENE)
 	var off_tree:Node2D=packed.instantiate()
 	var texture:Texture2D=off_tree.get_preview_texture()
@@ -35,14 +43,14 @@ func run() -> void:
 	check(texture.get_size()==Vector2(384,384),"new preview preserves the live viewport canvas")
 	check(off_tree.get_node("Graphics/Image").texture==texture,"scene fallback texture is also the current model")
 	off_tree.free()
-	var menu:Node2D=world.create_character_preview("凋零",SCENE,false)
+	var menu:Node2D=world.create_character_preview("凋灵",SCENE,false)
 	check(menu!=null and menu.get_node("PreviewImage").texture==texture,"actual selection/portrait factory uses the new art")
 	check(not menu is CollisionObject2D and menu.find_children("*","SubViewport",true,false).is_empty(),"selection preview is visual-only, no live 3D or combat side effects")
-	world.now_choose_char="凋零"
+	world.now_choose_char="凋灵"
 	var ghost:Node2D=world.create_ghost_ball()
 	check(ghost!=null and ghost.get_node("PreviewImage").texture==texture,"actual placement ghost also uses new art")
 	if ghost!=null: ghost.queue_free()
-	var actor:Node2D=spawn("凋零",Vector2.ZERO)
+	var actor:Node2D=spawn("凋灵",Vector2.ZERO)
 	actor.set_process(false)
 	check(actor.summon_time==0 and actor.image.visible and not actor.summoned,"live model is visible immediately at zero intro time")
 	check(actor.summon_duration==3.0 and actor._bedrock_model.current_invulnerable,"entire 3-second intro begins in the original blue invulnerable skin")

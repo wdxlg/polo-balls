@@ -19,7 +19,7 @@ func run() -> void:
 	await create_timer(0.5).timeout
 	center = world.return_map_world_rect(world.map_group["Map50x50"]).get_center()
 	await clear_units()
-	var wither:Node2D = spawn("凋零",Vector2.ZERO,"Team0")
+	var wither:Node2D = spawn("凋灵",Vector2.ZERO,"Team0")
 	var enemy:Node2D = spawn("",Vector2(160,0),"Team1")
 	enemy.Max_health = 1000
 	enemy.health = 1000

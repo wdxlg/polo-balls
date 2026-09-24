@@ -1,6 +1,8 @@
-# 凋零角色：基岩版实时三维动画与验收边界
+# 凋灵角色：基岩版实时三维动画与验收边界
 
-入口：`scenes/characters/我的世界/凋零.tscn`；信标是仅供召唤的 `scenes/creatures/我的世界/凋零信标.tscn`，不进入独立选角列表。纹理及烘焙精灵在 `Images/characters/我的世界/wither/`，音效在 `audio/characters/我的世界/wither/`，脚本在 `scripts/characters/我的世界/wither/`。
+角色正式名为 Minecraft 原版简体中文的“凋灵”；“凋零”专指同名状态效果及凋零玫瑰。下文早期实现记录沿用过旧称，不代表当前选角或战斗显示名。
+
+入口：`scenes/characters/我的世界/凋灵.tscn`；信标是仅供召唤的 `scenes/creatures/我的世界/凋零信标.tscn`（场景路径为内部标识、根节点显示为“凋灵信标”），不进入独立选角列表。纹理及烘焙精灵在 `Images/characters/我的世界/wither/`，音效在 `audio/characters/我的世界/wither/`，脚本在 `scripts/characters/我的世界/wither/`。
 
 **当前纠正（基岩版原版实时动画）：** 之前 Java 纹理重排生成的 `wither_front.png`/`wither_assembling.png` 只能作静态图，不满足原版人物动画要求；战斗中不再显示它们。新 `bedrock_rig.gd` 从 Mojang 官方 `bedrock-samples` 的 `wither_boss.geo.json` 建立可旋转的六骨骼三维模型，把原版 `wither_boss.animation.json`/控制器中的头部寻敌及躯干余弦摆动公式实时施加到每根骨骼。角色的 `Image` 直接显示不断更新的透明 `SubViewport` 三维画面，召唤时使用原版无敌材质与旋转，半血时显示原版膨胀护甲模型/蓝色材质；这不是播放单张贴图，也不是烘焙的动画帧。固定使用 Mojang `bedrock-samples` 提交 `46ba6ea985fb5a92d79a9419198f10dda14c199d`，`bedrock/SOURCE_MANIFEST.json` 含原文件路径与 SHA-256。基岩版源文件只作为模型与动画资源，游戏数值仍按本项目的定制规则执行。头部视线输入由 2D 战场的目标方向映射，三维投影/渲染器是 Godot 而非直接运行 Minecraft 客户端；不声称像素级复刻客户端输出。选择界面尚未实例化角色时可回退为静态缩略图；进入战斗后必须使用动态三维视口。
 

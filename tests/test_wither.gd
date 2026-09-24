@@ -9,7 +9,7 @@ func _initialize() -> void:
         if script == null or not script.can_instantiate():
             push_error("WITHER SCRIPT FAILED: " + path)
             errors += 1
-    for path:String in ["res://scenes/characters/我的世界/凋零.tscn", "res://scenes/creatures/我的世界/凋零信标.tscn"]:
+    for path:String in ["res://scenes/characters/我的世界/凋灵.tscn", "res://scenes/creatures/我的世界/凋零信标.tscn"]:
         var scene:PackedScene = load(path) as PackedScene
         if scene == null or not scene.can_instantiate():
             push_error("WITHER SCENE FAILED: " + path)
@@ -32,7 +32,8 @@ func _run_behaviors() -> void:
     root.add_child(arena)
     current_scene = arena
     arena.process_mode = Node.PROCESS_MODE_DISABLED
-    var wither:Node2D = load("res://scenes/characters/我的世界/凋零.tscn").instantiate()
+    var wither:Node2D = load("res://scenes/characters/我的世界/凋灵.tscn").instantiate()
+    assert(wither.name == "凋灵", "Minecraft Wither character name must be 凋灵, not the 凋零 status effect")
     wither.Team = "WitherTeam"
     arena.add_child(wither)
     assert(wither.health == 500 and not wither.summoned)

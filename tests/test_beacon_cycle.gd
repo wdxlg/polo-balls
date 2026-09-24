@@ -44,7 +44,7 @@ func run() -> void:
 	await create_timer(.5).timeout
 	center=world.return_map_world_rect(world.map_group["Map50x50"]).get_center()
 	await clear_units()
-	wither=spawn("凋零",Vector2(-220,-70))
+	wither=spawn("凋灵",Vector2(-220,-70))
 	wither.summoned=true
 	wither.health=250
 	wither.on_actual_health_damage_received(1,251)

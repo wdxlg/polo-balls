@@ -6,6 +6,8 @@ extends RefCounted
 const TABLE:Dictionary = {
 	"zh": {
 		"UI_LANGUAGE": "语言",
+		"凋灵": "凋灵",
+		"凋灵信标": "凋灵信标",
 		"UI_REMATCH": "重打",
 		"UI_REMATCH_TOOLTIP": "左键：完全重演上一把（相同初始方向与随机结果）；右键：相同地图/人物/位置，重新随机",
 		"UI_NOW_TEAM": "当前队伍：",
@@ -807,6 +809,8 @@ const TABLE:Dictionary = {
 	},
 	"en": {
 		"UI_LANGUAGE": "Language",
+		"凋灵": "Wither",
+		"凋灵信标": "Wither Beacon",
 		"UI_REMATCH": "Rematch",
 		"UI_REMATCH_TOOLTIP": "Left click: replay the previous match with the same initial directions and random results; right click: reuse the same map, characters, and positions with fresh randomness.",
 		"UI_NOW_TEAM": "Now Team:",

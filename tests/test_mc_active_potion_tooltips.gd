@@ -43,7 +43,7 @@ func run() -> void:
 	var levitation_script:GDScript = load("res://scripts/effects/我的世界/潜影浮空.gd") as GDScript
 	var primaries:Array = beacon_script.get_script_constant_map().get("BUFFS",[])
 	check(primaries == ["speed","haste","resistance","jump_boost","strength"],"beacon has all five level-I primary effects, not secondary regeneration")
-	var wither:Node2D = spawn("凋零",Vector2(-120,-40))
+	var wither:Node2D = spawn("凋灵",Vector2(-120,-40))
 	var witch:Node2D = spawn("女巫",Vector2(-150,80))
 	var victim:Node2D = spawn("",Vector2(70,10),"Team1")
 	# Freeze only the actors' AI/status physics for precise timer assertions;

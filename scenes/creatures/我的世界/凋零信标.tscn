@@ -8,7 +8,7 @@
 resource_local_to_scene = true
 size = Vector2(62, 66)
 
-[node name="凋零信标" instance=ExtResource("1_base")]
+[node name="凋灵信标" instance=ExtResource("1_base")]
 script = ExtResource("2_script")
 Has_Collision_Damage = false
 Type_Tags = PackedStringArray("我的世界", "召唤物")
