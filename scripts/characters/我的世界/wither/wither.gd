@@ -13,6 +13,9 @@ const AUDIO = preload("res://scripts/characters/我的世界/new5/audio.gd")
 const HIT_GAIN = preload("res://scripts/effects/我的世界/hit_audio_gain.gd")
 const ACTIVE_TOOLTIP = preload("res://scripts/ui/mc_active_effect_tooltip.gd")
 const EFFECTS = preload("res://scripts/effects/我的世界/mc_status_effects.gd")
+const OBSTACLES = preload("res://scripts/effects/我的世界/ghast_obstacle_damage.gd")
+const CHARGE_RESET = preload("res://scripts/characters/我的世界/wither/charge_reset.gd")
+const CHARGE_SPEED:float = 500.0
 # Entire intro is now the spin; no hidden block-construction portion.
 @export var summon_duration:float = 3.0
 @export var skull_interval:float = 5.0
@@ -30,6 +33,7 @@ var _charge_windup:float = 0.0
 var _charge_dir:Vector2 = Vector2.RIGHT
 var _charge_remaining:float = 0.0
 var _charge_hits:Dictionary = {}
+var _charge_broken:Dictionary = {}
 var _sync_left:float = 0.0
 var _buff:String = ""
 var _buff_left:float = 0.0
@@ -205,29 +209,39 @@ func tick_physics(state:State,delta:float) -> void:
 		if own_roses < 3: _grow_rose()
 	if _charge_windup > 0:
 		_charge_windup -= delta
-		if _charge_windup <= 0: _charge_remaining = 130.0
+		if _charge_windup <= 0:
+			_charge_remaining = _charge_wall_distance(global_position,_charge_dir)
+			if _charge_remaining > 0.0: _break_charge_obstacles(global_position,global_position)
 	elif _charge_remaining > 0:
-		var travel:float = minf(500.0*delta,_charge_remaining)
+		var travel:float = minf(CHARGE_SPEED*delta,_charge_remaining)
 		var old:Vector2 = global_position
-		# Even the special charge uses the normal CharacterBody collision solver.
-		velocity = _charge_dir*500.0+Repel
-		move_and_slide()
-		var next:Vector2 = global_position
-		var moved:float = old.distance_to(next)
-		_charge_remaining = maxf(_charge_remaining-moved,0.0) if moved > 0.1 else 0.0
-		if moved > 0.1:
+		var next:Vector2 = old+_charge_dir*travel
+		# The charge is a swept pass-through, not CharacterBody sliding. Break
+		# obstacles BEFORE moving so neither props nor other bodies can stop it.
+		_break_charge_obstacles(old,next)
+		global_position = next
+		velocity = _charge_dir*CHARGE_SPEED
+		_charge_remaining = maxf(_charge_remaining-travel,0.0)
+		if travel > 0.0:
 			for node:Node in SubmissionCharacterTools.targeting_candidates(self):
 				if node is ball and mc_enemy(node) and not _charge_hits.has(node.get_instance_id()):
 					var enemy:ball = node as ball
-					if Geometry2D.get_closest_point_to_segment(enemy.global_position,old,next).distance_to(enemy.global_position) <= enemy.get_crowd_separation_radius_world()+42.0 and mc_line_clear(old,enemy.global_position):
+					if enemy.is_in_group("BuilderWall") or (enemy.has_method("is_builder_wall") and enemy.is_builder_wall()): continue
+					if Geometry2D.get_closest_point_to_segment(enemy.global_position,old,next).distance_to(enemy.global_position) <= enemy.get_crowd_separation_radius_world()+42.0:
 						_charge_hits[enemy.get_instance_id()] = true
 						impact(enemy,32.0,enemy.global_position,true)
 						enemy.Repel += _charge_dir*60.0
+			# Builder walls inherit ball and cannot be mined by the static-body
+			# manager. They are obstacles, not another 32-damage combat target.
+			_break_charge_builder_walls(old,next)
+		if _charge_remaining <= 0.0: velocity = Vector2.ZERO
 	elif _charge_left <= 0 and target != null and global_position.distance_to(target.global_position) < 175.0 and _windup <= 0:
 		_charge_dir = (target.global_position-global_position).normalized()
 		_charge_windup = 0.45
 		_charge_left = charge_interval
 		_charge_hits.clear()
+		_charge_broken.clear()
+		Repel = Vector2.ZERO
 		_emit_sound("shoot",global_position)
 	_sync_left -= delta
 	if _sync_left <= 0:
@@ -235,6 +249,97 @@ func tick_physics(state:State,delta:float) -> void:
 		if multiplayer.has_multiplayer_peer():
 			var body_heading:Vector2 = _visual_body_heading()
 			_sync_appearance.rpc(summon_time,summoned,heart_dropped,_buff,_buff_left,body_heading,_visual_look_point(body_heading))
+
+func _charge_half_size() -> Vector2:
+	if collision_shape_2d != null and collision_shape_2d.shape != null:
+		return collision_shape_2d.shape.get_rect().size*collision_shape_2d.global_scale.abs()*0.5
+	return Vector2(42.0,42.0)
+
+func _charge_wall_distance(start:Vector2,heading:Vector2) -> float:
+	# The nearest map REGION, not the union bounding box: on portal/irregular
+	# maps a charge must not cross a gap just because another island is ahead.
+	var rect:Rect2 = Rect2()
+	var world:Node = get_tree().current_scene
+	if world != null and world.has_method("map_island_rects"):
+		var map_node:Node = world._current_map_node()
+		if map_node != null:
+			rect = world.nearest_map_island_rect(start,world.map_island_rects(map_node))
+	if not rect.has_area(): rect = mc_arena_rect()
+	var half:Vector2 = _charge_half_size()+Vector2.ONE
+	rect = rect.grow_individual(-half.x,-half.y,-half.x,-half.y)
+	if not rect.has_area() or not rect.has_point(start): return 0.0
+	var distance:float = INF
+	if heading.x > 0.00001: distance = minf(distance,(rect.end.x-start.x)/heading.x)
+	elif heading.x < -0.00001: distance = minf(distance,(rect.position.x-start.x)/heading.x)
+	if heading.y > 0.00001: distance = minf(distance,(rect.end.y-start.y)/heading.y)
+	elif heading.y < -0.00001: distance = minf(distance,(rect.position.y-start.y)/heading.y)
+	return maxf(distance,0.0) if is_finite(distance) else 0.0
+
+func _charge_swept_rect(from:Vector2,to:Vector2) -> Rect2:
+	var half:Vector2 = _charge_half_size()
+	return Rect2(from.min(to)-half,to.max(from)-from.min(to)+half*2.0)
+
+func _charge_world_rect(owner:Node2D,local:Rect2) -> Rect2:
+	var result:Rect2 = Rect2(owner.to_global(local.position),Vector2.ZERO)
+	for corner:Vector2 in [Vector2(local.end.x,local.position.y),local.end,Vector2(local.position.x,local.end.y)]:
+		result = result.expand(owner.to_global(corner))
+	return result
+
+func _break_charge_obstacles(from:Vector2,to:Vector2) -> void:
+	# Reuse the existing reversible, multiplayer-safe Minecraft terrain
+	# destruction path. Samples overlap but each obstacle is broken only once.
+	var manager:Node = OBSTACLES.ensure(self)
+	CHARGE_RESET.ensure(self)
+	var world:Node = get_tree().current_scene
+	var half:Vector2 = _charge_half_size()
+	var pieces:int = maxi(1,ceili(from.distance_to(to)/maxf(minf(half.x,half.y)*0.5,12.0)))
+	for i:int in range(pieces):
+		var a:Vector2 = from.lerp(to,float(i)/pieces)
+		var b:Vector2 = from.lerp(to,float(i+1)/pieces)
+		var corridor:Rect2 = _charge_swept_rect(a,b)
+		var updates:Array = manager.collect_blast(self,(a+b)*0.5,half.length()+a.distance_to(b)*0.5+2.0)
+		var broken:Array = []
+		for update:Dictionary in updates:
+			var obstacle:Node = world.get_node_or_null(update.path)
+			if not is_instance_valid(obstacle): continue
+			var moss:bool = bool(update.get("moss",false))
+			var key:String = "%s/moss/%s" % [str(update.path),str(update.serial)] if moss else str(update.key)
+			if _charge_broken.has(key): continue
+			if moss:
+				if not corridor.has_point(update.point): continue
+			elif obstacle is Node2D:
+				if not corridor.intersects(_charge_world_rect(obstacle,update.rect),true): continue
+			else: continue
+			_charge_broken[key] = true
+			if not moss: update.hits = 3 # A direct Wither charge shatters in one pass.
+			broken.append(update)
+		if broken.is_empty(): continue
+		if multiplayer.has_multiplayer_peer(): _charge_obstacle_damage.rpc(broken)
+		manager.apply_updates(broken)
+
+func _break_charge_builder_walls(from:Vector2,to:Vector2) -> void:
+	var corridor:Rect2 = _charge_swept_rect(from,to)
+	for node:Node in get_tree().get_nodes_in_group("BuilderWall"):
+		if not node is ball or node == self or node.health <= 0 or node.is_queued_for_deletion(): continue
+		var wall:ball = node as ball
+		if _charge_hits.has(wall.get_instance_id()): continue
+		var shape:CollisionShape2D = wall.get_node_or_null("CollisionShape2D") as CollisionShape2D
+		if shape == null or shape.shape == null or not corridor.intersects(_charge_world_rect(shape,shape.shape.get_rect()),true): continue
+		_charge_hits[wall.get_instance_id()] = true
+		var previous:float = wall.health
+		# Structural walls can have 98% damage reduction; scale by their
+		# actual mitigation instead of using an arbitrary high raw damage.
+		var break_damage:float = (maxf(previous,wall.Max_health)+maxf(wall.block,0.0)+1.0)/maxf(1.0-wall.Damage_reduction,0.0001)
+		wall.receive_positional_damage(break_damage,wall.global_position,true,self)
+		var actual:float = maxf(previous-maxf(wall.health,0.0),0.0)
+		if actual > 0.0:
+			if multiplayer.has_multiplayer_peer(): _hit_sound.rpc(wall.global_position,actual)
+			_hit_sound(wall.global_position,actual)
+
+@rpc("authority","call_remote","reliable")
+func _charge_obstacle_damage(updates:Array) -> void:
+	CHARGE_RESET.ensure(self)
+	OBSTACLES.ensure(self).apply_updates(updates)
 
 func move(speed:float,delta:float) -> void:
 	if not summoned or _charge_remaining > 0 or _charge_windup > 0:
@@ -350,7 +455,7 @@ func _emit_sound(event:String,point:Vector2) -> void:
 	if multiplayer.has_multiplayer_peer(): _sync_event.rpc(event,point)
 func _visual_body_heading() -> Vector2:
 	# Lean only while actually moving; target position / mouse aim must not
-	# turn or tip the torso. Charges use their real collision-solved velocity.
+	# turn or tip the torso. Charges use their actual path velocity.
 	if not summoned or velocity.length_squared() <= 36.0: return Vector2.ZERO
 	return velocity.normalized()
 func _visual_look_point(_body_heading:Vector2) -> Vector2:
@@ -383,7 +488,9 @@ func get_ai_attack_threats(_receiver:ball) -> Array:
 	if not summoned and summon_time > summon_duration-0.4:
 		return [{"shape":"circle","position":global_position,"radius":110.0,"damage":45.0,"danger_in":maxf(summon_duration-summon_time,0.0),"danger_duration":0.1,"source":self}]
 	if _charge_windup > 0 or _charge_remaining > 0:
-		return [{"shape":"segment","start":global_position,"end":global_position+_charge_dir*(130.0 if _charge_windup>0 else _charge_remaining),"radius":42.0,"damage":32.0,"danger_in":maxf(_charge_windup,0.0),"danger_duration":0.3,"source":self}]
+		var distance:float = _charge_wall_distance(global_position,_charge_dir) if _charge_windup>0 else _charge_remaining
+		if distance > 0.0:
+			return [{"shape":"segment","start":global_position,"end":global_position+_charge_dir*distance,"radius":42.0,"damage":32.0,"danger_in":maxf(_charge_windup,0.0),"danger_duration":distance/CHARGE_SPEED,"source":self}]
 	return []
 func get_debug_attack_regions() -> Array: return get_ai_attack_threats(null)
 @rpc("authority","call_remote","unreliable_ordered")
