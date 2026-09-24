@@ -6849,15 +6849,17 @@ func _on_hitbox_on_hit(hurt: hurtbox) -> void:
 	# Enchantment modifiers run at the authoritative damage point, before block/HP;
 	# weapons under a character register their component on the combat owner.
 	var enchant_caster:ball = Master if Master != null and is_instance_valid(Master) else self
-	if outgoing_damage > 0.0 and (enchant_caster.has_meta("mc_enchant_components") or enchant_caster.has_node("MinecraftEnchantments")):
-		var enchant_script:Script = load("res://scripts/effects/我的世界/mc_enchantments.gd")
-		var tags:Array = []
-		var family:String = str(target.get_meta("mc_creature_family",""))
-		if not family.is_empty(): tags.append(family)
-		var shot_mode:String = "ranged" if _is_ranged_hit_source(self) else "melee"
-		var info:Dictionary = enchant_script.resolve_event(enchant_caster,"damage_out",{"damage":outgoing_damage,"mode":shot_mode,"target_tags":tags,"base_damage":outgoing_damage})
+	var enchanted_attack:bool = enchant_caster.has_meta("mc_enchant_components") or enchant_caster.has_node("MinecraftEnchantments") or has_meta("mc_enchant_components") or has_node("MinecraftEnchantments")
+	var enchant_script:Script = null
+	var shot_mode:String = "ranged" if _is_ranged_hit_source(self) else "melee"
+	var tags:Array = []
+	if outgoing_damage > 0.0 and enchanted_attack:
+		enchant_script = load("res://scripts/effects/我的世界/mc_enchantments.gd")
+		tags = enchant_script.target_tags_for(target)
+		var info:Dictionary = enchant_script.resolve_combat_event(enchant_caster,self,"damage_out",{"damage":outgoing_damage,"mode":shot_mode,"target_tags":tags,"base_damage":outgoing_damage,"current_speed":enchant_caster.Speed})
 		outgoing_damage = float(info.get("damage",outgoing_damage))
 		if float(info.get("armor_penetration",0.0)) > 0.0: target.set_meta("_mc_enchant_armor_penetration",float(info.armor_penetration))
+		if float(info.get("shield_bypass",0.0)) > 0.0: target.set_meta("_mc_enchant_shield_bypass",float(info.shield_bypass))
 
 	if outgoing_damage > 0.0 and (target.block < outgoing_damage or ignore_block):
 		if Unique_Hit_Audio != null:
@@ -6876,18 +6878,28 @@ func _on_hitbox_on_hit(hurt: hurtbox) -> void:
 		hit_travel_direction
 	)
 
+	var routed_to_boat:bool = false
 	if outgoing_damage > 0.0:
-		var old_enchant_element:Variant = target.get_meta("_mc_enchant_element",null)
+		var old_enchant_element:Variant = target.get_meta("_mc_enchant_element") if target.has_meta("_mc_enchant_element") else null
 		if _is_ranged_hit_source(self): target.set_meta("_mc_enchant_element","projectile")
-		if not target._route_boat_damage(outgoing_damage,hit_source_position,ignore_block,self):
+		routed_to_boat = target._route_boat_damage(outgoing_damage,hit_source_position,ignore_block,self)
+		if not routed_to_boat:
 			target.hit_white(ignore_block)
 			target.take_damage(outgoing_damage,ignore_block)
 		if old_enchant_element == null: target.remove_meta("_mc_enchant_element")
 		else: target.set_meta("_mc_enchant_element",old_enchant_element)
 		target.remove_meta("_mc_enchant_armor_penetration")
+		target.remove_meta("_mc_enchant_shield_bypass")
 
 	var health_loss:float = maxf(before_health - float(target.health),0.0)
 	var block_loss:float = maxf(before_block - float(target.block),0.0)
+	# Contact effects once per accepted hit; thorns uses this hit's actual
+	# post-defense shield + health loss (never the attacker's nominal Damage).
+	if outgoing_damage > 0.0 and not routed_to_boat and enchanted_attack:
+		enchant_script.apply_hit_effects(enchant_caster,self,target,shot_mode,tags)
+	if health_loss + block_loss > 0.0 and (target.has_meta("mc_enchant_components") or target.has_node("MinecraftEnchantments")):
+		if enchant_script == null: enchant_script = load("res://scripts/effects/我的世界/mc_enchantments.gd")
+		enchant_script.apply_retaliation(target,enchant_caster,health_loss + block_loss)
 	var hit_effect_seed:int = (
 		int(Time.get_ticks_usec())
 		^ int(get_instance_id())
@@ -7036,8 +7048,17 @@ func take_damage(damage:float,ignore_block:bool = false) -> void:
 		var enchant_script:Script = load("res://scripts/effects/我的世界/mc_enchantments.gd")
 		var element:String = str(get_meta("_blood_damage_element",get_meta("_mc_enchant_element","physical")))
 		damage = float(enchant_script.resolve_event(self,"damage_in",{"damage":damage,"element":element}).get("damage",damage))
-	var reduction:float = Damage_reduction * (1.0-clampf(float(get_meta("_mc_enchant_armor_penetration",0.0)),0.0,0.9))
+	var reduction:float = Damage_reduction
+	var armor_penetration:float = clampf(float(get_meta("_mc_enchant_armor_penetration",0.0)),0.0,1.0)
+	if armor_penetration > 0.0:
+		# Ignore five percentage points of damage reduction per Breach level.
+		reduction = maxf(reduction-armor_penetration,0.0)
 	damage *= 1.0-reduction
+	var bypass_health:float = 0.0
+	if not ignore_block and block > 0.0 and damage > 0.0:
+		bypass_health = damage*clampf(float(get_meta("_mc_enchant_shield_bypass",0.0)),0.0,1.0)
+		damage -= bypass_health
+	var health_damage:float = bypass_health
 
 	if not ignore_block and damage > 0:
 		if block >= damage:
@@ -7050,16 +7071,17 @@ func take_damage(damage:float,ignore_block:bool = false) -> void:
 		elif block > 0:
 			damage -= block
 			block = 0
-			health -= _consume_minecraft_absorption(damage)
+			health_damage += damage
 
 			if Unique_Block_Break_Audio != null:
 				play_unique_audio(Character_Audio_Slot.BlockBreak,true)
 			elif BlockBreak_Audio != "":
 				Audios.play_sfx.rpc(BlockBreak_Audio,{volume = clampf(Damage - 12,-100,0)},true)
 		else:
-			health -= _consume_minecraft_absorption(damage)
+			health_damage += damage
 	elif damage > 0:
-		health -= _consume_minecraft_absorption(damage)
+		health_damage += damage
+	if health_damage > 0.0: health -= _consume_minecraft_absorption(health_damage)
 
 	# 只有真正被攻击消耗的护盾提供较轻反馈；不把自然衰减/技能消费当作命中。
 	_notify_damage_camera_feedback(maxf(before_block - float(block),0.0) * 0.35,true)

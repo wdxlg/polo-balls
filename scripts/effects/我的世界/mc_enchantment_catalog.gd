@@ -1,11 +1,10 @@
 extends RefCounted
-## All 43 vanilla Java IDs (including the later Lunge enchantment).
+## 41 supported Java IDs (including Lunge; both curses are intentionally removed).
 ## This is a display/catalog layer, NOT an implementation of combat mechanics.
 ## No supported-item tags, exclusivity groups, or vanilla level caps are imposed.
 const NAMES:Dictionary = {
 	"aqua_affinity": ["水下速掘","Aqua Affinity"],
 	"bane_of_arthropods": ["节肢杀手","Bane of Arthropods"],
-	"binding_curse": ["绑定诅咒","Curse of Binding"],
 	"blast_protection": ["爆炸保护","Blast Protection"],
 	"breach": ["破甲","Breach"],
 	"channeling": ["引雷","Channeling"],
@@ -44,7 +43,6 @@ const NAMES:Dictionary = {
 	"swift_sneak": ["迅捷潜行","Swift Sneak"],
 	"thorns": ["荆棘","Thorns"],
 	"unbreaking": ["耐久","Unbreaking"],
-	"vanishing_curse": ["消失诅咒","Curse of Vanishing"],
 	"wind_burst": ["风爆","Wind Burst"],
 }
 
