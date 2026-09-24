@@ -72,7 +72,7 @@ func run() -> void:
 	advance(actor,1.49)
 	check(not actor.summoned and actor.summon_time<3,"no awakening before the full three seconds")
 	var threat:Array=actor.get_ai_attack_threats(null)
-	check(threat.size()==1 and threat[0].radius==110 and threat[0].damage==45,"last 0.4 seconds still declares the real original awakening explosion")
+	check(threat.size()==1 and threat[0].radius==72 and threat[0].damage==45,"last 0.4 seconds declares the smaller real awakening explosion")
 	var effects_before:int=get_nodes_in_group("MCExplosion").size()
 	advance(actor,.01)
 	check(actor.summoned and is_equal_approx(actor.summon_time,3) and actor.image.visible,"wakes exactly at 3 seconds")

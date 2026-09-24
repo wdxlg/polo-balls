@@ -68,7 +68,7 @@ func _run_behaviors() -> void:
     assert(local_effect.is_in_group("MCExplosion") and local_effect.radius == 64.0 and not local_effect.play_audio,"use shared Minecraft explosion visual without duplicate sound")
     wither._sync_event("awake",Vector2.ZERO)
     var awake_visual:Node = arena.get_node("MCLocalEffects").get_child(1)
-    assert(awake_visual.is_in_group("MCExplosion") and awake_visual.radius == 110.0 and not awake_visual.play_audio,"networked awakening uses the shared effect at the original radius")
+    assert(awake_visual.is_in_group("MCExplosion") and awake_visual.radius == 72.0 and not awake_visual.play_audio,"networked awakening uses the smaller shared explosion radius")
     wither._sync_event("skull_blast",Vector2.ZERO)
     var skull_visual:Node = arena.get_node("MCLocalEffects").get_child(2)
     assert(skull_visual.is_in_group("MCExplosion") and skull_visual.radius == 64.0 and not skull_visual.play_audio,"networked skull blast uses exactly the same shared effect")

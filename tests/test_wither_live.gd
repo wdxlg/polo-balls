@@ -188,11 +188,21 @@ func run() -> void:
 	floor_body.queue_free()
 	# Let the real character state machine tick, rather than calling its skill helpers.
 	wither._rose_left = 0.05
-	wither._shot_left = 0.05
+	wither._head_shot_left.fill(0.05)
+	wither._global_shot_left = 0.0
 	wither._charge_left = 999.0
 	wither.state_machine.set_physics_process(true)
-	await create_timer(2.0).timeout
-	check(get_nodes_in_group("WitherFlower").size() > 0,"live physics grows ordinary poppies first")
-	check(wither._shot_left > 1.0,"live physics triggers the scheduled skull attack")
+	# At the old two-second checkpoint a faster skull may already have hit
+	# and consumed the flower. Observe the ordinary stage before its windup.
+	await create_timer(0.25).timeout
+	var ordinary_grew:bool = false
+	for living_flower:Node in get_nodes_in_group("WitherFlower"):
+		if not living_flower.is_queued_for_deletion() and not living_flower.withered: ordinary_grew = true
+	check(ordinary_grew,"live physics grows ordinary poppies before the first skull")
+	await create_timer(1.75).timeout
+	var fired_head:bool = false
+	for left:float in wither._head_shot_left:
+		if left > 0.5: fired_head = true
+	check(fired_head,"live physics triggers at least one independently cooled skull attack")
 	await clear_units()
 	finish(0 if failures == 0 else 1)

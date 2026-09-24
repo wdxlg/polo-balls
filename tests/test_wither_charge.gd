@@ -26,7 +26,8 @@ func run() -> void:
 	enemy.Damage_reduction = 0.0
 	enemy.block = 0
 	wither.summoned = true
-	wither._shot_left = 999.0
+	wither._head_shot_left.fill(999.0)
+	wither._global_shot_left = 999.0
 	wither._rose_left = 999.0
 	wither._charge_left = 999.0
 	var crate:StaticBody2D = obstacle(Vector2(-145,0),true)

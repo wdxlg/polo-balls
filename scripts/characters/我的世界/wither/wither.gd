@@ -16,19 +16,25 @@ const EFFECTS = preload("res://scripts/effects/我的世界/mc_status_effects.gd
 const OBSTACLES = preload("res://scripts/effects/我的世界/ghast_obstacle_damage.gd")
 const CHARGE_RESET = preload("res://scripts/characters/我的世界/wither/charge_reset.gd")
 const CHARGE_SPEED:float = 500.0
+const AWAKENING_BLAST_RADIUS:float = 72.0
+const SKULL_WINDUP:float = 0.30
+const SHOT_HEAD_ORDER = [0,2,1] # Center, screen-left, screen-right.
 # Entire intro is now the spin; no hidden block-construction portion.
 @export var summon_duration:float = 3.0
-@export var skull_interval:float = 5.0
-@export var rose_interval:float = 10.0
+@export var skull_interval:float = 3.0 # Each head has its own cooldown.
+@export var skull_global_cooldown:float = 0.45 # Shared gap after every shot.
+@export var rose_interval:float = 4.0
 @export var charge_interval:float = 12.0
 var summon_time:float = 0.0
 var summoned:bool = false
 var heart_dropped:bool = false
 var beacon:ball
-var _shot_left:float = 5.0
-var _rose_left:float = 10.0
+var _head_shot_left:Array[float] = [1.0,1.0,1.0]
+var _global_shot_left:float = 0.0
+var _rose_left:float = 4.0
 var _charge_left:float = 12.0
 var _windup:float = 0.0
+var _windup_head:int = -1 # Slot in SHOT_HEAD_ORDER, not a bone index.
 var _charge_windup:float = 0.0
 var _charge_dir:Vector2 = Vector2.RIGHT
 var _charge_remaining:float = 0.0
@@ -176,8 +182,8 @@ func tick_physics(state:State,delta:float) -> void:
 			if image is Sprite2D:
 				(image as Sprite2D).visible = true
 			if multiplayer.has_multiplayer_peer(): _sync_event.rpc("awake",global_position)
-			_blast(global_position,110.0,45.0,null,false)
-			_show_explosion(global_position,110.0)
+			_blast(global_position,AWAKENING_BLAST_RADIUS,45.0,null,false)
+			_show_explosion(global_position,AWAKENING_BLAST_RADIUS)
 			_emit_sound("explode",global_position)
 		return
 	_idle_left -= delta
@@ -188,24 +194,35 @@ func tick_physics(state:State,delta:float) -> void:
 	if _buff_left <= 0 and not _buff.is_empty():
 		EFFECTS.clear(self,_buff,self)
 		_buff = ""
-	_shot_left -= delta
+	for i:int in range(3): _head_shot_left[i] = maxf(_head_shot_left[i]-delta,0.0)
+	_global_shot_left = maxf(_global_shot_left-delta,0.0)
 	_rose_left -= delta
 	_charge_left -= delta
 	var target:ball = mc_nearest(delta)
-	if _windup > 0:
-		_windup -= delta
-		if _windup <= 0 and target != null and health > 0:
-			_fire_skull(player_control_aim_world_position(target.global_position) if has_player_control_aim() else target.global_position)
-	elif _shot_left <= 0 and target != null and not dizziness and is_damage_output_disabled() == false:
-		_windup = 0.5
-		var haste_level:int = EFFECTS.level_of(self,"haste")
-		var haste_rate:float = float(EFFECTS.properties("haste",haste_level).get("attack_rate",1.0))
-		_shot_left = skull_interval / maxf(haste_rate,0.0001)
+	if _windup_head >= 0:
+		if target == null or target.health <= 0 or dizziness or is_damage_output_disabled():
+			# A cancelled windup must not consume this head's cooldown or the shared gap.
+			_windup = 0.0
+			_windup_head = -1
+		else:
+			_windup = maxf(_windup-delta,0.0)
+			if _windup <= 0.0:
+				var firing_head:int = _windup_head
+				_windup_head = -1
+				_fire_skull(player_control_aim_world_position(target.global_position) if has_player_control_aim() else target.global_position,firing_head)
+	elif _global_shot_left <= 0.0 and target != null and not dizziness and not is_damage_output_disabled():
+		# Round-robin through READY heads; a cooling head cannot block the others.
+		for offset:int in range(3):
+			var head_slot:int = (_next_shoot_head+offset)%3
+			if _head_shot_left[head_slot] <= 0.0:
+				_windup_head = head_slot
+				_windup = SKULL_WINDUP
+				break
 	if _rose_left <= 0:
 		_rose_left = rose_interval
 		var own_roses:int = 0
 		for rose:Node in get_tree().get_nodes_in_group("WitherFlower"):
-			if is_instance_valid(rose) and rose.get("source_ref") is WeakRef and rose.get("source_ref").get_ref() == self: own_roses += 1
+			if is_instance_valid(rose) and not rose.is_queued_for_deletion() and rose.get("source_ref") is WeakRef and rose.get("source_ref").get_ref() == self: own_roses += 1
 		if own_roses < 3: _grow_rose()
 	if _charge_windup > 0:
 		_charge_windup -= delta
@@ -385,12 +402,17 @@ func head_muzzle_world_position(index:int) -> Vector2:
 	var mouth:Vector3 = Vector3(0.0,0.25,-0.29) if index == 0 else Vector3(0.0,0.1875,-0.23)
 	var projected:Vector2 = _bedrock_camera.unproject_position(bone.to_global(mouth))
 	return (image as Sprite2D).to_global(projected-Vector2(_bedrock_viewport.size)*0.5)
-func _fire_skull(point:Vector2) -> void:
+func _fire_skull(point:Vector2,head_slot:int = -1) -> void:
 	# Central -> left -> right: use the LIVE animated head's projected mouth,
 	# not a guessed fixed offset from the character root.
 	# Mojang head3 is screen-left and head2 is screen-right in this camera.
-	var head_index:int = [0,2,1][_next_shoot_head]
-	_next_shoot_head = (_next_shoot_head+1)%3
+	var slot:int = _next_shoot_head if head_slot < 0 else clampi(head_slot,0,2)
+	var head_index:int = SHOT_HEAD_ORDER[slot]
+	_next_shoot_head = (slot+1)%3
+	var haste_level:int = EFFECTS.level_of(self,"haste")
+	var haste_rate:float = float(EFFECTS.properties("haste",haste_level).get("attack_rate",1.0))
+	_head_shot_left[slot] = maxf(skull_interval,0.0)/maxf(haste_rate,0.0001)
+	_global_shot_left = maxf(skull_global_cooldown,0.0)
 	var origin:Vector2 = head_muzzle_world_position(head_index)
 	var heading:Vector2 = point-origin
 	if heading.length_squared() <= 0.000001: heading = Vector2.UP
@@ -512,7 +534,7 @@ func _summon_visual() -> void:
 func get_ai_attack_threats(_receiver:ball) -> Array:
 	if health <= 0: return []
 	if not summoned and summon_time > summon_duration-0.4:
-		return [{"shape":"circle","position":global_position,"radius":110.0,"damage":45.0,"danger_in":maxf(summon_duration-summon_time,0.0),"danger_duration":0.1,"source":self}]
+		return [{"shape":"circle","position":global_position,"radius":AWAKENING_BLAST_RADIUS,"damage":45.0,"danger_in":maxf(summon_duration-summon_time,0.0),"danger_duration":0.1,"source":self}]
 	if _charge_windup > 0 or _charge_remaining > 0:
 		var distance:float = _charge_wall_distance(global_position,_charge_dir) if _charge_windup>0 else _charge_remaining
 		if distance > 0.0:
@@ -542,7 +564,7 @@ func _sync_appearance(time:float,awake:bool,dropped:bool,buff:String,buff_left:f
 	queue_redraw()
 @rpc("authority","call_remote","reliable")
 func _sync_event(kind:String,point:Vector2) -> void:
-	if kind == "awake": _show_explosion(point,110.0)
+	if kind == "awake": _show_explosion(point,AWAKENING_BLAST_RADIUS)
 	elif kind == "skull_blast": _show_explosion(point,64.0)
 	else: VANILLA_SOUND.play(self,kind,point)
 func Die() -> void:
