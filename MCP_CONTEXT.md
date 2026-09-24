@@ -54,3 +54,4 @@
 - 大规模战斗软分离只对双方确有 `mc_bat_cohort` 元数据的角色比较批次；普通角色无此键时不得使用 `get_meta(..., null)` 引发逐对报错，同批次蝙蝠不被软分离。复现、stderr 回归与测试范围见 `tests/BAT_COHORT_META_GUARD.md`、`tests/verify_bat_cohort_separation.py`。
 - 默认分类的药水测试／附魔测试盔甲架共用可配置的 Minecraft 原版信息框，出生随机展示 2–4 条效果/附魔、仅作 UI 测试不赋予战斗增益；右侧跟随且不受地图裁剪，资源来源、定制方式与 GPU 回归见 `tests/MC_EFFECT_TOOLTIPS.md`。
 - Minecraft 实战持续药水状态框与演示盔甲架分离：凋零信标抽五种一级主效果（不含生命恢复）、女巫持续状态保留真实剩余时间和无限 `∞`，凋零头颅／玫瑰与潜影贝漂浮取各自真实状态；双语录制独立镜像并避让。监守者原版黑暗在本项目尚无目标状态，本次按用户选择仅记录审查，不虚构倒计时。完整边界和回归见 `tests/MC_ACTIVE_POTIONS.md`。
+- 对战盔甲架顶部介绍须覆盖我的世界分区现有角色，只用简明文字说明实际战斗机制；动态场景覆盖和 HUD 回归入口：`tests/test_mc_armor_intro_coverage.gd`。
