@@ -23,9 +23,9 @@ func run() -> void:
 	await process_frame
 	var hb:Control = unit.health_bar
 	var label:Label = hb.label
-	check(label.get_theme_color("font_color") == Color.WHITE,"health digits have white fill")
-	check(label.get_theme_color("font_outline_color") == Color.BLACK,"health digits have black outline")
-	check(label.get_theme_constant("outline_size") >= 190,"black outline stays thick (%d)" % label.get_theme_constant("outline_size"))
+	check(label.get_theme_color("font_color") == Color.BLACK,"health digits have black fill")
+	check(label.get_theme_color("font_outline_color") == Color.WHITE,"health digits have white outline")
+	check(label.get_theme_constant("outline_size") == 120,"white outline is thinner (120): %d" % label.get_theme_constant("outline_size"))
 	var base:int = hb._label_base_font_size
 	check(base == 900,"base font size recorded (%d)" % base)
 	var font:Font = label.get_theme_font("font")
@@ -39,9 +39,9 @@ func run() -> void:
 	hb._set_label_text("7")
 	check(label.get_theme_font_size("font_size") == base,"short text restores base font size")
 	hb.set_invincible_display(true,false)
-	check(label.text == "INF" and label.get_theme_constant("outline_size") >= 190,"INF keeps thick outline")
+	check(label.text == "INF" and label.get_theme_constant("outline_size") >= 220,"INF keeps its special thick outline")
 	hb.set_invincible_display(false)
 	check(label.get_theme_constant("outline_size") == hb._normal_label_outline_size,"leaving INF restores normal outline")
-	check(label.get_theme_color("font_color") == Color.WHITE and label.get_theme_color("font_outline_color") == Color.BLACK,"leaving INF restores white text and black outline")
+	check(label.get_theme_color("font_color") == Color.BLACK and label.get_theme_color("font_outline_color") == Color.WHITE,"leaving INF restores black text and white outline")
 	print("HB_TEXT checks=",checks," failures=",failures)
 	quit(0 if failures == 0 else 1)
