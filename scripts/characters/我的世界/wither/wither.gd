@@ -12,6 +12,7 @@ const BEACON = preload("res://scenes/creatures/我的世界/凋零信标.tscn")
 const AUDIO = preload("res://scripts/characters/我的世界/new5/audio.gd")
 const HIT_GAIN = preload("res://scripts/effects/我的世界/hit_audio_gain.gd")
 const ACTIVE_TOOLTIP = preload("res://scripts/ui/mc_active_effect_tooltip.gd")
+const EFFECTS = preload("res://scripts/effects/我的世界/mc_status_effects.gd")
 # Entire intro is now the spin; no hidden block-construction portion.
 @export var summon_duration:float = 3.0
 @export var skull_interval:float = 5.0
@@ -100,7 +101,7 @@ func Attack() -> void: Attacking = false
 func Skill() -> void: Using_Skill = false
 func take_damage(amount:float,ignore_block:bool = false) -> void:
 	if not summoned and health > 0: return
-	if _buff == "resistance" and _buff_left > 0: amount *= 0.90
+	# The shared Resistance Buff is already applied in ball.take_damage().
 	super.take_damage(amount,ignore_block)
 func can_receive_hit_from(incoming_hit) -> bool:
 	if summoned or not is_multiplayer_authority() or incoming_hit == null: return true
@@ -180,7 +181,9 @@ func tick_physics(state:State,delta:float) -> void:
 		_idle_left = _mc_rng.randf_range(8.0,14.0)
 		_emit_sound("idle%d" % _mc_rng.randi_range(1,2),global_position)
 	_buff_left = maxf(_buff_left-delta,0.0)
-	if _buff_left <= 0: _buff = ""
+	if _buff_left <= 0 and not _buff.is_empty():
+		EFFECTS.clear(self,_buff,self)
+		_buff = ""
 	_shot_left -= delta
 	_rose_left -= delta
 	_charge_left -= delta
@@ -191,7 +194,9 @@ func tick_physics(state:State,delta:float) -> void:
 			_fire_skull(player_control_aim_world_position(target.global_position) if has_player_control_aim() else target.global_position)
 	elif _shot_left <= 0 and target != null and not dizziness and is_damage_output_disabled() == false:
 		_windup = 0.5
-		_shot_left = skull_interval*(0.9 if _buff == "haste" else 1.0)
+		var haste_level:int = EFFECTS.level_of(self,"haste")
+		var haste_rate:float = float(EFFECTS.properties("haste",haste_level).get("attack_rate",1.0))
+		_shot_left = skull_interval / maxf(haste_rate,0.0001)
 	if _rose_left <= 0:
 		_rose_left = rose_interval
 		var own_roses:int = 0
@@ -216,7 +221,7 @@ func tick_physics(state:State,delta:float) -> void:
 					var enemy:ball = node as ball
 					if Geometry2D.get_closest_point_to_segment(enemy.global_position,old,next).distance_to(enemy.global_position) <= enemy.get_crowd_separation_radius_world()+42.0 and mc_line_clear(old,enemy.global_position):
 						_charge_hits[enemy.get_instance_id()] = true
-						impact(enemy,32.0,enemy.global_position)
+						impact(enemy,32.0,enemy.global_position,true)
 						enemy.Repel += _charge_dir*60.0
 	elif _charge_left <= 0 and target != null and global_position.distance_to(target.global_position) < 175.0 and _windup <= 0:
 		_charge_dir = (target.global_position-global_position).normalized()
@@ -237,7 +242,7 @@ func move(speed:float,delta:float) -> void:
 		return
 	# The regular ball AI/player direction, collision response, speed modifiers,
 	# knockback and crowd separation must all come from the common move path.
-	super.move(speed*(1.1 if _buff == "speed" else 1.0),delta)
+	super.move(speed,delta) # Shared Speed Buff already changes the input speed.
 
 func head_muzzle_world_position(index:int) -> Vector2:
 	if _bedrock_model == null or _bedrock_camera == null or _bedrock_viewport == null or not image is Sprite2D:
@@ -279,10 +284,18 @@ func _grow_rose() -> void:
 	rose.call("configure",self)
 	rose.add_to_group("BattleTransient")
 	_emit_sound("rose",where)
-func impact(target:ball,amount:float,point:Vector2) -> float:
+func impact(target:ball,amount:float,point:Vector2,melee:bool = false) -> float:
 	if not is_multiplayer_authority() or not mc_enemy(target) or is_damage_output_disabled(): return 0.0
 	var before:float = maxf(target.health,0.0)
-	var adjusted:float = amount*(1.1 if _buff == "strength" and _buff_left > 0 else 1.0)
+	var adjusted:float = amount
+	# Vanilla Strength/Weakness alter *melee* damage by a flat amount, not
+	# ranged skulls, beacon pulses or Wither DOT. The charge is a melee hit.
+	if melee:
+		for kind:String in ["strength","weakness"]:
+			var grade:int = EFFECTS.level_of(self,kind)
+			if grade > 0:
+				adjusted += float(EFFECTS.properties(kind,grade).melee_damage) * get_minecraft_potion_effect_ratio(EFFECTS.positive(kind))
+	adjusted = maxf(adjusted,0.0)
 	target.receive_positional_damage(adjusted,point,false,self)
 	var actual:float = maxf(before-maxf(target.health,0.0),0.0) if is_instance_valid(target) else before
 	if actual > 0:
@@ -293,14 +306,7 @@ func impact(target:ball,amount:float,point:Vector2) -> float:
 func _hit_sound(point:Vector2,actual:float) -> void:
 	AUDIO.play(self,"entity.player.attack.crit" if actual > 50.0 else "entity.player.hurt",point,HIT_GAIN.damage_gain(actual),false,true,true,true)
 func apply_wither(target:ball) -> void:
-	if not mc_enemy(target) or not target.can_receive_negative_effects(): return
-	var status:Node = target.get_node_or_null("WitherStatus")
-	if status == null:
-		status = preload("res://scripts/characters/我的世界/wither/status.gd").new()
-		status.name = "WitherStatus"
-		target.add_child(status)
-	status.call("refresh",self)
-	ACTIVE_TOOLTIP.ensure(target)
+	if mc_enemy(target): EFFECTS.apply_effect(target,"wither",1,3.0,self)
 func _blast(center:Vector2,radius:float,damage:float,direct:ball,apply_effect:bool) -> void:
 	# Only skull blasts convert nearby ordinary poppies; the awakening blast
 	# must not turn every flower into a Wither rose.
@@ -317,12 +323,11 @@ func _blast(center:Vector2,radius:float,damage:float,direct:ball,apply_effect:bo
 			if not mc_line_clear(center,target.global_position): continue
 			if impact(target,75.0 if target == direct else damage,center) > 0 and apply_effect: apply_wither(target)
 func apply_beacon_buff(kind:String) -> void:
+	if not _buff.is_empty() and _buff != kind: EFFECTS.clear(self,_buff,self)
 	_buff = kind
 	_buff_left = 6.0 if not kind.is_empty() else 0.0
-	# The Wither flies and cannot jump, just as in vanilla Minecraft; Jump Boost
-	# is still a genuine timed effect, not a made-up bonus to its charge damage.
 	if not kind.is_empty():
-		ACTIVE_TOOLTIP.ensure(self)
+		EFFECTS.apply_effect(self,kind,1,_buff_left,self)
 	else:
 		var tooltip:Node = get_node_or_null("Minecraft药水状态框")
 		if tooltip != null:
@@ -386,12 +391,11 @@ func _sync_appearance(time:float,awake:bool,dropped:bool,buff:String,buff_left:f
 	summon_time = time
 	summoned = awake
 	heart_dropped = dropped
+	if not _buff.is_empty() and _buff != buff: EFFECTS.clear(self,_buff,self)
 	_buff = buff
 	_buff_left = maxf(buff_left,0.0)
-	# The old packet carried the name but omitted the timer. Keep the on-screen
-	# replica tied to the authority's actual six-second beacon countdown.
 	if not _buff.is_empty() and _buff_left > 0.0:
-		ACTIVE_TOOLTIP.ensure(self)
+		EFFECTS.apply_effect(self,_buff,1,_buff_left,self)
 	else:
 		var tooltip:Node = get_node_or_null("Minecraft药水状态框")
 		if tooltip != null:
@@ -414,5 +418,6 @@ func Die() -> void:
 	for ref:WeakRef in _effects:
 		var effect:Node = ref.get_ref()
 		if is_instance_valid(effect): effect.queue_free()
+	if not _buff.is_empty(): EFFECTS.clear(self,_buff,self)
 	_buff = ""
 	super.Die()

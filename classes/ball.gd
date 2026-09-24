@@ -6697,8 +6697,22 @@ func is_element_immune(_element:StringName) -> bool:
 	return false
 
 
+# No preload here: ball is the base type used by the status catalog itself.
+# A live status, rather than a potion source or a fake tooltip, owns immunity.
+func has_minecraft_status(kind:String) -> bool:
+	var status:Node = get_node_or_null("MinecraftStatus_" + kind)
+	return status != null and not status.is_queued_for_deletion() and float(status.get("remaining")) > 0.0
+
+
+func _consume_minecraft_absorption(damage:float) -> float:
+	var status:Node = get_node_or_null("MinecraftStatus_absorption")
+	if status == null or status.is_queued_for_deletion() or float(status.get("remaining")) <= 0.0:
+		return damage
+	return float(status.call("consume_absorption",maxf(damage,0.0)))
+
+
 func get_fire_effect_ratio() -> float:
-	if is_element_immune(DAMAGE_ELEMENT_FIRE):
+	if is_element_immune(DAMAGE_ELEMENT_FIRE) or has_minecraft_status("fire_resistance"):
 		return 0.0
 	return maxf(fire_effect_ratio,0.0)
 
@@ -6755,6 +6769,12 @@ func receive_spatial_damage(
 ) -> bool:
 	if damage <= 0.0:
 		return false
+	# Minecraft water breathing/conduit power prevent ONLY drowning, not
+	# trident/water projectiles or arbitrary raw damage. The current arena has
+	# no oxygen meter; future drowning callers tag their spatial context.
+	if damage_space is Dictionary and str((damage_space as Dictionary).get("element","")) == "drowning":
+		if has_minecraft_status("water_breathing") or has_minecraft_status("conduit_power"):
+			return false
 	var impact_position:Vector2 = global_position
 	var source:Node = null
 	if damage_space is Vector2:
@@ -6769,7 +6789,8 @@ func receive_spatial_damage(
 		var before_health:float = float(health)
 		var before_block:float = float(block)
 		hit_white(true)
-		health -= maxi(int(round(damage)),0)
+		var raw_amount:int = maxi(int(round(damage)),0)
+		health -= maxi(int(round(_consume_minecraft_absorption(float(raw_amount)))),0)
 		var actual_health_damage:float = maxf(before_health - float(health), 0.0)
 		_emit_positional_damage_feedback(
 			damage,
@@ -6998,16 +7019,16 @@ func take_damage(damage:float,ignore_block:bool = false) -> void:
 		elif block > 0:
 			damage -= block
 			block = 0
-			health -= damage
+			health -= _consume_minecraft_absorption(damage)
 
 			if Unique_Block_Break_Audio != null:
 				play_unique_audio(Character_Audio_Slot.BlockBreak,true)
 			elif BlockBreak_Audio != "":
 				Audios.play_sfx.rpc(BlockBreak_Audio,{volume = clampf(Damage - 12,-100,0)},true)
 		else:
-			health -= damage
+			health -= _consume_minecraft_absorption(damage)
 	elif damage > 0:
-		health -= damage
+		health -= _consume_minecraft_absorption(damage)
 
 	# 只有真正被攻击消耗的护盾提供较轻反馈；不把自然衰减/技能消费当作命中。
 	_notify_damage_camera_feedback(maxf(before_block - float(block),0.0) * 0.35,true)

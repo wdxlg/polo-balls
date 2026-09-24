@@ -1,5 +1,6 @@
 extends Node
 
+const EFFECTS = preload("res://scripts/effects/我的世界/mc_status_effects.gd")
 const POTION_PARTICLE = preload("res://scripts/effects/我的世界/女巫药水粒子.gd")
 const DAMAGE_SFX = preload("res://scripts/effects/我的世界/女巫药水伤害音效.gd")
 
@@ -11,12 +12,12 @@ const IGNORE_LOCKING_META:StringName = &"ignore_combat_locking"
 var target:ball = null
 var source:Node = null
 var effect_type:String = ""
+var level:int = 1
 var remaining:float = INF
+var applications:Dictionary = {} # source ID -> independent level + remaining
 var tick_interval:float = 1.0
 var tick_left:float = 1.0
-var regen_amount:float = 7.0
-var poison_damage:float = 6.0
-var wither_damage:float = 16.0
+var absorption_remaining:float = 0.0
 var invis_alpha:float = 0.22
 var particle_color:Color = Color.WHITE
 var particle_interval:float = 0.18
@@ -33,6 +34,7 @@ var _invisibility_contact_shape:CollisionShape2D = null
 var _invisibility_contact_left:float = 0.0
 var _invisibility_lock_clear_left:float = 0.0
 var _cleaned:bool = false
+var _death_triggered:bool = false
 
 
 func setup(
@@ -40,15 +42,18 @@ func setup(
 	new_effect_type:String,
 	duration:float,
 	new_source:Node = null,
-	options:Dictionary = {}
+	options:Dictionary = {},
+	new_level:int = 1
 ) -> void:
 	target = new_target
 	effect_type = new_effect_type
+	level = maxi(new_level,1)
 	remaining = duration
 	source = new_source
-	regen_amount = maxf(float(options.get("regen_amount",regen_amount)),0.0)
-	poison_damage = maxf(float(options.get("poison_damage",poison_damage)),0.0)
-	wither_damage = maxf(float(options.get("wither_damage",wither_damage)),0.0)
+	EFFECTS.remember_source(applications,new_source,level,duration)
+	var p:Dictionary = EFFECTS.properties(effect_type,level)
+	absorption_remaining = float(p.get("absorption",0.0)) * _potion_effect_ratio(true)
+	tick_interval = float(p.get("period_ticks",20)) / 20.0
 	invis_alpha = clampf(float(options.get("invis_alpha",invis_alpha)),0.02,1.0)
 	_apply_particle_options(options)
 	tick_left = tick_interval
@@ -56,29 +61,52 @@ func setup(
 
 	if effect_type == "invisibility":
 		_apply_invisibility()
+	EFFECTS.apply_runtime_buffs(target,self,effect_type,level)
+	if effect_type in ["infested","oozing","weaving","wind_charged"] and target.health_bar != null:
+		target.health_bar.health_changed.connect(_on_health_changed)
 
 
-func refresh(duration:float,new_source:Node = null,options:Dictionary = {}) -> void:
-	if is_inf(duration):
-		remaining = INF
-	elif is_inf(remaining):
-		pass
-	else:
-		remaining = maxf(remaining,duration)
-
-	if is_instance_valid(new_source):
-		source = new_source
-	if options.has("regen_amount"):
-		regen_amount = maxf(float(options["regen_amount"]),regen_amount)
-	if options.has("poison_damage"):
-		poison_damage = maxf(float(options["poison_damage"]),poison_damage)
-	if options.has("wither_damage"):
-		wither_damage = maxf(float(options["wither_damage"]),wither_damage)
+func refresh(duration:float,new_source:Node = null,options:Dictionary = {},new_level:int = 1) -> void:
+	EFFECTS.remember_source(applications,new_source,new_level,duration)
+	_choose_application()
 	if options.has("invis_alpha"):
 		invis_alpha = minf(invis_alpha,clampf(float(options["invis_alpha"]),0.02,1.0))
 	_apply_particle_options(options)
 	if effect_type == "invisibility":
 		_apply_invisibility()
+	EFFECTS.apply_runtime_buffs(target,self,effect_type,level)
+
+
+func remove_source(caster:Node) -> void:
+	EFFECTS.forget_source(applications,caster)
+	_choose_application()
+	if remaining > 0.0: EFFECTS.apply_runtime_buffs(target,self,effect_type,level)
+
+
+func _choose_application() -> void:
+	var best:Dictionary = EFFECTS.strongest_source(applications)
+	if best.is_empty():
+		remaining = 0.0
+		queue_free()
+		return
+	var old_level:int = level
+	level = int(best.grade)
+	remaining = float(best.time)
+	var ref:WeakRef = best.source_ref as WeakRef
+	var caster:Variant = ref.get_ref() if ref != null else null
+	source = caster as Node if is_instance_valid(caster) and caster is Node else null
+	if level != old_level:
+		var old_cap:float = float(EFFECTS.properties(effect_type,old_level).get("absorption",0.0)) * _potion_effect_ratio(true)
+		var cap:float = float(EFFECTS.properties(effect_type,level).get("absorption",0.0)) * _potion_effect_ratio(true)
+		absorption_remaining = minf(cap,absorption_remaining+maxf(cap-old_cap,0.0))
+		tick_interval = float(EFFECTS.properties(effect_type,level).get("period_ticks",20))/20.0
+		tick_left = tick_interval
+
+
+func consume_absorption(amount:float) -> float:
+	var used:float = minf(maxf(amount,0.0),absorption_remaining)
+	absorption_remaining -= used
+	return maxf(amount - used,0.0)
 
 
 func _physics_process(delta:float) -> void:
@@ -86,6 +114,11 @@ func _physics_process(delta:float) -> void:
 		queue_free()
 		return
 	if target.health <= 0:
+		if effect_type in ["oozing","weaving","wind_charged"]: _on_owner_death()
+		queue_free()
+		return
+	if _potion_effect_ratio(EFFECTS.positive(effect_type)) <= 0.000001:
+		remaining = 0.0
 		queue_free()
 		return
 
@@ -96,19 +129,73 @@ func _physics_process(delta:float) -> void:
 		# V88：隐身只取消 AI 锁定。每物理帧清掉已有锁定，
 		# 但不改碰撞层/Hurtbox，也不额外制造“隐身接触伤害”。
 		_clear_existing_enemy_locks()
+	if effect_type == "slow_falling" and target.velocity.y > 40.0:
+		# 0.125 block/tick terminal velocity, converted at 16 px per block.
+		target.velocity.y = 40.0
 
-	if effect_type == "regen" or effect_type == "poison" or effect_type == "wither":
-		tick_left -= delta
-		while tick_left <= 0.0:
+	if effect_type == "regen" or effect_type == "poison":
+		tick_left -= minf(delta,remaining) if not is_inf(remaining) else delta
+		while tick_left <= 0.000001:
 			tick_left += tick_interval
 			_tick_periodic_health_effect()
 			if target == null or not is_instance_valid(target) or target.health <= 0:
 				break
 
-	if not is_inf(remaining):
-		remaining -= delta
-		if remaining <= 0.0:
-			queue_free()
+	EFFECTS.elapse_sources(applications,delta)
+	_choose_application()
+	if remaining <= 0.0: return
+	EFFECTS.apply_runtime_buffs(target,self,effect_type,level)
+
+
+func _on_health_changed(before:int,after:int,_max_health:int,_tween:bool) -> void:
+	if after >= before or not is_instance_valid(target) or not target.is_multiplayer_authority(): return
+	if effect_type == "infested" and randf() < float(EFFECTS.properties(effect_type,level).on_hurt_chance):
+		_spawn_mobs("res://scenes/characters/我的世界/蠹虫.tscn",randi_range(1,2))
+	if after <= 0 and effect_type in ["oozing","weaving","wind_charged"]: _on_owner_death()
+
+func _on_owner_death() -> void:
+	if _death_triggered or not is_instance_valid(target) or not target.is_multiplayer_authority(): return
+	_death_triggered = true
+	var world:Node = target.get_tree().current_scene if target.get_tree() != null else null
+	if world == null: return
+	match effect_type:
+		"oozing":
+			# The optional New5 slime scene belongs to another uncommitted update.
+			# Never fail a clean checkout without that independent resource.
+			var slime_path:String = "res://scenes/creatures/我的世界/史莱姆_小.tscn"
+			if ResourceLoader.exists(slime_path): _spawn_mobs(slime_path,2)
+		"weaving":
+			var web_script:GDScript = load("res://scripts/effects/我的世界/mc_weaving_web.gd") as GDScript
+			for i:int in range(3):
+				var web:Area2D = web_script.new() as Area2D
+				world.add_child(web,true)
+				web.global_position = target.global_position + Vector2.from_angle(float(i)*TAU/3.0)*12.0
+		"wind_charged":
+			for node:Node in target.get_tree().get_nodes_in_group("Ball"):
+				if not node is ball or node == target: continue
+				var other:ball = node as ball
+				if other.health <= 0 or other.global_position.distance_to(target.global_position) > 80.0: continue
+				var heading:Vector2 = target.global_position.direction_to(other.global_position)
+				if heading == Vector2.ZERO: heading = Vector2.UP
+				other.apply_knockback(heading,72.0,450.0,0.0,0.0,{"source":source})
+
+func _spawn_mobs(scene_path:String,count:int) -> void:
+	if not is_instance_valid(target) or target.get_tree() == null: return
+	var world:Node = target.get_tree().current_scene
+	if world == null: return
+	var scene:PackedScene = load(scene_path) as PackedScene
+	if scene == null: return
+	for i:int in range(count):
+		var mob:ball = scene.instantiate() as ball
+		if mob == null: continue
+		mob.name = "MC状态召唤_%d_%d" % [target.get_instance_id(),i]
+		var caster:ball = source as ball if is_instance_valid(source) and source is ball else null
+		mob.Team = caster.Team if caster != null else target.Team
+		mob.Master = caster
+		world.add_child(mob,true)
+		mob.global_position = target.global_position + Vector2(randf_range(-12.0,12.0),randf_range(-12.0,12.0))
+		mob.add_to_group("BattleTransient")
+		mob.add_to_group("MCStatusSpawn")
 
 
 func _apply_particle_options(options:Dictionary) -> void:
@@ -151,7 +238,7 @@ func _spawn_status_particle() -> void:
 
 
 func _tick_periodic_health_effect() -> void:
-	if target == null or not is_instance_valid(target) or target.health <= 0:
+	if target == null or not is_instance_valid(target) or target.health <= 0 or not target.is_multiplayer_authority():
 		return
 
 	var positive:bool = effect_type == "regen"
@@ -163,7 +250,7 @@ func _tick_periodic_health_effect() -> void:
 
 	var inverted:bool = _healing_damage_inverted()
 	if effect_type == "regen":
-		var amount:float = regen_amount * effect_ratio
+		var amount:float = float(EFFECTS.properties(effect_type,level).health_per_tick) * effect_ratio
 		if inverted:
 			_apply_periodic_raw_damage(amount,false)
 		else:
@@ -171,17 +258,13 @@ func _tick_periodic_health_effect() -> void:
 		return
 
 	if effect_type == "poison":
-		var amount:float = poison_damage * effect_ratio
+		var amount:float = -float(EFFECTS.properties(effect_type,level).health_per_tick) * effect_ratio
 		if inverted:
 			target.heal(amount)
 		else:
 			# 非反转中毒仍保留原规则：最多压到 1 HP，不成为最终击杀来源。
 			_apply_periodic_raw_damage(amount,true)
 		return
-
-	if effect_type == "wither":
-		_apply_periodic_raw_damage(wither_damage * effect_ratio,false)
-
 
 func _apply_periodic_raw_damage(amount:float,leave_one_hp:bool) -> void:
 	if target == null or not is_instance_valid(target) or target.health <= 0:
@@ -405,6 +488,9 @@ func _cleanup() -> void:
 	_invisibility_contact_shape = null
 	if target == null or not is_instance_valid(target):
 		return
+	# Buffs are indexed by THIS single status, not by the Witch, beacon or
+	# target. Cancel/expiry removes exactly its own strength/speed/etc.
+	target.Buff_Dic.erase(get_instance_id())
 	if effect_type == "invisibility" and _invisibility_applied:
 		# V88：碰撞层从未被隐身改写，因此这里也不需要恢复碰撞。
 		if _saved_ignore_locking_had_meta:

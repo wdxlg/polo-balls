@@ -77,7 +77,7 @@ func capture_mode(sim:bool) -> void:
 	check((ench_zh._panel.get_child(2) as Label).text == "附魔书" and (ench_en._panel.get_child(2) as Label).text == "Enchanted Book",mode_name+": enchantment names in both languages")
 	check(real_zh._potion_names[0].text == "迅捷" and real_en._potion_names[0].text == "Speed" and real_zh._potion_names[1].text == "中毒" and real_en._potion_names[1].text == "Poison",mode_name+": real effects are each recorded in their own language")
 	check(real_zh._time_labels[1].text == "∞" and real_en._time_labels[1].text == "∞",mode_name+": Witch's infinite poison displays in both videos")
-	var speed_status:Node = actors[0].get_node("WitchPotionStatus_speed")
+	var speed_status:Node = actors[0].get_node("MinecraftStatus_speed")
 	speed_status.remaining = 2.4
 	active_source.call("refresh_display")
 	copyset.sync()

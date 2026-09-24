@@ -147,7 +147,7 @@ func run() -> void:
 	victim.Team="Team1"
 	var status:Node=load(WITHER_STATUS).new()
 	victim.add_child(status)
-	status.refresh(owner)
+	status.setup(victim,"wither",3.0,owner)
 	status.set_process(false)
 	status.set_physics_process(false)
 	var witch:Node=load(WITCH_STATUS).new()
@@ -171,7 +171,7 @@ func run() -> void:
 		scale_ok=scale_ok and w.global_scale.x>=.020 and w.global_scale.x<=.030
 	check(scale_ok,"64 Wither and 64 Witch status particles use identical 0.020-0.030 world-scale bounds")
 	check(absf(wither_mean/64-witch_mean/64)<.003,"sampled Wither and Witch particle means agree without a hidden parent scale")
-	check(behavior_ok and status.PARTICLE_INTERVAL==.14 and status.TICK_DAMAGE_RATIO==.02,"Wither black tint, motion, timing, particle rate and status damage remain unchanged")
+	check(behavior_ok and status.PARTICLE_INTERVAL==.14 and status.tick_left==2.0,"Wither black tint, motion and particle rate remain unchanged; level I ticks every two seconds")
 	print("PARTICLE_MEANS wither=",wither_mean/64," witch=",witch_mean/64)
 	print("HORIZONTAL_CONTACT checks=",checks," failures=",failures)
 	finish(0 if failures==0 else 1)

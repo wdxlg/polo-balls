@@ -118,7 +118,7 @@ func run() -> void:
 	status.tick_left = 1.0
 	before = enemy.health
 	status._physics_process(1.1)
-	check(is_equal_approx(before-enemy.health,enemy.Max_health*0.02),"each Wither tick deals 2% of maximum health, not a fixed 4 points")
+	check(is_equal_approx(before-enemy.health,1.0),"same-grade Wither deals the vanilla flat 1 HP every 40 ticks, regardless of target max HP")
 	var rose:Node2D = load("res://scripts/characters/我的世界/wither/rose.gd").new()
 	world.add_child(rose,true)
 	rose.global_position = enemy.global_position
@@ -155,7 +155,7 @@ func run() -> void:
 	status.tick_left = 1.0
 	before = enemy.health
 	status._physics_process(3.4)
-	check(is_equal_approx(before-enemy.health,enemy.Max_health*0.06),"three-second Wither performs exactly three 2%-max-health ticks even with a long physics frame")
+	check(is_equal_approx(before-enemy.health,2.0),"three-second Wither ticks at t=1 and t=3, never after expiry in a long frame")
 	wither.health = 250
 	wither.on_actual_health_damage_received(1.0,251.0)
 	check(wither.heart_dropped and is_instance_valid(wither.beacon),"first half-health crossing summons one attackable beacon")
