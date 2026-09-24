@@ -69,6 +69,7 @@ func run() -> void:
 	beacon.beam_timer = 0
 	beacon.step_mob(0.016)
 	check(beacon.warning_left>0 and beacon.beam_direction==Vector2.UP,"beam begins warning vertically, not toward a target vector")
+	check(wither._buff.is_empty() and beacon.last_buff.is_empty(),"preparation does not grant its upcoming effect")
 	var threat:Dictionary = beacon.get_ai_hazard_info(enemy)
 	check(threat.start==beacon.beam_origin() and threat.end==beacon.beam_end and is_equal_approx(threat.radius,beacon.beam_width()*0.5),"declared threat uses the exact beam origin, clipped endpoint and animated width")
 	check(threat.end.x==threat.start.x and threat.end.y<threat.start.y,"warning segment points straight up")
@@ -85,6 +86,10 @@ func run() -> void:
 	var before:float = enemy.health
 	beacon.step_mob(0.61)
 	check(enemy.health==before and beacon.firing_left>0,"warning itself deals no damage")
+	var launch_buff:String = beacon.last_buff
+	check(beacon.BUFFS.has(launch_buff) and wither._buff==launch_buff and is_equal_approx(wither._buff_left,6.0),"the real emission immediately gives the Wither one primary effect")
+	var live:MCPreviewTooltip = wither.get_node_or_null("Minecraft药水状态框") as MCPreviewTooltip
+	check(live!=null and not live._potions.is_empty() and live._potions[0].icon.resource_path.ends_with("/"+launch_buff+".png"),"the effect icon appears when the beam begins, not when it ends")
 	beacon.step_mob(0.5)
 	analyzer._physics_process(0.1)
 	var attack_drawn:bool = false
@@ -98,10 +103,10 @@ func run() -> void:
 	beacon.step_mob(0.5)
 	check(enemy.health==before and beacon.beam_end.x==beacon.beam_origin().x,"side enemy cannot bend the beam or take its damage")
 	beacon.step_mob(0.5)
+	var buff_left_before_finish:float=wither._buff_left
 	beacon.step_mob(beacon.firing_left)
-	check(beacon.beams_fired==1 and not wither._buff.is_empty(),"beam keeps the original one-buff-per-cycle behavior")
-	var live:MCPreviewTooltip = wither.get_node_or_null("Minecraft药水状态框") as MCPreviewTooltip
-	check(beacon.BUFFS.has(wither._buff) and live != null and live._potions[0].icon.resource_path.ends_with("/" + wither._buff + ".png"),"each finished emission gives the Wither one displayed primary beacon effect")
+	check(beacon.beams_fired==1 and beacon.last_buff==launch_buff and wither._buff==launch_buff and is_equal_approx(wither._buff_left,buff_left_before_finish),"finished emission does not give or refresh the effect again")
+	check(beacon.BUFFS.has(wither._buff) and live != null and live._potions[0].icon.resource_path.ends_with("/" + wither._buff + ".png"),"the effect granted at launch remains displayed through beam completion")
 	analyzer._physics_process(0.1)
 	var lingering:bool = false
 	for region:Dictionary in analyzer.get_world_threats():

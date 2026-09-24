@@ -181,10 +181,11 @@ func run() -> void:
 	beacon.warning_left = 0.6
 	beacon.step_mob(0.61)
 	check(beacon.firing_left > 0 and beacon.get_ai_hazard_info().get("shape","") == "rect","beam warning becomes an actual animated rectangular threat")
+	check(not wither._buff.is_empty() and wither._buff==beacon.last_buff,"live beacon grants the effect as soon as it starts firing")
 	before = enemy.health
 	for i:int in range(10): beacon.step_mob(0.5)
 	check(enemy.health < before,"ground beacon beam damages enemy through periodic ticks")
-	check(beacon.beams_fired == 1 and not wither._buff.is_empty(),"completed beam grants exactly one random Wither effect")
+	check(beacon.beams_fired == 1 and wither._buff==beacon.last_buff,"completed beam retains the effect granted at launch")
 	floor_body.queue_free()
 	# Let the real character state machine tick, rather than calling its skill helpers.
 	wither._rose_left = 0.05

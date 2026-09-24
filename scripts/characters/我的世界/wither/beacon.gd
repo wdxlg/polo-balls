@@ -125,6 +125,10 @@ func step_mob(delta:float) -> void:
 					# Midpoint samples: 0.05, 0.15 ... 4.95 = 50 pulses/300 base damage.
 					tick_left=PROFILE.INTERVAL*0.5
 					_pulse_index=0
+					# Grant the one effect when the beam actually fires, not five seconds
+					# later when it fades. The warning itself grants nothing.
+					last_buff=BUFFS[rng.randi_range(0,BUFFS.size()-1)]
+					master.call("apply_beacon_buff",last_buff)
 					_emit_sound("beacon_power")
 			2:
 				firing_left=maxf(firing_left-dt,0.0)
@@ -138,8 +142,6 @@ func step_mob(delta:float) -> void:
 					firing_left=0.0
 					_emit_sound("beacon_deactivate")
 					beams_fired+=1
-					last_buff=BUFFS[rng.randi_range(0,BUFFS.size()-1)]
-					master.call("apply_beacon_buff",last_buff)
 					beam_timer=10.0
 			_:
 				beam_timer=maxf(beam_timer-dt,0.0)

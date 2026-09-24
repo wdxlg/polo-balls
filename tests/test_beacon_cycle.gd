@@ -18,6 +18,7 @@ func reset_cycle() -> void:
 	beacon.warning_left=0
 	beacon.firing_left=0
 	beacon.beams_fired=0
+	beacon.last_buff=""
 	beacon.damage_ticks=0
 	beacon.Repel=Vector2.ZERO
 	wither.apply_beacon_buff("")
@@ -72,6 +73,17 @@ func run() -> void:
 	check(PROFILE.width(width,0,PROFILE.FIRING-.2)<width and absf(PROFILE.width(width,0,PROFILE.FIRING-.6)-width)<width*.01,"burst recoils and elastically settles")
 	check(PROFILE.width(width,0,.175)<PROFILE.width(width,0,.35) and PROFILE.opacity(0,.175)<PROFILE.opacity(0,.35),"shutdown narrows and fades simultaneously")
 	check(PROFILE.width(width,0,0)==0 and PROFILE.opacity(0,0)==0,"shutdown ends at zero width and opacity")
+	reset_cycle()
+	advance(PROFILE.WARNING-.01)
+	check(beacon.warning_left>0 and beacon.firing_left==0 and beacon.last_buff.is_empty() and wither._buff.is_empty(),"warning does not grant a beacon effect")
+	var hp_before_launch:float=enemy.health
+	advance(.01)
+	var launch_buff:String=beacon.last_buff
+	check(beacon.warning_left==0 and absf(beacon.firing_left-PROFILE.FIRING)<.0001 and beacon.damage_ticks==0 and enemy.health==hp_before_launch and beacon.BUFFS.has(launch_buff) and wither._buff==launch_buff and is_equal_approx(wither._buff_left,6.0),"firing grants exactly one primary effect before the first damage pulse")
+	# A non-default sentinel detects any accidental second application at finish.
+	wither._buff_left=2.0
+	advance(PROFILE.FIRING+.01)
+	check(beacon.beams_fired==1 and beacon.firing_left==0 and beacon.last_buff==launch_buff and wither._buff==launch_buff and is_equal_approx(wither._buff_left,2.0),"ending the beam neither rerolls nor refreshes the launch effect")
 	for dt:float in [1.0/60.0,1.0/30.0,PROFILE.WARNING+PROFILE.FIRING]:
 		reset_cycle()
 		var remaining:float=PROFILE.WARNING+PROFILE.FIRING+.00001
@@ -197,6 +209,7 @@ func run() -> void:
 	await create_timer(.72).timeout
 	var live_x:float=beacon.global_position.x
 	check(beacon.firing_left>0 and beacon.movement_multiplier()==.5,"real state-machine enters emission at half speed")
+	check(beacon.BUFFS.has(beacon.last_buff) and wither._buff==beacon.last_buff,"real state-machine grants the effect at the emission transition")
 	await create_timer(.2).timeout
 	check(beacon.global_position.x>live_x+3 and beacon.beam_end.x==beacon.beam_origin().x,"real physics keeps moving the firing beacon and attached ray")
 	beacon.state_machine.set_physics_process(false)
