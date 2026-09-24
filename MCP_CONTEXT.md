@@ -50,3 +50,4 @@
 - MCP 自动附带说明的安装、备份和验证方式：`tools/mcp_context/README.md`。
 - 兔子幼兔出生须在父类生命初始化前设置幼兔上限，不能先生成成年生命再扣到幼兔生命，以免繁殖误触发推镜、暴击粒子和受击抖动；真正伤害反馈、繁殖爱心/音效及成长保留。复现、GPU 镜头稳定性与回退范围见 `tests/RABBIT_BIRTH_FEEDBACK.md`。
 - 实际入口通常包括 `scripts/world.gd`、`global/game.gd`、`ui/control.gd`、`classes/ball.gd` 与 `scripts/training/combat_threat_analyzer.gd`；按任务定位，不随意扩大修改范围。
+- VS 顶部标题及 Boss 车轮战名单跟随所选地图尺寸缩放；保留 `Map10x10` 的视觉基准、长名字宽度适配及中英录制排版，不改变轮换训练的头像框 HUD。规则、GPU 截图与回归见 `tests/VS_MAP_SCALING.md`、`tests/test_vs_map_scaling.gd`。

@@ -560,6 +560,12 @@ func _process_portal_transits(delta:float,ball_group:Array) -> void:
 @export var versus_effect_margin:float = 2.0
 @export var interaction_effect_margin:float = 4.0
 
+# The exported sizes are the Map10x10 editor defaults. Keep their original values
+# so switching between maps does not compound the scale on every layout pass.
+var _versus_base_max_size:int = -1
+var _versus_base_min_size:int = -1
+var _versus_base_effect_margin:float = -1.0
+
 @export var versus_interaction_gap:float = 1.0
 @export var interaction_map_gap:float = 4.0
 @export var interaction_enabled:bool = false
@@ -4100,6 +4106,38 @@ func fit_rich_text_label(
 	)
 
 
+# Match the reference map's apparent title size at the map-fit camera zoom.
+# Comparing the two fits in the same viewport also works after window resizing
+# and for portal maps; manual/animated camera zoom does not change UI layout.
+func get_map_versus_scale(map_node:Node) -> float:
+	if map_node == null or not map_group.has(map_reference_name):
+		return 1.0
+	var reference_map:Node = map_group[map_reference_name]
+	if map_node == reference_map:
+		return 1.0
+	var reference_fit:float = _fit_zoom_for_map(reference_map)
+	var current_fit:float = _fit_zoom_for_map(map_node)
+	if reference_fit <= 0.0 or current_fit <= 0.0:
+		return 1.0
+	return clampf(reference_fit / current_fit,0.5,8.0)
+
+
+func _update_map_versus_font(map_node:Node) -> void:
+	if _versus_base_max_size < 0:
+		_versus_base_max_size = versus_font_max_size
+		_versus_base_min_size = versus_font_min_size
+		_versus_base_effect_margin = versus_effect_margin
+	var map_scale:float = get_map_versus_scale(map_node)
+	# Publish the effective bounds through the existing properties: the bilingual
+	# recording mirror uses them to independently fit longer translated names.
+	versus_font_max_size = maxi(4,roundi(float(_versus_base_max_size) * map_scale))
+	versus_font_min_size = mini(versus_font_max_size,maxi(4,roundi(float(_versus_base_min_size) * map_scale)))
+	versus_effect_margin = _versus_base_effect_margin * maxf(map_scale,1.0)
+	var outline:int = maxi(1,roundi(map_scale))
+	if versus_label.get_theme_constant("outline_size") != outline:
+		versus_label.add_theme_constant_override("outline_size",outline)
+
+
 #========================================================
 # 重新排版顶部两行文字。
 #
@@ -4115,7 +4153,9 @@ func refresh_top_text_layout() -> void:
 	if not map_group.has(now_choose_map):
 		return
 
-	var map_rect:Rect2 = return_map_visual_rect(map_group[now_choose_map])
+	var map_node:Node = map_group[now_choose_map]
+	_update_map_versus_font(map_node)
+	var map_rect:Rect2 = return_map_visual_rect(map_node)
 	var available_width:float = map_rect.size.x
 
 	var interaction_real_height:float = 0.0
@@ -6354,16 +6394,24 @@ func _clear_rotation_hud_labels() -> void:
 func _layout_rotation_versus_hud() -> void:
 	if not is_instance_valid(rotation_versus_root) or not map_group.has(now_choose_map):
 		return
+	# The map-cell frame HUD must never inherit a scaled Boss roster transform.
+	rotation_versus_root.scale = Vector2.ONE
 	rotation_versus_root.visible = _queue_battle_mode_active() and not _armor_stand_test_hud_active
 	if not rotation_versus_root.visible:
 		return
 	var map_rect:Rect2 = return_map_visual_rect(map_group[now_choose_map])
+	# Scale the complete legacy roster, not just the two letters: name columns,
+	# scroll/selection hit areas and VS keep their original relative proportions.
+	var hud_scale:float = minf(get_map_versus_scale(map_group[now_choose_map]),map_rect.size.x / 68.0)
+	hud_scale = maxf(hud_scale,0.05)
+	rotation_versus_root.scale = Vector2.ONE * hud_scale
 	var hud_h:float = 58.0
 	var base_y:float = interaction_label.position.y if interaction_label != null and interaction_label.visible else map_rect.position.y
-	rotation_versus_root.position = Vector2(map_rect.position.x,base_y - versus_interaction_gap - hud_h)
-	rotation_versus_root.size = Vector2(map_rect.size.x,hud_h)
+	rotation_versus_root.position = Vector2(map_rect.position.x,base_y - (versus_interaction_gap + hud_h) * hud_scale)
+	var hud_width:float = map_rect.size.x / hud_scale
+	rotation_versus_root.size = Vector2(hud_width,hud_h)
 	var center_w:float = 28.0
-	var side_w:float = maxf((map_rect.size.x - center_w) * 0.5,20.0)
+	var side_w:float = maxf((hud_width - center_w) * 0.5,20.0)
 	rotation_left_root.position = Vector2.ZERO
 	rotation_left_root.size = Vector2(side_w,hud_h)
 	rotation_vs_label.position = Vector2(side_w,20.0)
@@ -6379,7 +6427,25 @@ func _layout_rotation_label_widths() -> void:
 		if root == null or not is_instance_valid(root): continue
 		for child:Node in root.get_children():
 			if child is Label:
-				(child as Label).size = Vector2(root.size.x,12.0)
+				var name_label:Label = child as Label
+				name_label.size = Vector2(root.size.x,12.0)
+				# Long Chinese/English names must fit the scaled columns, including
+				# when returning to a smaller map after a larger one.
+				var font:Font = name_label.get_theme_font("font")
+				var font_size:int = 10
+				var text_width:float = 0.0
+				var safe_width:float = maxf(root.size.x - 2.0,1.0)
+				if font != null:
+					text_width = font.get_string_size(name_label.text,HORIZONTAL_ALIGNMENT_LEFT,-1,font_size).x
+					while font_size > 4 and text_width > safe_width:
+						font_size -= 1
+						text_width = font.get_string_size(name_label.text,HORIZONTAL_ALIGNMENT_LEFT,-1,font_size).x
+				name_label.add_theme_font_size_override("font_size",font_size)
+				# On 2x2 even the smallest readable font can exceed one column.
+				# Compress only its horizontal axis, retaining vertical readability.
+				var width_factor:float = minf(1.0,safe_width / maxf(text_width,1.0))
+				name_label.scale = Vector2(width_factor,1.0)
+				name_label.size.x = root.size.x / width_factor
 				if child.has_node("WastedOverlay"):
 					_rotation_fit_wasted_overlay(child as Label,child.get_node("WastedOverlay") as Control)
 
