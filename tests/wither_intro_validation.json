@@ -1,0 +1,65 @@
+{
+  "before": "1330d032692743446036db94d6e81a1d73db26e6",
+  "checks": {
+    "wither_intro": 27,
+    "beacon_cycle": 62,
+    "wither_beacon_revision": 42,
+    "wither_live": 55,
+    "horizontal_contact": 61
+  },
+  "total_checks": 247,
+  "failures": 0,
+  "headless_smoke_exit": 0,
+  "intro": {
+    "seconds": 3,
+    "turns": 2,
+    "starts_immediately": true,
+    "block_building_removed": true,
+    "tested_times": [
+      0,
+      0.15,
+      1.5,
+      2.99,
+      3.0
+    ],
+    "coarse_step_seconds": 3,
+    "awakening_radius": 110,
+    "awakening_damage": 45,
+    "explosion_count": 1,
+    "pause_checked": true
+  },
+  "preview": {
+    "factory_paths_checked": [
+      "World.create_character_preview",
+      "World.create_ghost_ball"
+    ],
+    "size": [
+      384,
+      384
+    ],
+    "rgba_different_pixels_from_live_reference": 0,
+    "png_sha256": "655a8c4814a945853c045f5d1db9578ceefdc57c03cd38c3ee9ff18feeef6449",
+    "battle_still_live_3d": true
+  },
+  "video": {
+    "frames": 150,
+    "fps": 30,
+    "seconds": 5,
+    "size": [
+      384,
+      512
+    ],
+    "selection_seconds": 1,
+    "spin_seconds": 3,
+    "awake_seconds": 1,
+    "sha256": "8732100e6c3bb03cca9511ec2ef2548ffaceccbb126fe33830fe6d43b913ce93"
+  },
+  "warnings": [
+    "Existing shader path UID/case warning",
+    "Existing World fixture ObjectDB exit leak warning"
+  ],
+  "not_tested": [
+    "Two-client multiplayer",
+    "Mass-Wither performance"
+  ]
+}

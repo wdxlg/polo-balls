@@ -1,19 +1,17 @@
 extends "res://scripts/characters/我的世界/mc_mob_base.gd"
-## 召唤 -> 骷髅/玫瑰/冲撞 -> 半血下界之心。所有伤害由权威端结算。
+## 直接旋转3秒 -> 骷髅/玫瑰/冲撞 -> 半血信标。所有伤害由权威端结算。
+const PREVIEW = preload("res://Images/characters/我的世界/wither/bedrock/wither_preview.png")
 const BODY = preload("res://Images/characters/我的世界/wither/wither_front.png")
 const LIVE_RIG = preload("res://scripts/characters/我的世界/wither/bedrock_rig.gd")
-const SOUL_SAND = preload("res://Images/characters/我的世界/wither/soul_sand.png")
-const HEAD = preload("res://Images/characters/我的世界/wither/wither_skull.png")
 const MC_EXPLOSION_SCENE:PackedScene = preload("res://scenes/effects/我的世界/MC爆炸.tscn")
 const MC_EXPLOSION = preload("res://scripts/effects/我的世界/mc_explosion.gd")
-const SUMMON_BLOCK_SIZE:float = 30.0
-const SUMMON_HEAD_SIZE:float = 26.0
 const VANILLA_SOUND = preload("res://scripts/characters/我的世界/wither/audio.gd")
 const SKULL = preload("res://scripts/characters/我的世界/wither/skull.gd")
 const ROSE = preload("res://scripts/characters/我的世界/wither/rose.gd")
 const BEACON = preload("res://scenes/creatures/我的世界/凋零信标.tscn")
 const AUDIO = preload("res://scripts/characters/我的世界/new5/audio.gd")
 const HIT_GAIN = preload("res://scripts/effects/我的世界/hit_audio_gain.gd")
+# Entire intro is now the spin; no hidden block-construction portion.
 @export var summon_duration:float = 3.0
 @export var skull_interval:float = 5.0
 @export var rose_interval:float = 10.0
@@ -55,7 +53,8 @@ func _ready() -> void:
 	super._ready()
 	_create_live_model()
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	if image is Sprite2D: (image as Sprite2D).visible = false
+	_bedrock_model.call("animate",0.0,Vector2.ZERO,false,0.0,false,[],0.0)
+	_summon_visual()
 	queue_redraw()
 
 func _create_live_model() -> void:
@@ -83,7 +82,8 @@ func _create_live_model() -> void:
 	sprite.scale = Vector2.ONE*(0.425*5.2/4.3) # Preserve world texels per model unit despite extra camera margins.
 func get_preview_texture() -> Texture2D:
 	if _bedrock_viewport != null: return _bedrock_viewport.get_texture()
-	return BODY
+	# Selection/placement instances never enter the tree: no viewport exists.
+	return PREVIEW
 func _get_hit_effect_visual_texture() -> Texture2D:
 	# CPU-only shadow sampling cannot read a live GPU ViewportTexture in headless
 	# mode. Keep the original-source 2D silhouette solely for this sampler.
@@ -113,7 +113,7 @@ func can_receive_hit_from(incoming_hit) -> bool:
 				shot.set_meta(&"wither_reflected",true)
 				call_deferred("_reflect_shot",shot)
 			return false
-	return false # 构筑期近战/其他投射物仍不能造成伤害。
+	return false # 旋转唤醒期间近战/其他投射物仍不能造成伤害。
 func should_destroy_projectile_on_rejected_hit(incoming_hit:hitbox) -> bool:
 	if not summoned and incoming_hit != null and incoming_hit.get_parent() is ball:
 		var shot:ball = incoming_hit.get_parent()
@@ -165,7 +165,8 @@ func tick_physics(state:State,delta:float) -> void:
 		summon_time = minf(summon_time+delta,summon_duration)
 		_summon_visual()
 		queue_redraw()
-		if summon_time >= summon_duration:
+		if summon_time+0.0000001 >= summon_duration:
+			summon_time = summon_duration
 			summoned = true
 			if image is Sprite2D:
 				(image as Sprite2D).visible = true
@@ -336,25 +337,9 @@ func _show_explosion(point:Vector2,visual_radius:float) -> void:
 	effect.global_position = point
 func _sync_skull_explosion(point:Vector2) -> void:
 	if multiplayer.has_multiplayer_peer(): _sync_event.rpc("skull_blast",point)
-func summon_sand_rect(index:int) -> Rect2:
-	# Four identical square soul-sand blocks in the original T layout.
-	var cells:Array[Vector2i] = [Vector2i(0,1),Vector2i(0,0),Vector2i(-1,0),Vector2i(1,0)]
-	var column:Vector2i = cells[index]
-	return Rect2(Vector2(float(column.x)*SUMMON_BLOCK_SIZE-SUMMON_BLOCK_SIZE*0.5,float(column.y)*SUMMON_BLOCK_SIZE-SUMMON_BLOCK_SIZE*0.5),Vector2.ONE*SUMMON_BLOCK_SIZE)
-func summon_head_rect(index:int) -> Rect2:
-	return Rect2(float(index-1)*SUMMON_BLOCK_SIZE-SUMMON_HEAD_SIZE*0.5,-SUMMON_BLOCK_SIZE-SUMMON_HEAD_SIZE*0.5, SUMMON_HEAD_SIZE,SUMMON_HEAD_SIZE)
 func _emit_sound(event:String,point:Vector2) -> void:
 	VANILLA_SOUND.play(self,event,point)
 	if multiplayer.has_multiplayer_peer(): _sync_event.rpc(event,point)
-func _draw() -> void:
-	if summoned or summon_time <= 0 or health <= 0: return
-	var t:float = summon_time/maxf(summon_duration,0.01)
-	draw_texture_rect(SOUL_SAND,summon_sand_rect(0),false)
-	if t > 0.20: draw_texture_rect(SOUL_SAND,summon_sand_rect(1),false)
-	if t > 0.35: draw_texture_rect(SOUL_SAND,summon_sand_rect(2),false)
-	if t > 0.48: draw_texture_rect(SOUL_SAND,summon_sand_rect(3),false)
-	for i:int in range(3):
-		if t > 0.53+float(i)*0.10: draw_texture_rect(HEAD,summon_head_rect(i),false)
 func _visual_body_heading() -> Vector2:
 	# Lean only while actually moving; target position / mouse aim must not
 	# turn or tip the torso. Charges use their real collision-solved velocity.
@@ -383,8 +368,8 @@ func _process(delta:float) -> void:
 	queue_redraw()
 func _summon_visual() -> void:
 	if not image is Sprite2D: return
-	var t:float = summon_time/maxf(summon_duration,0.01)
-	(image as Sprite2D).visible = t >= 0.8
+	# Show the current live model immediately, including time zero / paused setup.
+	(image as Sprite2D).visible = health>0
 func get_ai_attack_threats(_receiver:ball) -> Array:
 	if health <= 0: return []
 	if not summoned and summon_time > summon_duration-0.4:

@@ -39,20 +39,14 @@ func _run_behaviors() -> void:
     assert(wither._bedrock_viewport != null and wither.image.texture == wither._bedrock_viewport.get_texture(), "body must be a live 3D ViewportTexture, not a baked sprite")
     assert(wither._bedrock_model.bones.size() == 6, "real Mojang model has six independently movable bones")
     wither.take_damage(70.0)
-    assert(wither.health == 500, "assembly must be immune to direct damage")
+    assert(wither.health == 500, "spin intro must be immune to direct damage")
     wither.summon_time = 2.8
     assert(wither.get_ai_attack_threats(null).size() == 1, "summon explosion must declare its real radius")
-    # Each soul-sand block is one equally sized square in a contiguous T.
-    var bottom:Rect2 = wither.summon_sand_rect(0)
-    var upper:Rect2 = wither.summon_sand_rect(1)
-    var left:Rect2 = wither.summon_sand_rect(2)
-    var right:Rect2 = wither.summon_sand_rect(3)
-    for block:Rect2 in [bottom,upper,left,right]:
-        assert(block.size == Vector2(30,30),"soul-sand blocks must use identical square tiles")
-    assert(bottom.position.y == upper.end.y and left.end.x == upper.position.x and right.position.x == upper.end.x,"T-shaped construction blocks must touch without stretching")
-    for i:int in range(3):
-        var head:Rect2 = wither.summon_head_rect(i)
-        assert(head.size == Vector2(26,26) and is_equal_approx(head.get_center().x,float(i-1)*30.0),"three skull blocks align with the same-size T-grid")
+    assert(is_equal_approx(wither.summon_duration,3.0) and wither.image.visible,"full 3-second spin is visible immediately")
+    assert(not wither.has_method("summon_sand_rect") and not wither.has_method("summon_head_rect"),"block construction has been removed")
+    wither._bedrock_model.animate(0.0,Vector2.ZERO,false,0.25,false,[],0.0)
+    assert(absf(wither._bedrock_model.rotation.y-PI)<0.001,"spin starts at zero rather than waiting until 80 percent")
+    assert(wither.PREVIEW.resource_path.ends_with("bedrock/wither_preview.png"),"preview uses current model bake, not legacy front sprite")
     var skull:Node2D = load("res://scripts/characters/我的世界/wither/skull.gd").new()
     skull.configure(wither,Vector2.RIGHT)
     assert(skull.SKULL_DIAMETER == 10.0 and skull.get_ai_hazard_info()["radius"] == 5.0,"small skull sprite and threat agree")

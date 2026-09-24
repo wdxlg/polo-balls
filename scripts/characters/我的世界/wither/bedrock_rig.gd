@@ -139,7 +139,7 @@ func _cube_mesh(cube:Dictionary,pivot:Vector3,atlas:Vector2,inflate:float) -> Ar
 func recoil_head(index:int) -> void:
 	if index >= 0 and index < 3: _head_recoil[index] = 1.0
 
-func animate(original_life_time:float,heading:Vector2,awake:bool,assembly_progress:float,shielded:bool,head_directions:Array = [],frame_delta:float = 1.0) -> void:
+func animate(original_life_time:float,heading:Vector2,awake:bool,intro_progress:float,shielded:bool,head_directions:Array = [],frame_delta:float = 1.0) -> void:
 	if bones.is_empty(): return
 	# The Bedrock client entity provides these continuous torso/neck curves.
 	var base_rotation:float = cos(original_life_time*2.0)
@@ -182,12 +182,13 @@ func animate(original_life_time:float,heading:Vector2,awake:bool,assembly_progre
 	var scroll:float = fposmod(original_life_time*0.2,1.0)
 	armor_blue_material.uv1_offset = Vector3(scroll,scroll,0.0)
 	armor_white_material.uv1_offset = Vector3(fposmod(cos(deg_to_rad(original_life_time*22.92))*3.0,1.0),scroll,0.0)
-	# Preserve the original summoning spin, but never yaw the awakened body.
-	rotation = Vector3(_body_pitch,0.0,_body_roll) if awake else Vector3(0.0,TAU*2.0*clampf((assembly_progress-0.8)/0.2,0.0,1.0),0.0)
+	# Two full turns over the entire intro. No 80% construction delay.
+	rotation = Vector3(_body_pitch,0.0,_body_roll) if awake else Vector3(0.0,TAU*2.0*clampf(intro_progress,0.0,1.0),0.0)
 	position.y = sin(original_life_time*3.7)*0.02 if awake else 0.0
 	# Official client entity pre_animation: swell_adjustment = swell^4,
 	# wobble = 1 + sin(swell * 5730 degrees) * swell * 0.01.
-	var swell:float = 0.0 if awake else clampf(1.0-assembly_progress,0.0,1.0)
+	# Start at the former spin phase's scale, not the removed assembly swell.
+	var swell:float = 0.0 if awake else 0.2*clampf(1.0-intro_progress,0.0,1.0)
 	var wobble:float = 1.0+sin(deg_to_rad(swell*5730.0))*swell*0.01
 	var adjustment:float = pow(swell,4.0)
 	var scale_xz:float = (1.0+adjustment*0.4)*wobble*2.0

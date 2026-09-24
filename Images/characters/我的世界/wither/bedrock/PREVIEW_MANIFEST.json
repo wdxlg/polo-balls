@@ -1,0 +1,53 @@
+{
+  "kind": "GPU bake of the current live six-bone Mojang Bedrock Wither rig",
+  "generator": "tools/minecraft/bake_wither_preview.gd",
+  "upstream_manifest": "SOURCE_MANIFEST.json",
+  "canvas": [
+    384,
+    384
+  ],
+  "camera": {
+    "projection": "orthogonal",
+    "size": 5.2,
+    "position": [
+      0,
+      2,
+      -6
+    ],
+    "look_at": [
+      0,
+      2,
+      0
+    ]
+  },
+  "sprite_scale": 0.513953488372093,
+  "pose": {
+    "life": 0,
+    "awake": true,
+    "shielded": false,
+    "heading": [
+      0,
+      0
+    ],
+    "head_directions": [
+      [
+        0,
+        -1
+      ],
+      [
+        0,
+        -1
+      ],
+      [
+        0,
+        -1
+      ]
+    ]
+  },
+  "source_and_output_sha256": {
+    "wither_boss.geo.json": "de2097edee50db825ca0d325fb9ec983e131ff249f5a39df3e1ec6e89cd3aae2",
+    "wither.png": "cb4d8aeabd1f0a258aa2fc9cab01e6a124cbc75cd9676d25d13ea98a00875a05",
+    "wither_preview.png": "655a8c4814a945853c045f5d1db9578ceefdc57c03cd38c3ee9ff18feeef6449"
+  },
+  "usage": "Selection/portrait/placement only. Battle character keeps its live 3D viewport."
+}
