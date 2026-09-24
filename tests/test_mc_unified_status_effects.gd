@@ -134,18 +134,70 @@ func run() -> void:
 	check(dot.level == 2 and before - victim.health == 20,"Wither II drains 2% of the same max HP per second")
 	wither.summoned = true
 	catalog.call("apply_effect",wither,"strength",2,4.0,witch)
+	world.set_ball_properties_to_dafault([wither])
+	world.figure_buffs(0.016,[wither])
+	check(wither.Damage == 90,"Strength II actually changes Wither's runtime Damage from 75 to 90")
+	wither._charge_remaining = 10.0
+	var charge_threats:Array = wither.get_ai_attack_threats(null)
+	check(charge_threats.size() == 1 and is_equal_approx(float(charge_threats[0].damage),wither.own_attack_damage(32.0)),"charge threat reports the same buffed damage as its real hit")
+	wither._charge_remaining = 0.0
 	var melee_before:int = victim.health
 	wither.impact(victim,100.0,victim.global_position,true)
-	check(melee_before-victim.health == 120,"Wither melee charge also uses Strength II's 20% damage bonus")
+	check(melee_before-victim.health == 120,"Wither charge reads Strength II from Damage exactly once")
+	var splash_victim:Node2D = spawn("",Vector2(125,10),"Team1")
+	splash_victim.process_mode = Node.PROCESS_MODE_DISABLED
+	splash_victim.Max_health = 1000
+	splash_victim.health = 1000
+	var head_before:int = victim.health
+	wither._blast(victim.global_position,64.0,45.0,victim,false)
+	check(head_before-victim.health == 90 and splash_victim.health == 946,"Wither head's direct 75 and splash 45 scale with its own Strength II")
+	var skull_probe:Node2D = load("res://scripts/characters/我的世界/wither/skull.gd").new()
+	world.add_child(skull_probe)
+	skull_probe.configure(wither,Vector2.RIGHT)
+	check(is_equal_approx(float(skull_probe.get_ai_hazard_info().damage),90.0),"head threat displays live buffed direct damage")
+	skull_probe.queue_free()
+	splash_victim.queue_free()
 	melee_before = victim.health
 	wither.impact(victim,100.0,victim.global_position,false)
-	check(melee_before-victim.health == 100,"Strength never amplifies Wither ranged attacks")
+	check(melee_before-victim.health == 100,"independent beacon and rose damage never inherits Wither's Strength")
 	catalog.call("clear",wither,"strength",witch)
+	await process_frame
 	catalog.call("apply_effect",wither,"weakness",2,4.0,witch)
+	world.set_ball_properties_to_dafault([wither])
+	world.figure_buffs(0.016,[wither])
+	check(wither.Damage == 60,"Weakness II reduces Wither's runtime Damage to 60")
 	melee_before = victim.health
 	wither.impact(victim,100.0,victim.global_position,true)
-	check(melee_before-victim.health == 80,"Wither melee charge also uses Weakness II's 20% damage penalty")
+	check(melee_before-victim.health == 80,"Wither charge reads Weakness II from Damage exactly once")
+	head_before = victim.health
+	wither._blast(victim.global_position,64.0,45.0,victim,false)
+	check(head_before-victim.health == 60,"Weakness II also weakens the head without a second multiplier")
 	catalog.call("clear",wither,"weakness",witch)
+	await process_frame
+	# Reproduce the actual beacon source: only body-owned attacks inherit its
+	# Strength. The separately summoned beam and flowers keep their own balance.
+	wither.apply_beacon_buff("strength")
+	world.set_ball_properties_to_dafault([wither])
+	world.figure_buffs(0.016,[wither])
+	var boosted_attack:int = wither.Damage
+	check(boosted_attack > 75 and wither._buff == "strength","beacon Strength I raises the Wither's own attack attribute")
+	head_before = victim.health
+	wither._blast(victim.global_position,64.0,45.0,victim,false)
+	check(head_before-victim.health == boosted_attack,"beacon Strength I raises a head's direct hit to the live Damage attribute")
+	melee_before = victim.health
+	wither.impact(victim,32.0,victim.global_position,true)
+	check(melee_before-victim.health > 32,"beacon Strength I increases the body's charge damage")
+	melee_before = victim.health
+	wither.impact(victim,6.0,victim.global_position)
+	check(melee_before-victim.health == 6,"beacon beam keeps its own six-point pulse despite Strength on its summoner")
+	melee_before = victim.health
+	wither.impact(victim,4.0,victim.global_position)
+	check(melee_before-victim.health == 4,"independent rose keeps its own four-point contact damage")
+	wither.apply_beacon_buff("")
+	await process_frame
+	world.set_ball_properties_to_dafault([wither])
+	world.figure_buffs(0.016,[wither])
+	check(wither.Damage == 75,"beacon cancellation restores Wither's original attack attribute")
 	var small:Node2D = spawn("",Vector2(300,-95),"Team1")
 	small.process_mode = Node.PROCESS_MODE_DISABLED
 	small.Max_health = 50

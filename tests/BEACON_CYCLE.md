@@ -49,7 +49,9 @@
 ### 2026-09-25 信标增益候选池调整（当前）
 
 - 凋灵信标只抽速度、急迫、抗性、力量四项；**不抽跳跃提升**，也不抽副效果生命恢复。四项仍是一级、持续 6 秒，仍在正式发射瞬间授予；公共 39 种状态目录中的跳跃提升未删除，不影响其他来源。
+- 抽中力量时，增益作用在**凋灵本体**的当前攻击属性：头颅直击／溅射、冲撞和觉醒爆炸会随之改变；信标自身的光柱仍按每跳 6 点、50 跳基础合计 300 点结算，玫瑰的独立触碰伤害也不继承凋灵属性。两者不能因为调用了凋灵的 `impact()` 就误当作本体攻击。
 - Steam Godot 4.7.2 无头回归：`test_beacon_cycle.gd` **65/65**、`test_mc_active_potion_tooltips.gd` **44/44**、`test_wither_beacon_revision.gd` **47/47**、`test_mc_unified_status_effects.gd` **125/125**、`test_wither_live.gd` **56/56**，进程退出码均为 0，无新增 `SCRIPT ERROR`。本轮未重新进行信标 GPU 截图或双客户端联机；上文的 GPU 截图和旧计数属于此前的验证记录。
+- 后续“力量只加强凋灵本体”修正的 headless 回归：`test_wither_beacon_revision.gd` **49/49**（真实 World 物理帧更新本体攻击属性及头颅伤害）、`test_mc_unified_status_effects.gd` **137/137**（本体与独立信标/玫瑰分流）、`test_beacon_cycle.gd` **65/65**（光柱仍 50 跳、每跳 6 点）；其他回归及非覆盖边界见 `tests/MC_UNIFIED_STATUS_EFFECTS.md` 的现行回归节。
 
 ## 顶部蓝圈保持独立
 

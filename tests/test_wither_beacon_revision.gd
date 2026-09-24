@@ -177,6 +177,15 @@ func run() -> void:
 	check(beacon.global_position.y>y_before_live+1 and not beacon.landed,"real state-machine gravity resumes after floor removal")
 	beacon.state_machine.set_physics_process(false)
 	wither.apply_beacon_buff("strength")
+	# Do not fake figure_buffs here: ensure the actual World physics loop turns
+	# the beacon's Strength into the Wither's Damage before a body-owned hit.
+	await physics_frame
+	await physics_frame
+	var boosted_attack:float = float(wither.Damage)
+	check(boosted_attack > 75.0,"live World applies beacon Strength to the Wither's attack attribute")
+	var head_target_before:float = enemy.health
+	wither._blast(enemy.global_position,64.0,45.0,enemy,false)
+	check(is_equal_approx(head_target_before-enemy.health,boosted_attack),"real beacon Strength boosts a Wither head's direct hit exactly once")
 	beacon.warning_left = 0.5
 	beacon._process(0)
 	check(beacon._beam_visual.visible,"death cleanup fixture begins with a visible windup beam")

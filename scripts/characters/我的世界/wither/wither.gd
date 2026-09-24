@@ -17,6 +17,7 @@ const OBSTACLES = preload("res://scripts/effects/我的世界/ghast_obstacle_dam
 const CHARGE_RESET = preload("res://scripts/characters/我的世界/wither/charge_reset.gd")
 const CHARGE_SPEED:float = 500.0
 const AWAKENING_BLAST_RADIUS:float = 72.0
+const BASE_ATTACK_DAMAGE:float = 75.0 # The unbuffed Damage in 凋灵.tscn; attack weights are relative to it.
 const SKULL_WINDUP:float = 0.30
 const SHOT_HEAD_ORDER = [0,2,1] # Center, screen-left, screen-right.
 # Entire intro is now the spin; no hidden block-construction portion.
@@ -437,19 +438,18 @@ func _grow_rose() -> void:
 	rose.call("configure",self)
 	rose.add_to_group("BattleTransient")
 	_emit_sound("rose",where)
-func impact(target:ball,amount:float,point:Vector2,melee:bool = false) -> float:
+func own_attack_damage(base_amount:float) -> float:
+	# Only attacks emitted by the Wither itself read its live Damage attribute.
+	# Strength/Weakness and other Damage buffs are already folded into Damage by
+	# World; do not multiply the potion effect again at the hit site.
+	return attack_damage(maxf(base_amount,0.0)/BASE_ATTACK_DAMAGE)
+func impact(target:ball,amount:float,point:Vector2,from_wither_body:bool = false) -> float:
 	if not is_multiplayer_authority() or not mc_enemy(target) or is_damage_output_disabled(): return 0.0
 	var before:float = maxf(target.health,0.0)
-	var adjusted:float = amount
-	# 这条冲撞路径直接给出伤害，不读取自身 Damage 属性；近战也应用公共
-	# 力量/虚弱百分比。远程头颅、信标光柱和持续凋零不额外加成。
-	if melee:
-		for kind:String in ["strength","weakness"]:
-			var grade:int = EFFECTS.level_of(self,kind)
-			if grade > 0:
-				var factor:float = float(EFFECTS.properties(kind,grade).damage_multiplier)
-				adjusted *= maxf(0.0,1.0+(factor-1.0)*get_minecraft_potion_effect_ratio(EFFECTS.positive(kind)))
-	adjusted = maxf(adjusted,0.0)
+	# Charge, head-skull (direct/splash) and awakening explosion belong to the
+	# body. Beacon beam and flowers are independent attacks and keep their own
+	# authored damage; the Wither status ticks off the victim's maximum health.
+	var adjusted:float = own_attack_damage(amount) if from_wither_body else maxf(amount,0.0)
 	target.receive_positional_damage(adjusted,point,false,self)
 	var actual:float = maxf(before-maxf(target.health,0.0),0.0) if is_instance_valid(target) else before
 	if actual > 0:
@@ -475,7 +475,7 @@ func _blast(center:Vector2,radius:float,damage:float,direct:ball,apply_effect:bo
 			var target:ball = node as ball
 			if target.global_position.distance_to(center) > radius+target.get_crowd_separation_radius_world(): continue
 			if not mc_line_clear(center,target.global_position): continue
-			if impact(target,75.0 if target == direct else damage,center) > 0 and apply_effect: apply_wither(target)
+			if impact(target,75.0 if target == direct else damage,center,true) > 0 and apply_effect: apply_wither(target)
 func apply_beacon_buff(kind:String) -> void:
 	if not _buff.is_empty() and _buff != kind: EFFECTS.clear(self,_buff,self)
 	_buff = kind
@@ -535,11 +535,11 @@ func _summon_visual() -> void:
 func get_ai_attack_threats(_receiver:ball) -> Array:
 	if health <= 0: return []
 	if not summoned and summon_time > summon_duration-0.4:
-		return [{"shape":"circle","position":global_position,"radius":AWAKENING_BLAST_RADIUS,"damage":45.0,"danger_in":maxf(summon_duration-summon_time,0.0),"danger_duration":0.1,"source":self}]
+		return [{"shape":"circle","position":global_position,"radius":AWAKENING_BLAST_RADIUS,"damage":own_attack_damage(45.0),"danger_in":maxf(summon_duration-summon_time,0.0),"danger_duration":0.1,"source":self}]
 	if _charge_windup > 0 or _charge_remaining > 0:
 		var distance:float = _charge_wall_distance(global_position,_charge_dir) if _charge_windup>0 else _charge_remaining
 		if distance > 0.0:
-			return [{"shape":"segment","start":global_position,"end":global_position+_charge_dir*distance,"radius":42.0,"damage":32.0,"danger_in":maxf(_charge_windup,0.0),"danger_duration":distance/CHARGE_SPEED,"source":self}]
+			return [{"shape":"segment","start":global_position,"end":global_position+_charge_dir*distance,"radius":42.0,"damage":own_attack_damage(32.0),"danger_in":maxf(_charge_windup,0.0),"danger_duration":distance/CHARGE_SPEED,"source":self}]
 	return []
 func get_debug_attack_regions() -> Array: return get_ai_attack_threats(null)
 @rpc("authority","call_remote","unreliable_ordered")

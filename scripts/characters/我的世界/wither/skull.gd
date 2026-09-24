@@ -53,4 +53,4 @@ func _draw() -> void:
 func get_ai_hazard_info() -> Dictionary:
 	var source:ball = _source()
 	if exploded or source == null: return {}
-	return {"shape":"circle","position":global_position,"velocity":heading*speed,"radius":HIT_RADIUS,"damage":75.0,"source":source,"danger_duration":0.1,"kind":"wither_skull"}
+	return {"shape":"circle","position":global_position,"velocity":heading*speed,"radius":HIT_RADIUS,"damage":source.attack_damage(),"source":source,"danger_duration":0.1,"kind":"wither_skull"}
