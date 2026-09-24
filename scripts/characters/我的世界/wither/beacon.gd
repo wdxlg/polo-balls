@@ -21,6 +21,10 @@ var _body:CollisionShape2D
 var _damage_shape:=RectangleShape2D.new()
 var _pulse_index:int = 0
 var damage_ticks:int = 0
+const REBOUND_DURATION:float = 0.35
+var _rebound_left:float = 0.0
+var _rebound_heading:float = 0.0
+var horizontal_bounces:int = 0
 var landed:bool = false
 var fall_speed:float = 0.0
 var beam_timer:float = 10.0
@@ -75,6 +79,7 @@ func emitter_width() -> float: return EMITTER.core_width(body_width())
 func beam_width() -> float: return PROFILE.width(emitter_width(),warning_left,firing_left)
 func beam_opacity() -> float: return PROFILE.opacity(warning_left,firing_left)
 func step_mob(delta:float) -> void:
+	if not active(): return
 	var master:ball=Master as ball if is_instance_valid(Master) and Master is ball else null
 	if master==null or master.health<=0: queue_free(); return
 	if health<=0 or _death_sound_done: return
@@ -96,10 +101,14 @@ func step_mob(delta:float) -> void:
 				phase=2
 				dt=minf(dt,minf(firing_left,maxf(tick_left,EPSILON)))
 			elif beam_timer>EPSILON: dt=minf(dt,beam_timer)
+		_rebound_left=maxf(_rebound_left-dt,0.0)
 		var horizontal:float=0.0
-		if _activated and is_instance_valid(target) and not dizziness:
+		if _activated and not dizziness and bool(Game.Game_Settings.get("Ball_Can_Move",true)):
 			var speed:float=maxf(Speed,0.0)*movement_multiplier()
-			horizontal=clampf((target.global_position.x-global_position.x)/dt,-speed,speed)
+			if _rebound_left>0:
+				horizontal=_rebound_heading*speed
+			elif is_instance_valid(target):
+				horizontal=clampf((target.global_position.x-global_position.x)/dt,-speed,speed)
 		_gravity_step(dt,horizontal)
 		beam_direction=Vector2.UP
 		beam_end=_clipped_beam()
@@ -159,8 +168,23 @@ func _gravity_step(dt:float,horizontal:float) -> void:
 	var motion_x:float=horizontal+Repel.x
 	velocity.x=motion_x
 	if absf(motion_x)>0.00001:
+		# Crowd mode normally drops the body mask; keep gameplay side rebounds.
+		# Restore the mask immediately, without changing gravity/support behavior.
+		var old_mask:int=collision_mask
+		collision_mask=old_mask|2
 		var side:KinematicCollision2D=move_and_collide(Vector2(motion_x*dt,0.0),false,0.001,false)
-		if side!=null: velocity.x=0.0
+		collision_mask=old_mask
+		if side!=null:
+			velocity.x=0.0
+			var normal_x:float=side.get_normal().x
+			if absf(normal_x)>0.5 and motion_x*normal_x<0.0:
+				_rebound_heading=signf(normal_x)
+				_rebound_left=REBOUND_DURATION
+				horizontal_bounces+=1
+				direction=Vector2(_rebound_heading,0.0)
+				velocity.x=absf(motion_x)*_rebound_heading
+				_last_requested_velocity=Vector2(motion_x,0.0)
+				when_collide(absf(motion_x),side)
 	fall_speed=minf(fall_speed+GRAVITY*dt,TERMINAL_SPEED)
 	velocity.y=fall_speed
 	var down:KinematicCollision2D=move_and_collide(Vector2(0.0,fall_speed*dt),false,0.001,false)

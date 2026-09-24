@@ -61,7 +61,7 @@ func _spawn_particle() -> void:
 		target.global_position+Vector2(randf_range(-13.0,13.0),randf_range(-18.0,8.0)),
 		PARTICLE_COLOR,
 		Vector2(randf_range(-7.0,7.0),randf_range(-48.0,-34.0)),
-		randf_range(0.042,0.052),
+		randf_range(0.020,0.030), # Same world-space scale as Witch status particles.
 		randf_range(0.060,0.072),
 		82
 	)

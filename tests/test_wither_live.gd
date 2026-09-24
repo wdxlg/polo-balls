@@ -86,6 +86,7 @@ func run() -> void:
 	if not potion_particles.is_empty():
 		var particle:Sprite2D = potion_particles.back() as Sprite2D
 		check(particle.get_script().resource_path.ends_with("女巫药水粒子.gd") and particle.get_parent() == world,"Wither particles reuse the eight-frame Witch sprite in world space")
+		check(particle.global_scale.x>=.020 and particle.global_scale.x<=.030,"Wither status particles match Witch status world-space size")
 		check(particle.self_modulate.r < 0.16 and particle.self_modulate.g < 0.16 and particle.self_modulate.b < 0.16,"Wither particle tint is near black")
 	wither._blast(enemy.global_position,64.0,45.0,enemy,true)
 	check(enemy.get_node_or_null("WitherStatus") != null,"second impact refreshes one status instead of stacking nodes")
