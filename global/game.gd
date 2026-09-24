@@ -285,12 +285,13 @@ var _controlled_ring:Node2D = null # 旧字段仅兼容旧调用；V277 起不�
 var _controlled_peer_paths:Dictionary = {}
 var _controlled_path_peers:Dictionary = {}
 var _last_control_move_sent:Vector2 = Vector2(999,999)
-# V380：直接控制动作键支持“按住 = 连续点击”。本机只记录鼠标键保持状态；
+# 直接控制动作键支持“按住 = 连续点击”。本机记录三个鼠标键和十个数字键的保持状态；
 # 客户端仅在按下/松开时可靠通知服务器，持续连发由 authority 在物理帧本地重试，
 # 避免把 60Hz 长按变成 60 个 reliable RPC/秒。
+const CONTROL_ACTION_COUNT:int = 13 # 左/右/中、1～9、0
 const CONTROL_ACTION_HOLD_INITIAL_REPEAT_DELAY_MSEC:int = 45
 var _local_control_action_hold_mask:int = 0
-var _local_control_action_repeat_ready_msec:Array[int] = [0,0,0]
+var _local_control_action_repeat_ready_msec:Array[int] = [0,0,0,0,0,0,0,0,0,0,0,0,0]
 var _remote_control_action_hold_masks:Dictionary = {}
 var _remote_control_action_repeat_ready_msec:Dictionary = {}
 
@@ -1378,6 +1379,16 @@ func _try_world_right_click_delete(world:World) -> bool:
 	delete_char_at(world.get_global_mouse_position())
 	return true
 
+func _can_control_candidate(node:Node) -> bool:
+	if node == null or not is_instance_valid(node) or not (node is ball) or not node.is_in_group("Ball"):
+		return false
+	var candidate:ball = node as ball
+	if not candidate.can_player_control():
+		return false
+	if candidate.Type == ball.Ball_Type.Ball and candidate.has_method("is_combat_targetable") and not candidate.is_combat_targetable():
+		return false
+	return true
+
 func _find_control_candidate(world:World) -> Node:
 	if world == null or not is_instance_valid(world):
 		return null
@@ -1388,9 +1399,7 @@ func _find_control_candidate(world:World) -> Node:
 		if not (node is ball) or not is_instance_valid(node):
 			continue
 		var candidate:ball = node as ball
-		if candidate.Type != ball.Ball_Type.Ball or candidate.health <= 0:
-			continue
-		if candidate.has_method("is_combat_targetable") and not bool(candidate.call("is_combat_targetable")):
+		if not _can_control_candidate(candidate):
 			continue
 		if not _ball_visual_contains_world_point(candidate,point):
 			continue
@@ -1566,6 +1575,13 @@ func _sync_control_assignments(assignments:Dictionary) -> void:
 
 func _release_control_for_peer(peer_id:int) -> void:
 	# V380：解除控制必须先清掉服务器保存的长按状态，防止角色换人/玩家掉线后继续自动出招。
+	if _controlled_peer_paths.has(peer_id):
+		var held_target:Node = get_node_or_null(NodePath(str(_controlled_peer_paths[peer_id])))
+		var held_mask:int = int(_remote_control_action_hold_masks.get(peer_id,0))
+		if held_target != null and held_target.has_method("player_control_action_cancelled"):
+			for index:int in range(CONTROL_ACTION_COUNT):
+				if (held_mask & (1 << index)) != 0:
+					held_target.call("player_control_action_cancelled",index)
 	_remote_control_action_hold_masks.erase(peer_id)
 	_remote_control_action_repeat_ready_msec.erase(peer_id)
 	if not _controlled_peer_paths.has(peer_id):
@@ -1579,7 +1595,7 @@ func _release_control_for_peer(peer_id:int) -> void:
 	_broadcast_control_assignments()
 
 func _grant_control_server(peer_id:int,target:Node) -> bool:
-	if not multiplayer.is_server() or target == null or not is_instance_valid(target) or not target.is_in_group("Ball"):
+	if not multiplayer.is_server() or not _can_control_candidate(target):
 		return false
 	var path_string:String = str(target.get_path())
 	if _controlled_path_peers.has(path_string) and int(_controlled_path_peers[path_string]) != peer_id:
@@ -1632,7 +1648,7 @@ func _request_control_character(target_path:NodePath) -> void:
 	var target:Node = get_node_or_null(target_path)
 	if sender_id <= 0:
 		return
-	if target == null or not (target is ball) or (target as ball).Type != ball.Ball_Type.Ball:
+	if not _can_control_candidate(target):
 		_control_character_result.rpc_id(sender_id,NodePath())
 		return
 	if _grant_control_server(sender_id,target):
@@ -1673,8 +1689,8 @@ func _controlled_action_request(target_path:NodePath,action_index:int,aim_positi
 	var target:Node = get_node_or_null(target_path)
 	if target != null and target.has_method("set_player_control_aim_position"):
 		target.call("set_player_control_aim_position",aim_position)
-	if target != null and target.has_method("player_control_action"):
-		target.call("player_control_action",clampi(action_index,0,2))
+	if action_index >= 0 and action_index < CONTROL_ACTION_COUNT and target != null and target.has_method("player_control_action"):
+		target.call("player_control_action",action_index)
 
 # V380：远端玩家只在“按下/松开”时发送一次状态变化；服务器保存 hold mask。
 # pressed=true 同包携带当前瞄准点并立即触发第一下，随后由服务器物理循环继续尝试，
@@ -1693,7 +1709,9 @@ func _controlled_action_hold_request(target_path:NodePath,action_index:int,press
 		_remote_control_action_hold_masks.erase(sender_id)
 		_remote_control_action_repeat_ready_msec.erase(sender_id)
 		return
-	var index:int = clampi(action_index,0,2)
+	if action_index < 0 or action_index >= CONTROL_ACTION_COUNT:
+		return
+	var index:int = action_index
 	var bit:int = 1 << index
 	var mask:int = int(_remote_control_action_hold_masks.get(sender_id,0))
 	var repeat_ready:Dictionary = _remote_control_action_repeat_ready_msec.get(sender_id,{})
@@ -1711,6 +1729,8 @@ func _controlled_action_hold_request(target_path:NodePath,action_index:int,press
 			target.call("player_control_action",index)
 	else:
 		mask = mask & ~bit
+		if (int(_remote_control_action_hold_masks.get(sender_id,0)) & bit) != 0 and target.has_method("player_control_action_released"):
+			target.call("player_control_action_released",index)
 		repeat_ready.erase(index)
 		if mask == 0:
 			_remote_control_action_hold_masks.erase(sender_id)
@@ -1727,7 +1747,9 @@ func _control_action_repeat_allowed(target:Node,action_index:int) -> bool:
 	return true
 
 func _set_local_control_action_hold(action_index:int,pressed:bool) -> void:
-	var index:int = clampi(action_index,0,2)
+	if action_index < 0 or action_index >= CONTROL_ACTION_COUNT:
+		return
+	var index:int = action_index
 	var bit:int = 1 << index
 	var already_held:bool = (_local_control_action_hold_mask & bit) != 0
 	if pressed == already_held:
@@ -1749,6 +1771,8 @@ func _set_local_control_action_hold(action_index:int,pressed:bool) -> void:
 		_local_control_action_repeat_ready_msec[index] = 0
 		if network_role == "client" and target != null:
 			_controlled_action_hold_request.rpc_id(Server_Id,target.get_path(),index,false,aim_position)
+		elif target != null and target.has_method("player_control_action_released"):
+			target.call("player_control_action_released",index)
 
 func _clear_local_control_action_holds(notify_server:bool = true) -> void:
 	if _local_control_action_hold_mask == 0:
@@ -1756,11 +1780,15 @@ func _clear_local_control_action_holds(notify_server:bool = true) -> void:
 	var target:Node = get_local_controlled_character()
 	if notify_server and network_role == "client" and target != null:
 		var aim_position:Vector2 = _current_control_aim_position()
-		for index:int in range(3):
+		for index:int in range(CONTROL_ACTION_COUNT):
 			if (_local_control_action_hold_mask & (1 << index)) != 0:
 				_controlled_action_hold_request.rpc_id(Server_Id,target.get_path(),index,false,aim_position)
+	elif target != null and target.has_method("player_control_action_cancelled"):
+		for index:int in range(CONTROL_ACTION_COUNT):
+			if (_local_control_action_hold_mask & (1 << index)) != 0:
+				target.call("player_control_action_cancelled",index)
 	_local_control_action_hold_mask = 0
-	for index:int in range(3):
+	for index:int in range(CONTROL_ACTION_COUNT):
 		_local_control_action_repeat_ready_msec[index] = 0
 
 func _process_local_control_action_holds() -> void:
@@ -1771,7 +1799,7 @@ func _process_local_control_action_holds() -> void:
 		_clear_local_control_action_holds(false)
 		return
 	var now_msec:int = Time.get_ticks_msec()
-	for index:int in range(3):
+	for index:int in range(CONTROL_ACTION_COUNT):
 		var bit:int = 1 << index
 		if (_local_control_action_hold_mask & bit) == 0:
 			continue
@@ -1799,7 +1827,7 @@ func _process_remote_control_action_holds() -> void:
 			continue
 		var mask:int = int(_remote_control_action_hold_masks.get(peer_id,0))
 		var repeat_ready:Dictionary = _remote_control_action_repeat_ready_msec.get(peer_id,{})
-		for index:int in range(3):
+		for index:int in range(CONTROL_ACTION_COUNT):
 			if (mask & (1 << index)) == 0:
 				continue
 			if now_msec < int(repeat_ready.get(index,0)):
@@ -1817,7 +1845,7 @@ func _current_control_aim_position() -> Vector2:
 
 func _send_control_action(action_index:int) -> void:
 	var target:Node = get_local_controlled_character()
-	if target == null:
+	if target == null or action_index < 0 or action_index >= CONTROL_ACTION_COUNT:
 		return
 	var aim_position:Vector2 = _current_control_aim_position()
 	if network_role == "client":
@@ -1835,6 +1863,13 @@ func _current_wasd_direction() -> Vector2:
 	if Input.is_physical_key_pressed(KEY_W): dir.y -= 1.0
 	if Input.is_physical_key_pressed(KEY_S): dir.y += 1.0
 	return dir.normalized() if dir.length_squared() > 1.0 else dir
+
+func _control_action_index_for_keycode(keycode:int) -> int:
+	if keycode >= KEY_1 and keycode <= KEY_9:
+		return 3 + keycode - KEY_1
+	if keycode >= KEY_KP_1 and keycode <= KEY_KP_9:
+		return 3 + keycode - KEY_KP_1
+	return 12 if keycode == KEY_0 or keycode == KEY_KP_0 else -1
 
 func _process_control_movement() -> void:
 	var target:Node = get_local_controlled_character()
@@ -1873,6 +1908,18 @@ func _input(event: InputEvent) -> void:
 			_toggle_character_control(world as World)
 			get_viewport().set_input_as_handled()
 			return
+	if event is InputEventKey and is_controlling_character():
+		var action_key:InputEventKey = event as InputEventKey
+		var number_action:int = _control_action_index_for_keycode(action_key.physical_keycode)
+		if number_action >= 3:
+			var focus:Control = get_viewport().gui_get_focus_owner()
+			var hovered:Control = get_viewport().gui_get_hovered_control()
+			if action_key.pressed and (focus is LineEdit or focus is TextEdit or hovered != null):
+				return
+			if action_key.pressed or (_local_control_action_hold_mask & (1 << number_action)) != 0:
+				_set_local_control_action_hold(number_action,action_key.pressed)
+				get_viewport().set_input_as_handled()
+				return
 
 	# 一旦左键是在地图里开始的，松开事件即使落在 UI 上也必须在这里收尾，
 	# 否则 GUI 抢走 release 后会把框选状态卡住。
@@ -1905,7 +1952,7 @@ func _input(event: InputEvent) -> void:
 		_placement._cancel_placement_press()
 		(world as World).set_menu()
 	elif event is InputEventMouseButton:
-		# 控制角色时，战场鼠标只服务角色能力：左=普攻、右=技能、中=扩展动作。
+		# 控制角色时，战场鼠标按顺序绑定第 1/2/3 个真实主动动作。
 		# UI 上的点击继续留给 UI；中键绝不再启动地图拖动。Alt+滚轮缩放在后面仍可使用。
 		if is_controlling_character():
 			mouse_drag = false

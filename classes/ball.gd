@@ -982,6 +982,8 @@ func restore_default_runtime_properties_fast() -> void:
 # 这样角色专属状态机/死亡/变身逻辑不被一个全局“玩家状态机”粗暴替换。
 var player_control_peer_id:int = 0
 var player_control_direction:Vector2 = Vector2.ZERO
+# 只给确实可独立行动的 Creature 子实体显式开启；普通投射物与墙体不可被 C 选中。
+@export var manual_controllable_subentity:bool = false
 # V130：直接控制的“移动方向”和“攻击瞄准”必须完全分离。
 # WASD 只写 player_control_direction；鼠标世界坐标单独由 Game 同步到这里。
 var player_control_aim_position:Vector2 = Vector2.ZERO
@@ -989,6 +991,12 @@ var player_control_aim_valid:bool = false
 
 func is_player_controlled() -> bool:
 	return player_control_peer_id > 0
+
+func can_player_control() -> bool:
+	return health > 0 and (
+		Type == Ball_Type.Ball
+		or (Type == Ball_Type.Creature and manual_controllable_subentity)
+	)
 
 func set_player_control_peer(peer_id:int) -> void:
 	player_control_peer_id = maxi(peer_id,0)
@@ -1031,18 +1039,57 @@ func player_control_aim_direction(fallback:Vector2 = Vector2.RIGHT) -> Vector2:
 		return fallback.normalized()
 	return Vector2.RIGHT
 
-# V380：动作键长按默认允许按“持续点击”重试。
-# 少数“再次点击=关闭/切换”的角色可覆写本函数，让某个动作只响应按下沿，避免长按高速来回切换。
-func player_control_action_hold_repeat_allowed(_action_index:int) -> bool:
-	return true
+# 只把真实存在的主动动作顺序排列；不拿没有实现的 Skill 或身体被动攻击占键。
+# 角色可用 player_control_extra_actions() 返回额外的无参数手动入口，接到中键/数字键。
+func player_control_action_ids() -> Array[StringName]:
+	var actions:Array[StringName] = []
+	if has_method("controlled_attack_action"):
+		actions.append(&"controlled_attack_action")
+	elif Can_Attack and _declares_manual_state_action(&"Attack"):
+		actions.append(&"Attack")
+	if has_method("controlled_skill_action"):
+		actions.append(&"controlled_skill_action")
+	elif Can_Skill and _declares_manual_state_action(&"Skill"):
+		actions.append(&"Skill")
+	if has_method("controlled_middle_action"):
+		actions.append(&"controlled_middle_action")
+	if has_method("player_control_extra_actions"):
+		var extras:Variant = call("player_control_extra_actions")
+		if extras is Array:
+			for raw:Variant in extras:
+				var method:StringName = StringName(str(raw))
+				if has_method(method) and not actions.has(method):
+					actions.append(method)
+	return actions
+
+func _declares_manual_state_action(method:StringName) -> bool:
+	var script:Script = get_script() as Script
+	var needle:String = "func %s(" % String(method)
+	while script != null:
+		var path:String = script.resource_path
+		if path == "res://classes/ball.gd":
+			return false
+		# new5/base 只提供占位函数，实际战斗在角色自己的 step_mob 中。
+		if path != "res://scripts/characters/我的世界/new5/base.gd":
+			var source:String = script.source_code
+			if source.begins_with(needle) or source.contains("\n" + needle):
+				return true
+		script = script.get_base_script()
+	return false
+
+# 长按普通动作沿用已有重试；数字键默认只响应按下沿，避免切换型技能连续触发。
+func player_control_action_hold_repeat_allowed(action_index:int) -> bool:
+	return action_index >= 0 and action_index < 3
 
 func player_control_action(action_index:int) -> void:
-	# V129：直接控制时鼠标动作必须是“玩家触发”，不能再与 AI 自动出招混在一起。
-	# 左键只尝试普通攻击；右键只尝试技能；中键先走角色专用钩子，
-	# 没有钩子时才按“技能 -> 普攻”兜底。所有动作继续服从冷却/眩晕/禁攻/死亡/authority。
+	# 玩家动作严格按现有能力排序，空键无效果；不能把中键默认为已绑定的右键。
+	# 所有动作仍由 authority 校验冷却、死亡和禁攻，瞄准与移动互相独立。
 	if not is_multiplayer_authority() or player_control_peer_id <= 0:
 		return
-	if state_machine == null or state_machine.current_state == State.Die or dizziness or is_damage_output_disabled():
+	if state_machine == null or state_machine.current_state == State.Die or health <= 0 or dizziness or is_damage_output_disabled() or not is_combat_runtime_active():
+		return
+	var actions:Array[StringName] = player_control_action_ids()
+	if action_index < 0 or action_index >= mini(actions.size(),13):
 		return
 
 	# 点击发生的一刻先把角色的“攻击朝向”锁到鼠标，而不是继续沿 AI 的 Nearest_Enemy/direction。
@@ -1050,36 +1097,17 @@ func player_control_action(action_index:int) -> void:
 	if has_player_control_aim():
 		direction = player_control_aim_direction(direction)
 
-	if action_index == 2 and has_method("controlled_middle_action"):
-		call("controlled_middle_action")
-		return
-
-	# V130：部分角色（赌徒/锻刀师/战争女神等）并不走公共 State.Attack/State.Skill，
-	# 它们会把 Can_Attack/Can_Skill 设为 false 并维护自己的冷却。直接控制时给这类角色
-	# 一个统一的手动入口，避免“公共角色能点，特殊角色仍然自己打”。
-	if action_index == 0 and has_method("controlled_attack_action"):
-		call("controlled_attack_action")
-		return
-	if action_index == 1 and has_method("controlled_skill_action"):
-		call("controlled_skill_action")
-		return
-
-	if action_index == 0:
+	var action:StringName = actions[action_index]
+	if action == &"Attack":
 		if Can_Attack and not Attacking and float(state_machine.last_state_dis.get("Attack",0.0)) >= Attack_Cooling:
 			state_machine.current_state = State.Attack
 		return
-
-	if action_index == 1:
+	if action == &"Skill":
 		if Can_Skill and not Using_Skill and float(state_machine.last_state_dis.get("Skill",0.0)) >= Skill_Cooling:
 			state_machine.current_state = State.Skill
 		return
-
-	if action_index == 2:
-		if Can_Skill and not Using_Skill and float(state_machine.last_state_dis.get("Skill",0.0)) >= Skill_Cooling:
-			state_machine.current_state = State.Skill
-			return
-		if Can_Attack and not Attacking and float(state_machine.last_state_dis.get("Attack",0.0)) >= Attack_Cooling:
-			state_machine.current_state = State.Attack
+	if has_method(action):
+		call(action)
 @onready var can_restore_health:bool = true
 
 # ========================================================
