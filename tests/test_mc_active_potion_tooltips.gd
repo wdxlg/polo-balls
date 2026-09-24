@@ -114,7 +114,7 @@ func run() -> void:
 	var weakness:Node = victim.get_node_or_null("MinecraftStatus_weakness")
 	var weakness_buffs:Dictionary = victim.Buff_Dic.get(weakness.get_instance_id(),{}) if weakness != null else {}
 	var weak:Buff = weakness_buffs.get("MC效果_weakness_damage") as Buff
-	check(weakness != null and weak != null and weak.duration > 0.0 and keys.has("weakness"),"Witch's Weakness row is backed by the real canonical status and -4 melee Buff")
+	check(weakness != null and weak != null and weak.duration > 0.0 and weak.algorithm == Buff.Algorithms.mul and is_equal_approx(float(weak.amount),0.9) and keys.has("weakness"),"Witch's Weakness I row is backed by the real canonical 0.9x Damage Buff")
 	var speed_status:Node = victim.get_node("MinecraftStatus_speed")
 	speed_status.remaining = 4.4
 	ui.call("refresh_display")

@@ -93,13 +93,13 @@ func run() -> void:
 		var tex:Texture2D = catalog.call("icon",kind) as Texture2D
 		check(not str(meta.get("zh","")).is_empty() and not str(meta.get("en","")).is_empty() and tex != null and potency(kind,1).get("level",0) == 1 and potency(kind,2).get("level",0) == 2,"named/iconed two-grade status: "+kind)
 	check(catalog.call("canonical","minecraft:regeneration") == "regen" and catalog.call("canonical","instant_health") == "instant_heal","Java IDs alias existing Witch IDs")
-	check(is_equal_approx(float(potency("speed",1).move),1.2) and is_equal_approx(float(potency("speed",2).move),1.4) and is_equal_approx(float(potency("slowness",2).move),0.7),"Speed +20%/level and Slowness -15%/level")
+	check(is_equal_approx(float(potency("speed",1).move),1.2) and is_equal_approx(float(potency("speed",2).move),1.4) and is_equal_approx(float(potency("slowness",2).move),0.6) and float(potency("slowness",5).move) == 0.0,"Speed +20%/level and Slowness -20%/level to zero")
 	check(is_equal_approx(float(potency("haste",2).attack_rate),1.2) and is_equal_approx(float(potency("mining_fatigue",3).attack_rate),0.7),"Haste +10% attack rate/level and Mining Fatigue -10%/level")
-	check(float(potency("strength",2).melee_damage) == 6.0 and float(potency("weakness",2).melee_damage) == -8.0,"Java additive +3 Strength / -4 Weakness per level")
+	check(is_equal_approx(float(potency("strength",2).damage_multiplier),1.2) and is_equal_approx(float(potency("weakness",2).damage_multiplier),0.8) and float(potency("weakness",12).damage_multiplier) == 0.0,"Strength +10% and Weakness -10% Damage per level, never negative")
 	check(is_equal_approx(float(potency("resistance",2).damage_reduction),0.4) and float(potency("resistance",5).damage_reduction) == 1.0,"Resistance reduces incoming damage 20% per level to 100%")
-	check(int(potency("health_boost",2).extra_health) == 8 and int(potency("absorption",2).absorption) == 8,"Health Boost and Absorption add four HP per level")
-	check(float(potency("instant_heal",2).instant_health) == 8.0 and float(potency("instant_damage",2).instant_damage) == 12.0,"Java instant healing 4/8 HP, damage 6/12 HP")
-	check(int(potency("regen",1).period_ticks) == 50 and int(potency("regen",3).period_ticks) == 12 and int(potency("poison",2).period_ticks) == 12 and int(potency("wither",2).period_ticks) == 20,"periodic amplifier shifts the 50/25/40-tick intervals")
+	check(int(potency("health_boost",2).extra_health) == 40 and int(potency("absorption",2).absorption) == 40,"Health Boost and Absorption add 20 HP per level")
+	check(float(potency("instant_heal",1).instant_health) == 50.0 and float(potency("instant_damage",1).instant_damage) == 50.0 and float(potency("instant_heal",2).instant_health) == 100.0 and float(potency("instant_damage",2).instant_damage) == 100.0,"instant healing and damage start at 50 HP and double per level")
+	check(int(potency("regen",1).period_ticks) == 5 and int(potency("regen",3).period_ticks) == 5 and int(potency("poison",2).period_ticks) == 5 and float(potency("regen",3).health_per_tick) == 3.0 and float(potency("poison",2).health_per_tick) == -2.0 and int(potency("wither",2).period_ticks) == 20 and is_equal_approx(float(potency("wither",2).max_health_damage_per_second),0.02),"Regen/Poison pulse every 0.25s for level HP; Wither level II is 2% max HP each second")
 	check(is_equal_approx(float(potency("levitation",2).upward_acceleration),0.1) and is_equal_approx(float(potency("hunger",2).exhaustion_per_tick),0.01),"Levitation and Hunger levels derive contextual potency")
 	var wither:Node2D = spawn("凋灵",Vector2(-160,-50))
 	var witch:Node2D = spawn("女巫",Vector2(-190,85))
@@ -118,7 +118,7 @@ func run() -> void:
 	witch_api.call("apply_effect",wither,"speed",witch,1,9.0)
 	wither.apply_beacon_buff("")
 	check(speed != null and not speed.is_queued_for_deletion() and speed.remaining > 8.0 and has_amount(wither,speed,"speed_move",1.2),"beacon cancellation does not erase Witch's independent 9-second source")
-	# A Wither skull and Witch's Wither bottle are the same lethal 1 HP/tick status.
+	# A Wither skull and Witch's Wither bottle share the same percentage DOT.
 	victim.Max_health = 1000
 	victim.health = 1000
 	witch_api.call("apply_effect",victim,"wither",witch)
@@ -127,7 +127,56 @@ func run() -> void:
 	check(dot != null and victim.get_node_or_null("WitherStatus") == dot and is_equal_approx(dot.remaining,6.5),"Witch and skull merge their Wither status without changing Witch duration")
 	var before:int = victim.health
 	dot._physics_process(2.0)
-	check(before - victim.health == 1 and dot.remaining > 4.0,"same-level Wither is one flat HP per 40 ticks, not 2% of target max HP")
+	check(before - victim.health == 20 and dot.remaining > 4.0,"Wither I drains 1% of 1000 max HP each second")
+	catalog.call("apply_effect",victim,"wither",2,2.0,witch)
+	before = victim.health
+	dot._physics_process(1.0)
+	check(dot.level == 2 and before - victim.health == 20,"Wither II drains 2% of the same max HP per second")
+	wither.summoned = true
+	catalog.call("apply_effect",wither,"strength",2,4.0,witch)
+	var melee_before:int = victim.health
+	wither.impact(victim,100.0,victim.global_position,true)
+	check(melee_before-victim.health == 120,"Wither melee charge also uses Strength II's 20% damage bonus")
+	melee_before = victim.health
+	wither.impact(victim,100.0,victim.global_position,false)
+	check(melee_before-victim.health == 100,"Strength never amplifies Wither ranged attacks")
+	catalog.call("clear",wither,"strength",witch)
+	catalog.call("apply_effect",wither,"weakness",2,4.0,witch)
+	melee_before = victim.health
+	wither.impact(victim,100.0,victim.global_position,true)
+	check(melee_before-victim.health == 80,"Wither melee charge also uses Weakness II's 20% damage penalty")
+	catalog.call("clear",wither,"weakness",witch)
+	var small:Node2D = spawn("",Vector2(300,-95),"Team1")
+	small.process_mode = Node.PROCESS_MODE_DISABLED
+	small.Max_health = 50
+	small.health = 50
+	catalog.call("apply_effect",small,"wither",1,4.0,witch)
+	var small_wither:Node = small.get_node("WitherStatus")
+	small_wither._physics_process(1.0)
+	check(small.health == 50 and is_equal_approx(float(small_wither._fractional_damage),0.5),"Wither preserves fractional HP on a 50-max-health target")
+	small_wither._physics_process(1.0)
+	check(small.health == 49 and is_zero_approx(float(small_wither._fractional_damage)),"two seconds of Wither I settle exactly 1% max HP per second on average")
+	catalog.call("clear",small,"wither",witch)
+	small.Max_health = 100
+	small.health = 20
+	catalog.call("apply_effect",small,"regen",2,3.0,witch)
+	var regeneration:Node = small.get_node("MinecraftStatus_regen")
+	regeneration._physics_process(0.5)
+	check(small.health == 24 and is_equal_approx(regeneration.tick_interval,0.25),"Regeneration II restores 2 HP every 0.25s in real combat")
+	catalog.call("clear",small,"regen",witch)
+	small.health = 20
+	catalog.call("apply_effect",small,"poison",2,3.0,witch)
+	var poison_status:Node = small.get_node("MinecraftStatus_poison")
+	poison_status._physics_process(0.5)
+	check(small.health == 16 and is_equal_approx(poison_status.tick_interval,0.25),"Poison II inflicts 2 HP every 0.25s in real combat")
+	small.health = 3
+	poison_status._physics_process(0.25)
+	check(small.health == 1,"even frequent level-II Poison cannot kill below one HP")
+	small.health = 20
+	catalog.call("apply_effect",small,"instant_heal",1,0.0,witch)
+	check(small.health == 70,"Instant Health I actually restores 50 HP")
+	catalog.call("apply_effect",small,"instant_damage",1,0.0,witch)
+	check(small.health == 20,"Instant Damage I actually removes 50 HP")
 	var guard:Node2D = spawn("",Vector2(150,105),"Team1")
 	guard.process_mode = Node.PROCESS_MODE_DISABLED
 	guard.Max_health = 100
@@ -142,9 +191,9 @@ func run() -> void:
 	catalog.call("apply_effect",guard,"absorption",2,10.0,witch)
 	var absorb:Node = guard.get_node_or_null("MinecraftStatus_absorption")
 	guard.take_damage(5.0,true)
-	check(absorb != null and guard.health == 97 and is_equal_approx(absorb.absorption_remaining,3.0),"Absorption II consumes 5 of its temporary 8 HP before health")
-	guard.take_damage(7.0,true)
-	check(guard.health == 93 and is_equal_approx(absorb.absorption_remaining,0.0),"remaining 3 absorption HP soak damage, 4 reaches actual health")
+	check(absorb != null and guard.health == 97 and is_equal_approx(absorb.absorption_remaining,35.0),"Absorption II consumes 5 of its temporary 40 HP before health")
+	guard.take_damage(39.0,true)
+	check(guard.health == 93 and is_equal_approx(absorb.absorption_remaining,0.0),"remaining 35 absorption HP soak damage, 4 reaches actual health")
 	# Every non-instant effect can be installed as a real status (including
 	# effects whose native world features, e.g. villages, do not exist here).
 	var shelf:Node2D = spawn("",Vector2(230,100),"Team1")
@@ -163,6 +212,28 @@ func run() -> void:
 	shelf.velocity = Vector2(0.0,200.0)
 	shelf.get_node("MinecraftStatus_slow_falling")._physics_process(0.016)
 	check(shelf.velocity.y <= 40.0,"Slow Falling caps downward movement instead of boosting horizontal speed")
+	var damage_dummy:Node2D = spawn("",Vector2(-60,200),"Team1")
+	damage_dummy.process_mode = Node.PROCESS_MODE_DISABLED
+	catalog.call("apply_effect",damage_dummy,"strength",2,6.0,witch)
+	var strength_status:Node = damage_dummy.get_node("MinecraftStatus_strength")
+	var strength_buff:Buff = damage_dummy.Buff_Dic.get(strength_status.get_instance_id(),{}).get("MC效果_strength_damage") as Buff
+	check(strength_buff != null and strength_buff.algorithm == Buff.Algorithms.mul and has_amount(damage_dummy,strength_status,"strength_damage",1.2),"Strength II installs a 1.2x Damage multiplier, not a flat bonus")
+	world.set_ball_properties_to_dafault([damage_dummy])
+	world.figure_buffs(0.016,[damage_dummy])
+	check(damage_dummy.Damage == 12,"Strength II really increases the Damage=10 attribute to 12")
+	catalog.call("clear",damage_dummy,"strength",witch)
+	await process_frame
+	catalog.call("apply_effect",damage_dummy,"weakness",2,6.0,witch)
+	var weakness_status:Node = damage_dummy.get_node("MinecraftStatus_weakness")
+	var weakness_buff:Buff = damage_dummy.Buff_Dic.get(weakness_status.get_instance_id(),{}).get("MC效果_weakness_damage") as Buff
+	check(weakness_buff != null and weakness_buff.algorithm == Buff.Algorithms.mul and has_amount(damage_dummy,weakness_status,"weakness_damage",0.8),"Weakness II installs a 0.8x Damage multiplier, not flat damage")
+	world.set_ball_properties_to_dafault([damage_dummy])
+	world.figure_buffs(0.016,[damage_dummy])
+	check(damage_dummy.Damage == 8,"Weakness II really lowers the Damage=10 attribute to 8")
+	catalog.call("apply_effect",damage_dummy,"slowness",5,6.0,witch)
+	world.set_ball_properties_to_dafault([damage_dummy])
+	world.figure_buffs(0.016,[damage_dummy])
+	check(damage_dummy.Speed == 0.0,"Slowness V reaches but cannot cross zero actual movement speed")
 	catalog.call("apply_effect",guard,"resistance",2,6.0,witch)
 	world.set_ball_properties_to_dafault([guard])
 	world.figure_buffs(0.016,[guard])
@@ -173,7 +244,7 @@ func run() -> void:
 	catalog.call("apply_effect",guard,"health_boost",2,6.0,witch)
 	world.set_ball_properties_to_dafault([guard])
 	world.figure_buffs(0.016,[guard])
-	check(guard.Max_health == int(guard.default_properties.get("Max_health",0))+8,"Health Boost II adds 8 HP to the real runtime max health")
+	check(guard.Max_health == int(guard.default_properties.get("Max_health",0))+40,"Health Boost II adds 40 HP to the real runtime max health")
 	catalog.call("apply_effect",guard,"mining_fatigue",2,6.0,witch)
 	var fatigue:Node = guard.get_node_or_null("MinecraftStatus_mining_fatigue")
 	check(fatigue != null and has_amount(guard,fatigue,"mining_fatigue_attack",1.25),"Mining Fatigue II installs the same +25% attack cooldown on a real target")

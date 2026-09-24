@@ -8,6 +8,7 @@ const INVISIBILITY_CONTACT_DAMAGE:float = 2.0
 const INVISIBILITY_CONTACT_INTERVAL:float = 0.05
 const INVISIBILITY_CONTACT_AREA_MULTIPLIER:float = 1.06
 const IGNORE_LOCKING_META:StringName = &"ignore_combat_locking"
+const IGNORE_BODY_COLLISION_META:StringName = &"mc_ignore_character_body_collision"
 
 var target:ball = null
 var source:Node = null
@@ -29,6 +30,8 @@ var _saved_alpha:float = 1.0
 var _invisibility_applied:bool = false
 var _saved_ignore_locking_had_meta:bool = false
 var _saved_ignore_locking_value:bool = false
+var _saved_ignore_body_had_meta:bool = false
+var _saved_ignore_body_value:bool = false
 var _invisibility_contact_area:Area2D = null
 var _invisibility_contact_shape:CollisionShape2D = null
 var _invisibility_contact_left:float = 0.0
@@ -126,8 +129,8 @@ func _physics_process(delta:float) -> void:
 
 	if effect_type == "invisibility":
 		_maintain_invisibility()
-		# V88：隐身只取消 AI 锁定。每物理帧清掉已有锁定，
-		# 但不改碰撞层/Hurtbox，也不额外制造“隐身接触伤害”。
+		# 只跳过角色身体碰撞；独立 Hitbox/Hurtbox 仍照常攻击、受伤。
+		# 每物理帧清掉已有 AI 锁定，不增加额外接触伤害。
 		_clear_existing_enemy_locks()
 	if effect_type == "slow_falling" and target.velocity.y > 40.0:
 		# 0.125 block/tick terminal velocity, converted at 16 px per block.
@@ -306,10 +309,15 @@ func _apply_invisibility() -> void:
 		return
 	if not _invisibility_applied:
 		_saved_collision_layer = target.collision_layer
-		_saved_collision_mask = target.collision_mask
+		# 大规模模式本来就会临时关闭 mask 2；记录场景原始设置，
+		# 这样即使在大规模模式中获得隐身，普通模式恢复后也能正确还原。
+		_saved_collision_mask = target._large_battle_original_collision_mask if target.is_large_battle_performance_mode() else target.collision_mask
 		_saved_ignore_locking_had_meta = target.has_meta(IGNORE_LOCKING_META)
 		if _saved_ignore_locking_had_meta:
 			_saved_ignore_locking_value = bool(target.get_meta(IGNORE_LOCKING_META))
+		_saved_ignore_body_had_meta = target.has_meta(IGNORE_BODY_COLLISION_META)
+		if _saved_ignore_body_had_meta:
+			_saved_ignore_body_value = bool(target.get_meta(IGNORE_BODY_COLLISION_META))
 		var graphics:CanvasItem = target.get_node_or_null("Graphics") as CanvasItem
 		if graphics != null:
 			_saved_alpha = graphics.modulate.a
@@ -321,9 +329,13 @@ func _apply_invisibility() -> void:
 func _maintain_invisibility() -> void:
 	if target == null or not is_instance_valid(target):
 		return
-	# V88：隐身不再修改 collision_layer / collision_mask。角色身体、Hurtbox、
-	# 已飞出的投射物、范围攻击和普通接触攻击都仍按原规则命中。
-	# 这里只标记“不可被 AI 锁定”，与 is_combat_targetable()（能否受攻击）彻底分离。
+	# 只关闭 CharacterBody2D 的第 2 层（角色身体）双向扫描；第 1 层地图墙、
+	# self_hitbox/self_hurtbox 的 Area2D 层和伤害规则均保持不变。
+	if target.get_collision_layer_value(2): target.set_collision_layer_value(2,false)
+	if target.get_collision_mask_value(2): target.set_collision_mask_value(2,false)
+	target.set_meta(IGNORE_BODY_COLLISION_META,true)
+	target.set_crowd_separation_velocity(Vector2.ZERO)
+	# 索敌锁定仍独立于能否被伤害命中。
 	target.set_meta(IGNORE_LOCKING_META,true)
 	var graphics:CanvasItem = target.get_node_or_null("Graphics") as CanvasItem
 	if graphics != null:
@@ -492,7 +504,16 @@ func _cleanup() -> void:
 	# target. Cancel/expiry removes exactly its own strength/speed/etc.
 	target.Buff_Dic.erase(get_instance_id())
 	if effect_type == "invisibility" and _invisibility_applied:
-		# V88：碰撞层从未被隐身改写，因此这里也不需要恢复碰撞。
+		if _saved_ignore_body_had_meta:
+			target.set_meta(IGNORE_BODY_COLLISION_META,_saved_ignore_body_value)
+		else:
+			target.remove_meta(IGNORE_BODY_COLLISION_META)
+		# 只还原本状态关闭的身体位，不覆盖别的技能对其他层的修改。
+		# 死亡时身体已经由角色自身关闭，不能在清理状态时重新开启。
+		if target.health > 0 and not target.is_queued_for_deletion():
+			target.set_collision_layer_value(2,(_saved_collision_layer & 2) != 0)
+			if not target.is_large_battle_performance_mode():
+				target.set_collision_mask_value(2,(_saved_collision_mask & 2) != 0)
 		if _saved_ignore_locking_had_meta:
 			target.set_meta(IGNORE_LOCKING_META,_saved_ignore_locking_value)
 		else:

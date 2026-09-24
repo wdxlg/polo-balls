@@ -441,13 +441,14 @@ func impact(target:ball,amount:float,point:Vector2,melee:bool = false) -> float:
 	if not is_multiplayer_authority() or not mc_enemy(target) or is_damage_output_disabled(): return 0.0
 	var before:float = maxf(target.health,0.0)
 	var adjusted:float = amount
-	# Vanilla Strength/Weakness alter *melee* damage by a flat amount, not
-	# ranged skulls, beacon pulses or Wither DOT. The charge is a melee hit.
+	# 这条冲撞路径直接给出伤害，不读取自身 Damage 属性；近战也应用公共
+	# 力量/虚弱百分比。远程头颅、信标光柱和持续凋零不额外加成。
 	if melee:
 		for kind:String in ["strength","weakness"]:
 			var grade:int = EFFECTS.level_of(self,kind)
 			if grade > 0:
-				adjusted += float(EFFECTS.properties(kind,grade).melee_damage) * get_minecraft_potion_effect_ratio(EFFECTS.positive(kind))
+				var factor:float = float(EFFECTS.properties(kind,grade).damage_multiplier)
+				adjusted *= maxf(0.0,1.0+(factor-1.0)*get_minecraft_potion_effect_ratio(EFFECTS.positive(kind)))
 	adjusted = maxf(adjusted,0.0)
 	target.receive_positional_damage(adjusted,point,false,self)
 	var actual:float = maxf(before-maxf(target.health,0.0),0.0) if is_instance_valid(target) else before

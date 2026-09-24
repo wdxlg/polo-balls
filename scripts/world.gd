@@ -1865,6 +1865,9 @@ func _update_large_battle_mode(units:Array) -> void:
 		var unit:ball = raw_unit as ball
 		if unit.is_large_battle_performance_mode() != should_enable:
 			unit.set_large_battle_performance_mode(should_enable)
+			# 退出大规模模式会还原角色原始 mask；隐身期间不可短暂恢复身体互撞。
+			if bool(unit.get_meta(&"mc_ignore_character_body_collision",false)):
+				unit.set_collision_mask_value(2,false)
 
 
 # 功能：用统一空间网格计算角色间软分离。V105 默认 30Hz 刷新分离速度，角色真实物理仍保持 60Hz。
@@ -1889,7 +1892,7 @@ func _update_large_battle_crowd_separation(units:Array,delta:float) -> void:
 		var unit:ball = units[i] as ball
 		_battle_spatial_radii[i] = (
 			unit.get_crowd_separation_radius_world()
-			if unit != null and is_instance_valid(unit) and unit.health > 0
+			if unit != null and is_instance_valid(unit) and unit.health > 0 and not bool(unit.get_meta(&"mc_ignore_character_body_collision",false))
 			else 0.0
 		)
 

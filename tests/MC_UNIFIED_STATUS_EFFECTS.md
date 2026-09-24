@@ -18,17 +18,19 @@ var base: Dictionary = MC_EFFECTS.properties("mining_fatigue", 3)
 - 女巫药瓶沿用无限生命恢复／中毒、凋零及其独立虚弱 6.5 秒、隐身 6 秒、迅捷／力量／缓慢 8 秒；信标仍只抽 **五种一级主效果**并维持 6 秒；凋零头颅和玫瑰的凋零为 3 秒；潜影贝飘浮仍为 3 秒。持续时间**不是**等级公式的一部分。
 - 真实信息框从唯一状态节点读取种类、等级与实际剩余时间；39 种图标位于既有 `Images/UI/minecraft_tooltips/mob_effect/`，中英名称共用目录；瞬时状态没有假倒计时，女巫无限状态仍显示 `∞`。录制镜像复用真实时间，演示盔甲架仍仅供 UI 展示。
 
-## 已落地的等级计算及规则
+## 已落地的等级计算及规则（战斗数值按本项目配置，不等同于原版）
 
 | 原版效果 | 等级 I、II／公式 | 项目落地 |
 |---|---|---|
-| 迅捷／缓慢 | 移动 ×(1+0.20×等级)／×max(0,1−0.15×等级) | `Buff.Speed`，不同施法者不重复叠加 |
+| 迅捷／缓慢 | 移动 ×(1+0.20×等级)／×max(0,1−0.20×等级) | `Buff.Speed`，含目标效果倍率后仍至少为 0；不同施法者不重复叠加 |
 | 急迫／挖掘疲劳 | 攻速 +(10%×等级)／−(10%×等级) | `Attack_Cooling` 倒数；按用户指定挖掘疲劳降低**攻速**而非虚构挖矿玩法 |
-| 力量／虚弱 | 近战伤害 +(3×等级)／−(4×等级) HP | 同一个 `Buff.Damage` 加法；凋零的冲撞是近战，头颅／信标射线不加虚构远程伤害 |
+| 力量／虚弱 | `Damage` 属性 ×(1+0.10×等级)／×max(0,1−0.10×等级) | `Buff.Damage` 乘法；直接给定伤害的凋零冲撞按同一百分比处理，头颅／信标射线和凋零持续伤害不额外加成 |
 | 抗性提升 | 承伤减少 min(20%×等级,100%) | 同一 `Buff.Damage_reduction`；凋零不再另算 −10% |
-| 生命提升／伤害吸收 | 最大生命 +4×等级；临时额外承伤 4×等级 HP | 生命上限 Buff；先消耗临时生命再进入真实生命（普通／原始伤害都适用） |
-| 瞬间治疗／伤害 | 治疗 4×2^(等级−1)／伤害 6×2^(等级−1) HP | 一次结算，不留下假状态；保留目标自身的治疗／伤害反转 |
-| 生命恢复／中毒／凋零 | 每次 1 HP；周期分别 max(1,50≫(等级−1))、max(1,25≫(等级−1))、max(1,40≫(等级−1)) 游戏刻（20刻/秒） | 中毒不会低于 1 HP；凋零可致死；头颅、玫瑰与女巫的同级凋零同强度，绝不按受害者最大生命百分比改变 |
+| 生命提升／伤害吸收 | 最大生命 +20×等级；临时额外承伤 20×等级 HP | 生命上限 Buff；先消耗临时生命再进入真实生命（普通／原始伤害都适用） |
+| 瞬间治疗／伤害 | 两者均为 50×2^(等级−1) HP（I 级 50，II 级 100） | 一次结算，不留下假状态；保留目标自身的治疗／伤害反转 |
+| 生命恢复／中毒 | 每 5 游戏刻（0.25 秒）恢复／损失等级值 HP | 高频低额；中毒最多降到 1 HP、不会直接击杀；保留目标自身效果倍率与反转 |
+| 凋零 | 每 20 游戏刻（1 秒）扣当前最大生命 ×(1%×等级) | 只在权威端结算，允许致死；低于 1 HP 的小数跨秒累积，不向上取整虚增；头颅、玫瑰与女巫共用同一状态节点和等级强度 |
+| 隐身 | 角色身体的第 2 物理层／遮罩关闭，跳过大规模战斗软分离 | 保留第 1 层墙体和 Hitbox/Hurtbox，仍可被攻击/伤害；AI 不锁定；持续状态结束后只恢复原身体碰撞位，死亡时不重新开启 |
 | 飘浮 | 向上加速度随等级线性增长 | 原有真实定向重力及天花板阻挡，等级更高重力相应增强；不改变施加者选的秒数 |
 | 防火／水下呼吸／潮涌能量 | 防火免火；后两者免溺水 | 防火接入 `ball.get_fire_effect_ratio()`；`ball.receive_spatial_damage()` 对 `{"element":"drowning"}` 拒伤（项目**尚无氧气条/主动溺水源**），不免普通水攻击 |
 | 缓降 | 末端下落速度限定 | 有下降速度的角色限制为每刻 0.125 格（16px 格子为 40px/s） |
@@ -42,9 +44,11 @@ var base: Dictionary = MC_EFFECTS.properties("mining_fatigue", 3)
 
 ```powershell
 & ..\polo-balls-tools\offline-engine\runtime\Godot.4.7.2.offline.exe --headless --path . --script tests/test_mc_unified_status_effects.gd
+& ..\polo-balls-tools\offline-engine\runtime\Godot.4.7.2.offline.exe --headless --path . --script tests/test_mc_potion_phasing.gd
 & ..\polo-balls-tools\offline-engine\runtime\Godot.4.7.2.offline.exe --headless --path . --script tests/test_mc_active_potion_tooltips.gd
 & ..\polo-balls-tools\offline-engine\runtime\Godot.4.7.2.offline.exe --headless --path . --script tests/test_wither_live.gd
 & ..\polo-balls-tools\offline-engine\runtime\Godot.4.7.2.offline.exe --headless --path . --script tests/test_wither_beacon_revision.gd
+& ..\polo-balls-tools\offline-engine\runtime\Godot.4.7.2.offline.exe --headless --path . --script tests/test_bat_cohort_separation_guard.gd
 & ..\polo-balls-tools\offline-engine\runtime\Godot.4.7.2.offline.exe --path . --script tests/test_recording_mc_effect_tooltips.gd
 ```
 
@@ -52,3 +56,9 @@ var base: Dictionary = MC_EFFECTS.properties("mining_fatigue", 3)
 - **新夹具直接继承 `SceneTree`，无需 `new5` 的临时测试父类**。部分上述旧回归夹具依赖当前工作区中另一个会话尚未纳入 Git 的 `scripts/training/test_mc_new5.gd`，其结果是当前工作树验证，不代表单独检出本提交后旧夹具一定可独立运行。
 - 真实 NVIDIA RTX 4060 Laptop GPU、D3D12 / Forward+ 双语录像 **45/0**，实时和模拟模式都生成中英两份视频，并逐像素核对录制中的真实状态框；文件仅在测试专用 Godot `user://recordings/tooltip_recording_test/`，未提交。
 - **没有跑双客户端联机**；状态施加、衍生召唤与死亡波以权威端结算，凋零信标沿原有外观 RPC 同步计时，其他非信标状态尚不能宣称客户端已完整复制。Godot 运行中可见既有 shader 文件大小写/UID 警告，部分旧凋零场景卸载有资源泄漏警告，不能误记为本次断言失败。
+
+## 2026-09-25 药水战斗数值与隐身身体穿透
+
+- 上表按此次需求改为项目自定战斗数值：迅捷／缓慢各 20%/级、力量／虚弱各 10%/级、生命提升／伤害吸收各 20 HP/级、瞬时治疗／伤害 I 级 50 HP 且每级翻倍、生命恢复／中毒每 0.25 秒造成／恢复等级值 HP、凋零每级每秒扣当前最大生命的 1%。未列出的原有 39 种名称、图标、跨来源时长和效果不在本次修改范围。
+- 隐身只穿过其他角色的物理身体；地图墙、攻击 Hitbox、受击 Hurtbox、伤害结算仍有效。大规模模式的双向软分离与切换模式时恢复遮罩已同步处理；状态结束时恢复身体碰撞，而死亡时不会错误地重新打开碰撞。
+- 当前工作树的 Godot 4.7.2 **headless 实际运行**：统一状态 **125/0**（含分级数值、实际 Buff、持续脉冲、瞬时结算、低血量凋零小数结转、凋零近战百分比）；新增真实物理与软分离夹具 `tests/test_mc_potion_phasing.gd` **17/0**；女巫／实战状态框 **47/0**，凋零实战 **56/0**，信标 **47/0**，普通角色／蝙蝠批次软分离 **14/0**。VS Code 当前状态脚本及穿透夹具的 error/warning 诊断均为 0；未进行人工 GPU 画面或双客户端联机复测，不能把这两项说成通过。

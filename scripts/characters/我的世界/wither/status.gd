@@ -14,6 +14,7 @@ var level:int = 1
 var remaining:float = 0.0
 var applications:Dictionary = {}
 var tick_left:float = 2.0
+var _fractional_damage:float = 0.0
 var saved_color:Color = Color.WHITE
 var painted:bool = false
 var _particle_left:float = PARTICLE_INTERVAL
@@ -68,15 +69,20 @@ func _physics_process(delta:float) -> void:
 	var step:float = minf(maxf(delta,0.0),maxf(remaining,0.0)) if not is_inf(remaining) else maxf(delta,0.0)
 	if target.is_multiplayer_authority():
 		tick_left -= step
-		var period:float = float(EFFECTS.properties(effect_type,level).period_ticks)/20.0
+		var potency:Dictionary = EFFECTS.properties(effect_type,level)
+		var period:float = float(potency.period_ticks)/20.0
 		while tick_left <= 0.000001 and target.health > 0:
 			tick_left += period
-			# Flat 1 HP per pulse; amplifier changes INTERVAL, not amount, and
-			# a caster's Strength does not increase periodic effect damage.
+			# 每级每秒扣当前最大生命的 1%。生命是整数；跨脉冲累计不足 1 HP
+			# 的小数，避免低生命目标被舍入为 0 或每秒强制扣 1 而超额。
+			_fractional_damage += maxf(float(target.Max_health),0.0)*float(potency.max_health_damage_per_second)*ratio
+			var settled_damage:int = maxi(int(floor(_fractional_damage+0.000001)),0)
+			_fractional_damage = maxf(_fractional_damage-float(settled_damage),0.0)
+			if settled_damage <= 0: continue
 			var context:Dictionary = {"point":target.global_position,"shape":"all"}
 			var caster:Variant = source_ref.get_ref() if source_ref != null else null
 			if is_instance_valid(caster): context["source"] = caster
-			if target.receive_spatial_raw_health_damage(ratio,context):
+			if target.receive_spatial_raw_health_damage(float(settled_damage),context):
 				DAMAGE_SFX.play(target,target.global_position)
 	EFFECTS.elapse_sources(applications,delta)
 	_choose_application()

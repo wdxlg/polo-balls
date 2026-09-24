@@ -97,8 +97,9 @@ static func blocks_drowning(target:ball) -> bool:
 static func is_instant(kind:String) -> bool:
 	return canonical(kind) in ["instant_heal","instant_damage","saturation"]
 
-## Pure potency calculation.  These quantities NEVER depend on the source or
-## duration. Java tick timings are floored by integer shifts (50/25/40 ticks).
+## Pure potency calculation. These quantities NEVER depend on the source or
+## duration. Regen/Poison pulse every 5 game ticks; Wither pulses once a second
+## and resolves its percentage against the target's current max health.
 ## Environmental-only keys are exposed as data, not invented as combat Buffs.
 static func properties(kind:String,level:int = 1) -> Dictionary:
 	var name:String = canonical(kind)
@@ -107,26 +108,28 @@ static func properties(kind:String,level:int = 1) -> Dictionary:
 	var value:Dictionary = {"kind":name,"level":n}
 	match name:
 		"speed": value["move"] = 1.0 + 0.2*n
-		"slowness": value["move"] = maxf(0.0,1.0 - 0.15*n)
+		"slowness": value["move"] = maxf(0.0,1.0 - 0.2*n)
 		"haste":
 			value["attack_rate"] = 1.0 + 0.1*n
 			value["mining_rate"] = 1.0 + 0.2*n
 		"mining_fatigue": value["attack_rate"] = maxf(0.0,1.0 - 0.1*n)
-		"strength": value["melee_damage"] = 3.0*n
-		"weakness": value["melee_damage"] = -4.0*n
+		"strength": value["damage_multiplier"] = 1.0 + 0.1*n
+		"weakness": value["damage_multiplier"] = maxf(0.0,1.0 - 0.1*n)
 		"resistance": value["damage_reduction"] = minf(1.0,0.2*n)
-		"health_boost": value["extra_health"] = 4*n
-		"absorption": value["absorption"] = 4*n
+		"health_boost": value["extra_health"] = 20*n
+		"absorption": value["absorption"] = 20*n
 		"jump_boost":
 			value["jump_strength"] = 0.1*n
 			value["fall_damage_reduction"] = n
 		"levitation": value["upward_acceleration"] = 0.05*n
-		"instant_heal": value["instant_health"] = 4.0 * pow(2.0,mini(n-1,30))
-		"instant_damage": value["instant_damage"] = 6.0 * pow(2.0,mini(n-1,30))
-		"regen","poison","wither":
-			var ticks:int = 50 if name == "regen" else (25 if name == "poison" else 40)
-			value["period_ticks"] = maxi(1,ticks >> mini(n-1,31))
-			value["health_per_tick"] = 1.0 if name == "regen" else -1.0
+		"instant_heal": value["instant_health"] = 50.0 * pow(2.0,mini(n-1,30))
+		"instant_damage": value["instant_damage"] = 50.0 * pow(2.0,mini(n-1,30))
+		"regen","poison":
+			value["period_ticks"] = 5
+			value["health_per_tick"] = float(n) if name == "regen" else -float(n)
+		"wither":
+			value["period_ticks"] = 20
+			value["max_health_damage_per_second"] = 0.01*float(n)
 		"fire_resistance": value["fire_immune"] = true
 		"water_breathing": value["drowning_immune"] = true
 		"conduit_power":
@@ -137,7 +140,9 @@ static func properties(kind:String,level:int = 1) -> Dictionary:
 		"darkness": value["darkness"] = true
 		"dolphins_grace": value["swim_speed"] = 9.8
 		"glowing": value["outline_visible"] = true
-		"invisibility": value["hidden_from_ai"] = true
+		"invisibility":
+			value["hidden_from_ai"] = true
+			value["ignore_character_body_collision"] = true
 		"night_vision": value["night_vision"] = true
 		"nausea": value["camera_distortion"] = true
 		"slow_falling": value["slow_fall"] = true
@@ -244,12 +249,14 @@ static func apply_runtime_buffs(target:ball,status:Node,kind:String,level:int) -
 	# Short-lived Buffs are renewed by the ONE active status and explicitly
 	# erased on removal; they never outlive a beacon cancellation or level swap.
 	if p.has("move"):
-		world.call("new_buff",target,status,key+"move",Buff.new(2,0.25,Buff.Buff_types.Speed,1.0+(float(p.move)-1.0)*ratio,Buff.Algorithms.mul))
+		var move_factor:float = maxf(0.0,1.0+(float(p.move)-1.0)*ratio)
+		world.call("new_buff",target,status,key+"move",Buff.new(2,0.25,Buff.Buff_types.Speed,move_factor,Buff.Algorithms.mul))
 	if p.has("attack_rate"):
 		var rate:float = maxf(0.0,1.0+(float(p.attack_rate)-1.0)*ratio)
 		world.call("new_buff",target,status,key+"attack",Buff.new(2,0.25,Buff.Buff_types.Attack_Cooling,1.0/maxf(rate,0.0001),Buff.Algorithms.mul))
-	if p.has("melee_damage"):
-		world.call("new_buff",target,status,key+"damage",Buff.new(1,0.25,Buff.Buff_types.Damage,float(p.melee_damage)*ratio,Buff.Algorithms.add))
+	if p.has("damage_multiplier"):
+		var damage_factor:float = maxf(0.0,1.0+(float(p.damage_multiplier)-1.0)*ratio)
+		world.call("new_buff",target,status,key+"damage",Buff.new(1,0.25,Buff.Buff_types.Damage,damage_factor,Buff.Algorithms.mul))
 	if p.has("damage_reduction"):
 		world.call("new_buff",target,status,key+"resist",Buff.new(1,0.25,Buff.Buff_types.Damage_reduction,float(p.damage_reduction)*ratio,Buff.Algorithms.add))
 	if p.has("extra_health"):
