@@ -4,6 +4,8 @@ const ITEM:Texture2D = preload("res://Images/characters/我的世界/唤魔者/t
 const MC_FX = preload("res://scripts/effects/我的世界/mc_visual_effects.gd")
 const PARTICLE_COUNT:int = 88
 const LIFETIME:float = 1.55
+const ICON_WIDTH:float = 20.0 # Near the native 16px item size; the old 72px icon obscured the Evoker.
+const Z_SPIN_END:float = 0.82 # Finish one complete screen-facing (Z-axis) turn before fading.
 const PARTICLE_COLORS = [Color(1.0,0.97,0.36),Color(0.34,0.90,0.28),Color(0.72,0.98,0.32),Color(1.0,0.80,0.25)]
 
 var totem_sprite:Sprite2D
@@ -51,9 +53,12 @@ func advance_visual(delta:float) -> void:
 		return
 	var progress:float = clampf(age/LIFETIME,0.0,1.0)
 	var pop:float = 1.0-pow(1.0-minf(progress/0.15,1.0),3.0)
-	totem_sprite.scale = Vector2.ONE * (72.0/float(ITEM.get_width())) * (0.22+0.78*pop)
+	totem_sprite.scale = Vector2.ONE * (ICON_WIDTH/float(ITEM.get_width())) * (0.22+0.78*pop)
 	totem_sprite.position = Vector2(sin(progress*TAU*1.2)*6.0,-38.0-17.0*sin(progress*PI)-16.0*progress)
-	totem_sprite.rotation = sin(progress*PI*5.0)*0.12
+	# Node2D.rotation is about the view-facing Z axis. The previous +/-0.12rad
+	# wobble never showed the item's unmistakable activation spin.
+	var turn:float = clampf(progress/Z_SPIN_END,0.0,1.0)
+	totem_sprite.rotation = TAU * turn*turn*(3.0-2.0*turn)
 	totem_sprite.modulate.a = 1.0-smoothstep(0.73,1.0,progress)
 	for particle:Dictionary in particles:
 		var sprite:Sprite2D = particle.sprite
