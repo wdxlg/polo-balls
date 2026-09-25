@@ -5,7 +5,7 @@ const AZALEA:Texture2D = preload("res://Images/characters/我的世界/frontier/
 const FLOWERING:Texture2D = preload("res://Images/characters/我的世界/frontier/flowering_azalea_bush.png")
 # Above normal fighters and the flying elytra graphics (z=101), below HUD z=104.
 const CANOPY_Z:int = 103
-@export_range(0.60,0.95,0.05) var nearby_alpha:float = 0.60
+@export_range(0.40,0.95,0.05) var nearby_alpha:float = 0.40
 @export_range(0.10,0.80,0.01) var opacity_transition_time:float = 0.28
 var moss:Node2D
 var _alpha_states:Dictionary = {}
