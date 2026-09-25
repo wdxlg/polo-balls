@@ -132,12 +132,13 @@ func step_mob(delta: float) -> void:
 
 
 @rpc("authority", "call_remote", "reliable")
-func _spawn_shot_ring(point:Vector2) -> void:
+func _spawn_shot_ring(point:Vector2,shot_direction:Vector2) -> void:
 	var world:Node = get_tree().current_scene
 	if world == null: return
 	# Freeze the authoritative launch point, not the moving/recoiling bow sprite.
 	var ring:Node2D = COMBAT_FX.expanding_ring(world,point,8.0,
-		{"name":"HeavenfallShotRing","palette":SHOT_RING_PALETTE,"end_scale":3.0,"lifetime":0.38})
+		{"name":"HeavenfallShotRing","palette":SHOT_RING_PALETTE,"end_scale":3.0,"lifetime":0.38,
+		 "direction":shot_direction,"depth_ratio":0.35})
 	ring.add_to_group("HeavenfallShotRing")
 
 
@@ -150,8 +151,8 @@ func _fire() -> void:
 	var bolt: Area2D = BOLT.instantiate() as Area2D
 	world.add_child(bolt, true)
 	bolt.global_position = global_position + facing * muzzle_offset
-	_spawn_shot_ring(bolt.global_position)
-	if multiplayer.has_multiplayer_peer(): _spawn_shot_ring.rpc(bolt.global_position)
+	_spawn_shot_ring(bolt.global_position,facing)
+	if multiplayer.has_multiplayer_peer(): _spawn_shot_ring.rpc(bolt.global_position,facing)
 	# 旧箭矢接口保留参数位置，但箭体不再击退；瞬移到达的冲击仍由到达圆圈单独结算。
 	bolt.call("configure", self, Team, facing, bolt_speed, attack_damage(bolt_damage_mult), 0.0, homing_turn, homing_range, bolt_max_dist, rain_count, rain_radius, attack_damage(rain_damage_mult), rain_aoe, rain_delay)
 	# 出箭点取自静止弓身；箭离弦后弓才被震回（本弓只在拉满后松弦，强度恒为 1）。

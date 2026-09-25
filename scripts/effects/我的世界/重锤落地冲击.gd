@@ -31,6 +31,8 @@ const FLOOR_SAMPLER:Script = preload("res://scripts/effects/地表渲染采样.g
 @export var show_impact_streaks:bool = true
 @export var show_block_particles:bool = true # False: no floor readback, RNG or rubble work.
 @export var ring_palette:PackedColorArray = PackedColorArray() # Optional public override.
+@export var ring_axis:Vector2 = Vector2.RIGHT # Projected normal of the ring plane.
+@export_range(0.05,1.0,0.01) var ring_depth_ratio:float = 1.0 # 1 keeps the legacy flat circle.
 @export var pause_with_battle:bool = false # Opt-in; preserves existing impact callers.
 @export_range(0.0,4.0,0.05) var block_source_center_bias_exponent:float = 0.0 # 0=沿用重锤均匀散布
 @export var block_source_inner_radius_scale:float = 0.0 # Optional annulus; zero preserves existing callers.
@@ -234,7 +236,11 @@ func _draw_ring_and_streaks() -> void:
 		var expand:float = 1.0 - pow(1.0 - p,3.1)
 		var alpha:float = pow(1.0 - p,1.28)
 		var radius_value:float = lerpf(_radius,_radius * maxf(ring_end_scale,1.0),expand)
+		# Compress the normal axis, not the in-plane transverse axis: a hoop facing the shot.
+		# Transform the existing pixel annulus including its stroke; reset before other components.
+		draw_set_transform(Vector2.ZERO,ring_axis.angle(),Vector2(clampf(ring_depth_ratio,0.05,1.0),1.0))
 		preload("res://scripts/effects/我的世界/pixel_arc.gd").draw_ring(self,Vector2.ZERO,radius_value,Color.WHITE,alpha,ring_palette)
+		draw_set_transform(Vector2.ZERO,0.0,Vector2.ONE)
 
 	if not show_impact_streaks: return
 	for data:Dictionary in _streaks:

@@ -104,6 +104,7 @@ func run() -> void:
 	guest_unit._fire()
 	check(rings().is_empty(),"non-authority direct fire cannot originate a shot ring")
 	host_unit.facing = Vector2(0.6,0.8)
+	var launch_direction:Vector2 = host_unit.facing
 	var expected:Vector2 = host_unit.global_position+host_unit.facing*host_unit.muzzle_offset
 	host_unit._fire()
 	freeze_rings()
@@ -114,16 +115,21 @@ func run() -> void:
 	check(rings().size() == 1,"authority produces one local ring before network polling")
 	host_unit.global_position += Vector2(160,40)
 	guest_unit.global_position += Vector2(-80,60)
+	host_unit.facing = Vector2.LEFT
+	guest_unit.facing = Vector2.UP
 	var received:bool = await until(func(): freeze_rings(); return rings().size() == 2)
 	check(received,"reliable visual RPC reaches the independent ENet peer exactly once")
 	var same_point:bool = received
+	var same_direction:bool = received
 	var same_palette:bool = received
 	var harmless:bool = received
 	for ring:Node2D in rings():
 		same_point = same_point and ring.global_position.is_equal_approx(expected)
+		same_direction = same_direction and ring.ring_axis.is_equal_approx(launch_direction) and is_equal_approx(ring.ring_depth_ratio,0.35)
 		same_palette = same_palette and ring.ring_palette == PackedColorArray(host_unit.SHOT_RING_PALETTE)
 		harmless = harmless and not ring.is_in_group("AI_Hazard") and ring._blocks.is_empty() and ring.get_child_count() == 0
 	check(same_point,"both peers use transmitted launch coordinates, not shifted actor positions")
+	check(same_direction,"both peers use launch-plane normal from RPC, never their shifted live facing")
 	check(same_palette,"both peers use identical teal/cyan/silver palette")
 	check(harmless,"neither peer creates damage, hitbox, hazard, rubble or sound with the ring")
 	var state:Dictionary = host_unit.visual_state()

@@ -86,6 +86,9 @@ static func expanding_ring(parent:Node,point:Vector2,radius:float,options:Dictio
 	effect.lifetime = maxf(float(options.get("lifetime",0.38)),0.02)
 	effect.ring_end_scale = maxf(float(options.get("end_scale",3.0)),1.0)
 	effect.ring_palette = PackedColorArray(options.get("palette",[]))
+	var direction:Vector2 = options.get("direction",Vector2.RIGHT)
+	effect.ring_axis = direction.normalized() if direction.length_squared() > 0.000001 else Vector2.RIGHT
+	effect.ring_depth_ratio = clampf(float(options.get("depth_ratio",1.0)),0.05,1.0)
 	effect.set_as_top_level(true)
 	parent.add_child(effect,true)
 	effect.setup(point,radius)

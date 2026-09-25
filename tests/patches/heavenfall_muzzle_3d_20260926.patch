@@ -1,0 +1,257 @@
+diff --git a/scripts/effects/我的世界/重锤落地冲击.gd b/scripts/effects/我的世界/重锤落地冲击.gd
+--- a/scripts/effects/我的世界/重锤落地冲击.gd
++++ b/scripts/effects/我的世界/重锤落地冲击.gd
+@@ -31,6 +31,8 @@
+ @export var show_impact_streaks:bool = true
+ @export var show_block_particles:bool = true # False: no floor readback, RNG or rubble work.
+ @export var ring_palette:PackedColorArray = PackedColorArray() # Optional public override.
++@export var ring_axis:Vector2 = Vector2.RIGHT # Projected normal of the ring plane.
++@export_range(0.05,1.0,0.01) var ring_depth_ratio:float = 1.0 # 1 keeps the legacy flat circle.
+ @export var pause_with_battle:bool = false # Opt-in; preserves existing impact callers.
+ @export_range(0.0,4.0,0.05) var block_source_center_bias_exponent:float = 0.0 # 0=沿用重锤均匀散布
+ @export var block_source_inner_radius_scale:float = 0.0 # Optional annulus; zero preserves existing callers.
+@@ -242,7 +244,11 @@
+ 		var expand:float = 1.0 - pow(1.0 - p,3.1)
+ 		var alpha:float = pow(1.0 - p,1.28)
+ 		var radius_value:float = lerpf(_radius,_radius * maxf(ring_end_scale,1.0),expand)
++		# Compress the normal axis, not the in-plane transverse axis: a hoop facing the shot.
++		# Transform the existing pixel annulus including its stroke; reset before other components.
++		draw_set_transform(Vector2.ZERO,ring_axis.angle(),Vector2(clampf(ring_depth_ratio,0.05,1.0),1.0))
+ 		preload("res://scripts/effects/我的世界/pixel_arc.gd").draw_ring(self,Vector2.ZERO,radius_value,Color.WHITE,alpha,ring_palette if not ring_palette.is_empty() else _ring_palette)
++		draw_set_transform(Vector2.ZERO,0.0,Vector2.ONE)
+ 
+ 	if not show_impact_streaks: return
+ 	for data:Dictionary in _streaks:
+diff --git a/scripts/effects/我的世界/mc_combat_abilities.gd b/scripts/effects/我的世界/mc_combat_abilities.gd
+--- a/scripts/effects/我的世界/mc_combat_abilities.gd
++++ b/scripts/effects/我的世界/mc_combat_abilities.gd
+@@ -86,6 +86,9 @@
+ 	effect.lifetime = maxf(float(options.get("lifetime",0.38)),0.02)
+ 	effect.ring_end_scale = maxf(float(options.get("end_scale",3.0)),1.0)
+ 	effect.ring_palette = PackedColorArray(options.get("palette",[]))
++	var direction:Vector2 = options.get("direction",Vector2.RIGHT)
++	effect.ring_axis = direction.normalized() if direction.length_squared() > 0.000001 else Vector2.RIGHT
++	effect.ring_depth_ratio = clampf(float(options.get("depth_ratio",1.0)),0.05,1.0)
+ 	effect.set_as_top_level(true)
+ 	parent.add_child(effect,true)
+ 	effect.setup(point,radius)
+diff --git a/scripts/characters/我的世界/new6/heavenfall_longbow.gd b/scripts/characters/我的世界/new6/heavenfall_longbow.gd
+--- a/scripts/characters/我的世界/new6/heavenfall_longbow.gd
++++ b/scripts/characters/我的世界/new6/heavenfall_longbow.gd
+@@ -155,8 +155,8 @@
+ 	var bolt: Area2D = BOLT.instantiate() as Area2D
+ 	world.add_child(bolt, true)
+ 	bolt.global_position = global_position + facing * muzzle_offset
+-	_spawn_shot_ring(bolt.global_position)
+-	if multiplayer.has_multiplayer_peer(): _spawn_shot_ring.rpc(bolt.global_position)
++	_spawn_shot_ring(bolt.global_position,facing)
++	if multiplayer.has_multiplayer_peer(): _spawn_shot_ring.rpc(bolt.global_position,facing)
+ 	# 旧箭矢接口保留参数位置，但箭体不再击退；瞬移到达的冲击仍由到达圆圈单独结算。
+ 	bolt.call("configure", self, Team, facing, bolt_speed, attack_damage(bolt_damage_mult), 0.0, homing_turn, homing_range, bolt_max_dist, rain_count, rain_radius, attack_damage(rain_damage_mult), rain_aoe, rain_delay)
+ 	# 出箭点取自静止弓身；箭离弦后弓才被震回（本弓只在拉满后松弦，强度恒为 1）。
+@@ -167,12 +167,13 @@
+ 
+ 
+ @rpc("authority", "call_remote", "reliable")
+-func _spawn_shot_ring(point:Vector2) -> void:
++func _spawn_shot_ring(point:Vector2,shot_direction:Vector2) -> void:
+ 	var world:Node = get_tree().current_scene
+ 	if world == null: return
+ 	# Freeze the authoritative launch point, not the moving/recoiling bow sprite.
+ 	var ring:Node2D = COMBAT_FX.expanding_ring(world,point,8.0,
+-		{"name":"HeavenfallShotRing","palette":SHOT_RING_PALETTE,"end_scale":3.0,"lifetime":0.38})
++		{"name":"HeavenfallShotRing","palette":SHOT_RING_PALETTE,"end_scale":3.0,"lifetime":0.38,
++		 "direction":shot_direction,"depth_ratio":0.35})
+ 	ring.add_to_group("HeavenfallShotRing")
+ 
+ 
+diff --git a/tests/test_heavenfall_muzzle_ring.gd b/tests/test_heavenfall_muzzle_ring.gd
+--- a/tests/test_heavenfall_muzzle_ring.gd
++++ b/tests/test_heavenfall_muzzle_ring.gd
+@@ -23,6 +23,16 @@
+ 				if c.g > c.r*1.2 and c.b > c.r*1.2: cyan += 1
+ 	return {"count":count,"peak":peak,"radius":radius,"cyan":cyan}
+ 
++func projected_extent(img:Image,axis:Vector2) -> Vector2:
++	var extent:=Vector2.ZERO
++	for y:int in img.get_height():
++		for x:int in img.get_width():
++			if img.get_pixel(x,y).a <= 0.008: continue
++			var point:Vector2 = Vector2(x+0.5,y+0.5)-Vector2(64,64)
++			extent.x = maxf(extent.x,absf(point.dot(axis)))
++			extent.y = maxf(extent.y,absf(point.dot(axis.orthogonal())))
++	return extent
++
+ func gpu_ring() -> void:
+ 	if DisplayServer.get_name() == "headless":
+ 		print("MUZZLE_GPU_SKIPPED headless; run gl_compatibility for real pixels")
+@@ -32,7 +42,7 @@
+ 	view.transparent_bg = true
+ 	view.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+ 	root.add_child(view)
+-	var ring:Node2D = FX.expanding_ring(view,Vector2(64,64),8,{"palette":[Color("14534f"),Color("83dbd6"),Color("c8c8c8")]})
++	var ring:Node2D = FX.expanding_ring(view,Vector2(64,64),8,{"palette":[Color("14534f"),Color("83dbd6"),Color("c8c8c8")],"direction":Vector2.RIGHT,"depth_ratio":0.35})
+ 	ring.set_process(false)
+ 	var samples:Array[Dictionary] = []
+ 	for age:float in [0.0,0.19,0.34,0.38]:
+@@ -41,7 +51,7 @@
+ 		await process_frame
+ 		RenderingServer.force_draw(false)
+ 		var img:Image = view.get_texture().get_image()
+-		img.save_png("user://heavenfall_muzzle_%.2f.png" % age)
++		img.save_png("user://heavenfall_muzzle_3d_%.2f.png" % age)
+ 		samples.append(image_metrics(img))
+ 		check(img.get_pixel(64,64).a < 0.005,"GPU hollow center remains transparent at %.2fs" % age)
+ 	print("MUZZLE_GPU_METRICS ",samples)
+@@ -49,6 +59,16 @@
+ 	check(samples[1].radius > samples[0].radius+5 and samples[2].radius >= samples[1].radius-3.0 and samples[2].radius > samples[0].radius+5,"GPU pixel circumference expands outward")
+ 	check(samples[0].peak > samples[1].peak and samples[1].peak > samples[2].peak,"GPU ring alpha fades continuously")
+ 	check(samples[3].count == 0,"GPU ring disappears exactly at lifetime")
++	for axis:Vector2 in [Vector2.RIGHT,Vector2.DOWN,Vector2.LEFT,Vector2.UP,Vector2(1,1).normalized(),Vector2(-1,1).normalized()]:
++		ring.ring_axis = axis
++		ring._elapsed = 0.12
++		ring.queue_redraw()
++		await process_frame
++		RenderingServer.force_draw(false)
++		var image:Image = view.get_texture().get_image()
++		var extent:Vector2 = projected_extent(image,axis)
++		check(extent.y > extent.x*1.8 and extent.x > 3.0,"GPU hoop is compressed along shot normal, wide across it: "+str(axis))
++		image.save_png("user://heavenfall_muzzle_3d_direction_%d.png" % int(rad_to_deg(axis.angle())))
+ 	view.queue_free()
+ 	await process_frame
+ 
+@@ -75,7 +95,7 @@
+ 	await create_timer(0.4).timeout
+ 	var center:Vector2 = world.return_map_world_rect(world.map_group["Map50x50"]).get_center()
+ 	var legacy:Node2D = GROUND.new()
+-	check(legacy.show_block_particles and legacy.show_impact_streaks and not legacy.pause_with_battle,"existing impact defaults preserve rubble/streaks and clock")
++	check(legacy.show_block_particles and legacy.show_impact_streaks and not legacy.pause_with_battle and is_equal_approx(legacy.ring_depth_ratio,1.0),"existing impact defaults preserve rubble/streaks and clock")
+ 	legacy.free()
+ 	var parent:=Node2D.new()
+ 	parent.position = Vector2(33,18)
+@@ -91,6 +111,7 @@
+ 	check(world.get_node_or_null("GroundSurfaceSampler") == sampler_before,"pure ring never creates a floor readback node")
+ 	check(pure.get_child_count() == 0 and not pure.is_in_group("AI_Hazard") and pure.is_in_group("BattleTransient"),"pure transient has no hitboxes, hazard or audio children")
+ 	check(is_equal_approx(pure._effect_end_time,0.8) and pure.ring_palette[0] == Color.CYAN,"custom lifetime and palette are applied without the block builder")
++	check(is_equal_approx(pure.ring_depth_ratio,1.0),"generic callers keep a flat circle unless projection is requested")
+ 	parent.position += Vector2(100,30)
+ 	check(pure.global_position.is_equal_approx(center),"spawned ring does not follow its moving parent")
+ 	game.now_stop_state = true
+@@ -131,9 +152,12 @@
+ 	check(is_equal_approx(ring._radius,8.0) and is_equal_approx(ring.ring_end_scale,3.0) and is_equal_approx(ring.lifetime,0.38),"muzzle ring expands from radius 8 toward 24 over 0.38s")
+ 	check(ring.ring_palette == PackedColorArray(bow.SHOT_RING_PALETTE),"muzzle uses the native longbow teal/cyan/silver palette")
+ 	bow.global_position += Vector2(70,15)
++	var launch_axis:Vector2 = ring.ring_axis
++	check(launch_axis.is_equal_approx(bow.facing) and is_equal_approx(ring.ring_depth_ratio,0.35),"bow hoop normal matches launch direction with pseudo-3D depth")
++	bow.facing = Vector2.UP
+ 	bow._start_recoil(1.0,Vector2.RIGHT,bow.clock)
+ 	bow.visual_mob()
+-	check(ring.global_position.is_equal_approx(origin),"moving/recoiling bow leaves its emitted ring world-anchored")
++	check(ring.global_position.is_equal_approx(origin) and ring.ring_axis.is_equal_approx(launch_axis),"moving/recoiling/turning bow leaves emitted position and orientation frozen")
+ 	bow.step_mob(0.01)
+ 	check(rings().size() == 1,"cooldown/held input cannot duplicate the ring")
+ 	var state:Dictionary = bow.visual_state()
+@@ -156,7 +180,7 @@
+ 	bow.set_multiplayer_authority(1)
+ 	var hp:float = enemy.health
+ 	var hazards:int = get_nodes_in_group("AI_Hazard").size()
+-	bow._spawn_shot_ring(enemy.global_position)
++	bow._spawn_shot_ring(enemy.global_position,Vector2.LEFT)
+ 	freeze_shots()
+ 	check(enemy.health == hp and get_nodes_in_group("AI_Hazard").size() == hazards,"visual-only ring adds no damage or threat")
+ 	for n:Node in rings(): n._process(1.0)
+diff --git a/tests/test_heavenfall_muzzle_network.gd b/tests/test_heavenfall_muzzle_network.gd
+--- a/tests/test_heavenfall_muzzle_network.gd
++++ b/tests/test_heavenfall_muzzle_network.gd
+@@ -104,6 +104,7 @@
+ 	guest_unit._fire()
+ 	check(rings().is_empty(),"non-authority direct fire cannot originate a shot ring")
+ 	host_unit.facing = Vector2(0.6,0.8)
++	var launch_direction:Vector2 = host_unit.facing
+ 	var expected:Vector2 = host_unit.global_position+host_unit.facing*host_unit.muzzle_offset
+ 	host_unit._fire()
+ 	freeze_rings()
+@@ -114,16 +115,21 @@
+ 	check(rings().size() == 1,"authority produces one local ring before network polling")
+ 	host_unit.global_position += Vector2(160,40)
+ 	guest_unit.global_position += Vector2(-80,60)
++	host_unit.facing = Vector2.LEFT
++	guest_unit.facing = Vector2.UP
+ 	var received:bool = await until(func(): freeze_rings(); return rings().size() == 2)
+ 	check(received,"reliable visual RPC reaches the independent ENet peer exactly once")
+ 	var same_point:bool = received
++	var same_direction:bool = received
+ 	var same_palette:bool = received
+ 	var harmless:bool = received
+ 	for ring:Node2D in rings():
+ 		same_point = same_point and ring.global_position.is_equal_approx(expected)
++		same_direction = same_direction and ring.ring_axis.is_equal_approx(launch_direction) and is_equal_approx(ring.ring_depth_ratio,0.35)
+ 		same_palette = same_palette and ring.ring_palette == PackedColorArray(host_unit.SHOT_RING_PALETTE)
+ 		harmless = harmless and not ring.is_in_group("AI_Hazard") and ring._blocks.is_empty() and ring.get_child_count() == 0
+ 	check(same_point,"both peers use transmitted launch coordinates, not shifted actor positions")
++	check(same_direction,"both peers use launch-plane normal from RPC, never their shifted live facing")
+ 	check(same_palette,"both peers use identical teal/cyan/silver palette")
+ 	check(harmless,"neither peer creates damage, hitbox, hazard, rubble or sound with the ring")
+ 	var state:Dictionary = host_unit.visual_state()
+diff --git a/MCP_CONTEXT.md b/MCP_CONTEXT.md
+--- a/MCP_CONTEXT.md
++++ b/MCP_CONTEXT.md
+@@ -114,3 +114,4 @@
+ - 硫方怪蜂蜜仅与被黏住者成对免物理碰撞（保留其他人物/地形及受击），并与大规模软分离一致；临时成对排除复用 `classes/body_collision_exclusions.gd` 租约。冰径在地面 Z=-4；紫水晶权威随机 3–8 根及位置，允许同向多根，每根对每名敌人每轮生长独立命中一次，布局/再生/齐射同步。追补和回退范围见 `tests/SULFUR_CUBE_CONTACTS_20260926.md`。
+ - 硫方怪平衡追补：铁首次冲击、附着紫水晶及晶体投射物的伤害系数均降低30%；铁底部常态接触及下砸均可持续碾压，低额定频结算并复用公共击退。冰径不再仅加 Speed 倍率，而用 `surface_acceleration.gd` 沿目标自身真实位移方向积分加速、限制上限并在离冰后衰减；公共移动链接 `ball.surface_motion_velocity`。实测位移、威胁/手控/ENet与回退范围见 `tests/SULFUR_CUBE_BALANCE_20260926.md`。
+ - 天堂陨落长弓每次真实出箭，在箭矢出生世界坐标播放8→24半径、0.38秒青绿/浅青/银白扩散渐隐空心环。纯视觉可靠RPC每端一次，不从状态回放重播；复用 `mc_combat_abilities.gd::expanding_ring` 的重锤/像素环实现，不带伤害、碎屑、地表读回或新音效，暂停冻结。参数、230项回归和回退边界见 `tests/HEAVENFALL_MUZZLE_RING_20260926.md`。
++- 天堂陨落长弓发射环须是面向弓头/出箭方向的伪3D环面，不是屏幕正圆：公共 `expanding_ring` 支持 `direction/depth_ratio`，沿发射法线压缩至0.35、横向保持原尺寸；权威RPC同步出生点及出生朝向，出圈后不追随转头。旧平面调用默认depth_ratio=1。239项回归及回退见 `tests/HEAVENFALL_MUZZLE_3D_20260926.md`。
+diff --git a/docs/MC_COMBAT_REUSE.md b/docs/MC_COMBAT_REUSE.md
+--- a/docs/MC_COMBAT_REUSE.md
++++ b/docs/MC_COMBAT_REUSE.md
+@@ -12,7 +12,7 @@
+ | 火焰伤害 | `ball.receive_fire_positional_damage(amount,point,false,caster)` / `receive_fire_spatial_damage(amount,space)`；`can_receive_fire_status()` | `fire_effect_ratio=0` 火免，正值缩放；已有药水火抗也免疫。燃烧状态复用现有状态类，按实际有效伤害播 MC 音效。烈焰弹直击/烈焰火场已接入。普通爆炸不默认算火焰。 |
+ | 砸地/地板碎屑 | `mc_combat_abilities.gd::ground_impact(parent,point,radius,options)` → `重锤落地冲击.gd` | `show_impact_ring/show_impact_streaks`、方块来源/数量/尺寸/高度/飞行时间/散布、中心高度曲线等导出参数；白圈、碎屑可分别关闭。重锤、铁傀儡、三叉戟、监守者及长弓落箭共用真实地表采样与碎屑运动；角色负责伤害。 |
+ | MC 像素外圈 / 蓄力填充盘 | `pixel_arc.gd::draw_ring(canvas,center,radius,tint,opacity,palette)` / `draw_disk(canvas,center,radius,color)`；持续预警用 `mc_combat_abilities.gd::charge_circle(parent,radius,options)` → `mc_charge_circle.gd` | 重锤与 TNT 共享三层像素环；填充复用同一扫描线缓存。`set_charge(world_point,world_radius,progress)` 由角色真实计时更新，支持颜色、透明度，世界尺度不受父节点缩放影响；角色负责结束隐藏/删除与权威伤害。后续 MC 范围圈优先用此接口，不再另写平滑 `draw_arc/draw_circle` 或复制三层常量。回归见 `tests/SULFUR_CUBE_POLISH_20260926.md`。 |
+-| 无伤害扩散渐隐像素环 | `mc_combat_abilities.gd::expanding_ring(parent,point,radius,options)` → 原 `重锤落地冲击.gd` → `pixel_arc.draw_ring` | `palette` 三层颜色、`end_scale`、`lifetime`、`z_index`、`name`；世界坐标/尺寸不随父节点缩放移动，半径沿用公共下限8。关闭方块、射线与地表读回，不消费战斗随机种子；暂停冻结，归入 `BattleTransient`，按 lifetime 自清理。施术者只在真实触发时可靠 RPC 每端播一次，不从状态回放重复发圈。天堂陨落长弓已接入，见 `tests/HEAVENFALL_MUZZLE_RING_20260926.md`。 |
++| 无伤害扩散渐隐像素环 | `mc_combat_abilities.gd::expanding_ring(parent,point,radius,options)` → 原 `重锤落地冲击.gd` → `pixel_arc.draw_ring` | `palette` 三层颜色、`end_scale`、`lifetime`、`z_index`、`name`；`direction` 为环面朝向/法线，`depth_ratio` 沿法线投影压缩（默认1平面；长弓0.35伪3D），横向不压缩；世界坐标/尺寸不随父节点缩放移动，半径沿用公共下限8。关闭方块、射线与地表读回，不消费战斗随机种子；暂停冻结，归入 `BattleTransient`，按 lifetime 自清理。施术者只在真实触发时可靠 RPC 每端播一次，不从状态回放重复发圈。天堂陨落长弓已接入，见 `tests/HEAVENFALL_MUZZLE_RING_20260926.md`。 |
+ | 爆炸 | `mc_combat_abilities.gd::explosion(context,point,radius,options)` → `mc_explosion.gd` | 声音、种子、粒子量、场外显示等仅改变表现；伤害和命中判定归权威技能。 |
+ | 飞离地图的贴图碎裂（物品死亡等） | `item_fragments.gd::spawn(character,options={})` 供角色；任意可视节点 `spawn_visual(node,options={},tile_info={})`，裸纹理 `spawn_texture(context,texture,point,scale_factor,options)`；旧障碍兼容入口 `spawn_obstacle(node,tile_info={},options={})` | 取源 Sprite/Polygon/TileMap 当前贴图切片，碎片向上飞、旋转并落出地图后删除；`gravity/launch_up_min/launch_up_max/horizontal_speed/spin_speed` 可调。木矛、重锤、钻石剑、铜剑等死亡使用它；**恶魂/凋零破障本来就使用其 `spawn_obstacle` 入口，此次保持原状**。这是通用特效，不限于人物死亡，也不是落地小方块特效。 |
+ | 方块破坏小粒子（落地） | `block_fragments.gd::spawn_obstacle(block,tile_info={},options={})`，无 Sprite 的方块用 `spawn_texture(context,texture,point,scale_factor,options)` | 取原方块 Sprite/TileMap atlas/Polygon（或传入原版方块纹理），切成至多 `max_pieces` 块；`scatter_radius/arc_height_min/arc_height_max/flight_min/flight_max/ground_hold/fade_time/spin_speed/z_layer` 可调。碎块沿抛物线飞出、**落地停留**再淡出；轨道覆盖、剑工作台与苔藓破块沿用之前已接入的调用。**不更改恶魂/凋零破障原有的离场碎裂与进度、伤害逻辑**。 |
+@@ -41,3 +41,5 @@
+ 2026-09-26 硫方怪平衡追补：铁/紫水晶三类单次伤害系数×0.7；铁底部每0.25秒小额持续碾压，调用 `apply_knockback` 续用同一控制器、不锁死输入。新地表控制器区别于定向重力/技能击退：加速度由目标自身实际运动决定，不修改 Speed、Repel 或施术者朝向。参数、真实位移与173项回归见 `tests/SULFUR_CUBE_BALANCE_20260926.md`。
+ 
+ 2026-09-26 天堂陨落长弓发射环：真实箭矢出生点触发8→24像素半径、0.38秒扩散渐隐青绿/浅青/银白空心环；复用现有重锤时序与三层像素光栅，不改变箭雨/瞬移到达圈伤害。230项检查含GPU与单进程双ENet端，边界与回退见专题报告。
++
++2026-09-26 发射环朝向纠正：长弓使用法线与箭矢一致的伪3D透视椭圆，并可靠同步发射瞬间的方向，不使用接收端实时朝向。复用同一像素环draw变换，旧地面圈不变；GPU六方向、衰减和ENet等239项回归见 `tests/HEAVENFALL_MUZZLE_3D_20260926.md`。
+diff --git a/tests/HEAVENFALL_MUZZLE_3D_20260926.md b/tests/HEAVENFALL_MUZZLE_3D_20260926.md
+new file mode 100644
+--- /dev/null
++++ b/tests/HEAVENFALL_MUZZLE_3D_20260926.md
+@@ -0,0 +1,31 @@
++# 天堂陨落长弓发射环：伪3D朝向纠正
++
++2026-09-26，用户明确要求“这个圈应该是伪3d的。朝着弓头的方向”。本次将上版屏幕正圆改为**环面法线与出箭方向一致**的透视椭圆。
++
++## 实现
++
++- 仍在真实箭矢出生点发圈；`_spawn_shot_ring(point,shot_direction)` 可靠RPC同时传递出生点与当时方向，不用接收端当前位置/当前瞄准方向推导。
++- 公共 `expanding_ring` 新增 `direction`（默认RIGHT，归一化，零向量回退RIGHT）、`depth_ratio`（默认1，限0.05–1）。长弓取0.35。
++- 原重锤效果新增 `ring_axis/ring_depth_ratio`；对现有 `pixel_arc.draw_ring` 的整个环及笔画施加2D正交投影：沿法线压缩、垂直于法线的轴保持。向右射时环呈竖椭圆，向上射时呈横椭圆，斜射随之旋转。不是仅旋转一个正圆，也不将椭圆长轴错误地指向箭头。
++- 环面法线、中心在发射时固定，后续转头、移动、后坐不带动旧圈；环内空心，保持青绿/浅青/银白三层色、半径8→24、0.38秒扩大渐隐及暂停冻结。
++- 仍复用公共时序和像素扫描线，不增加3D资源、伤害、声音、碰撞、碎屑或地表采样。绘图变换在环绘制后立即复原，不影响射线和碎块。旧调用默认比例1、朝向RIGHT，原地面圆环保持原样。
++
++## 验证
++
++真实 Godot 4.7.2 offline 引擎，OpenGL Compatibility / NVIDIA RTX 4060 Laptop，6套重跑均退出0，**239项通过、0失败**：
++
++- `test_heavenfall_muzzle_ring.gd`：41/41；GPU上/下/左/右/两种斜向的横轴长度明显大于法线轴、扩大渐隐、中心透明；手控/AI发射与出生朝向冻结、公共默认平面回归。
++- `test_heavenfall_muzzle_network.gd`：17/17；单引擎进程内独立双 SceneMultiplayer + ENet + 实际Spawner。发射后刻意改变两端朝向与位置，远端仍使用包内出生坐标/法线；无重复/无伤害、暂停清理保持。
++- 长弓 contacts 22/22、transit 53/53、arrow_pierce 71/71；硫方怪 polish 35/35，共享平面像素环/TNT与原版晶簇回归通过。
++
++GPU时间0/0.19/0.34/0.38秒的可见像素120/360/180/0，峰值alpha约0.988/0.533/0.086/0。截图 `user://heavenfall_muzzle_3d_*.png`；已读回并查看斜向投影截图。日志 `tests/<测试名>_muzzle3d_final.log`。
++
++未做双机器人工联机、弱网、压力测试或实际录制编码验收。原有shader UID/大小写警告、旧长弓夹具退出约186–190个ObjectDB实例泄漏仍在，新两套夹具无脚本错误。
++
++## 版本/回退
++
++开始前HEAD：`415ea276c435b242ab56ad82ab72e62c55feb1ab`。检查点：`E:/godot/polo-balls-tools/checkpoints/heavenfall-muzzle-3d-20260926-052722`，含原文件、索引与工作区补丁。
++
++开始时其他唤魔者更改已在暂存区；验证期间另有唤魔者/美术提交推进HEAD。保留这些提交与其他工作，仅将本次参数、方向RPC、测试/说明提交在最新HEAD之后。提交前后ID见检查点 `commit_result.json`。
++
++本次专用补丁：`tests/patches/heavenfall_muzzle_3d_20260926.patch`。关闭运行中的游戏，备份并检查后，使用 `git apply --reverse --check <补丁>`；检查通过才可去掉 `--check` 手动回退。只撤销本次伪3D方向增量，恢复上一版正圆，不删除上一版发射圆环；保留其他工作。已做反向检查，未实际执行回退，不使用整库reset。

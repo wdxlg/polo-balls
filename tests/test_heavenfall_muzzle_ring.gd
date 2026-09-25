@@ -23,6 +23,16 @@ func image_metrics(img:Image) -> Dictionary:
 				if c.g > c.r*1.2 and c.b > c.r*1.2: cyan += 1
 	return {"count":count,"peak":peak,"radius":radius,"cyan":cyan}
 
+func projected_extent(img:Image,axis:Vector2) -> Vector2:
+	var extent:=Vector2.ZERO
+	for y:int in img.get_height():
+		for x:int in img.get_width():
+			if img.get_pixel(x,y).a <= 0.008: continue
+			var point:Vector2 = Vector2(x+0.5,y+0.5)-Vector2(64,64)
+			extent.x = maxf(extent.x,absf(point.dot(axis)))
+			extent.y = maxf(extent.y,absf(point.dot(axis.orthogonal())))
+	return extent
+
 func gpu_ring() -> void:
 	if DisplayServer.get_name() == "headless":
 		print("MUZZLE_GPU_SKIPPED headless; run gl_compatibility for real pixels")
@@ -32,7 +42,7 @@ func gpu_ring() -> void:
 	view.transparent_bg = true
 	view.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	root.add_child(view)
-	var ring:Node2D = FX.expanding_ring(view,Vector2(64,64),8,{"palette":[Color("14534f"),Color("83dbd6"),Color("c8c8c8")]})
+	var ring:Node2D = FX.expanding_ring(view,Vector2(64,64),8,{"palette":[Color("14534f"),Color("83dbd6"),Color("c8c8c8")],"direction":Vector2.RIGHT,"depth_ratio":0.35})
 	ring.set_process(false)
 	var samples:Array[Dictionary] = []
 	for age:float in [0.0,0.19,0.34,0.38]:
@@ -41,7 +51,7 @@ func gpu_ring() -> void:
 		await process_frame
 		RenderingServer.force_draw(false)
 		var img:Image = view.get_texture().get_image()
-		img.save_png("user://heavenfall_muzzle_%.2f.png" % age)
+		img.save_png("user://heavenfall_muzzle_3d_%.2f.png" % age)
 		samples.append(image_metrics(img))
 		check(img.get_pixel(64,64).a < 0.005,"GPU hollow center remains transparent at %.2fs" % age)
 	print("MUZZLE_GPU_METRICS ",samples)
@@ -49,6 +59,16 @@ func gpu_ring() -> void:
 	check(samples[1].radius > samples[0].radius+5 and samples[2].radius >= samples[1].radius-3.0 and samples[2].radius > samples[0].radius+5,"GPU pixel circumference expands outward")
 	check(samples[0].peak > samples[1].peak and samples[1].peak > samples[2].peak,"GPU ring alpha fades continuously")
 	check(samples[3].count == 0,"GPU ring disappears exactly at lifetime")
+	for axis:Vector2 in [Vector2.RIGHT,Vector2.DOWN,Vector2.LEFT,Vector2.UP,Vector2(1,1).normalized(),Vector2(-1,1).normalized()]:
+		ring.ring_axis = axis
+		ring._elapsed = 0.12
+		ring.queue_redraw()
+		await process_frame
+		RenderingServer.force_draw(false)
+		var image:Image = view.get_texture().get_image()
+		var extent:Vector2 = projected_extent(image,axis)
+		check(extent.y > extent.x*1.8 and extent.x > 3.0,"GPU hoop is compressed along shot normal, wide across it: "+str(axis))
+		image.save_png("user://heavenfall_muzzle_3d_direction_%d.png" % int(rad_to_deg(axis.angle())))
 	view.queue_free()
 	await process_frame
 
@@ -75,7 +95,7 @@ func run() -> void:
 	await create_timer(0.4).timeout
 	var center:Vector2 = world.return_map_world_rect(world.map_group["Map50x50"]).get_center()
 	var legacy:Node2D = GROUND.new()
-	check(legacy.show_block_particles and legacy.show_impact_streaks and not legacy.pause_with_battle,"existing impact defaults preserve rubble/streaks and clock")
+	check(legacy.show_block_particles and legacy.show_impact_streaks and not legacy.pause_with_battle and is_equal_approx(legacy.ring_depth_ratio,1.0),"existing impact defaults preserve rubble/streaks and clock")
 	legacy.free()
 	var parent:=Node2D.new()
 	parent.position = Vector2(33,18)
@@ -91,6 +111,7 @@ func run() -> void:
 	check(world.get_node_or_null("GroundSurfaceSampler") == sampler_before,"pure ring never creates a floor readback node")
 	check(pure.get_child_count() == 0 and not pure.is_in_group("AI_Hazard") and pure.is_in_group("BattleTransient"),"pure transient has no hitboxes, hazard or audio children")
 	check(is_equal_approx(pure._effect_end_time,0.8) and pure.ring_palette[0] == Color.CYAN,"custom lifetime and palette are applied without the block builder")
+	check(is_equal_approx(pure.ring_depth_ratio,1.0),"generic callers keep a flat circle unless projection is requested")
 	parent.position += Vector2(100,30)
 	check(pure.global_position.is_equal_approx(center),"spawned ring does not follow its moving parent")
 	game.now_stop_state = true
@@ -131,9 +152,12 @@ func run() -> void:
 	check(is_equal_approx(ring._radius,8.0) and is_equal_approx(ring.ring_end_scale,3.0) and is_equal_approx(ring.lifetime,0.38),"muzzle ring expands from radius 8 toward 24 over 0.38s")
 	check(ring.ring_palette == PackedColorArray(bow.SHOT_RING_PALETTE),"muzzle uses the native longbow teal/cyan/silver palette")
 	bow.global_position += Vector2(70,15)
+	var launch_axis:Vector2 = ring.ring_axis
+	check(launch_axis.is_equal_approx(bow.facing) and is_equal_approx(ring.ring_depth_ratio,0.35),"bow hoop normal matches launch direction with pseudo-3D depth")
+	bow.facing = Vector2.UP
 	bow._start_recoil(1.0,Vector2.RIGHT,bow.clock)
 	bow.visual_mob()
-	check(ring.global_position.is_equal_approx(origin),"moving/recoiling bow leaves its emitted ring world-anchored")
+	check(ring.global_position.is_equal_approx(origin) and ring.ring_axis.is_equal_approx(launch_axis),"moving/recoiling/turning bow leaves emitted position and orientation frozen")
 	bow.step_mob(0.01)
 	check(rings().size() == 1,"cooldown/held input cannot duplicate the ring")
 	var state:Dictionary = bow.visual_state()
@@ -156,7 +180,7 @@ func run() -> void:
 	bow.set_multiplayer_authority(1)
 	var hp:float = enemy.health
 	var hazards:int = get_nodes_in_group("AI_Hazard").size()
-	bow._spawn_shot_ring(enemy.global_position)
+	bow._spawn_shot_ring(enemy.global_position,Vector2.LEFT)
 	freeze_shots()
 	check(enemy.health == hp and get_nodes_in_group("AI_Hazard").size() == hazards,"visual-only ring adds no damage or threat")
 	for n:Node in rings(): n._process(1.0)
