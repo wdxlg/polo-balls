@@ -110,9 +110,9 @@ func _run() -> void:
 		var old_shadow_z:int = volume.shadow_picture.z_index
 		var old_relative:bool = volume.shadow_picture.z_as_relative
 		var old_index:int = volume.get_index()
-		# Expected composition: after the outside mask, below ALL 91..99 feedback;
-		# ground shadow below the world, not on top of characters.
-		volume.z_index = 90
+		# Wall and ground shadow precede the background snapshot and ALL feedback,
+		# including the low-Z potion/enchantment frames tested in test_map_wall_tooltips.
+		volume.z_index = -4
 		volume.shadow_picture.z_as_relative = false
 		volume.shadow_picture.z_index = -4
 		await _frame()
@@ -147,11 +147,10 @@ func _run() -> void:
 		await _frame()
 		check(_changed(actual,root.get_texture().get_image(),wall_rect)>50,style+": outside-facing wall survives map mask at lower layer")
 		volume.picture.show()
-		check(volume.z_index==90 and volume.get_index()>world.map_outside_mask_root.get_index() and volume.shadow_picture.z_index==-4 and not volume.shadow_picture.z_as_relative,style+": ordering contract survives theme refresh")
-		world.move_child(volume,world.map_outside_mask_root.get_index())
+		check(volume.z_index==-4 and volume.shadow_picture.z_index==-4 and not volume.shadow_picture.z_as_relative,style+": background-layer contract survives theme refresh")
 		world.refresh_map_presentation()
 		await _frame()
-		check(volume.get_index()>world.map_outside_mask_root.get_index() and _changed(actual,root.get_texture().get_image(),wall_rect)<=2,style+": refresh repairs reversed mask/wall tree order without losing visible wall")
+		check(volume.z_index<world.map_clip_backbuffer.z_index+world.z_index and _changed(actual,root.get_texture().get_image(),wall_rect)<=2,style+": refresh keeps wall in background snapshot without losing visible wall")
 	ground_actor.queue_free()
 	game.Game_Settings = old
 	world.queue_free()

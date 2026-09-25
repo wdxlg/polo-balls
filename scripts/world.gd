@@ -4424,7 +4424,8 @@ func _configure_island_inside_shadow(shadow:Node2D,physical_rect:Rect2,island_na
 
 
 func _add_map_border_segment(a:Vector2,b:Vector2) -> void:
-	if map_border_segment_root == null:
+	# 蓝色保留原黑框；五种方块主题只画原版材质墙，不叠加外圈黑线。
+	if map_border_segment_root == null or _is_grass_map_background():
 		return
 	var line := Line2D.new()
 	line.width = map_border_width

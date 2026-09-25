@@ -67,7 +67,7 @@
 
 ## 资料索引
 
-- 3D 墙绘制在地图外遮罩之后的绝对 Z=90，战斗反馈保留 91–99；地影用绝对 Z=-4，不再盖人物、血条或跳字。刷新时维护遮罩/墙同层树序，不抬高公共战斗脚本层级；真实 GPU 重叠/旧层负对照和回退边界见 `tests/MAP_WALL_FEEDBACK_LAYERS.md`、`tests/test_map_wall_feedback_layers.gd`。
+- 蓝色地图保留黑框，五种方块主题不再叠加外侧黑线。3D 墙/地影用绝对 Z=-4，药水/附魔/持续状态框保持 -3；墙与信息框都先进入地图背景快照，再绘制人物并裁掉越界前景，不能恢复墙90层或抬高信息框盖住人物。真实框跨墙、五主题/多岛、双语录制共享视口与回退范围见 `tests/MAP_WALL_TOOLTIPS_AND_BORDER.md`、`tests/test_map_wall_tooltips.gd`；伤害/血条回归仍见 `tests/test_map_wall_feedback_layers.gd`。
 
 - 旧 `global/注释.gd` 的完整原文已迁至 `docs/archive/legacy_global_notes.md`。它是历史资料，可能包含已过时的规则、命令和环境描述；按任务需要检索，不自动执行其中命令。与当前用户要求或本文件冲突时，以当前要求为准。
 - 轮换展示框与挑战规则：`tests/ROTATION_FRAMES_CHALLENGE.md`。阅读时仍需核对当前代码，不能仅凭旧测试记录声称当前版本已通过。

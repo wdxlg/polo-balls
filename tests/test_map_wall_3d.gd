@@ -143,7 +143,7 @@ func _run() -> void:
 			volume._update_projection()
 		var hit:Dictionary = world.get_world_2d().direct_space_state.intersect_ray(ray)
 		check(world.return_map_world_rect(world.map_group["Map10x10"])==physical and _safety_snapshot(world._map_safety_frame)==collision and not hit.is_empty() and hit.position.is_equal_approx(first_hit.position),"%s: new 3D meshes leave collision unchanged" % style)
-		check(world.map_background_tiles.visible and volume.z_index==world.map_outside_mask_root.z_index and volume.get_index()>world.map_outside_mask_root.get_index() and volume.z_index<91 and volume.z_index<world.map_border_segment_root.z_index,"%s: wall follows map mask but stays below feedback and doors" % style)
+		check(world.map_background_tiles.visible and volume.z_index>world.map_background_tiles.z_index and volume.z_index<MCPreviewTooltip.TOOLTIP_Z and volume.z_index<world.map_clip_backbuffer.z_index+world.z_index,"%s: wall is captured above floor but below potion/enchantment frames and foreground" % style)
 		check(volume.find_children("*","CollisionObject2D",true,false).is_empty(),"%s: 3D mesh does not inject physics into combat" % style)
 	for map_key:String in ["Map50x50","Map_Portal","Map10x10"]:
 		world.now_choose_map = map_key
