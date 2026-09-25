@@ -1,7 +1,8 @@
 extends "res://scripts/characters/我的世界/frontier/base.gd"
 ## Persistent, non-colliding moss obstacles; four-neighbour burrow ambush.
 const BODY:Texture2D = preload("res://Images/characters/我的世界/frontier/moss_block.png")
-const CELL:float = 24.0
+const CELL:float = 16.0 # Match the painted floor tile (and moss_tile.png), not the world-zero 24px grid.
+const TILE_GEOMETRY = preload("res://classes/map_tile_geometry.gd")
 const FOOTSTEPS = preload("res://scripts/characters/我的世界/frontier/moss_footsteps.gd")
 const MAX_LAYERS:int = 3
 const GROWTH_TILES:int = 6
@@ -121,8 +122,32 @@ func damage_with_moss_sound(target:ball,amount:float,point:Vector2,per_victim:bo
 	if accepted and actual > 0.0:
 		emit_moss_sound(impact_sound_event(actual),sound_point,impact_volume(actual),victim as Node2D if per_victim and is_instance_valid(victim) else null)
 	return accepted
+func moss_grid_phase() -> Vector2:
+	# Each map has its own world-space origin; e.g. 50x50 begins at (500,942).
+	# Keep cell IDs in global coordinates so separate moss owners share one field.
+	if not is_inside_tree(): return Vector2.ZERO
+	var scene:Node = get_tree().current_scene
+	if scene == null or not scene.has_method("_current_map_node") or not scene.has_method("return_map_world_rect"):
+		return Vector2.ZERO
+	var map_node:Node = scene._current_map_node()
+	if not is_instance_valid(map_node): return Vector2.ZERO
+	var bounds:Rect2 = scene.return_map_world_rect(map_node)
+	if not bounds.has_area(): return Vector2.ZERO
+	var first_center:Vector2 = bounds.position+Vector2.ONE*CELL*0.5
+	return first_center-(first_center/CELL).round()*CELL
 func cell_at(point:Vector2) -> Vector2i:
-	return Vector2i((point/CELL).round())
+	return Vector2i(((point-moss_grid_phase())/CELL).round())
+func point_for_cell(cell:Vector2i) -> Vector2:
+	return Vector2(cell)*CELL+moss_grid_phase()
+func moss_floor_contains_tile(point:Vector2) -> bool:
+	# A clear circle at a boundary is not proof that the whole moss texture fits.
+	if not is_inside_tree(): return false
+	var scene:Node = get_tree().current_scene
+	if scene == null or not scene.has_method("current_map_island_rects"): return false
+	var regions:Array[Rect2] = scene.current_map_island_rects()
+	if regions.is_empty(): return false
+	var footprint:Array[Rect2] = [Rect2(point-Vector2.ONE*CELL*0.5,Vector2.ONE*CELL)]
+	return TILE_GEOMETRY.subtract(footprint,regions).is_empty()
 func patch_at(point:Vector2) -> Dictionary:
 	var cell:Vector2i = cell_at(point)
 	for patch:Dictionary in patches:
@@ -139,8 +164,8 @@ func can_plant_at(point:Vector2) -> bool:
 	var cell:Vector2i = cell_at(point)
 	var offset:Vector2i = cell-cell_at(global_position)
 	if absi(offset.x) > 2 or absi(offset.y) > 2: return false
-	var snapped:Vector2 = Vector2(cell)*CELL
-	if not floor_clear(snapped,CELL*0.42) or not U.line_clear(self,global_position,snapped): return false
+	var snapped:Vector2 = point_for_cell(cell)
+	if not moss_floor_contains_tile(snapped) or not floor_clear(snapped,CELL*0.42) or not U.line_clear(self,global_position,snapped): return false
 	var field:Dictionary = moss_field()
 	return not field.has(cell) or int(field[cell].patch.layers) < MAX_LAYERS
 func plant(point:Vector2) -> bool:
@@ -148,8 +173,8 @@ func plant(point:Vector2) -> bool:
 	var cell:Vector2i = cell_at(point)
 	var offset:Vector2i = cell-cell_at(global_position)
 	if absi(offset.x) > 2 or absi(offset.y) > 2: return false
-	var snapped:Vector2 = Vector2(cell)*CELL
-	if not floor_clear(snapped,CELL*0.42) or not U.line_clear(self,global_position,snapped): return false
+	var snapped:Vector2 = point_for_cell(cell)
+	if not moss_floor_contains_tile(snapped) or not floor_clear(snapped,CELL*0.42) or not U.line_clear(self,global_position,snapped): return false
 	var field:Dictionary = moss_field()
 	if field.has(cell):
 		var patch:Dictionary = field[cell].patch
@@ -178,7 +203,7 @@ func cultivate() -> bool:
 	var field:Dictionary = moss_field()
 	for cell:Vector2i in candidates:
 		if _growth_pending.size() >= GROWTH_TILES: break
-		var point:Vector2 = Vector2(cell)*CELL
+		var point:Vector2 = point_for_cell(cell)
 		if can_plant_at(point):
 			_growth_pending.append({"point":point,"layer":int(field[cell].patch.layers) if field.has(cell) else 0})
 	growth_left = maxf(growth_interval,0.05)
@@ -279,7 +304,7 @@ func begin_burrow() -> bool:
 	_moss_pose_phase = "dig"
 	_moss_pose_started = clock
 	apply_burrow_pose()
-	emit_effect("moss_dig",Vector2(cell_at(burrow_origin))*CELL)
+	emit_effect("moss_dig",point_for_cell(cell_at(burrow_origin)))
 	return true
 func cancel_burrow() -> void:
 	if not burrowing: return

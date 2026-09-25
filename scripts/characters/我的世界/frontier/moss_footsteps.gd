@@ -2,7 +2,6 @@ extends Node
 ## One per-world scheduler, one cooldown per walking enemy, even across moss owners.
 const AUDIO = preload("res://scripts/characters/我的世界/new5/audio.gd")
 const U = preload("res://scripts/characters/我的世界/new5/utils.gd")
-const CELL:float = 24.0
 @export var random_gap_min:float = 0.08
 @export var random_gap_max:float = 0.32
 var states:Dictionary = {}
@@ -41,13 +40,13 @@ func _physics_process(delta:float) -> void:
 func sample(delta:float) -> void:
 	if get_tree().paused or Game.now_stop_state: return
 	var field:Dictionary = {}
-	var active_owner:bool = false
+	var reference:Node = null
 	for owner:Node in get_tree().get_nodes_in_group("MCMossOwner"):
 		if not is_instance_valid(owner) or owner.is_queued_for_deletion() or not owner.active(): continue
-		active_owner = true
+		if reference == null: reference = owner
 		for patch:Dictionary in owner.patches:
-			field[Vector2i((patch.point/CELL).round())] = owner
-	if not active_owner: return
+			field[owner.cell_at(patch.point)] = owner
+	if reference == null: return
 	var present:Dictionary = {}
 	for target:Node in get_tree().get_nodes_in_group("Ball"):
 		if not is_instance_valid(target) or target.is_queued_for_deletion(): continue
@@ -59,7 +58,7 @@ func sample(delta:float) -> void:
 		var moved:bool = point.distance_squared_to(state.point)>0.0225
 		state.remaining = maxf(0.0,float(state.remaining)-maxf(delta,0.0))
 		state.point = point
-		var owner:Node = field.get(Vector2i((point/CELL).round()))
+		var owner:Node = field.get(reference.cell_at(point))
 		if moved and float(state.remaining)<=0.0 and is_instance_valid(owner) and U.enemy(owner,target) and not step_is_playing(target):
 			owner.emit_moss_sound("block.moss.step",point,-15.0,target)
 			state.remaining = next_interval()

@@ -73,7 +73,7 @@ func run() -> void:
 	check(is_equal_approx(canopy._alpha_for_cell(three_cell),1.0),"distant flowering azalea stays opaque while its neighbor fades")
 	canopy._process(fade_time)
 	check(is_equal_approx(canopy._alpha_for_cell(two_cell),canopy.nearby_alpha),"normal azalea reaches exact nearby opacity")
-	walker.global_position = two+Vector2(48,48)
+	walker.global_position = two+Vector2(2,2)*moss.CELL
 	check(not canopy._faded_cells(cells).has(two_cell),"diagonal corner does not fade")
 	canopy._process(0.0)
 	check(is_equal_approx(canopy._alpha_for_cell(two_cell),canopy.nearby_alpha),"leaving shade does not snap back to opaque")
@@ -82,7 +82,7 @@ func run() -> void:
 	canopy._process(fade_time*0.25)
 	var return_half:float = canopy._alpha_for_cell(two_cell)
 	check(return_quarter > canopy.nearby_alpha and return_half > return_quarter and return_half < 1.0 and return_quarter-canopy.nearby_alpha > return_half-return_quarter,"returning to full opacity also eases out")
-	walker.global_position = two+Vector2(48,24)
+	walker.global_position = two+Vector2(2,1)*moss.CELL
 	check(canopy._faded_cells(cells).has(two_cell),"edge-neighbor fighter fades")
 	canopy._process(0.0)
 	check(is_equal_approx(canopy._alpha_for_cell(two_cell),return_half),"re-entering mid-transition retains the current alpha")

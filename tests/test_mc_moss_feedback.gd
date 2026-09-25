@@ -21,7 +21,7 @@ func run() -> void:
 		finish(1)
 		return
 	var moss:Node2D = actor("苔藓",center)
-	var point:Vector2 = Vector2(moss.cell_at(center))*moss.CELL
+	var point:Vector2 = moss.point_for_cell(moss.cell_at(center))
 	moss.global_position = point
 	var target:Node2D = dummy(point)
 	var friendly:Node2D = dummy(point,"Team0")
