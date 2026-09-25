@@ -1,0 +1,12 @@
+{
+  "edition": "Minecraft Java Edition",
+  "version": "26.2",
+  "origin": "Official Mojang client JAR, SHA-1 2dc72797acbc1b63fc16a11c4ac393605f453754",
+  "source_url": "https://piston-data.mojang.com/v1/objects/2dc72797acbc1b63fc16a11c4ac393605f453754/client.jar",
+  "files": {
+    "amethyst_block.png": {"jar_entry": "assets/minecraft/textures/block/amethyst_block.png", "sha1": "86aaf49cd6c83de68631fb295bf74c36dc6a5e23"},
+    "amethyst_cluster.png": {"jar_entry": "assets/minecraft/textures/block/amethyst_cluster.png", "sha1": "9d7e5ba95b611ba38ece8d0dc700660bba1490a6"},
+    "amethyst_shard.png": {"jar_entry": "assets/minecraft/textures/item/amethyst_shard.png", "sha1": "b0ec0f97d7372db539418f07628a8f419f350df1"}
+  },
+  "license_note": "Minecraft game assets. Provenance is recorded for this local game project; this is not a claim that Mojang assets are freely redistributable."
+}

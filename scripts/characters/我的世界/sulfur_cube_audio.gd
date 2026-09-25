@@ -14,6 +14,7 @@ const EVENTS:Dictionary = {
 	&"honey_hit": [preload("res://audio/characters/我的世界/sulfur_cube/honey_hit.ogg")],
 	&"iron_hit": [preload("res://audio/characters/我的世界/sulfur_cube/iron_hit.ogg")],
 	&"tnt_hit": [preload("res://audio/characters/我的世界/sulfur_cube/tnt_hit.ogg")],
+	&"amethyst_break": [preload("res://audio/characters/我的世界/new6/amethyst_break1.ogg"),preload("res://audio/characters/我的世界/new6/amethyst_break2.ogg")],
 	&"fuse": [preload("res://audio/characters/我的世界/sulfur_cube/fuse.ogg")],
 	&"explosion": [preload("res://audio/characters/我的世界/sulfur_cube/explosion.ogg")],
 	&"entity.player.hurt": [preload("res://audio/characters/我的世界/sulfur_cube/impact_hurt1.ogg"),preload("res://audio/characters/我的世界/sulfur_cube/impact_hurt2.ogg"),preload("res://audio/characters/我的世界/sulfur_cube/impact_hurt3.ogg")],
