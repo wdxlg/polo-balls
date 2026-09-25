@@ -1,0 +1,24 @@
+{
+  "asset": "山巅",
+  "blender": "5.2.2 LTS",
+  "seed": 9262026,
+  "mesh_objects": 17,
+  "vertices": 381192,
+  "triangles": 190596,
+  "trees": 62,
+  "footprint_blocks": [
+    144,
+    144
+  ],
+  "height_blocks": 102,
+  "summit_anchor": [
+    8.5,
+    15.5,
+    96.25
+  ],
+  "build_seconds": 1.58,
+  "blend": "山巅.blend",
+  "glb": "shandian.glb",
+  "textures_packed": true,
+  "gameplay_integrated": false
+}

@@ -1,0 +1,5 @@
+*.blend1
+build_status.json
+render_status.json
+summit_preview.png
+summit_glb_check.png

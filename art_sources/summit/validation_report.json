@@ -1,0 +1,780 @@
+{
+  "passed": true,
+  "checks": 133,
+  "blender": "5.2.2 LTS",
+  "native_bounds": [
+    [
+      -71.0,
+      -66.0,
+      -5.0
+    ],
+    [
+      72.0,
+      67.0,
+      99.5
+    ]
+  ],
+  "geometry_objects": 17,
+  "triangles": 190596,
+  "packed_materials": 14,
+  "render_device": "GPU",
+  "results": [
+    {
+      "name": "native geometry objects",
+      "passed": true,
+      "detail": 17
+    },
+    {
+      "name": "native triangles",
+      "passed": true,
+      "detail": 190596
+    },
+    {
+      "name": "full asset height over 100 blocks",
+      "passed": true,
+      "detail": [
+        [
+          -71.0,
+          -66.0,
+          -5.0
+        ],
+        [
+          72.0,
+          67.0,
+          99.5
+        ]
+      ]
+    },
+    {
+      "name": "valid mesh: 01 Mountain / Andesite",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "nondegenerate faces: 01 Mountain / Andesite",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UV: 01 Mountain / Andesite",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "valid mesh: 01 Mountain / Deep rock",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "nondegenerate faces: 01 Mountain / Deep rock",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UV: 01 Mountain / Deep rock",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "valid mesh: 01 Mountain / Stone",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "nondegenerate faces: 01 Mountain / Stone",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UV: 01 Mountain / Stone",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "valid mesh: 01 Mountain / Grass",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "nondegenerate faces: 01 Mountain / Grass",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UV: 01 Mountain / Grass",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "valid mesh: 01 Mountain / Dirt",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "nondegenerate faces: 01 Mountain / Dirt",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UV: 01 Mountain / Dirt",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "valid mesh: 01 Mountain / Trail",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "nondegenerate faces: 01 Mountain / Trail",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UV: 01 Mountain / Trail",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "valid mesh: 01 Mountain / Worn trail",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "nondegenerate faces: 01 Mountain / Worn trail",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UV: 01 Mountain / Worn trail",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "valid mesh: 01 Mountain / Pale granite",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "nondegenerate faces: 01 Mountain / Pale granite",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UV: 01 Mountain / Pale granite",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "valid mesh: 01 Mountain / Snow",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "nondegenerate faces: 01 Mountain / Snow",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UV: 01 Mountain / Snow",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "valid mesh: 01 Mountain / Glacier",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "nondegenerate faces: 01 Mountain / Glacier",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UV: 01 Mountain / Glacier",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "valid mesh: 02 Alpine spruce / Spruce end",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "nondegenerate faces: 02 Alpine spruce / Spruce end",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UV: 02 Alpine spruce / Spruce end",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "valid mesh: 02 Alpine spruce / Spruce bark",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "nondegenerate faces: 02 Alpine spruce / Spruce bark",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UV: 02 Alpine spruce / Spruce bark",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "valid mesh: 02 Alpine spruce / Spruce needles",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "nondegenerate faces: 02 Alpine spruce / Spruce needles",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UV: 02 Alpine spruce / Spruce needles",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "valid mesh: 02 Alpine spruce / Snow",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "nondegenerate faces: 02 Alpine spruce / Snow",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UV: 02 Alpine spruce / Snow",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "valid mesh: 03 Summit landmark / Worn trail",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "nondegenerate faces: 03 Summit landmark / Worn trail",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UV: 03 Summit landmark / Worn trail",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "valid mesh: 03 Summit landmark / Cairn",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "nondegenerate faces: 03 Summit landmark / Cairn",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UV: 03 Summit landmark / Cairn",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "valid mesh: 03 Summit landmark / Snow",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "nondegenerate faces: 03 Summit landmark / Snow",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UV: 03 Summit landmark / Snow",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "original SHA256: textures/stone.png",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "original SHA256: textures/andesite.png",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "original SHA256: textures/diorite.png",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "original SHA256: textures/deepslate.png",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "original SHA256: textures/snow.png",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "original SHA256: textures/packed_ice.png",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "original SHA256: textures/grass_block_top.png",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "original SHA256: textures/grass_block_side.png",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "original SHA256: textures/dirt.png",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "original SHA256: textures/spruce_log.png",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "original SHA256: textures/spruce_log_top.png",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "original SHA256: textures/spruce_leaves.png",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "original SHA256: textures/cobblestone.png",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "original SHA256: textures/stone_bricks.png",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "original SHA256: textures/cracked_stone_bricks.png",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "packed original: MC / Andesite",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "nearest texture: MC / Andesite",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "packed original: MC / Cairn",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "nearest texture: MC / Cairn",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "packed original: MC / Deep rock",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "nearest texture: MC / Deep rock",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "packed original: MC / Dirt",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "nearest texture: MC / Dirt",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "packed original: MC / Glacier",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "nearest texture: MC / Glacier",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "packed original: MC / Grass",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "nearest texture: MC / Grass",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "packed original: MC / Pale granite",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "nearest texture: MC / Pale granite",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "packed original: MC / Snow",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "nearest texture: MC / Snow",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "packed original: MC / Spruce bark",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "nearest texture: MC / Spruce bark",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "packed original: MC / Spruce end",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "nearest texture: MC / Spruce end",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "packed original: MC / Spruce needles",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "nearest texture: MC / Spruce needles",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "packed original: MC / Stone",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "nearest texture: MC / Stone",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "packed original: MC / Trail",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "nearest texture: MC / Trail",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "packed original: MC / Worn trail",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "nearest texture: MC / Worn trail",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "GLB header",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "embedded textures only",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "geometry only, no light/camera",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "nearest GLB sampler",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "portable tint: MC / Andesite",
+      "passed": true,
+      "detail": [
+        0.8299999833106995,
+        0.8899999856948853,
+        0.9399999976158142,
+        1.0
+      ]
+    },
+    {
+      "name": "portable tint: MC / Deep rock",
+      "passed": true,
+      "detail": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "name": "portable tint: MC / Dirt",
+      "passed": true,
+      "detail": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "name": "portable tint: MC / Glacier",
+      "passed": true,
+      "detail": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "name": "portable tint: MC / Grass",
+      "passed": true,
+      "detail": [
+        0.41999998688697815,
+        0.6100000143051147,
+        0.28999999165534973,
+        1.0
+      ]
+    },
+    {
+      "name": "portable tint: MC / Pale granite",
+      "passed": true,
+      "detail": [
+        0.9300000071525574,
+        0.9599999785423279,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "name": "portable tint: MC / Snow",
+      "passed": true,
+      "detail": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "name": "portable tint: MC / Stone",
+      "passed": true,
+      "detail": [
+        0.8999999761581421,
+        0.9399999976158142,
+        0.9800000190734863,
+        1.0
+      ]
+    },
+    {
+      "name": "portable tint: MC / Trail",
+      "passed": true,
+      "detail": [
+        0.9700000286102295,
+        0.9300000071525574,
+        0.8199999928474426,
+        1.0
+      ]
+    },
+    {
+      "name": "portable tint: MC / Worn trail",
+      "passed": true,
+      "detail": [
+        0.9200000166893005,
+        0.8999999761581421,
+        0.8299999833106995,
+        1.0
+      ]
+    },
+    {
+      "name": "portable tint: MC / Spruce bark",
+      "passed": true,
+      "detail": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "name": "portable tint: MC / Spruce end",
+      "passed": true,
+      "detail": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "name": "portable tint: MC / Spruce needles",
+      "passed": true,
+      "detail": [
+        0.30000001192092896,
+        0.4699999988079071,
+        0.23999999463558197,
+        1.0
+      ]
+    },
+    {
+      "name": "portable tint: MC / Cairn",
+      "passed": true,
+      "detail": [
+        0.8799999952316284,
+        0.9200000166893005,
+        0.9599999785423279,
+        1.0
+      ]
+    },
+    {
+      "name": "GLB original PNG: andesite",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "GLB original PNG: deepslate",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "GLB original PNG: dirt",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "GLB original PNG: packed_ice",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "GLB original PNG: grass_block_top",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "GLB original PNG: diorite",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "GLB original PNG: snow",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "GLB original PNG: stone",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "GLB original PNG: stone_bricks",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "GLB original PNG: cracked_stone_bricks",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "GLB original PNG: spruce_log",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "GLB original PNG: spruce_log_top",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "GLB original PNG: spruce_leaves",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "GLB original PNG: cobblestone",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "GLB round-trip mesh count",
+      "passed": true,
+      "detail": 17
+    },
+    {
+      "name": "GLB round-trip triangles",
+      "passed": true,
+      "detail": 190596
+    },
+    {
+      "name": "GLB round-trip world bounds",
+      "passed": true,
+      "detail": [
+        [
+          -71.0,
+          -66.0,
+          -5.0
+        ],
+        [
+          72.0,
+          67.0,
+          99.5
+        ]
+      ]
+    },
+    {
+      "name": "GLB round-trip rendered",
+      "passed": true,
+      "detail": null
+    }
+  ]
+}

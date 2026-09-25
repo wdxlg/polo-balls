@@ -1,0 +1,115 @@
+{
+  "source": "Local installed Minecraft client, not generated textures",
+  "edition": "Java Edition",
+  "version": {
+    "id": "1.21.1",
+    "name": "1.21.1",
+    "world_version": 3955,
+    "series_id": "main",
+    "protocol_version": 767,
+    "pack_version": {
+      "resource": 34,
+      "data": 48
+    },
+    "build_time": "2024-08-08T12:21:55+00:00",
+    "java_component": "java-runtime-delta",
+    "java_version": 21,
+    "stable": true,
+    "use_editor": false
+  },
+  "jar_path": "C:\\Users\\q2283\\AppData\\Roaming\\.minecraft\\versions\\Bbs\\Bbs.jar",
+  "jar_sha256": "499f6897d1837516680f3114072d8106e11c9adcd933fe5cf051b551089b0c99",
+  "rights": "Original Minecraft assets copyright Mojang Studios / Microsoft. Local reuse at user request; provenance does not grant redistribution rights. Follow Minecraft EULA and usage guidelines.",
+  "textures": [
+    {
+      "file": "textures/stone.png",
+      "jar_entry": "assets/minecraft/textures/block/stone.png",
+      "sha256": "33ac70ba8cb701087642a12c5fd29c1ba3006dc4730e9b014ed3a19ce7cdda7b",
+      "bytes": 157
+    },
+    {
+      "file": "textures/andesite.png",
+      "jar_entry": "assets/minecraft/textures/block/andesite.png",
+      "sha256": "bc1fec2c9136bfe15f10dcc8fbd447d82c876c01342fedb5c7092291e89f50f0",
+      "bytes": 198
+    },
+    {
+      "file": "textures/diorite.png",
+      "jar_entry": "assets/minecraft/textures/block/diorite.png",
+      "sha256": "5f44c6743cd72c00a074e6c43cc9c46b9cf54a82c0cf87c5eb675a7207cff648",
+      "bytes": 200
+    },
+    {
+      "file": "textures/deepslate.png",
+      "jar_entry": "assets/minecraft/textures/block/deepslate.png",
+      "sha256": "b4c5e7f5538608a371fd4c1f6b398e4b76f723702d10144432636a85a1a61832",
+      "bytes": 185
+    },
+    {
+      "file": "textures/snow.png",
+      "jar_entry": "assets/minecraft/textures/block/snow.png",
+      "sha256": "05201107fc2c60db4dc59f778a9ca7cb6101b2a332da696b33ce4b0cd2a02019",
+      "bytes": 166
+    },
+    {
+      "file": "textures/packed_ice.png",
+      "jar_entry": "assets/minecraft/textures/block/packed_ice.png",
+      "sha256": "69bbfa529e480c86fac5ba3c8607b8d263e140d0f4d0f1c915fac20b5aa2b691",
+      "bytes": 193
+    },
+    {
+      "file": "textures/grass_block_top.png",
+      "jar_entry": "assets/minecraft/textures/block/grass_block_top.png",
+      "sha256": "52f44b64ce884a13dfe35e4b4da2e35898b790dd4d7a5ea536f1b0c0d56d29b4",
+      "bytes": 298
+    },
+    {
+      "file": "textures/grass_block_side.png",
+      "jar_entry": "assets/minecraft/textures/block/grass_block_side.png",
+      "sha256": "ab572ac7ebd373abdeb961de1f3cba0afcd91e1acb700745ece4f719790bae3d",
+      "bytes": 345
+    },
+    {
+      "file": "textures/dirt.png",
+      "jar_entry": "assets/minecraft/textures/block/dirt.png",
+      "sha256": "1f0f0e619e7dfe683ea45b9254859f14b0ed5f1debdb242ea878828575be5bf0",
+      "bytes": 200
+    },
+    {
+      "file": "textures/spruce_log.png",
+      "jar_entry": "assets/minecraft/textures/block/spruce_log.png",
+      "sha256": "f28e8ce2783a0d14cc6f23904faf6858fba1295290a732735db82b54392574fd",
+      "bytes": 193
+    },
+    {
+      "file": "textures/spruce_log_top.png",
+      "jar_entry": "assets/minecraft/textures/block/spruce_log_top.png",
+      "sha256": "b153bde175085ba46e5badacf9d7dd4dc909a75f02118b73b9338685f06c5b42",
+      "bytes": 219
+    },
+    {
+      "file": "textures/spruce_leaves.png",
+      "jar_entry": "assets/minecraft/textures/block/spruce_leaves.png",
+      "sha256": "1f6c193f73cdd1399e94809c0bd7dce0b1b76dcdae1da2088e481dbba714edb2",
+      "bytes": 212
+    },
+    {
+      "file": "textures/cobblestone.png",
+      "jar_entry": "assets/minecraft/textures/block/cobblestone.png",
+      "sha256": "bcda95fdf5afa91747657aa198fc0b69ebf44141de30a718075f74045e9a5def",
+      "bytes": 200
+    },
+    {
+      "file": "textures/stone_bricks.png",
+      "jar_entry": "assets/minecraft/textures/block/stone_bricks.png",
+      "sha256": "33da66239c5586ee712ffa3fab45927cd7d4968cf111829d3049f84152d85953",
+      "bytes": 199
+    },
+    {
+      "file": "textures/cracked_stone_bricks.png",
+      "jar_entry": "assets/minecraft/textures/block/cracked_stone_bricks.png",
+      "sha256": "185b70d98bc6b1298fda8d6b7f52b0bfe0e8bb02711fd8d5e8bb581be69322a6",
+      "bytes": 214
+    }
+  ]
+}
