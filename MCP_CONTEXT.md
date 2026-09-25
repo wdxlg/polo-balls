@@ -92,3 +92,4 @@
 - 铁匠村民的挥舞音效以出剑时实际 `attack_damage(1.0)` **严格大于 100** 为界，超出用原版横扫、100 及以下保留重击；真实命中暴击音仍按独立承伤阈值。剑弧/握把和残影更连续可见，不更改原扇形碰撞；参数、素材复用和单机/GPU 回归见 `tests/BLACKSMITH_SWORD_SWING.md`、`tests/test_blacksmith_sword_sweep.gd`。
 - 大、中、小史莱姆死亡复用原落地绿色环与原版黏液球粒子，仅权威端按落地范围／当前攻击伤害对附近敌人结算一次并向外击退；被删除或战斗结束仍让死亡特效短暂播放完，原有跳跃、落地减速、音效和分裂保留。实现范围、现有轮放测试的失配与 GPU／战斗回归见 `tests/SLIME_DEATH_PULSE.md`、`tests/test_slime_death_pulse.gd`、`tests/test_slime_death_visual.gd`。
 - 根据落地粒子过少的反馈，史莱姆普通落地和死亡冲击大／中／小碎屑增密为 40／27／17，起跳保持 5／3／3；仍用原版素材、不改变伤害／击退，均匀圆周分布和实机 GPU／战斗回归见 `tests/SLIME_DEATH_PULSE.md`。
+- 六种地图背景的边界墙统一有 2.5D 墙顶/侧面与地图内部的右上光源→左下投影；普通/多岛地图及服务员/传送门缺口共用真实边缘，开门须同时裁掉贴图墙顶与其影子，不改变碰撞或技能墙。参数、D3D12 画面及回归见 `tests/MAP_WALLS_3D.md`、`tests/test_map_wall_3d.gd` 和 `tests/test_map_wall_3d_visual.gd`。

@@ -1,6 +1,7 @@
 extends SceneTree
 const SAMPLER = preload("res://scripts/effects/地表渲染采样.gd")
 const SHADOW = preload("res://scripts/effects/我的世界/地图内沿阴影.gd")
+const OUTSIDE_SHADOW = preload("res://scripts/effects/我的世界/地图外沿阴影.gd")
 var failures:int = 0
 class FixtureWorld extends Node2D:
 	func _get_center_watermark_map_rect() -> Rect2:
@@ -111,15 +112,10 @@ func _run() -> void:
 	var corner:float = image.get_pixel(0,0).a
 	check(absf(wall-corner)<0.01,"shadow corner has no double alpha")
 	check(wall>0.30 and image.get_pixel(64,8).a>0.10 and image.get_pixel(64,15).a<0.02 and image.get_pixel(64,32).a<0.01,"continuous wall-to-floor fade at 0/8/15/32 units")
-	var outer_shader:Shader = load("res://scripts/effects/我的世界/地图外沿阴影.gdshader")
-	var outer := Polygon2D.new()
-	outer.polygon = PackedVector2Array([Vector2.ZERO,Vector2(128,0),Vector2(128,128),Vector2(0,128)])
-	var outer_mat := ShaderMaterial.new()
-	outer_mat.shader = outer_shader
-	outer_mat.set_shader_parameter("footprint_size",Vector2(128,64))
-	outer_mat.set_shader_parameter("spread_size",Vector2(16,16))
-	outer.material = outer_mat
+	# 外沿阴影现以浮点纹理传入矩形并集；用生产 configure 而非旧的孤立 shader 空参数夹具。
+	var outer:Node2D = OUTSIDE_SHADOW.new()
 	view.add_child(outer)
+	outer.configure(Rect2(0,0,128,64),Vector2(16,16))
 	inner.hide()
 	await process_frame
 	await RenderingServer.frame_post_draw

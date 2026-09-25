@@ -34,8 +34,11 @@ func configure(rect:Rect2,spread:Vector2,wall_spans:Array) -> void:
 	surface.material.set_shader_parameter("segment_count",segments.size())
 	surface.material.set_shader_parameter("footprint_size",rect.size)
 	surface.material.set_shader_parameter("spread_size",spread.max(Vector2(0.01,0.01)))
+	# 保持旧矩形接口的四向柔和内沿，兼容已有纯视觉采样夹具。
+	surface.material.set_shader_parameter("directional_enabled",false)
+	surface.material.set_shader_parameter("opacity",0.36)
 
-func configure_regions(regions:Array[Rect2],spread:Vector2,edges:Array[Dictionary]) -> void:
+func configure_regions(regions:Array[Rect2],spread:Vector2,edges:Array[Dictionary],cast_vector:Vector2 = Vector2(-24.0,24.0)) -> void:
 	top_level = true
 	global_position = Vector2.ZERO
 	z_as_relative = false
@@ -65,3 +68,6 @@ func configure_regions(regions:Array[Rect2],spread:Vector2,edges:Array[Dictionar
 	surface.material.set_shader_parameter("segments",ImageTexture.create_from_image(image))
 	surface.material.set_shader_parameter("segment_count",edges.size())
 	surface.material.set_shader_parameter("spread_size",spread.max(Vector2(0.01,0.01)))
+	surface.material.set_shader_parameter("directional_enabled",true)
+	surface.material.set_shader_parameter("shadow_vector",cast_vector)
+	surface.material.set_shader_parameter("opacity",0.44)

@@ -2658,6 +2658,11 @@ func _prune_waiter_doors_for_current_map() -> void:
 func _refresh_current_map_border_geometry() -> void:
 	var map_node:Node = _current_map_node()
 	if map_node != null:
+		# 服务员的门不只要断开立体侧面，也必须移走五种贴图地图的原有墙顶。
+		# 普通地图切换仍走 refresh_map_presentation()，这里只处理开/关门的局部刷新。
+		if _is_grass_map_background():
+			_refresh_map_background_tiles(map_node)
+			_refresh_map_outside_grid(return_map_visual_rect(map_node))
 		_refresh_map_border_geometry(return_map_world_rect(map_node))
 
 
@@ -3683,6 +3688,12 @@ func setup_training_stats_hud() -> void:
 var map_background_tiles:Node2D
 var map_background_shadow:Node2D
 var map_inside_shadow:Node2D
+var map_wall_volume:Node2D
+@export_category("地图立体墙")
+# 指向右上角的光源，影子朝其反方向投在地面；纯视觉配置，不触碰安全墙。
+@export var map_wall_light_direction:Vector2 = Vector2(1.0,-1.0)
+@export_range(0.1,1.5,0.05) var map_wall_height_cells:float = 0.65
+@export_range(0.5,5.0,0.1) var map_wall_shadow_cells:float = 2.4
 func _is_grass_map_background() -> bool:
 	return Game.Game_Settings.get("Map_Background","blue") == "grass"
 func map_visual_cell_size(map_node:Node) -> Vector2:
@@ -3732,6 +3743,21 @@ func _map_shape_walls(map_node:Node) -> Array[Rect2]:
 	walls = TileGeometry.subtract(walls,map_island_rects(map_node))
 	var portal:PortalMap = current_portal_map()
 	if portal != null: walls = TileGeometry.subtract(walls,portal.void_rects())
+	if not _waiter_doors.is_empty():
+		var cell:Vector2 = map_visual_cell_size(map_node)
+		var door_cuts:Array[Rect2] = []
+		for island:Dictionary in map_islands(map_node):
+			var rect:Rect2 = island.rect
+			for side:int in range(4):
+				var low:float = rect.position.y if side<2 else rect.position.x
+				var high:float = rect.end.y if side<2 else rect.end.x
+				for gap:Vector2 in _waiter_door_gap_intervals_for_island(side,low,high,0.0,rect):
+					match side:
+						0: door_cuts.append(Rect2(rect.position.x-cell.x,gap.x,cell.x,gap.y-gap.x))
+						1: door_cuts.append(Rect2(rect.end.x,gap.x,cell.x,gap.y-gap.x))
+						2: door_cuts.append(Rect2(gap.x,rect.position.y-cell.y,gap.y-gap.x,cell.y))
+						3: door_cuts.append(Rect2(gap.x,rect.end.y,gap.y-gap.x,cell.y))
+		walls = TileGeometry.subtract(walls,door_cuts)
 	return walls
 
 func _map_shape_visual(map_node:Node) -> Array[Rect2]:
@@ -4269,7 +4295,16 @@ func _refresh_map_border_geometry(map_rect:Rect2) -> void:
 	if _is_grass_map_background():
 		for edge:Dictionary in TileGeometry.edges(_map_shape_visual(map_node)):
 			var n:Vector2 = PortalMap.SIDE_NORMALS[int(edge.side)]
-			_add_map_border_segment(TileGeometry.point(edge,edge.a)+n*map_border_width*0.5,TileGeometry.point(edge,edge.b)+n*map_border_width*0.5)
+			var gaps:Array[Vector2] = []
+			# 墙顶被门挖走后，露出的物理边也成了视觉边；别再用黑线封死入口。
+			if not _waiter_doors.is_empty():
+				for island:Dictionary in map_islands(map_node):
+					var rect:Rect2 = island.rect
+					var outer:float = [rect.position.x,rect.end.x,rect.position.y,rect.end.y][int(edge.side)]
+					if absf(float(edge.line)-outer)<0.01:
+						gaps.append_array(_waiter_door_gap_intervals_for_island(int(edge.side),edge.a,edge.b,0.0,rect))
+			for span:Vector2 in _subtract_axis_intervals(edge.a,edge.b,PortalMap.merge_intervals(gaps)):
+				_add_map_border_segment(TileGeometry.point(edge,span.x)+n*map_border_width*0.5,TileGeometry.point(edge,span.y)+n*map_border_width*0.5)
 	else:
 		for island:Dictionary in map_islands(map_node):
 			for edge:Dictionary in TileGeometry.edges(island.regions):
@@ -4341,7 +4376,15 @@ func _refresh_map_inside_shadow() -> void:
 				segment.a = span.x
 				segment.b = span.y
 				edges.append(segment)
-	map_inside_shadow.configure_regions(map_island_rects(map_node),map_visual_cell_size(map_node),edges)
+	var cell:Vector2 = map_visual_cell_size(map_node)
+	var sun:Vector2 = map_wall_light_direction.normalized() if map_wall_light_direction.length_squared() > 0.0001 else Vector2(1.0,-1.0).normalized()
+	var cast:Vector2 = -sun * minf(cell.x,cell.y) * map_wall_shadow_cells
+	map_inside_shadow.configure_regions(map_island_rects(map_node),cell,edges,cast)
+	if not is_instance_valid(map_wall_volume):
+		map_wall_volume = load("res://scripts/effects/我的世界/地图立体墙.gd").new()
+		map_wall_volume.name = "MapWallVolume"
+		add_child(map_wall_volume)
+	map_wall_volume.configure_edges(edges,cell,MAP_BACKGROUND_THEMES.theme(map_background_style()),sun,map_wall_height_cells)
 	for extra:Node2D in _island_extra_inside_shadows: extra.visible = false
 
 func _configure_island_inside_shadow(shadow:Node2D,physical_rect:Rect2,island_name:String,portal:PortalMap) -> void:
