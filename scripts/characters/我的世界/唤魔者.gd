@@ -44,7 +44,7 @@ func _show_totem_visual() -> void:
 	_totem_visual_played = true
 	var fx:Node2D = TOTEM_FX.new()
 	MC_EXPLOSION.runtime_container(self).add_child(fx)
-	fx.call("setup",global_position)
+	fx.call("setup",global_position,self)
 	MC_AUDIO.play(self,"item.totem.use",global_position,-1.0,true,true)
 
 func tick_physics(state:State,delta:float) -> void:

@@ -5,16 +5,18 @@ const MC_FX = preload("res://scripts/effects/我的世界/mc_visual_effects.gd")
 const PARTICLE_COUNT:int = 88
 const LIFETIME:float = 1.55
 const ICON_WIDTH:float = 20.0 # Near the native 16px item size; the old 72px icon obscured the Evoker.
-const Z_SPIN_END:float = 0.82 # Finish one complete screen-facing (Z-axis) turn before fading.
+const Z_SPIN_END:float = 0.82 # Finish one front/back, camera-facing pseudo-3D turn before fading.
 const PARTICLE_COLORS = [Color(1.0,0.97,0.36),Color(0.34,0.90,0.28),Color(0.72,0.98,0.32),Color(1.0,0.80,0.25)]
 
 var totem_sprite:Sprite2D
 var particles:Array[Dictionary] = []
 var age:float = 0.0
 var _rng:RandomNumberGenerator = RandomNumberGenerator.new()
+var _follow:WeakRef
 
-func setup(point:Vector2) -> void:
+func setup(point:Vector2, follow_target:Node2D = null) -> void:
 	global_position = point
+	if follow_target != null: _follow = weakref(follow_target)
 	z_as_relative = false
 	z_index = 85
 	add_to_group("BattleTransient")
@@ -47,18 +49,28 @@ func _process(delta:float) -> void:
 	advance_visual(delta)
 
 func advance_visual(delta:float) -> void:
+	# Keep the detached effect at the living Evoker's position. Once its owner
+	# leaves the tree, hold the last location so the brief burst can finish.
+	if _follow != null:
+		var owner:Node2D = _follow.get_ref() as Node2D
+		if is_instance_valid(owner) and owner.is_inside_tree(): global_position = owner.global_position
 	age += maxf(delta,0.0)
 	if age >= LIFETIME:
 		queue_free()
 		return
 	var progress:float = clampf(age/LIFETIME,0.0,1.0)
 	var pop:float = 1.0-pow(1.0-minf(progress/0.15,1.0),3.0)
-	totem_sprite.scale = Vector2.ONE * (ICON_WIDTH/float(ITEM.get_width())) * (0.22+0.78*pop)
 	totem_sprite.position = Vector2(sin(progress*TAU*1.2)*6.0,-38.0-17.0*sin(progress*PI)-16.0*progress)
-	# Node2D.rotation is about the view-facing Z axis. The previous +/-0.12rad
-	# wobble never showed the item's unmistakable activation spin.
+	# A front-to-back yaw about the item's VERTICAL axis, projected into 2D:
+	# cosine foreshortens the face at the edge; the negative half shows its
+	# mirrored back. Do not rotate the flat icon in the screen plane.
 	var turn:float = clampf(progress/Z_SPIN_END,0.0,1.0)
-	totem_sprite.rotation = TAU * turn*turn*(3.0-2.0*turn)
+	var yaw:float = TAU * turn*turn*(3.0-2.0*turn)
+	var facing:float = cos(yaw)
+	if absf(facing) < 0.06: facing = 0.06 if facing >= 0.0 else -0.06
+	var size:float = (ICON_WIDTH/float(ITEM.get_width())) * (0.22+0.78*pop)
+	totem_sprite.scale = Vector2(size*facing,size)
+	totem_sprite.rotation = 0.0
 	totem_sprite.modulate.a = 1.0-smoothstep(0.73,1.0,progress)
 	for particle:Dictionary in particles:
 		var sprite:Sprite2D = particle.sprite

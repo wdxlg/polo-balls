@@ -34,6 +34,23 @@ func readback(fx:Node2D) -> Dictionary:
 			if lit.r > 0.39 and lit.g > 0.30 and lit.b < 0.54: yellow += 1
 	return {"changed":changed,"green":green,"yellow":yellow,"origin":origin,"shown":shown,"blank":blank}
 
+func icon_pixels(frame:Dictionary, center:Vector2) -> int:
+	var shown:Image = frame.shown
+	var blank:Image = frame.blank
+	var count:int = 0
+	for y:int in range(clampi(int(center.y)-58,0,shown.get_height()-1),clampi(int(center.y)+58,0,shown.get_height()-1)+1):
+		for x:int in range(clampi(int(center.x)-42,0,shown.get_width()-1),clampi(int(center.x)+42,0,shown.get_width()-1)+1):
+			var a:Color = shown.get_pixel(x,y)
+			var b:Color = blank.get_pixel(x,y)
+			if absf(a.r-b.r)+absf(a.g-b.g)+absf(a.b-b.b) > 0.12: count += 1
+	return count
+
+func icon_center(fx:Node2D) -> Vector2:
+	return (root.get_final_transform()*fx.totem_sprite.get_global_transform_with_canvas())*Vector2.ZERO
+
+func save_crop(frame:Dictionary, center:Vector2, filename:String) -> Error:
+	return (frame.shown as Image).get_region(Rect2i(Vector2i(int(center.x)-110,int(center.y)-110),Vector2i(220,220))).save_png("user://evoker_totem_visual/"+filename)
+
 func run() -> void:
 	create_timer(52.0,true,false,true).timeout.connect(func(): push_error("EVOKER_TOTEM_GPU_TIMEOUT"); quit(2))
 	var game:Node = root.get_node("Game")
@@ -78,8 +95,8 @@ func run() -> void:
 		fx.advance_visual(0.22)
 		fx.set_process(false) # freeze this exact original art frame for two readbacks
 		check(fx.totem_sprite.scale.x > start_scale and fx.totem_sprite.modulate.a > 0.8,"icon really pops larger rather than remaining a still image")
-		check(fx.totem_sprite.scale.x * fx.totem_sprite.texture.get_width() <= fx.ICON_WIDTH+0.01 and fx.ICON_WIDTH <= 24.0,"item stays near native character size instead of covering the battlefield")
-		check(absf(fx.totem_sprite.rotation) > 0.4,"totem actually begins turning about the view-facing Z axis")
+		check(absf(fx.totem_sprite.scale.x) * fx.totem_sprite.texture.get_width() <= fx.ICON_WIDTH+0.01 and fx.ICON_WIDTH <= 24.0,"item stays near native character size instead of covering the battlefield")
+		check(fx.totem_sprite.rotation == 0.0 and fx.totem_sprite.scale.x > 0.0,"item starts front-facing, with no in-plane spinning")
 		await RenderingServer.frame_post_draw
 		await RenderingServer.frame_post_draw
 		var complete:Dictionary = await readback(fx)
@@ -88,32 +105,37 @@ func run() -> void:
 		# Icon alone and glitter alone must BOTH draw independently on a real GPU.
 		for spark:Dictionary in fx.particles: spark.sprite.hide()
 		await RenderingServer.frame_post_draw
-		var icon_pixels:Dictionary = await readback(fx)
-		print("EVOKER_TOTEM_ITEM_GPU_METRIC ",icon_pixels)
-		check(icon_pixels.changed > 90,"original totem icon is visibly animated in the real view")
-		var angle_before:float = fx.totem_sprite.rotation
-		var icon_before:Vector2 = (root.get_final_transform()*fx.totem_sprite.get_global_transform_with_canvas())*Vector2.ZERO
-		fx.advance_visual(0.30)
-		var icon_after:Vector2 = (root.get_final_transform()*fx.totem_sprite.get_global_transform_with_canvas())*Vector2.ZERO
-		var turned_icon:Dictionary = await readback(fx)
-		var changed_by_spin:int = 0
-		var origin:Vector2 = (icon_before+icon_after)*0.5
-		var first:Image = icon_pixels.shown
-		var baseline:Image = icon_pixels.blank
-		var second:Image = turned_icon.shown
-		var later_baseline:Image = turned_icon.blank
-		for y:int in range(clampi(int(origin.y)-100,0,first.get_height()-1),clampi(int(origin.y)+100,0,first.get_height()-1)+1):
-			for x:int in range(clampi(int(origin.x)-100,0,first.get_width()-1),clampi(int(origin.x)+100,0,first.get_width()-1)+1):
-				var a:Color = first.get_pixel(x,y)-baseline.get_pixel(x,y)
-				var b:Color = second.get_pixel(x,y)-later_baseline.get_pixel(x,y)
-				if absf(a.r-b.r)+absf(a.g-b.g)+absf(a.b-b.b) > 0.15: changed_by_spin += 1
-		print("EVOKER_TOTEM_Z_SPIN_GPU_METRIC changed_pixels=",changed_by_spin," delta_radians=",fx.totem_sprite.rotation-angle_before," screen_centers=",icon_before," -> ",icon_after)
-		check(fx.totem_sprite.rotation-angle_before > 1.0 and changed_by_spin > 80,"smaller original icon visibly rotates in actual GPU pixels, not just a property value")
-		var crop:Rect2i = Rect2i(Vector2i(int(origin.x)-110,int(origin.y)-110),Vector2i(220,220))
+		var front_frame:Dictionary = await readback(fx)
+		print("EVOKER_TOTEM_ITEM_GPU_METRIC ",front_frame)
+		check(front_frame.changed > 90,"original totem icon is visibly animated in the real view")
+		var front_center:Vector2 = icon_center(fx)
+		var front_count:int = icon_pixels(front_frame,front_center)
+		fx.advance_visual(fx.LIFETIME*fx.Z_SPIN_END*0.326-fx.age)
+		var edge_scale:float = fx.totem_sprite.scale.x
+		var edge_center:Vector2 = icon_center(fx)
+		var edge_frame:Dictionary = await readback(fx)
+		var edge_count:int = icon_pixels(edge_frame,edge_center)
+		fx.advance_visual(fx.LIFETIME*fx.Z_SPIN_END*0.5-fx.age)
+		var back_scale:float = fx.totem_sprite.scale.x
+		var back_center:Vector2 = icon_center(fx)
+		var back_frame:Dictionary = await readback(fx)
+		var back_count:int = icon_pixels(back_frame,back_center)
+		print("EVOKER_TOTEM_YAW_GPU_METRIC front=",front_count," edge=",edge_count," back=",back_count," scales=",edge_scale,",",back_scale)
+		check(fx.totem_sprite.rotation == 0.0 and edge_scale > 0.0 and back_scale < 0.0 and absf(edge_scale)*3.0 < absf(back_scale),"front/edge/mirrored-back turn is horizontal pseudo-3D, not flat Z rotation")
+		check(front_count > 90 and edge_count < front_count*0.55 and back_count > edge_count*1.6,"real GPU icon narrows to an edge and widens on its reverse face")
 		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://evoker_totem_visual"))
-		var before_png:Error = first.get_region(crop).save_png("user://evoker_totem_visual/z_spin_before.png")
-		var after_png:Error = second.get_region(crop).save_png("user://evoker_totem_visual/z_spin_after.png")
-		check(before_png == OK and after_png == OK,"two real battlefield spin phases are available for visual inspection")
+		check(save_crop(front_frame,front_center,"yaw_front.png") == OK and save_crop(edge_frame,edge_center,"yaw_edge.png") == OK and save_crop(back_frame,back_center,"yaw_back.png") == OK,"three genuine battlefield yaw phases are available for inspection")
+		var previous_anchor:Vector2 = fx.global_position
+		evoker.global_position += Vector2(36.0,16.0) # stay inside Map10x10 while measuring follow
+		fx.set_process(true)
+		await RenderingServer.frame_post_draw # process_frame fires before Node._process
+		fx.set_process(false)
+		var followed_center:Vector2 = icon_center(fx)
+		var followed_frame:Dictionary = await readback(fx)
+		print("EVOKER_TOTEM_FOLLOW_GPU_METRIC anchor=",previous_anchor," fx=",fx.global_position," owner=",evoker.global_position," centers=",back_center," -> ",followed_center," pixels=",icon_pixels(followed_frame,followed_center)," scale=",fx.totem_sprite.scale)
+		check(fx.global_position.distance_to(evoker.global_position) < 0.1 and fx.global_position.distance_to(previous_anchor) > 30.0,"detached effect follows the real living evoker without snapping to spawn")
+		check(followed_center.distance_to(back_center) > 20.0 and icon_pixels(followed_frame,followed_center) > 90,"followed original icon actually moves with evoker in GPU battlefield pixels")
+		check(save_crop(followed_frame,followed_center,"yaw_follow.png") == OK,"followed battlefield frame is available for visual inspection")
 		fx.advance_visual(0.0)
 		fx.totem_sprite.hide()
 		await RenderingServer.frame_post_draw
