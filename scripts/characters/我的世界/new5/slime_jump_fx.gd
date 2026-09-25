@@ -3,6 +3,14 @@ extends Node2D
 const TEX=preload("res://Images/characters/我的世界/new5/slimeball.png")
 const CONTAINER=preload("res://scripts/effects/我的世界/mc_explosion.gd")
 const LANDING_CHIP_COUNT:int=40
+class GroundPixelRing extends Node2D:
+	# Reuse the shared Minecraft rasterizer, not a second circle algorithm.
+	const PIXEL_ARC=preload("res://scripts/effects/我的世界/pixel_arc.gd")
+	var radius:float=0.0
+	var opacity:float=0.72
+	func _draw() -> void:
+		PIXEL_ARC.draw_ring(self,Vector2.ZERO,radius,Color(0.32,0.95,0.18),opacity)
+
 var landing:bool=false
 var size_factor:float=1.0
 var reach:float=43.0
@@ -10,7 +18,7 @@ var visual_seed:int=1
 var linger_after_death:bool=false
 var particles:Array[Dictionary]=[]
 var age:float=0.0
-var ring:Line2D
+var ring:GroundPixelRing
 var ring_radius:float=0.0
 var owner_ref:WeakRef
 var body_z:int=0
@@ -36,14 +44,11 @@ func _ready() -> void:
 	add_to_group("MCSlimeJumpFX")
 	_rng.seed=visual_seed
 	if landing:
-		ring=Line2D.new()
+		ring=GroundPixelRing.new()
 		ring.name="GroundRing"
 		ring.z_as_relative=false
 		ring.z_index=body_z-1 # ground plane, underneath the actual body layer
-		ring.closed=true
-		ring.antialiased=true
-		ring.width=maxf(1.0,1.8*size_factor)
-		ring.default_color=Color(0.32,0.95,0.18,0.72)
+		ring.scale=Vector2(1.0,0.42)
 		add_child(ring)
 	# Landing (and the shared death burst) needs a full splash; keep takeoff sparse.
 	var count:int=maxi(3,roundi((LANDING_CHIP_COUNT if landing else 5)*size_factor))
@@ -85,12 +90,9 @@ func update_visual(delta:float) -> void:
 	if is_instance_valid(ring):
 		var t:float=clampf(age/0.5,0,1)
 		ring_radius=lerpf(10.0*size_factor,reach,1-pow(1-t,2))
-		var points:=PackedVector2Array()
-		for i:int in range(72):
-			var angle:float=float(i)*TAU/72
-			points.append(Vector2(cos(angle)*ring_radius,sin(angle)*ring_radius*0.42))
-		ring.points=points
-		ring.default_color=Color(0.32,0.95,0.18,0.72*pow(1-t,1.4))
+		ring.radius=ring_radius
+		ring.opacity=0.72*pow(1-t,1.4)
+		ring.queue_redraw()
 		ring.visible=t<1
 	var alive:bool=landing and age<0.5
 	for particle:Dictionary in particles:

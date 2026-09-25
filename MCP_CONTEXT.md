@@ -1,5 +1,7 @@
 # polo-balls 项目规则与接入说明
 
+- 史莱姆大/中/小普通落地与死亡冲击的绿色圈共用 `pixel_arc.gd::draw_ring` 三层 Minecraft 像素环，保留0.42贴地投影、0.5秒扩散渐隐及原粒子/伤害/清理。验证和局部回退见 `tests/SLIME_PIXEL_RING_20260926.md`。
+
 - 「山巅」是独立 Blender 方块高山资产，使用本机 Minecraft Java 1.21.1 原版纹理；原生文件、GLB、实机渲染和验证见 `art_sources/summit/README.md`。该目录有意 `.gdignore`，本轮未替换正式地图，也未生成碰撞/导航；不得把模型导出当作战斗地图已接入。
 
 这是项目所有者维护的当前规则。通过 ShunCode MCP 接入时，应先理解本文件，再进行修改；无需用户重复提醒。规则描述的是开发要求，不代表相关功能已经实现或测试通过。

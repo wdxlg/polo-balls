@@ -103,7 +103,8 @@ func run() -> void:
 		check(burst.size()==bursts_before+1,"one detached landing-style FX at lethal health, stage "+str(stage))
 		var fx:Node=burst.back() if not burst.is_empty() else null
 		if fx!=null:
-			check(fx.landing and fx.owner_ref==null and fx.ring!=null and fx.ring.points.size()==72 and fx.particles.size()==expected_landing and fx.global_position.is_equal_approx(center_point),"death inherits dense landing chips at ground point, stage "+str(stage))
+			check(fx.landing and fx.owner_ref==null and fx.ring!=null and not fx.ring is Line2D and fx.ring.get_script()!=null and fx.particles.size()==expected_landing and fx.global_position.is_equal_approx(center_point),"death inherits pixel ring and dense landing chips at ground point, stage "+str(stage))
+			check(fx.ring.scale.is_equal_approx(Vector2(1,0.42)) and is_equal_approx(fx.ring.radius,fx.ring_radius),"pixel ring retains ground projection and animated radius, stage "+str(stage))
 		var hp_after:int=victim.health
 		slime.Die()
 		slime.Die()
