@@ -35,9 +35,9 @@ func run() -> void:
 		if not unit.has_method("is_combat_runtime_active") or not is_instance_valid(unit.health_bar): continue
 		unit.state_machine.set_physics_process(false)
 		var number:Label = unit.health_bar.label
-		# 数字按血条宽度自动缩小（三位数以上），不超过 900 的基准字号；细白描边宽 120。
+		# 数字按血条宽度自动缩小（三位数以上），不超过 900 的基准字号；普通数字无描边。
 		assert(number.get_theme_font_size("font_size") <= 900 and number.get_theme_font_size("font_size") > 0)
-		assert(number.get_theme_constant("outline_size") == 120)
+		assert(number.get_theme_constant("outline_size") == 0)
 		assert(number.get_theme_font("font").multichannel_signed_distance_field)
 		checks += 3
 	await process_frame

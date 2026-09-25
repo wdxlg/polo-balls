@@ -47,7 +47,7 @@ var force_instant_update_once:bool = false
 
 # V149：Sans KARMA（业力）预览层。
 # 每个来源保存自己的待结算值，最终只把“当前真实生命中、未来会被 KR 扣掉的那一段”染成粉紫色。
-# 文字保持角色原本颜色；真正扣血由 Sans 的业力效果节点负责，HealthBar 只负责显示。
+# 生命数字只按真实生命百分比显示黑/白，不跟随 KARMA 的粉紫色；真正扣血由业力效果结算。
 const KARMA_PREVIEW_COLOR:Color = Color(1.0,0.0,1.0,1.0)
 var _karma_bar:TextureProgressBar = null
 var _karma_sources:Dictionary = {}
@@ -60,9 +60,9 @@ var _invincible_display:bool = false
 var _invincible_glow_tween:Tween = null
 var _normal_health_self_modulate:Color = Color.WHITE
 var _normal_label_font_color:Color = Color.BLACK
-var _normal_label_outline_color:Color = Color.WHITE
-var _normal_label_shadow_color:Color = Color(0.0,0.0,0.0,0.58)
-var _normal_label_outline_size:int = 120
+var _normal_label_outline_color:Color = Color(0.0,0.0,0.0,0.0)
+var _normal_label_shadow_color:Color = Color(0.0,0.0,0.0,0.0)
+var _normal_label_outline_size:int = 0
 
 # Large (900 px) legacy health digits otherwise rasterize a new huge outlined
 # bitmap on the first occurrence of EACH digit. MSDF keeps the same layout/size
@@ -86,6 +86,7 @@ func _ready() -> void:
 	_apply_character_health_bar_visual()
 	# V410：Sans KARMA 预览条改为首次真正出现业力时再复制，普通角色少一个 Control 节点。
 	_set_hud_mouse_filter_ignore(self)
+	_prepare_normal_health_label_style()
 	_normal_health_self_modulate = health_bar.self_modulate
 	_normal_label_font_color = label.get_theme_color("font_color")
 	_normal_label_outline_color = label.get_theme_color("font_outline_color")
@@ -109,6 +110,15 @@ func _ready() -> void:
 	set_process(_has_health_threshold_provider)
 	if _has_health_threshold_provider:
 		call_deferred("_refresh_health_threshold_markers",true)
+
+
+func _prepare_normal_health_label_style() -> void:
+	# Old scenes can embed their own copy of the health bar; normalize once on enter.
+	label.add_theme_color_override("font_color",Color.BLACK)
+	label.add_theme_color_override("font_outline_color",Color(0.0,0.0,0.0,0.0))
+	label.add_theme_color_override("font_shadow_color",Color(0.0,0.0,0.0,0.0))
+	for key:String in ["outline_size","shadow_outline_size","shadow_offset_x","shadow_offset_y"]:
+		label.add_theme_constant_override(key,0)
 
 
 func _set_hud_mouse_filter_ignore(node:Node) -> void:
@@ -222,7 +232,7 @@ func _apply_karma_overlay() -> void:
 				var restore_ratio:float = clampf(restore_health / restore_max_health,0.0,1.0)
 				health_bar.value = restore_ratio
 				health_bar.modulate = Color(1.0,restore_ratio,restore_ratio)
-				label.add_theme_color_override("font_color",_normal_label_font_color)
+				_set_health_label_color(restore_health,restore_max_health)
 		return
 	if _karma_bar == null or not is_instance_valid(_karma_bar):
 		_setup_karma_preview_bar()
@@ -245,7 +255,7 @@ func _apply_karma_overlay() -> void:
 		health_bar.value = current_ratio
 		health_bar.modulate = Color(1.0,current_ratio,current_ratio)
 		if not _invincible_display:
-			label.add_theme_color_override("font_color",_normal_label_font_color)
+			_set_health_label_color(current_health,max_health_value)
 		return
 
 	_kill_bar_tween(health_bar)
@@ -258,16 +268,29 @@ func _apply_karma_overlay() -> void:
 	var safe_ratio:float = clampf(safe_health / max_health_value,0.0,1.0)
 	health_bar.value = safe_ratio
 	health_bar.modulate = Color(1.0,safe_ratio,safe_ratio)
-	# V149：用户要求紫色只出现在“实际有血的血条段”上，生命数字不跟着变色。
-	label.add_theme_color_override("font_color",_normal_label_font_color)
+	# KARMA 只预览未来掉血；生命数字仍按真实生命百分比切换黑/白。
+	_set_health_label_color(current_health,max_health_value)
 
 
 
-# 生命数字自适应：字号按字符串宽度缩小，保证数字连同描边都留在血条内，不会像 1000/12345 那样溢出。
+# 生命数字自适应：无描边，字号按字符串宽度缩小，防止 1000/12345 等长数值溢出。
 var _label_base_font_size:int = 0
-func _set_label_text(value:String) -> void:
+func _set_health_label_color(value:float,max_health:float) -> void:
+	if _invincible_display or not is_instance_valid(label):
+		return
+	# 严格大于半血为黑；恰好 50% 以及更低均为不透明纯白。
+	var color:Color = Color.BLACK if max_health > 0.0 and value > max_health * 0.5 else Color.WHITE
+	if label.get_theme_color("font_color") != color:
+		label.add_theme_color_override("font_color",color)
+
+func _set_label_text(value:String,max_health:int = -1) -> void:
 	label.text = value
 	_fit_label_text()
+	if not _invincible_display and value.is_valid_int():
+		var maximum:float = float(max_health)
+		if max_health < 0 and is_instance_valid(owner):
+			maximum = float(owner.Max_health)
+		_set_health_label_color(float(value.to_int()),maximum)
 
 
 func _fit_label_text() -> void:
@@ -280,7 +303,7 @@ func _fit_label_text() -> void:
 		return
 	var outline:int = label.get_theme_constant("outline_size")
 	# 不能拿 label.size 当参考：Label 会随文字最小宽度自动撑大。以血条本体宽度为准，
-	# 描边向两侧各伸出 outline 像素，再留 8% 余量。
+	# INF 特殊状态可能有描边；普通数字为 0，再留 8% 余量。
 	var bar_width:float = health_bar.size.x * absf(health_bar.scale.x) if is_instance_valid(health_bar) else label.size.x
 	var available:float = maxf(bar_width * 0.92 - float(outline) * 2.0,1.0)
 	var font_size:int = _label_base_font_size
@@ -325,8 +348,8 @@ func pulse_health_number_on_silent_damage() -> void:
 	_pulse_health_number_on_hit()
 
 
-func Set_Health_Text(health_text:int) -> void:
-	_set_label_text("INF" if _invincible_display else str(health_text))
+func Set_Health_Text(health_text:int,max_health:int = -1) -> void:
+	_set_label_text("INF" if _invincible_display else str(health_text),max_health)
 
 
 func set_invincible_display(enabled:bool,animate_glow:bool = true) -> void:
@@ -365,7 +388,7 @@ func set_invincible_display(enabled:bool,animate_glow:bool = true) -> void:
 	var ratio:float = clampf(float(health_value) / float(max_health_value),0.0,1.0)
 	health_bar.value = ratio
 	health_bar.modulate = Color(1.0,ratio,ratio)
-	_set_label_text(str(health_value))
+	_set_label_text(str(health_value),max_health_value)
 	_apply_karma_overlay()
 
 
@@ -450,7 +473,7 @@ func when_value_changed(last_value:int,value:int,max_value:int,if_tween:bool,bar
 			new_tween.tween_property(bar,"modulate",Color(1.0,target_value,target_value),0.2)
 			new_tween.set_ease(Tween.EASE_OUT)
 			new_tween.set_trans(Tween.TRANS_QUAD)
-			new_tween.tween_method(Set_Health_Text,last_value,value,0.2)
+			new_tween.tween_method(Set_Health_Text.bind(max_value),last_value,value,0.2)
 
 		# 数值下降：伤害/护盾损失跳字
 		if last_value > value:
@@ -467,7 +490,7 @@ func when_value_changed(last_value:int,value:int,max_value:int,if_tween:bool,bar
 				_spawn_heal_text(value - last_value)
 	else:
 		if bar == health_bar:
-			_set_label_text(str(value))
+			_set_label_text(str(value),max_value)
 		bar.value = target_value
 
 	if bar == health_bar and get_karma_preview_total() > 0.0001:
