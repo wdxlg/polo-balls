@@ -551,7 +551,7 @@ func _process_portal_transits(delta:float,ball_group:Array) -> void:
 @export var versus_font_max_size:int = 12
 @export var versus_font_min_size:int = 6
 # 与地图边缘和相机平移无关的屏幕标题留白（屏幕像素）。
-@export var versus_screen_top_padding_px:float = 12.0
+@export var versus_screen_top_padding_px:float = 96.0
 @export var versus_screen_side_padding_px:float = 12.0
 
 # 第二行：互动文字（紧贴在 VS 文字下面）
@@ -3818,7 +3818,7 @@ func setup_map_presentation() -> void:
 	versus_label.add_theme_font_size_override("bold_font_size",versus_font_max_size)
 	versus_label.add_theme_color_override("default_color",Color.WHITE)
 	versus_label.add_theme_color_override("font_outline_color",Color.BLACK)
-	versus_label.add_theme_constant_override("outline_size",1)
+	versus_label.add_theme_constant_override("outline_size",2)
 	versus_label.z_index = 101
 	versus_label.visibility_layer = COMBAT_TEXT_VISIBILITY_LAYER
 	versus_label.install_effect(HEAVY_GIRL_GLYPH_SHAKE_EFFECT.new())
@@ -4167,7 +4167,8 @@ func _update_map_versus_font(map_node:Node) -> void:
 	versus_font_max_size = maxi(4,roundi(float(_versus_base_max_size) * map_scale))
 	versus_font_min_size = mini(versus_font_max_size,maxi(4,roundi(float(_versus_base_min_size) * map_scale)))
 	versus_effect_margin = _versus_base_effect_margin * maxf(map_scale,1.0)
-	var outline:int = maxi(1,roundi(map_scale))
+	# 标题描边随地图字号等比放大；基准地图由 1 加粗为 2。
+	var outline:int = maxi(2,roundi(map_scale * 2.0))
 	if versus_label.get_theme_constant("outline_size") != outline:
 		versus_label.add_theme_constant_override("outline_size",outline)
 

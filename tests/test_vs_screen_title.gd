@@ -71,7 +71,7 @@ func run() -> void:
 	check(world._next_versus_team_color_index == 0 and world._versus_team_colors.is_empty(),"neutral and the first two teams do not consume random color slots")
 	check(world._versus_side_color("team:中立",3,0) == Color.WHITE and world._versus_side_color("team:Neutral",3,0) == Color.WHITE,"explicit neutral labels also do not count")
 	check(world._versus_side_color("solo:987",3,0) == Color.WHITE,"independent no-Team participants remain white")
-	check(world.versus_label.get_theme_color("font_outline_color") == Color.BLACK and world.versus_label.get_theme_color("default_color") == Color.WHITE,"all title glyphs have a black outline and white default fill")
+	check(world.versus_label.get_theme_color("font_outline_color") == Color.BLACK and world.versus_label.get_theme_constant("outline_size") == 2 and world.versus_label.get_theme_color("default_color") == Color.WHITE,"all title glyphs have a thicker black outline and white default fill")
 	check(text.contains("[color=#FFFFFF][b]VS[/b][/color]"),"VS separator remains white regardless of teams")
 
 	spawn_named("国王","C")
@@ -83,7 +83,7 @@ func run() -> void:
 	world._anchor_versus_to_screen()
 	var before:Rect2 = screen_box(world.versus_label)
 	print("VS_SCREEN_METRIC initial logical=",world.get_viewport_rect().size," physical=",root.size," canvas=",root.get_canvas_transform()," final=",root.get_final_transform()," title=",before)
-	check(before.position.distance_to(Vector2(12,12)) < 1.0 and absf(before.size.x - (world.get_viewport_rect().size.x - 24.0)) < 1.0,"title starts at the logical viewport top, not map top")
+	check(before.position.distance_to(Vector2(12,96)) < 1.0 and absf(before.size.x - (world.get_viewport_rect().size.x - 24.0)) < 1.0,"title sits lower in the logical viewport, not at the map top")
 	world.camera_2d.global_position += Vector2(70.0,-45.0)
 	world.toolbar_zoom_multiplier = 1.55
 	world._apply_camera_zoom()
@@ -113,7 +113,7 @@ func run() -> void:
 			var copy:RichTextLabel = copies[locale].text
 			var rect:Rect2 = screen_box(copy)
 			check(rect.position.y >= -1.0 and rect.position.y < 150.0 and rect.position.x >= 0.0,"recording "+locale+" VS remains near viewport top")
-			check(copy.get_theme_color("font_outline_color") == Color.BLACK and copy.text.contains("[b]VS[/b]"),"recording "+locale+" retains the black outline and VS")
+			check(copy.get_theme_color("font_outline_color") == Color.BLACK and copy.get_theme_constant("outline_size") == world.versus_label.get_theme_constant("outline_size") and copy.text.contains("[b]VS[/b]"),"recording "+locale+" retains the thicker black outline and VS")
 	mirror.finish()
 	mirror.queue_free()
 	blue.free()

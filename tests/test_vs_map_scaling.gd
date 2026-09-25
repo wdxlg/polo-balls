@@ -47,7 +47,8 @@ func select_map(map_name:String,title:String) -> Dictionary:
 	var title_to_screen:Transform2D = world.get_viewport().get_canvas_transform() * title_label.get_global_transform()
 	var title_top:Vector2 = title_to_screen * Vector2.ZERO
 	var title_right:Vector2 = title_to_screen * Vector2(title_label.size.x,0.0)
-	check(title_top.distance_to(Vector2(12,12)) < 1.0 and absf(title_right.x - (world.get_viewport_rect().size.x-12.0)) < 1.0,map_name+": title fills the fixed upper screen band")
+	check(title_top.distance_to(Vector2(12,96)) < 1.0 and absf(title_right.x - (world.get_viewport_rect().size.x-12.0)) < 1.0,map_name+": title fills the lowered fixed screen band")
+	check(title_label.get_theme_color("font_outline_color") == Color.BLACK and title_label.get_theme_constant("outline_size") == maxi(2,roundi(scale*2.0)),map_name+": thicker black outline scales with map lettering")
 	check(title_label.get_content_height() <= title_label.size.y + 0.5,map_name+": long names and effects have enough line height")
 	var bottom:Vector2 = title_to_screen * title_label.size
 	check(bottom.y > title_top.y and bottom.y < world.get_viewport_rect().size.y * 0.30,map_name+": title fits within the upper viewport")
@@ -81,6 +82,7 @@ func check_bilingual_mirror() -> void:
 		for locale:String in ["zh","en"]:
 			var copy:RichTextLabel = copies[locale].text
 			check(copy.get_theme_font_size("bold_font_size") > 12,"recording "+locale+": large map title is larger than reference font")
+			check(copy.get_theme_constant("outline_size") == world.versus_label.get_theme_constant("outline_size"),"recording "+locale+": outline matches the live title")
 			if mirror.has_method("_fit_localized_versus"):
 				check(copy.get_content_height() <= copy.size.y + 0.5,"recording "+locale+": translated lines are not clipped")
 				var copy_to_screen:Transform2D = world.get_viewport().get_canvas_transform() * copy.get_global_transform()
