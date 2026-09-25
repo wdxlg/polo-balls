@@ -1,11 +1,12 @@
 extends Node2D
-## Native footprint viewed as a distant, low-angle sky sheet. No gameplay state/RNG.
+## Native footprint parallel to the battlefield: no tilt, foreshortening or shear.
+## Solid cloud body with a straight lower edge. No gameplay state/RNG.
 ## One shared World2D material: main camera, overview and recording see the same clouds.
 const CLOUD_TEXTURE:Texture2D = preload("res://Images/effects/我的世界/clouds/clouds.png")
 const CLOUD_SHADER:Shader = preload("res://shaders/minecraft_clouds.gdshader")
 const CELL_SIZE:float = 32.0
-const THICKNESS:float = 3.0 # Projected rim, deliberately not a chunky top-down block.
-const PLANE_DEPTH:float = 0.42
+const THICKNESS:float = CELL_SIZE / 3.0 # 12:4 native width/thickness ratio, adapted to 2D.
+const PLANE_DEPTH:float = 1.0 # Square footprint cells, aligned with the ground plane.
 const OVERHEAD_PARALLAX:float = 0.6
 const BACKGROUND_PARALLAX:float = 0.25
 const DRIFT_SPEED:float = CELL_SIZE*(0.03*20.0/12.0) # Native drift relative to one texture cell.
@@ -32,7 +33,7 @@ func _ready() -> void:
 	cloud_material.shader = CLOUD_SHADER
 	cloud_material.set_shader_parameter("cloud_mask",CLOUD_TEXTURE)
 	cloud_material.set_shader_parameter("cell_size",CELL_SIZE)
-	cloud_material.set_shader_parameter("height_shift",Vector2(0.0,-THICKNESS))
+	cloud_material.set_shader_parameter("height_shift",Vector2(0.0,THICKNESS))
 	cloud_material.set_shader_parameter("plane_depth",PLANE_DEPTH)
 	refresh()
 

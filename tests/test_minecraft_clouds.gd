@@ -43,7 +43,7 @@ func gpu_checks() -> void:
 	cloud.reset_drift()
 	await _frame()
 	var image:Image = isolated.get_texture().get_image()
-	image.save_png("user://minecraft_clouds_sky_native_volume.png")
+	image.save_png("user://minecraft_clouds_flat_native_volume.png")
 	var visible_pixels:int = 0
 	var face_levels:Dictionary = {}
 	for y:int in image.get_height():
@@ -54,18 +54,18 @@ func gpu_checks() -> void:
 				face_levels[int(round(c.r/maxf(c.a,0.01)*100.0))] = true
 	print("CLOUD_GPU pixels=",visible_pixels," face_levels=",face_levels)
 	check(visible_pixels > 500 and visible_pixels < 512*384*0.75,"native cloud mask produces separated clouds, not a screen-filling fog")
-	check(face_levels.size() == 2 and face_levels.has(94) and face_levels.has(100),"GPU shows a broad underside and thin bright rim, not three dark block faces")
+	check(face_levels.size() == 2 and face_levels.has(70) and face_levels.has(100),"GPU shows a solid white flat body and darker straight lower edge")
 	var longest_rim:int = 0
 	for x:int in image.get_width():
 		var run:int = 0
 		for y:int in image.get_height():
 			var c:Color = image.get_pixel(x,y)
-			if c.a > 0.1 and int(round(c.r/c.a*100.0)) == 100:
+			if c.a > 0.1 and int(round(c.r/c.a*100.0)) == 70:
 				run += 1
 				longest_rim = maxi(longest_rim,run)
 			else: run = 0
-	check(longest_rim >= 2 and longest_rim <= 4,"GPU projected rim stays thin, never the old 16-pixel block wall")
-	print("CLOUD_SKY_RIM_PX ",longest_rim)
+	check(longest_rim == int(ceil(cloud.THICKNESS)),"GPU lower edge has the approved 32/3-pixel thickness, not the rejected 3px paper rim")
+	print("CLOUD_FLAT_EDGE_PX ",longest_rim)
 	var native:Image = cloud.CLOUD_TEXTURE.get_image()
 	var exact:bool = true
 	for y:int in range(7):
@@ -73,6 +73,26 @@ func gpu_checks() -> void:
 			var point:Vector2i = Vector2i(Vector2(x+0.5,y+0.5)*Vector2(cloud.CELL_SIZE,cloud.CELL_SIZE*cloud.PLANE_DEPTH))
 			exact = exact and ((image.get_pixelv(point).a > 0.5) == (native.get_pixel(x,y).a > 0.5))
 	check(exact,"GPU cloud-cell center occupancy exactly matches 70 original texture texels")
+	check(is_equal_approx(cloud.PLANE_DEPTH,1.0) and cloud.cloud_material.get_shader_parameter("height_shift")==Vector2(0,cloud.THICKNESS),"cloud plane has square cells and a purely vertical edge: no compression, tilt or diagonal shear")
+	check(is_equal_approx(cloud.THICKNESS/cloud.CELL_SIZE,1.0/3.0),"approved cloud edge preserves native 12:4 width/thickness proportions")
+	var opaque_only:bool = true
+	var flat_differences:int = 0
+	for y:int in image.get_height():
+		for x:int in image.get_width():
+			var c:Color = image.get_pixel(x,y)
+			opaque_only = opaque_only and (c.a < 0.001 or c.a > 0.999)
+			var sample_point:=Vector2(x+0.5,y+0.5)
+			var body_cell:Vector2i = Vector2i((sample_point/cloud.CELL_SIZE).floor())
+			var lower_cell:Vector2i = Vector2i(((sample_point-Vector2(0,cloud.THICKNESS))/cloud.CELL_SIZE).floor())
+			var body:bool = native.get_pixel(posmod(body_cell.x,256),posmod(body_cell.y,256)).a > 0.5
+			var edge:bool = native.get_pixel(posmod(lower_cell.x,256),posmod(lower_cell.y,256)).a > 0.5
+			var expected_alpha:float = 1.0 if body or edge else 0.0
+			var expected_light:float = 1.0 if body else (0.70 if edge else 0.0)
+			if absf(c.a-expected_alpha)>0.001 or absf(c.r-expected_light)>0.005 or absf(c.g-expected_light)>0.005 or absf(c.b-expected_light)>0.005: flat_differences += 1
+	check(opaque_only,"GPU cloud pixels are strictly opaque or empty: no translucent checkerboard bleed or soft alpha fringe")
+	check(flat_differences==0,"all 196608 GPU pixels match the uncompressed native footprint plus straight lower edge, including wrapped texels")
+	print("CLOUD_FLAT_REFERENCE compared=",image.get_width()*image.get_height()," different=",flat_differences)
+
 	cloud.cloud_material.set_shader_parameter("travel",cloud.CELL_SIZE)
 	await _frame()
 	var shifted:Image = isolated.get_texture().get_image()
@@ -97,8 +117,24 @@ func gpu_checks() -> void:
 			for x:int in range(8,440,5):
 				total_pixels += 1
 				if after.get_pixel(x,y)==before.get_pixel(x+displacement,y): equal_pixels += 1
-		check(equal_pixels==total_pixels,"GPU camera pan 40px moves sky by %dpx at depth %.2f" % [displacement,depth])
+		check(equal_pixels==total_pixels,"GPU camera pan 40px moves clouds by %dpx at depth %.2f" % [displacement,depth])
 		print("CLOUD_PARALLAX depth=",depth," displacement=",displacement," equal=",equal_pixels,"/",total_pixels)
+
+	for depth:float in [cloud.BACKGROUND_PARALLAX,cloud.OVERHEAD_PARALLAX]:
+		cloud.cloud_material.set_shader_parameter("parallax",depth)
+		isolated.canvas_transform = Transform2D.IDENTITY
+		await _frame()
+		var before:Image = isolated.get_texture().get_image()
+		isolated.canvas_transform = Transform2D(0.0,Vector2(0,-40))
+		await _frame()
+		var after:Image = isolated.get_texture().get_image()
+		var displacement:int = int(round(40.0*depth))
+		var mismatches:int = 0
+		for y:int in range(8,330,5):
+			for x:int in range(8,504,5):
+				if after.get_pixel(x,y)!=before.get_pixel(x,y+displacement): mismatches += 1
+		check(mismatches==0,"GPU vertical camera pan has uniform %dpx parallax at depth %.2f, no row-dependent perspective" % [displacement,depth])
+		print("CLOUD_VERTICAL_PARALLAX depth=",depth," displacement=",displacement," mismatches=",mismatches)
 	isolated.canvas_transform = Transform2D.IDENTITY
 	cloud.cloud_material.set_shader_parameter("parallax",cloud.BACKGROUND_PARALLAX)
 	var small:SubViewport = capture_view(Vector2i(256,192),false)
@@ -117,7 +153,7 @@ func gpu_checks() -> void:
 			if value != large_image.get_pixelv(point+Vector2i.ONE) or value != large_image.get_pixelv(point-Vector2i.ONE): continue
 			compared += 1
 			if small_image.get_pixel(x,y) != value: different += 1
-	check(compared>1000 and different==0,"different-resolution views with identical framing derive the same sky camera center")
+	check(compared>1000 and different==0,"different-resolution views with identical framing derive the same cloud camera center")
 	print("CLOUD_CAPTURE_PARITY compared=",compared," different=",different)
 	small.queue_free()
 	cloud.refresh() # Restore map-selected parallax for actual world captures.
@@ -173,7 +209,7 @@ func gpu_checks() -> void:
 	check(changed(off,on,inner)==0,"grass-map background clouds do not paint over the arena or characters")
 	check(changed(off,on,Rect2i(0,0,640,480))>100,"grass-map clouds remain visible in the surrounding background")
 	check(on.get_data()==second.get_texture().get_image().get_data(),"two shared World2D recording-sized views see identical cloud placement and color")
-	on.save_png("user://minecraft_clouds_sky_grass.png")
+	on.save_png("user://minecraft_clouds_flat_grass.png")
 	world.day_night_cycle.set_minutes(0.0)
 	await _frame()
 	var night:Image = view.get_texture().get_image()
@@ -187,7 +223,7 @@ func gpu_checks() -> void:
 	world.day_night_cycle.set_minutes(720.0)
 	game.set_runtime_game_setting("Map_Background","blue",false)
 	await _frame()
-	view.get_texture().get_image().save_png("user://minecraft_clouds_sky_blue.png")
+	view.get_texture().get_image().save_png("user://minecraft_clouds_flat_blue.png")
 	# A different zoom and center must not move the cloud's world anchor.
 	second.canvas_transform = Transform2D(Vector2(2,0),Vector2(0,2),shift*2-Vector2(160,120))
 	await _frame()
