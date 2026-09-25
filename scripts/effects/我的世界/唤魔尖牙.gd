@@ -97,9 +97,10 @@ func _emit_emergence() -> void:
 	fx.set_meta("fang_id",get_instance_id())
 
 func _emit_bite() -> void:
-	# Vanilla EvokerFangs emits twelve CRIT particles when its jaws close, spread
-	# across the jaw box (not stacked in one point), independent of actual damage.
+	# Vanilla EvokerFangs fires twelve CRIT sparks on jaw closure; one cast raises
+	# dozens of jaws here, so keep just a few per bite. They still spread across the
+	# jaw box instead of stacking, and fire whether or not the bite found a victim.
 	ABILITIES.critical_burst(self,global_position+Vector2(0,-10),get_instance_id(),{
-		"count":12, "radius":10.0, "neutral_tone":true, "tone_min":0.86, "tone_max":1.0,
+		"count":4, "radius":10.0, "neutral_tone":true, "tone_min":0.86, "tone_max":1.0,
 		"side_min":12.0, "side_max":26.0, "up_min":24.0, "up_max":42.0,
 		"gravity_min":100.0, "gravity_max":140.0})

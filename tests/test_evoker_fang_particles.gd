@@ -76,7 +76,7 @@ func run() -> void:
 	check(not fang._hit and world.get_node_or_null("CombatImpactLayer") == null,"no bite particles before closure")
 	fang._physics_process(0.01)
 	var layer:Node2D = world.get_node_or_null("CombatImpactLayer") as Node2D
-	check(fang._hit and layer != null and layer._particles.size()==12,"jaw closure emits exactly twelve native CRIT even without victim")
+	check(fang._hit and layer != null and layer._particles.size()==4,"jaw closure emits only a few CRIT sparks, even without a victim")
 	check(world.get_children().filter(func(c): return c.name == "CombatImpactLayer").size()==1,"bite burst reuses the single world batch layer")
 	check(layer.CRITICAL_TEXTURE.resource_path.ends_with("Images/paricle/critical_hit.png"),"uses pixel-verified native CRIT texture")
 	var neutral:bool = true
@@ -89,7 +89,7 @@ func run() -> void:
 		sizing = sizing and float(p["size"])>=5.6 and float(p["size"])<=7.55
 	check(sizing,"fang CRIT keeps the shared size ramp instead of a bespoke sprite size")
 	fang._physics_process(0.01)
-	check(layer._particles.size()==12 and get_nodes_in_group("MCFangGround").size()==5,"both stages are one-shot")
+	check(layer._particles.size()==4 and get_nodes_in_group("MCFangGround").size()==5,"both stages are one-shot")
 	check(layer.critical_particle_count(50.0)==0 and layer.critical_particle_count(51.0)>0,"ordinary damage feedback thresholds unchanged")
 	game.now_stop_state = true
 	var age:float = fang._age
