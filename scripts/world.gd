@@ -1313,6 +1313,7 @@ func _apply_dead_save_ui_override() -> void:
 	_refresh_center_watermark_layout()
 
 
+var day_night_cycle:Node2D
 var _mc_prewarmer:Node
 var _mc_placement_generation:int = 0
 var _mc_pending_placements:Array[int] = []
@@ -1333,6 +1334,9 @@ func _ready() -> void:
 
 	# 创建黑色地图边框和 VS 标题；随机互动文字已删除。
 	setup_map_presentation()
+	day_night_cycle = load("res://scripts/day_night_cycle.gd").new(self)
+	day_night_cycle.name = "DayNightCycle"
+	add_child(day_night_cycle)
 	_setup_center_watermark()
 	setup_manual_training_controller()
 	setup_combat_threat_analyzer()
@@ -2019,6 +2023,7 @@ func _refresh_one_nearest_enemy(b:ball,set_property_group:Array) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if is_instance_valid(day_night_cycle): day_night_cycle.advance(delta)
 	# World 的定向重力注册表只在这里清理一次；ball 之后走 fast 查询，避免 N 个单位重复清理。
 	_cleanup_directional_gravity_sources()
 	# V259：非 ball 的飞行投射物没有公共 ball.tick_physics()，因此只在重力场存在时
@@ -3421,6 +3426,7 @@ func _clear_battle_transients() -> void:
 func reset() -> void:
 	if not is_multiplayer_authority():
 		return
+	if is_instance_valid(day_night_cycle): day_night_cycle.reset_to_noon()
 
 	_reset_victory_bell_state()
 	# Reset 是“清空战场”。在清空前保存这一套初始阵容，之后仍可点“重打”。
@@ -3571,6 +3577,7 @@ func forget_battle_setup_node(node:Node) -> void:
 func rematch_last_battle(exact_replay:bool = true) -> void:
 	if not is_multiplayer_authority():
 		return
+	if is_instance_valid(day_night_cycle) and has_rematch_setup(): day_night_cycle.reset_to_noon()
 
 	_reset_victory_bell_state()
 	var using_current:bool = not _battle_setup.is_empty()
@@ -4393,6 +4400,7 @@ func _refresh_map_inside_shadow() -> void:
 		var no_walls:Array[Rect2] = []
 		map_wall_volume.configure_regions(no_ground,no_walls,edges,cell,"blue",sun,map_wall_height_cells)
 	for extra:Node2D in _island_extra_inside_shadows: extra.visible = false
+	if is_instance_valid(day_night_cycle): day_night_cycle.apply_lighting()
 
 func _configure_island_inside_shadow(shadow:Node2D,physical_rect:Rect2,island_name:String,portal:PortalMap) -> void:
 	var layer:Node = _current_map_node()

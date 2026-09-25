@@ -184,6 +184,13 @@ func configure_regions(ground:Array[Rect2],walls:Array[Rect2],edges:Array[Dictio
 	shadow_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 
 
+func update_time_lighting(source:Vector2,daylight:float) -> void:
+	# 时间更新只转灯/淡化太阳影子，不走 configure_regions，不重建 ArrayMesh。
+	if not tiled or not is_instance_valid(sun_light): return
+	_update_light(source)
+	shadow_picture.modulate.a = 0.62*clampf(daylight,0.0,1.0)
+
+
 func _process(_delta:float) -> void:
 	if visible and is_instance_valid(viewport): _update_projection()
 
