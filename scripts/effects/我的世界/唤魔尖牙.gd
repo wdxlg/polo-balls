@@ -3,6 +3,9 @@ const NATIVE_FRAMES:SpriteFrames = preload("res://Images/characters/我的世界
 const DRAW_SCALE:float = 19.0/98.0
 const GROUND_Y:float = 199.0
 const AUDIO = preload("res://scripts/effects/我的世界/mc_native_audio.gd")
+const ABILITIES = preload("res://scripts/effects/我的世界/mc_combat_abilities.gd")
+const RUNTIME = preload("res://scripts/effects/我的世界/mc_explosion.gd")
+var _emerged:bool = false
 var _caster:WeakRef
 var _delay:float
 var _age:float = 0.0
@@ -31,8 +34,12 @@ func _physics_process(delta:float) -> void:
 		return
 	if not caster.is_combat_runtime_active(): return
 	_age += delta
+	if not _emerged and native_animation_progress() >= 0.0:
+		_emerged = true
+		_emit_emergence()
 	if _age >= _delay and not _hit:
 		_hit = true
+		_emit_bite()
 		if not bool(_hits.get("_native_sound",false)):
 			_hits["_native_sound"] = true
 			AUDIO.play(caster,"entity.evoker_fangs.attack",global_position,-5.0)
@@ -67,3 +74,32 @@ func _draw() -> void:
 	# A fixed canvas/ground anchor. Actual jaw rotations and terrain clipping
 	# were baked from Mojang's bones; no more stretching a static fang picture.
 	draw_texture_rect(texture,Rect2(Vector2(-80.0*DRAW_SCALE,5.0-GROUND_Y*DRAW_SCALE),Vector2(160,224)*DRAW_SCALE),false)
+
+func _emit_emergence() -> void:
+	# One cast can raise dozens of jaws, so the shared hit ledger doubles as a local
+	# burst budget: only a few fangs kick up debris, while every jaw still closes.
+	var budget:int = int(_hits.get("_fang_debris_budget",4))
+	if budget <= 0: return
+	_hits["_fang_debris_budget"] = budget - 1
+	var fx:Node2D = ABILITIES.ground_impact(RUNTIME.runtime_container(self),global_position+Vector2(0,5),12.0,{
+		"name":"MCFangGround", "show_impact_ring":false, "show_impact_streaks":false,
+		"block_source_min_count":6, "block_source_max_count":6,
+		"blocks_per_source_min":2, "blocks_per_source_max":3,
+		"block_source_inner_radius_scale":0.70, "block_source_radius_max_scale":0.95,
+		"block_exclusion_radius":7.0, "block_source_scatter":0.5,
+		"block_min_size":1.0, "block_max_size":2.0,
+		"block_min_height":2.0, "block_max_height":4.0,
+		"block_min_flight_time":0.25, "block_max_flight_time":0.36,
+		"block_min_ground_hold":0.06, "block_max_ground_hold":0.12,
+		"block_travel_min":3.0, "block_travel_max":6.0,
+		"block_landing_jitter":0.0, "block_delay_max":0.015})
+	fx.add_to_group("MCFangGround")
+	fx.set_meta("fang_id",get_instance_id())
+
+func _emit_bite() -> void:
+	# Vanilla EvokerFangs emits twelve CRIT particles when its jaws close, spread
+	# across the jaw box (not stacked in one point), independent of actual damage.
+	ABILITIES.critical_burst(self,global_position+Vector2(0,-10),get_instance_id(),{
+		"count":12, "radius":10.0, "neutral_tone":true, "tone_min":0.86, "tone_max":1.0,
+		"side_min":12.0, "side_max":26.0, "up_min":24.0, "up_max":42.0,
+		"gravity_min":100.0, "gravity_max":140.0})

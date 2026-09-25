@@ -59,3 +59,37 @@ static func charge_circle(parent:Node2D,radius:float,options:Dictionary = {}) ->
 	parent.add_child(effect,true)
 	effect.set_charge(parent.global_position,radius,0.0)
 	return effect
+
+static func critical_burst(context:Node,point:Vector2,emitter_id:int,options:Dictionary = {}) -> Node2D:
+	# Visual-only CRIT burst (e.g. vanilla EvokerFangs jaw closure). Reuses the
+	# world-wide batch layer so its per-unit/global caps apply, and it never deals
+	# damage; do not copy another particle simulation for a character.
+	var world:Node = context.get_tree().current_scene if context.get_tree() != null else null
+	if world == null: return null
+	if world.has_method("_impact_is_on_screen") and not bool(world.call("_impact_is_on_screen",point)): return null
+	var layer:Node2D = world.get_node_or_null("CombatImpactLayer") as Node2D
+	if layer == null:
+		layer = preload("res://scripts/effects/combat_impact_layer.gd").new()
+		layer.name = "CombatImpactLayer"
+		world.add_child(layer)
+	layer.call("add_visual_critical_burst",emitter_id,point,options)
+	return layer
+
+static func expanding_ring(parent:Node,point:Vector2,radius:float,options:Dictionary = {}) -> Node2D:
+	# The existing mace animation + pixel_arc rasterizer, not another ring algorithm.
+	# Pure visual: no floor sampler, rubble, sound, hazard or damage callback.
+	var effect:Node2D = GROUND_IMPACT.new()
+	effect.name = str(options.get("name","MCExpandingRing"))
+	effect.show_block_particles = false
+	effect.show_impact_streaks = false
+	effect.pause_with_battle = true
+	effect.lifetime = maxf(float(options.get("lifetime",0.38)),0.02)
+	effect.ring_end_scale = maxf(float(options.get("end_scale",3.0)),1.0)
+	effect.ring_palette = PackedColorArray(options.get("palette",[]))
+	effect.set_as_top_level(true)
+	parent.add_child(effect,true)
+	effect.setup(point,radius)
+	effect.z_index = int(options.get("z_index",2))
+	effect.add_to_group("BattleTransient")
+	effect.add_to_group("MCExpandingRing")
+	return effect

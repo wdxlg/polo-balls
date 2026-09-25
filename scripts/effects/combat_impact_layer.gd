@@ -50,7 +50,15 @@ func add_impact(unit_id:int,origin:Vector2,radius:float,strength:float,_heavy:bo
 	queue_redraw()
 	return true
 
-func _spawn_critical_particles(unit_id:int,origin:Vector2,radius:float,count:int,now:int) -> void:
+func add_visual_critical_burst(emitter_id:int,origin:Vector2,options:Dictionary = {}) -> void:
+	# Visual-only CRIT burst: does not manufacture damage or bypass hit thresholds.
+	var now:int = Time.get_ticks_usec()
+	_prune(now)
+	_spawn_critical_particles(emitter_id,origin,float(options.get("radius",6.0)),clampi(int(options.get("count",12)),1,24),now,options)
+	set_process(true)
+	queue_redraw()
+
+func _spawn_critical_particles(unit_id:int,origin:Vector2,radius:float,count:int,now:int,options:Dictionary = {}) -> void:
 	var unit_count:int = 0
 	for particle:Dictionary in _particles:
 		if int(particle["unit"]) == unit_id:
@@ -71,14 +79,15 @@ func _spawn_critical_particles(unit_id:int,origin:Vector2,radius:float,count:int
 		var offset:Vector2 = Vector2.from_angle(angle) * maxf(radius,6.0) * sqrt(_rng.randf()) * 0.95
 		var spawn_position:Vector2 = spawn_points[index] if index < spawn_points.size() else origin + offset
 		var side:float = -1.0 if index % 2 == 0 else 1.0
-		var velocity:Vector2 = Vector2(side * _rng.randf_range(45.0,85.0),-_rng.randf_range(40.0,70.0))
+		var velocity:Vector2 = Vector2(side * _rng.randf_range(float(options.get("side_min",45.0)),float(options.get("side_max",85.0))),-_rng.randf_range(float(options.get("up_min",40.0)),float(options.get("up_max",70.0))))
 		# Minecraft 普通暴击的棕灰色乘色；保留贴图本身白/灰像素的层次，不做金黄发光。
-		var tone:float = _rng.randf_range(0.60,0.90)
+		# 施法者技能（如尖牙闭合）可要求中性灰白，接近原版 CRIT 贴图的原始亮度。
+		var tone:float = _rng.randf_range(float(options.get("tone_min",0.60)),float(options.get("tone_max",0.90)))
 		_particles.append({"unit":unit_id,"born":now,"origin":spawn_position,
-			"velocity":velocity,"gravity":_rng.randf_range(390.0,450.0),
+			"velocity":velocity,"gravity":_rng.randf_range(float(options.get("gravity_min",390.0)),float(options.get("gravity_max",450.0))),
 			"life":_rng.randf_range(0.29,0.37),
 			"size":_rng.randf_range(7.0,9.4) * clampf(body_radius / 18.0,0.80,1.25),
-			"color":Color(tone,tone * 0.60,tone * 0.60,1.0)})
+			"color":(Color(tone,tone,tone,1.0) if bool(options.get("neutral_tone",false)) else Color(tone,tone * 0.60,tone * 0.60,1.0))})
 
 func _prune(now:int) -> void:
 	for index:int in range(_impacts.size() - 1,-1,-1):

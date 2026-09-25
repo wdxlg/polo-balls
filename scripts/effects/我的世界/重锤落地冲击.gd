@@ -30,6 +30,8 @@ const FLOOR_SAMPLER:Script = preload("res://scripts/effects/地表渲染采样.g
 @export var show_impact_ring:bool = true
 @export var show_impact_streaks:bool = true
 @export_range(0.0,4.0,0.05) var block_source_center_bias_exponent:float = 0.0 # 0=沿用重锤均匀散布
+@export var block_source_inner_radius_scale:float = 0.0 # Optional annulus; zero preserves existing callers.
+@export var block_exclusion_radius:float = 0.0 # Reject center births after scatter/map clipping.
 @export var block_source_radius_min_scale:float = 0.48
 @export var block_source_radius_max_scale:float = 0.88
 @export var block_travel_min:float = 7.0
@@ -113,6 +115,10 @@ func _build_block_particles() -> void:
 		var source_angle:float = TAU * (float(source_index) / float(maxi(source_count,1))) + _rng.randf_range(-0.52,0.52)
 		var radial:float = pow(_rng.randf_range(0.0,1.0),block_source_center_bias_exponent) if block_source_center_bias_exponent>0.0 else sqrt(_rng.randf_range(0.05,1.0))
 		var source_radius:float = radial * _radius * _rng.randf_range(block_source_radius_min_scale,block_source_radius_max_scale)
+		if block_source_inner_radius_scale > 0.0:
+			var inner:float = _radius*block_source_inner_radius_scale
+			var outer:float = maxf(inner,_radius*block_source_radius_max_scale)
+			source_radius = sqrt(lerpf(inner*inner,outer*outer,_rng.randf()))
 		var source_world:Vector2 = global_position + Vector2.RIGHT.rotated(source_angle) * source_radius
 		if map_rect.size.x > 1.0 and map_rect.size.y > 1.0:
 			source_world.x = clampf(source_world.x,map_rect.position.x + 1.0,map_rect.end.x - 1.0)
@@ -129,6 +135,7 @@ func _build_block_particles() -> void:
 			if map_rect.size.x > 1.0 and map_rect.size.y > 1.0:
 				var start_world:Vector2 = (global_position+start).clamp(map_rect.position+Vector2.ONE,map_rect.end-Vector2.ONE)
 				start = start_world-global_position
+			if block_exclusion_radius > 0.0 and start.length() < block_exclusion_radius: continue
 			var outward:Vector2 = start
 			if outward.length_squared() <= 0.000001:
 				outward = Vector2.RIGHT.rotated(_rng.randf_range(0.0,TAU))
