@@ -17,7 +17,7 @@ func run() -> void:
 	fx.setup(owner.position,owner)
 	fx.set_process(false)
 	check(fx.particles.size() == 88,"bounded 88-particle budget")
-	for t:float in [0.3,0.7,1.1,1.5]:
+	for t:float in [0.3,0.7,1.1,1.5,1.9]:
 		fx.advance_visual(t-fx.age)
 		var recent:int = 0
 		for p:Dictionary in fx.particles:
@@ -28,7 +28,7 @@ func run() -> void:
 	owner.position += Vector2(120,30)
 	fx.advance_visual(0.0)
 	check(spark.sprite.global_position.distance_to(before) < 0.001,"emitted sparks stay world anchored")
-	fx.advance_visual(1.56-fx.age)
+	fx.advance_visual(fx.LIFETIME+0.01-fx.age)
 	check(not fx.totem_sprite.visible and not fx.is_queued_for_deletion(),"item disappears but falling tail survives")
 	var started:int = 0
 	for p:Dictionary in fx.particles:

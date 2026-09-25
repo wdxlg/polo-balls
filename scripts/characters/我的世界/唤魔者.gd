@@ -107,6 +107,7 @@ func summon_vex() -> void:
 func on_battle_victory() -> void:
 	if _victory_cheered or health <= 0 or not is_multiplayer_authority(): return
 	_victory_cheered = true
+	if is_instance_valid(mc_native_animation): mc_native_animation.trigger_evoker_celebration(1.6)
 	mc_stop_ambient()
 	MC_AUDIO.play(self,"entity.evoker.celebrate",global_position,-3.0,true)
 func mc_ambient_allowed() -> bool: return not _victory_cheered

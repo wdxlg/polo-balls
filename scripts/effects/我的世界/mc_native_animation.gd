@@ -19,6 +19,8 @@ var clip_time:float = 0.0
 var shell_peek:float = 0.0
 var ready_visual:bool = false
 var _cast_left:float = 0.0
+var _evoker_celebrate_left:float = 0.0
+var _evoker_remote_left:float = 0.0
 var _attack_left:float = 0.0
 var _moving_left:float = 0.0
 var _last_position:Vector2
@@ -71,9 +73,18 @@ func _setup() -> void:
 	unit.refresh_character_ground_shadow()
 
 func trigger_cast(duration:float = 0.65) -> void:
+	if role == "evoker": _evoker_celebrate_left = 0.0 # A real new spell supersedes an old victory gesture.
 	_cast_left = maxf(_cast_left,duration)
 	if role == "evoker" and ready_visual:
 		_set_clip(&"cast")
+		_render_frame()
+
+func trigger_evoker_celebration(duration:float = 1.6) -> void:
+	if role != "evoker": return
+	_evoker_celebrate_left = maxf(duration,0.0)
+	_cast_left = 0.0
+	if ready_visual:
+		_set_clip(&"celebrate")
 		_render_frame()
 
 func _on_contact_attack(_hurt:hurtbox) -> void:
@@ -91,9 +102,15 @@ func advance(delta:float) -> void:
 	_last_position = unit.global_position
 	# Do not use mc_live(): it is authority-only and would freeze all clients.
 	if unit.health <= 0 or get_tree().paused or Game.now_stop_state: return
-	var celebrating:bool = role == "evoker" and (bool(unit.get("_victory_cheered")) or _remote_pose == "celebrate")
-	if not unit.is_combat_runtime_active() and not celebrating: return
+	# Let a pending Evoker gesture finish after combat closes, but preserve pause.
+	var evoker_finishing:bool = role == "evoker" and (_cast_left > 0.0 or _evoker_celebrate_left > 0.0 or _evoker_remote_left > 0.0 or current_clip in [&"cast",&"celebrate"])
+	if not unit.is_combat_runtime_active() and not evoker_finishing: return
 	var step:float = maxf(delta,0.0)
+	if role == "evoker":
+		_evoker_celebrate_left = maxf(0.0,_evoker_celebrate_left-step)
+		_evoker_remote_left = maxf(0.0,_evoker_remote_left-step)
+		if _evoker_remote_left <= 0.0: _remote_pose = ""
+		if unit.dizziness: _cast_left = 0.0
 	_cast_left = maxf(0.0,_cast_left-step)
 	_attack_left = maxf(0.0,_attack_left-step)
 	_moving_left = maxf(0.0,_moving_left-step)
@@ -133,7 +150,7 @@ func _local_pose() -> String:
 			var prefix:String = "angry_" if rage != null and float(rage)>0.0 else ""
 			return prefix + ("attack" if _attack_left>0.0 else "walk" if _moving_left>0.0 else "idle")
 		"evoker":
-			if bool(unit.get("_victory_cheered")): return "celebrate"
+			if _evoker_celebrate_left > 0.0: return "celebrate"
 			return "cast" if _cast_left>0.0 else "walk" if _moving_left>0.0 else "idle"
 		"vex": return "charge" if bool(unit.get("_charging")) or float(unit.get("_windup"))>0.0 else "fly"
 		"shulker": return "shell_open" if bool(unit.get("shell_open")) else "shell_closed"
@@ -149,6 +166,7 @@ func _receive_pose(pose:String,time:float,peek:float) -> void:
 		if _remote_pose.is_empty(): shell_peek = clampf(peek,0.0,1.0)
 	elif frames != null and not frames.has_animation(StringName(pose)): return
 	_remote_pose = pose
+	if role == "evoker": _evoker_remote_left = 0.6 # lease renewed by 0.2s pose updates; no sticky lost end packet
 	if role != "shulker": _set_clip(StringName(pose))
 	clip_time = maxf(time,0.0)
 

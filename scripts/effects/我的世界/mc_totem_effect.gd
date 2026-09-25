@@ -3,14 +3,12 @@ extends Node2D
 const ITEM:Texture2D = preload("res://Images/characters/我的世界/唤魔者/totem_of_undying.png")
 const MC_FX = preload("res://scripts/effects/我的世界/mc_visual_effects.gd")
 const PARTICLE_COUNT:int = 88
-const LIFETIME:float = 1.55
+const LIFETIME:float = 2.0 # Vanilla item activation: 40 ticks at 20 Hz.
 const GRAVITY:float = 240.0
 const GROUND_FADE:float = 0.18
 const PARTICLE_TAIL:float = 1.1
 const ICON_WIDTH:float = 20.0 # Near the native 16px item size; the old 72px icon obscured the Evoker.
-const INTRO_SECONDS:float = 0.19 # Pop out of the Evoker before the fast front/back spin.
-const SPIN_RAMP_SECONDS:float = 0.045
-const WOBBLE_RAMP_SECONDS:float = 0.18
+const INTRO_SECONDS:float = 0.32 # World-space adaptation: smooth flight out of the owner.
 const PARTICLE_COLORS = [Color(1.0,0.97,0.36),Color(0.34,0.90,0.28),Color(0.72,0.98,0.32),Color(1.0,0.80,0.25)]
 
 var totem_sprite:Sprite2D
@@ -47,18 +45,22 @@ func setup(point:Vector2, follow_target:Node2D = null) -> void:
 			"diameter":_rng.randf_range(2.8,5.0),
 			"color":PARTICLE_COLORS[_rng.randi_range(0,PARTICLE_COLORS.size()-1)],
 		})
-	advance_visual(0.025) # The totem appears in the very same frame as the save.
+	advance_visual(0.0) # Draw immediately without skipping the first 25 ms of the native spin.
 
 func _process(delta:float) -> void:
 	if get_tree().paused: return
 	advance_visual(delta)
 
+func activation_phase(time:float) -> float:
+	# Minecraft GameRenderer.renderItemActivationAnimation's continuous phase.
+	var t:float = clampf(time/LIFETIME,0.0,1.0)
+	return PI * ((((10.25*t-24.95)*t+25.5)*t-13.8)*t+4.0)*t
+
 func yaw_turns(time:float) -> float:
-	# Integrate a fast, decaying angular velocity plus a nonzero cruising speed.
-	# Subtract the initial exponential impulse so speed starts at ZERO at the
-	# end of the launch: no one-frame jerk where the two phases meet.
-	var t:float = maxf(time-INTRO_SECONDS,0.0)
-	return 1.08*(1.0-exp(-3.1*t))+0.48*t - (1.08*3.1+0.48)*SPIN_RAMP_SECONDS*(1.0-exp(-t/SPIN_RAMP_SECONDS))
+	return 2.5*absf(sin(activation_phase(time)))
+
+func item_scale(time:float) -> float:
+	return (ICON_WIDTH/float(ITEM.get_width())) * (50.0+175.0*sin(activation_phase(time)))/225.0
 
 func advance_visual(delta:float) -> void:
 	# Keep the detached effect at the living Evoker's position. Once its owner
@@ -71,22 +73,14 @@ func advance_visual(delta:float) -> void:
 		queue_free()
 		return
 	var progress:float = clampf(age/LIFETIME,0.0,1.0)
-	var pop:float = 1.0-pow(1.0-clampf(age/INTRO_SECONDS,0.0,1.0),3.0)
-	var spin_time:float = maxf(age-INTRO_SECONDS,0.0)
-	var wobble_ramp:float = smoothstep(0.0,WOBBLE_RAMP_SECONDS,spin_time)
-	# Ease into a slow continuous sway rather than snapping from launch to shake.
 	totem_sprite.position = item_position(age)
 	totem_sprite.visible = age < LIFETIME
-	# A front-to-back yaw about the item's VERTICAL axis, projected into 2D:
-	# cosine foreshortens the face at the edge; the negative half shows its
-	# mirrored back. Do not rotate the flat icon in the screen plane.
-	var yaw:float = TAU*yaw_turns(age)
-	var facing:float = cos(yaw)
-	if absf(facing) < 0.06: facing = 0.06 if facing >= 0.0 else -0.06
-	var size:float = (ICON_WIDTH/float(ITEM.get_width())) * (0.12+0.88*pop)
+	# No minimum-width sign clamp: cross the edge continuously, not in a jump.
+	var facing:float = cos(TAU*yaw_turns(age))
+	var size:float = item_scale(age)
 	totem_sprite.scale = Vector2(size*facing,size)
-	totem_sprite.rotation = sin(spin_time*9.0)*0.09*wobble_ramp*(1.0-0.25*progress) # gentle tilt, not the front/back spin
-	totem_sprite.modulate.a = 1.0-smoothstep(0.73,1.0,progress)
+	totem_sprite.rotation = deg_to_rad(6.0)*cos(progress*8.0)
+	totem_sprite.modulate.a = 1.0-smoothstep(0.88,1.0,progress)
 	for particle:Dictionary in particles:
 		var sprite:Sprite2D = particle.sprite
 		var elapsed:float = age-float(particle.delay)
@@ -117,7 +111,7 @@ func advance_visual(delta:float) -> void:
 		sprite.modulate = color
 
 func item_position(time:float) -> Vector2:
-	var pop:float = 1.0-pow(1.0-clampf(time/INTRO_SECONDS,0.0,1.0),3.0)
-	var spin_time:float = maxf(time-INTRO_SECONDS,0.0)
-	var ramp:float = smoothstep(0.0,WOBBLE_RAMP_SECONDS,spin_time)
-	return Vector2(sin(spin_time*8.0)*3.0*ramp,lerpf(-5.0,-53.0,pop)+sin(spin_time*6.0)*1.4*ramp)
+	var t:float = clampf(time/INTRO_SECONDS,0.0,1.0)
+	var launch:float = t*t*t*(t*(t*6.0-15.0)+10.0) # zero velocity/acceleration at both ends
+	var phase:float = activation_phase(time)
+	return Vector2(sin(phase*2.0)*3.0*launch,lerpf(-5.0,-53.0,launch)+sin(phase*2.0)*1.4*launch)

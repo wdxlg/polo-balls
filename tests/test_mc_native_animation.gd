@@ -200,7 +200,7 @@ func run() -> void:
 	ea.advance(0.1)
 	check(e._visual_facing_flipped_h,"frame switch retains shader-facing flip")
 	e.set_character_visual_flip_h(false)
-	c._victory_cheered = true
+	c.on_battle_victory()
 	ca.advance(0.1)
 	check(ca.current_clip==&"celebrate","evoker victory selects original celebration")
 	print("MC_NATIVE frames=",total_frames," checks=",checks," failures=",failures)
