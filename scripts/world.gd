@@ -1314,6 +1314,7 @@ func _apply_dead_save_ui_override() -> void:
 
 
 var day_night_cycle:Node2D
+var minecraft_clouds:Node2D
 var _mc_prewarmer:Node
 var _mc_placement_generation:int = 0
 var _mc_pending_placements:Array[int] = []
@@ -1337,6 +1338,9 @@ func _ready() -> void:
 	day_night_cycle = load("res://scripts/day_night_cycle.gd").new(self)
 	day_night_cycle.name = "DayNightCycle"
 	add_child(day_night_cycle)
+	minecraft_clouds = load("res://scripts/effects/我的世界/minecraft_clouds.gd").new(self)
+	minecraft_clouds.name = "MinecraftClouds"
+	add_child(minecraft_clouds)
 	_setup_center_watermark()
 	setup_manual_training_controller()
 	setup_combat_threat_analyzer()
@@ -2027,6 +2031,7 @@ func _refresh_one_nearest_enemy(b:ball,set_property_group:Array) -> void:
 
 func _physics_process(delta: float) -> void:
 	if is_instance_valid(day_night_cycle): day_night_cycle.advance(delta)
+	if is_instance_valid(minecraft_clouds): minecraft_clouds.advance(delta)
 	# World 的定向重力注册表只在这里清理一次；ball 之后走 fast 查询，避免 N 个单位重复清理。
 	_cleanup_directional_gravity_sources()
 	# V259：非 ball 的飞行投射物没有公共 ball.tick_physics()，因此只在重力场存在时
@@ -3430,6 +3435,7 @@ func reset() -> void:
 	if not is_multiplayer_authority():
 		return
 	if is_instance_valid(day_night_cycle): day_night_cycle.reset_to_noon()
+	if is_instance_valid(minecraft_clouds): minecraft_clouds.reset_drift()
 
 	_reset_victory_bell_state()
 	# Reset 是“清空战场”。在清空前保存这一套初始阵容，之后仍可点“重打”。
@@ -3581,6 +3587,7 @@ func rematch_last_battle(exact_replay:bool = true) -> void:
 	if not is_multiplayer_authority():
 		return
 	if is_instance_valid(day_night_cycle) and has_rematch_setup(): day_night_cycle.reset_to_noon()
+	if is_instance_valid(minecraft_clouds) and has_rematch_setup(): minecraft_clouds.reset_drift()
 
 	_reset_victory_bell_state()
 	var using_current:bool = not _battle_setup.is_empty()
@@ -3941,6 +3948,7 @@ func _setup_map_outside_grid() -> void:
 
 
 func _refresh_map_outside_grid(map_rect:Rect2) -> void:
+	if is_instance_valid(minecraft_clouds): minecraft_clouds.refresh()
 	_setup_map_outside_grid()
 	if map_outside_grid_root == null or not is_instance_valid(map_outside_grid_root):
 		return
@@ -5850,6 +5858,9 @@ func _restore_special_prestart_nodes() -> void:
 
 
 func _on_training_game_setting_changed(setting:String,_value:Variant) -> void:
+	if setting == "Minecraft_Clouds":
+		if is_instance_valid(minecraft_clouds): minecraft_clouds.refresh()
+		return
 	if setting == "Map_Background":
 		refresh_map_presentation()
 		return

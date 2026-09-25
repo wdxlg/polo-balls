@@ -1,0 +1,994 @@
+diff --git a/Images/effects/我的世界/clouds/SOURCE.json b/Images/effects/我的世界/clouds/SOURCE.json
+new file mode 100644
+index 0000000..310052e
+--- /dev/null
++++ b/Images/effects/我的世界/clouds/SOURCE.json
+@@ -0,0 +1,17 @@
++{
++  "origin": "Minecraft Java Edition 1.21.4 vanilla environment/clouds.png",
++  "mirror_repository": "https://github.com/InventivetalentDev/minecraft-assets",
++  "mirror_commit": "58d92c8cee4c7ac22d02988fb2bc3e4648af9ef2",
++  "source_url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/58d92c8cee4c7ac22d02988fb2bc3e4648af9ef2/assets/minecraft/textures/environment/clouds.png",
++  "file": "clouds.png",
++  "sha256": "18b72300292efa39f15f0f0e9b77f339b9c9237d054cf8141681ad25f047374f",
++  "size": [
++    256,
++    256
++  ],
++  "opaque_texels": 13356,
++  "transparent_texels": 52180,
++  "pixel_edits": "None. Original PNG bytes, alpha occupancy drives the cloud slab. Not generated noise or replacement silhouettes.",
++  "license": "Mojang/Microsoft Minecraft assets. Subject to Minecraft EULA/Usage Guidelines, not permissively licensed; this provenance does not grant redistribution rights.",
++  "renderer_adaptation": "Project shader extrudes native occupancy as 12x12x4 cells with 4 world pixels per block, hard top/side faces and 0.8 opacity. Orthographic battlefield projection, not a replacement of the complete Minecraft sky renderer."
++}
+diff --git a/Images/effects/我的世界/clouds/clouds.png b/Images/effects/我的世界/clouds/clouds.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..cde6540ed6dae9575705d57fdd3e61cc0d1fc360
+GIT binary patch
+literal 4757
+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
+
+literal 0
+HcmV?d00001
+
+diff --git a/Images/effects/我的世界/clouds/clouds.png.import b/Images/effects/我的世界/clouds/clouds.png.import
+new file mode 100644
+index 0000000..b4cb2af
+--- /dev/null
++++ b/Images/effects/我的世界/clouds/clouds.png.import
+@@ -0,0 +1,40 @@
++[remap]
++
++importer="texture"
++type="CompressedTexture2D"
++uid="uid://dl8rhf56wb0ed"
++path="res://.godot/imported/clouds.png-4d3ea7d34d080d191400d8b846b1eba3.ctex"
++metadata={
++"vram_texture": false
++}
++
++[deps]
++
++source_file="res://Images/effects/我的世界/clouds/clouds.png"
++dest_files=["res://.godot/imported/clouds.png-4d3ea7d34d080d191400d8b846b1eba3.ctex"]
++
++[params]
++
++compress/mode=0
++compress/high_quality=false
++compress/lossy_quality=0.7
++compress/uastc_level=0
++compress/rdo_quality_loss=0.0
++compress/hdr_compression=1
++compress/normal_map=0
++compress/channel_pack=0
++mipmaps/generate=false
++mipmaps/limit=-1
++roughness/mode=0
++roughness/src_normal=""
++process/channel_remap/red=0
++process/channel_remap/green=1
++process/channel_remap/blue=2
++process/channel_remap/alpha=3
++process/fix_alpha_border=true
++process/premult_alpha=false
++process/normal_map_invert_y=false
++process/hdr_as_srgb=false
++process/hdr_clamp_exposure=false
++process/size_limit=0
++detect_3d/compress_to=1
+diff --git a/MCP_CONTEXT.md b/MCP_CONTEXT.md
+index 1533ced..51ed59d 100644
+--- a/MCP_CONTEXT.md
++++ b/MCP_CONTEXT.md
+@@ -115,3 +115,4 @@
+ - 硫方怪平衡追补：铁首次冲击、附着紫水晶及晶体投射物的伤害系数均降低30%；铁底部常态接触及下砸均可持续碾压，低额定频结算并复用公共击退。冰径不再仅加 Speed 倍率，而用 `surface_acceleration.gd` 沿目标自身真实位移方向积分加速、限制上限并在离冰后衰减；公共移动链接 `ball.surface_motion_velocity`。实测位移、威胁/手控/ENet与回退范围见 `tests/SULFUR_CUBE_BALANCE_20260926.md`。
+ - 天堂陨落长弓每次真实出箭，在箭矢出生世界坐标播放8→24半径、0.38秒青绿/浅青/银白扩散渐隐空心环。纯视觉可靠RPC每端一次，不从状态回放重播；复用 `mc_combat_abilities.gd::expanding_ring` 的重锤/像素环实现，不带伤害、碎屑、地表读回或新音效，暂停冻结。参数、230项回归和回退边界见 `tests/HEAVENFALL_MUZZLE_RING_20260926.md`。
+ - 天堂陨落长弓发射环须是面向弓头/出箭方向的伪3D环面，不是屏幕正圆：公共 `expanding_ring` 支持 `direction/depth_ratio`，沿发射法线压缩至0.35、横向保持原尺寸；权威RPC同步出生点及出生朝向，出圈后不追随转头。旧平面调用默认depth_ratio=1。239项回归及回退见 `tests/HEAVENFALL_MUZZLE_3D_20260926.md`。
++- 原版方块云：设置→参数的“原版方块云”本机开关，默认开启并持久化；直接使用 Minecraft Java 1.21.4 原始 clouds.png 的占用纹理，硬边三面立体厚度、慢速西移。蓝色背景为战场上空层，草地及其余方块主题为场外背景层，复用地图多岛补集，不覆盖草地内的人物；暂停/倍速走物理delta，重置复位，共享World2D录制视口同相位。素材来源、45项专项、旧昼夜GPU8项未通过的隔离复现及回退范围见 `tests/MINECRAFT_CLOUDS_20260926.md`。
+diff --git a/global/game.gd b/global/game.gd
+index d383402..56bfba2 100644
+--- a/global/game.gd
++++ b/global/game.gd
+@@ -454,7 +454,7 @@ func release_character_control_for_death(target:Node) -> void:
+ 
+ func _is_network_shared_setting(setting:String) -> bool:
+ 	# 语言显示域、水印和“跟随我控制的角色”属于每台机器自己的表现设置；其它玩法设置跟随房主房间。
+-	return setting not in ["Only_In_Game_Translation","Show_Center_Watermark","Follow_Controlled_Character","Map_Background"]
++	return setting not in ["Only_In_Game_Translation","Show_Center_Watermark","Follow_Controlled_Character","Map_Background","Minecraft_Clouds"]
+ 
+ func _shared_settings_snapshot() -> Dictionary:
+ 	var snapshot:Dictionary = {}
+@@ -710,6 +710,8 @@ func _on_speed_slider_drag_ended(value_changed:bool) -> void:
+ 	Only_In_Game_Translation = false,
+ 	# 仅影响本机地图外观，旧存档缺少此项时仍使用原蓝色背景。
+ 	Map_Background = "blue",
++	# Local visual preference, persisted by the existing settings path.
++	Minecraft_Clouds = true,
+ 	# V184：全局击杀血液。关闭时若叶睦/墨提斯自身的击杀血仍保留；开启时其它人物击杀也会生成血液。
+ 	Blood_Effects = false,
+ 	# 角色对话总开关。开启后，支持对话的角色会把台词显示在地图下方的阵营槽位。
+diff --git a/global/translation_catalog.gd b/global/translation_catalog.gd
+index c7fb834..d95320d 100644
+--- a/global/translation_catalog.gd
++++ b/global/translation_catalog.gd
+@@ -467,6 +467,7 @@ const TABLE:Dictionary = {
+ 		"SETTING_ONLY_IN_GAME_TRANSLATION": "仅局内翻译",
+ 		"SETTING_SHOW_CENTER_WATERMARK": "开启水印",
+ 		"SETTING_MAP_BACKGROUND": "背景选择",
++		"SETTING_MINECRAFT_CLOUDS": "原版方块云",
+ 		"MAP_BACKGROUND_BLUE": "蓝色背景",
+ 		"MAP_BACKGROUND_GRASS": "草方块背景",
+ 		"MAP_BACKGROUND_SAND": "沙地方块背景",
+@@ -1282,6 +1283,7 @@ const TABLE:Dictionary = {
+ 		"SETTING_ONLY_IN_GAME_TRANSLATION": "In-game Translation Only",
+ 		"SETTING_SHOW_CENTER_WATERMARK": "Enable Watermark",
+ 		"SETTING_MAP_BACKGROUND": "Background",
++		"SETTING_MINECRAFT_CLOUDS": "Minecraft Clouds",
+ 		"MAP_BACKGROUND_BLUE": "Blue",
+ 		"MAP_BACKGROUND_GRASS": "Grass Blocks",
+ 		"MAP_BACKGROUND_SAND": "Sand Blocks",
+diff --git a/scripts/effects/我的世界/minecraft_clouds.gd b/scripts/effects/我的世界/minecraft_clouds.gd
+new file mode 100644
+index 0000000..3749b3c
+--- /dev/null
++++ b/scripts/effects/我的世界/minecraft_clouds.gd
+@@ -0,0 +1,75 @@
++extends Node2D
++## Native fancy-cloud footprint extruded into a 12x12x4 slab. No gameplay state/RNG.
++## One shared World2D material: main camera, overview and recording see the same clouds.
++const CLOUD_TEXTURE:Texture2D = preload("res://Images/effects/我的世界/clouds/clouds.png")
++const CLOUD_SHADER:Shader = preload("res://shaders/minecraft_clouds.gdshader")
++const CELL_SIZE:float = 48.0
++const THICKNESS:float = 16.0
++const DRIFT_SPEED:float = 2.4 # Vanilla 0.03 block/tick * 20 ticks/sec * 4 px/block.
++const PERIOD:float = CELL_SIZE*256.0
++const OVERHEAD_Z:int = 3000
++const BACKGROUND_Z:int = -5
++var world:Node
++var enabled:bool = true
++var overhead:bool = true
++var travel:float = 0.0
++var cloud_material:ShaderMaterial
++var regions:Array[Rect2] = []
++var _parts:Array[Polygon2D] = []
++
++func _init(owner_world:Node = null) -> void:
++	world = owner_world
++
++func _ready() -> void:
++	top_level = true
++	global_position = Vector2.ZERO
++	z_as_relative = false
++	visibility_layer = 1
++	cloud_material = ShaderMaterial.new()
++	cloud_material.shader = CLOUD_SHADER
++	cloud_material.set_shader_parameter("cloud_mask",CLOUD_TEXTURE)
++	cloud_material.set_shader_parameter("cell_size",CELL_SIZE)
++	cloud_material.set_shader_parameter("height_shift",Vector2(-THICKNESS*0.5,-THICKNESS))
++	refresh()
++
++func refresh() -> void:
++	if not is_instance_valid(world) or cloud_material == null: return
++	enabled = bool(Game.Game_Settings.get("Minecraft_Clouds",true))
++	overhead = world.map_background_style() == "blue"
++	z_index = OVERHEAD_Z if overhead else BACKGROUND_Z
++	visible = enabled
++	if not enabled: return
++	# Reuse the world's exact island-union complement. Grass/other tiled maps
++	# keep clouds outside the opaque arena, behind walls, people and labels.
++	regions.clear()
++	if overhead:
++		regions.append(Rect2(-1000000,-1000000,2000000,2000000))
++	else:
++		var map_node:Node = world._current_map_node()
++		if map_node == null: visible = false; return
++		var map_rect:Rect2 = world.return_map_visual_rect(map_node)
++		regions.assign(world._map_outside_rects(world._current_visual_island_rects(map_rect)))
++	while _parts.size() < regions.size():
++		var part:=Polygon2D.new()
++		part.name = "CloudRegion%d" % _parts.size()
++		part.material = cloud_material
++		part.color = Color.WHITE
++		part.visibility_layer = 1
++		add_child(part)
++		_parts.append(part)
++	for i:int in _parts.size():
++		_parts[i].visible = i < regions.size()
++		if i < regions.size():
++			var rect:Rect2 = regions[i]
++			_parts[i].polygon = PackedVector2Array([rect.position,Vector2(rect.end.x,rect.position.y),rect.end,Vector2(rect.position.x,rect.end.y)])
++
++func advance(delta:float) -> void:
++	if not enabled or not is_inside_tree() or not is_finite(delta) or delta <= 0.0: return
++	if Game.now_stop_state or get_tree().paused or Engine.time_scale <= 0.000001: return
++	# Physics delta only, never shader wall time; pause/offline capture cannot jump.
++	travel = fposmod(travel+delta*DRIFT_SPEED,PERIOD)
++	cloud_material.set_shader_parameter("travel",travel)
++
++func reset_drift() -> void:
++	travel = 0.0
++	if cloud_material != null: cloud_material.set_shader_parameter("travel",travel)
+diff --git a/scripts/effects/我的世界/minecraft_clouds.gd.uid b/scripts/effects/我的世界/minecraft_clouds.gd.uid
+new file mode 100644
+index 0000000..b75342d
+--- /dev/null
++++ b/scripts/effects/我的世界/minecraft_clouds.gd.uid
+@@ -0,0 +1 @@
++uid://dhdqaa3tgnqo
+diff --git a/scripts/world.gd b/scripts/world.gd
+index b0bad14..f69aab0 100644
+--- a/scripts/world.gd
++++ b/scripts/world.gd
+@@ -1389,6 +1389,7 @@ func _apply_dead_save_ui_override() -> void:
+ 
+ 
+ var day_night_cycle:Node2D
++var minecraft_clouds:Node2D
+ var _mc_prewarmer:Node
+ var _mc_placement_generation:int = 0
+ var _mc_pending_placements:Array[int] = []
+@@ -1412,6 +1413,9 @@ func _ready() -> void:
+ 	day_night_cycle = load("res://scripts/day_night_cycle.gd").new(self)
+ 	day_night_cycle.name = "DayNightCycle"
+ 	add_child(day_night_cycle)
++	minecraft_clouds = load("res://scripts/effects/我的世界/minecraft_clouds.gd").new(self)
++	minecraft_clouds.name = "MinecraftClouds"
++	add_child(minecraft_clouds)
+ 	_setup_center_watermark()
+ 	setup_manual_training_controller()
+ 	setup_combat_threat_analyzer()
+@@ -2114,6 +2118,7 @@ func _physics_process(delta: float) -> void:
+ 	if _development != null and _development.phase == _development.MERGING:
+ 		return
+ 	if is_instance_valid(day_night_cycle): day_night_cycle.advance(delta)
++	if is_instance_valid(minecraft_clouds): minecraft_clouds.advance(delta)
+ 	# World 的定向重力注册表只在这里清理一次；ball 之后走 fast 查询，避免 N 个单位重复清理。
+ 	_cleanup_directional_gravity_sources()
+ 	# V259：非 ball 的飞行投射物没有公共 ball.tick_physics()，因此只在重力场存在时
+@@ -3482,6 +3487,7 @@ func reset() -> void:
+ 	if not is_multiplayer_authority():
+ 		return
+ 	if is_instance_valid(day_night_cycle): day_night_cycle.reset_to_noon()
++	if is_instance_valid(minecraft_clouds): minecraft_clouds.reset_drift()
+ 	if _development != null:
+ 		_development.cleanup(false)
+ 
+@@ -3643,6 +3649,7 @@ func rematch_last_battle(exact_replay:bool = true) -> void:
+ 	if not is_multiplayer_authority():
+ 		return
+ 	if is_instance_valid(day_night_cycle) and has_rematch_setup(): day_night_cycle.reset_to_noon()
++	if is_instance_valid(minecraft_clouds) and has_rematch_setup(): minecraft_clouds.reset_drift()
+ 	if Game.is_rotation_training_mode():
+ 		var roster_source:Dictionary = _rotation_rosters if not _rotation_rosters["left"].is_empty() else _rotation_saved_rosters
+ 		if not roster_source["left"].is_empty():
+@@ -4027,6 +4034,7 @@ func _setup_map_outside_grid() -> void:
+ 
+ 
+ func _refresh_map_outside_grid(map_rect:Rect2) -> void:
++	if is_instance_valid(minecraft_clouds): minecraft_clouds.refresh()
+ 	_setup_map_outside_grid()
+ 	if map_outside_grid_root == null or not is_instance_valid(map_outside_grid_root):
+ 		return
+@@ -5987,6 +5995,9 @@ func _on_training_game_setting_changed(setting:String,_value:Variant) -> void:
+ 	if setting == "Development_Speed" and _development != null and _development.is_running():
+ 		Game.set_development_time_multiplier(float(_value))
+ 		return
++	if setting == "Minecraft_Clouds":
++		if is_instance_valid(minecraft_clouds): minecraft_clouds.refresh()
++		return
+ 	if setting == "Map_Background":
+ 		refresh_map_presentation()
+ 		return
+diff --git a/shaders/minecraft_clouds.gdshader b/shaders/minecraft_clouds.gdshader
+new file mode 100644
+index 0000000..1fa6329
+--- /dev/null
++++ b/shaders/minecraft_clouds.gdshader
+@@ -0,0 +1,48 @@
++shader_type canvas_item;
++render_mode unshaded;
++
++// Original Java clouds.png occupancy, not noise or hand-authored cloud silhouettes.
++uniform sampler2D cloud_mask : filter_nearest, repeat_enable;
++uniform float cell_size = 48.0; // Java fancy cloud cell 12 blocks, adapted at 4 world px/block.
++uniform float travel = 0.0;
++uniform vec2 height_shift = vec2(-8.0, -16.0); // Extruded slab: 4 blocks thick.
++uniform float cloud_alpha : hint_range(0.0, 1.0) = 0.8;
++varying vec2 world_point;
++
++void vertex() {
++	world_point = (MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0)).xy;
++}
++
++bool occupied(vec2 cell) {
++	vec2 size = vec2(textureSize(cloud_mask, 0));
++	return textureLod(cloud_mask, (cell + vec2(0.5)) / size, 0.0).a > 0.5;
++}
++
++void fragment() {
++	// Exact orthographic ray through a single-height voxel slab. At this height
++	// a ray can cross at most two grid boundaries; no per-cloud nodes or 3D viewport.
++	vec2 origin = (world_point + vec2(travel, 0.0) - height_shift) / cell_size;
++	vec2 ray = height_shift / cell_size;
++	vec2 cell = floor(origin);
++	vec2 step_dir = sign(ray);
++	vec2 stride = vec2(1.0) / max(abs(ray), vec2(0.00001));
++	vec2 boundary = cell + step(vec2(0.0), ray);
++	vec2 next_hit = abs(boundary - origin) * stride;
++	bool hit = occupied(cell);
++	float face_light = 1.0;
++	for (int i = 0; i < 3; i++) {
++		if (hit) { break; }
++		if (min(next_hit.x, next_hit.y) > 1.0) { break; }
++		if (next_hit.x < next_hit.y) {
++			cell.x += step_dir.x;
++			next_hit.x += stride.x;
++			face_light = 0.9;
++		} else {
++			cell.y += step_dir.y;
++			next_hit.y += stride.y;
++			face_light = 0.8;
++		}
++		hit = occupied(cell);
++	}
++	COLOR = hit ? vec4(vec3(face_light), cloud_alpha) : vec4(0.0);
++}
+diff --git a/shaders/minecraft_clouds.gdshader.uid b/shaders/minecraft_clouds.gdshader.uid
+new file mode 100644
+index 0000000..d708b0d
+--- /dev/null
++++ b/shaders/minecraft_clouds.gdshader.uid
+@@ -0,0 +1 @@
++uid://cw4bgoqkndubo
+diff --git a/tests/MINECRAFT_CLOUDS_20260926.md b/tests/MINECRAFT_CLOUDS_20260926.md
+new file mode 100644
+index 0000000..383d995
+--- /dev/null
++++ b/tests/MINECRAFT_CLOUDS_20260926.md
+@@ -0,0 +1,63 @@
++# Minecraft 原版方块云与参数开关（2026-09-26）
++
++## 用户选择 / 现在的行为
++
++用户要求原版 Minecraft 风格的云、设置参数开关，并明确选择：**蓝色背景用战场上空云；草地背景用背景云**。
++
++- `设置 → 参数 → 原版方块云`，位于背景选择下方，默认开启，立即生效并通过既有 `Game.save_persistent_settings()` 保存。旧存档没有此项时开启。英文 `Minecraft Clouds`。
++- 蓝色：世界绝对Z=3000，在人物/特效/场外裁剪之上、昼夜乘色和独立菜单CanvasLayer之下；云会从战场和人物上方经过。
++- 草地：Z=-5，在场外蓝色背景上、墙/人物/状态框下；云只绘制在地图所有可见岛的补集，不盖住草地竞技场。沙地、石砖、下界、末地、庭院、山巅等其余非蓝主题沿用背景层；这是本项目地图主题规则，不声称模拟原版各维度的天气规则。
++- 切地图自动换层，保留漂移相位；关闭立即隐藏并停止推进，开启从原相位继续。暂停冻结，倍速只使用已缩放的物理delta一次；重置归零，无布阵的空重打不改变相位。
++- 纯环境效果，不参与伤害/威胁/碰撞，不使用战斗RNG。开关与背景选择一样是本机偏好，不向房间广播；菜单仍遵守原有房客权限限制，未扩大权限。
++
++## 素材与呈现
++
++原文件：`Images/effects/我的世界/clouds/clouds.png`，Minecraft Java **1.21.4** `assets/minecraft/textures/environment/clouds.png`。256×256，占用13356个白色像素，其余52180透明。
++
++- SHA256 `18b72300292efa39f15f0f0e9b77f339b9c9237d054cf8141681ad25f047374f`。
++- 镜像仓库 `InventivetalentDev/minecraft-assets`，固定提交 `58d92c8cee4c7ac22d02988fb2bc3e4648af9ef2`；完整固定URL、来源和许可记录在同目录 `SOURCE.json`。
++- PNG原字节未改；不是随机噪声、手画轮廓或生成图片。Mojang/Microsoft 原版素材，不是自由再分发许可。
++- 采用原版精美云的方格厚层思路：每格12×12、厚4，战场适配4世界像素/方块，即48px网格、16px厚度；透明度0.8，顶面/两侧明暗1/0.9/0.8，0.03块/tick对应2.4世界px/s缓慢西移。
++- `minecraft_clouds.gdshader` 用原始alpha占用和正交体素层求交绘制硬边顶面/侧面，最多穿过两个网格边界；不堆每朵云的节点，不新开3D视口。**这是原版云轮廓/体块在本项目俯视战场中的投影适配，不是整个 Minecraft 天空/天气渲染器**。
++- 共用一张纹理、一个材质，场外几何复用 `World._map_outside_rects/_current_visual_island_rects`；不复制地图形状算法。雾中人原有雾粒子不是这类天空云，未复用其非原版云片或修改其行为。
++- Shader不读墙钟时间，不依赖主相机SCREEN_UV；主画面、总览/共享World2D录制视口用同一云相位，既有昼夜乘色覆盖云。
++
++## 实际验证
++
++引擎：项目 Godot 4.7.2 offline；GPU：OpenGL Compatibility / NVIDIA RTX 4060 Laptop。资源导入退出0，无新增脚本/Shader编译错误。
++
++| 测试 | 结果 | 说明 |
++| --- | --- | --- |
++| `test_minecraft_clouds.gd` | **45/45** | 原纹理占用、原版体块GPU、蓝/草地层级、其余6主题、真实多岛、开关/实际UI按钮/磁盘保存与重载、暂停/漂移/负delta、节点复用/真实重置、共享录制视口、云昼夜变暗 |
++| `test_day_night_cycle.gd`，专用harness | 33/33 | 云关闭，保留原昼夜逻辑断言 |
++| `test_map_wall_tooltips.gd`，专用harness | 84/84 | 云关闭，旧地图墙/信息框层级回归 |
++| `test_heavenfall_muzzle_ring.gd`，原夹具 | 41/41 | 上一任务伪3D发射环回归 |
++| `test_day_night_visual.gd`，专用harness | **31/39，8失败** | 不能记作整套通过，见下文 |
++
++前4套共203项通过。不要把这项统计描述为“所有回归零失败”。
++
++云GPU：512×384隔离画面有65216个云像素；顶面/两侧实测亮度级100/90/80；70个云格中心逐一匹配原贴图alpha。一格漂移后图像精确平移、不重新生成形状。蓝色云覆盖实际人物层红色探针；草地开/关云时竞技场内部0像素变化、场外有云；两份相同投影的共享World2D视口全图字节相同。已读回并查看蓝色与草地实机截图：`user://minecraft_clouds_blue.png`、`minecraft_clouds_grass.png`、`minecraft_clouds_native_volume.png`。
++
++### 旧昼夜GPU问题的边界（未在本任务修复）
++
++旧 `test_day_night_visual.gd` 的草地暮色/午夜/清晨与沙/石/下界/末地地面亮度有8项未通过。**关闭云时和专门释放云节点后均为同样的8项失败、相同采样值**：草地正午0.135588、18:00为0.173322、午夜0.170871。云功能自己的夜间变暗检查通过；不能据此说旧地面亮度也通过，亦不把该问题未经归因归咎于云。本次不改旧昼夜/墙光照算法。
++
++首轮直接运行旧昼夜逻辑夹具虽33断言通过，但退出时后台资源预热产生资源加载错误。新增 `verify_cloud_legacy_regressions.py` 只在临时夹具里：关闭云以比较旧画面基线、在后台预热deferred开始前释放预热器、将旧frame_post_draw等待替换为force_draw。原测试文件不改、原断言保留。这样逻辑33和墙84重跑退出0且无上述脚本错误。释放云节点的隔离复现参数：`--remove-cloud-node`。
++
++```text
++<engine> --path . --script res://tests/test_minecraft_clouds.gd --rendering-method gl_compatibility --audio-driver Dummy
++python tests/verify_cloud_legacy_regressions.py
++python tests/verify_cloud_legacy_regressions.py test_day_night_visual --remove-cloud-node
++```
++
++日志：`tests/minecraft_clouds_gpu.log`、`tests/test_*_cloud_harness.log`、`tests/test_day_night_visual_cloud_removed_harness.log`、`tests/test_heavenfall_muzzle_ring_cloud_final.log`。
++
++未验证：两个独立客户端、实际双语视频编码、低端GPU帧率/极端缩放压力、长期运行。共享World2D GPU对照不是视频编码验收。原有shader UID/大小写警告仍在。
++
++## 文件和回退
++
++主要入口：`scripts/effects/我的世界/minecraft_clouds.gd`、`shaders/minecraft_clouds.gdshader`；World只负责创建、物理推进、地图/开关刷新与重置。复用原参数开关、持久化和翻译入口；CSV、编译期词典及两份运行时翻译资源均包含新标签。
++
++开始前HEAD `69d265d819c2a6c7bd98dff72c2656cdb7e3c869`；检查点 `E:/godot/polo-balls-tools/checkpoints/minecraft-clouds-20260926-054505`。已有工作区改动保留。两份翻译二进制在导入前已脏，已从该检查点预先保存的完整binary patch还原到检查点副本；未回写覆盖当前文件。提交版本的翻译二进制由HEAD CSV+本次一条翻译生成，不将其他未提交翻译混入。
++
++回退补丁 `tests/patches/minecraft_clouds_20260926.patch` 包含本次代码、原版PNG及导入配置、Shader/脚本UID、测试/说明和翻译资源增量。关闭游戏/编辑器，另备份当前状态，再运行 `git apply --reverse --check <补丁>`；检查通过才可去掉 `--check` 手动回退。回退范围仅本次云功能，不回退长弓或其他任务。仅检查，不实际执行回退；不使用全库reset。提交前后ID记录于检查点 `commit_result.json` 与最终回复。
+diff --git a/tests/test_minecraft_clouds.gd b/tests/test_minecraft_clouds.gd
+new file mode 100644
+index 0000000..99c1535
+--- /dev/null
++++ b/tests/test_minecraft_clouds.gd
+@@ -0,0 +1,269 @@
++extends "res://tests/test_mc_bat.gd"
++var settings_existed:bool
++var settings_bytes:PackedByteArray
++var cloud:Node2D
++
++func _frame() -> void:
++	await process_frame
++	RenderingServer.force_draw(false)
++	await process_frame
++	RenderingServer.force_draw(false)
++
++func capture_view(size:Vector2i,shared:bool) -> SubViewport:
++	var view:=SubViewport.new()
++	view.size = size
++	view.transparent_bg = not shared
++	view.render_target_update_mode = SubViewport.UPDATE_ALWAYS
++	view.canvas_cull_mask = 1
++	if shared:
++		view.world_2d = root.world_2d
++		view.use_hdr_2d = root.use_hdr_2d
++	else: view.world_2d = World2D.new()
++	root.add_child(view)
++	return view
++
++func changed(a:Image,b:Image,rect:Rect2i) -> int:
++	var count:int = 0
++	for y:int in range(rect.position.y,rect.end.y):
++		for x:int in range(rect.position.x,rect.end.x):
++			if (a.get_pixel(x,y)-b.get_pixel(x,y)).to_rgba32() != Color(0,0,0,0).to_rgba32():
++				var ca:Color = a.get_pixel(x,y)
++				var cb:Color = b.get_pixel(x,y)
++				if absf(ca.r-cb.r)+absf(ca.g-cb.g)+absf(ca.b-cb.b) > 0.04: count += 1
++	return count
++
++func gpu_checks() -> void:
++	if DisplayServer.get_name() == "headless": print("CLOUD_GPU_SKIPPED headless"); return
++	var isolated:SubViewport = capture_view(Vector2i(512,384),false)
++	var poly:=Polygon2D.new()
++	poly.polygon = PackedVector2Array([Vector2.ZERO,Vector2(512,0),Vector2(512,384),Vector2(0,384)])
++	poly.material = cloud.cloud_material
++	isolated.add_child(poly)
++	cloud.reset_drift()
++	await _frame()
++	var image:Image = isolated.get_texture().get_image()
++	image.save_png("user://minecraft_clouds_native_volume.png")
++	var visible_pixels:int = 0
++	var face_levels:Dictionary = {}
++	for y:int in image.get_height():
++		for x:int in image.get_width():
++			var c:Color = image.get_pixel(x,y)
++			if c.a > 0.1:
++				visible_pixels += 1
++				face_levels[int(round(c.r/maxf(c.a,0.01)*100.0))] = true
++	print("CLOUD_GPU pixels=",visible_pixels," face_levels=",face_levels)
++	check(visible_pixels > 500 and visible_pixels < 512*384*0.75,"native cloud mask produces separated clouds, not a screen-filling fog")
++	check(face_levels.size() >= 3,"GPU extruded clouds have distinct top and two side-face brightnesses")
++	var native:Image = cloud.CLOUD_TEXTURE.get_image()
++	var exact:bool = true
++	for y:int in range(7):
++		for x:int in range(10):
++			var point:Vector2i = Vector2i(Vector2(x+0.5,y+0.5)*cloud.CELL_SIZE+Vector2(-8,-16))
++			exact = exact and ((image.get_pixelv(point).a > 0.5) == (native.get_pixel(x,y).a > 0.5))
++	check(exact,"GPU cloud-cell center occupancy exactly matches 70 original texture texels")
++	cloud.cloud_material.set_shader_parameter("travel",cloud.CELL_SIZE)
++	await _frame()
++	var shifted:Image = isolated.get_texture().get_image()
++	var shift_equal:bool = true
++	for y:int in range(4,380,7):
++		for x:int in range(4,460,7):
++			if shifted.get_pixel(x,y) != image.get_pixel(x+48,y): shift_equal = false
++	check(shift_equal,"a one-cell drift translates the native volume without re-randomizing its shape")
++	cloud.reset_drift()
++	isolated.queue_free()
++	await process_frame
++	# Same World2D path used by overview / recording views; no main-camera uniform.
++	var view:SubViewport = capture_view(Vector2i(640,480),true)
++	var second:SubViewport = capture_view(Vector2i(640,480),true)
++	var map_node:Node = world._current_map_node()
++	var arena:Rect2 = world.return_map_world_rect(map_node)
++	var shift:Vector2 = Vector2(320,240)-arena.get_center()
++	view.canvas_transform = Transform2D(0.0,shift)
++	second.canvas_transform = view.canvas_transform
++	game.set_runtime_game_setting("Map_Background","blue",false)
++	game.set_runtime_game_setting("Minecraft_Clouds",false,false)
++	await _frame()
++	var off:Image = view.get_texture().get_image()
++	game.set_runtime_game_setting("Minecraft_Clouds",true,false)
++	await _frame()
++	var on:Image = view.get_texture().get_image()
++	var inner:Rect2i = Rect2i(arena.grow(-12).position+shift,arena.grow(-12).size).intersection(Rect2i(0,0,640,480))
++	check(changed(off,on,inner)>10,"blue-map overhead clouds actually cross the playable arena")
++	var point:=Vector2(-99999,-99999)
++	for y:int in range(inner.position.y,inner.end.y):
++		for x:int in range(inner.position.x,inner.end.x):
++			if on.get_pixel(x,y).g-off.get_pixel(x,y).g > 0.08: point = Vector2(x,y)-shift; break
++		if point.x > -99998: break
++	check(point.x > -99998,"find an actual overhead cloud pixel inside the map for an occlusion probe")
++	if point.x > -99998:
++		var marker:=Polygon2D.new()
++		marker.polygon = PackedVector2Array([Vector2(-5,-5),Vector2(5,-5),Vector2(5,5),Vector2(-5,5)])
++		marker.color = Color.RED
++		marker.position = point
++		marker.z_as_relative = false
++		marker.z_index = 0
++		world.add_child(marker)
++		await _frame()
++		var pixel:Vector2i = Vector2i(point+shift)
++		var with_cloud:Color = view.get_texture().get_image().get_pixelv(pixel)
++		game.set_runtime_game_setting("Minecraft_Clouds",false,false)
++		await _frame()
++		var without_cloud:Color = view.get_texture().get_image().get_pixelv(pixel)
++		check(with_cloud.g > without_cloud.g+0.2,"overhead cloud draws above a character-layer red marker")
++		marker.queue_free()
++	game.set_runtime_game_setting("Map_Background","grass",false)
++	game.set_runtime_game_setting("Minecraft_Clouds",false,false)
++	await _frame()
++	await _frame()
++	off = view.get_texture().get_image()
++	game.set_runtime_game_setting("Minecraft_Clouds",true,false)
++	await _frame()
++	on = view.get_texture().get_image()
++	check(changed(off,on,inner)==0,"grass-map background clouds do not paint over the arena or characters")
++	check(changed(off,on,Rect2i(0,0,640,480))>100,"grass-map clouds remain visible in the surrounding background")
++	check(on.get_data()==second.get_texture().get_image().get_data(),"two shared World2D recording-sized views see identical cloud placement and color")
++	on.save_png("user://minecraft_clouds_grass.png")
++	world.day_night_cycle.set_minutes(0.0)
++	await _frame()
++	var night:Image = view.get_texture().get_image()
++	var noon_sum:float = 0.0
++	var night_sum:float = 0.0
++	for y:int in range(0,480,4):
++		for x:int in range(0,640,4):
++			noon_sum += on.get_pixel(x,y).r
++			night_sum += night.get_pixel(x,y).r
++	check(night_sum < noon_sum*0.85,"existing day/night overlay darkens native clouds without darkening UI")
++	world.day_night_cycle.set_minutes(720.0)
++	game.set_runtime_game_setting("Map_Background","blue",false)
++	await _frame()
++	view.get_texture().get_image().save_png("user://minecraft_clouds_blue.png")
++	# A different zoom and center must not move the cloud's world anchor.
++	second.canvas_transform = Transform2D(Vector2(2,0),Vector2(0,2),shift*2-Vector2(160,120))
++	await _frame()
++	check(second.get_texture().get_image().get_data()!=view.get_texture().get_image().get_data(),"independently zoomed capture uses its own projection, not the main viewport's screen UV")
++	view.queue_free()
++	second.queue_free()
++	await process_frame
++
++func run() -> void:
++	game = root.get_node("Game")
++	saved = game.Game_Settings.duplicate(true)
++	saved_stop = game.now_stop_state
++	settings_existed = FileAccess.file_exists(game.SETTINGS_PATH)
++	if settings_existed: settings_bytes = FileAccess.get_file_as_bytes(game.SETTINGS_PATH)
++	create_timer(85.0,true,false,true).timeout.connect(func(): finish(2))
++	game.Game_Settings.Training_Mode = false
++	game.Game_Settings.Development_Mode = false
++	game.Game_Settings.Map_Background = "blue"
++	game.Game_Settings.Minecraft_Clouds = true
++	game.now_stop_state = true
++	AudioServer.set_bus_mute(0,true)
++	world = load("res://scenes/world.tscn").instantiate()
++	world.tree_entered.connect(func(): current_scene = world,CONNECT_ONE_SHOT)
++	root.add_child(world)
++	if is_instance_valid(world._mc_prewarmer): world._mc_prewarmer.free()
++	world.set_physics_process(false)
++	world.now_choose_map = "Map10x10"
++	world.refresh_map_presentation()
++	world.control.hide()
++	world.day_night_cycle.advancing = false
++	world.day_night_cycle.set_minutes(720.0)
++	cloud = world.minecraft_clouds
++	check(is_instance_valid(cloud) and cloud.enabled and cloud.visible,"world creates enabled native clouds")
++	check(cloud.overhead and cloud.z_index == 3000,"blue background selects overhead clouds below the day/night/UI layers")
++	check(cloud.get_parent()==world and cloud.visibility_layer==1,"clouds belong to the shared world canvas, not a main-only CanvasLayer")
++	var native:Image = cloud.CLOUD_TEXTURE.get_image()
++	var occupied:int = 0
++	for y:int in native.get_height():
++		for x:int in native.get_width():
++			if native.get_pixel(x,y).a>0.5: occupied += 1
++	check(native.get_size()==Vector2i(256,256) and occupied==13356,"original 1.21.4 cloud occupancy survives import unchanged")
++	check(not cloud.is_in_group("AI_Hazard") and not cloud.is_in_group("BattleTransient"),"persistent atmosphere is neither a threat nor a combat transient")
++	check(not game._is_network_shared_setting("Minecraft_Clouds") and not game._shared_settings_snapshot().has("Minecraft_Clouds"),"cloud toggle stays local, not host-synchronized gameplay")
++	cloud.advance(1.0)
++	check(is_zero_approx(cloud.travel),"battle pause freezes drift")
++	game.now_stop_state = false
++	cloud.advance(2.0)
++	check(is_equal_approx(cloud.travel,4.8),"drift advances from scaled physics delta at the configured native speed")
++	paused = true
++	cloud.advance(1.0)
++	paused = false
++	check(is_equal_approx(cloud.travel,4.8),"SceneTree pause freezes manual cloud updates too")
++	cloud.advance(-1.0)
++	cloud.advance(NAN)
++	check(is_equal_approx(cloud.travel,4.8),"invalid or negative delta cannot corrupt cloud motion")
++	game.set_runtime_game_setting("Minecraft_Clouds",false,false)
++	cloud.advance(10.0)
++	check(not cloud.visible and is_equal_approx(cloud.travel,4.8),"off switch immediately hides clouds and stops their clock")
++	game.set_runtime_game_setting("Minecraft_Clouds",true,false)
++	check(cloud.visible and is_equal_approx(cloud.travel,4.8),"re-enabling resumes without a wall-time jump")
++	game.set_runtime_game_setting("Map_Background","grass",false)
++	check(not cloud.overhead and cloud.z_index==-5,"grass background automatically selects the background cloud layer")
++	var center:Vector2 = world.return_map_world_rect(world._current_map_node()).get_center()
++	var covers_center:bool = false
++	for rect:Rect2 in cloud.regions: covers_center = covers_center or rect.has_point(center)
++	check(not covers_center and cloud.regions.size()>=4,"grass cloud polygons use the world island complement, not a full-screen overlay")
++	check(is_equal_approx(cloud.travel,4.8),"map style changes preserve cloud phase")
++	for theme:String in ["sand","stone","nether","end","courtyard3d","summit"]:
++		game.set_runtime_game_setting("Map_Background",theme,false)
++		check(not cloud.overhead and cloud.z_index==-5,"other tiled theme safely uses background mode: "+theme)
++	var tested_islands:bool = false
++	for key:Variant in world.map_group.keys():
++		if world.map_island_rects(world.map_group[key]).size() < 2: continue
++		world.now_choose_map = str(key)
++		world.refresh_map_presentation()
++		var no_overlap:bool = true
++		for region:Rect2 in cloud.regions:
++			for island:Rect2 in world._map_shape_visual(world._current_map_node()):
++				no_overlap = no_overlap and not region.intersects(island)
++		check(no_overlap,"multi-island background regions exclude every island footprint")
++		tested_islands = true
++		break
++	check(tested_islands,"fixture exercises an actual multi-island map")
++	world.now_choose_map = "Map10x10"
++	game.set_runtime_game_setting("Map_Background","blue",false)
++	check(cloud.overhead and cloud.regions.size()==1,"switching back to blue restores overhead mode without stale background geometry")
++	var part_count:int = cloud._parts.size()
++	for i:int in range(20): game.set_runtime_game_setting("Minecraft_Clouds",i%2==0,false)
++	game.set_runtime_game_setting("Minecraft_Clouds",true,false)
++	check(cloud._parts.size()==part_count,"repeated toggles reuse bounded polygon nodes")
++	cloud.reset_drift()
++	check(is_zero_approx(cloud.travel),"reset hook restores deterministic initial drift")
++	game.now_stop_state = true
++	var parameter_box:Node = world.control.settings_category_boxes["parameters"]
++	var count:int = 0
++	var button:TextureButton
++	for node:Node in world.control._collect_descendants(parameter_box):
++		if node is TextureButton and node.get_meta("game_setting_key","")=="Minecraft_Clouds": count += 1; button=node
++	check(count==1 and button!=null,"Settings > Parameters has exactly one real cloud switch")
++	if button!=null:
++		button.button_up.emit()
++		check(not cloud.visible and not game.Game_Settings.Minecraft_Clouds,"actual parameter button toggles the renderer")
++		var cfg:=ConfigFile.new()
++		check(cfg.load(game.SETTINGS_PATH)==OK and not bool(cfg.get_value("game_settings","Minecraft_Clouds",true)),"existing persistence path saves the selected cloud state")
++		game.Game_Settings.Minecraft_Clouds = true
++		game.load_persistent_settings()
++		check(not game.Game_Settings.Minecraft_Clouds,"saved cloud choice survives settings reload")
++		game.set_runtime_game_setting("Minecraft_Clouds",true,false)
++	var catalog:Script = load("res://global/translation_catalog.gd")
++	check(catalog.TABLE.zh.SETTING_MINECRAFT_CLOUDS=="原版方块云" and catalog.TABLE.en.SETTING_MINECRAFT_CLOUDS=="Minecraft Clouds","parameter switch has Chinese and English labels")
++	await gpu_checks()
++	var cloud_id:int = cloud.get_instance_id()
++	game.now_stop_state = false
++	cloud.advance(5.0)
++	world.rematch_last_battle()
++	check(is_equal_approx(cloud.travel,12.0),"empty rematch does not reset cloud phase unexpectedly")
++	world.reset()
++	check(is_instance_valid(cloud) and cloud.get_instance_id()==cloud_id and is_zero_approx(cloud.travel),"actual world reset preserves atmosphere node and resets cloud phase")
++	print("MINECRAFT_CLOUDS: %d checks / %d failures" % [checks,failures])
++	finish(0 if failures==0 else 1)
++
++func finish(code:int) -> void:
++	if done: return
++	if game != null:
++		if settings_existed:
++			var file:=FileAccess.open(game.SETTINGS_PATH,FileAccess.WRITE)
++			file.store_buffer(settings_bytes)
++			file.close()
++		elif FileAccess.file_exists(game.SETTINGS_PATH): DirAccess.remove_absolute(ProjectSettings.globalize_path(game.SETTINGS_PATH))
++	super.finish(code)
+diff --git a/tests/test_minecraft_clouds.gd.uid b/tests/test_minecraft_clouds.gd.uid
+new file mode 100644
+index 0000000..9d04edf
+--- /dev/null
++++ b/tests/test_minecraft_clouds.gd.uid
+@@ -0,0 +1 @@
++uid://dqyjo1hb2qy2
+diff --git a/tests/verify_cloud_legacy_regressions.py b/tests/verify_cloud_legacy_regressions.py
+new file mode 100644
+index 0000000..0ba95fd
+--- /dev/null
++++ b/tests/verify_cloud_legacy_regressions.py
+@@ -0,0 +1,39 @@
++"""Run existing graphics assertions with clouds off (legacy visual baseline).
++Only the temporary harness is adapted: stop unrelated background resource warming
++before its deferred start, and use force_draw instead of the old frame_post_draw
++wait (which can stall in the offline runtime). Original test files are untouched.
++"""
++from pathlib import Path
++import subprocess
++import sys
++
++root = Path(__file__).resolve().parents[1]
++engine = root.parent / 'polo-balls-tools/offline-engine/runtime/Godot.4.7.2.offline.exe'
++remove_cloud = '--remove-cloud-node' in sys.argv
++names = [a for a in sys.argv[1:] if a != '--remove-cloud-node'] or ['test_day_night_cycle', 'test_day_night_visual', 'test_map_wall_tooltips']
++for name in names:
++    assert name in ['test_day_night_cycle', 'test_day_night_visual', 'test_map_wall_tooltips']
++    source = (root / 'tests' / (name + '.gd')).read_text(encoding='utf8')
++    anchor = '\troot.add_child(world)'
++    assert source.count(anchor) == 1
++    source = source.replace(anchor, '\tgame.Game_Settings.Minecraft_Clouds = false\n' + anchor + '\n\tif is_instance_valid(world._mc_prewarmer): world._mc_prewarmer.free()')
++    if remove_cloud:
++        source = source.replace(anchor, anchor + '\n\tworld.minecraft_clouds.free()\n\tworld.minecraft_clouds = null')
++    source = source.replace('\tawait RenderingServer.frame_post_draw', '\tRenderingServer.force_draw(false)')
++    temp = root / 'tests' / ('_cloud_harness_' + name + '.gd')
++    assert not temp.exists()
++    log = root / 'tests' / (name + ('_cloud_removed_harness.log' if remove_cloud else '_cloud_harness.log'))
++    try:
++        temp.write_text(source, encoding='utf8')
++        args = [str(engine), '--path', str(root), '--script', 'res://tests/' + temp.name]
++        args += ['--headless'] if name == 'test_day_night_cycle' else ['--rendering-method', 'gl_compatibility', '--audio-driver', 'Dummy']
++        with log.open('wb') as output:
++            result = subprocess.run(args, stdout=output, stderr=subprocess.STDOUT, timeout=100)
++        print(name, 'EXIT', result.returncode, flush=True)
++        text = log.read_text(encoding='utf8', errors='replace')
++        for line in text.splitlines():
++            if any(key in line for key in ['ERROR', 'FAIL', 'checks', 'RESULT', 'ObjectDB', 'DAY_NIGHT_PIXEL', 'OpenGL']):
++                print(line[:800], flush=True)
++    finally:
++        temp.unlink(missing_ok=True)
++        temp.with_suffix('.gd.uid').unlink(missing_ok=True)
+diff --git a/translations.csv b/translations.csv
+index e9ab2eb..9882947 100644
+--- a/translations.csv
++++ b/translations.csv
+@@ -883,3 +883,4 @@ SETTING_DEVELOPMENT_SPEED,快进倍速,Fast-forward Speed
+ 药水测试盔甲架,药水测试盔甲架,Potion Test Armor Stand
+ 附魔测试盔甲架,附魔测试盔甲架,Enchantment Test Armor Stand
+ 附魔书,附魔书,Enchanted Book
++SETTING_MINECRAFT_CLOUDS,原版方块云,Minecraft Clouds
+diff --git a/translations.en.translation b/translations.en.translation
+index 9c065d5cc5b9a025a4bf74e11de1b815ecc93719..817a021278053523613f6bf481f201014058dad9 100644
+GIT binary patch
+delta 3919
+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
+HzK{L|>@TXX
+
+delta 4012
+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
+
+diff --git a/translations.zh.translation b/translations.zh.translation
+index 8723cf3335328678c5a8ddbbfb50e83dc14d1457..70993b9f4f650dc19c02b8c5cb5f1d44ef93067c 100644
+GIT binary patch
+delta 4295
+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
+
+delta 4212
+zcmZXX4@i`09>?F(CU+X$Ne0(7SzHNEJdv;?YzeP(<#1(*#bjATx<$MYiEu+?@uUe6
+ziA5rOqm%9s36T(KWfNH>+*m{+q?1@A4v|G9LLww&30a)`{NDM#`ZV{_$M2ut^FHr8
+z@91bh-97lvy9cLFM*L(XcA(uq8~LE9Gt2W*I=b;!l?Sr?Z;l*`E8Rlxz?k0^Ip%L=
+z#gh}7gy))0XLPgVhp-4s&TPf;zv5pw+4gy*{04msk?j3@jHUhGQUy*~j4xHLM600&
+zYM~x%(?+ye-tq;<x8pmZOI=U4|4pRGKbw^k@1yF6>l*q0Ib2*ZL6}l8hdzd<@Lb&*
+zx&fQn{$C;m$!+Y8Ms{iM(EjU*;A6`9PG5{Kg>tA?Un8xPHb`wxJDSL?PS=L-IOLu5
+zE@Qf(7p{RV9z<`#Z5V?Iu-=ZTLw4U6=cpdRqDITo73nIvE^nv3#J_g3b=%|}@FM&J
+z>ta&#1(Dzpm8dF{R-)C;GFxg#4PC9%H#q*Be6zF#{aU_LYI}6a_w09mV<b1yNA3@9
+z=hStLZlJg1??`Qn@ECKtiAeZO^U)Ob56;Mz|EN44EK4pZK5>>U%deoT@-LkEmi%w%
+z?@k{%?0Io0fMO_xa<I!*p*8ZB?WjHMeY*Ev*JljRk(;4K{nzM4xTJgq{T8kswwIe6
+zz}|on7=>||g!Gm8Ou)}Mc|rb(blI7$$giU7@Dg6bHtaySr>U3YdC?s2^gE>u5)6vq
+zI9Rr$!tp2M{gbhB`yBMABZ<G(Q8sAMgtkJPvTe|X?@{h^`hNU%xB<6vg74%z*m1Da
+z?3l#Qz&t!w|5Tb@k^cIN)2%t)rW@o<_#F<um)<)E&4UCK!3kjL$H8u=2xp)U8q$N*
+zIjR4T+>(Ne3c+f=Tq0k2FL+1$H0qZQp~Lbc(z{YS{hs`NbjImzHm|&ZK801~b*Zfh
+zk5}m~8Rpa*XVF{vT{Jto|8&E}(TpykT!vQ4S7)rTb8FPqN<WV#-`%{4!B=oW3)-cf
+zQro0UzDL^U%m(p8Fzj@8&ItJ~+*5x)oS(L-jv2~%SPF;gpOK$ubZgPz<7ezZc5*|b
+zO=roL<9G1h5q^Fk4&miYi^wHV29;0^*4IlL(J$ajWt+9ix1k+Jyrg#pbIn;`iw4O<
+z>TXN_?W~z_{1ko`9;*A<nb}^Cl~>SJ`E~SV;FGD;Ys|I=JE#|X_f^^^QKw7b%bZ;4
+z_*3{ZPPTLHsB^l{@l9bq#IQ9Myc_nHQk(j2^s4-T^gF5TcN2db#$i(ZG&(D9Yr^B9
+z(=Fnc;2Au3dacb$t;K>5rVVDB|36Q?&FFT?*}3mNuV_Y&lMA32D&Pc!_jXFY9&Lo?
+zbWVoz)CDbQm)hVm{#&@}bk+}$hci0sN9ab?k7vv$$<yj)r4Mrx={x+HVoBw*TzfEn
+zD!=5D4XRDmw*Qv=Z%${u9bO)P%0LYA^K6TQg@GhXY0AM?RY_~4*4a_#<OX~Tv_mI!
+zfvxG0_M!dq*U@2lTQed*Djm=BTK3)pTQJFBM#Fh@0iM7ztbnaqm6~67yyYz?@A#Jz
+z$C9!4(`VT<Jo4!ZoxarZ<?>ZdSA(yGdUZ|C>?`>T(hl@8bf<GN)r+~74#D*Y@k34?
+zcKir_6z-|JkIulHa`*xskr!bJo;kDU@@sotM|cXqkSRA|dvBPY?I`EO(@!c-S}6TU
+zdR%H}Rp8G+9W+2w+&((WTCw2;+Z=CQ2l+B|$Ah2jUhFj(1RD=Y%@5<plqZ~i3P0;)
+zTl+X8KPCSH|Ak+j*$eqsX+4s9gLw<P!Tsdt9NoWl+c)p1-DXvSx=5qr&XNlJpWqWX
+ztG@B5J%ng8u?5<L==001u9MiURlQQX$bkF}bOc6WT%FCsV{&h+(ivwwk6%!JB3%xa
+zmajO=!d+JB*44j~`hPAgY~5AJ&QCvsC>n<XC{|aBmdjV6HBhT;7pTWKI{6EE|NFw?
+zkJ|{{(5rF){Z8IazU6Nfe&A<)m?*F`!DLF)IrLG!J=f0`RV_<b&{cUmZ5{to`8B!?
+uyUI4_KObHR<UAPr@L#zP&i~<N?Saz|HvWF*kNg1GpXS~HXgc5Y>Hh!#Te}hf
+
+diff --git a/ui/control.gd b/ui/control.gd
+index 584d53d..5ae1782 100644
+--- a/ui/control.gd
++++ b/ui/control.gd
+@@ -1339,7 +1339,10 @@ func _on_map_background_selected(index:int) -> void:
+ 
+ func _build_parameter_settings(parent_box:VBoxContainer) -> void:
+ 	_create_map_background_setting(parent_box)
++	if not Game.Game_Settings.has("Minecraft_Clouds"): Game.Game_Settings["Minecraft_Clouds"] = true
++	_create_bool_setting_row(parent_box,"Minecraft_Clouds")
+ 	var excluded:Dictionary = {
++		"Minecraft_Clouds": true,
+ 		"Training_Mode": true,
+ 		"Manual_Training": true,
+ 		"Manual_Collision_Damage": true,

@@ -442,7 +442,7 @@ func release_character_control_for_death(target:Node) -> void:
 
 func _is_network_shared_setting(setting:String) -> bool:
 	# 语言显示域、水印和“跟随我控制的角色”属于每台机器自己的表现设置；其它玩法设置跟随房主房间。
-	return setting not in ["Only_In_Game_Translation","Show_Center_Watermark","Follow_Controlled_Character","Map_Background"]
+	return setting not in ["Only_In_Game_Translation","Show_Center_Watermark","Follow_Controlled_Character","Map_Background","Minecraft_Clouds"]
 
 func _shared_settings_snapshot() -> Dictionary:
 	var snapshot:Dictionary = {}
@@ -671,6 +671,8 @@ func _on_speed_slider_drag_ended(value_changed:bool) -> void:
 	Show_Center_Watermark = true,
 	# 仅影响本机地图外观，旧存档缺少此项时仍使用原蓝色背景。
 	Map_Background = "blue",
+	# Local visual preference, persisted by the existing settings path.
+	Minecraft_Clouds = true,
 	# V184：全局击杀血液。关闭时若叶睦/墨提斯自身的击杀血仍保留；开启时其它人物击杀也会生成血液。
 	Blood_Effects = false,
 	# 角色对话总开关。开启后，支持对话的角色会把台词显示在地图下方的阵营槽位。

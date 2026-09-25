@@ -1,0 +1,17 @@
+{
+  "origin": "Minecraft Java Edition 1.21.4 vanilla environment/clouds.png",
+  "mirror_repository": "https://github.com/InventivetalentDev/minecraft-assets",
+  "mirror_commit": "58d92c8cee4c7ac22d02988fb2bc3e4648af9ef2",
+  "source_url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/58d92c8cee4c7ac22d02988fb2bc3e4648af9ef2/assets/minecraft/textures/environment/clouds.png",
+  "file": "clouds.png",
+  "sha256": "18b72300292efa39f15f0f0e9b77f339b9c9237d054cf8141681ad25f047374f",
+  "size": [
+    256,
+    256
+  ],
+  "opaque_texels": 13356,
+  "transparent_texels": 52180,
+  "pixel_edits": "None. Original PNG bytes, alpha occupancy drives the cloud slab. Not generated noise or replacement silhouettes.",
+  "license": "Mojang/Microsoft Minecraft assets. Subject to Minecraft EULA/Usage Guidelines, not permissively licensed; this provenance does not grant redistribution rights.",
+  "renderer_adaptation": "Project shader extrudes native occupancy as 12x12x4 cells with 4 world pixels per block, hard top/side faces and 0.8 opacity. Orthographic battlefield projection, not a replacement of the complete Minecraft sky renderer."
+}

@@ -1265,7 +1265,10 @@ func _on_map_background_selected(index:int) -> void:
 
 func _build_parameter_settings(parent_box:VBoxContainer) -> void:
 	_create_map_background_setting(parent_box)
+	if not Game.Game_Settings.has("Minecraft_Clouds"): Game.Game_Settings["Minecraft_Clouds"] = true
+	_create_bool_setting_row(parent_box,"Minecraft_Clouds")
 	var excluded:Dictionary = {
+		"Minecraft_Clouds": true,
 		"Training_Mode": true,
 		"Manual_Training": true,
 		"Manual_Collision_Damage": true,
