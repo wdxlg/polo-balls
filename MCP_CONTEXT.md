@@ -102,3 +102,4 @@
 - Minecraft 范围外圈和蓄力填充盘统一复用 `pixel_arc.gd::draw_ring/draw_disk`，持续预警走 `mc_combat_abilities.gd::charge_circle`，按真实技能计时更新，不另写平滑圆或复制像素算法。重锤与硫方怪 TNT 已共用；硫方怪铁块重力/水平移动、原版晶簇本体与射出同模型、冰墙反弹及手控/威胁回归见 `tests/SULFUR_CUBE_POLISH_20260926.md`。
 - 硫方怪蜂蜜仅与被黏住者成对免物理碰撞（保留其他人物/地形及受击），并与大规模软分离一致；临时成对排除复用 `classes/body_collision_exclusions.gd` 租约。冰径在地面 Z=-4；紫水晶权威随机 3–8 根及位置，允许同向多根，每根对每名敌人每轮生长独立命中一次，布局/再生/齐射同步。追补和回退范围见 `tests/SULFUR_CUBE_CONTACTS_20260926.md`。
 - 硫方怪平衡追补：铁首次冲击、附着紫水晶及晶体投射物的伤害系数均降低30%；铁底部常态接触及下砸均可持续碾压，低额定频结算并复用公共击退。冰径不再仅加 Speed 倍率，而用 `surface_acceleration.gd` 沿目标自身真实位移方向积分加速、限制上限并在离冰后衰减；公共移动链接 `ball.surface_motion_velocity`。实测位移、威胁/手控/ENet与回退范围见 `tests/SULFUR_CUBE_BALANCE_20260926.md`。
+- 天堂陨落长弓每次真实出箭，在箭矢出生世界坐标播放8→24半径、0.38秒青绿/浅青/银白扩散渐隐空心环。纯视觉可靠RPC每端一次，不从状态回放重播；复用 `mc_combat_abilities.gd::expanding_ring` 的重锤/像素环实现，不带伤害、碎屑、地表读回或新音效，暂停冻结。参数、230项回归和回退边界见 `tests/HEAVENFALL_MUZZLE_RING_20260926.md`。

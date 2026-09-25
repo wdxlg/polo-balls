@@ -29,6 +29,9 @@ const FLOOR_SAMPLER:Script = preload("res://scripts/effects/地表渲染采样.g
 @export_category("共用落地冲击 / 选装组件")
 @export var show_impact_ring:bool = true
 @export var show_impact_streaks:bool = true
+@export var show_block_particles:bool = true # False: no floor readback, RNG or rubble work.
+@export var ring_palette:PackedColorArray = PackedColorArray() # Optional public override.
+@export var pause_with_battle:bool = false # Opt-in; preserves existing impact callers.
 @export_range(0.0,4.0,0.05) var block_source_center_bias_exponent:float = 0.0 # 0=沿用重锤均匀散布
 @export var block_source_inner_radius_scale:float = 0.0 # Optional annulus; zero preserves existing callers.
 @export var block_exclusion_radius:float = 0.0 # Reject center births after scatter/map clipping.
@@ -55,11 +58,14 @@ var _floor_snapshot:Dictionary = {}
 func setup(world_position:Vector2,radius:float) -> void:
 	global_position = world_position
 	_radius = maxf(radius,8.0)
+	_effect_end_time = maxf(lifetime,0.02)
 	z_as_relative = false
 	z_index = 98
-	_rng.seed = Game.battle_rng_seed_or("scripts/effects/我的世界/重锤落地冲击.gd:_rng.seed",maxi(abs(int(world_position.x * 92821.0) ^ int(world_position.y * 68917.0) ^ int(Time.get_ticks_usec())),1))
+	if show_impact_streaks or show_block_particles:
+		_rng.seed = Game.battle_rng_seed_or("scripts/effects/我的世界/重锤落地冲击.gd:_rng.seed",maxi(abs(int(world_position.x * 92821.0) ^ int(world_position.y * 68917.0) ^ int(Time.get_ticks_usec())),1))
 	_build_streaks()
 	queue_redraw()
+	if not show_block_particles: return
 	# 圈/射线立即显示，只有碎屑等待地表完成一帧渲染。
 	set_process(false)
 	await _prepare_floor_sampler()
@@ -210,6 +216,7 @@ func _vary_floor_color(base:Color) -> Color:
 
 
 func _process(delta:float) -> void:
+	if pause_with_battle and (Game.now_stop_state or get_tree().paused): return
 	_elapsed += maxf(delta,0.0)
 	queue_redraw()
 	if _elapsed >= maxf(_effect_end_time,0.02):
@@ -227,7 +234,7 @@ func _draw_ring_and_streaks() -> void:
 		var expand:float = 1.0 - pow(1.0 - p,3.1)
 		var alpha:float = pow(1.0 - p,1.28)
 		var radius_value:float = lerpf(_radius,_radius * maxf(ring_end_scale,1.0),expand)
-		preload("res://scripts/effects/我的世界/pixel_arc.gd").draw_ring(self,Vector2.ZERO,radius_value,Color.WHITE,alpha)
+		preload("res://scripts/effects/我的世界/pixel_arc.gd").draw_ring(self,Vector2.ZERO,radius_value,Color.WHITE,alpha,ring_palette)
 
 	if not show_impact_streaks: return
 	for data:Dictionary in _streaks:

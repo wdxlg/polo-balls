@@ -3,6 +3,9 @@ extends "res://scripts/characters/我的世界/new5/base.gd"
 # 中速拉弓，箭体中等伤害并轻微追踪、可穿过1次障碍物；命中或消失时落箭雨（低伤害），
 # 并沿射击方向撕开空间裂隙；完全展开后、闭合前本体受击会闪避到最近可用的成熟裂隙并反打。
 const BOLT: PackedScene = preload("res://scenes/shooter/我的世界/天陨箭矢.tscn")
+const COMBAT_FX = preload("res://scripts/effects/我的世界/mc_combat_abilities.gd")
+# Same native longbow/rift teal, pale cyan and silver palette; no new texture art.
+const SHOT_RING_PALETTE:Array[Color] = [Color("14534f"),Color("83dbd6"),Color("c8c8c8")]
 const FALL: PackedScene = preload("res://scenes/shooter/我的世界/天陨箭.tscn")
 const RIFT: PackedScene = preload("res://scenes/shooter/我的世界/天陨裂隙.tscn")
 const TRANSIT = preload("res://scripts/characters/我的世界/new6/heavenfall_transit.gd")
@@ -128,13 +131,27 @@ func step_mob(delta: float) -> void:
 		drawing = maxf(0.0, drawing - delta * 4.0)
 
 
+@rpc("authority", "call_remote", "reliable")
+func _spawn_shot_ring(point:Vector2) -> void:
+	var world:Node = get_tree().current_scene
+	if world == null: return
+	# Freeze the authoritative launch point, not the moving/recoiling bow sprite.
+	var ring:Node2D = COMBAT_FX.expanding_ring(world,point,8.0,
+		{"name":"HeavenfallShotRing","palette":SHOT_RING_PALETTE,"end_scale":3.0,"lifetime":0.38})
+	ring.add_to_group("HeavenfallShotRing")
+
+
+
 func _fire() -> void:
+	if not is_multiplayer_authority(): return
 	var world: Node = get_tree().current_scene
 	if world == null:
 		return
 	var bolt: Area2D = BOLT.instantiate() as Area2D
 	world.add_child(bolt, true)
 	bolt.global_position = global_position + facing * muzzle_offset
+	_spawn_shot_ring(bolt.global_position)
+	if multiplayer.has_multiplayer_peer(): _spawn_shot_ring.rpc(bolt.global_position)
 	# 旧箭矢接口保留参数位置，但箭体不再击退；瞬移到达的冲击仍由到达圆圈单独结算。
 	bolt.call("configure", self, Team, facing, bolt_speed, attack_damage(bolt_damage_mult), 0.0, homing_turn, homing_range, bolt_max_dist, rain_count, rain_radius, attack_damage(rain_damage_mult), rain_aoe, rain_delay)
 	# 出箭点取自静止弓身；箭离弦后弓才被震回（本弓只在拉满后松弦，强度恒为 1）。
