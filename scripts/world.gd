@@ -3692,8 +3692,7 @@ var map_wall_volume:Node2D
 @export_category("地图立体墙")
 # 指向右上角的光源，影子朝其反方向投在地面；纯视觉配置，不触碰安全墙。
 @export var map_wall_light_direction:Vector2 = Vector2(1.0,-1.0)
-@export_range(0.25,2.25,0.05) var map_wall_height_cells:float = 1.80
-@export_range(0.5,5.0,0.1) var map_wall_shadow_cells:float = 2.4
+var map_wall_height_cells:float = 1.0 # 真方块仅一格高；渲染端也强制限制为一格。
 func _is_grass_map_background() -> bool:
 	return Game.Game_Settings.get("Map_Background","blue") == "grass"
 func map_visual_cell_size(map_node:Node) -> Vector2:
@@ -4378,8 +4377,9 @@ func _refresh_map_inside_shadow() -> void:
 				edges.append(segment)
 	var cell:Vector2 = map_visual_cell_size(map_node)
 	var sun:Vector2 = map_wall_light_direction.normalized() if map_wall_light_direction.length_squared() > 0.0001 else Vector2(1.0,-1.0).normalized()
-	# 蓝色背景只有旧式平面边框和接触暗边，不再投假立体墙的长影。
-	var cast:Vector2 = -sun * minf(cell.x,cell.y) * map_wall_shadow_cells if _is_grass_map_background() else Vector2.ZERO
+	# 六主题都只保留贴边的 2D 接触暗边；五种方块主题的斜向地影由
+	# DirectionalLight3D 投向真实 3D 接影平面，绝不叠加旧的手绘长影。
+	var cast:Vector2 = Vector2.ZERO
 	map_inside_shadow.configure_regions(map_island_rects(map_node),cell,edges,cast)
 	if _is_grass_map_background():
 		if not is_instance_valid(map_wall_volume):

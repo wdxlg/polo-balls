@@ -1,7 +1,5 @@
 extends SceneTree
-# D3D12 截图/读回：五种材质真实六面体、蓝色平面、动态光照与开门断墙。
-const SHADOW = preload("res://scripts/effects/我的世界/地图内沿阴影.gd")
-const THEMES = preload("res://scripts/effects/我的世界/地图背景主题.gd")
+# Windows D3D12 读回/截图：五种原版贴图、一格网格、移动镜头的视差和真实地影。
 var checks:int = 0
 var failures:int = 0
 
@@ -43,11 +41,23 @@ func _colored_pixels(img:Image) -> int:
 			if img.get_pixel(x,y).a>0.7: count += 1
 	return count
 
-func _wall_alpha(volume:Node2D,point:Vector2,height:float) -> float:
+func _world_pixel(img:Image,screen_position:Vector2) -> Color:
+	# 游戏内部画布是 1080x1920，GPU 主视口可能按 0.5 倍实际栅格读回。
+	var canvas_size:Vector2 = root.get_visible_rect().size
+	var x:int = clampi(roundi(screen_position.x*img.get_width()/canvas_size.x),0,img.get_width()-1)
+	var y:int = clampi(roundi(screen_position.y*img.get_height()/canvas_size.y),0,img.get_height()-1)
+	return img.get_pixel(x,y)
+
+func _luma(c:Color) -> float:
+	return (c.r+c.g+c.b)/3.0
+
+func _wall_alpha(volume:Node2D,point:Vector2,height:float,shadow:bool=false) -> float:
+	var view:SubViewport = volume.shadow_viewport if shadow else volume.viewport
 	var coords:Vector2 = volume.camera.unproject_position(volume._ground_point(point,height))
-	var img:Image = volume.viewport.get_texture().get_image()
-	var x:int = clampi(roundi(coords.x),0,img.get_width()-1)
-	var y:int = clampi(roundi(coords.y),0,img.get_height()-1)
+	var img:Image = view.get_texture().get_image()
+	var x:int = roundi(coords.x)
+	var y:int = roundi(coords.y)
+	if x<0 or y<0 or x>=img.get_width() or y>=img.get_height(): return 0.0
 	return img.get_pixel(x,y).a
 
 func _save_detail(img:Image,path:String) -> bool:
@@ -58,43 +68,9 @@ func _save_detail(img:Image,path:String) -> bool:
 	return crop.save_png(path)==OK
 
 func _run() -> void:
-	create_timer(95.0).timeout.connect(func(): quit(2))
+	create_timer(115.0).timeout.connect(func():quit(2))
 	var folder:String = "user://map_wall_true3d"
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(folder))
-	var view := SubViewport.new()
-	view.size = Vector2i(160,160)
-	view.transparent_bg = true
-	view.render_target_update_mode = SubViewport.UPDATE_ALWAYS
-	root.add_child(view)
-	var inner:Node2D = SHADOW.new()
-	view.add_child(inner)
-	var regions:Array[Rect2] = [Rect2(0,0,160,160)]
-	var sides:Array[Dictionary] = [
-		{"side":0,"line":0.0,"a":0.0,"b":160.0},
-		{"side":1,"line":160.0,"a":0.0,"b":160.0},
-		{"side":2,"line":0.0,"a":0.0,"b":160.0},
-		{"side":3,"line":160.0,"a":0.0,"b":160.0},
-	]
-	inner.configure_regions(regions,Vector2(16,16),sides,Vector2(-32,32))
-	await _frame()
-	var img:Image = view.get_texture().get_image()
-	check(img.get_pixel(80,8).a>0.23 and img.get_pixel(152,80).a>0.23,"floor north/east shadows continue to follow cut 3D wall edges")
-	check(img.get_pixel(8,80).a<0.15 and img.get_pixel(80,152).a<0.15,"west/south receive only contact shading")
-	check(img.get_pixel(80,80).a<0.02 and img.get_pixel(80,8).a<0.47,"floor center clear; corners cannot double stack")
-	img.save_png(folder+"/shadow_default.png")
-	var gap:Array[Dictionary] = [
-		{"side":2,"line":0.0,"a":0.0,"b":55.0},
-		{"side":2,"line":0.0,"a":105.0,"b":160.0},
-	]
-	inner.configure_regions(regions,Vector2(16,16),gap,Vector2(-32,32))
-	await _frame()
-	img = view.get_texture().get_image()
-	check(img.get_pixel(80,4).a<0.02 and img.get_pixel(35,8).a>0.23,"door interrupts floor shadow")
-	inner.configure_regions(regions,Vector2(16,16),sides,Vector2(32,-32))
-	await _frame()
-	img = view.get_texture().get_image()
-	check(img.get_pixel(8,80).a>0.23 and img.get_pixel(80,152).a>0.23 and img.get_pixel(80,8).a<0.15,"changing the light direction reverses floor shadow")
-	view.queue_free()
 	var game:Node = root.get_node("Game")
 	var old:Dictionary = game.Game_Settings.duplicate(true)
 	game.Game_Settings.Map_Background = "blue"
@@ -106,24 +82,31 @@ func _run() -> void:
 	world.refresh_map_presentation()
 	world.control.hide()
 	var layer:Node = world.map_group["Map10x10"]
+	var physical:Rect2 = world.map_island_rects(layer)[0]
+	var cell:Vector2 = world.map_visual_cell_size(layer)
 	var camera := Camera2D.new()
 	world.add_child(camera)
 	camera.make_current()
 	camera.zoom = Vector2.ONE*2.3
-	camera.global_position=world.return_map_display_rect(layer).get_center()
+	camera.global_position = physical.get_center()
 	await _frame()
-	check(world.map_wall_volume==null,"blue renders its original flat edge without instantiating 3D")
+	check(world.map_wall_volume==null,"blue keeps its original flat boundary without allocating either 3D viewport")
 	check(_save_detail(root.get_texture().get_image(),folder+"/world_blue_detail.png"),"blue screenshot saved")
+	var top_point:Vector2 = Vector2(physical.get_center().x+cell.x*0.5,physical.position.y-cell.y*0.5)
+	var shadow_point:Vector2 = Vector2(physical.get_center().x-cell.x*2.0,physical.position.y+cell.y*1.75)
+	var clear_point:Vector2 = shadow_point+Vector2(0,cell.y*3.0)
 	for style:String in ["grass","sand","stone","nether","end"]:
 		game.set_runtime_game_setting("Map_Background",style,false)
 		world.refresh_map_presentation()
-		camera.global_position=world.return_map_display_rect(layer).get_center()
+		camera.global_position = physical.get_center()
 		await _frame()
 		var volume:Node2D = world.map_wall_volume
-		var mesh_pixels:int = _colored_pixels(volume.viewport.get_texture().get_image())
-		check(mesh_pixels>120,"%s: GPU renders opaque pixels from real lit 3D mesh" % style)
-		var wall:Rect2 = volume.wall_rects[0]
-		check(_wall_alpha(volume,wall.get_center(),volume.block_height)>0.5,"%s: original cube TOP is actually visible in 3D viewport" % style)
+		var mesh_image:Image = volume.viewport.get_texture().get_image()
+		var shadow_image:Image = volume.shadow_viewport.get_texture().get_image()
+		check(_colored_pixels(mesh_image)>120,"%s: GPU renders opaque original Minecraft block faces" % style)
+		check(_wall_alpha(volume,top_point,volume.block_height)>0.5,"%s: real single-height block at the north boundary" % style)
+		var cast_alpha:float = _wall_alpha(volume,shadow_point,-0.08,true)
+		check(cast_alpha>0.08 and _wall_alpha(volume,clear_point,-0.08,true)<0.03 and _wall_alpha(volume,shadow_point,0.0)<0.05,"%s: shadow-only GPU pass hits floor near wall but not open floor or block pass" % style)
 		volume.hide()
 		await _frame()
 		var flat:Image = root.get_texture().get_image()
@@ -131,61 +114,87 @@ func _run() -> void:
 		await _frame()
 		var picture:Image = root.get_texture().get_image()
 		var delta:int = _changed_pixels(flat,picture)
-		check(delta>48,"%s: genuine 3D blocks add visible depth to 2D World" % style)
-		print("MAP_WALL_TRUE3D_PIXELS_",style,"=",delta," OPAQUE_3D_PIXELS=",mesh_pixels)
+		check(delta>48,"%s: genuine 3D blocks and real shadow alter the 2D scene" % style)
+		if style=="grass" or style=="sand":
+			var screen_point:Vector2 = world.get_viewport().get_canvas_transform()*shadow_point
+			check(_luma(_world_pixel(flat,screen_point))-_luma(_world_pixel(picture,screen_point))>0.025,"%s: 3D directional shadow is visibly DARK on the existing ground" % style)
+		print("MAP_WALL_TRUE3D_PIXELS_",style,"=",delta," REAL_SHADOW_ALPHA=",cast_alpha)
 		var full:Image = picture.duplicate()
 		var ratio:float = minf(640.0/maxf(full.get_width(),1),400.0/maxf(full.get_height(),1))
 		full.resize(maxi(1,int(full.get_width()*ratio)),maxi(1,int(full.get_height()*ratio)),Image.INTERPOLATE_NEAREST)
-		check(full.save_png(folder+"/world_"+style+".png")==OK and _save_detail(picture,folder+"/world_"+style+"_detail.png"),"%s: full scene and close-up saved" % style)
+		check(full.save_png(folder+"/world_"+style+".png")==OK and _save_detail(picture,folder+"/world_"+style+"_detail.png"),"%s: real-world screenshot saved" % style)
 		if style=="grass":
-			check(volume.viewport.get_texture().get_image().save_png(folder+"/wall_mesh_grass.png")==OK,"grass: transparent 3D pass saved separately")
-	# 光从右上变成左下时，真实网格各面的颜色也必须由 GPU 重新计算。
+			check(mesh_image.save_png(folder+"/wall_mesh_grass.png")==OK and shadow_image.save_png(folder+"/shadow_receiver_grass.png")==OK,"grass: block pass and real 3D shadow pass saved separately")
 	game.set_runtime_game_setting("Map_Background","grass",false)
 	world.refresh_map_presentation()
+	camera.zoom = Vector2.ONE*3.0
+	camera.global_position = physical.get_center()+Vector2(-cell.x*6.0,0.0)
 	await _frame()
-	var before_light:Image = world.map_wall_volume.viewport.get_texture().get_image()
+	var volume:Node2D = world.map_wall_volume
+	var left_base:Vector2 = volume.camera.unproject_position(volume._ground_point(top_point,0.0))
+	var left_top:Vector2 = volume.camera.unproject_position(volume._ground_point(top_point,volume.block_height))
+	var left_image:Image = volume.viewport.get_texture().get_image()
+	check(root.get_texture().get_image().save_png(folder+"/world_grass_camera_left.png")==OK,"camera-left frame saved")
+	camera.global_position = physical.get_center()+Vector2(cell.x*6.0,0.0)
+	await _frame()
+	var right_base:Vector2 = volume.camera.unproject_position(volume._ground_point(top_point,0.0))
+	var right_top:Vector2 = volume.camera.unproject_position(volume._ground_point(top_point,volume.block_height))
+	var right_image:Image = volume.viewport.get_texture().get_image()
+	check(root.get_texture().get_image().save_png(folder+"/world_grass_camera_right.png")==OK,"camera-right frame saved")
+	var left_offset:float = (left_top-left_base).x/volume._render_scale
+	var right_offset:float = (right_top-right_base).x/volume._render_scale
+	check(left_offset>6.0 and right_offset< -6.0 and left_offset-right_offset>17.0,"same real wall block exposes opposite perspective when Camera2D crosses it")
+	check(_changed_pixels(left_image,right_image)>100,"GPU actually redraws wall from the new camera; no frozen whole-map texture")
+	print("MAP_WALL_PARALLAX left=",left_offset," right=",right_offset)
+	camera.zoom = Vector2.ONE*2.3
+	camera.global_position = physical.get_center()
+	await _frame()
+	var before_light:Image = volume.viewport.get_texture().get_image()
+	var north_before:float = _wall_alpha(volume,shadow_point,-0.08,true)
 	world.map_wall_light_direction = Vector2(-1,1)
 	world.refresh_map_presentation()
 	await _frame()
-	var after_light:Image = world.map_wall_volume.viewport.get_texture().get_image()
-	check(_changed_pixels(before_light,after_light)>16,"DirectionalLight3D changes actual GPU-lit faces when source reverses")
+	var after_light:Image = volume.viewport.get_texture().get_image()
+	var south_point:Vector2 = Vector2(physical.get_center().x+cell.x*2.0,physical.end.y-cell.y*1.75)
+	var north_after:float = _wall_alpha(volume,shadow_point,-0.08,true)
+	var south_after:float = _wall_alpha(volume,south_point,-0.08,true)
+	check(_changed_pixels(before_light,after_light)>16,"moving DirectionalLight3D re-lights the actual six-faced mesh")
+	check(north_before>0.08 and north_after<0.05 and south_after>0.08,"reversing the REAL light moves the ground shadow from north/east to south/west")
 	world.map_wall_light_direction = Vector2(1,-1)
 	world.refresh_map_presentation()
 	await _frame()
-	var ground:Rect2 = world.return_map_world_rect(layer)
-	var door_point:Vector2 = Vector2(ground.get_center().x,ground.position.y-world.map_visual_cell_size(layer).y*0.5)
-	check(_wall_alpha(world.map_wall_volume,door_point,world.map_wall_volume.block_height)>0.5,"closed wall has a real 3D block at the future door")
+	check(_wall_alpha(volume,top_point,volume.block_height)>0.5,"closed map has an actual 3D block at the future door")
 	var owner := Node2D.new()
 	world.add_child(owner)
-	owner.global_position=ground.position+Vector2(ground.size.x*0.5,18.0)
+	owner.global_position = physical.position+Vector2(physical.size.x*0.5,18.0)
 	var door:int = world.open_waiter_door(owner,38.0,28.0,46.0,0.05)
-	check(door>0,"real map opens waiter door")
+	check(door>0,"waiter opens a physical map door")
 	if door>0:
 		var info:Dictionary = world._waiter_doors[door]
 		var side:int = int(info.side)
 		var along:float = info.center.y if side<2 else info.center.x
-		var cell:Vector2 = world.map_visual_cell_size(layer)
-		door_point = [Vector2(ground.position.x-cell.x*0.5,along),Vector2(ground.end.x+cell.x*0.5,along),Vector2(along,ground.position.y-cell.y*0.5),Vector2(along,ground.end.y+cell.y*0.5)][side]
-	await create_timer(0.09).timeout
-	await _frame()
-	check(_wall_alpha(world.map_wall_volume,door_point,world.map_wall_volume.block_height)<0.1,"open door removes GPU 3D material in its true opening center")
-	check(_save_detail(root.get_texture().get_image(),folder+"/world_grass_door_detail.png"),"open doorway close-up saved")
-	if door>0: world.close_waiter_door(door,0.05)
-	await create_timer(0.10).timeout
+		var probe:Vector2 = [Vector2(physical.position.x-cell.x*0.5,along),Vector2(physical.end.x+cell.x*0.5,along),Vector2(along,physical.position.y-cell.y*0.5),Vector2(along,physical.end.y+cell.y*0.5)][side]
+		await create_timer(0.09).timeout
+		await _frame()
+		check(_wall_alpha(volume,probe,volume.block_height)<0.1,"open doorway has no 3D block at its real opening")
+		check(_save_detail(root.get_texture().get_image(),folder+"/world_grass_door_detail.png"),"open door screenshot saved")
+		world.close_waiter_door(door,0.05)
+	await create_timer(0.12).timeout
 	for map_key:String in ["Map50x50","Map_Portal"]:
 		world.now_choose_map = map_key
 		world.refresh_map_presentation()
+		camera.zoom = Vector2.ONE*0.75
+		camera.global_position = world.return_map_display_rect(world.map_group[map_key]).get_center()
 		await _frame()
 		var larger:Node2D = world.map_wall_volume
-		var pass_image:Image = larger.viewport.get_texture().get_image()
-		check(larger.block_count>0 and _colored_pixels(pass_image)>150,"%s: GPU renders true 3D blocks on the actual large/multi-island map" % map_key)
-		var miniature:Image = pass_image.duplicate()
-		var fit:float = minf(1.0,800.0/float(maxi(pass_image.get_width(),pass_image.get_height())))
-		miniature.resize(maxi(1,roundi(pass_image.get_width()*fit)),maxi(1,roundi(pass_image.get_height()*fit)),Image.INTERPOLATE_NEAREST)
-		check(miniature.save_png(folder+"/wall_mesh_"+map_key+".png")==OK,"%s: 3D pass screenshot saved" % map_key)
+		var image:Image = larger.viewport.get_texture().get_image()
+		check(larger.block_count>0 and _colored_pixels(image)>100,"%s: viewport actually draws screen-visible 3D boundary / islands" % map_key)
+		var miniature:Image = image.duplicate()
+		var fit:float = minf(1.0,800.0/float(maxi(image.get_width(),image.get_height())))
+		miniature.resize(maxi(1,roundi(image.get_width()*fit)),maxi(1,roundi(image.get_height()*fit)),Image.INTERPOLATE_NEAREST)
+		check(miniature.save_png(folder+"/wall_mesh_"+map_key+".png")==OK,"%s: moving-camera 3D pass screenshot saved" % map_key)
 	game.Game_Settings = old
 	world.queue_free()
-	# 给 D3D12 两帧回收 SubViewport 的 GPU 资源再退出测试进程。
 	await _frame()
 	print("MAP_WALL_TRUE_3D_VISUAL checks=",checks," failures=",failures)
 	quit(0 if failures==0 else 1)

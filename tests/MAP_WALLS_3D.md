@@ -1,38 +1,34 @@
-# 地图边界的原版 Minecraft 方块真 3D（2026-09-26）
+# 地图墙：一格高原版方块、移动透视和真实地影（2026-09-26）
 
-## 范围、材质与蓝色例外
+## 行为与范围
 
-- **草地、沙地、石地、下界、末地**的地图边界以及地图形状造成的内侧边界使用真实 3D 方块：每段墙按地图格拆成封闭的六面网格（`MeshInstance3D` / `ArrayMesh`），经透明的独立 `SubViewport`、正交 `Camera3D`、环境补光和带阴影的 `DirectionalLight3D` 渲染。不是 2D 多边形、画布假侧面或预烘焙 3D 图片。
-- 每个方块顶面 / 四侧 / 底面分材质：草地为**橡木原木**顶纹 + 橡木树皮；沙地为**砂岩**顶纹 + 原版砂岩侧面 + 原版底面；石地为**深板岩砖**六面；下界为**下界砖**六面；末地为**紫珀柱**顶纹 + 原版紫珀柱侧面。纹理按一格一格重复、最近邻采样，不把一格侧面拉成整条墙。块间有不到一屏幕像素的 3D 棱缝；偏暗主题用同一张原版纹理作少量自发光填充，砂岩和紫珀各自降低补光以保留原色。
-- **蓝色背景完全不建 3D 墙**：保持原本平面蓝色地图及黑色边框。初始蓝色不分配墙体 3D Viewport；由方块主题切回蓝色时隐藏网格并停止该 Viewport 更新。蓝色墙的地面暗边仅作 2D 接触阴影，不再假装有高墙投下长影。
-- 战场、人物和碰撞仍是原先的 Godot 2D。正交相机的地面投影做逆变换，3D 方块的基底与既有 2D 地图格在不同地图大小上对齐；相机俯角不会逐格累积位置误差。`World.map_wall_height_cells` 默认为 **1.80** 格（可调），灯光方向沿用 `map_wall_light_direction`，3D 画布只在地图/主题/门改变时重绘并限制单边像素不超过 4096。
+- **草地、沙地、石地、下界、末地**的地图外边界及形状造成的内侧边界，由实际六面 `ArrayMesh` 方块构成，**严格一地图格高**。模型脚印直接取 `World._map_shape_walls()` 已扣除岛屿、传送门和服务员门洞的墙矩形；格间细缝和门洞断面是真实的 3D 几何，不是 2.5D 画布侧面。
+- 草地用原版**橡木原木**顶面和树皮；沙地用**砂岩**顶/侧/底；石地用**深板岩砖**；下界用**下界砖**；末地用**紫珀柱**顶/侧。面纹理按格铺设、最近邻采样；纹理及 Mojang 来源见 `Images/effects/我的世界/草方块背景/wall_side_sources.json`。
+- **蓝色地图仍是平面**：启动时不创建 3D 墙；由其它主题切回蓝色时隐藏墙并停掉两路 3D Viewport。原有蓝色边框、2D 地面、原物理墙和角色建造的障碍不变。
+- 五主题定义和完整背景切换依赖当前工作区已有的另一项并行改动（相关纹理、`地图背景主题.gd`、`world.gd` 的其它片段）；本提交不把它们混入索引。**只检出本次提交而缺少那些依赖的旧快照，并不是已验证的完整项目状态。**
+- `World.map_wall_height_cells` 的旧 1.8 格可调高度已经撤销为内部的 1.0 格；渲染脚本自身也始终把高度固定为一个地图格，不受旧调用参数影响。旧的 `map_wall_shadow_cells` 手绘长影开关已删除，避免假投影叠加真实地影。`map_inside_shadow` 仅保留贴边的 2D 接触暗边。
 
-## 地图形状、开门与现有行为
+## 为什么镜头移动时有 3D，影子为什么可见
 
-- 方块脚印直接采用 `_map_shape_walls()` 的墙矩形；其生成已减去真实地面、传送门空区和服务员开门缺口。服务员门打开时同时裁掉立体网格及原 2D 墙顶，门的端面也是立体方块面，关闭后重建。覆盖普通尺寸地图、50×50 地图及传送门多岛地图；不会把外接矩形填成假墙。
-- 地面仍由原有 2D 主题绘制；**地面上的斜向投影仍是现有 2D 地表着色器**，只在真实地面多边形内按扣门后的边缘投影。这一点不冒充 3D 地面接影；3D 方块本体及其受光、侧面和相互遮挡是真实 3D。2D 地面阴影位于人物/状态框下方，立体墙体位于地图外遮罩之后、现有边框和门扇之前。
-- 没有修改 TileMapLayer、`_map_safety_frame`、2D 物理形状、碰撞层、导航、地图尺寸、角色建造的障碍墙或技能墙。
-
-## 原版资源及依赖
-
-- 新引入的 `sandstone.png`、`sandstone_bottom.png`、`purpur_pillar_side.png` 原样摘自 **Minecraft Java Edition 26.2** 官方 client.jar；JAR SHA-1、Mojang 下载地址及每个 PNG 的 JAR 条目、大小、SHA-1 均记录在 `Images/effects/我的世界/草方块背景/wall_side_sources.json`。橡木树皮复用项目已有 `Images/characters/我的世界/sulfur_cube/source/oak_log.png`，其来源见同角色 `sources.json`。资源属于 Minecraft 原版，不表示可自由再分发。
-- 顶面和其他主题纹理来自项目现有 `地图背景主题.gd`；本任务开始前，多主题定义及多张顶面 PNG 已是另一工作项的**未跟踪依赖**。本任务不将那些工作项文件混入本次局部提交。因此只检出本次提交、而没有原多主题资源的全新克隆**不能**当作完整项目快照；当前工作区具备这些依赖并已完成真实 GPU 验证。
+- 上一版**整图正交贴图 / `UPDATE_ONCE` 已弃用**。现在使用 90° 俯视的**透视 Camera3D**，在每一帧从实际 Camera2D 的画布变换取屏幕中心和 zoom，计算与 2D 地图对齐的地面投影，再更新 3D 相机和屏幕贴合的 Sprite2D。地面点保持逐像素重合；高出地面的一格方块会产生随镜头位置变化的透视视差和受光侧面。测试中，同一块墙从两侧观察，其顶面相对底面的水平位移从 **+16.4** 变为 **−13.9** 个 3D 视口像素，而非只平移同一张图片。两路透明 SubViewport 按当前屏幕取景更新，单边最大 2560 像素，不再渲染整幅超大地图。
+- 地面三角面只铺在真实岛屿区域，由 `DirectionalLight3D` 对共用方块网格的 **shadows-only 实例**投出影子；这是 3D 光源、3D 遮挡和 3D 接影面计算的 GPU 阴影，最终单独合成为 2D 地面上的暗影。原版方块画面与接影画面分开，避免 `shadow_to_opacity` 在全黑处变成不透明白斑并错误盖住场景。光从右上射入，地影朝左下；反转光源时影子实际换到另一边。
+- 特别将 `DirectionalLight3D.directional_shadow_max_distance` 根据当前 3D 相机高度动态加大。Godot 默认的 100 单位会在俯视相机较高时把所有地面阴影裁掉——这是上一版“有光无影”的直接原因。两路 3D Viewport 在离开世界时先停更，然后由 Godot 回收。
 
 ## 验证（Godot 4.7.2 / Windows / D3D12）
 
-用 `E:\steam\steamapps\common\Godot Engine\godot.windows.opt.tools.64.exe` 在 `E:\godot\polo-balls` 运行。GPU 用 `--rendering-driver d3d12 --path <项目目录> -s <脚本>`，无头测试加 `--headless`；Windows PowerShell 建议 `Start-Process -PassThru -Wait -RedirectStandardOutput ... -RedirectStandardError ...` 获取子进程真正的 ExitCode，而不是只看打印的通过数。
+在 `E:\godot\polo-balls` 用 `E:\steam\steamapps\common\Godot Engine\godot.windows.opt.tools.64.exe` 运行；无头测试加 `--headless`，真实 GPU 截图测试加 `--rendering-driver d3d12`。用 `Start-Process -PassThru -Wait` 检查**进程退出码**，不只看打印的通过数。
 
-| 入口 | 实际结果 | 重点 |
+| 入口 | 本次结果 | 核验要点 |
 | --- | --- | --- |
-| `tests/test_map_wall_3d.gd`，无头 | **77/77，退出码 0** | 六主题、3D 模型三个材质面和 6 面顶点、相机跨格对齐、光源、碰撞射线/安全墙不变、50×50/多岛、服务员门五主题裁墙、切回蓝色关闭 3D。 |
-| `tests/test_map_wall_3d_visual.gd`，D3D12 | **37/37，退出码 0** | 真 GPU 3D 纹理可见且与平面画面对照；反转光照改变实际 3D 受光；门中心真实 3D 像素清空；50×50 / PortalMap 单独的 3D 画面；五主题与蓝色主场景截图。 |
-| `tests/test_ground_visual_sampling.gd`，D3D12 | **failures=0，退出码 0** | 地表阴影连续、拐角不叠黑、门洞断影及旧地表取样。 |
-| `scripts/training/test_mc_backgrounds.gd`，无头 | **126/126，退出码 0** | 六主题底图/取景/设置切换。 |
-| `tests/test_portal_shared_wall.gd`，无头 | **19/19，退出码 0** | 多岛共享边、门口及外侧视觉。 |
-| `tests/test_mc13_revision.gd`，无头 | **21/21，退出码 0** | 既有地图碰撞、缩放与 MC 对战回归。 |
+| `tests/test_map_wall_3d.gd`，无头 | **93/93，退出码 0** | 六主题、一格高度、两路真实 3D 通道、视差和地面对齐、50×50/多岛、门洞、蓝色停更、碰撞射线/安全墙不变。 |
+| `tests/test_map_wall_3d_visual.gd`，D3D12 | **44/44，退出码 0** | 五材质的真实 GPU 网格；接影只在地面附近有 alpha、在空地消失；合成到草地/沙地的像素明显变暗；左右平移同一墙方块视差反向；倒转光源影子换边；开门和大地图截图。 |
+| `tests/test_ground_visual_sampling.gd`，D3D12 | **failures=0，退出码 0** | 既有接触暗边、地面取色、拐角及门口渐隐不回归。 |
+| `scripts/training/test_mc_backgrounds.gd`，无头 | **126/126，退出码 0** | 六主题底图与设置切换。 |
+| `tests/test_portal_shared_wall.gd`，无头 | **19/19；复跑退出码 0** | 多岛共享墙和传送门；首次运行打印 19/19 后进程意外退出，复跑正常，详见下文。 |
+| `tests/test_mc13_revision.gd`，无头 | **21/21，退出码 0** | 地图碰撞、缩放等既有玩法回归。 |
 
-实机截图保存在 Godot `user://map_wall_true3d/`：`world_blue_detail.png`、`world_grass_detail.png` ～ `world_end_detail.png`、`world_grass_door_detail.png`、`wall_mesh_grass.png`、`wall_mesh_Map50x50.png`、`wall_mesh_Map_Portal.png`；已逐一目视检查不同方块材质和开门、多岛的画面。运行日志和修改前备份保存在 `E:\godot\polo-balls-checkpoints\map_walls_true3d_20260926\`。历史角色的资源缺失/路径大小写告警仍会出现在 stderr，本任务没有修复；未做完整双客户端联机战斗或长期 FPS 压力基准。
+截图在项目 Godot `user://map_wall_true3d/`：`world_grass_camera_left.png` / `world_grass_camera_right.png`、`world_grass_detail.png` ～ `world_end_detail.png`、`shadow_receiver_grass.png`、`world_grass_door_detail.png`、`wall_mesh_Map50x50.png` 和 `wall_mesh_Map_Portal.png`。运行日志与改动前备份在 `E:\godot\polo-balls-checkpoints\map_walls_camera_shadow_20260926\`。既有其他角色的资源路径/UID 告警仍可能出现；一次并行回归批次中的 Portal 测试打印全通过后以 Windows access violation 退出，单独复跑为退出码 0；已在地图墙节点退出树时主动停止实时 GPU 视口。未宣称完成长时间 FPS 或双客户端联机压力测试。
 
-## 隔离、提交与回退
+## 隔离与回退
 
-本轮开始 HEAD 是已隔离的旧 **2.5D** 提交 `ebdd0bf343d29dcdd1ee7a493d777786410fe547`；旧效果被明确否定，新的 `地图立体墙.gd` 已完全替换为真实 3D 实现。其他任务工作期间 HEAD 有继续前进，`scripts/world.gd` 与 `MCP_CONTEXT.md` 还有与本任务无关的未提交差异；提交时只用精准索引补丁暂存自己的 World / 上下文片段，其他路径逐一核对后暂存，不执行 `git add .`、整仓清理或硬重置。回退前再次备份当前状态，优先针对本任务提交执行定向 `git revert` 或反向应用本任务独有的补丁，不要覆盖并行任务尚未提交的文件。
+本轮只提交地图 3D 墙、World 中与该墙直接相关的三处配置、两套墙测试及本说明；不混入同时进行的 `world.gd`/其他功能差异。提交时对 `world.gd` 用精确索引补丁而非 `git add .`。旧碰撞/角色建造墙没有改变；若需回退，请针对本次提交定向恢复，先保留其它人的工作区改动。
