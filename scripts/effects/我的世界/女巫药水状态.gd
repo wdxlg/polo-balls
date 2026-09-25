@@ -19,6 +19,8 @@ var applications:Dictionary = {} # source ID -> independent level + remaining
 var tick_interval:float = 1.0
 var tick_left:float = 1.0
 var absorption_remaining:float = 0.0
+var _visual_absorption_amount:float = -1.0
+var _visual_absorption_max_health:int = -1
 var invis_alpha:float = 0.22
 var particle_color:Color = Color.WHITE
 var particle_interval:float = 0.18
@@ -65,6 +67,7 @@ func setup(
 	if effect_type == "invisibility":
 		_apply_invisibility()
 	EFFECTS.apply_runtime_buffs(target,self,effect_type,level)
+	_sync_absorption_visual()
 	if effect_type in ["infested","oozing","weaving","wind_charged"] and target.health_bar != null:
 		target.health_bar.health_changed.connect(_on_health_changed)
 
@@ -90,6 +93,7 @@ func _choose_application() -> void:
 	var best:Dictionary = EFFECTS.strongest_source(applications)
 	if best.is_empty():
 		remaining = 0.0
+		_sync_absorption_visual()
 		queue_free()
 		return
 	var old_level:int = level
@@ -104,11 +108,23 @@ func _choose_application() -> void:
 		absorption_remaining = minf(cap,absorption_remaining+maxf(cap-old_cap,0.0))
 		tick_interval = float(EFFECTS.properties(effect_type,level).get("period_ticks",20))/20.0
 		tick_left = tick_interval
+	_sync_absorption_visual()
+
+func _sync_absorption_visual() -> void:
+	if effect_type != "absorption" or not is_instance_valid(target) or target.health_bar == null:
+		return
+	var shown:float = maxf(absorption_remaining,0.0) if remaining > 0.0 else 0.0
+	if is_equal_approx(shown,_visual_absorption_amount) and target.Max_health == _visual_absorption_max_health:
+		return
+	_visual_absorption_amount = shown
+	_visual_absorption_max_health = target.Max_health
+	target.health_bar.set_absorption_visual(shown,get_instance_id())
 
 
 func consume_absorption(amount:float) -> float:
 	var used:float = minf(maxf(amount,0.0),absorption_remaining)
 	absorption_remaining -= used
+	if used > 0.0: _sync_absorption_visual()
 	return maxf(amount - used,0.0)
 
 
@@ -494,6 +510,8 @@ func _cleanup() -> void:
 	if _cleaned:
 		return
 	_cleaned = true
+	if effect_type == "absorption" and is_instance_valid(target) and target.health_bar != null:
+		target.health_bar.clear_absorption_visual(get_instance_id())
 	if _invisibility_contact_area != null and is_instance_valid(_invisibility_contact_area):
 		_invisibility_contact_area.queue_free()
 	_invisibility_contact_area = null

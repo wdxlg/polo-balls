@@ -29,6 +29,7 @@ const INFINITE_DAMAGE_DISPLAY_THRESHOLD:float = 10_000_000_000.0
 
 const CHARACTER_HEALTH_BAR_SCALE_MULTIPLIER:float = 0.9
 const CHARACTER_HEALTH_BAR_SHADER:Shader = preload("res://shaders/ui/角色十字血条.gdshader")
+const ABSORPTION_GOLD_SHADER:Shader = preload("res://shaders/ui/吸收金光.gdshader")
 # V411：十字血条没有 per-material 参数，所有人物可安全共享同一 ShaderMaterial；
 # 个体差异继续由 CanvasItem 自身属性/instance 参数承担。
 static var _shared_character_health_bar_material:ShaderMaterial = null
@@ -51,6 +52,8 @@ var force_instant_update_once:bool = false
 const KARMA_PREVIEW_COLOR:Color = Color(1.0,0.0,1.0,1.0)
 var _karma_bar:TextureProgressBar = null
 var _karma_sources:Dictionary = {}
+var _absorption_bar:TextureProgressBar = null
+var _absorption_source_id:int = 0
 
 # V269：角色可在真正无敌窗口把公共血条切成 INF + 金色脉冲发光。
 # 只改变显示，不篡改 owner.health / Max_health，也不影响投射物 Health_Bar。
@@ -192,6 +195,46 @@ func _setup_karma_preview_bar() -> void:
 	# 于是正常生命覆盖“安全生命”区间，而 KARMA 层只从安全生命末端延伸到当前生命。
 	# 这样紫色永远属于当前还真实存在的生命，不是额外增加的一条预览条。
 	parent_node.move_child(_karma_bar,health_bar.get_index())
+
+func _setup_absorption_bar() -> void:
+	if not _is_character_health_bar_owner() or not is_instance_valid(health_bar): return
+	if is_instance_valid(_absorption_bar): return
+	# Same silhouette, position and size as the existing health bar. Its fill
+	# starts at the TOP and can only occupy pixels INSIDE that bar; no new bar.
+	_absorption_bar = health_bar.duplicate() as TextureProgressBar
+	_absorption_bar.name = "AbsorptionInsideHealth"
+	_absorption_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_absorption_bar.visible = false
+	_absorption_bar.step = 0.0
+	_absorption_bar.fill_mode = TextureProgressBar.FILL_TOP_TO_BOTTOM
+	_absorption_bar.modulate = Color.WHITE
+	_absorption_bar.self_modulate = Color.WHITE
+	_absorption_bar.z_index = health_bar.z_index
+	var gold_material:ShaderMaterial = ShaderMaterial.new()
+	gold_material.shader = ABSORPTION_GOLD_SHADER
+	_absorption_bar.material = gold_material
+	var parent_node:Node = health_bar.get_parent()
+	parent_node.add_child(_absorption_bar)
+	# Draw over ordinary HP but under its number and any real block shield.
+	parent_node.move_child(_absorption_bar,health_bar.get_index()+1)
+
+func set_absorption_visual(amount:float,source_id:int) -> void:
+	if not _is_character_health_bar_owner(): return
+	_absorption_source_id = source_id
+	if amount <= 0.0:
+		if is_instance_valid(_absorption_bar): _absorption_bar.visible = false
+		return
+	_setup_absorption_bar()
+	if not is_instance_valid(_absorption_bar): return
+	# Each absorbed HP is one HP-height within the SAME bar; clip overflow.
+	# Top-to-bottom filling means a hit erases gold from the BOTTOM upward.
+	_absorption_bar.value = clampf(amount/maxf(float(owner.Max_health),1.0),0.0,1.0)
+	_absorption_bar.visible = _absorption_bar.value > 0.0
+
+func clear_absorption_visual(source_id:int) -> void:
+	if source_id != _absorption_source_id: return # an old status must not erase a newer one
+	_absorption_source_id = 0
+	if is_instance_valid(_absorption_bar): _absorption_bar.visible = false
 
 
 func set_karma_preview(source_key:Variant,amount:float) -> void:

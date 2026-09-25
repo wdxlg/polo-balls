@@ -100,10 +100,13 @@ func run() -> void:
 		fx.advance_visual(0.07)
 		check(fx.totem_sprite.scale.x > start_scale*1.5 and fx.totem_sprite.position.y < start_y-12.0 and fx.yaw_turns(fx.age) == 0.0,"icon first grows and flies out of the Evoker before turning")
 		fx.advance_visual(fx.INTRO_SECONDS-fx.age)
+		var launch_end:Vector2 = fx.totem_sprite.position
+		fx.advance_visual(0.002)
+		check(fx.totem_sprite.position.distance_to(launch_end) < 0.02 and absf(fx.totem_sprite.rotation) < 0.002 and fx.yaw_turns(fx.age) < 0.001,"sway and front/back spin ease in without a jerk at launch end")
 		fx.set_process(false) # freeze each intentional phase for real GPU readbacks
 		check(fx.totem_sprite.scale.x > start_scale and fx.totem_sprite.modulate.a > 0.8,"item reaches full size at the end of the launch")
 		check(absf(fx.totem_sprite.scale.x) * fx.totem_sprite.texture.get_width() <= fx.ICON_WIDTH+0.01 and fx.ICON_WIDTH <= 24.0,"item stays near native character size instead of covering the battlefield")
-		check(fx.totem_sprite.rotation == 0.0 and fx.totem_sprite.scale.x > 0.0,"item starts front-facing, with no in-plane spinning")
+		check(absf(fx.totem_sprite.rotation) < 0.002 and fx.totem_sprite.scale.x > 0.0,"item starts front-facing, without a large in-plane spin")
 		await create_timer(0.15).timeout # allow newly loaded battlefield textures to appear before GPU sampling
 		await RenderingServer.frame_post_draw
 		await RenderingServer.frame_post_draw
@@ -118,13 +121,13 @@ func run() -> void:
 		check(front_frame.changed > 90,"original totem icon is visibly animated in the real view")
 		var front_center:Vector2 = icon_center(fx)
 		var front_count:int = icon_pixels(front_frame,front_center)
-		fx.advance_visual(fx.INTRO_SECONDS+0.08-fx.age)
+		fx.advance_visual(fx.INTRO_SECONDS+0.125-fx.age)
 		for spark:Dictionary in fx.particles: spark.sprite.hide() # advance_visual re-enables glitter
 		var edge_scale:float = fx.totem_sprite.scale.x
 		var edge_center:Vector2 = icon_center(fx)
 		var edge_frame:Dictionary = await readback(fx)
 		var edge_count:int = icon_pixels(edge_frame,edge_center)
-		fx.advance_visual(fx.INTRO_SECONDS+0.205-fx.age)
+		fx.advance_visual(fx.INTRO_SECONDS+0.235-fx.age)
 		for spark:Dictionary in fx.particles: spark.sprite.hide()
 		var back_scale:float = fx.totem_sprite.scale.x
 		var back_center:Vector2 = icon_center(fx)
@@ -133,7 +136,7 @@ func run() -> void:
 		print("EVOKER_TOTEM_YAW_GPU_METRIC front=",front_count," edge=",edge_count," back=",back_count," scales=",edge_scale,",",back_scale)
 		check(absf(fx.totem_sprite.rotation) < 0.09 and edge_scale > 0.0 and back_scale < 0.0 and absf(edge_scale)*3.0 < absf(back_scale),"front/edge/mirrored-back turn remains pseudo-3D, with only a small wobble")
 		check(front_count > 40 and edge_count < front_count*0.45 and back_count > edge_count*2.0,"actual green/gold icon pixels narrow to an edge and widen on the reverse face")
-		var early_turns:float = fx.yaw_turns(fx.INTRO_SECONDS+0.13)-fx.yaw_turns(fx.INTRO_SECONDS+0.08)
+		var early_turns:float = fx.yaw_turns(fx.INTRO_SECONDS+0.175)-fx.yaw_turns(fx.INTRO_SECONDS+0.125)
 		var late_turns:float = fx.yaw_turns(1.43)-fx.yaw_turns(1.38)
 		print("EVOKER_TOTEM_SPIN_SPEED early_50ms=",early_turns," late_50ms=",late_turns," total_turns=",fx.yaw_turns(fx.LIFETIME))
 		check(early_turns > late_turns*2.0 and late_turns > 0.015 and fx.yaw_turns(fx.LIFETIME) > 1.4,"front/back spin starts fast, slows down but never stops before fadeout")

@@ -6750,11 +6750,19 @@ func has_minecraft_status(kind:String) -> bool:
 	return status != null and not status.is_queued_for_deletion() and float(status.get("remaining")) > 0.0
 
 
-func _consume_minecraft_absorption(damage:float) -> float:
+func _play_block_hit_audio() -> void:
+	if Unique_Block_Audio != null:
+		play_unique_audio(Character_Audio_Slot.Block,true)
+	elif Block_Audio != "":
+		Audios.play_sfx.rpc(Block_Audio,{volume = clampf(Damage - 12,-100,0)},true)
+
+func _consume_minecraft_absorption(damage:float,already_blocked:bool = false) -> float:
 	var status:Node = get_node_or_null("MinecraftStatus_absorption")
 	if status == null or status.is_queued_for_deletion() or float(status.get("remaining")) <= 0.0:
 		return damage
-	return float(status.call("consume_absorption",maxf(damage,0.0)))
+	var remainder:float = float(status.call("consume_absorption",maxf(damage,0.0)))
+	if remainder < damage and not already_blocked: _play_block_hit_audio()
+	return remainder
 
 
 func get_fire_effect_ratio() -> float:
@@ -6836,7 +6844,9 @@ func receive_spatial_damage(
 		var before_block:float = float(block)
 		hit_white(true)
 		var raw_amount:int = maxi(int(round(damage)),0)
-		health -= maxi(int(round(_consume_minecraft_absorption(float(raw_amount)))),0)
+		var remaining_amount:float = _consume_minecraft_absorption(float(raw_amount))
+		var lost_health:int = maxi(int(round(remaining_amount)),0)
+		if lost_health > 0: health -= lost_health # pure absorption is NOT a health-bar hit
 		var actual_health_damage:float = maxf(before_health - float(health), 0.0)
 		_emit_positional_damage_feedback(
 			damage,
@@ -6848,7 +6858,7 @@ func receive_spatial_damage(
 		)
 		if actual_health_damage > 0.0 and source != null and Game.has_method("report_combat_damage"):
 			Game.report_combat_damage(source, self, actual_health_damage, before_health)
-		return actual_health_damage > 0.0
+		return actual_health_damage > 0.0 or remaining_amount < float(raw_amount)
 	# Area/skill callers may tag explosion, fall, projectile, etc.; restore the
 	# context immediately so a later unrelated hit cannot inherit that resistance.
 	# get_meta(key, null) still logs an error when the key is absent in Godot.
@@ -7073,6 +7083,8 @@ func receive_positional_damage(
 		return false
 	var before_health:float = float(health)
 	var before_block:float = float(block)
+	var absorption_status:Node = get_node_or_null("MinecraftStatus_absorption")
+	var before_absorption:float = float(absorption_status.get("absorption_remaining")) if absorption_status != null else 0.0
 	hit_white(ignore_block)
 	take_damage(damage,ignore_block)
 	var actual_health_damage:float = maxf(before_health - float(health), 0.0)
@@ -7086,7 +7098,8 @@ func receive_positional_damage(
 	)
 	if actual_health_damage > 0.0 and source != null and Game.has_method("report_combat_damage"):
 		Game.report_combat_damage(source, self, actual_health_damage, before_health)
-	return actual_health_damage > 0.0 or float(block) < before_block
+	var after_absorption:float = float(absorption_status.get("absorption_remaining")) if is_instance_valid(absorption_status) else 0.0
+	return actual_health_damage > 0.0 or float(block) < before_block or after_absorption < before_absorption
 
 
 func take_damage(damage:float,ignore_block:bool = false) -> void:
@@ -7111,11 +7124,7 @@ func take_damage(damage:float,ignore_block:bool = false) -> void:
 	if not ignore_block and damage > 0:
 		if block >= damage:
 			block -= damage
-
-			if Unique_Block_Audio != null:
-				play_unique_audio(Character_Audio_Slot.Block,true)
-			elif Block_Audio != "":
-				Audios.play_sfx.rpc(Block_Audio,{volume = clampf(Damage - 12,-100,0)},true)
+			_play_block_hit_audio()
 		elif block > 0:
 			damage -= block
 			block = 0
@@ -7129,7 +7138,9 @@ func take_damage(damage:float,ignore_block:bool = false) -> void:
 			health_damage += damage
 	elif damage > 0:
 		health_damage += damage
-	if health_damage > 0.0: health -= _consume_minecraft_absorption(health_damage)
+	if health_damage > 0.0:
+		var remaining_health_damage:float = _consume_minecraft_absorption(health_damage,float(block) < before_block)
+		if remaining_health_damage > 0.0: health -= remaining_health_damage
 
 	# 只有真正被攻击消耗的护盾提供较轻反馈；不把自然衰减/技能消费当作命中。
 	_notify_damage_camera_feedback(maxf(before_block - float(block),0.0) * 0.35,true)
