@@ -5318,7 +5318,7 @@ const ARMOR_TEST_ROLE_SUMMARIES:Dictionary = {
 	"res://scripts/characters/我的世界/new6/heavenfall_longbow.gd":"追踪箭可穿墙并引落箭雨和裂隙；受击时可借裂隙瞬移反击。",
 	"res://scripts/characters/我的世界/钻石长矛.gd":"疾跑刺击越快越痛，虚影连刺；还能横扫、瞬移袭敌。",
 	"res://scripts/characters/我的世界/铁傀儡.gd":"蓄力上挑击飞敌人；村民可修复它，村民阵亡后会狂暴。",
-	"res://scripts/characters/我的世界/硫方怪.gd":"轮换内置方块改变接触效果；蜂蜜减速、铁块减伤，最后用TNT爆炸。",
+	"res://scripts/characters/我的世界/硫方怪.gd":"同时保留最近两块特性，左旧右新，体内只显示新块；TNT爆炸后消耗并补块。",
 	"res://scripts/characters/我的世界/鞘翅重锤.gd":"烟花推进飞行；命中后跃起连砸，连续砸中伤害递增。",
 	"res://scripts/characters/我的世界/鞘翅长矛.gd":"烟花助飞，低速点刺后转身，高速贯穿；每次命中还会提速。",
 	"res://scripts/characters/我的世界/鞘翅重锤长矛.gd":"飞行矛尖命中会引发锤击并跃起连砸，连砸伤害递增。",

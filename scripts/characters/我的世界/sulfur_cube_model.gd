@@ -38,7 +38,7 @@ var block_mode:int = 0
 var _swap_left:float = 0.0
 var _magma_materials:Array[StandardMaterial3D] = []
 var _block_initialized:bool = false
-var _crystals_active:bool = true
+var _crystals_active:bool = false
 var _crystal_grow_left:float = 0.0
 
 func _ready() -> void:
@@ -60,6 +60,8 @@ func _ready() -> void:
 	crystal_layer.name = "NativeAmethystCrystals"
 	add_child(crystal_layer)
 	set_block(block_mode)
+	_make_crystals()
+	crystal_layer.visible = _crystals_active
 
 func _shell_material(texture:Texture2D,origin:Vector2i,texels:int) -> ShaderMaterial:
 	var material := ShaderMaterial.new()
@@ -94,9 +96,6 @@ func set_block(mode:int) -> void:
 		inner_block.remove_child(child)
 		child.queue_free()
 	_magma_materials.clear()
-	for crystal:Node in crystal_layer.get_children():
-		crystal_layer.remove_child(crystal)
-		crystal.queue_free()
 	inner_block.visible = block_mode > 0
 	inner_shell.visible = block_mode == 0
 	if block_mode == 0: return
@@ -114,11 +113,9 @@ func set_block(mode:int) -> void:
 			mat.uv1_scale = Vector3(1,1.0/3.0,1) # three original magma animation frames
 			_magma_materials.append(mat)
 		make_face(inner_block,BLOCK_SIZE,face,mat)
-	if block_mode == 6: _make_crystals()
-	crystal_layer.visible = block_mode == 6 and _crystals_active
+	crystal_layer.visible = _crystals_active
 	_swap_left = 0.24
 	inner_block.scale = Vector3.ONE*0.3
-	crystal_layer.scale = Vector3.ONE*0.3
 
 func animate(time:float,delta:float,playing:bool,fuse_left:float) -> void:
 	if outer_shell == null: return
@@ -137,7 +134,7 @@ func animate(time:float,delta:float,playing:bool,fuse_left:float) -> void:
 	inner_block.scale = body_scale*insert_scale
 	if playing: _crystal_grow_left = maxf(_crystal_grow_left-delta,0.0)
 	var growth:float = 1.0-_crystal_grow_left/0.24
-	crystal_layer.scale = body_scale*minf(insert_scale,lerpf(0.3,1.0,growth))
+	crystal_layer.scale = body_scale*lerpf(0.3,1.0,growth)
 	if block_mode == 2:
 		var frame:int = int(time*6.0)%3
 		for material:StandardMaterial3D in _magma_materials:
@@ -147,16 +144,16 @@ func animate(time:float,delta:float,playing:bool,fuse_left:float) -> void:
 func set_crystals_active(active:bool) -> void:
 	if active and not _crystals_active: _crystal_grow_left = 0.24
 	_crystals_active = active
-	if crystal_layer != null: crystal_layer.visible = block_mode == 6 and active
+	if crystal_layer != null: crystal_layer.visible = active
 
 func crystals_ready() -> bool:
-	return _crystals_active and _swap_left <= 0.0 and _crystal_grow_left <= 0.0
+	return _crystals_active and _crystal_grow_left <= 0.0
 
 func set_crystal_layout(layout:PackedVector3Array) -> void:
 	if crystal_layout == layout: return
 	crystal_layout = layout.duplicate()
 	_crystal_grow_left = 0.24
-	if crystal_layer != null and block_mode == 6: _make_crystals()
+	if crystal_layer != null: _make_crystals()
 
 func crystal_count() -> int:
 	return crystal_layout.size()/2

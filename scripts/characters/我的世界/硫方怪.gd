@@ -1,6 +1,6 @@
 extends "res://scripts/characters/我的世界/mc_mob_base.gd"
 ## Minecraft 26.2 Sulfur Cube. The official block archetypes are adapted to
-## auto-cycling PvP: the block is visible INSIDE the original translucent shell.
+## auto-cycling PvP: two retained traits, but only the latest block inside the shell.
 const AUDIO = preload("res://scripts/characters/我的世界/sulfur_cube_audio.gd")
 const HIT_GAIN = preload("res://scripts/effects/我的世界/hit_audio_gain.gd")
 const ABILITIES = preload("res://scripts/effects/我的世界/mc_combat_abilities.gd")
@@ -13,6 +13,11 @@ const CRYSTAL_TEXTURE:Texture2D = preload("res://Images/characters/我的世界/
 const BODY_PAIRS = preload("res://classes/body_collision_exclusions.gd")
 const CRYSTAL_COUNT_MIN:int = 3
 const CRYSTAL_COUNT_MAX:int = 8
+const BLOCK_CAPACITY:int = 2
+const ITEM_FRAME:Texture2D = preload("res://Images/characters/我的世界/sulfur_cube/source/item_frame.png")
+const FRAME_SIZE:float = 32.0
+const FRAME_ICON_SIZE:float = 20.0
+const FRAME_SPACING:float = 36.0
 
 enum Block { EMPTY, ICE, MAGMA, HONEY, IRON, TNT, AMETHYST }
 const SPRITES:Array[Texture2D] = [
@@ -41,20 +46,37 @@ const CRYSTAL_RADIUS:float = 3.0
 const CRYSTAL_VOLLEY_TIME:float = 2.4
 const CRYSTAL_REGROW_TIME:float = 0.8
 
-# This property, plus fuse_left, is replicated by the scene's synchronizer.
-@export var block_mode:int = Block.EMPTY:
+# One atomic snapshot is replicated, ordered oldest (left) to newest (right).
+@export var block_slots:PackedInt32Array = PackedInt32Array():
 	set(value):
-		block_mode = clampi(value,Block.EMPTY,Block.AMETHYST)
+		var normalized:PackedInt32Array = PackedInt32Array()
+		for mode:int in value:
+			if mode > Block.EMPTY and mode <= Block.AMETHYST and not normalized.has(mode):
+				normalized.append(mode)
+		while normalized.size() > BLOCK_CAPACITY: normalized.remove_at(0)
+		if block_slots == normalized: return
+		var had_crystals:bool = block_slots.has(Block.AMETHYST)
+		block_slots = normalized
 		if is_node_ready():
-			if block_mode != Block.HONEY: _clear_honey_contacts()
-			_crystal_hits.clear()
+			if not has_block(Block.HONEY): _clear_honey_contacts()
+			if had_crystals != has_block(Block.AMETHYST): _crystal_hits.clear()
 			_apply_visual()
+			_sync_honey_collision_pairs()
 			queue_redraw()
+# Single-block compatibility alias. Do NOT serialize the derived value as
+# well as the slots: restoring it afterward would erase the retained older block.
+# Normal acquisitions use acquire_block(); the inner visual reads this getter.
+var block_mode:int = Block.EMPTY:
+	get:
+		return block_slots[block_slots.size()-1] if not block_slots.is_empty() else Block.EMPTY
+	set(value):
+		var mode:int = clampi(value,Block.EMPTY,Block.AMETHYST)
+		block_slots = PackedInt32Array([mode]) if mode != Block.EMPTY else PackedInt32Array()
 @export var fuse_left:float = 0.0
 @export var crystals_out:bool = false:
 	set(value):
 		crystals_out = value
-		if is_instance_valid(_native_model): _native_model.set_crystals_active(block_mode == Block.AMETHYST and not value)
+		if is_instance_valid(_native_model): _native_model.set_crystals_active(has_block(Block.AMETHYST) and not value)
 # Explicit coordinates synchronize the model, contact tips and released projectiles.
 @export var crystal_layout:PackedVector3Array = PackedVector3Array():
 	set(value):
@@ -108,6 +130,7 @@ var _motion_sample_valid:bool = false
 var _sulfur_died:bool = false
 var _model_viewport:SubViewport
 var _native_model:Node3D
+var _block_frames:Node2D
 
 func _ready() -> void:
 	mc_audio_role = "sulfur_cube" # No borrowed Slime voices or animation frames.
@@ -127,11 +150,62 @@ func _ready() -> void:
 	super._ready()
 	if self_hitbox != null: self_hitbox.set_deferred("monitoring",false)
 	_create_live_model()
-	if is_multiplayer_authority() and block_mode == Block.AMETHYST and crystal_layout.is_empty(): _roll_crystal_layout()
+	_create_block_frames()
+	if is_multiplayer_authority() and has_block(Block.IRON):
+		_iron_previous_gravity_mode = is_external_directional_gravity_locomotion_enabled()
+		configure_external_directional_gravity_locomotion(true)
+	if has_block(Block.ICE): _ice_reference_speed = maxf(Speed*CHARACTER_BASE_MOVE_SPEED_MULTIPLIER,1.0)
+	if is_multiplayer_authority() and has_block(Block.AMETHYST) and crystal_layout.is_empty(): _roll_crystal_layout()
 	_apply_visual()
 	_sync_honey_collision_pairs()
 	_previous_motion_position = global_position
 	_motion_sample_valid = true
+
+func has_block(mode:int) -> bool:
+	return block_slots.has(mode)
+
+func _has_surge_trait() -> bool:
+	return has_block(Block.ICE) or has_block(Block.MAGMA) or has_block(Block.HONEY) or has_block(Block.AMETHYST)
+
+func _create_block_frames() -> void:
+	_block_frames = Node2D.new()
+	_block_frames.name = "RetainedBlockFrames"
+	_block_frames.z_index = 2
+	_block_frames.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	add_child(_block_frames)
+	for i:int in range(BLOCK_CAPACITY):
+		var slot := Node2D.new()
+		slot.name = "Left" if i == 0 else "Right"
+		# Root-relative, not part of the squashing/flipping 3D body sprite.
+		slot.position = Vector2((float(i)-0.5)*FRAME_SPACING,64.0)
+		_block_frames.add_child(slot)
+		var frame := Sprite2D.new()
+		frame.name = "Frame"
+		frame.texture = ITEM_FRAME
+		frame.scale = Vector2.ONE*FRAME_SIZE/float(ITEM_FRAME.get_width())
+		slot.add_child(frame)
+		var icon := Sprite2D.new()
+		icon.name = "BlockIcon"
+		icon.region_enabled = true
+		slot.add_child(icon)
+	_update_block_frames()
+
+func _update_block_frames() -> void:
+	if not is_instance_valid(_block_frames): return
+	_block_frames.visible = health > 0 and not _sulfur_died
+	for i:int in range(BLOCK_CAPACITY):
+		var slot:Node2D = _block_frames.get_child(i) as Node2D
+		slot.visible = i < block_slots.size()
+		if not slot.visible: continue
+		var mode:int = block_slots[i]
+		var icon:Sprite2D = slot.get_node("BlockIcon") as Sprite2D
+		icon.texture = MODEL.BLOCK_TEXTURES[mode]
+		# The magma atlas is three frames tall; the item display uses its first
+		# original square frame, never a stretched strip or the creature portrait.
+		var side:float = float(icon.texture.get_width())
+		icon.region_rect = Rect2(0.0,0.0,side,side)
+		icon.scale = Vector2.ONE*FRAME_ICON_SIZE/side
+		slot.set_meta("block_mode",mode)
 
 func get_preview_texture() -> Texture2D:
 	# Off-tree selection portraits cannot render a SubViewport. This native-UV
@@ -170,13 +244,14 @@ func _create_live_model() -> void:
 	(image as Sprite2D).texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 
 func _apply_visual() -> void:
-	if block_mode != Block.TNT: _clear_charge_circle()
+	if not has_block(Block.TNT): _clear_charge_circle()
+	_update_block_frames()
 	if not image is Sprite2D: return
 	var sprite:Sprite2D = image as Sprite2D
 	if is_instance_valid(_native_model):
 		_native_model.set_crystal_layout(crystal_layout)
 		_native_model.set_block(block_mode)
-		_native_model.set_crystals_active(block_mode == Block.AMETHYST and not crystals_out)
+		_native_model.set_crystals_active(has_block(Block.AMETHYST) and not crystals_out)
 		sprite.texture = _model_viewport.get_texture()
 	else:
 		sprite.texture = SPRITES[block_mode]
@@ -186,6 +261,7 @@ func _process(delta:float) -> void:
 	_sync_honey_collision_pairs() # Retries late-spawned replicated targets; prunes dead/removed ones.
 	if health <= 0:
 		_clear_charge_circle()
+		if is_instance_valid(_block_frames): _block_frames.hide()
 		return
 	if not image is Sprite2D: return
 	if is_combat_runtime_active(): _view_clock += delta
@@ -194,11 +270,11 @@ func _process(delta:float) -> void:
 	# replacing the complete character image with another pre-baked sprite.
 	image.scale = Vector2.ONE*(MODEL_IMAGE_SCALE if is_instance_valid(_native_model) else 1.0)
 	if is_instance_valid(_native_model): _native_model.animate(_view_clock,delta,is_combat_runtime_active(),fuse_left)
-	image.self_modulate = Color(1.0,0.62 if fmod(_view_clock*5.0,1.0) < 0.45 else 1.0,0.62 if fmod(_view_clock*5.0,1.0) < 0.45 else 1.0) if block_mode == Block.TNT and fuse_left > 0.0 else Color.WHITE
+	image.self_modulate = Color(1.0,0.62 if fmod(_view_clock*5.0,1.0) < 0.45 else 1.0,0.62 if fmod(_view_clock*5.0,1.0) < 0.45 else 1.0) if has_block(Block.TNT) and fuse_left > 0.0 else Color.WHITE
 	_update_charge_circle()
 
 func _update_charge_circle() -> void:
-	if block_mode != Block.TNT or fuse_left <= 0.0 or health <= 0:
+	if not has_block(Block.TNT) or fuse_left <= 0.0 or health <= 0:
 		_clear_charge_circle()
 		return
 	if not is_instance_valid(_charge_circle):
@@ -213,74 +289,108 @@ func _clear_charge_circle() -> void:
 
 func Attack() -> void:
 	Attacking = false
-	if not mc_live() or dizziness or block_mode in [Block.EMPTY,Block.TNT]: return
-	if block_mode == Block.IRON:
+	if not mc_live() or dizziness or not Can_Attack: return
+	if has_block(Block.IRON):
 		_start_single_slam()
-	else:
+	elif _has_surge_trait():
 		_surge_left = 0.34
 
 func player_control_extra_actions() -> Array[StringName]:
-	# Preserve the existing surge (left) and block change (right). Volley is
-	# the real third ability, only exposed while carrying amethyst.
-	return [&"controlled_crystal_volley"] if block_mode == Block.AMETHYST else []
+	var actions:Array[StringName] = []
+	if has_block(Block.AMETHYST): actions.append(&"controlled_crystal_volley")
+	# Iron keeps left-click slam without discarding its companion's real surge.
+	if has_block(Block.IRON) and _has_surge_trait(): actions.append(&"controlled_surge")
+	return actions
+
+func controlled_surge() -> void:
+	if not mc_live() or not is_player_controlled() or dizziness or not Can_Attack or _slam_time >= 0.0: return
+	if not has_block(Block.IRON) or not _has_surge_trait() or state_machine == null: return
+	if float(state_machine.last_state_dis.get("Attack",0.0)) < Attack_Cooling: return
+	state_machine.last_state_dis["Attack"] = 0.0 # Same attack cooldown, not a free extra attack.
+	_surge_left = 0.34
 
 func controlled_crystal_volley() -> void:
 	if not mc_live() or not is_player_controlled() or dizziness or not Can_Attack: return
-	if block_mode == Block.AMETHYST and not crystals_out and _crystal_timer <= 0.0:
+	if has_block(Block.AMETHYST) and not crystals_out and _crystal_timer <= 0.0:
 		_release_crystals()
 
 func Skill() -> void:
 	Using_Skill = false
-	if not mc_live() or dizziness or (block_mode == Block.TNT and fuse_left > 0.0): return
-	set_block(next_block())
+	if not mc_live() or dizziness or (has_block(Block.TNT) and fuse_left > 0.0): return
+	acquire_block(next_block())
 
 func next_block() -> int:
-	# Equal chance among the OTHER modes; never a fixed sequence or repeat.
+	# Distinct live traits: roll among blocks not already in either slot.
 	var options:Array[int] = []
 	for candidate:int in range(Block.ICE,Block.AMETHYST+1):
-		if candidate != block_mode: options.append(candidate)
+		if not has_block(candidate): options.append(candidate)
 	return options[_random.randi_range(0,options.size()-1)]
 
 func set_block(next:int) -> void:
-	if not is_multiplayer_authority() or health <= 0: return
+	# Explicit SINGLE-block state replacement for old saves/isolated fixtures.
+	# Normal opening, Skill and post-TNT gameplay use acquire_block instead.
 	next = clampi(next,Block.EMPTY,Block.AMETHYST)
-	if next == block_mode: return
-	if block_mode == Block.TNT and fuse_left > 0.0: return # Cannot skip self-damage.
-	if block_mode == Block.AMETHYST and not crystals_out:
-		if multiplayer.has_multiplayer_peer(): _break_body_crystals.rpc(global_position)
-		_break_body_crystals(global_position)
-		_emit_sound(&"amethyst_break")
-	if block_mode != Block.EMPTY: _emit_sound(&"eject")
-	if block_mode == Block.IRON:
+	_change_blocks(PackedInt32Array([next]) if next != Block.EMPTY else PackedInt32Array())
+
+func acquire_block(next:int) -> bool:
+	if next <= Block.EMPTY or next > Block.AMETHYST or next == block_mode: return false
+	var slots:PackedInt32Array = block_slots.duplicate()
+	slots.append(next)
+	while slots.size() > BLOCK_CAPACITY: slots.remove_at(0)
+	return _change_blocks(slots)
+
+func _change_blocks(slots:PackedInt32Array) -> bool:
+	if not is_multiplayer_authority() or health <= 0 or slots == block_slots: return false
+	# Insertion may retain a primed TNT, but it cannot discard one to dodge damage.
+	if has_block(Block.TNT) and fuse_left > 0.0 and not slots.has(Block.TNT): return false
+	var previous:PackedInt32Array = block_slots.duplicate()
+	if previous.has(Block.AMETHYST) and not slots.has(Block.AMETHYST):
+		if not crystals_out:
+			if multiplayer.has_multiplayer_peer(): _break_body_crystals.rpc(global_position)
+			_break_body_crystals(global_position)
+			_emit_sound(&"amethyst_break")
+		_crystal_hits.clear()
+	if previous.has(Block.IRON) and not slots.has(Block.IRON):
 		configure_external_directional_gravity_locomotion(_iron_previous_gravity_mode)
 		clear_external_directional_gravity_velocity()
-	if next == Block.IRON:
+		_restore_slam_collision()
+		_slam_time = -1.0
+		_slam_hits.clear()
+	elif slots.has(Block.IRON) and not previous.has(Block.IRON):
 		_iron_previous_gravity_mode = is_external_directional_gravity_locomotion_enabled()
 		configure_external_directional_gravity_locomotion(true)
 		clear_external_directional_gravity_velocity()
-	honey_target_paths = PackedStringArray()
-	if next == Block.AMETHYST: _roll_crystal_layout()
-	block_mode = next
-	if next == Block.ICE:
+		_slam_hits.clear()
+	if not slots.has(Block.HONEY): honey_target_paths = PackedStringArray()
+	if slots.has(Block.AMETHYST) and not previous.has(Block.AMETHYST):
+		_roll_crystal_layout()
+		crystals_out = false
+		_crystal_timer = CRYSTAL_VOLLEY_TIME
+	if previous.has(Block.AMETHYST) and not slots.has(Block.AMETHYST): crystals_out = false
+	if slots.has(Block.ICE) != previous.has(Block.ICE):
 		_ice_reference_speed = maxf(Speed*CHARACTER_BASE_MOVE_SPEED_MULTIPLIER,1.0)
-	fuse_left = TNT_FUSE_SECONDS if next == Block.TNT else 0.0
-	crystals_out = false
-	_crystal_timer = CRYSTAL_VOLLEY_TIME
-	_restore_slam_collision()
-	_slam_time = -1.0
-	_slam_hits.clear()
-	_next_hit_at.clear()
-	_top_hit_at.clear()
-	_slide_velocity = Vector2.ZERO
-	_ice_bounce_hold = 0.0
+		_slide_velocity = Vector2.ZERO
+		_ice_bounce_hold = 0.0
+	if not slots.has(Block.MAGMA): _top_hit_at.clear()
+	# Retained blocks keep cooldowns, crystal hit records, pull leases and timers.
+	for key:Variant in _next_hit_at.keys():
+		if not slots.has(int(str(key).get_slice(":",0))): _next_hit_at.erase(key)
+	if not slots.has(Block.TNT): fuse_left = 0.0
+	elif not previous.has(Block.TNT): fuse_left = TNT_FUSE_SECONDS
+	for old:int in previous:
+		if not slots.has(old):
+			_emit_sound(&"eject")
+			break
+	block_slots = slots
 	_scan_left = 0.0
-	if next != Block.EMPTY: _emit_sound(&"absorb")
-	if next == Block.TNT: _emit_sound(&"fuse")
+	if not slots.is_empty(): _emit_sound(&"absorb")
+	if slots.has(Block.TNT) and not previous.has(Block.TNT): _emit_sound(&"fuse")
+	return true
 
 func get_fire_effect_ratio() -> float:
 	# Uses the common ball fire protocol; status nodes also remove themselves
 	# as soon as they see immunity, including an already active Blaze burn.
-	return 0.0 if block_mode == Block.MAGMA else super.get_fire_effect_ratio()
+	return 0.0 if has_block(Block.MAGMA) else super.get_fire_effect_ratio()
 
 func tick_physics(state:State,delta:float) -> void:
 	var can_tick:bool = mc_live()
@@ -297,8 +407,8 @@ func tick_physics(state:State,delta:float) -> void:
 	if can_tick:
 		_clock += delta
 		_surge_left = maxf(_surge_left-delta,0.0)
-		if block_mode == Block.ICE and moved: _leave_ice(previous_position,global_position)
-		if block_mode == Block.AMETHYST:
+		if has_block(Block.ICE) and moved: _leave_ice(previous_position,global_position)
+		if has_block(Block.AMETHYST):
 			_crystal_timer -= delta
 			if _crystal_timer <= 0.0:
 				if crystals_out:
@@ -329,34 +439,36 @@ func tick_physics(state:State,delta:float) -> void:
 				_landing_wait = -1.0
 		if block_mode == Block.EMPTY:
 			_opening += delta
-			if _opening >= first_block_delay: set_block(next_block())
-		elif block_mode == Block.TNT and fuse_left > 0.0:
+			if _opening >= first_block_delay: acquire_block(next_block())
+		elif has_block(Block.TNT) and fuse_left > 0.0:
 			fuse_left = maxf(fuse_left-delta,0.0)
 			if fuse_left <= 0.0: _detonate()
-		if block_mode == Block.HONEY: _pull_touching_enemies(delta)
+		if has_block(Block.HONEY): _pull_touching_enemies(delta)
 		if _recoil_velocity.length_squared() > 1.0:
 			Repel += _recoil_velocity
 			_recoil_velocity = _recoil_velocity.move_toward(Vector2.ZERO,780.0*delta)
 		super.tick_physics(state,delta)
-	if block_mode == Block.IRON:
-		if can_tick: _iron_bottom_contacts()
-		return
-	if not can_tick or health <= 0 or block_mode in [Block.EMPTY,Block.TNT,Block.HONEY] or dizziness or not Can_Attack: return
+	if has_block(Block.IRON) and can_tick: _iron_bottom_contacts()
+	if not can_tick or health <= 0 or dizziness or not Can_Attack: return
+	if not (has_block(Block.ICE) or has_block(Block.MAGMA) or has_block(Block.AMETHYST)): return
 	_scan_left -= delta
 	if _scan_left <= 0.0:
 		_scan_left = 0.08
 		_pulse_contact()
 
 func move(speed:float,delta:float) -> void:
-	if block_mode == Block.IRON and _slam_time >= 0.0:
+	if has_block(Block.IRON) and _slam_time >= 0.0:
 		if is_multiplayer_authority(): _step_single_slam(delta)
 		return
-	if block_mode == Block.ICE:
+	if has_block(Block.ICE):
 		var player:bool = is_player_controlled()
 		var intended:Vector2 = player_control_direction if player else direction
 		_ice_bounce_hold = maxf(_ice_bounce_hold-delta,0.0)
 		var steering:Vector2 = _slide_velocity.normalized() if _ice_bounce_hold > 0.0 else intended.normalized()
-		_slide_velocity = _slide_velocity.move_toward(steering*speed*(1.42 if _surge_left > 0.0 else 1.0),210.0*delta)
+		if has_block(Block.IRON):
+			steering = Vector2(clampf(steering.x,-1.0,1.0),0.0)
+			_slide_velocity.y = 0.0
+		_slide_velocity = _slide_velocity.move_toward(steering*speed*_movement_multiplier(),210.0*delta)
 		var heading:Vector2 = _slide_velocity.normalized() if _slide_velocity.length_squared() > 0.01 else Vector2.ZERO
 		if player: player_control_direction = heading
 		else: direction = heading
@@ -374,7 +486,7 @@ func move(speed:float,delta:float) -> void:
 		if player: player_control_direction = intended
 		else: direction = _slide_velocity.normalized() if bounced else intended
 		return
-	if block_mode == Block.IRON:
+	if has_block(Block.IRON):
 		var player:bool = is_player_controlled()
 		var intended:Vector2 = player_control_direction if player else direction
 		var horizontal:float = clampf(intended.x,-1.0,1.0) if player else signf(intended.x)
@@ -383,20 +495,25 @@ func move(speed:float,delta:float) -> void:
 		else: direction = Vector2(horizontal,0.0)
 		# Shared ball gravity owns v += g*dt, support and side-wall contacts.
 		# W/S cannot generate an upward drive or a phantom horizontal input.
-		super.move(speed*0.58*absf(horizontal),delta)
+		super.move(speed*_movement_multiplier()*absf(horizontal),delta)
 		if player: player_control_direction = intended
 		return
-	var multiplier:float = 0.86 if block_mode == Block.MAGMA else 0.90 if block_mode == Block.HONEY else 0.58 if block_mode == Block.IRON else 1.0
-	if _surge_left > 0.0: multiplier *= 1.42
-	super.move(speed*multiplier,delta)
+	super.move(speed*_movement_multiplier(),delta)
+
+func _movement_multiplier() -> float:
+	var multiplier:float = 1.42 if _surge_left > 0.0 else 1.0
+	if has_block(Block.MAGMA): multiplier *= 0.86
+	if has_block(Block.HONEY): multiplier *= 0.90
+	if has_block(Block.IRON): multiplier *= 0.58
+	return multiplier
 
 func get_external_directional_gravity() -> Vector2:
-	if block_mode == Block.IRON:
+	if has_block(Block.IRON):
 		return Vector2.DOWN*1200.0 if _slam_time < 0.0 else Vector2.ZERO
 	return super.get_external_directional_gravity()
 
 func stand(delta:float) -> void:
-	if block_mode == Block.IRON and _slam_time >= 0.0:
+	if has_block(Block.IRON) and _slam_time >= 0.0:
 		if dizziness:
 			_slam_time = -1.0
 			_restore_slam_collision()
@@ -404,12 +521,12 @@ func stand(delta:float) -> void:
 			_step_single_slam(delta)
 			return
 	super.stand(delta) # Gravity still falls while idle/stunned; never hover.
-	if block_mode == Block.IRON: Repel = Vector2.ZERO
+	if has_block(Block.IRON): Repel = Vector2.ZERO
 
 func take_damage(damage:float,ignore_block:bool = false) -> void:
 	# Iron's resistance does not overwrite external buffs/debuffs on the shared
 	# Damage_reduction property, and is removed automatically upon a block swap.
-	super.take_damage(damage*0.5 if block_mode == Block.IRON else damage,ignore_block)
+	super.take_damage(damage*0.5 if has_block(Block.IRON) else damage,ignore_block)
 
 func _on_hitbox_on_hit(_hurt:hurtbox) -> void:
 	# Do not double-hit via the inherited generic body hitbox.
@@ -417,27 +534,29 @@ func _on_hitbox_on_hit(_hurt:hurtbox) -> void:
 
 func when_collide(speed:float,collision:KinematicCollision2D) -> void:
 	super.when_collide(speed,collision)
-	if block_mode == Block.ICE and is_multiplayer_authority() and is_combat_runtime_active() and speed >= 40.0:
+	if has_block(Block.ICE) and is_multiplayer_authority() and is_combat_runtime_active() and speed >= 40.0:
 		_emit_sound(&"bounce",global_position)
 
 func _pulse_contact() -> void:
 	if not mc_live() or dizziness or not Can_Attack: return
-	if block_mode == Block.IRON:
-		_iron_bottom_contacts()
-		return
-	if block_mode not in [Block.ICE,Block.MAGMA,Block.AMETHYST]: return
+	if has_block(Block.IRON): _iron_bottom_contacts()
+	for mode:int in [Block.ICE,Block.MAGMA,Block.AMETHYST]:
+		if has_block(mode): _pulse_block_contact(mode)
+
+func _pulse_block_contact(mode:int) -> void:
 	# While inserting, the spikes are still buried; the plain shell is harmless.
-	if block_mode == Block.AMETHYST and is_instance_valid(_native_model) and not _native_model.crystals_ready(): return
+	if mode == Block.AMETHYST and is_instance_valid(_native_model) and not _native_model.crystals_ready(): return
 	var radius:float = get_crowd_separation_radius_world()
 	var crystal_points:Array[Vector2] = []
-	if block_mode == Block.AMETHYST and not crystals_out: crystal_points = _crystal_tip_points()
+	if mode == Block.AMETHYST and not crystals_out: crystal_points = _crystal_tip_points()
 	for raw:Variant in get_tree().get_nodes_in_group("Ball"):
 		if not mc_enemy(raw): continue
 		var target:ball = raw as ball
 		var id:int = target.get_instance_id()
+		var hit_key:String = "%d:%d" % [mode,id]
 		var reach:float = radius+_target_radius(target)
 		var distance:float = global_position.distance_to(target.global_position)
-		if block_mode == Block.AMETHYST:
+		if mode == Block.AMETHYST:
 			if crystals_out: continue
 			for i:int in range(crystal_points.size()):
 				if not mc_enemy(target): break
@@ -451,28 +570,28 @@ func _pulse_contact() -> void:
 					_damage_with_impact(target,attack_damage(AMETHYST_CONTACT_MULT),center)
 			continue
 		if distance > reach: continue
-		if block_mode == Block.MAGMA:
+		if mode == Block.MAGMA:
 			# The TOP contact is a real strip, not an all-direction fire aura.
 			var top_strip := Rect2(global_position+Vector2(-radius,-radius-2.5),Vector2(radius*2.0,5.0))
 			var upper:bool = top_strip.grow(_target_radius(target)).has_point(target.global_position)
 			if upper and _clock >= float(_top_hit_at.get(id,0.0)):
 				_top_hit_at[id] = _clock+HOT_INTERVAL
 				_damage_with_impact(target,attack_damage(0.17),global_position+Vector2.UP*radius,true)
-		if _clock >= float(_next_hit_at.get(id,0.0)):
-			_next_hit_at[id] = _clock+CONTACT_INTERVAL
-			if block_mode == Block.MAGMA:
+		if _clock >= float(_next_hit_at.get(hit_key,0.0)):
+			_next_hit_at[hit_key] = _clock+CONTACT_INTERVAL
+			if mode == Block.MAGMA:
 				if _damage_with_impact(target,attack_damage(0.80),global_position,true):
 					BURN.apply(self,target,2.4,0.21)
 					_emit_sound(&"magma_hit",target.global_position)
 			else:
-				var amount:float = attack_damage(0.34+1.52*clampf((_actual_speed-_ice_reference_speed)/maxf(_ice_reference_speed*0.9,1.0),0.0,1.0))
+				var amount:float = _mode_damage(Block.ICE)
 				if _damage_with_impact(target,amount,global_position): _emit_sound(&"ice_hit",target.global_position)
 
 func _target_radius(target:ball) -> float:
 	return maxf(target.get_crowd_separation_radius_world(),3.0)
 
 func _pull_touching_enemies(_delta:float) -> void:
-	if not mc_live() or block_mode != Block.HONEY: return
+	if not mc_live() or not has_block(Block.HONEY): return
 	var touching:PackedStringArray = PackedStringArray()
 	for raw:Variant in get_tree().get_nodes_in_group("Ball"):
 		if not mc_enemy(raw): continue
@@ -490,9 +609,9 @@ func _pull_touching_enemies(_delta:float) -> void:
 
 func _sync_honey_collision_pairs() -> void:
 	if not is_inside_tree(): return
-	if _honey_contacts.is_empty() and (honey_target_paths.is_empty() or block_mode != Block.HONEY): return
+	if _honey_contacts.is_empty() and (honey_target_paths.is_empty() or not has_block(Block.HONEY)): return
 	var wanted:Dictionary = {}
-	if block_mode == Block.HONEY and health > 0 and not _sulfur_died:
+	if has_block(Block.HONEY) and health > 0 and not _sulfur_died:
 		for path:String in honey_target_paths:
 			var target:Node = get_node_or_null(NodePath(path))
 			if mc_enemy(target): wanted[path] = target
@@ -576,7 +695,7 @@ func _step_single_slam(delta:float) -> void:
 
 func _iron_bottom_active() -> bool:
 	# Gravity contact keeps pressing even without an active jump. Rising is harmless.
-	return block_mode == Block.IRON and health > 0 and is_combat_runtime_active() and not is_damage_output_disabled() and not dizziness and Can_Attack and (_slam_time < 0.0 or _slam_time >= 0.38)
+	return has_block(Block.IRON) and health > 0 and is_combat_runtime_active() and not is_damage_output_disabled() and not dizziness and Can_Attack and (_slam_time < 0.0 or _slam_time >= 0.38)
 
 func _iron_bottom_rect() -> Rect2:
 	var radius:float = get_crowd_separation_radius_world()
@@ -712,15 +831,17 @@ func _sulfur_impact(event:StringName,point:Vector2,volume:float) -> void:
 		player.set_meta("mc_sound_event",event)
 		player.set_meta("mc_damage_source",get_instance_id())
 
-func _mode_damage() -> float:
-	match block_mode:
-		Block.ICE: return 18.0+72.0*clampf((_actual_speed-_ice_reference_speed)/maxf(_ice_reference_speed*0.9,1.0),0.0,1.0)
-		Block.MAGMA: return 38.0
+func _mode_damage(mode:int = -1) -> float:
+	if mode < 0: mode = block_mode
+	match mode:
+		Block.ICE: return attack_damage(0.34+1.52*clampf((_actual_speed-_ice_reference_speed)/maxf(_ice_reference_speed*0.9,1.0),0.0,1.0))
+		Block.MAGMA: return attack_damage(0.80)
 		Block.AMETHYST: return attack_damage(AMETHYST_CONTACT_MULT) if not crystals_out else 0.0
 	return 0.0
 
 func _detonate() -> void:
-	if not mc_live() or block_mode != Block.TNT: return
+	if not mc_live() or not has_block(Block.TNT): return
+	fuse_left = 0.0
 	_clear_charge_circle()
 	var point:Vector2 = global_position
 	# Minecraft 26.2 explosion textures/sounds; the PvP adaptation leaves the
@@ -733,15 +854,23 @@ func _detonate() -> void:
 		if not mc_enemy(target): continue
 		var reach:float = TNT_RADIUS + _target_radius(target)
 		if point.distance_squared_to(target.global_position) > reach*reach: continue
-		if _damage_with_impact(target,attack_damage(TNT_DAMAGE/maxf(float(Damage),1.0)),point):
+		if _damage_with_impact(target,attack_damage(TNT_DAMAGE/48.0),point):
 			var away:Vector2 = (target.global_position-point).normalized()
 			if away.is_zero_approx(): away = Vector2.RIGHT
 			target.apply_knockback(away,32.0,235.0,0.0,0.0,{"source":self})
 	# Explosion recoil keeps the pre-blast travel direction and decays quickly.
 	_recoil_velocity = _last_move_direction.normalized()*480.0
 	# Self-damage uses the same live outgoing/incoming attribute settlement.
-	take_damage(attack_damage(TNT_SELF_DAMAGE/maxf(float(Damage),1.0)))
-	if health > 0: set_block(next_block())
+	take_damage(attack_damage(TNT_SELF_DAMAGE/48.0))
+	if health > 0:
+		# User-confirmed exception: TNT is CONSUMED, never kept/re-primed in the
+		# old slot. Keep its companion and insert one new, distinct block.
+		var next:int = next_block()
+		var retained:PackedInt32Array = PackedInt32Array()
+		for mode:int in block_slots:
+			if mode != Block.TNT: retained.append(mode)
+		retained.append(next)
+		_change_blocks(retained)
 
 @rpc("authority","call_remote","reliable")
 func _spawn_blast_visual(point:Vector2) -> void:
@@ -787,39 +916,36 @@ func mc_play(event:String,volume:float = -4.0) -> AudioStreamPlayer2D:
 
 func get_ai_attack_threats(_receiver:ball) -> Array:
 	if health <= 0 or not is_combat_runtime_active() or is_damage_output_disabled(): return []
-	if block_mode == Block.TNT:
-		if fuse_left <= 0.0: return []
-		return [{"shape":"circle","position":global_position,"radius":TNT_RADIUS,
-			"damage":attack_damage(TNT_DAMAGE/maxf(float(Damage),1.0)),"danger_in":fuse_left,
-			"danger_duration":0.12,"kind":"sulfur_cube_tnt","source":self}]
-	if dizziness or not Can_Attack: return []
+	var threats:Array = []
+	if has_block(Block.TNT) and fuse_left > 0.0:
+		threats.append({"shape":"circle","position":global_position,"radius":TNT_RADIUS,
+			"damage":attack_damage(TNT_DAMAGE/48.0),"danger_in":fuse_left,
+			"danger_duration":0.12,"kind":"sulfur_cube_tnt","source":self})
+	if dizziness or not Can_Attack: return threats
 	var radius:float = get_crowd_separation_radius_world()
 	if _iron_bottom_active():
 		var bottom:Rect2 = _iron_bottom_rect()
-		return [{"shape":"rect","position":bottom.get_center(),
+		threats.append({"shape":"rect","position":bottom.get_center(),
 			"half_extents":bottom.size*0.5,"damage":attack_damage(_iron_damage_multiplier(_receiver)),
-			"danger_duration":IRON_CRUSH_INTERVAL,"kind":"sulfur_iron_bottom","source":self}]
-	if block_mode == Block.AMETHYST and not crystals_out and (not is_instance_valid(_native_model) or _native_model.crystals_ready()):
-		var threats:Array = []
+			"danger_duration":IRON_CRUSH_INTERVAL,"kind":"sulfur_iron_bottom","source":self})
+	if has_block(Block.AMETHYST) and not crystals_out and (not is_instance_valid(_native_model) or _native_model.crystals_ready()):
 		var tips:Array[Vector2] = _crystal_tip_points()
 		for i:int in range(tips.size()):
 			if _crystal_has_hit(i,_receiver): continue
-			var tip:Vector2 = tips[i]
-			threats.append({"shape":"circle","position":tip,
+			threats.append({"shape":"circle","position":tips[i],
 				"radius":CRYSTAL_RADIUS,"damage":attack_damage(AMETHYST_CONTACT_MULT),
 				"danger_duration":CONTACT_INTERVAL,"kind":"sulfur_amethyst_crystal","source":self})
-		return threats
-	if block_mode == Block.MAGMA:
-		return [{"shape":"circle","position":global_position,"radius":radius,
-			"damage":attack_damage(0.8),"danger_duration":CONTACT_INTERVAL,"kind":"sulfur_magma_touch","source":self},
-			{"shape":"rect","position":global_position+Vector2.UP*radius,
+	if has_block(Block.MAGMA):
+		threats.append({"shape":"circle","position":global_position,"radius":radius,
+			"damage":_mode_damage(Block.MAGMA),"danger_duration":CONTACT_INTERVAL,"kind":"sulfur_magma_touch","source":self})
+		threats.append({"shape":"rect","position":global_position+Vector2.UP*radius,
 			"half_extents":Vector2(radius,2.5),"damage":attack_damage(0.17),
-			"danger_duration":HOT_INTERVAL,"kind":"sulfur_magma_top","source":self}]
-	if block_mode == Block.ICE:
-		return [{"shape":"circle","position":global_position,"radius":radius,
-			"damage":attack_damage(_mode_damage()/maxf(float(Damage),1.0)),
-			"danger_duration":CONTACT_INTERVAL,"kind":"sulfur_ice_speed_contact","source":self}]
-	return []
+			"danger_duration":HOT_INTERVAL,"kind":"sulfur_magma_top","source":self})
+	if has_block(Block.ICE):
+		threats.append({"shape":"circle","position":global_position,"radius":radius,
+			"damage":_mode_damage(Block.ICE),
+			"danger_duration":CONTACT_INTERVAL,"kind":"sulfur_ice_speed_contact","source":self})
+	return threats
 
 func get_debug_attack_regions() -> Array:
 	return get_ai_attack_threats(null)
@@ -830,6 +956,7 @@ func Die() -> void:
 	honey_target_paths = PackedStringArray()
 	_clear_honey_contacts()
 	_clear_charge_circle()
+	if is_instance_valid(_block_frames): _block_frames.hide()
 	_restore_slam_collision()
 	super.Die()
 	# mc_mob_base.Die() intentionally supplies the vanilla creature death,

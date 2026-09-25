@@ -1,0 +1,1498 @@
+diff --git a/Images/characters/我的世界/sulfur_cube/source/ITEM_FRAME_SOURCE.json b/Images/characters/我的世界/sulfur_cube/source/ITEM_FRAME_SOURCE.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..5d7b74db53539fb33b05da6dfb1b3172e892d1cf
+--- /dev/null
++++ b/Images/characters/我的世界/sulfur_cube/source/ITEM_FRAME_SOURCE.json
+@@ -0,0 +1,14 @@
++{
++  "edition": "Minecraft Java Edition",
++  "version": "26.2",
++  "source_url": "https://piston-data.mojang.com/v1/objects/2dc72797acbc1b63fc16a11c4ac393605f453754/client.jar",
++  "client_sha1": "2dc72797acbc1b63fc16a11c4ac393605f453754",
++  "files": {
++    "item_frame.png": {
++      "jar_entry": "assets/minecraft/textures/item/item_frame.png",
++      "sha1": "8cb8afb4c242be406bd76497012962967f8bf2c5",
++      "processing": "None; exact original bytes. The original block textures are overlaid at runtime inside the frame."
++    }
++  },
++  "license_note": "Minecraft game assets. Source recorded for this local project; not a claim of free redistribution. Block texture provenance remains in SOURCE_MANIFEST.json / REDESIGN_SOURCE.json."
++}
+diff --git a/Images/characters/我的世界/sulfur_cube/source/item_frame.png b/Images/characters/我的世界/sulfur_cube/source/item_frame.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..56165f3e5ef69616a16e5a11f99e2062af9f6a1d
+GIT binary patch
+literal 245
+zcmeAS@N?(olHy`uVBq!ia0vp^0wB!63?wyl`GbL!Wq?nJE08WvF`C;IxMe}o<XWd<
+z2hC;=%_%;bOF|7b<hW;d)c*hfe|~5E+|Ih`ZPll?maD0$T|L<H{L1Vz#ow0$H8Yk3
+z`2{mLJiCzw<YaleIEGZ*Vm-LA@UVjbi@}?T=S<)2_p(;`9|n{Kg8BRkb<!rYepzq-
+z$9!RjYlqw0U5cFczfC^(c^%4`B&Y16R;$#bRkSy7x?|NFVc-7StA5L7b~nz;Dd#LS
+loyB#l&%`>@d^an@0r3w`Ho_bo^PhuE^>p=fS?83{1OVrcSor_|
+
+literal 0
+HcmV?d00001
+
+diff --git a/Images/characters/我的世界/sulfur_cube/source/item_frame.png.import b/Images/characters/我的世界/sulfur_cube/source/item_frame.png.import
+new file mode 100644
+index 0000000000000000000000000000000000000000..f421706067c75716b05fb00a54785b6109087b4f
+--- /dev/null
++++ b/Images/characters/我的世界/sulfur_cube/source/item_frame.png.import
+@@ -0,0 +1,40 @@
++[remap]
++
++importer="texture"
++type="CompressedTexture2D"
++uid="uid://degqnyg6do4de"
++path="res://.godot/imported/item_frame.png-1f0b82222c2694f3b236d1f40e86a97c.ctex"
++metadata={
++"vram_texture": false
++}
++
++[deps]
++
++source_file="res://Images/characters/我的世界/sulfur_cube/source/item_frame.png"
++dest_files=["res://.godot/imported/item_frame.png-1f0b82222c2694f3b236d1f40e86a97c.ctex"]
++
++[params]
++
++compress/mode=0
++compress/high_quality=false
++compress/lossy_quality=0.7
++compress/uastc_level=0
++compress/rdo_quality_loss=0.0
++compress/hdr_compression=1
++compress/normal_map=0
++compress/channel_pack=0
++mipmaps/generate=false
++mipmaps/limit=-1
++roughness/mode=0
++roughness/src_normal=""
++process/channel_remap/red=0
++process/channel_remap/green=1
++process/channel_remap/blue=2
++process/channel_remap/alpha=3
++process/fix_alpha_border=true
++process/premult_alpha=false
++process/normal_map_invert_y=false
++process/hdr_as_srgb=false
++process/hdr_clamp_exposure=false
++process/size_limit=0
++detect_3d/compress_to=1
+diff --git a/MCP_CONTEXT.md b/MCP_CONTEXT.md
+index da79d04123e1d58f05e2418c88acc693be8bfdfe..293ccd52fc91f834aa7d9cdac537871bca0c4a75 100644
+--- a/MCP_CONTEXT.md
++++ b/MCP_CONTEXT.md
+@@ -108,6 +108,7 @@
+ - Minecraft 范围外圈和蓄力填充盘统一复用 `pixel_arc.gd::draw_ring/draw_disk`，持续预警走 `mc_combat_abilities.gd::charge_circle`，按真实技能计时更新，不另写平滑圆或复制像素算法。重锤与硫方怪 TNT 已共用；硫方怪铁块重力/水平移动、原版晶簇本体与射出同模型、冰墙反弹及手控/威胁回归见 `tests/SULFUR_CUBE_POLISH_20260926.md`。
+ - 硫方怪蜂蜜仅与被黏住者成对免物理碰撞（保留其他人物/地形及受击），并与大规模软分离一致；临时成对排除复用 `classes/body_collision_exclusions.gd` 租约。冰径在地面 Z=-4；紫水晶权威随机 3–8 根及位置，允许同向多根，每根对每名敌人每轮生长独立命中一次，布局/再生/齐射同步。追补和回退范围见 `tests/SULFUR_CUBE_CONTACTS_20260926.md`。
+ - 硫方怪平衡追补：铁首次冲击、附着紫水晶及晶体投射物的伤害系数均降低30%；铁底部常态接触及下砸均可持续碾压，低额定频结算并复用公共击退。冰径不再仅加 Speed 倍率，而用 `surface_acceleration.gd` 沿目标自身真实位移方向积分加速、限制上限并在离冰后衰减；公共移动链接 `ball.surface_motion_velocity`。实测位移、威胁/手控/ENet与回退范围见 `tests/SULFUR_CUBE_BALANCE_20260926.md`。
++- 硫方怪同时保留最近两种方块特性：下方原版物品展示框先左后右，满槽后左旧淘汰、右移左、新块入右；本体内部只显示最新块，旧紫晶外刺/蜂蜜/铁/冰/岩浆特性不随外观切换失效。用户确认 TNT 爆炸后消耗该槽、保留另一个并补新块，不留槽重燃；两槽原子同步、手控和真实威胁随有效特性维护。实现、GPU/ENet验证及局部回退见 `tests/SULFUR_CUBE_DUAL_BLOCKS_20260926.md`。
+ - 天堂陨落长弓每次真实出箭，在箭矢出生世界坐标播放8→24半径、0.38秒青绿/浅青/银白扩散渐隐空心环。纯视觉可靠RPC每端一次，不从状态回放重播；复用 `mc_combat_abilities.gd::expanding_ring` 的重锤/像素环实现，不带伤害、碎屑、地表读回或新音效，暂停冻结。参数、230项回归和回退边界见 `tests/HEAVENFALL_MUZZLE_RING_20260926.md`。
+ - 天堂陨落长弓发射环须是面向弓头/出箭方向的伪3D环面，不是屏幕正圆：公共 `expanding_ring` 支持 `direction/depth_ratio`，沿发射法线压缩至0.35、横向保持原尺寸；权威RPC同步出生点及出生朝向，出圈后不追随转头。旧平面调用默认depth_ratio=1。239项回归及回退见 `tests/HEAVENFALL_MUZZLE_3D_20260926.md`。
+ - 原版方块云：设置→参数的本机开关，默认开启并保存；Java 1.21.4 原始 clouds.png 不改。用户已确认与战场方向一致的平铺角度：云格32×32，不倾斜、不压缩、不近大远小；实心白云面，下沿直向下32/3像素、明暗0.70，不恢复半透明3px纸片或斜向透视候选。各视口独立视差：蓝色上空0.6、草地/其余主题场外背景0.25；保留多岛补集、不盖草地内人物及暂停/重置/共享World2D。55项云、84项墙体、41项长弓圈回归与局部回退见 `tests/MINECRAFT_CLOUD_FLAT_20260926.md`；旧昼夜地面GPU8项未通过记录仍见 `tests/MINECRAFT_CLOUDS_20260926.md`。
+diff --git a/scenes/characters/我的世界/硫方怪.tscn b/scenes/characters/我的世界/硫方怪.tscn
+index 8f741c1115b86e3a369154802e867bf342d2d6b3..52e0c25ac91a4f45a199c8240f99bfa4bee7e271 100644
+--- a/scenes/characters/我的世界/硫方怪.tscn
++++ b/scenes/characters/我的世界/硫方怪.tscn
+@@ -9,7 +9,7 @@ resource_local_to_scene = true
+ radius = 43.0
+ 
+ [sub_resource type="SceneReplicationConfig" id="SulfurBlockReplication"]
+-properties/0/path = NodePath(".:block_mode")
++properties/0/path = NodePath(".:block_slots")
+ properties/0/spawn = true
+ properties/0/replication_mode = 2
+ properties/1/path = NodePath(".:fuse_left")
+diff --git a/scripts/characters/我的世界/sulfur_cube_model.gd b/scripts/characters/我的世界/sulfur_cube_model.gd
+index 8896b77cf76059d5d86e81f35889444cbe174b07..c52d8a82bb66d713d189eaa262ffba4a492e9193 100644
+--- a/scripts/characters/我的世界/sulfur_cube_model.gd
++++ b/scripts/characters/我的世界/sulfur_cube_model.gd
+@@ -38,7 +38,7 @@ var block_mode:int = 0
+ var _swap_left:float = 0.0
+ var _magma_materials:Array[StandardMaterial3D] = []
+ var _block_initialized:bool = false
+-var _crystals_active:bool = true
++var _crystals_active:bool = false
+ var _crystal_grow_left:float = 0.0
+ 
+ func _ready() -> void:
+@@ -60,6 +60,8 @@ func _ready() -> void:
+ 	crystal_layer.name = "NativeAmethystCrystals"
+ 	add_child(crystal_layer)
+ 	set_block(block_mode)
++	_make_crystals()
++	crystal_layer.visible = _crystals_active
+ 
+ func _shell_material(texture:Texture2D,origin:Vector2i,texels:int) -> ShaderMaterial:
+ 	var material := ShaderMaterial.new()
+@@ -94,9 +96,6 @@ func set_block(mode:int) -> void:
+ 		inner_block.remove_child(child)
+ 		child.queue_free()
+ 	_magma_materials.clear()
+-	for crystal:Node in crystal_layer.get_children():
+-		crystal_layer.remove_child(crystal)
+-		crystal.queue_free()
+ 	inner_block.visible = block_mode > 0
+ 	inner_shell.visible = block_mode == 0
+ 	if block_mode == 0: return
+@@ -114,11 +113,9 @@ func set_block(mode:int) -> void:
+ 			mat.uv1_scale = Vector3(1,1.0/3.0,1) # three original magma animation frames
+ 			_magma_materials.append(mat)
+ 		make_face(inner_block,BLOCK_SIZE,face,mat)
+-	if block_mode == 6: _make_crystals()
+-	crystal_layer.visible = block_mode == 6 and _crystals_active
++	crystal_layer.visible = _crystals_active
+ 	_swap_left = 0.24
+ 	inner_block.scale = Vector3.ONE*0.3
+-	crystal_layer.scale = Vector3.ONE*0.3
+ 
+ func animate(time:float,delta:float,playing:bool,fuse_left:float) -> void:
+ 	if outer_shell == null: return
+@@ -137,7 +134,7 @@ func animate(time:float,delta:float,playing:bool,fuse_left:float) -> void:
+ 	inner_block.scale = body_scale*insert_scale
+ 	if playing: _crystal_grow_left = maxf(_crystal_grow_left-delta,0.0)
+ 	var growth:float = 1.0-_crystal_grow_left/0.24
+-	crystal_layer.scale = body_scale*minf(insert_scale,lerpf(0.3,1.0,growth))
++	crystal_layer.scale = body_scale*lerpf(0.3,1.0,growth)
+ 	if block_mode == 2:
+ 		var frame:int = int(time*6.0)%3
+ 		for material:StandardMaterial3D in _magma_materials:
+@@ -147,16 +144,16 @@ func animate(time:float,delta:float,playing:bool,fuse_left:float) -> void:
+ func set_crystals_active(active:bool) -> void:
+ 	if active and not _crystals_active: _crystal_grow_left = 0.24
+ 	_crystals_active = active
+-	if crystal_layer != null: crystal_layer.visible = block_mode == 6 and active
++	if crystal_layer != null: crystal_layer.visible = active
+ 
+ func crystals_ready() -> bool:
+-	return _crystals_active and _swap_left <= 0.0 and _crystal_grow_left <= 0.0
++	return _crystals_active and _crystal_grow_left <= 0.0
+ 
+ func set_crystal_layout(layout:PackedVector3Array) -> void:
+ 	if crystal_layout == layout: return
+ 	crystal_layout = layout.duplicate()
+ 	_crystal_grow_left = 0.24
+-	if crystal_layer != null and block_mode == 6: _make_crystals()
++	if crystal_layer != null: _make_crystals()
+ 
+ func crystal_count() -> int:
+ 	return crystal_layout.size()/2
+diff --git a/scripts/characters/我的世界/硫方怪.gd b/scripts/characters/我的世界/硫方怪.gd
+index d559108a31b69f34de72410b666df2b31f3c1481..919828d9ef5be56c4c994aa3c4e2f69e8e9e11ef 100644
+--- a/scripts/characters/我的世界/硫方怪.gd
++++ b/scripts/characters/我的世界/硫方怪.gd
+@@ -1,6 +1,6 @@
+ extends "res://scripts/characters/我的世界/mc_mob_base.gd"
+ ## Minecraft 26.2 Sulfur Cube. The official block archetypes are adapted to
+-## auto-cycling PvP: the block is visible INSIDE the original translucent shell.
++## auto-cycling PvP: two retained traits, but only the latest block inside the shell.
+ const AUDIO = preload("res://scripts/characters/我的世界/sulfur_cube_audio.gd")
+ const HIT_GAIN = preload("res://scripts/effects/我的世界/hit_audio_gain.gd")
+ const ABILITIES = preload("res://scripts/effects/我的世界/mc_combat_abilities.gd")
+@@ -13,6 +13,11 @@ const CRYSTAL_TEXTURE:Texture2D = preload("res://Images/characters/我的世界/
+ const BODY_PAIRS = preload("res://classes/body_collision_exclusions.gd")
+ const CRYSTAL_COUNT_MIN:int = 3
+ const CRYSTAL_COUNT_MAX:int = 8
++const BLOCK_CAPACITY:int = 2
++const ITEM_FRAME:Texture2D = preload("res://Images/characters/我的世界/sulfur_cube/source/item_frame.png")
++const FRAME_SIZE:float = 32.0
++const FRAME_ICON_SIZE:float = 20.0
++const FRAME_SPACING:float = 36.0
+ 
+ enum Block { EMPTY, ICE, MAGMA, HONEY, IRON, TNT, AMETHYST }
+ const SPRITES:Array[Texture2D] = [
+@@ -41,20 +46,37 @@ const CRYSTAL_RADIUS:float = 3.0
+ const CRYSTAL_VOLLEY_TIME:float = 2.4
+ const CRYSTAL_REGROW_TIME:float = 0.8
+ 
+-# This property, plus fuse_left, is replicated by the scene's synchronizer.
+-@export var block_mode:int = Block.EMPTY:
++# One atomic snapshot is replicated, ordered oldest (left) to newest (right).
++@export var block_slots:PackedInt32Array = PackedInt32Array():
+ 	set(value):
+-		block_mode = clampi(value,Block.EMPTY,Block.AMETHYST)
++		var normalized:PackedInt32Array = PackedInt32Array()
++		for mode:int in value:
++			if mode > Block.EMPTY and mode <= Block.AMETHYST and not normalized.has(mode):
++				normalized.append(mode)
++		while normalized.size() > BLOCK_CAPACITY: normalized.remove_at(0)
++		if block_slots == normalized: return
++		var had_crystals:bool = block_slots.has(Block.AMETHYST)
++		block_slots = normalized
+ 		if is_node_ready():
+-			if block_mode != Block.HONEY: _clear_honey_contacts()
+-			_crystal_hits.clear()
++			if not has_block(Block.HONEY): _clear_honey_contacts()
++			if had_crystals != has_block(Block.AMETHYST): _crystal_hits.clear()
+ 			_apply_visual()
++			_sync_honey_collision_pairs()
+ 			queue_redraw()
++# Single-block compatibility alias. Do NOT serialize the derived value as
++# well as the slots: restoring it afterward would erase the retained older block.
++# Normal acquisitions use acquire_block(); the inner visual reads this getter.
++var block_mode:int = Block.EMPTY:
++	get:
++		return block_slots[block_slots.size()-1] if not block_slots.is_empty() else Block.EMPTY
++	set(value):
++		var mode:int = clampi(value,Block.EMPTY,Block.AMETHYST)
++		block_slots = PackedInt32Array([mode]) if mode != Block.EMPTY else PackedInt32Array()
+ @export var fuse_left:float = 0.0
+ @export var crystals_out:bool = false:
+ 	set(value):
+ 		crystals_out = value
+-		if is_instance_valid(_native_model): _native_model.set_crystals_active(block_mode == Block.AMETHYST and not value)
++		if is_instance_valid(_native_model): _native_model.set_crystals_active(has_block(Block.AMETHYST) and not value)
+ # Explicit coordinates synchronize the model, contact tips and released projectiles.
+ @export var crystal_layout:PackedVector3Array = PackedVector3Array():
+ 	set(value):
+@@ -108,6 +130,7 @@ var _motion_sample_valid:bool = false
+ var _sulfur_died:bool = false
+ var _model_viewport:SubViewport
+ var _native_model:Node3D
++var _block_frames:Node2D
+ 
+ func _ready() -> void:
+ 	mc_audio_role = "sulfur_cube" # No borrowed Slime voices or animation frames.
+@@ -127,12 +150,63 @@ func _ready() -> void:
+ 	super._ready()
+ 	if self_hitbox != null: self_hitbox.set_deferred("monitoring",false)
+ 	_create_live_model()
+-	if is_multiplayer_authority() and block_mode == Block.AMETHYST and crystal_layout.is_empty(): _roll_crystal_layout()
++	_create_block_frames()
++	if is_multiplayer_authority() and has_block(Block.IRON):
++		_iron_previous_gravity_mode = is_external_directional_gravity_locomotion_enabled()
++		configure_external_directional_gravity_locomotion(true)
++	if has_block(Block.ICE): _ice_reference_speed = maxf(Speed*CHARACTER_BASE_MOVE_SPEED_MULTIPLIER,1.0)
++	if is_multiplayer_authority() and has_block(Block.AMETHYST) and crystal_layout.is_empty(): _roll_crystal_layout()
+ 	_apply_visual()
+ 	_sync_honey_collision_pairs()
+ 	_previous_motion_position = global_position
+ 	_motion_sample_valid = true
+ 
++func has_block(mode:int) -> bool:
++	return block_slots.has(mode)
++
++func _has_surge_trait() -> bool:
++	return has_block(Block.ICE) or has_block(Block.MAGMA) or has_block(Block.HONEY) or has_block(Block.AMETHYST)
++
++func _create_block_frames() -> void:
++	_block_frames = Node2D.new()
++	_block_frames.name = "RetainedBlockFrames"
++	_block_frames.z_index = 2
++	_block_frames.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
++	add_child(_block_frames)
++	for i:int in range(BLOCK_CAPACITY):
++		var slot := Node2D.new()
++		slot.name = "Left" if i == 0 else "Right"
++		# Root-relative, not part of the squashing/flipping 3D body sprite.
++		slot.position = Vector2((float(i)-0.5)*FRAME_SPACING,64.0)
++		_block_frames.add_child(slot)
++		var frame := Sprite2D.new()
++		frame.name = "Frame"
++		frame.texture = ITEM_FRAME
++		frame.scale = Vector2.ONE*FRAME_SIZE/float(ITEM_FRAME.get_width())
++		slot.add_child(frame)
++		var icon := Sprite2D.new()
++		icon.name = "BlockIcon"
++		icon.region_enabled = true
++		slot.add_child(icon)
++	_update_block_frames()
++
++func _update_block_frames() -> void:
++	if not is_instance_valid(_block_frames): return
++	_block_frames.visible = health > 0 and not _sulfur_died
++	for i:int in range(BLOCK_CAPACITY):
++		var slot:Node2D = _block_frames.get_child(i) as Node2D
++		slot.visible = i < block_slots.size()
++		if not slot.visible: continue
++		var mode:int = block_slots[i]
++		var icon:Sprite2D = slot.get_node("BlockIcon") as Sprite2D
++		icon.texture = MODEL.BLOCK_TEXTURES[mode]
++		# The magma atlas is three frames tall; the item display uses its first
++		# original square frame, never a stretched strip or the creature portrait.
++		var side:float = float(icon.texture.get_width())
++		icon.region_rect = Rect2(0.0,0.0,side,side)
++		icon.scale = Vector2.ONE*FRAME_ICON_SIZE/side
++		slot.set_meta("block_mode",mode)
++
+ func get_preview_texture() -> Texture2D:
+ 	# Off-tree selection portraits cannot render a SubViewport. This native-UV
+ 	# thumbnail is only a menu fallback; live battles always use the 3D model.
+@@ -170,13 +244,14 @@ func _create_live_model() -> void:
+ 	(image as Sprite2D).texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+ 
+ func _apply_visual() -> void:
+-	if block_mode != Block.TNT: _clear_charge_circle()
++	if not has_block(Block.TNT): _clear_charge_circle()
++	_update_block_frames()
+ 	if not image is Sprite2D: return
+ 	var sprite:Sprite2D = image as Sprite2D
+ 	if is_instance_valid(_native_model):
+ 		_native_model.set_crystal_layout(crystal_layout)
+ 		_native_model.set_block(block_mode)
+-		_native_model.set_crystals_active(block_mode == Block.AMETHYST and not crystals_out)
++		_native_model.set_crystals_active(has_block(Block.AMETHYST) and not crystals_out)
+ 		sprite.texture = _model_viewport.get_texture()
+ 	else:
+ 		sprite.texture = SPRITES[block_mode]
+@@ -186,6 +261,7 @@ func _process(delta:float) -> void:
+ 	_sync_honey_collision_pairs() # Retries late-spawned replicated targets; prunes dead/removed ones.
+ 	if health <= 0:
+ 		_clear_charge_circle()
++		if is_instance_valid(_block_frames): _block_frames.hide()
+ 		return
+ 	if not image is Sprite2D: return
+ 	if is_combat_runtime_active(): _view_clock += delta
+@@ -194,11 +270,11 @@ func _process(delta:float) -> void:
+ 	# replacing the complete character image with another pre-baked sprite.
+ 	image.scale = Vector2.ONE*(MODEL_IMAGE_SCALE if is_instance_valid(_native_model) else 1.0)
+ 	if is_instance_valid(_native_model): _native_model.animate(_view_clock,delta,is_combat_runtime_active(),fuse_left)
+-	image.self_modulate = Color(1.0,0.62 if fmod(_view_clock*5.0,1.0) < 0.45 else 1.0,0.62 if fmod(_view_clock*5.0,1.0) < 0.45 else 1.0) if block_mode == Block.TNT and fuse_left > 0.0 else Color.WHITE
++	image.self_modulate = Color(1.0,0.62 if fmod(_view_clock*5.0,1.0) < 0.45 else 1.0,0.62 if fmod(_view_clock*5.0,1.0) < 0.45 else 1.0) if has_block(Block.TNT) and fuse_left > 0.0 else Color.WHITE
+ 	_update_charge_circle()
+ 
+ func _update_charge_circle() -> void:
+-	if block_mode != Block.TNT or fuse_left <= 0.0 or health <= 0:
++	if not has_block(Block.TNT) or fuse_left <= 0.0 or health <= 0:
+ 		_clear_charge_circle()
+ 		return
+ 	if not is_instance_valid(_charge_circle):
+@@ -213,74 +289,108 @@ func _clear_charge_circle() -> void:
+ 
+ func Attack() -> void:
+ 	Attacking = false
+-	if not mc_live() or dizziness or block_mode in [Block.EMPTY,Block.TNT]: return
+-	if block_mode == Block.IRON:
++	if not mc_live() or dizziness or not Can_Attack: return
++	if has_block(Block.IRON):
+ 		_start_single_slam()
+-	else:
++	elif _has_surge_trait():
+ 		_surge_left = 0.34
+ 
+ func player_control_extra_actions() -> Array[StringName]:
+-	# Preserve the existing surge (left) and block change (right). Volley is
+-	# the real third ability, only exposed while carrying amethyst.
+-	return [&"controlled_crystal_volley"] if block_mode == Block.AMETHYST else []
++	var actions:Array[StringName] = []
++	if has_block(Block.AMETHYST): actions.append(&"controlled_crystal_volley")
++	# Iron keeps left-click slam without discarding its companion's real surge.
++	if has_block(Block.IRON) and _has_surge_trait(): actions.append(&"controlled_surge")
++	return actions
++
++func controlled_surge() -> void:
++	if not mc_live() or not is_player_controlled() or dizziness or not Can_Attack or _slam_time >= 0.0: return
++	if not has_block(Block.IRON) or not _has_surge_trait() or state_machine == null: return
++	if float(state_machine.last_state_dis.get("Attack",0.0)) < Attack_Cooling: return
++	state_machine.last_state_dis["Attack"] = 0.0 # Same attack cooldown, not a free extra attack.
++	_surge_left = 0.34
+ 
+ func controlled_crystal_volley() -> void:
+ 	if not mc_live() or not is_player_controlled() or dizziness or not Can_Attack: return
+-	if block_mode == Block.AMETHYST and not crystals_out and _crystal_timer <= 0.0:
++	if has_block(Block.AMETHYST) and not crystals_out and _crystal_timer <= 0.0:
+ 		_release_crystals()
+ 
+ func Skill() -> void:
+ 	Using_Skill = false
+-	if not mc_live() or dizziness or (block_mode == Block.TNT and fuse_left > 0.0): return
+-	set_block(next_block())
++	if not mc_live() or dizziness or (has_block(Block.TNT) and fuse_left > 0.0): return
++	acquire_block(next_block())
+ 
+ func next_block() -> int:
+-	# Equal chance among the OTHER modes; never a fixed sequence or repeat.
++	# Distinct live traits: roll among blocks not already in either slot.
+ 	var options:Array[int] = []
+ 	for candidate:int in range(Block.ICE,Block.AMETHYST+1):
+-		if candidate != block_mode: options.append(candidate)
++		if not has_block(candidate): options.append(candidate)
+ 	return options[_random.randi_range(0,options.size()-1)]
+ 
+ func set_block(next:int) -> void:
+-	if not is_multiplayer_authority() or health <= 0: return
++	# Explicit SINGLE-block state replacement for old saves/isolated fixtures.
++	# Normal opening, Skill and post-TNT gameplay use acquire_block instead.
+ 	next = clampi(next,Block.EMPTY,Block.AMETHYST)
+-	if next == block_mode: return
+-	if block_mode == Block.TNT and fuse_left > 0.0: return # Cannot skip self-damage.
+-	if block_mode == Block.AMETHYST and not crystals_out:
+-		if multiplayer.has_multiplayer_peer(): _break_body_crystals.rpc(global_position)
+-		_break_body_crystals(global_position)
+-		_emit_sound(&"amethyst_break")
+-	if block_mode != Block.EMPTY: _emit_sound(&"eject")
+-	if block_mode == Block.IRON:
++	_change_blocks(PackedInt32Array([next]) if next != Block.EMPTY else PackedInt32Array())
++
++func acquire_block(next:int) -> bool:
++	if next <= Block.EMPTY or next > Block.AMETHYST or next == block_mode: return false
++	var slots:PackedInt32Array = block_slots.duplicate()
++	slots.append(next)
++	while slots.size() > BLOCK_CAPACITY: slots.remove_at(0)
++	return _change_blocks(slots)
++
++func _change_blocks(slots:PackedInt32Array) -> bool:
++	if not is_multiplayer_authority() or health <= 0 or slots == block_slots: return false
++	# Insertion may retain a primed TNT, but it cannot discard one to dodge damage.
++	if has_block(Block.TNT) and fuse_left > 0.0 and not slots.has(Block.TNT): return false
++	var previous:PackedInt32Array = block_slots.duplicate()
++	if previous.has(Block.AMETHYST) and not slots.has(Block.AMETHYST):
++		if not crystals_out:
++			if multiplayer.has_multiplayer_peer(): _break_body_crystals.rpc(global_position)
++			_break_body_crystals(global_position)
++			_emit_sound(&"amethyst_break")
++		_crystal_hits.clear()
++	if previous.has(Block.IRON) and not slots.has(Block.IRON):
+ 		configure_external_directional_gravity_locomotion(_iron_previous_gravity_mode)
+ 		clear_external_directional_gravity_velocity()
+-	if next == Block.IRON:
++		_restore_slam_collision()
++		_slam_time = -1.0
++		_slam_hits.clear()
++	elif slots.has(Block.IRON) and not previous.has(Block.IRON):
+ 		_iron_previous_gravity_mode = is_external_directional_gravity_locomotion_enabled()
+ 		configure_external_directional_gravity_locomotion(true)
+ 		clear_external_directional_gravity_velocity()
+-	honey_target_paths = PackedStringArray()
+-	if next == Block.AMETHYST: _roll_crystal_layout()
+-	block_mode = next
+-	if next == Block.ICE:
++		_slam_hits.clear()
++	if not slots.has(Block.HONEY): honey_target_paths = PackedStringArray()
++	if slots.has(Block.AMETHYST) and not previous.has(Block.AMETHYST):
++		_roll_crystal_layout()
++		crystals_out = false
++		_crystal_timer = CRYSTAL_VOLLEY_TIME
++	if previous.has(Block.AMETHYST) and not slots.has(Block.AMETHYST): crystals_out = false
++	if slots.has(Block.ICE) != previous.has(Block.ICE):
+ 		_ice_reference_speed = maxf(Speed*CHARACTER_BASE_MOVE_SPEED_MULTIPLIER,1.0)
+-	fuse_left = TNT_FUSE_SECONDS if next == Block.TNT else 0.0
+-	crystals_out = false
+-	_crystal_timer = CRYSTAL_VOLLEY_TIME
+-	_restore_slam_collision()
+-	_slam_time = -1.0
+-	_slam_hits.clear()
+-	_next_hit_at.clear()
+-	_top_hit_at.clear()
+-	_slide_velocity = Vector2.ZERO
+-	_ice_bounce_hold = 0.0
++		_slide_velocity = Vector2.ZERO
++		_ice_bounce_hold = 0.0
++	if not slots.has(Block.MAGMA): _top_hit_at.clear()
++	# Retained blocks keep cooldowns, crystal hit records, pull leases and timers.
++	for key:Variant in _next_hit_at.keys():
++		if not slots.has(int(str(key).get_slice(":",0))): _next_hit_at.erase(key)
++	if not slots.has(Block.TNT): fuse_left = 0.0
++	elif not previous.has(Block.TNT): fuse_left = TNT_FUSE_SECONDS
++	for old:int in previous:
++		if not slots.has(old):
++			_emit_sound(&"eject")
++			break
++	block_slots = slots
+ 	_scan_left = 0.0
+-	if next != Block.EMPTY: _emit_sound(&"absorb")
+-	if next == Block.TNT: _emit_sound(&"fuse")
++	if not slots.is_empty(): _emit_sound(&"absorb")
++	if slots.has(Block.TNT) and not previous.has(Block.TNT): _emit_sound(&"fuse")
++	return true
+ 
+ func get_fire_effect_ratio() -> float:
+ 	# Uses the common ball fire protocol; status nodes also remove themselves
+ 	# as soon as they see immunity, including an already active Blaze burn.
+-	return 0.0 if block_mode == Block.MAGMA else super.get_fire_effect_ratio()
++	return 0.0 if has_block(Block.MAGMA) else super.get_fire_effect_ratio()
+ 
+ func tick_physics(state:State,delta:float) -> void:
+ 	var can_tick:bool = mc_live()
+@@ -297,8 +407,8 @@ func tick_physics(state:State,delta:float) -> void:
+ 	if can_tick:
+ 		_clock += delta
+ 		_surge_left = maxf(_surge_left-delta,0.0)
+-		if block_mode == Block.ICE and moved: _leave_ice(previous_position,global_position)
+-		if block_mode == Block.AMETHYST:
++		if has_block(Block.ICE) and moved: _leave_ice(previous_position,global_position)
++		if has_block(Block.AMETHYST):
+ 			_crystal_timer -= delta
+ 			if _crystal_timer <= 0.0:
+ 				if crystals_out:
+@@ -329,34 +439,36 @@ func tick_physics(state:State,delta:float) -> void:
+ 				_landing_wait = -1.0
+ 		if block_mode == Block.EMPTY:
+ 			_opening += delta
+-			if _opening >= first_block_delay: set_block(next_block())
+-		elif block_mode == Block.TNT and fuse_left > 0.0:
++			if _opening >= first_block_delay: acquire_block(next_block())
++		elif has_block(Block.TNT) and fuse_left > 0.0:
+ 			fuse_left = maxf(fuse_left-delta,0.0)
+ 			if fuse_left <= 0.0: _detonate()
+-		if block_mode == Block.HONEY: _pull_touching_enemies(delta)
++		if has_block(Block.HONEY): _pull_touching_enemies(delta)
+ 		if _recoil_velocity.length_squared() > 1.0:
+ 			Repel += _recoil_velocity
+ 			_recoil_velocity = _recoil_velocity.move_toward(Vector2.ZERO,780.0*delta)
+ 		super.tick_physics(state,delta)
+-	if block_mode == Block.IRON:
+-		if can_tick: _iron_bottom_contacts()
+-		return
+-	if not can_tick or health <= 0 or block_mode in [Block.EMPTY,Block.TNT,Block.HONEY] or dizziness or not Can_Attack: return
++	if has_block(Block.IRON) and can_tick: _iron_bottom_contacts()
++	if not can_tick or health <= 0 or dizziness or not Can_Attack: return
++	if not (has_block(Block.ICE) or has_block(Block.MAGMA) or has_block(Block.AMETHYST)): return
+ 	_scan_left -= delta
+ 	if _scan_left <= 0.0:
+ 		_scan_left = 0.08
+ 		_pulse_contact()
+ 
+ func move(speed:float,delta:float) -> void:
+-	if block_mode == Block.IRON and _slam_time >= 0.0:
++	if has_block(Block.IRON) and _slam_time >= 0.0:
+ 		if is_multiplayer_authority(): _step_single_slam(delta)
+ 		return
+-	if block_mode == Block.ICE:
++	if has_block(Block.ICE):
+ 		var player:bool = is_player_controlled()
+ 		var intended:Vector2 = player_control_direction if player else direction
+ 		_ice_bounce_hold = maxf(_ice_bounce_hold-delta,0.0)
+ 		var steering:Vector2 = _slide_velocity.normalized() if _ice_bounce_hold > 0.0 else intended.normalized()
+-		_slide_velocity = _slide_velocity.move_toward(steering*speed*(1.42 if _surge_left > 0.0 else 1.0),210.0*delta)
++		if has_block(Block.IRON):
++			steering = Vector2(clampf(steering.x,-1.0,1.0),0.0)
++			_slide_velocity.y = 0.0
++		_slide_velocity = _slide_velocity.move_toward(steering*speed*_movement_multiplier(),210.0*delta)
+ 		var heading:Vector2 = _slide_velocity.normalized() if _slide_velocity.length_squared() > 0.01 else Vector2.ZERO
+ 		if player: player_control_direction = heading
+ 		else: direction = heading
+@@ -374,7 +486,7 @@ func move(speed:float,delta:float) -> void:
+ 		if player: player_control_direction = intended
+ 		else: direction = _slide_velocity.normalized() if bounced else intended
+ 		return
+-	if block_mode == Block.IRON:
++	if has_block(Block.IRON):
+ 		var player:bool = is_player_controlled()
+ 		var intended:Vector2 = player_control_direction if player else direction
+ 		var horizontal:float = clampf(intended.x,-1.0,1.0) if player else signf(intended.x)
+@@ -383,20 +495,25 @@ func move(speed:float,delta:float) -> void:
+ 		else: direction = Vector2(horizontal,0.0)
+ 		# Shared ball gravity owns v += g*dt, support and side-wall contacts.
+ 		# W/S cannot generate an upward drive or a phantom horizontal input.
+-		super.move(speed*0.58*absf(horizontal),delta)
++		super.move(speed*_movement_multiplier()*absf(horizontal),delta)
+ 		if player: player_control_direction = intended
+ 		return
+-	var multiplier:float = 0.86 if block_mode == Block.MAGMA else 0.90 if block_mode == Block.HONEY else 0.58 if block_mode == Block.IRON else 1.0
+-	if _surge_left > 0.0: multiplier *= 1.42
+-	super.move(speed*multiplier,delta)
++	super.move(speed*_movement_multiplier(),delta)
++
++func _movement_multiplier() -> float:
++	var multiplier:float = 1.42 if _surge_left > 0.0 else 1.0
++	if has_block(Block.MAGMA): multiplier *= 0.86
++	if has_block(Block.HONEY): multiplier *= 0.90
++	if has_block(Block.IRON): multiplier *= 0.58
++	return multiplier
+ 
+ func get_external_directional_gravity() -> Vector2:
+-	if block_mode == Block.IRON:
++	if has_block(Block.IRON):
+ 		return Vector2.DOWN*1200.0 if _slam_time < 0.0 else Vector2.ZERO
+ 	return super.get_external_directional_gravity()
+ 
+ func stand(delta:float) -> void:
+-	if block_mode == Block.IRON and _slam_time >= 0.0:
++	if has_block(Block.IRON) and _slam_time >= 0.0:
+ 		if dizziness:
+ 			_slam_time = -1.0
+ 			_restore_slam_collision()
+@@ -404,12 +521,12 @@ func stand(delta:float) -> void:
+ 			_step_single_slam(delta)
+ 			return
+ 	super.stand(delta) # Gravity still falls while idle/stunned; never hover.
+-	if block_mode == Block.IRON: Repel = Vector2.ZERO
++	if has_block(Block.IRON): Repel = Vector2.ZERO
+ 
+ func take_damage(damage:float,ignore_block:bool = false) -> void:
+ 	# Iron's resistance does not overwrite external buffs/debuffs on the shared
+ 	# Damage_reduction property, and is removed automatically upon a block swap.
+-	super.take_damage(damage*0.5 if block_mode == Block.IRON else damage,ignore_block)
++	super.take_damage(damage*0.5 if has_block(Block.IRON) else damage,ignore_block)
+ 
+ func _on_hitbox_on_hit(_hurt:hurtbox) -> void:
+ 	# Do not double-hit via the inherited generic body hitbox.
+@@ -417,27 +534,29 @@ func _on_hitbox_on_hit(_hurt:hurtbox) -> void:
+ 
+ func when_collide(speed:float,collision:KinematicCollision2D) -> void:
+ 	super.when_collide(speed,collision)
+-	if block_mode == Block.ICE and is_multiplayer_authority() and is_combat_runtime_active() and speed >= 40.0:
++	if has_block(Block.ICE) and is_multiplayer_authority() and is_combat_runtime_active() and speed >= 40.0:
+ 		_emit_sound(&"bounce",global_position)
+ 
+ func _pulse_contact() -> void:
+ 	if not mc_live() or dizziness or not Can_Attack: return
+-	if block_mode == Block.IRON:
+-		_iron_bottom_contacts()
+-		return
+-	if block_mode not in [Block.ICE,Block.MAGMA,Block.AMETHYST]: return
++	if has_block(Block.IRON): _iron_bottom_contacts()
++	for mode:int in [Block.ICE,Block.MAGMA,Block.AMETHYST]:
++		if has_block(mode): _pulse_block_contact(mode)
++
++func _pulse_block_contact(mode:int) -> void:
+ 	# While inserting, the spikes are still buried; the plain shell is harmless.
+-	if block_mode == Block.AMETHYST and is_instance_valid(_native_model) and not _native_model.crystals_ready(): return
++	if mode == Block.AMETHYST and is_instance_valid(_native_model) and not _native_model.crystals_ready(): return
+ 	var radius:float = get_crowd_separation_radius_world()
+ 	var crystal_points:Array[Vector2] = []
+-	if block_mode == Block.AMETHYST and not crystals_out: crystal_points = _crystal_tip_points()
++	if mode == Block.AMETHYST and not crystals_out: crystal_points = _crystal_tip_points()
+ 	for raw:Variant in get_tree().get_nodes_in_group("Ball"):
+ 		if not mc_enemy(raw): continue
+ 		var target:ball = raw as ball
+ 		var id:int = target.get_instance_id()
++		var hit_key:String = "%d:%d" % [mode,id]
+ 		var reach:float = radius+_target_radius(target)
+ 		var distance:float = global_position.distance_to(target.global_position)
+-		if block_mode == Block.AMETHYST:
++		if mode == Block.AMETHYST:
+ 			if crystals_out: continue
+ 			for i:int in range(crystal_points.size()):
+ 				if not mc_enemy(target): break
+@@ -451,28 +570,28 @@ func _pulse_contact() -> void:
+ 					_damage_with_impact(target,attack_damage(AMETHYST_CONTACT_MULT),center)
+ 			continue
+ 		if distance > reach: continue
+-		if block_mode == Block.MAGMA:
++		if mode == Block.MAGMA:
+ 			# The TOP contact is a real strip, not an all-direction fire aura.
+ 			var top_strip := Rect2(global_position+Vector2(-radius,-radius-2.5),Vector2(radius*2.0,5.0))
+ 			var upper:bool = top_strip.grow(_target_radius(target)).has_point(target.global_position)
+ 			if upper and _clock >= float(_top_hit_at.get(id,0.0)):
+ 				_top_hit_at[id] = _clock+HOT_INTERVAL
+ 				_damage_with_impact(target,attack_damage(0.17),global_position+Vector2.UP*radius,true)
+-		if _clock >= float(_next_hit_at.get(id,0.0)):
+-			_next_hit_at[id] = _clock+CONTACT_INTERVAL
+-			if block_mode == Block.MAGMA:
++		if _clock >= float(_next_hit_at.get(hit_key,0.0)):
++			_next_hit_at[hit_key] = _clock+CONTACT_INTERVAL
++			if mode == Block.MAGMA:
+ 				if _damage_with_impact(target,attack_damage(0.80),global_position,true):
+ 					BURN.apply(self,target,2.4,0.21)
+ 					_emit_sound(&"magma_hit",target.global_position)
+ 			else:
+-				var amount:float = attack_damage(0.34+1.52*clampf((_actual_speed-_ice_reference_speed)/maxf(_ice_reference_speed*0.9,1.0),0.0,1.0))
++				var amount:float = _mode_damage(Block.ICE)
+ 				if _damage_with_impact(target,amount,global_position): _emit_sound(&"ice_hit",target.global_position)
+ 
+ func _target_radius(target:ball) -> float:
+ 	return maxf(target.get_crowd_separation_radius_world(),3.0)
+ 
+ func _pull_touching_enemies(_delta:float) -> void:
+-	if not mc_live() or block_mode != Block.HONEY: return
++	if not mc_live() or not has_block(Block.HONEY): return
+ 	var touching:PackedStringArray = PackedStringArray()
+ 	for raw:Variant in get_tree().get_nodes_in_group("Ball"):
+ 		if not mc_enemy(raw): continue
+@@ -490,9 +609,9 @@ func _pull_touching_enemies(_delta:float) -> void:
+ 
+ func _sync_honey_collision_pairs() -> void:
+ 	if not is_inside_tree(): return
+-	if _honey_contacts.is_empty() and (honey_target_paths.is_empty() or block_mode != Block.HONEY): return
++	if _honey_contacts.is_empty() and (honey_target_paths.is_empty() or not has_block(Block.HONEY)): return
+ 	var wanted:Dictionary = {}
+-	if block_mode == Block.HONEY and health > 0 and not _sulfur_died:
++	if has_block(Block.HONEY) and health > 0 and not _sulfur_died:
+ 		for path:String in honey_target_paths:
+ 			var target:Node = get_node_or_null(NodePath(path))
+ 			if mc_enemy(target): wanted[path] = target
+@@ -576,7 +695,7 @@ func _step_single_slam(delta:float) -> void:
+ 
+ func _iron_bottom_active() -> bool:
+ 	# Gravity contact keeps pressing even without an active jump. Rising is harmless.
+-	return block_mode == Block.IRON and health > 0 and is_combat_runtime_active() and not is_damage_output_disabled() and not dizziness and Can_Attack and (_slam_time < 0.0 or _slam_time >= 0.38)
++	return has_block(Block.IRON) and health > 0 and is_combat_runtime_active() and not is_damage_output_disabled() and not dizziness and Can_Attack and (_slam_time < 0.0 or _slam_time >= 0.38)
+ 
+ func _iron_bottom_rect() -> Rect2:
+ 	var radius:float = get_crowd_separation_radius_world()
+@@ -712,15 +831,17 @@ func _sulfur_impact(event:StringName,point:Vector2,volume:float) -> void:
+ 		player.set_meta("mc_sound_event",event)
+ 		player.set_meta("mc_damage_source",get_instance_id())
+ 
+-func _mode_damage() -> float:
+-	match block_mode:
+-		Block.ICE: return 18.0+72.0*clampf((_actual_speed-_ice_reference_speed)/maxf(_ice_reference_speed*0.9,1.0),0.0,1.0)
+-		Block.MAGMA: return 38.0
++func _mode_damage(mode:int = -1) -> float:
++	if mode < 0: mode = block_mode
++	match mode:
++		Block.ICE: return attack_damage(0.34+1.52*clampf((_actual_speed-_ice_reference_speed)/maxf(_ice_reference_speed*0.9,1.0),0.0,1.0))
++		Block.MAGMA: return attack_damage(0.80)
+ 		Block.AMETHYST: return attack_damage(AMETHYST_CONTACT_MULT) if not crystals_out else 0.0
+ 	return 0.0
+ 
+ func _detonate() -> void:
+-	if not mc_live() or block_mode != Block.TNT: return
++	if not mc_live() or not has_block(Block.TNT): return
++	fuse_left = 0.0
+ 	_clear_charge_circle()
+ 	var point:Vector2 = global_position
+ 	# Minecraft 26.2 explosion textures/sounds; the PvP adaptation leaves the
+@@ -733,15 +854,23 @@ func _detonate() -> void:
+ 		if not mc_enemy(target): continue
+ 		var reach:float = TNT_RADIUS + _target_radius(target)
+ 		if point.distance_squared_to(target.global_position) > reach*reach: continue
+-		if _damage_with_impact(target,attack_damage(TNT_DAMAGE/maxf(float(Damage),1.0)),point):
++		if _damage_with_impact(target,attack_damage(TNT_DAMAGE/48.0),point):
+ 			var away:Vector2 = (target.global_position-point).normalized()
+ 			if away.is_zero_approx(): away = Vector2.RIGHT
+ 			target.apply_knockback(away,32.0,235.0,0.0,0.0,{"source":self})
+ 	# Explosion recoil keeps the pre-blast travel direction and decays quickly.
+ 	_recoil_velocity = _last_move_direction.normalized()*480.0
+ 	# Self-damage uses the same live outgoing/incoming attribute settlement.
+-	take_damage(attack_damage(TNT_SELF_DAMAGE/maxf(float(Damage),1.0)))
+-	if health > 0: set_block(next_block())
++	take_damage(attack_damage(TNT_SELF_DAMAGE/48.0))
++	if health > 0:
++		# User-confirmed exception: TNT is CONSUMED, never kept/re-primed in the
++		# old slot. Keep its companion and insert one new, distinct block.
++		var next:int = next_block()
++		var retained:PackedInt32Array = PackedInt32Array()
++		for mode:int in block_slots:
++			if mode != Block.TNT: retained.append(mode)
++		retained.append(next)
++		_change_blocks(retained)
+ 
+ @rpc("authority","call_remote","reliable")
+ func _spawn_blast_visual(point:Vector2) -> void:
+@@ -787,39 +916,36 @@ func mc_play(event:String,volume:float = -4.0) -> AudioStreamPlayer2D:
+ 
+ func get_ai_attack_threats(_receiver:ball) -> Array:
+ 	if health <= 0 or not is_combat_runtime_active() or is_damage_output_disabled(): return []
+-	if block_mode == Block.TNT:
+-		if fuse_left <= 0.0: return []
+-		return [{"shape":"circle","position":global_position,"radius":TNT_RADIUS,
+-			"damage":attack_damage(TNT_DAMAGE/maxf(float(Damage),1.0)),"danger_in":fuse_left,
+-			"danger_duration":0.12,"kind":"sulfur_cube_tnt","source":self}]
+-	if dizziness or not Can_Attack: return []
++	var threats:Array = []
++	if has_block(Block.TNT) and fuse_left > 0.0:
++		threats.append({"shape":"circle","position":global_position,"radius":TNT_RADIUS,
++			"damage":attack_damage(TNT_DAMAGE/48.0),"danger_in":fuse_left,
++			"danger_duration":0.12,"kind":"sulfur_cube_tnt","source":self})
++	if dizziness or not Can_Attack: return threats
+ 	var radius:float = get_crowd_separation_radius_world()
+ 	if _iron_bottom_active():
+ 		var bottom:Rect2 = _iron_bottom_rect()
+-		return [{"shape":"rect","position":bottom.get_center(),
++		threats.append({"shape":"rect","position":bottom.get_center(),
+ 			"half_extents":bottom.size*0.5,"damage":attack_damage(_iron_damage_multiplier(_receiver)),
+-			"danger_duration":IRON_CRUSH_INTERVAL,"kind":"sulfur_iron_bottom","source":self}]
+-	if block_mode == Block.AMETHYST and not crystals_out and (not is_instance_valid(_native_model) or _native_model.crystals_ready()):
+-		var threats:Array = []
++			"danger_duration":IRON_CRUSH_INTERVAL,"kind":"sulfur_iron_bottom","source":self})
++	if has_block(Block.AMETHYST) and not crystals_out and (not is_instance_valid(_native_model) or _native_model.crystals_ready()):
+ 		var tips:Array[Vector2] = _crystal_tip_points()
+ 		for i:int in range(tips.size()):
+ 			if _crystal_has_hit(i,_receiver): continue
+-			var tip:Vector2 = tips[i]
+-			threats.append({"shape":"circle","position":tip,
++			threats.append({"shape":"circle","position":tips[i],
+ 				"radius":CRYSTAL_RADIUS,"damage":attack_damage(AMETHYST_CONTACT_MULT),
+ 				"danger_duration":CONTACT_INTERVAL,"kind":"sulfur_amethyst_crystal","source":self})
+-		return threats
+-	if block_mode == Block.MAGMA:
+-		return [{"shape":"circle","position":global_position,"radius":radius,
+-			"damage":attack_damage(0.8),"danger_duration":CONTACT_INTERVAL,"kind":"sulfur_magma_touch","source":self},
+-			{"shape":"rect","position":global_position+Vector2.UP*radius,
++	if has_block(Block.MAGMA):
++		threats.append({"shape":"circle","position":global_position,"radius":radius,
++			"damage":_mode_damage(Block.MAGMA),"danger_duration":CONTACT_INTERVAL,"kind":"sulfur_magma_touch","source":self})
++		threats.append({"shape":"rect","position":global_position+Vector2.UP*radius,
+ 			"half_extents":Vector2(radius,2.5),"damage":attack_damage(0.17),
+-			"danger_duration":HOT_INTERVAL,"kind":"sulfur_magma_top","source":self}]
+-	if block_mode == Block.ICE:
+-		return [{"shape":"circle","position":global_position,"radius":radius,
+-			"damage":attack_damage(_mode_damage()/maxf(float(Damage),1.0)),
+-			"danger_duration":CONTACT_INTERVAL,"kind":"sulfur_ice_speed_contact","source":self}]
+-	return []
++			"danger_duration":HOT_INTERVAL,"kind":"sulfur_magma_top","source":self})
++	if has_block(Block.ICE):
++		threats.append({"shape":"circle","position":global_position,"radius":radius,
++			"damage":_mode_damage(Block.ICE),
++			"danger_duration":CONTACT_INTERVAL,"kind":"sulfur_ice_speed_contact","source":self})
++	return threats
+ 
+ func get_debug_attack_regions() -> Array:
+ 	return get_ai_attack_threats(null)
+@@ -830,6 +956,7 @@ func Die() -> void:
+ 	honey_target_paths = PackedStringArray()
+ 	_clear_honey_contacts()
+ 	_clear_charge_circle()
++	if is_instance_valid(_block_frames): _block_frames.hide()
+ 	_restore_slam_collision()
+ 	super.Die()
+ 	# mc_mob_base.Die() intentionally supplies the vanilla creature death,
+diff --git a/scripts/world.gd b/scripts/world.gd
+index c42afd84aca4d2670325dc305784efc942b940d6..0fda20c44959bf6ef065291e44c68f27550bf0ca 100644
+--- a/scripts/world.gd
++++ b/scripts/world.gd
+@@ -5318,7 +5318,7 @@ const ARMOR_TEST_ROLE_SUMMARIES:Dictionary = {
+ 	"res://scripts/characters/我的世界/new6/heavenfall_longbow.gd":"追踪箭可穿墙并引落箭雨和裂隙；受击时可借裂隙瞬移反击。",
+ 	"res://scripts/characters/我的世界/钻石长矛.gd":"疾跑刺击越快越痛，虚影连刺；还能横扫、瞬移袭敌。",
+ 	"res://scripts/characters/我的世界/铁傀儡.gd":"蓄力上挑击飞敌人；村民可修复它，村民阵亡后会狂暴。",
+-	"res://scripts/characters/我的世界/硫方怪.gd":"轮换内置方块改变接触效果；蜂蜜减速、铁块减伤，最后用TNT爆炸。",
++	"res://scripts/characters/我的世界/硫方怪.gd":"同时保留最近两块特性，左旧右新，体内只显示新块；TNT爆炸后消耗并补块。",
+ 	"res://scripts/characters/我的世界/鞘翅重锤.gd":"烟花推进飞行；命中后跃起连砸，连续砸中伤害递增。",
+ 	"res://scripts/characters/我的世界/鞘翅长矛.gd":"烟花助飞，低速点刺后转身，高速贯穿；每次命中还会提速。",
+ 	"res://scripts/characters/我的世界/鞘翅重锤长矛.gd":"飞行矛尖命中会引发锤击并跃起连砸，连砸伤害递增。",
+diff --git a/tests/SULFUR_CUBE_DUAL_BLOCKS_20260926.md b/tests/SULFUR_CUBE_DUAL_BLOCKS_20260926.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..fe74acbb17786d16c32560feb727ecbb2654ca6a
+--- /dev/null
++++ b/tests/SULFUR_CUBE_DUAL_BLOCKS_20260926.md
+@@ -0,0 +1,101 @@
++# 硫方怪：双槽特性与物品展示框
++
++日期：2026-09-26。
++
++## 用户确认的行为
++
++- 同时保留最近取得的两种方块特性；首次填左框，第二次填右框，之后淘汰最左、原右移左、新方块进入右框。
++- 两个展示框位于本体下方，各槽获得方块后才显示，未填槽不显示旧图标。使用原版物品展示框与对应原版方块贴图，不使用人物缩略图代替方块。
++- 本体内部只有最新方块。旧紫水晶的外部晶簇仍是有效攻击结构，不能因体内换成其他方块而消失。
++- **TNT 特例由用户明确选择：爆炸后消耗 TNT，保留另一个方块并补入新方块，不把 TNT 留在左槽再次点燃。** 点燃中的 TNT 不能通过淘汰来规避自伤。
++- 随机获取从当前未持有的方块中选择；满两槽时有四种候选。同种特性不重复堆叠，重复最新块不会刷新状态。
++
++## 实现
++
++### 状态、显示和同步
++
++- `block_slots: PackedInt32Array` 是从旧到新的唯一有序存储/同步字段，容量二；`SulfurBlockSync` 同步整个数组，避免两个独立字段先后到达导致误清理。
++- `block_mode` 是由数组末项计算的兼容属性，**不再导出存储**，防止状态恢复时先恢复双槽、再被最新块别名覆盖为单槽。
++- 正常开场和 `Skill()` 使用 `acquire_block()`；TNT 消耗后保留同伴再补块。`set_block()` 保留为旧存档/单形态夹具的显式单槽替换入口，不是正常获取路径。
++- 下方显示节点独立于本体的挤压/翻转图片，随角色位置、缩放和世界相机移动；岩浆图集只取第一张原始方形帧，不把纵向动画图集拉成图标。
++- 只重建最新内部六面体。外部晶体的布局、生长、命中记录、发射/再生计时与是否仍持有紫水晶有关，不与最新内部材质绑定。
++- 更新了对战盔甲架中的硫方怪简介，以及 `tests/manual_control_inventory.csv` 的该角色一行。
++
++### 两份能力实际共存
++
++- 冰的惯性、反弹、真实位移铺冰与速度伤害；岩浆的接触/顶部伤害、燃烧与火免；蜂蜜拉力和成对免碰撞；铁的重力、底部碾压、跳砸和减伤；TNT 倒计时；紫晶接触、齐射及再生，均按所持特性检查，不再只看最新外观。
++- 保留方块不会重置自己的命中冷却、晶体命中记录或蜂蜜租约；淘汰才清理该特性。冰/岩浆接触拥有独立冷却，真实威胁显示返回所有有效伤害形状的并集。
++- 铁与冰组合保留铁的重力/水平输入限制，同时保留冰惯性及铺冰；各已有移动倍率各应用一次。没有新增另一套碰撞、燃烧、击退或粒子算法。
++- 铁/紫晶伤害系数和原平衡继续保留。冰接触与威胁现在共用同一实时伤害公式；TNT 使用基准攻击 48 对应的伤害系数，不再用当前 `Damage` 作分母抵消属性变化。默认 TNT 对外 150、自伤 60 的基础参数不变，自伤仍受自身铁减伤等当前承伤属性影响。
++
++### 手控
++
++| 组合 | 左键 | 右键 | 中键 | 数字 1 |
++| --- | --- | --- | --- | --- |
++| 非铁，持有紫晶 | 原冲刺 | 获取新块 | 紫晶齐射 | 空 |
++| 铁 + 紫晶 | 原单次跳砸 | 获取新块 | 紫晶齐射 | 同伴原冲刺 |
++| 铁 + 冰/岩浆/蜂蜜 | 原单次跳砸 | 获取新块 | 同伴原冲刺 | 空 |
++| 其他组合 | 原有可用动作 | 获取新块 | 无额外动作则空 | 空 |
++
++额外冲刺沿用原攻击冷却，不绕过眩晕、权限、死亡、禁攻或正在跳砸限制。直接控制时不自动发射晶体；被动再生、碰撞伤害和 TNT 倒计时继续按原机制执行。
++
++## 原版素材
++
++新增 `Images/characters/我的世界/sulfur_cube/source/item_frame.png`，直接提取自项目现有的 Minecraft Java 26.2 官方客户端缓存，未重绘或改动字节。
++
++- 客户端 SHA-1：`2dc72797acbc1b63fc16a11c4ac393605f453754`
++- 条目：`assets/minecraft/textures/item/item_frame.png`
++- 图片 SHA-1：`8cb8afb4c242be406bd76497012962967f8bf2c5`
++- 来源和许可说明：同目录 `ITEM_FRAME_SOURCE.json`。
++- 方块图标复用 `sulfur_cube_model.gd::BLOCK_TEXTURES` 的现有原版素材。
++
++游戏资源的来源记录不意味着可以自由再分发。没有提交整个客户端、缓存或新生成替代素材。
++
++## 最终验证
++
++引擎：`E:/godot/polo-balls-tools/offline-engine/runtime/Godot.4.7.2.offline.exe`。
++
++实际 GPU：OpenGL Compatibility / NVIDIA GeForce RTX 4060 Laptop GPU。每个进程使用检查点内隔离的 `APPDATA`，不保存或覆盖用户实际游戏设置。
++
++| 夹具 | 模式 | 最终结果 |
++| --- | --- | --- |
++| `tests/test_sulfur_cube_dual.gd` | 实际 GPU | **143/143，exit 0** |
++| `tests/test_sulfur_cube_dual.gd` | 无头重复运行 | **140/140，exit 0** |
++| `tests/test_sulfur_cube_dual_network.gd` | 双 SceneMultiplayer / ENet | **34/34，exit 0** |
++| `tests/test_sulfur_cube_redesign.gd` | 无头 | **32/32，exit 0** |
++| `tests/test_sulfur_cube_redesign_network.gd` | 双 SceneMultiplayer / ENet | **42/42，exit 0** |
++| `tests/test_sulfur_cube_balance.gd` | 实际 GPU | **30/30，exit 0** |
++| `tests/test_sulfur_cube_contacts.gd` | 实际 GPU | **34/34，exit 0** |
++| `tests/test_sulfur_cube_polish.gd` | 实际 GPU | **35/35，exit 0** |
++
++七套主要回归累计 **350 项断言通过**；同一双槽夹具另以无头模式重复通过 140 项，不把它算作另一批独立覆盖。最终八次运行全部退出 0，日志中无 `SCRIPT ERROR`、`ERROR:` 或失败断言。
++
++双槽专项覆盖：30 种有序组合；左/右/FIFO；单一内部材质；旧特性保留与淘汰；独立真实伤害和属性变化；晶体命中记忆/计时；蜂蜜双方租约；完整手控与冷却/AI停火；TNT 两个槽位的消耗、保护同伴和防重复爆炸；铁冰组合的真实移动；暂停/死亡；实际威胁开关及清理；导出字段恢复到新场景实例。
++
++联机专项覆盖：真正 Spawner/Synchronizer 双端创建；有序双槽、图标和内部材质同步；非权威端不能获取/结算；蜂蜜租约延续/移除；旧晶体布局/生长和手控表；预填双槽的出生/删除；旧 TNT 倒计时、一次爆炸与消耗补槽同步。
++
++GPU 截图 `ice_magma.png`、`magma_honey.png`、`amethyst_iron.png` 使用共享 World2D 的实际渲染视口，已读取并目视核对两框及最新内部方块。最终原晶体同模型像素回归 **369 个可见像素、0 差异**。首次专项截图夹具漏设祖先 CanvasItem 的专用可见层，导致空截图；只修正测试视口的遮罩设置后重跑，没有改变游戏全局图层。
++
++编辑器诊断在角色目录和 `scripts/world.gd` 范围返回零项；该编辑器未提供有效 GDScript LSP，所以以实际引擎运行结果为主。现有 shader UID/文件名大小写警告仍存在。首次隔离配置的编辑器导入阶段还出现 animation-resetter/gdfxr 插件的语言设置 Nil/String 错误；素材导入完成，最终游戏运行时各套未复现，未修改这些插件。
++
++### 尚未验收
++
++- ENet 验证是同一 Godot 进程中两个独立 SceneMultiplayer，不是两台独立客户端的人工实战。
++- 未执行双语视频编码、大规模性能压力或全部角色两两对战。
++- 状态恢复验证针对导出字段恢复到原始角色场景；不宣称任意运行中节点/信号图的完整 PackedScene 克隆已验证。
++
++## 版本与回退范围
++
++- 任务开始提交：`79a38a16fbb714c0450a4a1dd4145cdd19058d5b`。
++- 修改前备份：`E:/godot/polo-balls-tools/checkpoints/sulfur-dual-20260926-072238`。
++- 最终父提交/新提交及清单记录在该检查点的 `commit_result.json`，并在交付回复报告；未推送远程。
++- 提交范围：硫方怪脚本、内部模型、场景同步；新增展示框原素材/导入配置/来源；新测试及说明。共享 `scripts/world.gd`、`MCP_CONTEXT.md`、手控 CSV 只纳入本次对应条目，不接管其他会话的修改。
++- 本地 Git 提交不是整个脏工作区的完整快照。其它未提交的地图、角色、资源与代码仍由原任务保留。
++- 独立回退补丁：`tests/patches/sulfur_cube_dual_20260926.patch`。提交前必须对当前工作树通过 `git apply --reverse --check`；真正回退前再次备份并核对。补丁不包含它自己；检查点内保留日志与截图，不把运行缓存提交进仓库。
++
++```powershell
++# 仅检查，不执行回退；在项目根运行。
++git apply --reverse --check -- tests/patches/sulfur_cube_dual_20260926.patch
++```
++
++不要直接覆盖整个 `world.gd` / `MCP_CONTEXT.md`，不要未经确认使用 `reset --hard`、`clean -fd` 或强制推送。
+diff --git a/tests/manual_control_inventory.csv b/tests/manual_control_inventory.csv
+index a5e677b180492d31937bdf3529b847b7cbace157..75dc14732bd61a95d3bdfca9192eaae0485a8374 100644
+--- a/tests/manual_control_inventory.csv
++++ b/tests/manual_control_inventory.csv
+@@ -112,7 +112,7 @@
+ 选角人物,scenes/characters/我的世界/烈焰人.tscn,scripts/characters/我的世界/烈焰人.gd,Attack,是,识别到入口；待逐角色验证实际命中与AI停火
+ 选角人物,scenes/characters/我的世界/监守者.tscn,scripts/characters/我的世界/frontier/warden.gd,"Attack,Skill,player_control_action",是,识别到入口；待逐角色验证实际命中与AI停火
+ 选角人物,scenes/characters/我的世界/矿车.tscn,scripts/characters/我的世界/minecart/minecart.gd,"Attack,Skill,player_control_action",是,识别到入口；待逐角色验证实际命中与AI停火
+-选角人物,scenes/characters/我的世界/硫方怪.tscn,scripts/characters/我的世界/硫方怪.gd,"Attack,Skill,controlled_crystal_volley",是,左冲刺或铁单砸；右换块；中键随机晶齐射；铁底被动持续碾压/冰面自身方向加速；平衡30项/接触34项/手控GPU35项/双peer42项通过；未做双客户端手控实战
++选角人物,scenes/characters/我的世界/硫方怪.tscn,scripts/characters/我的世界/硫方怪.gd,"Attack,Skill,controlled_crystal_volley,controlled_surge",是,左冲刺或铁单砸；右取新块（双槽FIFO）；持紫晶中键齐射；铁与其他可冲刺块组合保留额外冲刺（有紫晶用1否则中键）并共用攻击冷却；旧特性/威胁持续；专项与GPU/ENet回归见SULFUR_CUBE_DUAL_BLOCKS_20260926.md；未做双客户端手控实战
+ 选角人物,scenes/characters/我的世界/粘性活塞.tscn,scripts/characters/我的世界/new5/piston.gd,,是,自定义或被动机制；待逐角色识别手动入口
+ 选角人物,scenes/characters/我的世界/羊.tscn,scripts/characters/我的世界/new6/sheep.gd,,是,自定义或被动机制；待逐角色识别手动入口
+ 选角人物,scenes/characters/我的世界/苔藓.tscn,scripts/characters/我的世界/frontier/moss.gd,"Attack,Skill,player_control_action",是,识别到入口；待逐角色验证实际命中与AI停火
+diff --git a/tests/test_sulfur_cube_dual.gd b/tests/test_sulfur_cube_dual.gd
+new file mode 100644
+index 0000000000000000000000000000000000000000..385bfb3e601a9b529bb47e2d65492ce8ccf1f32e
+--- /dev/null
++++ b/tests/test_sulfur_cube_dual.gd
+@@ -0,0 +1,366 @@
++extends SceneTree
++## Two-slot FIFO, real combined mechanics, manual controls and shared-viewport GPU checks.
++var checks:int = 0
++var failures:int = 0
++var game:Node
++var world:Node
++var cube:Node2D
++var victim:Node2D
++var C:Script
++var center:Vector2
++func _initialize() -> void: call_deferred("run")
++func check(ok:bool,label:String) -> void:
++	checks += 1
++	if not ok: failures += 1
++	print("PASS: " if ok else "FAIL: ",label)
++func kinds() -> Dictionary:
++	var result:Dictionary = {}
++	for info:Dictionary in cube.get_ai_attack_threats(null): result[str(info.kind)] = true
++	return result
++func reset_block(mode:int = 0) -> void:
++	cube.fuse_left = 0.0
++	cube.set_block(C.Block.EMPTY)
++	if mode != C.Block.EMPTY: cube.acquire_block(mode)
++	cube._process(0.0)
++func settle_model() -> void:
++	cube._process(0.0)
++	cube._native_model.animate(0.0,0.3,true,cube.fuse_left)
++func has_frame(index:int,mode:int) -> bool:
++	var frame:Node2D = cube._block_frames.get_child(index) as Node2D
++	return frame.visible and int(frame.get_meta("block_mode",0)) == mode and frame.get_node("BlockIcon").texture == C.MODEL.BLOCK_TEXTURES[mode]
++func fighter(sulfur:bool,point:Vector2) -> Node2D:
++	var unit:Node2D = load("res://scenes/characters/我的世界/硫方怪.tscn" if sulfur else "res://scenes/ball.tscn").instantiate()
++	unit.Team = "Team0" if sulfur else "Team1"
++	unit.position = point
++	unit.get_node("CharacterAutoFit").enabled = false
++	world.add_child(unit,true)
++	unit.state_machine.set_physics_process(false)
++	unit.set_physics_process(false)
++	unit.Has_Collision_Damage = false
++	unit.self_hitbox.set_deferred("monitoring",false)
++	unit.Max_health = 10000
++	unit.default_properties.Max_health = 10000
++	unit.health = 10000
++	return unit
++func run() -> void:
++	create_timer(100.0,true,false,true).timeout.connect(func(): print("SULFUR_DUAL_TIMEOUT"); quit(2))
++	game = root.get_node("Game")
++	var saved:Dictionary = game.Game_Settings.duplicate(true)
++	var saved_stop:bool = game.now_stop_state
++	game.now_stop_state = false
++	game.Game_Settings.Training_Mode = false
++	game.Game_Settings.Training_Mode_Type = "manual"
++	game.Game_Settings.Have_Team_Damage = false
++	game.Game_Settings.Ball_Can_Move = true
++	AudioServer.set_bus_mute(0,true)
++	C = load("res://scripts/characters/我的世界/硫方怪.gd")
++	world = load("res://scenes/world.tscn").instantiate()
++	world.tree_entered.connect(func(): current_scene = world,CONNECT_ONE_SHOT)
++	root.add_child(world)
++	if is_instance_valid(world._mc_prewarmer): world._mc_prewarmer.free()
++	world.set_process(false)
++	world.set_physics_process(false)
++	center = world.return_map_world_rect(world.map_group[world.now_choose_map]).get_center()
++	cube = fighter(true,center)
++	victim = fighter(false,center+Vector2(160,0))
++	var tiny := CircleShape2D.new()
++	tiny.radius = 2.0
++	victim.collision_shape_2d.shape = tiny
++	victim.get_node("hurtbox/CollisionShape2D").shape = tiny
++	await physics_frame
++	check(cube.block_slots.is_empty() and not cube._block_frames.get_child(0).visible and not cube._block_frames.get_child(1).visible,"empty spawn has no phantom inventory frames")
++	cube.acquire_block(C.Block.ICE)
++	check(cube.block_slots == PackedInt32Array([C.Block.ICE]) and has_frame(0,C.Block.ICE) and not cube._block_frames.get_child(1).visible,"first pickup fills LEFT only")
++	cube.acquire_block(C.Block.MAGMA)
++	check(cube.block_slots == PackedInt32Array([C.Block.ICE,C.Block.MAGMA]) and has_frame(0,C.Block.ICE) and has_frame(1,C.Block.MAGMA),"second pickup fills RIGHT and keeps the left trait")
++	check(cube._native_model.block_mode == C.Block.MAGMA and cube.has_block(C.Block.ICE),"internal block is newest magma while older ice remains active")
++	cube.acquire_block(C.Block.HONEY)
++	check(cube.block_slots == PackedInt32Array([C.Block.MAGMA,C.Block.HONEY]) and has_frame(0,C.Block.MAGMA) and has_frame(1,C.Block.HONEY) and not cube.has_block(C.Block.ICE),"third pickup evicts left, shifts old right left, puts new item right")
++	check(cube.block_mode == C.Block.HONEY and cube._native_model.inner_block.get_child_count() == 6,"body still contains one six-faced newest block, never two overlaid blocks")
++	var unchanged:PackedInt32Array = cube.block_slots.duplicate()
++	check(not cube.acquire_block(C.Block.HONEY) and not cube.acquire_block(-1) and not cube.acquire_block(99) and cube.block_slots == unchanged,"duplicate newest / invalid acquisitions cannot invent stacks or exceed capacity")
++	var picks:Dictionary = {}
++	var valid:bool = true
++	for i:int in range(200):
++		var pick:int = cube.next_block()
++		valid = valid and not cube.has_block(pick)
++		picks[pick] = true
++	check(valid and picks.size() == 4,"random acquisition selects from the four unheld block types")
++	reset_block(C.Block.ICE)
++	cube.Skill()
++	check(cube.block_slots.size() == 2 and cube.block_slots[0] == C.Block.ICE,"real Skill entry acquires into the second slot instead of replacing the first")
++
++	var derived_is_stored:bool = false
++	for property:Dictionary in cube.get_property_list():
++		if property.name == "block_mode": derived_is_stored = (int(property.usage) & PROPERTY_USAGE_STORAGE) != 0
++	check(not derived_is_stored,"newest-only compatibility alias is not serialized over the two-slot snapshot")
++	var stored:Dictionary = {}
++	for property:Dictionary in cube.get_property_list():
++		if property.name in ["block_slots","block_mode"] and (int(property.usage) & PROPERTY_USAGE_STORAGE) != 0:
++			stored[property.name] = cube.get(property.name)
++	# Restore exported data onto a fresh original scene, not a PackedScene
++	# clone of runtime health-bar signal connections unrelated to this feature.
++	var restored:Node = load("res://scenes/characters/我的世界/硫方怪.tscn").instantiate()
++	for key:String in stored: restored.set(key,stored[key])
++	check(restored.block_slots == cube.block_slots and restored.block_mode == cube.block_mode,"stored-property snapshot/restore retains both blocks in order")
++	if is_instance_valid(restored): restored.free()
++
++	# All 30 ordered distinct pairs: inventory, latest-only model and complete threat union.
++	for first:int in range(C.Block.ICE,C.Block.AMETHYST+1):
++		for second:int in range(C.Block.ICE,C.Block.AMETHYST+1):
++			if first == second: continue
++			reset_block(first)
++			cube.acquire_block(second)
++			settle_model()
++			check(cube.has_block(first) and cube.has_block(second) and has_frame(0,first) and has_frame(1,second),"pair %d/%d retains both traits and ordered original-texture icons" % [first,second])
++			check(cube._native_model.block_mode == second and cube._native_model.inner_block.get_child(0).material_override.albedo_texture == C.MODEL.BLOCK_TEXTURES[second],"pair %d/%d renders only newest inner material" % [first,second])
++			var expected:Dictionary = {}
++			for mode:int in [first,second]:
++				if mode == C.Block.ICE: expected["sulfur_ice_speed_contact"] = true
++				elif mode == C.Block.MAGMA:
++					expected["sulfur_magma_touch"] = true
++					expected["sulfur_magma_top"] = true
++				elif mode == C.Block.IRON: expected["sulfur_iron_bottom"] = true
++				elif mode == C.Block.TNT: expected["sulfur_cube_tnt"] = true
++				elif mode == C.Block.AMETHYST: expected["sulfur_amethyst_crystal"] = true
++			check(kinds() == expected,"pair %d/%d exposes every actual damage region, not only the latest mode" % [first,second])
++
++	# Independent damage cooldowns and attribute-based settlement.
++	reset_block(C.Block.ICE)
++	cube.acquire_block(C.Block.MAGMA)
++	cube._actual_speed = cube._ice_reference_speed
++	victim.global_position = cube.global_position+Vector2(cube.get_crowd_separation_radius_world(),0)
++	var before:float = victim.health
++	cube._pulse_contact()
++	var expected_damage:float = cube._mode_damage(C.Block.ICE)+cube._mode_damage(C.Block.MAGMA)
++	check(absf((before-victim.health)-expected_damage) <= 2.0,"ice and magma both deal their own real contact damage on the same frame")
++	before = victim.health
++	cube._pulse_contact()
++	check(victim.health == before,"each contact trait has an independent cooldown without duplicate same-frame hits")
++	var base_ice:float = cube._mode_damage(C.Block.ICE)
++	var base_magma:float = cube._mode_damage(C.Block.MAGMA)
++	cube.Damage = 96
++	check(is_equal_approx(cube._mode_damage(C.Block.ICE),base_ice*2.0) and is_equal_approx(cube._mode_damage(C.Block.MAGMA),base_magma*2.0),"both retained damage formulas follow current attack attributes")
++	cube.Damage = 48
++	reset_block(C.Block.MAGMA)
++	cube._pulse_contact()
++	cube.acquire_block(C.Block.TNT)
++	before = victim.health
++	cube._pulse_contact()
++	check(victim.health == before,"acquiring a companion does not reset the retained magma hit cooldown")
++	check(cube.get_fire_effect_ratio() == 0.0 and kinds().has("sulfur_cube_tnt") and kinds().has("sulfur_magma_touch"),"older magma immunity/contact coexist with primed newer TNT")
++	victim.global_position = center+Vector2(160,0)
++	reset_block(C.Block.MAGMA)
++	cube.acquire_block(C.Block.IRON)
++	check(not cube.can_receive_fire_status(),"magma fire immunity survives in the left slot")
++	before = cube.health
++	cube.take_damage(100.0)
++	check(before-cube.health == 50.0,"newer iron mitigation coexists with older magma immunity")
++	cube.acquire_block(C.Block.HONEY)
++	check(cube.can_receive_fire_status() and cube.has_block(C.Block.IRON),"eviction removes only magma immunity while retained iron still exists")
++	before = cube.health
++	cube.take_damage(100.0)
++	check(before-cube.health == 50.0,"older iron mitigation survives a different latest visual block")
++	cube.acquire_block(C.Block.ICE)
++	check(not cube.is_external_directional_gravity_locomotion_enabled(),"evicting iron restores previous gravity mode")
++	before = cube.health
++	cube.take_damage(100.0)
++	check(before-cube.health == 100.0,"evicted iron no longer grants resistance")
++
++	# Sticky collision leases remain until HONEY itself is evicted.
++	reset_block(C.Block.HONEY)
++	victim.global_position = cube.global_position+Vector2(4,0)
++	cube._pull_touching_enemies(0.1)
++	cube.acquire_block(C.Block.MAGMA)
++	check(cube.get_collision_exceptions().has(victim) and victim.get_collision_exceptions().has(cube),"honey pair collision exemption survives insertion of magma")
++	victim.Repel = Vector2(250,0)
++	cube._pull_touching_enemies(0.1)
++	check(victim.Repel.x < 250.0 and victim.Repel.x > 0.0,"retained honey keeps its bounded pull, not a hard lock")
++	cube.acquire_block(C.Block.IRON)
++	check(not cube.get_collision_exceptions().has(victim) and not victim.get_collision_exceptions().has(cube),"eviction releases both sides of the honey lease")
++	victim.global_position = center+Vector2(160,0)
++
++	# Older amethyst keeps real crystals, hit memory, timing and its manual volley.
++	reset_block(C.Block.AMETHYST)
++	settle_model()
++	var layout:PackedVector3Array = cube.crystal_layout.duplicate()
++	var crystal_id:int = cube._native_model.crystal_layer.get_child(0).get_instance_id()
++	var top_tip:Vector2 = cube._crystal_tip_points()[0]
++	for tip:Vector2 in cube._crystal_tip_points():
++		if tip.y < top_tip.y: top_tip = tip
++	victim.global_position = top_tip
++	cube._pulse_contact()
++	var hits:Dictionary = cube._crystal_hits.duplicate(true)
++	cube._crystal_timer = 1.2
++	cube.acquire_block(C.Block.IRON)
++	check(cube.crystal_layout == layout and cube._native_model.crystal_layer.get_child(0).get_instance_id() == crystal_id and cube._native_model.crystal_layer.visible,"new inner iron does not rebuild or hide retained external amethyst crystals")
++	check(cube._crystal_hits == hits and is_equal_approx(cube._crystal_timer,1.2) and cube._native_model.crystals_ready(),"retained crystals keep hit memory, cooldown and growth readiness")
++	before = victim.health
++	cube._pulse_contact()
++	check(victim.health == before,"same old crystal cannot re-hit merely because the inner block changed")
++	check(cube.player_control_action_ids() == [&"Attack",&"Skill",&"controlled_crystal_volley",&"controlled_surge"],"iron + amethyst retains all four real actions in mouse/mouse/mouse/1 order")
++	cube.player_control_peer_id = 1
++	cube._crystal_timer = 0.0
++	victim.global_position = center+Vector2(160,0)
++	cube.player_control_action(2)
++	check(cube.crystals_out and not cube._native_model.crystal_layer.visible,"middle mouse can fire the OLD retained amethyst, not just newest inner block")
++	cube.state_machine.last_state_dis["Attack"] = 99.0
++	cube._slam_time = -1.0
++	cube.player_control_action(3)
++	check(cube._surge_left > 0.0 and cube.state_machine.last_state_dis.Attack == 0.0,"fourth action preserves companion surge and consumes shared attack cooldown")
++	cube._surge_left = 0.11
++	cube.player_control_action(3)
++	check(is_equal_approx(cube._surge_left,0.11),"extra surge cannot bypass its original attack cooldown")
++	cube._crystal_timer = 0.01
++	cube.tick_physics(cube.State.Stand,0.02)
++	check(not cube.crystals_out,"controlled old amethyst still regrows passively")
++	cube._crystal_timer = 0.01
++	cube.tick_physics(cube.State.Stand,0.02)
++	check(not cube.crystals_out,"controlled entity does not automatically fire retained amethyst")
++	cube.acquire_block(C.Block.ICE)
++	check(not cube._native_model.crystal_layer.visible and not cube.player_control_extra_actions().has(&"controlled_crystal_volley"),"evicted amethyst loses visuals, threat and manual volley together")
++	cube.player_control_peer_id = 0
++
++	# User-selected TNT exception: consume it once, preserve its companion, refill.
++	reset_block(C.Block.IRON)
++	cube.acquire_block(C.Block.TNT)
++	cube.fuse_left = 0.7
++	check(not cube.acquire_block(C.Block.TNT) and cube.block_slots.size() == 2,"duplicate TNT pickup cannot create two fuse instances")
++	cube.fuse_left = 0.0
++	before = cube.health
++	cube._detonate()
++	check(cube.block_slots.size() == 2 and cube.block_slots[0] == C.Block.IRON and not cube.has_block(C.Block.TNT),"TNT consumption preserves the other block and fills the right frame with a new non-TNT block")
++	check(before-cube.health == 30.0 and cube.fuse_left == 0.0 and not is_instance_valid(cube._charge_circle),"one TNT self-hit respects retained iron mitigation and leaves no new fuse")
++	before = cube.health
++	cube._detonate()
++	check(cube.health == before,"consumed TNT cannot explode again")
++	reset_block(C.Block.TNT)
++	cube.acquire_block(C.Block.HONEY)
++	check(not cube.acquire_block(C.Block.ICE),"a primed left-slot TNT cannot be evicted to avoid its self damage")
++	cube.fuse_left = 0.0
++	cube._detonate()
++	check(cube.block_slots[0] == C.Block.HONEY and not cube.has_block(C.Block.TNT),"left-slot TNT is also consumed while its newer honey companion is preserved")
++	reset_block(C.Block.TNT)
++	var tnt_threat:float = cube.get_ai_attack_threats(null)[0].damage
++	cube.Damage = 96
++	check(is_equal_approx(cube.get_ai_attack_threats(null)[0].damage,tnt_threat*2.0),"TNT damage uses a base coefficient rather than cancelling current attack attributes")
++	cube.Damage = 48
++
++	# Real movement: iron gravity and horizontal-only input, plus ice trail/inertia.
++	reset_block(C.Block.IRON)
++	cube.acquire_block(C.Block.ICE)
++	cube.global_position = center-Vector2(0,30)
++	cube.player_control_peer_id = 1
++	cube.player_control_direction = Vector2.UP
++	cube._slide_velocity = Vector2.ZERO
++	cube._recoil_velocity = Vector2.ZERO
++	cube._surge_left = 0.0
++	cube.Repel = Vector2.ZERO
++	for tile:Node in get_nodes_in_group("MCSulfurIceTrail"): tile.queue_free()
++	var start:Vector2 = cube.global_position
++	for i:int in range(12):
++		await physics_frame
++		cube.tick_physics(cube.State.Move,1.0/60.0)
++	check(cube.global_position.y > start.y+10.0 and absf(cube.global_position.x-start.x) < 0.5,"iron + ice falls under real gravity; W does not generate vertical or phantom horizontal drive")
++	check(get_nodes_in_group("MCSulfurIceTrail").size() > 0,"older iron does not suppress newer ice tiles during real displacement")
++	cube.player_control_direction = Vector2.RIGHT
++	start = cube.global_position
++	for i:int in range(10):
++		await physics_frame
++		cube.tick_physics(cube.State.Move,1.0/60.0)
++	check(cube.global_position.x > start.x+1.0 and cube.player_control_direction == Vector2.RIGHT,"iron + ice keeps actual horizontal movement and original player input")
++	cube.player_control_peer_id = 0
++	cube.global_position = center
++
++	# Pause/disable affect both traits and the threat setting shows/clears their union.
++	reset_block(C.Block.ICE)
++	cube.acquire_block(C.Block.MAGMA)
++	game.now_stop_state = true
++	before = victim.health
++	cube._pulse_contact()
++	check(cube.get_ai_attack_threats(null).is_empty() and victim.health == before,"pause disables both retained damage sources and their active threats")
++	game.now_stop_state = false
++	var analyzer:Node2D = load("res://scripts/training/combat_threat_analyzer.gd").new()
++	world.add_child(analyzer)
++	analyzer.set_physics_process(false)
++	game.Game_Settings.Training_Debug_Mode = true
++	analyzer._physics_process(0.1)
++	var displayed:Dictionary = {}
++	for info:Dictionary in analyzer._debug_threats:
++		if str(info.get("kind","")).begins_with("sulfur_"): displayed[str(info.kind)] = true
++	check(analyzer.visible and displayed.has("sulfur_ice_speed_contact") and displayed.has("sulfur_magma_touch") and displayed.has("sulfur_magma_top"),"real threat-display setting shows the union of both retained damage shapes")
++	cube.acquire_block(C.Block.HONEY)
++	analyzer._physics_process(0.1)
++	var old_ice:bool = false
++	for info:Dictionary in analyzer._debug_threats:
++		old_ice = old_ice or str(info.get("kind","")) == "sulfur_ice_speed_contact"
++	check(not old_ice and kinds().has("sulfur_magma_touch"),"evicted ice disappears from the actual overlay while retained magma remains")
++	game.Game_Settings.Training_Debug_Mode = false
++	analyzer._physics_process(0.1)
++	check(not analyzer.visible and analyzer._debug_threats.is_empty(),"disabling threat display immediately hides and clears the union")
++	if DisplayServer.get_name() != "headless": await gpu_frames()
++	cube.health = 0
++	cube._process(0.0)
++	check(not cube._block_frames.visible and cube.get_ai_attack_threats(null).is_empty(),"death hides inventory displays and removes both sets of active threats")
++	world.queue_free()
++	await process_frame
++	await process_frame
++	game.Game_Settings = saved
++	game.now_stop_state = saved_stop
++	print("SULFUR_DUAL: %d checks / %d failures" % [checks,failures])
++	quit(0 if failures == 0 else 1)
++
++func mark_layer(node:Node,layer:int) -> void:
++	if node is CanvasItem: (node as CanvasItem).visibility_layer = layer
++	for child:Node in node.get_children():
++		if not child is SubViewport: mark_layer(child,layer)
++func gpu_frames() -> void:
++	var layer:int = 1 << 18
++	mark_layer(cube,layer)
++	# Canvas visibility requires matching ancestor layers too. Keep unrelated
++	# world children culled without accidentally culling this whole subtree.
++	var ancestors:Array[CanvasItem] = []
++	var previous_layers:Array[int] = []
++	var ancestor:Node = cube.get_parent()
++	while ancestor != null and not ancestor is Viewport:
++		if ancestor is CanvasItem:
++			ancestors.append(ancestor as CanvasItem)
++			previous_layers.append((ancestor as CanvasItem).visibility_layer)
++			(ancestor as CanvasItem).visibility_layer |= layer
++		ancestor = ancestor.get_parent()
++	var shots:Array[String] = ["ice_magma","magma_honey","amethyst_iron"]
++	var pairs:Array = [[C.Block.ICE,C.Block.MAGMA],[C.Block.MAGMA,C.Block.HONEY],[C.Block.AMETHYST,C.Block.IRON]]
++	var preview := SubViewport.new()
++	preview.size = Vector2i(320,320)
++	preview.transparent_bg = true
++	preview.disable_3d = true
++	preview.world_2d = world.get_world_2d()
++	preview.canvas_cull_mask = layer
++	preview.render_target_update_mode = SubViewport.UPDATE_ALWAYS
++	root.add_child(preview)
++	preview.canvas_transform = Transform2D(Vector2(5,0),Vector2(0,5),Vector2(160,125)-cube.global_position*5.0)
++	for i:int in range(shots.size()):
++		reset_block(int(pairs[i][0]))
++		cube.acquire_block(int(pairs[i][1]))
++		settle_model()
++		await process_frame
++		await RenderingServer.frame_post_draw
++		await RenderingServer.frame_post_draw
++		var image:Image = preview.get_texture().get_image()
++		var both_visible:bool = true
++		for slot:Node2D in cube._block_frames.get_children():
++			var point:Vector2 = preview.canvas_transform*slot.global_position
++			var colored:int = 0
++			for y:int in range(int(point.y)-8,int(point.y)+8):
++				for x:int in range(int(point.x)-8,int(point.x)+8):
++					if x >= 0 and y >= 0 and x < image.get_width() and y < image.get_height() and image.get_pixel(x,y).a > 0.5: colored += 1
++			both_visible = both_visible and colored > 200
++		check(both_visible,"real GPU shared World2D viewport contains both populated frames: "+shots[i])
++		var folder:String = OS.get_environment("SULFUR_DUAL_ARTIFACTS")
++		if not folder.is_empty():
++			DirAccess.make_dir_recursive_absolute(folder)
++			image.save_png(folder+"/"+shots[i]+".png")
++	preview.queue_free()
++	mark_layer(cube,1)
++	for i:int in range(ancestors.size()): ancestors[i].visibility_layer = previous_layers[i]
++	await process_frame
+diff --git a/tests/test_sulfur_cube_dual.gd.uid b/tests/test_sulfur_cube_dual.gd.uid
+new file mode 100644
+index 0000000000000000000000000000000000000000..6897c5d67aea487895c7859b35aa57fc957ec376
+--- /dev/null
++++ b/tests/test_sulfur_cube_dual.gd.uid
+@@ -0,0 +1 @@
++uid://bv2nlvv5d3evu
+diff --git a/tests/test_sulfur_cube_dual_network.gd b/tests/test_sulfur_cube_dual_network.gd
+new file mode 100644
+index 0000000000000000000000000000000000000000..40b88830569b0b7160d981f639a5f559f685558e
+--- /dev/null
++++ b/tests/test_sulfur_cube_dual_network.gd
+@@ -0,0 +1,141 @@
++extends "res://tests/test_sulfur_cube_redesign_network.gd"
++## Reuse the existing real ENet/spawner helpers and teardown, adding two-slot contracts.
++func run() -> void:
++	create_timer(65.0,true,false,true).timeout.connect(func(): print("SULFUR_DUAL_NETWORK_TIMEOUT"); finish(2))
++	game = root.get_node("Game")
++	CUBE = load("res://scripts/characters/我的世界/硫方怪.gd")
++	saved = game.Game_Settings.duplicate(true)
++	saved_stop = game.now_stop_state
++	game.Game_Settings.Training_Mode = false
++	game.Game_Settings.Training_Mode_Type = "manual"
++	game.Game_Settings.Have_Team_Damage = false
++	game.now_stop_state = false
++	AudioServer.set_bus_mute(0,true)
++	world = load("res://scenes/world.tscn").instantiate()
++	world.tree_entered.connect(func(): current_scene = world,CONNECT_ONE_SHOT)
++	root.add_child(world)
++	if is_instance_valid(world._mc_prewarmer): world._mc_prewarmer.free()
++	world.set_process(false)
++	world.set_physics_process(false)
++	host_root = Node2D.new()
++	host_root.name = "SulfurDualHost"
++	guest_root = Node2D.new()
++	guest_root.name = "SulfurDualGuest"
++	world.add_child(host_root)
++	world.add_child(guest_root)
++	host_api = SceneMultiplayer.new()
++	guest_api = SceneMultiplayer.new()
++	set_multiplayer(host_api,host_root.get_path())
++	set_multiplayer(guest_api,guest_root.get_path())
++	host_peer = ENetMultiplayerPeer.new()
++	host_peer.set_bind_ip("127.0.0.1")
++	var err:Error = host_peer.create_server(0,1)
++	check(err == OK,"dual-slot local authoritative peer starts")
++	if err != OK: finish(1); return
++	host_api.multiplayer_peer = host_peer
++	guest_peer = ENetMultiplayerPeer.new()
++	err = guest_peer.create_client("127.0.0.1",host_peer.get_host().get_local_port())
++	check(err == OK,"dual-slot independent guest connects")
++	if err != OK: finish(1); return
++	guest_api.multiplayer_peer = guest_peer
++	spawner(host_root)
++	spawner(guest_root)
++	check(await until(func(): return host_api.get_peers().size() == 1 and guest_peer.get_connection_status() == MultiplayerPeer.CONNECTION_CONNECTED),"dual-slot real ENet handshake completes")
++	var center:Vector2 = world.return_map_world_rect(world.map_group[world.now_choose_map]).get_center()
++	var host_unit:Node2D = load(SCENE_PATH).instantiate()
++	host_unit.name = "NetworkSulfurCube"
++	host_unit.Team = "Team0"
++	host_unit.position = center
++	host_unit.first_block_delay = 99.0
++	host_root.add_child(host_unit,true)
++	host_unit.state_machine.set_physics_process(false)
++	host_unit.set_physics_process(false)
++	check(await until(func(): return guest_root.has_node("NetworkSulfurCube")),"dual-slot scene is created by the real MultiplayerSpawner")
++	if not guest_root.has_node("NetworkSulfurCube"): finish(1); return
++	var guest_unit:Node2D = guest_root.get_node("NetworkSulfurCube")
++	guest_unit.state_machine.set_physics_process(false)
++	guest_unit.set_physics_process(false)
++	check(guest_unit.block_slots.is_empty() and not guest_unit._block_frames.get_child(0).visible,"guest initially has no acquired icons")
++	host_unit.acquire_block(CUBE.Block.ICE)
++	check(await until(func(): return guest_unit.block_slots == PackedInt32Array([CUBE.Block.ICE])),"one-slot snapshot replicates atomically")
++	check(guest_unit._block_frames.get_child(0).visible and not guest_unit._block_frames.get_child(1).visible,"guest fills LEFT first")
++	host_unit.acquire_block(CUBE.Block.MAGMA)
++	check(await until(func(): return guest_unit.block_slots == host_unit.block_slots and guest_unit.block_slots.size() == 2),"both traits replicate together, not as racing previous/latest fields")
++	check(guest_unit.has_block(CUBE.Block.ICE) and guest_unit.get_fire_effect_ratio() == 0.0 and guest_unit._native_model.block_mode == CUBE.Block.MAGMA,"guest retains old ice capability and sees only newer magma inside")
++	check(guest_unit._block_frames.get_child(0).get_meta("block_mode") == CUBE.Block.ICE and guest_unit._block_frames.get_child(1).get_meta("block_mode") == CUBE.Block.MAGMA,"guest shows the same left/right original-material icon order")
++	var snapshot:PackedInt32Array = guest_unit.block_slots.duplicate()
++	check(not guest_unit.acquire_block(CUBE.Block.IRON) and guest_unit.block_slots == snapshot and host_unit.block_slots == snapshot,"non-authoritative acquisition cannot change either peer's inventory")
++	host_unit.acquire_block(CUBE.Block.HONEY)
++	check(await until(func(): return guest_unit.block_slots == PackedInt32Array([CUBE.Block.MAGMA,CUBE.Block.HONEY])),"FIFO shift and eviction reach the remote renderer")
++	check(not guest_unit.has_block(CUBE.Block.ICE) and guest_unit._native_model.block_mode == CUBE.Block.HONEY,"guest loses only evicted ice and keeps latest-only inner mesh")
++
++	# Sticky contact remains when honey moves to the older slot, clears on eviction.
++	var host_victim:Node2D = load("res://scenes/ball.tscn").instantiate()
++	host_victim.name = "DualHoneyVictim"
++	host_victim.Team = "Team1"
++	host_root.add_child(host_victim)
++	host_victim.state_machine.set_physics_process(false)
++	host_victim.set_physics_process(false)
++	host_victim.global_position = center+Vector2(5,0)
++	var guest_victim:Node2D = load("res://scenes/ball.tscn").instantiate()
++	guest_victim.name = "DualHoneyVictim"
++	guest_victim.Team = "Team1"
++	guest_root.add_child(guest_victim)
++	guest_victim.state_machine.set_physics_process(false)
++	guest_victim.set_physics_process(false)
++	guest_victim.global_position = center+Vector2(600,0)
++	host_unit._pull_touching_enemies(0.1)
++	check(await until(func(): return guest_unit.get_collision_exceptions().has(guest_victim)),"guest receives matching target collision lease")
++	host_unit.acquire_block(CUBE.Block.IRON)
++	check(await until(func(): return guest_unit.block_slots == PackedInt32Array([CUBE.Block.HONEY,CUBE.Block.IRON]) and guest_unit.get_collision_exceptions().has(guest_victim)),"moving honey left does not clear its replicated pair lease")
++	host_unit.acquire_block(CUBE.Block.ICE)
++	check(await until(func(): return not guest_unit.has_block(CUBE.Block.HONEY) and not guest_unit.get_collision_exceptions().has(guest_victim)),"eviction clears the remote honey collision lease")
++	host_victim.queue_free()
++	guest_victim.queue_free()
++
++	# Retained crystalline geometry stays outside the latest, different internal block.
++	host_unit.set_block(CUBE.Block.AMETHYST)
++	host_unit.acquire_block(CUBE.Block.IRON)
++	check(await until(func(): return guest_unit.block_slots == host_unit.block_slots and guest_unit.crystal_layout == host_unit.crystal_layout and guest_unit._native_model.crystals_ready()),"two-slot amethyst + iron replicates random crystal layout and independent growth")
++	check(guest_unit._native_model.block_mode == CUBE.Block.IRON and guest_unit._native_model.crystal_layer.visible,"guest shows iron inside while retained amethyst protrusions remain visible")
++	check(guest_unit.player_control_action_ids().size() == 4,"remote manual action inventory retains slam/change/volley/surge")
++	var before_layout:PackedVector3Array = guest_unit.crystal_layout.duplicate()
++	guest_unit._roll_crystal_layout()
++	guest_unit.controlled_crystal_volley()
++	check(guest_unit.crystal_layout == before_layout and not guest_unit.crystals_out,"guest cannot reroll or fire retained crystal gameplay")
++	var late_host:Node2D = load(SCENE_PATH).instantiate()
++	late_host.name = "TwoBlockLateSpawn"
++	late_host.Team = "Team0"
++	late_host.position = center+Vector2(100,0)
++	late_host.block_slots = PackedInt32Array([CUBE.Block.IRON,CUBE.Block.AMETHYST])
++	late_host.crystal_layout = host_unit.crystal_layout.duplicate()
++	host_root.add_child(late_host)
++	late_host.state_machine.set_physics_process(false)
++	late_host.set_physics_process(false)
++	check(await until(func(): return guest_root.has_node("TwoBlockLateSpawn") and guest_root.get_node("TwoBlockLateSpawn").block_slots == late_host.block_slots),"spawn snapshot carries both already-acquired blocks")
++	var late_guest:Node = guest_root.get_node_or_null("TwoBlockLateSpawn")
++	check(is_instance_valid(late_guest) and late_guest._block_frames.get_child(0).visible and late_guest._block_frames.get_child(1).visible and late_guest._native_model.block_mode == CUBE.Block.AMETHYST,"late-spawn replica builds both frames and newest-only body")
++	check(late_host.is_external_directional_gravity_locomotion_enabled(),"authority initializes retained iron gravity even from a pre-populated spawn snapshot")
++	late_host.queue_free()
++	check(await until(func(): return not guest_root.has_node("TwoBlockLateSpawn")),"late-spawned dual inventory despawns without orphan UI")
++	host_unit.acquire_block(CUBE.Block.ICE)
++	check(await until(func(): return guest_unit.block_slots == host_unit.block_slots and not guest_unit._native_model.crystal_layer.visible),"amethyst eviction removes the remote external crystal layer")
++
++	# TNT consumes once without deleting its companion, and the exception is replicated.
++	host_unit.set_block(CUBE.Block.TNT)
++	host_unit.acquire_block(CUBE.Block.IRON)
++	host_unit.fuse_left = 0.8
++	check(await until(func(): return guest_unit.block_slots == PackedInt32Array([CUBE.Block.TNT,CUBE.Block.IRON]) and absf(guest_unit.fuse_left-0.8) < 0.1),"older TNT fuse and newer iron state synchronize together")
++	check(await until(func(): return is_instance_valid(guest_unit._charge_circle)),"old retained TNT still has a real guest charge display")
++	var before_hp:float = host_unit.health
++	guest_unit._detonate()
++	check(host_unit.health == before_hp and guest_unit.has_block(CUBE.Block.TNT),"guest cannot explode or consume the authoritative TNT")
++	host_unit.fuse_left = 0.0
++	host_unit._detonate()
++	check(before_hp-host_unit.health == 30.0,"host explosion happens once and respects its other block's iron mitigation")
++	check(await until(func(): return guest_unit.block_slots == host_unit.block_slots and not guest_unit.has_block(CUBE.Block.TNT) and guest_unit.fuse_left == 0.0),"consumed TNT disappears on both peers while the companion is kept")
++	check(guest_unit.block_slots.size() == 2 and guest_unit.block_slots[0] == CUBE.Block.IRON and guest_unit._native_model.block_mode == guest_unit.block_slots[1],"guest keeps iron left and displays replacement right/inside")
++	check(not is_instance_valid(guest_unit._charge_circle),"guest has no stale charge disk after TNT consumption")
++	check(await until(func(): return get_nodes_in_group("MCExplosion").size() == 2),"one explosion effect per peer, not one per slot or a re-primed old TNT")
++	print("SULFUR_DUAL_NETWORK: scoped two-peer checks completed")
++	finish(0 if failures == 0 else 1)
+diff --git a/tests/test_sulfur_cube_dual_network.gd.uid b/tests/test_sulfur_cube_dual_network.gd.uid
+new file mode 100644
+index 0000000000000000000000000000000000000000..d7e0a42e23c80fb7bdacc8eb96ae9fc02c18d05c
+--- /dev/null
++++ b/tests/test_sulfur_cube_dual_network.gd.uid
+@@ -0,0 +1 @@
++uid://dswydfng1afde
