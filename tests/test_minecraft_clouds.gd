@@ -37,12 +37,13 @@ func gpu_checks() -> void:
 	var isolated:SubViewport = capture_view(Vector2i(512,384),false)
 	var poly:=Polygon2D.new()
 	poly.polygon = PackedVector2Array([Vector2.ZERO,Vector2(512,0),Vector2(512,384),Vector2(0,384)])
+	cloud.cloud_material.set_shader_parameter("parallax",1.0) # Isolate footprint geometry from camera movement.
 	poly.material = cloud.cloud_material
 	isolated.add_child(poly)
 	cloud.reset_drift()
 	await _frame()
 	var image:Image = isolated.get_texture().get_image()
-	image.save_png("user://minecraft_clouds_native_volume.png")
+	image.save_png("user://minecraft_clouds_sky_native_volume.png")
 	var visible_pixels:int = 0
 	var face_levels:Dictionary = {}
 	for y:int in image.get_height():
@@ -53,12 +54,23 @@ func gpu_checks() -> void:
 				face_levels[int(round(c.r/maxf(c.a,0.01)*100.0))] = true
 	print("CLOUD_GPU pixels=",visible_pixels," face_levels=",face_levels)
 	check(visible_pixels > 500 and visible_pixels < 512*384*0.75,"native cloud mask produces separated clouds, not a screen-filling fog")
-	check(face_levels.size() >= 3,"GPU extruded clouds have distinct top and two side-face brightnesses")
+	check(face_levels.size() == 2 and face_levels.has(94) and face_levels.has(100),"GPU shows a broad underside and thin bright rim, not three dark block faces")
+	var longest_rim:int = 0
+	for x:int in image.get_width():
+		var run:int = 0
+		for y:int in image.get_height():
+			var c:Color = image.get_pixel(x,y)
+			if c.a > 0.1 and int(round(c.r/c.a*100.0)) == 100:
+				run += 1
+				longest_rim = maxi(longest_rim,run)
+			else: run = 0
+	check(longest_rim >= 2 and longest_rim <= 4,"GPU projected rim stays thin, never the old 16-pixel block wall")
+	print("CLOUD_SKY_RIM_PX ",longest_rim)
 	var native:Image = cloud.CLOUD_TEXTURE.get_image()
 	var exact:bool = true
 	for y:int in range(7):
 		for x:int in range(10):
-			var point:Vector2i = Vector2i(Vector2(x+0.5,y+0.5)*cloud.CELL_SIZE+Vector2(-8,-16))
+			var point:Vector2i = Vector2i(Vector2(x+0.5,y+0.5)*Vector2(cloud.CELL_SIZE,cloud.CELL_SIZE*cloud.PLANE_DEPTH))
 			exact = exact and ((image.get_pixelv(point).a > 0.5) == (native.get_pixel(x,y).a > 0.5))
 	check(exact,"GPU cloud-cell center occupancy exactly matches 70 original texture texels")
 	cloud.cloud_material.set_shader_parameter("travel",cloud.CELL_SIZE)
@@ -66,10 +78,49 @@ func gpu_checks() -> void:
 	var shifted:Image = isolated.get_texture().get_image()
 	var shift_equal:bool = true
 	for y:int in range(4,380,7):
-		for x:int in range(4,460,7):
-			if shifted.get_pixel(x,y) != image.get_pixel(x+48,y): shift_equal = false
+		for x:int in range(4,512-int(cloud.CELL_SIZE)-4,7):
+			if shifted.get_pixel(x,y) != image.get_pixel(x+int(cloud.CELL_SIZE),y): shift_equal = false
 	check(shift_equal,"a one-cell drift translates the native volume without re-randomizing its shape")
 	cloud.reset_drift()
+	for depth:float in [cloud.BACKGROUND_PARALLAX,cloud.OVERHEAD_PARALLAX]:
+		cloud.cloud_material.set_shader_parameter("parallax",depth)
+		isolated.canvas_transform = Transform2D.IDENTITY
+		await _frame()
+		var before:Image = isolated.get_texture().get_image()
+		isolated.canvas_transform = Transform2D(0.0,Vector2(-40,0))
+		await _frame()
+		var after:Image = isolated.get_texture().get_image()
+		var displacement:int = int(round(40.0*depth))
+		var equal_pixels:int = 0
+		var total_pixels:int = 0
+		for y:int in range(8,376,5):
+			for x:int in range(8,440,5):
+				total_pixels += 1
+				if after.get_pixel(x,y)==before.get_pixel(x+displacement,y): equal_pixels += 1
+		check(equal_pixels==total_pixels,"GPU camera pan 40px moves sky by %dpx at depth %.2f" % [displacement,depth])
+		print("CLOUD_PARALLAX depth=",depth," displacement=",displacement," equal=",equal_pixels,"/",total_pixels)
+	isolated.canvas_transform = Transform2D.IDENTITY
+	cloud.cloud_material.set_shader_parameter("parallax",cloud.BACKGROUND_PARALLAX)
+	var small:SubViewport = capture_view(Vector2i(256,192),false)
+	var copy:Polygon2D = poly.duplicate() as Polygon2D
+	small.add_child(copy)
+	small.canvas_transform = Transform2D(Vector2(0.5,0),Vector2(0,0.5),Vector2.ZERO)
+	await _frame()
+	var large_image:Image = isolated.get_texture().get_image()
+	var small_image:Image = small.get_texture().get_image()
+	var compared:int = 0
+	var different:int = 0
+	for y:int in range(4,188,3):
+		for x:int in range(4,252,3):
+			var point:Vector2i = Vector2i(x*2,y*2)
+			var value:Color = large_image.get_pixelv(point)
+			if value != large_image.get_pixelv(point+Vector2i.ONE) or value != large_image.get_pixelv(point-Vector2i.ONE): continue
+			compared += 1
+			if small_image.get_pixel(x,y) != value: different += 1
+	check(compared>1000 and different==0,"different-resolution views with identical framing derive the same sky camera center")
+	print("CLOUD_CAPTURE_PARITY compared=",compared," different=",different)
+	small.queue_free()
+	cloud.refresh() # Restore map-selected parallax for actual world captures.
 	isolated.queue_free()
 	await process_frame
 	# Same World2D path used by overview / recording views; no main-camera uniform.
@@ -122,7 +173,7 @@ func gpu_checks() -> void:
 	check(changed(off,on,inner)==0,"grass-map background clouds do not paint over the arena or characters")
 	check(changed(off,on,Rect2i(0,0,640,480))>100,"grass-map clouds remain visible in the surrounding background")
 	check(on.get_data()==second.get_texture().get_image().get_data(),"two shared World2D recording-sized views see identical cloud placement and color")
-	on.save_png("user://minecraft_clouds_grass.png")
+	on.save_png("user://minecraft_clouds_sky_grass.png")
 	world.day_night_cycle.set_minutes(0.0)
 	await _frame()
 	var night:Image = view.get_texture().get_image()
@@ -136,7 +187,7 @@ func gpu_checks() -> void:
 	world.day_night_cycle.set_minutes(720.0)
 	game.set_runtime_game_setting("Map_Background","blue",false)
 	await _frame()
-	view.get_texture().get_image().save_png("user://minecraft_clouds_blue.png")
+	view.get_texture().get_image().save_png("user://minecraft_clouds_sky_blue.png")
 	# A different zoom and center must not move the cloud's world anchor.
 	second.canvas_transform = Transform2D(Vector2(2,0),Vector2(0,2),shift*2-Vector2(160,120))
 	await _frame()
@@ -170,7 +221,7 @@ func run() -> void:
 	world.day_night_cycle.set_minutes(720.0)
 	cloud = world.minecraft_clouds
 	check(is_instance_valid(cloud) and cloud.enabled and cloud.visible,"world creates enabled native clouds")
-	check(cloud.overhead and cloud.z_index == 3000,"blue background selects overhead clouds below the day/night/UI layers")
+	check(cloud.overhead and cloud.z_index == 3000 and is_equal_approx(cloud.cloud_material.get_shader_parameter("parallax"),cloud.OVERHEAD_PARALLAX),"blue background selects overhead clouds below the day/night/UI layers")
 	check(cloud.get_parent()==world and cloud.visibility_layer==1,"clouds belong to the shared world canvas, not a main-only CanvasLayer")
 	var native:Image = cloud.CLOUD_TEXTURE.get_image()
 	var occupied:int = 0
@@ -184,26 +235,26 @@ func run() -> void:
 	check(is_zero_approx(cloud.travel),"battle pause freezes drift")
 	game.now_stop_state = false
 	cloud.advance(2.0)
-	check(is_equal_approx(cloud.travel,4.8),"drift advances from scaled physics delta at the configured native speed")
+	check(is_equal_approx(cloud.travel,2.0*cloud.DRIFT_SPEED),"drift advances from scaled physics delta at the configured native speed")
 	paused = true
 	cloud.advance(1.0)
 	paused = false
-	check(is_equal_approx(cloud.travel,4.8),"SceneTree pause freezes manual cloud updates too")
+	check(is_equal_approx(cloud.travel,2.0*cloud.DRIFT_SPEED),"SceneTree pause freezes manual cloud updates too")
 	cloud.advance(-1.0)
 	cloud.advance(NAN)
-	check(is_equal_approx(cloud.travel,4.8),"invalid or negative delta cannot corrupt cloud motion")
+	check(is_equal_approx(cloud.travel,2.0*cloud.DRIFT_SPEED),"invalid or negative delta cannot corrupt cloud motion")
 	game.set_runtime_game_setting("Minecraft_Clouds",false,false)
 	cloud.advance(10.0)
-	check(not cloud.visible and is_equal_approx(cloud.travel,4.8),"off switch immediately hides clouds and stops their clock")
+	check(not cloud.visible and is_equal_approx(cloud.travel,2.0*cloud.DRIFT_SPEED),"off switch immediately hides clouds and stops their clock")
 	game.set_runtime_game_setting("Minecraft_Clouds",true,false)
-	check(cloud.visible and is_equal_approx(cloud.travel,4.8),"re-enabling resumes without a wall-time jump")
+	check(cloud.visible and is_equal_approx(cloud.travel,2.0*cloud.DRIFT_SPEED),"re-enabling resumes without a wall-time jump")
 	game.set_runtime_game_setting("Map_Background","grass",false)
-	check(not cloud.overhead and cloud.z_index==-5,"grass background automatically selects the background cloud layer")
+	check(not cloud.overhead and cloud.z_index==-5 and is_equal_approx(cloud.cloud_material.get_shader_parameter("parallax"),cloud.BACKGROUND_PARALLAX),"grass selects the farther background cloud plane")
 	var center:Vector2 = world.return_map_world_rect(world._current_map_node()).get_center()
 	var covers_center:bool = false
 	for rect:Rect2 in cloud.regions: covers_center = covers_center or rect.has_point(center)
 	check(not covers_center and cloud.regions.size()>=4,"grass cloud polygons use the world island complement, not a full-screen overlay")
-	check(is_equal_approx(cloud.travel,4.8),"map style changes preserve cloud phase")
+	check(is_equal_approx(cloud.travel,2.0*cloud.DRIFT_SPEED),"map style changes preserve cloud phase")
 	for theme:String in ["sand","stone","nether","end","courtyard3d","summit"]:
 		game.set_runtime_game_setting("Map_Background",theme,false)
 		check(not cloud.overhead and cloud.z_index==-5,"other tiled theme safely uses background mode: "+theme)
@@ -252,7 +303,7 @@ func run() -> void:
 	game.now_stop_state = false
 	cloud.advance(5.0)
 	world.rematch_last_battle()
-	check(is_equal_approx(cloud.travel,12.0),"empty rematch does not reset cloud phase unexpectedly")
+	check(is_equal_approx(cloud.travel,5.0*cloud.DRIFT_SPEED),"empty rematch does not reset cloud phase unexpectedly")
 	world.reset()
 	check(is_instance_valid(cloud) and cloud.get_instance_id()==cloud_id and is_zero_approx(cloud.travel),"actual world reset preserves atmosphere node and resets cloud phase")
 	print("MINECRAFT_CLOUDS: %d checks / %d failures" % [checks,failures])

@@ -1,11 +1,14 @@
 extends Node2D
-## Native fancy-cloud footprint extruded into a 12x12x4 slab. No gameplay state/RNG.
+## Native footprint viewed as a distant, low-angle sky sheet. No gameplay state/RNG.
 ## One shared World2D material: main camera, overview and recording see the same clouds.
 const CLOUD_TEXTURE:Texture2D = preload("res://Images/effects/我的世界/clouds/clouds.png")
 const CLOUD_SHADER:Shader = preload("res://shaders/minecraft_clouds.gdshader")
-const CELL_SIZE:float = 48.0
-const THICKNESS:float = 16.0
-const DRIFT_SPEED:float = 2.4 # Vanilla 0.03 block/tick * 20 ticks/sec * 4 px/block.
+const CELL_SIZE:float = 32.0
+const THICKNESS:float = 3.0 # Projected rim, deliberately not a chunky top-down block.
+const PLANE_DEPTH:float = 0.42
+const OVERHEAD_PARALLAX:float = 0.6
+const BACKGROUND_PARALLAX:float = 0.25
+const DRIFT_SPEED:float = CELL_SIZE*(0.03*20.0/12.0) # Native drift relative to one texture cell.
 const PERIOD:float = CELL_SIZE*256.0
 const OVERHEAD_Z:int = 3000
 const BACKGROUND_Z:int = -5
@@ -29,7 +32,8 @@ func _ready() -> void:
 	cloud_material.shader = CLOUD_SHADER
 	cloud_material.set_shader_parameter("cloud_mask",CLOUD_TEXTURE)
 	cloud_material.set_shader_parameter("cell_size",CELL_SIZE)
-	cloud_material.set_shader_parameter("height_shift",Vector2(-THICKNESS*0.5,-THICKNESS))
+	cloud_material.set_shader_parameter("height_shift",Vector2(0.0,-THICKNESS))
+	cloud_material.set_shader_parameter("plane_depth",PLANE_DEPTH)
 	refresh()
 
 func refresh() -> void:
@@ -37,6 +41,7 @@ func refresh() -> void:
 	enabled = bool(Game.Game_Settings.get("Minecraft_Clouds",true))
 	overhead = world.map_background_style() == "blue"
 	z_index = OVERHEAD_Z if overhead else BACKGROUND_Z
+	cloud_material.set_shader_parameter("parallax",OVERHEAD_PARALLAX if overhead else BACKGROUND_PARALLAX)
 	visible = enabled
 	if not enabled: return
 	# Reuse the world's exact island-union complement. Grass/other tiled maps
