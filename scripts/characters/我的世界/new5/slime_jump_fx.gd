@@ -6,6 +6,7 @@ var landing:bool=false
 var size_factor:float=1.0
 var reach:float=43.0
 var visual_seed:int=1
+var linger_after_death:bool=false
 var particles:Array[Dictionary]=[]
 var age:float=0.0
 var ring:Line2D
@@ -13,15 +14,18 @@ var ring_radius:float=0.0
 var owner_ref:WeakRef
 var body_z:int=0
 var _rng:=RandomNumberGenerator.new()
-static func spawn(context:Node,point:Vector2,is_landing:bool,factor:float,range_value:float,random_seed:int) -> Node2D:
+static func spawn(context:Node,point:Vector2,is_landing:bool,factor:float,range_value:float,random_seed:int,death_burst:bool=false) -> Node2D:
 	var effect:Node2D=load("res://scripts/characters/我的世界/new5/slime_jump_fx.gd").new()
 	effect.position=point
 	effect.landing=is_landing
 	effect.size_factor=factor
 	effect.reach=range_value
 	effect.visual_seed=random_seed
+	effect.linger_after_death=death_burst
 	if context.has_method("ground_point"):
-		effect.owner_ref=weakref(context)
+		# Ordinary jump FX belongs to its live owner; the death burst is detached
+		# so it survives the actor's removal and finishes its short animation.
+		if not death_burst: effect.owner_ref=weakref(context)
 		effect.body_z=effective_z(context.image)
 	CONTAINER.runtime_container(context).add_child(effect)
 	return effect
@@ -59,15 +63,18 @@ func _ready() -> void:
 		particles.append({"sprite":sprite,"plane":offset,"velocity":radial*(_rng.randf_range(38,68) if landing else _rng.randf_range(5,18))*size_factor,"height":0.5,"up":_rng.randf_range(24,43) if landing else _rng.randf_range(35,58),"life":_rng.randf_range(0.48,0.70),"spin":_rng.randf_range(-3,3),"grounded":false})
 	update_visual(0.0)
 func _process(delta:float) -> void:
-	# Cleanup precedes pause checks: the last death can stop the battle instantly.
-	var owner:Node=owner_ref.get_ref() if owner_ref!=null else null
-	if not is_instance_valid(owner) or not owner.is_inside_tree() or owner.health<=0 or owner._death_visual_done or owner._split:
-		hide()
-		queue_free()
-		return
-	if Game.now_stop_state or get_tree().paused: return
-	var world:Node=get_tree().current_scene
-	if world!=null and world.has_method("is_combat_runtime_active") and not world.is_combat_runtime_active(): return
+	if not linger_after_death:
+		# Cleanup precedes pause checks: the last death can stop the battle instantly.
+		var owner:Node=owner_ref.get_ref() if owner_ref!=null else null
+		if not is_instance_valid(owner) or not owner.is_inside_tree() or owner.health<=0 or owner._death_visual_done or owner._split:
+			hide()
+			queue_free()
+			return
+		if Game.now_stop_state or get_tree().paused: return
+		var world:Node=get_tree().current_scene
+		if world!=null and world.has_method("is_combat_runtime_active") and not world.is_combat_runtime_active(): return
+	# A fatal blow may stop/pause the match in this same frame. Only the detached
+	# death burst continues to its own 0.7-second cleanup, even after victory.
 	update_visual(delta)
 func update_visual(delta:float) -> void:
 	age+=maxf(delta,0)

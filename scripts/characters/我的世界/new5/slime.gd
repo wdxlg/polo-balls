@@ -8,6 +8,7 @@ const FRAMES=preload("res://Images/characters/我的世界/new5/slime.tres")
 @export_range(0,2,1) var slime_stage:int=0
 @export var jump_damage:float=8.0
 @export var landing_damage:float=20.0
+@export var death_knockback_distance:float=28.0
 @export var landing_slow_ratio:float=0.62
 @export var landing_slow_duration:float=0.8
 var airborne:bool=false
@@ -19,6 +20,8 @@ var rest_duration:float=0.42
 var rest_left:float=0.2
 var jump_direction:Vector2=Vector2.RIGHT
 var _split:bool=false
+var _death_pulse_done:bool=false
+var _death_fx_rendered:bool=false
 var jump_min_distance:float=4.0
 var jump_max_distance:float=110.0
 var _jump_remaining:float=0.0
@@ -66,6 +69,7 @@ func _configure_stage() -> void:
 	Max_health=[420,165,55][slime_stage]
 	jump_damage=[16.0,9.0,4.0][slime_stage]
 	landing_damage=[44.0,22.0,9.0][slime_stage]
+	death_knockback_distance=[28.0,19.0,12.0][slime_stage]
 	jump_duration=[0.64,0.45,0.30][slime_stage]
 	rest_duration=[0.52,0.42,0.34][slime_stage]
 	jump_min_distance=[4.0,3.0,2.0][slime_stage]
@@ -218,7 +222,9 @@ func slime_enemy(target:Variant) -> bool:
 func pulse_radius(landing:bool) -> float:
 	return ([32.0,21.5,14.5] if landing else [18.0,12.0,7.5])[slime_stage]
 func pulse_contains(target:ball,landing:bool) -> bool:
-	var distance:float=global_position.distance_to(target.global_position)
+	return _pulse_contains_from(target,landing,global_position)
+func _pulse_contains_from(target:ball,landing:bool,center:Vector2) -> bool:
+	var distance:float=center.distance_to(target.global_position)
 	var in_circle:bool=distance<=pulse_radius(landing)+U.radius(target)
 	var touching_at_takeoff:bool=not landing and distance<=U.radius(self)+U.radius(target)+0.5
 	return in_circle or touching_at_takeoff
@@ -230,17 +236,25 @@ func get_debug_attack_regions() -> Array[Dictionary]:
 	]
 	if not airborne:
 		regions.append({"shape":"circle","position":global_position,"radius":U.radius(self)+0.5,"damage":jump_damage,"kind":"slime_takeoff_contact"})
+	elif ground_point().distance_squared_to(global_position)>1.0:
+		# An airborne death bursts on the projected ground, not at body height.
+		regions.append({"shape":"circle","position":ground_point(),"radius":pulse_radius(true),"damage":landing_damage,"kind":"slime_death"})
 	return regions
-func _pulse(landing:bool) -> void:
+func _pulse(landing:bool,death:bool=false) -> void:
 	var hit:bool=false
-	var hit_point:Vector2=global_position
+	var center:Vector2=ground_point() if death else global_position
+	var hit_point:Vector2=center
 	for target:Node in get_tree().get_nodes_in_group("Ball"):
-		if not slime_enemy(target) or not pulse_contains(target,landing): continue
-		if not U.line_clear(self,global_position,target.global_position): continue
-		if not U.damage(self,target,attack_damage((landing_damage if landing else jump_damage)/maxf(float(default_properties.get("Damage",Damage)),0.01)),global_position): continue
+		if not slime_enemy(target) or not _pulse_contains_from(target,landing,center): continue
+		if not U.line_clear(self,center,target.global_position): continue
+		if not U.damage(self,target,attack_damage((landing_damage if landing else jump_damage)/maxf(float(default_properties.get("Damage",Damage)),0.01)),center): continue
 		if not hit: hit_point=target.global_position
 		hit=true
-		if landing: U.slow(self,target,landing_slow_ratio,landing_slow_duration,"史莱姆落地")
+		if death:
+			var outward:Vector2=target.global_position-center
+			if outward.length_squared()<0.0001: outward=Vector2.RIGHT
+			target.apply_knockback(outward.normalized(),death_knockback_distance,160.0,0,0,{"source":self,"lock_control":false})
+		elif landing: U.slow(self,target,landing_slow_ratio,landing_slow_duration,"史莱姆落地")
 		else: target.apply_knockback((target.global_position-global_position).normalized(),[9.0,6.0,3.0][slime_stage],110.0,0,0,{"source":self,"lock_control":false})
 	# One native impact cue per successful pulse; use existing replicated audio.
 	if hit:
@@ -361,8 +375,20 @@ func arm_split_bridge() -> void:
 	set_meta("battle_death_bridge_active",true)
 func on_actual_health_damage_received(amount:float,before:float) -> void:
 	# Arm synchronously in the health setter, before the next World victory poll.
-	if is_inside_tree() and health<=0: arm_split_bridge()
+	if is_inside_tree() and health<=0:
+		arm_split_bridge()
+		_trigger_death_pulse()
 	super.on_actual_health_damage_received(amount,before)
+func _trigger_death_pulse() -> void:
+	if _death_pulse_done or not is_multiplayer_authority() or not is_inside_tree(): return
+	_death_pulse_done=true
+	var point:Vector2=ground_point()
+	var visual_seed:int=_voice_rng.randi()
+	if multiplayer.has_multiplayer_peer(): _jump_fx.rpc(point,true,slime_stage,visual_seed,true)
+	_jump_fx(point,true,slime_stage,visual_seed,true)
+	# The landing hit already uses current Damage and target defenses; death
+	# adds a push instead of the ordinary landing slow. Resolve before splitting.
+	_pulse(true,true)
 func inherit_split_identity(child:Node2D) -> void:
 	var identity:Dictionary=split_identity()
 	child.Team=Team
@@ -382,6 +408,7 @@ func inherit_split_identity(child:Node2D) -> void:
 		child.tree_exiting.connect(Callable(world,"_on_rotation_character_tree_exiting").bind(child,side,int(identity.setup)),CONNECT_ONE_SHOT)
 func Die() -> void:
 	arm_split_bridge()
+	_trigger_death_pulse()
 	clear_jump_fx()
 	airborne=false
 	if not _split and is_multiplayer_authority():
@@ -442,16 +469,19 @@ func emit_jump_fx(is_landing:bool) -> void:
 	if multiplayer.has_multiplayer_peer(): _jump_fx.rpc(point,is_landing,slime_stage,visual_seed)
 	_jump_fx(point,is_landing,slime_stage,visual_seed)
 @rpc("authority","call_remote","reliable")
-func _jump_fx(point:Vector2,is_landing:bool,stage:int,visual_seed:int) -> void:
-	if health<=0 or _death_visual_done or _split: return
+func _jump_fx(point:Vector2,is_landing:bool,stage:int,visual_seed:int,death_burst:bool=false) -> void:
+	if death_burst:
+		if _death_fx_rendered: return
+		_death_fx_rendered=true
+	elif health<=0 or _death_visual_done or _split: return
 	var safe_stage:int=clampi(stage,0,2)
 	# Preserve Array[Node] and never pass freed instances to a typed callback.
 	for index:int in range(_jump_fx_nodes.size()-1,-1,-1):
 		if not is_instance_valid(_jump_fx_nodes[index]) or _jump_fx_nodes[index].is_queued_for_deletion():
 			_jump_fx_nodes.remove_at(index)
-	var effect:Node=JUMP_FX.spawn(self,point,is_landing,STAGE_FACTOR[safe_stage],pulse_radius(is_landing),visual_seed)
+	var effect:Node=JUMP_FX.spawn(self,point,is_landing,STAGE_FACTOR[safe_stage],pulse_radius(is_landing),visual_seed,death_burst)
 
-	if is_instance_valid(effect): _jump_fx_nodes.append(effect)
+	if is_instance_valid(effect) and not death_burst: _jump_fx_nodes.append(effect)
 func clear_jump_fx() -> void:
 	for effect:Node in _jump_fx_nodes:
 		if is_instance_valid(effect):

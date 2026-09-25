@@ -90,3 +90,4 @@
 - 对战盔甲架顶部介绍须覆盖我的世界分区现有角色，只用简明文字说明实际战斗机制；动态场景覆盖和 HUD 回归入口：`tests/test_mc_armor_intro_coverage.gd`。
 - 药水框、附魔框及真实持续状态框不再处于盖住战场的高层 CanvasLayer：使用跟随屏幕的世界画布绝对 Z=-3，地图地面在下，人物/投射物/障碍物在上；地图外遮罩先取样信息框再裁掉越界前景。主画面与中英文录制镜像分可见位避免串画。当前层级、地图外/相机/GPU/录制回归见 `tests/MC_EFFECT_TOOLTIPS.md` 的 2026-09-25 节。
 - 铁匠村民的挥舞音效以出剑时实际 `attack_damage(1.0)` **严格大于 100** 为界，超出用原版横扫、100 及以下保留重击；真实命中暴击音仍按独立承伤阈值。剑弧/握把和残影更连续可见，不更改原扇形碰撞；参数、素材复用和单机/GPU 回归见 `tests/BLACKSMITH_SWORD_SWING.md`、`tests/test_blacksmith_sword_sweep.gd`。
+- 大、中、小史莱姆死亡复用原落地绿色环与原版黏液球粒子，仅权威端按落地范围／当前攻击伤害对附近敌人结算一次并向外击退；被删除或战斗结束仍让死亡特效短暂播放完，原有跳跃、落地减速、音效和分裂保留。实现范围、现有轮放测试的失配与 GPU／战斗回归见 `tests/SLIME_DEATH_PULSE.md`、`tests/test_slime_death_pulse.gd`、`tests/test_slime_death_visual.gd`。
