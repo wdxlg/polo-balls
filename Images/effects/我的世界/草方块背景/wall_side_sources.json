@@ -1,0 +1,25 @@
+{
+  "edition": "Minecraft Java Edition",
+  "version": "26.2",
+  "rights": "Original Minecraft textures © Mojang Studios / Microsoft. Provenance is not a redistribution license; follow the Minecraft EULA and usage guidelines.",
+  "release_manifest": "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json",
+  "client_url": "https://piston-data.mojang.com/v1/objects/2dc72797acbc1b63fc16a11c4ac393605f453754/client.jar",
+  "client_sha1": "2dc72797acbc1b63fc16a11c4ac393605f453754",
+  "source_files": {
+    "Images/effects/我的世界/草方块背景/sandstone.png": {
+      "jar_entry": "assets/minecraft/textures/block/sandstone.png",
+      "sha1": "36579db81e4840f4bfb1598b8fd1c60ed9161266",
+      "size": 199
+    },
+    "Images/effects/我的世界/草方块背景/sandstone_bottom.png": {
+      "jar_entry": "assets/minecraft/textures/block/sandstone_bottom.png",
+      "sha1": "b9c7d692587f5f962dd50874c90ede7ff3bc89ce",
+      "size": 204
+    },
+    "Images/effects/我的世界/草方块背景/purpur_pillar_side.png": {
+      "jar_entry": "assets/minecraft/textures/block/purpur_pillar_side.png",
+      "sha1": "43ad424bda376fde0992850392e9aa74509135c9",
+      "size": 182
+    }
+  }
+}

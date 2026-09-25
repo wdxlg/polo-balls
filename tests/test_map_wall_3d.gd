@@ -1,6 +1,9 @@
 extends SceneTree
-# 真实 World 路径：六主题、地图切换、服务员门洞、光向、碰撞不变。
+# 六主题/真实方块网格/内凹边和门洞/蓝色平面/原 2D 碰撞回归。
 const THEMES = preload("res://scripts/effects/我的世界/地图背景主题.gd")
+const OAK:Texture2D = preload("res://Images/characters/我的世界/sulfur_cube/source/oak_log.png")
+const SAND:Texture2D = preload("res://Images/effects/我的世界/草方块背景/sandstone.png")
+const PURPUR:Texture2D = preload("res://Images/effects/我的世界/草方块背景/purpur_pillar_side.png")
 var checks:int = 0
 var failures:int = 0
 
@@ -11,7 +14,7 @@ func check(ok:bool,label:String) -> void:
 	checks += 1
 	if not ok:
 		failures += 1
-		push_error("MAP_WALL_3D FAIL: "+label)
+		push_error("MAP_WALL_TRUE_3D FAIL: "+label)
 	else: print("PASS: ",label)
 
 func _safety_snapshot(frame:Node) -> Array[String]:
@@ -29,8 +32,20 @@ func _edge_covers_gap(edges:Array[Dictionary],side:int,line:float,low:float,high
 		if minf(float(edge.b),high)-maxf(float(edge.a),low)>0.1: return true
 	return false
 
+func _wall_covers(rects:Array[Rect2],point:Vector2) -> bool:
+	for rect:Rect2 in rects:
+		if rect.has_point(point): return true
+	return false
+
+func _expected_side(style:String) -> Texture2D:
+	match style:
+		"grass": return OAK
+		"sand": return SAND
+		"end": return PURPUR
+		_: return THEMES.wall_texture(style)
+
 func _run() -> void:
-	create_timer(50.0).timeout.connect(func(): quit(2))
+	create_timer(80.0).timeout.connect(func(): quit(2))
 	var game:Node = root.get_node("Game")
 	var settings:Dictionary = game.Game_Settings.duplicate(true)
 	var saved_stop:bool = game.now_stop_state
@@ -50,36 +65,46 @@ func _run() -> void:
 	var collision:Array[String] = _safety_snapshot(world._map_safety_frame)
 	var ray:PhysicsRayQueryParameters2D = PhysicsRayQueryParameters2D.create(physical.get_center(),Vector2(physical.end.x+24.0,physical.get_center().y),1)
 	var first_hit:Dictionary = world.get_world_2d().direct_space_state.intersect_ray(ray)
-	var first_edges:Array[Dictionary] = world.map_wall_volume.wall_edges.duplicate(true)
-	check(first_edges.size() == 4,"rectangle builds four continuous wall sections")
-	check(physical.has_area() and not first_hit.is_empty(),"physical map and original wall collision exist")
-	check(world.map_wall_light_direction.x>0.0 and world.map_wall_light_direction.y<0.0,"default source lies at top-right")
-	check(world.map_wall_volume.face_offset.x<0.0 and world.map_wall_volume.face_offset.y>0.0,"wall side relief projects bottom-left")
-	check(world.map_wall_volume.z_index>world.map_outside_mask_root.z_index and world.map_wall_volume.z_index<world.map_border_segment_root.z_index,"wall lies above map clipping but below existing border and doors")
-	check(world.map_wall_volume.find_children("*","CollisionObject2D",true,false).is_empty(),"volume is visual-only, without extra physics bodies")
-	for style:String in THEMES.OPTIONS:
+	check(physical.has_area() and not first_hit.is_empty(),"original map collision exists")
+	check(world.map_wall_volume == null,"blue initial scene never allocates a 3D wall")
+	check(world.map_inside_shadow.surface.material.get_shader_parameter("shadow_vector")==Vector2.ZERO,"blue keeps only the flat border/contact shade")
+	check(world.map_background_tiles.visible==false,"blue uses original flat map floor")
+	check(world.map_wall_light_direction.x>0.0 and world.map_wall_light_direction.y<0.0,"light defaults to top-right")
+	for style:String in ["grass","sand","stone","nether","end"]:
 		game.set_runtime_game_setting("Map_Background",style,false)
 		world.refresh_map_presentation()
 		await process_frame
 		await physics_frame
 		var volume:Node2D = world.map_wall_volume
 		var cell:Vector2 = world.map_visual_cell_size(world.map_group["Map10x10"])
-		var displacement:Vector2 = -world.map_wall_light_direction.normalized()*minf(cell.x,cell.y)*world.map_wall_height_cells
 		var cast:Vector2 = -world.map_wall_light_direction.normalized()*minf(cell.x,cell.y)*world.map_wall_shadow_cells
 		var shader:ShaderMaterial = world.map_inside_shadow.surface.material
-		check(volume.visible and volume.wall_edges.size()==first_edges.size() and volume.face_offset.is_equal_approx(displacement),"%s: 3D wall follows original perimeter at configured height" % style)
-		check(bool(shader.get_shader_parameter("directional_enabled")) and (shader.get_shader_parameter("shadow_vector") as Vector2).is_equal_approx(cast) and shader.get_shader_parameter("segment_count")==volume.wall_edges.size(),"%s: floor shadows use same cut wall segments, casting bottom-left" % style)
+		check(is_instance_valid(volume) and volume.visible and volume.wall_rects.size()>0 and volume.block_count>=20,"%s: physical 3D block instances follow the actual wall footprint" % style)
+		check(volume.viewport is SubViewport and volume.viewport.own_world_3d and volume.viewport.transparent_bg and volume.camera.projection==Camera3D.PROJECTION_ORTHOGONAL,"%s: independent transparent real 3D camera" % style)
+		check(volume.sun_light is DirectionalLight3D and volume.sun_light.shadow_enabled and volume.mesh_node is MeshInstance3D,"%s: light casts shadows on true six-faced 3D mesh" % style)
+		var mesh:ArrayMesh = volume.mesh_node.mesh as ArrayMesh
+		check(mesh != null and mesh.get_surface_count()==3 and mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX].size()==volume.block_count*6 and mesh.surface_get_arrays(1)[Mesh.ARRAY_VERTEX].size()==volume.block_count*24,"%s: top, 4 sides and underside are genuine 3D triangles" % style)
+		var cap:StandardMaterial3D = mesh.surface_get_material(0) as StandardMaterial3D
+		var side:StandardMaterial3D = mesh.surface_get_material(1) as StandardMaterial3D
+		check(cap.albedo_texture==THEMES.wall_texture(style) and side.albedo_texture==_expected_side(style) and side.shading_mode==BaseMaterial3D.SHADING_MODE_PER_PIXEL,"%s: Mojang block top and corresponding original side in lit 3D material" % style)
+		var center:Vector2 = physical.get_center()
+		var points:Array[Vector2] = [center,center+Vector2(cell.x*3.5,cell.y*2.5)]
+		var aligned:bool = true
+		for point:Vector2 in points:
+			var projected:Vector2 = volume.picture.position+volume.camera.unproject_position(volume._ground_point(point,0))/_scale(volume)
+			if projected.distance_to(point)>0.6: aligned=false
+		check(aligned,"%s: 3D camera ground projection aligns with 2D map across distant cells" % style)
+		check(bool(shader.get_shader_parameter("directional_enabled")) and shader.get_shader_parameter("shadow_vector")==cast and shader.get_shader_parameter("segment_count")==volume.wall_edges.size(),"%s: foreground shadow follows actual cut wall edges" % style)
 		var hit:Dictionary = world.get_world_2d().direct_space_state.intersect_ray(ray)
-		check(world.return_map_world_rect(world.map_group["Map10x10"]) == physical and _safety_snapshot(world._map_safety_frame)==collision and not hit.is_empty() and hit.position.is_equal_approx(first_hit.position),"%s: wall collision and playable footprint do not change" % style)
-		var theme:Dictionary = THEMES.theme(style)
-		check(volume.tiled == bool(theme.get("tiled",false)) and volume.wall_texture == theme.get("wall",null) and world.map_background_tiles.visible == volume.tiled,"%s: blue or original block top texture remains selected" % style)
-	# 切换大小和传送门地图仍只沿各自真实地面边绘制，不沿外接矩形伪造墙。
+		check(world.return_map_world_rect(world.map_group["Map10x10"])==physical and _safety_snapshot(world._map_safety_frame)==collision and not hit.is_empty() and hit.position.is_equal_approx(first_hit.position),"%s: new 3D meshes leave collision unchanged" % style)
+		check(world.map_background_tiles.visible and volume.z_index>world.map_outside_mask_root.z_index and volume.z_index<world.map_border_segment_root.z_index,"%s: floor and foreground/door draw order preserved" % style)
+		check(volume.find_children("*","CollisionObject2D",true,false).is_empty(),"%s: 3D mesh does not inject physics into combat" % style)
 	for map_key:String in ["Map50x50","Map_Portal","Map10x10"]:
 		world.now_choose_map = map_key
 		world.refresh_map_presentation()
-		var edges:Array[Dictionary] = world.map_wall_volume.wall_edges
-		check(not edges.is_empty() and world.map_inside_shadow.surface.material.get_shader_parameter("segment_count")==edges.size(),"%s: map switch refreshes both wall and shadow edges" % map_key)
-		check(world.map_wall_volume.get_child_count()==0,"%s: single CanvasItem is used instead of per-cell child nodes" % map_key)
+		var volume:Node2D = world.map_wall_volume
+		check(volume.visible and not volume.wall_rects.is_empty() and volume.block_count>0 and volume.viewport.size.x<=4096 and volume.viewport.size.y<=4096,"%s: map switch rebuilds bounded viewport and real 3D blocks" % map_key)
+		check(world.map_inside_shadow.surface.material.get_shader_parameter("segment_count")==volume.wall_edges.size(),"%s: shape edges and floor shadow stay in sync" % map_key)
 	game.set_runtime_game_setting("Map_Background","grass",false)
 	world.refresh_map_presentation()
 	var owner := Node2D.new()
@@ -92,25 +117,30 @@ func _run() -> void:
 		var side:int = int(info.side)
 		var along:float = info.center.y if side<2 else info.center.x
 		var line:float = [physical.position.x,physical.end.x,physical.position.y,physical.end.y][side]
-		check(not _edge_covers_gap(world.map_wall_volume.wall_edges,side,line,along-float(info.width)*0.5,along+float(info.width)*0.5),"real door leaves a gap in the 3D wall, including its end face")
-		check(world.map_inside_shadow.surface.material.get_shader_parameter("segment_count")==world.map_wall_volume.wall_edges.size(),"door also removes its cast-shadow source")
+		check(not _edge_covers_gap(world.map_wall_volume.wall_edges,side,line,along-float(info.width)*0.5,along+float(info.width)*0.5),"open door removes the exposed 3D edge")
+		check(world.map_inside_shadow.surface.material.get_shader_parameter("segment_count")==world.map_wall_volume.wall_edges.size(),"door removes fake floor cast too")
 		var cell:Vector2 = world.map_visual_cell_size(world.map_group["Map10x10"])
 		var probe:Vector2 = [Vector2(physical.position.x-cell.x*0.5,along),Vector2(physical.end.x+cell.x*0.5,along),Vector2(along,physical.position.y-cell.y*0.5),Vector2(along,physical.end.y+cell.y*0.5)][side]
 		for style:String in ["grass","sand","stone","nether","end"]:
 			game.set_runtime_game_setting("Map_Background",style,false)
 			world.refresh_map_presentation()
-			var wood_over_door:bool = false
-			for wall_rect:Rect2 in world.map_background_tiles.visible_wall_rects():
-				if wall_rect.has_point(probe): wood_over_door = true
-			check(not wood_over_door,"%s: painted wall top is carved from open door" % style)
+			check(not _wall_covers(world.map_wall_volume.wall_rects,probe),"%s: 3D block does not bridge the opening" % style)
+			check(not _wall_covers(world.map_background_tiles.visible_wall_rects(),probe),"%s: underlying 2D wall top also stays carved" % style)
+		game.set_runtime_game_setting("Map_Background","blue",false)
+		world.refresh_map_presentation()
+		check(not world.map_wall_volume.visible and world.map_wall_volume.viewport.render_target_update_mode==SubViewport.UPDATE_DISABLED and world.map_wall_volume.block_count==0,"back to blue fully disables existing 3D world")
+		check(world.map_inside_shadow.surface.material.get_shader_parameter("shadow_vector")==Vector2.ZERO,"blue remains flat after switching from 3D")
 		game.set_runtime_game_setting("Map_Background","grass",false)
 		world.refresh_map_presentation()
 		world.close_waiter_door(id,0.05)
 	await create_timer(0.15).timeout
-	check(world.return_map_world_rect(world.map_group["Map10x10"])==physical,"closing door preserves original physical bounds")
+	check(world.return_map_world_rect(world.map_group["Map10x10"])==physical,"closing door preserves physical map bounds")
 	game.Game_Settings = settings
 	game.now_stop_state = saved_stop
 	world.queue_free()
 	await process_frame
-	print("MAP_WALL_3D checks=",checks," failures=",failures)
+	print("MAP_WALL_TRUE_3D checks=",checks," failures=",failures)
 	quit(0 if failures==0 else 1)
+
+func _scale(volume:Node2D) -> float:
+	return volume._render_scale

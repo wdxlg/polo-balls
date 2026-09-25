@@ -3692,7 +3692,7 @@ var map_wall_volume:Node2D
 @export_category("地图立体墙")
 # 指向右上角的光源，影子朝其反方向投在地面；纯视觉配置，不触碰安全墙。
 @export var map_wall_light_direction:Vector2 = Vector2(1.0,-1.0)
-@export_range(0.1,1.5,0.05) var map_wall_height_cells:float = 0.65
+@export_range(0.25,2.25,0.05) var map_wall_height_cells:float = 1.80
 @export_range(0.5,5.0,0.1) var map_wall_shadow_cells:float = 2.4
 func _is_grass_map_background() -> bool:
 	return Game.Game_Settings.get("Map_Background","blue") == "grass"
@@ -4378,13 +4378,20 @@ func _refresh_map_inside_shadow() -> void:
 				edges.append(segment)
 	var cell:Vector2 = map_visual_cell_size(map_node)
 	var sun:Vector2 = map_wall_light_direction.normalized() if map_wall_light_direction.length_squared() > 0.0001 else Vector2(1.0,-1.0).normalized()
-	var cast:Vector2 = -sun * minf(cell.x,cell.y) * map_wall_shadow_cells
+	# 蓝色背景只有旧式平面边框和接触暗边，不再投假立体墙的长影。
+	var cast:Vector2 = -sun * minf(cell.x,cell.y) * map_wall_shadow_cells if _is_grass_map_background() else Vector2.ZERO
 	map_inside_shadow.configure_regions(map_island_rects(map_node),cell,edges,cast)
-	if not is_instance_valid(map_wall_volume):
-		map_wall_volume = load("res://scripts/effects/我的世界/地图立体墙.gd").new()
-		map_wall_volume.name = "MapWallVolume"
-		add_child(map_wall_volume)
-	map_wall_volume.configure_edges(edges,cell,MAP_BACKGROUND_THEMES.theme(map_background_style()),sun,map_wall_height_cells)
+	if _is_grass_map_background():
+		if not is_instance_valid(map_wall_volume):
+			map_wall_volume = load("res://scripts/effects/我的世界/地图立体墙.gd").new()
+			map_wall_volume.name = "MapWallVolume"
+			add_child(map_wall_volume)
+		map_wall_volume.configure_regions(map_island_rects(map_node),_map_shape_walls(map_node),edges,cell,map_background_style(),sun,map_wall_height_cells)
+	elif is_instance_valid(map_wall_volume):
+		# 主题切回蓝色时停止 3D Viewport，且绝不在蓝色边框上画凸起。
+		var no_ground:Array[Rect2] = []
+		var no_walls:Array[Rect2] = []
+		map_wall_volume.configure_regions(no_ground,no_walls,edges,cell,"blue",sun,map_wall_height_cells)
 	for extra:Node2D in _island_extra_inside_shadows: extra.visible = false
 
 func _configure_island_inside_shadow(shadow:Node2D,physical_rect:Rect2,island_name:String,portal:PortalMap) -> void:
