@@ -4684,6 +4684,10 @@ func _setup_special_character_threat_overlay() -> void:
 # V64：普通 CharacterBody2D 移动保持统一逻辑。
 # 不再为伞夫/堇紫泪滴在共享 ball.move() 中增加“预判停下/切线绕行”等角色特判。
 # 特殊角色与其他角色一样依靠 direction、move_and_slide() 和 when_collide() 的公共移动/碰撞链路。
+# Shared terrain motion is additive world velocity, not Speed/Repel or a control lock.
+# Controllers clear their contribution on exit; ordinary physics still handles walls.
+var surface_motion_velocity:Vector2 = Vector2.ZERO
+
 func move(speed:float,delta:float):
 
 	var effective_direction:Vector2 = player_control_direction if is_player_controlled() else direction
@@ -4707,6 +4711,7 @@ func move(speed:float,delta:float):
 		move_speed,
 		Repel
 	)
+	velocity += surface_motion_velocity
 	_last_requested_velocity = velocity
 
 	# move_and_slide() 即使 velocity == 0，也会执行 safe_margin 的碰撞恢复。
@@ -4784,7 +4789,7 @@ func _process_physical_contact_hits() -> void:
 func stand(delta:float):
 	# Stand 状态只有显式 Repel 才允许发生位移。
 	# hitbox/hurtbox 是 Area2D，不调用 move_and_slide() 也仍可正常攻击/受伤。
-	velocity = Repel + _crowd_separation_velocity
+	velocity = Repel + _crowd_separation_velocity + surface_motion_velocity
 	_last_requested_velocity = velocity
 	if velocity.length_squared() <= MOTION_EPSILON_SQ:
 		velocity = Vector2.ZERO

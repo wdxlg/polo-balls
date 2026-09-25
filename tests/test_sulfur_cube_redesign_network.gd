@@ -230,6 +230,18 @@ func run() -> void:
 	for transient:Node in get_nodes_in_group("MCExplosion"):
 		if transient.is_inside_tree(): fx_count += 1
 	check(fx_count == 2,"authority and replica each render the shared blast once, without duplicate damage")
+	host_unit.set_block(CUBE.Block.IRON)
+	check(await until(func(): return guest_unit.block_mode == CUBE.Block.IRON and guest_unit.get_ai_attack_threats(null).size() == 1,2.0),"guest exposes persistent iron underside threat outside a jump")
+	target.global_position = host_unit._iron_bottom_rect().get_center()+Vector2(0,2)
+	var crush_before:float = target.health
+	guest_unit._iron_bottom_contacts()
+	check(target.health == crush_before,"guest cannot settle persistent crush damage")
+	host_unit._iron_bottom_contacts()
+	check(crush_before-target.health == floorf(host_unit.attack_damage(CUBE.IRON_IMPACT_MULT)),"network authority applies the reduced iron first impact once")
+	crush_before = target.health
+	host_unit._clock += CUBE.IRON_CRUSH_INTERVAL
+	host_unit._iron_bottom_contacts()
+	check(crush_before-target.health > 0.0 and crush_before-target.health <= ceilf(host_unit.attack_damage(CUBE.IRON_CRUSH_MULT)),"network authority applies a small independent sustained tick, not another full impact")
 	finish(0 if failures == 0 else 1)
 
 func finish(code:int) -> void:

@@ -104,6 +104,9 @@ func run() -> void:
 	wall.queue_free()
 	ceiling.queue_free()
 	await physics_frame
+	# Gravity/input assertions below isolate voluntary drive from the new ice inertia.
+	for tile:Node in get_nodes_in_group("MCSulfurIceTrail"): tile.free()
+	if cube.has_node("SurfaceAcceleration"): cube.get_node("SurfaceAcceleration").free()
 	var floor_body:StaticBody2D = obstacle(world,center+Vector2(0,65),Vector2(230,8))
 	cube.global_position = center-Vector2(0,30)
 	cube.set_block(cube.Block.IRON)
@@ -270,6 +273,8 @@ func run() -> void:
 	check(not is_instance_valid(cube._charge_circle),"death cleans up TNT telegraph with no stale circle")
 	world.queue_free()
 	await process_frame
+	# Flush deferred viewport/audio/death-effect cleanup before quitting the GPU fixture.
+	await create_timer(0.35,true,false,true).timeout
 	game.Game_Settings = saved
 	game.now_stop_state = saved_stop
 	print("SULFUR_POLISH: %d checks / %d failures" % [checks,failures])

@@ -16,7 +16,10 @@ const CRACKS:Array[Texture2D] = [
 const GROUND_Z:int = -4 # Ground overlay: above map floor (-5), below bodies/obstacles/projectiles.
 const LIFETIME:float = 4.0
 const CRACK_START:float = 2.0
-const BOOST_REFRESH:float = 0.18
+const ACCELERATION = preload("res://scripts/effects/surface_acceleration.gd")
+const SLIDE_ACCELERATION:float = 240.0 # world px/s²; integrates with physics delta
+const MAX_BONUS_RATIO:float = 1.5 # up to 2.5x normal movement, not exponential
+const SCAN_INTERVAL:float = 1.0/60.0
 var cell_rect:Rect2
 var source_ref:WeakRef
 var age:float = 0.0
@@ -85,21 +88,17 @@ func _physics_process(delta:float) -> void:
 		_crack.show()
 	_scan -= delta
 	if _scan > 0.0 or not owner.is_multiplayer_authority(): return
-	_scan = 0.07
+	_scan = SCAN_INTERVAL
 	for raw:Variant in get_tree().get_nodes_in_group("Ball"):
 		if not is_instance_valid(raw) or not raw is ball: continue
 		var target:ball = raw as ball
 		if target.health <= 0 or not cell_rect.has_point(target.global_position): continue
-		# A speed multiplier preserves each unit's OWN movement direction. It never
-		# teleports or forces motion while the unit stands still; expires off ice.
-		var buff := Buff.new(2,BOOST_REFRESH,Buff.Buff_types.Speed,1.65,Buff.Algorithms.mul)
-		var scene:Node = get_tree().current_scene
-		if is_instance_valid(scene) and scene.has_method("new_buff"):
-			scene.new_buff(target,owner,"硫方怪冰径加速",buff)
-		else:
-			var source_id:int = owner.get_instance_id()
-			if not target.Buff_Dic.has(source_id): target.Buff_Dic[source_id] = {}
-			target.Buff_Dic[source_id]["硫方怪冰径加速"] = buff
+		ACCELERATION.touch(target,self)
+
+func surface_acceleration_at(point:Vector2) -> Dictionary:
+	var owner:Variant = source_ref.get_ref() if source_ref != null else null
+	if not is_instance_valid(owner) or owner.health <= 0 or age >= LIFETIME or is_queued_for_deletion() or not cell_rect.has_point(point): return {}
+	return {"acceleration":SLIDE_ACCELERATION,"max_bonus_ratio":MAX_BONUS_RATIO,"release_deceleration":600.0}
 
 func _break_tile() -> void:
 	if is_queued_for_deletion(): return

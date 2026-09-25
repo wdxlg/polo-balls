@@ -1,0 +1,752 @@
+diff --git a/scripts/characters/我的世界/硫方怪.gd b/scripts/characters/我的世界/硫方怪.gd
+--- a/scripts/characters/我的世界/硫方怪.gd
++++ b/scripts/characters/我的世界/硫方怪.gd
+@@ -33,6 +33,10 @@
+ const TNT_SELF_DAMAGE:float = 60.0
+ const CONTACT_INTERVAL:float = 0.62
+ const HOT_INTERVAL:float = 0.16
++const IRON_IMPACT_MULT:float = 1.61 # Previous 2.3 * 0.70
++const IRON_CRUSH_MULT:float = 0.24 # Small sustained ticks, not repeated full slams.
++const IRON_CRUSH_INTERVAL:float = 0.25
++const AMETHYST_CONTACT_MULT:float = 1.4 # Previous 2.0 * 0.70
+ const CRYSTAL_RADIUS:float = 3.0
+ const CRYSTAL_VOLLEY_TIME:float = 2.4
+ const CRYSTAL_REGROW_TIME:float = 0.8
+@@ -334,6 +338,9 @@
+ 			Repel += _recoil_velocity
+ 			_recoil_velocity = _recoil_velocity.move_toward(Vector2.ZERO,780.0*delta)
+ 		super.tick_physics(state,delta)
++	if block_mode == Block.IRON:
++		if can_tick: _iron_bottom_contacts()
++		return
+ 	if not can_tick or health <= 0 or block_mode in [Block.EMPTY,Block.TNT,Block.HONEY] or dizziness or not Can_Attack: return
+ 	_scan_left -= delta
+ 	if _scan_left <= 0.0:
+@@ -416,7 +423,7 @@
+ func _pulse_contact() -> void:
+ 	if not mc_live() or dizziness or not Can_Attack: return
+ 	if block_mode == Block.IRON:
+-		if _slam_time >= 0.0 and _slam_time >= 0.38: _iron_bottom_contacts()
++		_iron_bottom_contacts()
+ 		return
+ 	if block_mode not in [Block.ICE,Block.MAGMA,Block.AMETHYST]: return
+ 	# While inserting, the spikes are still buried; the plain shell is harmless.
+@@ -441,7 +448,7 @@
+ 					# lingering/re-entering cannot re-hit until a NEW growth is generated.
+ 					if not _crystal_hits.has(i): _crystal_hits[i] = {}
+ 					_crystal_hits[i][id] = weakref(target)
+-					_damage_with_impact(target,attack_damage(2.0),center)
++					_damage_with_impact(target,attack_damage(AMETHYST_CONTACT_MULT),center)
+ 			continue
+ 		if distance > reach: continue
+ 		if block_mode == Block.MAGMA:
+@@ -567,19 +574,44 @@
+ 		_slam_time = -1.0 # Never queue a hit-confirmed follow-up.
+ 		_restore_slam_collision()
+ 
++func _iron_bottom_active() -> bool:
++	# Gravity contact keeps pressing even without an active jump. Rising is harmless.
++	return block_mode == Block.IRON and health > 0 and is_combat_runtime_active() and not is_damage_output_disabled() and not dizziness and Can_Attack and (_slam_time < 0.0 or _slam_time >= 0.38)
++
++func _iron_bottom_rect() -> Rect2:
++	var radius:float = get_crowd_separation_radius_world()
++	return Rect2(global_position+Vector2(-radius,radius-3.0),Vector2(radius*2.0,5.0))
++
++func _iron_damage_multiplier(target:ball = null) -> float:
++	return IRON_CRUSH_MULT if is_instance_valid(target) and _slam_hits.has(target.get_instance_id()) else IRON_IMPACT_MULT
++
+ func _iron_bottom_contacts() -> void:
+-	var radius:float = get_crowd_separation_radius_world()
+-	var bottom := Rect2(global_position+Vector2(-radius,radius-3.0),Vector2(radius*2.0,5.0))
++	if not is_multiplayer_authority() or not _iron_bottom_active(): return
++	var bottom:Rect2 = _iron_bottom_rect()
+ 	for raw:Variant in get_tree().get_nodes_in_group("Ball"):
+ 		if not mc_enemy(raw): continue
+ 		var target:ball = raw as ball
+-		if _slam_hits.has(target.get_instance_id()): continue
+-		if target.global_position.y < global_position.y or not bottom.grow(_target_radius(target)).has_point(target.global_position): continue
+-		_slam_hits[target.get_instance_id()] = true
+-		if _damage_with_impact(target,attack_damage(2.3),bottom.get_center()):
+-			_emit_sound(&"iron_hit",target.global_position)
+-			var away:Vector2 = (target.global_position-global_position).normalized()
+-			target.apply_knockback(away,30.0,230.0,0.0,0.0,{"source":self})
++		var id:int = target.get_instance_id()
++		# Only the underside presses: never the top, rear or a fully engulfed body.
++		if target.global_position.y < bottom.position.y or not bottom.grow(_target_radius(target)).has_point(target.global_position): continue
++		if not mc_line_clear(global_position,target.global_position): continue
++		var first:bool = not _slam_hits.has(id)
++		var press:Dictionary = _slam_hits.get(id,{"next":0.0,"remainder":0.0})
++		if _clock+0.000001 < float(press.next): continue
++		var amount:float = attack_damage(IRON_IMPACT_MULT if first else IRON_CRUSH_MULT)
++		# Carry fractional HP rather than rounding every tiny contact update up.
++		press.remainder = float(press.remainder)+amount
++		var settled:float = floorf(float(press.remainder))
++		press.remainder -= settled
++		press.next = _clock+IRON_CRUSH_INTERVAL
++		_slam_hits[id] = press # Same-frame sweep/contact calls cannot double-settle.
++		if not _damage_with_impact(target,settled,bottom.get_center()): continue
++		_emit_sound(&"iron_hit",target.global_position)
++		var heading:Vector2 = Vector2.DOWN
++		if not mc_position_clear(target.global_position+Vector2.DOWN*6.0,_target_radius(target)):
++			heading = Vector2.LEFT if target.global_position.x < global_position.x else Vector2.RIGHT
++		target.apply_knockback(heading,24.0 if first else 6.0,230.0 if first else 120.0,0.0,0.0,
++			{"source":self,"lock_control":false,"stop_on_character":true,"max_wall_bounces":0,"collision_damage":0.0,"control_recovery_time":0.0})
+ 
+ func _leave_ice(from:Vector2,to:Vector2) -> void:
+ 	var steps:int = clampi(ceili(from.distance_to(to)/8.0),1,20)
+@@ -684,7 +716,7 @@
+ 	match block_mode:
+ 		Block.ICE: return 18.0+72.0*clampf((_actual_speed-_ice_reference_speed)/maxf(_ice_reference_speed*0.9,1.0),0.0,1.0)
+ 		Block.MAGMA: return 38.0
+-		Block.AMETHYST: return 96.0 if not crystals_out else 0.0
++		Block.AMETHYST: return attack_damage(AMETHYST_CONTACT_MULT) if not crystals_out else 0.0
+ 	return 0.0
+ 
+ func _detonate() -> void:
+@@ -762,10 +794,11 @@
+ 			"danger_duration":0.12,"kind":"sulfur_cube_tnt","source":self}]
+ 	if dizziness or not Can_Attack: return []
+ 	var radius:float = get_crowd_separation_radius_world()
+-	if block_mode == Block.IRON and _slam_time >= 0.38:
+-		return [{"shape":"rect","position":global_position+Vector2(0,radius-0.5),
+-			"half_extents":Vector2(radius,2.5),"damage":attack_damage(2.3),
+-			"danger_duration":0.1,"kind":"sulfur_iron_bottom","source":self}]
++	if _iron_bottom_active():
++		var bottom:Rect2 = _iron_bottom_rect()
++		return [{"shape":"rect","position":bottom.get_center(),
++			"half_extents":bottom.size*0.5,"damage":attack_damage(_iron_damage_multiplier(_receiver)),
++			"danger_duration":IRON_CRUSH_INTERVAL,"kind":"sulfur_iron_bottom","source":self}]
+ 	if block_mode == Block.AMETHYST and not crystals_out and (not is_instance_valid(_native_model) or _native_model.crystals_ready()):
+ 		var threats:Array = []
+ 		var tips:Array[Vector2] = _crystal_tip_points()
+@@ -773,7 +806,7 @@
+ 			if _crystal_has_hit(i,_receiver): continue
+ 			var tip:Vector2 = tips[i]
+ 			threats.append({"shape":"circle","position":tip,
+-				"radius":CRYSTAL_RADIUS,"damage":attack_damage(2.0),
++				"radius":CRYSTAL_RADIUS,"damage":attack_damage(AMETHYST_CONTACT_MULT),
+ 				"danger_duration":CONTACT_INTERVAL,"kind":"sulfur_amethyst_crystal","source":self})
+ 		return threats
+ 	if block_mode == Block.MAGMA:
+diff --git a/scripts/effects/我的世界/sulfur_ice_trail.gd b/scripts/effects/我的世界/sulfur_ice_trail.gd
+--- a/scripts/effects/我的世界/sulfur_ice_trail.gd
++++ b/scripts/effects/我的世界/sulfur_ice_trail.gd
+@@ -16,7 +16,10 @@
+ const GROUND_Z:int = -4 # Ground overlay: above map floor (-5), below bodies/obstacles/projectiles.
+ const LIFETIME:float = 4.0
+ const CRACK_START:float = 2.0
+-const BOOST_REFRESH:float = 0.18
++const ACCELERATION = preload("res://scripts/effects/surface_acceleration.gd")
++const SLIDE_ACCELERATION:float = 240.0 # world px/s²; integrates with physics delta
++const MAX_BONUS_RATIO:float = 1.5 # up to 2.5x normal movement, not exponential
++const SCAN_INTERVAL:float = 1.0/60.0
+ var cell_rect:Rect2
+ var source_ref:WeakRef
+ var age:float = 0.0
+@@ -85,21 +88,17 @@
+ 		_crack.show()
+ 	_scan -= delta
+ 	if _scan > 0.0 or not owner.is_multiplayer_authority(): return
+-	_scan = 0.07
++	_scan = SCAN_INTERVAL
+ 	for raw:Variant in get_tree().get_nodes_in_group("Ball"):
+ 		if not is_instance_valid(raw) or not raw is ball: continue
+ 		var target:ball = raw as ball
+ 		if target.health <= 0 or not cell_rect.has_point(target.global_position): continue
+-		# A speed multiplier preserves each unit's OWN movement direction. It never
+-		# teleports or forces motion while the unit stands still; expires off ice.
+-		var buff := Buff.new(2,BOOST_REFRESH,Buff.Buff_types.Speed,1.65,Buff.Algorithms.mul)
+-		var scene:Node = get_tree().current_scene
+-		if is_instance_valid(scene) and scene.has_method("new_buff"):
+-			scene.new_buff(target,owner,"硫方怪冰径加速",buff)
+-		else:
+-			var source_id:int = owner.get_instance_id()
+-			if not target.Buff_Dic.has(source_id): target.Buff_Dic[source_id] = {}
+-			target.Buff_Dic[source_id]["硫方怪冰径加速"] = buff
++		ACCELERATION.touch(target,self)
++
++func surface_acceleration_at(point:Vector2) -> Dictionary:
++	var owner:Variant = source_ref.get_ref() if source_ref != null else null
++	if not is_instance_valid(owner) or owner.health <= 0 or age >= LIFETIME or is_queued_for_deletion() or not cell_rect.has_point(point): return {}
++	return {"acceleration":SLIDE_ACCELERATION,"max_bonus_ratio":MAX_BONUS_RATIO,"release_deceleration":600.0}
+ 
+ func _break_tile() -> void:
+ 	if is_queued_for_deletion(): return
+diff --git a/scripts/effects/我的世界/sulfur_amethyst_shard.gd b/scripts/effects/我的世界/sulfur_amethyst_shard.gd
+--- a/scripts/effects/我的世界/sulfur_amethyst_shard.gd
++++ b/scripts/effects/我的世界/sulfur_amethyst_shard.gd
+@@ -1,6 +1,7 @@
+ extends Node2D
+ ## The exact attached native cluster model, frozen at launch then translated.
+ const CRYSTAL = preload("res://scripts/effects/我的世界/sulfur_amethyst_crystal.gd")
++const DAMAGE_MULT:float = 0.945 # Previous 1.35 * 0.70
+ const SPEED:float = 270.0
+ const RADIUS:float = 3.0
+ const LIFETIME:float = 1.25
+@@ -68,7 +69,7 @@
+ 			if hit.is_empty(): break
+ 			var collider:Variant = hit.get("collider",null)
+ 			if collider is ball and owner.call("mc_enemy",collider):
+-				owner.call("_damage_with_impact",collider,owner.attack_damage(1.35),hit.get("position",end))
++				owner.call("_damage_with_impact",collider,owner.attack_damage(DAMAGE_MULT),hit.get("position",end))
+ 				queue_free()
+ 				return
+ 			if collider is CollisionObject2D and collider is ball:
+@@ -82,4 +83,4 @@
+ func get_ai_hazard_info(_receiver:ball = null) -> Dictionary:
+ 	var owner:Variant = source_ref.get_ref() if source_ref != null else null
+ 	if not is_instance_valid(owner) or owner.health <= 0 or is_queued_for_deletion(): return {}
+-	return {"shape":"circle","position":global_position,"radius":RADIUS,"damage":owner.attack_damage(1.35),"source":owner,"kind":"sulfur_amethyst_shard"}
++	return {"shape":"circle","position":global_position,"radius":RADIUS,"damage":owner.attack_damage(DAMAGE_MULT),"source":owner,"kind":"sulfur_amethyst_shard"}
+diff --git a/tests/test_sulfur_cube_contacts.gd b/tests/test_sulfur_cube_contacts.gd
+--- a/tests/test_sulfur_cube_contacts.gd
++++ b/tests/test_sulfur_cube_contacts.gd
+@@ -196,7 +196,7 @@
+ 	var tips:Array[Vector2] = cube._crystal_tip_points()
+ 	victim.global_position = (tips[0]+tips[1])*0.5
+ 	hp = victim.health
+-	var damage:float = cube.attack_damage(2.0)
++	var damage:float = ceilf(cube.attack_damage(cube.AMETHYST_CONTACT_MULT))
+ 	cube._pulse_contact()
+ 	check(is_equal_approx(hp-victim.health,damage*2.0),"two overlapping crystals independently damage the same enemy in one scan")
+ 	check(cube.get_ai_attack_threats(victim).size() == 1 and cube.get_ai_attack_threats(null).size() == 3,"receiver-aware threats exclude spent hits while global display retains other-enemy threats")
+diff --git a/tests/test_sulfur_cube_redesign.gd b/tests/test_sulfur_cube_redesign.gd
+--- a/tests/test_sulfur_cube_redesign.gd
++++ b/tests/test_sulfur_cube_redesign.gd
+@@ -100,7 +100,7 @@
+ 	cube._pull_touching_enemies(0.10)
+ 	check(enemy.Repel.x < 250 and enemy.Repel.x > 0,"honey cancels part of outward velocity but allows a fast enemy to escape")
+ 	cube.set_block(script.Block.IRON)
+-	check(cube.get_ai_attack_threats(enemy).is_empty(),"iron body has no full-body damage before single slam")
++	check(cube.get_ai_attack_threats(enemy).size() == 1 and cube.get_ai_attack_threats(enemy)[0].shape == "rect","iron always exposes only its narrow underside, never full-body damage")
+ 	cube._slam_time = 0.5
+ 	enemy.global_position = center+Vector2(0,10)
+ 	before = enemy.health
+@@ -113,6 +113,7 @@
+ 	for i:int in range(9): cube._step_single_slam(0.10)
+ 	check(cube._slam_time < 0.0 and cube.collision_mask == original_mask,"one slam finishes without combo and restores body collision")
+ 	cube.set_block(script.Block.AMETHYST)
++	cube._process(0.0) # Use the real displayed image scale even before the next render frame.
+ 	var waiting_hp:float = enemy.health
+ 	enemy.global_position = center
+ 	cube._pulse_contact()
+@@ -136,13 +137,13 @@
+ 	var tiny_shape := CircleShape2D.new()
+ 	tiny_shape.radius = 2.0
+ 	enemy.collision_shape_2d.shape = tiny_shape
+-	var bare_position:Vector2 = center
++	var bare_position:Vector2 = cube.global_position
+ 	var best_clearance:float = 0.0
+ 	var body_radius:float = cube.get_crowd_separation_radius_world()
+ 	for x:int in range(-3,4):
+ 		for y:int in range(-3,4):
+-			var candidate:Vector2 = center+Vector2(x,y)*body_radius*0.22
+-			if candidate.distance_to(center) > body_radius*0.7: continue
++			var candidate:Vector2 = cube.global_position+Vector2(x,y)*body_radius*0.22
++			if candidate.distance_to(cube.global_position) > body_radius*0.7: continue
+ 			var clearance:float = INF
+ 			for tip:Vector2 in tips: clearance = minf(clearance,candidate.distance_to(tip))
+ 			if clearance > best_clearance:
+diff --git a/tests/test_sulfur_cube_polish.gd b/tests/test_sulfur_cube_polish.gd
+--- a/tests/test_sulfur_cube_polish.gd
++++ b/tests/test_sulfur_cube_polish.gd
+@@ -104,6 +104,9 @@
+ 	wall.queue_free()
+ 	ceiling.queue_free()
+ 	await physics_frame
++	# Gravity/input assertions below isolate voluntary drive from the new ice inertia.
++	for tile:Node in get_nodes_in_group("MCSulfurIceTrail"): tile.free()
++	if cube.has_node("SurfaceAcceleration"): cube.get_node("SurfaceAcceleration").free()
+ 	var floor_body:StaticBody2D = obstacle(world,center+Vector2(0,65),Vector2(230,8))
+ 	cube.global_position = center-Vector2(0,30)
+ 	cube.set_block(cube.Block.IRON)
+@@ -270,6 +273,8 @@
+ 	check(not is_instance_valid(cube._charge_circle),"death cleans up TNT telegraph with no stale circle")
+ 	world.queue_free()
+ 	await process_frame
++	# Flush deferred viewport/audio/death-effect cleanup before quitting the GPU fixture.
++	await create_timer(0.35,true,false,true).timeout
+ 	game.Game_Settings = saved
+ 	game.now_stop_state = saved_stop
+ 	print("SULFUR_POLISH: %d checks / %d failures" % [checks,failures])
+diff --git a/tests/test_sulfur_cube_redesign_network.gd b/tests/test_sulfur_cube_redesign_network.gd
+--- a/tests/test_sulfur_cube_redesign_network.gd
++++ b/tests/test_sulfur_cube_redesign_network.gd
+@@ -230,6 +230,18 @@
+ 	for transient:Node in get_nodes_in_group("MCExplosion"):
+ 		if transient.is_inside_tree(): fx_count += 1
+ 	check(fx_count == 2,"authority and replica each render the shared blast once, without duplicate damage")
++	host_unit.set_block(CUBE.Block.IRON)
++	check(await until(func(): return guest_unit.block_mode == CUBE.Block.IRON and guest_unit.get_ai_attack_threats(null).size() == 1,2.0),"guest exposes persistent iron underside threat outside a jump")
++	target.global_position = host_unit._iron_bottom_rect().get_center()+Vector2(0,2)
++	var crush_before:float = target.health
++	guest_unit._iron_bottom_contacts()
++	check(target.health == crush_before,"guest cannot settle persistent crush damage")
++	host_unit._iron_bottom_contacts()
++	check(crush_before-target.health == floorf(host_unit.attack_damage(CUBE.IRON_IMPACT_MULT)),"network authority applies the reduced iron first impact once")
++	crush_before = target.health
++	host_unit._clock += CUBE.IRON_CRUSH_INTERVAL
++	host_unit._iron_bottom_contacts()
++	check(crush_before-target.health > 0.0 and crush_before-target.health <= ceilf(host_unit.attack_damage(CUBE.IRON_CRUSH_MULT)),"network authority applies a small independent sustained tick, not another full impact")
+ 	finish(0 if failures == 0 else 1)
+ 
+ func finish(code:int) -> void:
+diff --git a/scripts/effects/surface_acceleration.gd b/scripts/effects/surface_acceleration.gd
+new file mode 100644
+--- /dev/null
++++ b/scripts/effects/surface_acceleration.gd
+@@ -0,0 +1,73 @@
++extends Node
++## One authority-owned controller per body; overlapping surfaces never multiply thrust.
++## A surface supplies surface_acceleration_at(world_point). Motion uses the shared
++## ball velocity channel, NOT teleports, Speed buffs or knockback/control ownership.
++const NODE_NAME:StringName = &"SurfaceAcceleration"
++var target_ref:WeakRef
++var surfaces:Dictionary = {} # instance ID -> weak surface reference
++var momentum:Vector2 = Vector2.ZERO
++var previous_position:Vector2
++var release_deceleration:float = 600.0
++
++static func touch(target:ball,surface:Node2D) -> Node:
++	if not is_instance_valid(target) or not target.is_multiplayer_authority() or target.health <= 0: return null
++	if target.Type not in [ball.Ball_Type.Ball,ball.Ball_Type.Creature]: return null
++	var effect:Node = target.get_node_or_null(NodePath(NODE_NAME))
++	if effect != null and effect.is_queued_for_deletion():
++		target.remove_child(effect)
++		effect = null
++	if effect == null:
++		effect = load("res://scripts/effects/surface_acceleration.gd").new()
++		effect.name = NODE_NAME
++		effect.target_ref = weakref(target)
++		effect.previous_position = target.global_position
++		effect.process_physics_priority = -50
++		target.add_child(effect)
++	effect.surfaces[surface.get_instance_id()] = weakref(surface)
++	return effect
++
++func _physics_process(delta:float) -> void:
++	var target:Variant = target_ref.get_ref() if target_ref != null else null
++	if not is_instance_valid(target) or target.health <= 0 or not target.is_multiplayer_authority():
++		_clear()
++		queue_free()
++		return
++	if not target.is_combat_runtime_active():
++		previous_position = target.global_position
++		return
++	if delta <= 0.0: return
++	var acceleration:float = 0.0
++	var ratio:float = 0.0
++	for id:int in surfaces.keys():
++		var surface:Variant = (surfaces[id] as WeakRef).get_ref()
++		if not is_instance_valid(surface) or surface.is_queued_for_deletion():
++			surfaces.erase(id)
++			continue
++		var info:Dictionary = surface.surface_acceleration_at(target.global_position)
++		if info.is_empty():
++			surfaces.erase(id)
++			continue
++		acceleration = maxf(acceleration,float(info.get("acceleration",0.0)))
++		ratio = maxf(ratio,float(info.get("max_bonus_ratio",0.0)))
++		release_deceleration = maxf(float(info.get("release_deceleration",600.0)),1.0)
++	var traveled:Vector2 = target.global_position-previous_position
++	previous_position = target.global_position
++	var base_speed:float = maxf(target.Speed,0.0)*(target.CHARACTER_BASE_MOVE_SPEED_MULTIPLIER if target.Type == ball.Ball_Type.Ball else 1.0)
++	# Ignore spawn/teleport deltas; a stopped or wall-blocked body cannot bank thrust.
++	var moving:bool = traveled.length() > 0.001 and traveled.length() < maxf(12.0,base_speed*delta*5.0)
++	if acceleration > 0.0 and moving:
++		momentum = traveled.normalized()*minf(momentum.length()+acceleration*delta,base_speed*ratio)
++	elif acceleration > 0.0:
++		momentum = Vector2.ZERO
++	else:
++		momentum = momentum.move_toward(Vector2.ZERO,release_deceleration*delta)
++	target.surface_motion_velocity = momentum
++	if surfaces.is_empty() and momentum.is_zero_approx(): queue_free()
++
++func _clear() -> void:
++	var target:Variant = target_ref.get_ref() if target_ref != null else null
++	if is_instance_valid(target): target.surface_motion_velocity = Vector2.ZERO
++	momentum = Vector2.ZERO
++
++func _exit_tree() -> void:
++	_clear()
+diff --git a/scripts/effects/surface_acceleration.gd.uid b/scripts/effects/surface_acceleration.gd.uid
+new file mode 100644
+--- /dev/null
++++ b/scripts/effects/surface_acceleration.gd.uid
+@@ -0,0 +1 @@
++uid://dr2vreoc420pr
+diff --git a/tests/test_sulfur_cube_balance.gd b/tests/test_sulfur_cube_balance.gd
+new file mode 100644
+--- /dev/null
++++ b/tests/test_sulfur_cube_balance.gd
+@@ -0,0 +1,216 @@
++extends SceneTree
++## Real motion / contact fixture: no Speed-buff assertion can substitute for displacement.
++var checks:int = 0
++var failures:int = 0
++var world:Node
++var source:Node2D
++var SURFACE:Script
++var game:Node
++func _initialize() -> void: call_deferred("run")
++func check(ok:bool,label:String) -> void:
++	checks += 1
++	if ok: print("PASS: ",label)
++	else:
++		failures += 1
++		push_error("FAIL: "+label)
++func fighter(name_key:String,point:Vector2,sulfur:bool = false) -> Node2D:
++	var unit:Node2D = load("res://scenes/characters/我的世界/硫方怪.tscn" if sulfur else "res://scenes/ball.tscn").instantiate()
++	unit.name = name_key
++	unit.Team = "Team0" if sulfur else "Team1"
++	unit.position = point
++	if not sulfur: unit.get_node("CharacterAutoFit").enabled = false
++	world.add_child(unit)
++	unit.state_machine.set_physics_process(false)
++	unit.set_physics_process(false)
++	unit.Has_Collision_Damage = false
++	unit.self_hitbox.set_deferred("monitoring",false)
++	unit.Max_health = 4000
++	unit.default_properties.Max_health = 4000
++	unit.health = 4000
++	unit.Speed = 100.0
++	unit.default_properties.Speed = 100.0
++	unit.player_control_peer_id = 1
++	if not sulfur:
++		var shape := CircleShape2D.new()
++		shape.radius = 15.0
++		unit.collision_shape_2d.shape = shape
++		unit.get_node("hurtbox/CollisionShape2D").shape = shape
++	return unit
++func floor_tile(rect:Rect2) -> Node2D:
++	var tile:Node2D = source.ICE_TRAIL.new()
++	world.add_child(tile)
++	tile.setup(source,rect)
++	tile.set_physics_process(false)
++	return tile
++func motion_step(unit:Node2D,tile:Node2D) -> void:
++	await physics_frame
++	unit.tick_physics(unit.State.Move,1.0/60.0)
++	if is_instance_valid(tile): tile._physics_process(1.0/60.0)
++	var effect:Node = unit.get_node_or_null("SurfaceAcceleration")
++	if effect != null:
++		effect.set_physics_process(false)
++		effect._physics_process(1.0/60.0)
++func knockback(unit:Node) -> Node:
++	for child:Node in unit.get_children():
++		if child.get_script() == unit.KNOCKBACK_EFFECT_SCRIPT: return child
++	return null
++func run() -> void:
++	create_timer(90.0,true,false,true).timeout.connect(func(): print("BALANCE_TIMEOUT"); quit(2))
++	game = root.get_node("Game")
++	var saved:Dictionary = game.Game_Settings.duplicate(true)
++	var saved_stop:bool = game.now_stop_state
++	game.now_stop_state = false
++	game.Game_Settings.Training_Mode = false
++	game.Game_Settings.Training_Mode_Type = "manual"
++	game.Game_Settings.Have_Team_Damage = false
++	game.Game_Settings.Ball_Can_Move = true
++	AudioServer.set_bus_mute(0,true)
++	SURFACE = load("res://scripts/effects/surface_acceleration.gd")
++	world = load("res://scenes/world.tscn").instantiate()
++	world.tree_entered.connect(func(): current_scene = world,CONNECT_ONE_SHOT)
++	root.add_child(world)
++	if is_instance_valid(world._mc_prewarmer): world._mc_prewarmer.free()
++	world.set_process(false)
++	world.set_physics_process(false)
++	source = fighter("BalanceCube",Vector2(-1000,-1000),true)
++	var runner:Node2D = fighter("RightRunner",Vector2(25,40))
++	var reverse:Node2D = fighter("LeftRunner",Vector2(135,110))
++	var idle:Node2D = fighter("Stationary",Vector2(15,15))
++	runner.player_control_direction = Vector2.RIGHT
++	reverse.player_control_direction = Vector2.LEFT
++	idle.player_control_direction = Vector2.ZERO
++	var tile:Node2D = floor_tile(Rect2(-10,-10,180,180))
++	var start:Vector2 = runner.global_position
++	var early:float = 0.0
++	for i:int in range(30):
++		await motion_step(runner,tile)
++		if i == 5: early = runner.velocity.x
++	var late:float = runner.velocity.x
++	print("ICE_MOTION early=",early," late=",late," distance=",runner.global_position.x-start.x," base_speed=",runner.Speed*0.6)
++	check(early > 65.0 and late > early+35.0,"ice adds sustained acceleration over successive real movement frames")
++	check(runner.global_position.x-start.x > 45.0 and absf(runner.global_position.y-start.y) < 0.05,"actual traveled distance grows along the runner's own direction, not caster direction")
++	check(is_equal_approx(runner.Speed,100.0) and runner.Buff_Dic.is_empty(),"acceleration is real additive velocity, not a nominal Speed buff")
++	check(runner.surface_motion_velocity.length() <= 90.01,"ice speed has a bounded 1.5x base bonus, not runaway accumulation")
++	for i:int in range(12): await motion_step(reverse,tile)
++	check(reverse.velocity.x < -85.0 and absf(reverse.velocity.y) < 0.05,"a second actor accelerates in its own opposite direction")
++	var idle_start:Vector2 = idle.global_position
++	for i:int in range(5): await motion_step(idle,tile)
++	check(idle.global_position.is_equal_approx(idle_start) and idle.surface_motion_velocity.is_zero_approx(),"a stationary body is not propelled by a caster or an arbitrary fallback direction")
++	var effect:Node = runner.get_node("SurfaceAcceleration")
++	var duplicate:Node2D = floor_tile(tile.cell_rect)
++	SURFACE.touch(runner,duplicate)
++	check(runner.get_node("SurfaceAcceleration") == effect and effect.surfaces.size() == 2,"overlapping tiles share one per-body controller")
++	var before_bonus:float = effect.momentum.length()
++	runner.global_position += Vector2(1,0)
++	effect._physics_process(1.0/60.0)
++	check(effect.momentum.length()-before_bonus <= 4.01,"overlapping surfaces do not double acceleration")
++	var held:Vector2 = effect.momentum
++	game.now_stop_state = true
++	effect._physics_process(2.0)
++	check(effect.momentum == held,"pause does not advance or expire surface momentum")
++	game.now_stop_state = false
++	runner.global_position = Vector2(400,40)
++	for i:int in range(20): effect._physics_process(1.0/60.0)
++	check(runner.surface_motion_velocity.is_zero_approx() and effect.is_queued_for_deletion(),"leaving ice removes acceleration and decays residual slide to zero")
++	var guest:Node2D = fighter("NonAuthority",Vector2(40,60))
++	guest.set_multiplayer_authority(2)
++	check(SURFACE.touch(guest,tile) == null and guest.surface_motion_velocity.is_zero_approx(),"non-authority never simulates a duplicate ice acceleration controller")
++	guest.queue_free()
++	# Compare integrated acceleration budgets at two physics rates; move samples are explicit.
++	var slow:Node2D = fighter("Rate30",Vector2(30,70))
++	var fast:Node2D = fighter("Rate120",Vector2(30,90))
++	var slow_effect:Node = SURFACE.touch(slow,tile)
++	var fast_effect:Node = SURFACE.touch(fast,tile)
++	slow_effect.set_physics_process(false)
++	fast_effect.set_physics_process(false)
++	for i:int in range(6):
++		slow.global_position.x += 2.0
++		slow_effect._physics_process(1.0/30.0)
++	for i:int in range(24):
++		fast.global_position.x += 0.5
++		fast_effect._physics_process(1.0/120.0)
++	check(absf(slow_effect.momentum.length()-fast_effect.momentum.length()) < 0.01,"ice acceleration integrates delta consistently at 30 and 120 Hz")
++	# Clear ice before the unrelated contact mechanics section.
++	tile.free()
++	duplicate.free()
++	for unit:Node in [runner,reverse,idle,slow,fast]: unit.free()
++	source.global_position = Vector2(80,60)
++	source.Damage = 48
++	source.set_block(source.Block.IRON)
++	source.set_process(false)
++	var target:Node2D = fighter("CrushTarget",source._iron_bottom_rect().get_center()+Vector2(0,2))
++	var above:Node2D = fighter("AboveTarget",source.global_position-Vector2(0,12))
++	var side:Node2D = fighter("SideTarget",source.global_position+Vector2(25,0))
++	await physics_frame
++	check(is_equal_approx(source.IRON_IMPACT_MULT,2.3*0.7) and is_equal_approx(source.AMETHYST_CONTACT_MULT,2.0*0.7) and is_equal_approx(source.SHARD.DAMAGE_MULT,1.35*0.7),"iron impact, attached crystal and projectile coefficients are all reduced by 30 percent")
++	var hp:float = target.health
++	source._iron_bottom_contacts()
++	var initial:float = hp-target.health
++	check(initial == floorf(source.attack_damage(source.IRON_IMPACT_MULT)),"iron first underside impact uses the reduced current-attribute damage")
++	var push:Node = knockback(target)
++	check(push != null and push.direction.y > 0.0 and not push.lock_control_during_knockback,"initial underside hit applies shared downward knockback without permanently locking controls")
++	if push != null: push.set_physics_process(false)
++	hp = target.health
++	for i:int in range(12): source._iron_bottom_contacts()
++	check(target.health == hp,"multiple contact scans in the same tick cannot repeat impact or pressure")
++	for i:int in range(4):
++		source._clock += source.IRON_CRUSH_INTERVAL
++		source._iron_bottom_contacts()
++	var sustained:float = hp-target.health
++	check(sustained >= 45.0 and sustained <= 47.0,"remaining underneath causes small sustained crush ticks rather than repeated full impacts")
++	check(knockback(target) == push and push.distance <= 6.01,"sustained hits renew one bounded shared knockback controller, not stacked force")
++	check(above.health == above.Max_health and side.health == side.Max_health,"iron top and side targets do not take underside pressure damage")
++	var threats:Array = source.get_ai_attack_threats(target)
++	check(threats.size() == 1 and threats[0].position == source._iron_bottom_rect().get_center() and is_equal_approx(threats[0].damage,source.attack_damage(source.IRON_CRUSH_MULT)),"threat geometry matches the underside and reports the receiver's sustained damage")
++	target.global_position += Vector2(40,0)
++	hp = target.health
++	source._clock += 3.0
++	source._iron_bottom_contacts()
++	check(target.health == hp,"leaving the underside stops pressure and cannot bank off-contact damage")
++	target.global_position = source._iron_bottom_rect().get_center()+Vector2(0,2)
++	source._iron_bottom_contacts()
++	check(hp-target.health <= 12.0,"re-entry into the same iron phase cannot farm fresh full-strength impacts")
++	source._slam_time = 0.1
++	source._clock += 1.0
++	hp = target.health
++	source._iron_bottom_contacts()
++	check(target.health == hp and source.get_ai_attack_threats(target).is_empty(),"rising jump phase has no underside pressure or threat")
++	source._slam_time = -1.0
++	source.dizziness = true
++	source._iron_bottom_contacts()
++	check(target.health == hp and source.get_ai_attack_threats(target).is_empty(),"stun suppresses iron damage and its damage warning")
++	source.dizziness = false
++	game.now_stop_state = true
++	source._iron_bottom_contacts()
++	check(target.health == hp,"paused iron cannot settle another crush tick")
++	game.now_stop_state = false
++	source.set_multiplayer_authority(2)
++	source._iron_bottom_contacts()
++	check(target.health == hp,"guest-side iron cannot damage or renew knockback")
++	source.set_multiplayer_authority(1)
++	source.Damage = 96
++	source._slam_hits.clear()
++	source._iron_bottom_contacts()
++	check(hp-target.health == floorf(96.0*source.IRON_IMPACT_MULT),"changed attack attributes scale the new iron damage, rather than a fixed HP constant")
++	source.set_block(source.Block.AMETHYST)
++	check(source._slam_hits.is_empty(),"changing form clears iron pressure history")
++	var analyzer:Node2D = load("res://scripts/training/combat_threat_analyzer.gd").new()
++	world.add_child(analyzer)
++	analyzer.set_physics_process(false)
++	game.Game_Settings.Training_Debug_Mode = true
++	source.set_block(source.Block.IRON)
++	analyzer._physics_process(0.1)
++	var found:bool = false
++	for entry:Dictionary in analyzer._debug_threats:
++		if entry.get("kind","") == "sulfur_iron_bottom": found = true
++	check(found,"real settings threat display discovers persistent iron underside damage")
++	game.Game_Settings.Training_Debug_Mode = false
++	analyzer._physics_process(0.1)
++	check(not analyzer.visible,"turning threat display off removes the indicator")
++	world.queue_free()
++	await process_frame
++	await create_timer(0.35,true,false,true).timeout
++	game.Game_Settings = saved
++	game.now_stop_state = saved_stop
++	print("SULFUR_BALANCE: %d checks / %d failures" % [checks,failures])
++	quit(0 if failures == 0 else 1)
+diff --git a/tests/test_sulfur_cube_balance.gd.uid b/tests/test_sulfur_cube_balance.gd.uid
+new file mode 100644
+--- /dev/null
++++ b/tests/test_sulfur_cube_balance.gd.uid
+@@ -0,0 +1 @@
++uid://bbvj4wpentxcx
+diff --git a/tests/SULFUR_CUBE_BALANCE_20260926.md b/tests/SULFUR_CUBE_BALANCE_20260926.md
+new file mode 100644
+--- /dev/null
++++ b/tests/SULFUR_CUBE_BALANCE_20260926.md
+@@ -0,0 +1,61 @@
++# 硫方怪平衡、冰面加速度与铁底持续碾压
++
++日期：2026-09-26。用户确认：现有铁/紫水晶单次伤害降低约三成；踩冰应沿目标自身方向加速，不只是提高一个速度倍率；铁形态需要类似铁砧的下方击退与持续碾压。
++
++## 实现
++
++### 伤害
++
++所有结算仍调用当前攻击属性和统一承伤/MC 有效伤害音效入口；没有改基础 `Damage`、目标护甲/减伤、铁形态自身抗性或其他形态伤害。
++
++| 项目 | 原攻击系数 | 新攻击系数 | Damage=48 时公式值 |
++| --- | --- | --- | --- |
++| 铁首次底部冲击 | 2.3 | **1.61** | 110.4 → 77.28 |
++| 附着紫水晶 | 2.0 | **1.4** | 96 → 67.2 |
++| 飞行晶体 | 1.35 | **0.945** | 64.8 → 45.36 |
++
++生命系统使用整数，实际承伤还受护盾/减伤及整数转换影响。铁碾压在结算前保留小数余量，以免高频小数伤害被逐帧向上取整。紫水晶每根、每敌人、每轮独立记录命中及随机布局机制保持；模式伤害查询、真实威胁、投射物伤害查询同步使用新系数。
++
++### 冰径：真实加速度，不再只写 Speed Buff
++
++- 公共控制器：`scripts/effects/surface_acceleration.gd`，每个目标至多一个。地表通过 `touch(target,surface)` 注册，提供 `surface_acceleration_at(world_point)` 参数。
++- 每物理步观察目标自己的真实位移，以该方向积分 **240 世界像素/秒²**；不朝向硫方怪或鼠标，不用固定方向推动。忽略传送差值，静止/受墙阻挡时不积攒推力。
++- 附加速度上限为目标当前基础移动速度的 **1.5 倍**，因此正常直线移动最高约 **2.5 倍**；重叠冰格不叠加加速度或重复创建控制器。
++- 离开冰面后以 **600 像素/秒²** 衰减滑动余速；停止后删除控制器。暂停冻结、目标死亡/删除清零，仅权威端模拟。
++- 通过 `ball.surface_motion_velocity` 加入公共 `move/stand` 的最终物理速度，保留 `move_and_slide` 的墙/角色碰撞。没有重写 `Speed`、抢占 `Repel`、传送目标或添加控制锁。冰径扫描间隔为1/60秒（60Hz下一帧）；冰面图层/裂纹/寿命和碎片接口保持。
++- 普通公共移动链及硫方怪已实际验证。完全自行移动、绕过公共 `ball.move/stand` 的角色，需要自行将同一速度字段接入其定制运动链；不宣称已逐个验证全角色。
++
++### 铁底持续碾压
++
++- 常态重力接触和主动下砸的底部均可伤害，不再要求必须处于某次技能下砸；起跳上升、眩晕、禁用攻击、暂停、死亡不结算。
++- 仍是身体底部的窄条：上方、侧面和已经深度穿过的敌人不压伤。复用 `mc_line_clear` 排除地形遮挡，伤害与威胁共用 `_iron_bottom_rect()`。
++- 每个目标本阶段首次接触用降低后的 **1.61** 系数；随后每 **0.25 秒**最多一次 **0.24** 系数小额碾压。Damage=48 时约 11–12/跳、46/秒，而非每次扫描都再打 77。离开不会累计离线伤害，同阶段重入不会重获首次大伤害；新跳砸或换形态清理历史。
++- 有效命中后调用公共 `apply_knockback`：首次 24 像素/230 速度，持续 6 像素/120 速度，续用同一控制器、不叠加无限推力、不锁死玩家输入、不附加碰撞二次伤害。通常向下；下方地形不空时尝试侧推，具体移动仍由公共实体碰撞处理。
++- 没有修改铁砧本身的追踪、连砸、伤害公式或控制器；参考其“下方接触持续伤害 + 公共击退”行为，但硫方怪保留自身单次主动跳砸和独立平衡数值。
++
++## 最终验证
++
++引擎：`E:/godot/polo-balls-tools/offline-engine/runtime/Godot.4.7.2.offline.exe`。真实 GPU：OpenGL Compatibility / NVIDIA RTX 4060 Laptop。
++
++| 夹具 | 结果 |
++| --- | --- |
++| `tests/test_sulfur_cube_balance.gd`（GPU） | **30/30，exit 0**：真实逐帧位移/提速、反方向、静止、上限、重叠、暂停、离冰、30/120Hz 积分、权限；三类伤害系数、持续接触/去重/脱离、公共击退、上下侧边界、属性变化和实际威胁设置。 |
++| `tests/test_sulfur_cube_contacts.gd`（GPU） | **34/34，exit 0**：蜂蜜角色对、随机独立水晶、冰面/裂纹 GPU 层级等旧需求仍成立。 |
++| `tests/test_sulfur_cube_polish.gd`（GPU） | **35/35，exit 0**：冰反弹、铁水平输入/重力、手控/威胁、TNT 及模型；最终本体/射出同姿态像素 **602 可见、0 差异**。纯铁输入测试先移除前段遗留冰面，避免将真实冰面惯性误算成 W 的主动横向驱动。 |
++| `tests/test_sulfur_cube_redesign.gd`（headless） | **32/32，exit 0**：六形态与素材/伤害回归；裸身体安全点改为当前身体中心并更新实际显示缩放，不使用跳砸前旧位置。 |
++| `tests/test_sulfur_cube_redesign_network.gd`（headless ENet） | **42/42，exit 0**：保留随机布局/蜂蜜/TNT 同步，补测远端常态铁底威胁、客户端不能结算、权威首次与持续伤害。 |
++
++合计 **173 项断言通过**。真实运动读数：基础移动速度 **60**，第6帧 **76**，第30帧 **150**；30帧位移 **55.8667**，无冰同速直线理论位移 **30**。这验证了真实速度/位移改变，而不是仅检查属性面板。
++
++最终记录在 `tests/*_balance_final.log`（不提交运行日志）。运行过程中其他任务新增庭院纹理尚未导入，曾导致地图依赖载入错误；执行引擎标准 `--editor --headless --import --quit` 导入后重跑，不修改或提交另一任务的地图源文件/素材。GPU 夹具增加退出清理等待，最终各套无 SCRIPT ERROR/FAIL；原 `set_rgb_color.gdshader` UID/大小写两项警告保留。
++
++### 边界
++
++ENet 是同进程内两个独立 SceneMultiplayer，不是两台独立客户端的人工对战。未做全角色定制移动链审计、双语录制编码或大规模性能压力测试；冰加速度的非权威抑制在专项夹具验证，未新增独立双客户端冰面长时间运动同步录像。
++
++## Git 与回退
++
++- 新检查点：`E:/godot/polo-balls-tools/checkpoints/sulfur-balance-20260926-042341`，基线 **`e3faf4226982a076d7ad6b3f3ce58dc3827112da`**。
++- 本次仅包含硫方怪/冰径/飞行晶体、公共表面控制器及 UID、`ball.gd` 的一个速度字段和两个公共移动入口、相关测试和说明。共享文件只提交本次增量，不接管其他未完成改动。
++- 独立反向补丁：`tests/patches/sulfur_cube_balance_20260926.patch`，准备提交时执行反向 `--check`。实际撤销前需再次备份并检查当前工作区；不要盲目 reset/clean 或覆盖并发工作。
++- 最终提交与实际父提交写入本检查点 `commit_result.json` 并在交付回复报告；未推送远程，局部提交不代表整个脏工作区的完整快照。此前 contacts/polish 检查点和补丁保留。
+diff --git a/classes/ball.gd b/classes/ball.gd
+--- a/classes/ball.gd
++++ b/classes/ball.gd
+@@ -4815,6 +4815,10 @@
+ 	var rider:Node = get_transport_rider()
+ 	return bool(rider.apply_pose()) if rider != null else false
+ 
++# Shared terrain motion is additive world velocity, not Speed/Repel or a control lock.
++# Controllers clear their contribution on exit; ordinary physics still handles walls.
++var surface_motion_velocity:Vector2 = Vector2.ZERO
++
+ func move(speed:float,delta:float):
+ 	if apply_transport_pose(): return
+ 
+@@ -4839,6 +4843,7 @@
+ 		move_speed,
+ 		Repel
+ 	)
++	velocity += surface_motion_velocity
+ 	_last_requested_velocity = velocity
+ 
+ 	# move_and_slide() 即使 velocity == 0，也会执行 safe_margin 的碰撞恢复。
+@@ -4921,7 +4926,7 @@
+ 	if apply_transport_pose(): return
+ 	# Stand 状态只有显式 Repel 才允许发生位移。
+ 	# hitbox/hurtbox 是 Area2D，不调用 move_and_slide() 也仍可正常攻击/受伤。
+-	velocity = Repel + _crowd_separation_velocity
++	velocity = Repel + _crowd_separation_velocity + surface_motion_velocity
+ 	_last_requested_velocity = velocity
+ 	if velocity.length_squared() <= MOTION_EPSILON_SQ:
+ 		velocity = Vector2.ZERO
+diff --git a/docs/MC_COMBAT_REUSE.md b/docs/MC_COMBAT_REUSE.md
+--- a/docs/MC_COMBAT_REUSE.md
++++ b/docs/MC_COMBAT_REUSE.md
+@@ -7,6 +7,7 @@
+ | 雷电预警与落雷 | `scripts/effects/我的世界/mc_combat_abilities.gd::lightning(parent, point, seed, radius, warning, options)` → `雷电.gd`；三叉戟传 `options.script=trident_lightning.gd` | `tuning` 可调雷电的导出光柱/辉光/环/声音参数，`on_impact` 一次回调；伤害、蓄能、阶段转换由角色决定。施术者自己 RPC 每端调用；只有权威端接伤害回调。铜剑、溺尸、苦力怕、雾中人已接入。 |
+ | 水平击退/眩晕 | `target.apply_knockback(direction,distance,speed,bounce,stun,{"source":caster,...})` / `target.apply_stun(duration,caster)` | 距离、速度、撞墙/人物、眩晕、碰撞伤害、控制锁、末段刹车等用 options；别直接复制 `knockback_effect.gd` 或裸写 `Repel`。 |
+ | 铁傀儡式真实身体击飞 | `scripts/effects/physical_airborne_effect.gd::launch(victim,caster,apex,up_speed,stun,side_speed,options)` | 身体+碰撞体一起飞、地图/障碍扫掠、锁控制、二次命中平滑重发；`landed_at(point,apex_height)` 或子类 `_on_landing` 自定落地伤害/声音。施术者 RPC 同一调用至各端；铁傀儡子类仅保留专属落地玩法。 |
++| 冰面/地表方向加速度 | `scripts/effects/surface_acceleration.gd::touch(target,surface)`；surface 提供 `surface_acceleration_at(world_point)` | 单个权威控制器沿目标真实位移积分，参数 `acceleration/max_bonus_ratio/release_deceleration`；重叠地表取上限而不叠加，静止不推动、离开衰减，暂停冻结。通过 `ball.surface_motion_velocity` 接入公共 move/stand 的最终速度，保留物理碰撞，不伪装成 Speed Buff 或抢占击退控制。完全自行移动且绕过公共链的角色须自行接入同一速度字段；不是复制其移动算法。 |
+ | 临时角色对免碰撞 | `classes/body_collision_exclusions.gd::acquire(a,b,holder)` / `release(a,b,holder)` / `are_excluded(a,b)` | 双向 PhysicsBody 排除，按 holder 保留并发租约；不修改层/掩码或受击 Area，不删除预存例外，任一 body/holder 离树自动释放。`world.gd` 软分离同样查询；不能用清空角色碰撞层代替。硫方怪蜂蜜只排除施术者与被黏目标，目标相对路径由权威端复制。见 `tests/SULFUR_CUBE_CONTACTS_20260926.md`。 |
+ | 火焰伤害 | `ball.receive_fire_positional_damage(amount,point,false,caster)` / `receive_fire_spatial_damage(amount,space)`；`can_receive_fire_status()` | `fire_effect_ratio=0` 火免，正值缩放；已有药水火抗也免疫。燃烧状态复用现有状态类，按实际有效伤害播 MC 音效。烈焰弹直击/烈焰火场已接入。普通爆炸不默认算火焰。 |
+ | 砸地/地板碎屑 | `mc_combat_abilities.gd::ground_impact(parent,point,radius,options)` → `重锤落地冲击.gd` | `show_impact_ring/show_impact_streaks`、方块来源/数量/尺寸/高度/飞行时间/散布、中心高度曲线等导出参数；白圈、碎屑可分别关闭。重锤、铁傀儡、三叉戟、监守者及长弓落箭共用真实地表采样与碎屑运动；角色负责伤害。 |
+@@ -35,3 +36,5 @@
+ 2026-09-25 碎裂拆分及纠正验证（Steam 官方 Godot 4.7.2）：`tests/test_mc_fragment_contract.gd` 18/18（角色死亡及普通 Sprite/Polygon/TileMap/裸纹理均可使用离场碎裂；另验证落地小方块、参数和工作台）；恶魂破障 35/35、保留原离场碎裂的恶魂障碍 29/29、凋零冲撞破障 16/16、轨道 24/24；苔藓破坏 52/52、苔藓表现 77/77 为接入方块落地特效时的回归。`test_mc_round6.gd` 297/299，其余两项失败发生在守卫者锁定及钻石剑伤害倍数，物品死亡检查未报错；`test_mc_wood_revision3.gd` 在锻造台检查前因木剑缺 `brace_left` 中断，不能记作通过，故工作台另在碎裂夹具中验证。未做人工画面/双客户端联机/实际录制验证；项目既有 UID 大小写警告和测试退出时对象泄漏仍在。
+ 
+ 2026-09-26 硫方怪接触追补：冰径/裂纹及其 `block_fragments.gd` 落地碎屑使用绝对 Z=-4；随机 3–8 根水晶只由权威端生成根/尖布局，沿用 `sulfur_amethyst_crystal.gd` 原版交叉网格及射出帧姿态。每根附着水晶对每个敌人每轮生长结算一次，不共享冷却；完整物理/GPU/ENet验证及边界见 `tests/SULFUR_CUBE_CONTACTS_20260926.md`。
++
++2026-09-26 硫方怪平衡追补：铁/紫水晶三类单次伤害系数×0.7；铁底部每0.25秒小额持续碾压，调用 `apply_knockback` 续用同一控制器、不锁死输入。新地表控制器区别于定向重力/技能击退：加速度由目标自身实际运动决定，不修改 Speed、Repel 或施术者朝向。参数、真实位移与173项回归见 `tests/SULFUR_CUBE_BALANCE_20260926.md`。
+diff --git a/MCP_CONTEXT.md b/MCP_CONTEXT.md
+--- a/MCP_CONTEXT.md
++++ b/MCP_CONTEXT.md
+@@ -107,3 +107,4 @@
+ - 唤魔者不死图腾显示期间持续从图腾周围产生原版金绿粒子；出生后独立下落至脚下地面并淡出，图腾消失后保留最后一批落地尾迹。实现与验证见 `tests/TOTEM_CONTINUOUS_PARTICLES.md`。 图腾动作参考原版40 tick连续缩放/翻转曲线，战场适配为2秒；施法结束/眩晕及1.6秒庆祝结束须收手，不能用永久胜利标记维持举手。最新验证见 `tests/EVOKER_SMOOTH_AND_RESET.md`。
+ - Minecraft 范围外圈和蓄力填充盘统一复用 `pixel_arc.gd::draw_ring/draw_disk`，持续预警走 `mc_combat_abilities.gd::charge_circle`，按真实技能计时更新，不另写平滑圆或复制像素算法。重锤与硫方怪 TNT 已共用；硫方怪铁块重力/水平移动、原版晶簇本体与射出同模型、冰墙反弹及手控/威胁回归见 `tests/SULFUR_CUBE_POLISH_20260926.md`。
+ - 硫方怪蜂蜜仅与被黏住者成对免物理碰撞（保留其他人物/地形及受击），并与大规模软分离一致；临时成对排除复用 `classes/body_collision_exclusions.gd` 租约。冰径在地面 Z=-4；紫水晶权威随机 3–8 根及位置，允许同向多根，每根对每名敌人每轮生长独立命中一次，布局/再生/齐射同步。追补和回退范围见 `tests/SULFUR_CUBE_CONTACTS_20260926.md`。
++- 硫方怪平衡追补：铁首次冲击、附着紫水晶及晶体投射物的伤害系数均降低30%；铁底部常态接触及下砸均可持续碾压，低额定频结算并复用公共击退。冰径不再仅加 Speed 倍率，而用 `surface_acceleration.gd` 沿目标自身真实位移方向积分加速、限制上限并在离冰后衰减；公共移动链接 `ball.surface_motion_velocity`。实测位移、威胁/手控/ENet与回退范围见 `tests/SULFUR_CUBE_BALANCE_20260926.md`。
+diff --git a/tests/ALL_CHARACTER_MANUAL_CONTROL.md b/tests/ALL_CHARACTER_MANUAL_CONTROL.md
+--- a/tests/ALL_CHARACTER_MANUAL_CONTROL.md
++++ b/tests/ALL_CHARACTER_MANUAL_CONTROL.md
+@@ -80,4 +80,8 @@
+ 
+ ## 2026-09-26 硫方怪接触追补
+ 
+-上节“原四晶齐射”为历史记录，现改为每次权威随机 3–8 根、位置不限方向的齐射；左/右/中动作顺序不变，0.8 秒后新一轮随机生长，0.24 秒穿出身体前无伤害。附着水晶按根/敌人每轮只命中一次，蜂蜜只让来源与被黏者相互穿过，其他角色/地形仍挡路。新增真实物理与 GPU 地面层夹具 34/34；原操控/威胁/GPU 35/35、形态 32/32、双 peer ENet 38/38；仍未进行两个独立客户端的手控实战或录制。见 `tests/SULFUR_CUBE_CONTACTS_20260926.md`。
+\ No newline at end of file
++上节“原四晶齐射”为历史记录，现改为每次权威随机 3–8 根、位置不限方向的齐射；左/右/中动作顺序不变，0.8 秒后新一轮随机生长，0.24 秒穿出身体前无伤害。附着水晶按根/敌人每轮只命中一次，蜂蜜只让来源与被黏者相互穿过，其他角色/地形仍挡路。新增真实物理与 GPU 地面层夹具 34/34；原操控/威胁/GPU 35/35、形态 32/32、双 peer ENet 38/38；仍未进行两个独立客户端的手控实战或录制。见 `tests/SULFUR_CUBE_CONTACTS_20260926.md`。
++
++## 2026-09-26 硫方怪平衡与冰面运动
++
++左/右/中仍为冲刺或铁单砸／换形态／水晶齐射。冰面加速度沿自身真实移动方向，不跟随鼠标或施术者；松键可以有短暂滑动惯性，不能把惯性误判为 W/S 新增了铁形态横向主动输入。铁底常态压力是被动，不新增动作，起跳上升无伤害。新运动/伤害夹具30项、接触34项、原手控GPU35项、形态32项及ENet42项通过；未进行双独立客户端人工手控实战。见 `tests/SULFUR_CUBE_BALANCE_20260926.md`。
+diff --git a/tests/manual_control_inventory.csv b/tests/manual_control_inventory.csv
+--- a/tests/manual_control_inventory.csv
++++ b/tests/manual_control_inventory.csv
+@@ -112,7 +112,7 @@
+ 选角人物,scenes/characters/我的世界/烈焰人.tscn,scripts/characters/我的世界/烈焰人.gd,Attack,是,识别到入口；待逐角色验证实际命中与AI停火
+ 选角人物,scenes/characters/我的世界/监守者.tscn,scripts/characters/我的世界/frontier/warden.gd,"Attack,Skill,player_control_action",是,识别到入口；待逐角色验证实际命中与AI停火
+ 选角人物,scenes/characters/我的世界/矿车.tscn,scripts/characters/我的世界/minecart/minecart.gd,"Attack,Skill,player_control_action",是,识别到入口；待逐角色验证实际命中与AI停火
+-选角人物,scenes/characters/我的世界/硫方怪.tscn,scripts/characters/我的世界/硫方怪.gd,"Attack,Skill,controlled_crystal_volley",是,左冲刺或铁块单砸；右换块；紫水晶中键随机3–8晶齐射且手控停自动；接触GPU34项/操控GPU35项/双peer复制38项通过；未做双客户端手控实战
++选角人物,scenes/characters/我的世界/硫方怪.tscn,scripts/characters/我的世界/硫方怪.gd,"Attack,Skill,controlled_crystal_volley",是,左冲刺或铁单砸；右换块；中键随机晶齐射；铁底被动持续碾压/冰面自身方向加速；平衡30项/接触34项/手控GPU35项/双peer42项通过；未做双客户端手控实战
+ 选角人物,scenes/characters/我的世界/粘性活塞.tscn,scripts/characters/我的世界/new5/piston.gd,,是,自定义或被动机制；待逐角色识别手动入口
+ 选角人物,scenes/characters/我的世界/羊.tscn,scripts/characters/我的世界/new6/sheep.gd,,是,自定义或被动机制；待逐角色识别手动入口
+ 选角人物,scenes/characters/我的世界/苔藓.tscn,scripts/characters/我的世界/frontier/moss.gd,"Attack,Skill,player_control_action",是,识别到入口；待逐角色验证实际命中与AI停火

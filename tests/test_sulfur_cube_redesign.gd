@@ -100,7 +100,7 @@ func run() -> void:
 	cube._pull_touching_enemies(0.10)
 	check(enemy.Repel.x < 250 and enemy.Repel.x > 0,"honey cancels part of outward velocity but allows a fast enemy to escape")
 	cube.set_block(script.Block.IRON)
-	check(cube.get_ai_attack_threats(enemy).is_empty(),"iron body has no full-body damage before single slam")
+	check(cube.get_ai_attack_threats(enemy).size() == 1 and cube.get_ai_attack_threats(enemy)[0].shape == "rect","iron always exposes only its narrow underside, never full-body damage")
 	cube._slam_time = 0.5
 	enemy.global_position = center+Vector2(0,10)
 	before = enemy.health
@@ -113,6 +113,7 @@ func run() -> void:
 	for i:int in range(9): cube._step_single_slam(0.10)
 	check(cube._slam_time < 0.0 and cube.collision_mask == original_mask,"one slam finishes without combo and restores body collision")
 	cube.set_block(script.Block.AMETHYST)
+	cube._process(0.0) # Use the real displayed image scale even before the next render frame.
 	var waiting_hp:float = enemy.health
 	enemy.global_position = center
 	cube._pulse_contact()
@@ -136,13 +137,13 @@ func run() -> void:
 	var tiny_shape := CircleShape2D.new()
 	tiny_shape.radius = 2.0
 	enemy.collision_shape_2d.shape = tiny_shape
-	var bare_position:Vector2 = center
+	var bare_position:Vector2 = cube.global_position
 	var best_clearance:float = 0.0
 	var body_radius:float = cube.get_crowd_separation_radius_world()
 	for x:int in range(-3,4):
 		for y:int in range(-3,4):
-			var candidate:Vector2 = center+Vector2(x,y)*body_radius*0.22
-			if candidate.distance_to(center) > body_radius*0.7: continue
+			var candidate:Vector2 = cube.global_position+Vector2(x,y)*body_radius*0.22
+			if candidate.distance_to(cube.global_position) > body_radius*0.7: continue
 			var clearance:float = INF
 			for tip:Vector2 in tips: clearance = minf(clearance,candidate.distance_to(tip))
 			if clearance > best_clearance:

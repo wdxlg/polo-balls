@@ -196,7 +196,7 @@ func run() -> void:
 	var tips:Array[Vector2] = cube._crystal_tip_points()
 	victim.global_position = (tips[0]+tips[1])*0.5
 	hp = victim.health
-	var damage:float = cube.attack_damage(2.0)
+	var damage:float = ceilf(cube.attack_damage(cube.AMETHYST_CONTACT_MULT))
 	cube._pulse_contact()
 	check(is_equal_approx(hp-victim.health,damage*2.0),"two overlapping crystals independently damage the same enemy in one scan")
 	check(cube.get_ai_attack_threats(victim).size() == 1 and cube.get_ai_attack_threats(null).size() == 3,"receiver-aware threats exclude spent hits while global display retains other-enemy threats")

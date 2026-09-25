@@ -33,6 +33,10 @@ const TNT_DAMAGE:float = 150.0
 const TNT_SELF_DAMAGE:float = 60.0
 const CONTACT_INTERVAL:float = 0.62
 const HOT_INTERVAL:float = 0.16
+const IRON_IMPACT_MULT:float = 1.61 # Previous 2.3 * 0.70
+const IRON_CRUSH_MULT:float = 0.24 # Small sustained ticks, not repeated full slams.
+const IRON_CRUSH_INTERVAL:float = 0.25
+const AMETHYST_CONTACT_MULT:float = 1.4 # Previous 2.0 * 0.70
 const CRYSTAL_RADIUS:float = 3.0
 const CRYSTAL_VOLLEY_TIME:float = 2.4
 const CRYSTAL_REGROW_TIME:float = 0.8
@@ -334,6 +338,9 @@ func tick_physics(state:State,delta:float) -> void:
 			Repel += _recoil_velocity
 			_recoil_velocity = _recoil_velocity.move_toward(Vector2.ZERO,780.0*delta)
 		super.tick_physics(state,delta)
+	if block_mode == Block.IRON:
+		if can_tick: _iron_bottom_contacts()
+		return
 	if not can_tick or health <= 0 or block_mode in [Block.EMPTY,Block.TNT,Block.HONEY] or dizziness or not Can_Attack: return
 	_scan_left -= delta
 	if _scan_left <= 0.0:
@@ -416,7 +423,7 @@ func when_collide(speed:float,collision:KinematicCollision2D) -> void:
 func _pulse_contact() -> void:
 	if not mc_live() or dizziness or not Can_Attack: return
 	if block_mode == Block.IRON:
-		if _slam_time >= 0.0 and _slam_time >= 0.38: _iron_bottom_contacts()
+		_iron_bottom_contacts()
 		return
 	if block_mode not in [Block.ICE,Block.MAGMA,Block.AMETHYST]: return
 	# While inserting, the spikes are still buried; the plain shell is harmless.
@@ -441,7 +448,7 @@ func _pulse_contact() -> void:
 					# lingering/re-entering cannot re-hit until a NEW growth is generated.
 					if not _crystal_hits.has(i): _crystal_hits[i] = {}
 					_crystal_hits[i][id] = weakref(target)
-					_damage_with_impact(target,attack_damage(2.0),center)
+					_damage_with_impact(target,attack_damage(AMETHYST_CONTACT_MULT),center)
 			continue
 		if distance > reach: continue
 		if block_mode == Block.MAGMA:
@@ -567,19 +574,44 @@ func _step_single_slam(delta:float) -> void:
 		_slam_time = -1.0 # Never queue a hit-confirmed follow-up.
 		_restore_slam_collision()
 
-func _iron_bottom_contacts() -> void:
+func _iron_bottom_active() -> bool:
+	# Gravity contact keeps pressing even without an active jump. Rising is harmless.
+	return block_mode == Block.IRON and health > 0 and is_combat_runtime_active() and not is_damage_output_disabled() and not dizziness and Can_Attack and (_slam_time < 0.0 or _slam_time >= 0.38)
+
+func _iron_bottom_rect() -> Rect2:
 	var radius:float = get_crowd_separation_radius_world()
-	var bottom := Rect2(global_position+Vector2(-radius,radius-3.0),Vector2(radius*2.0,5.0))
+	return Rect2(global_position+Vector2(-radius,radius-3.0),Vector2(radius*2.0,5.0))
+
+func _iron_damage_multiplier(target:ball = null) -> float:
+	return IRON_CRUSH_MULT if is_instance_valid(target) and _slam_hits.has(target.get_instance_id()) else IRON_IMPACT_MULT
+
+func _iron_bottom_contacts() -> void:
+	if not is_multiplayer_authority() or not _iron_bottom_active(): return
+	var bottom:Rect2 = _iron_bottom_rect()
 	for raw:Variant in get_tree().get_nodes_in_group("Ball"):
 		if not mc_enemy(raw): continue
 		var target:ball = raw as ball
-		if _slam_hits.has(target.get_instance_id()): continue
-		if target.global_position.y < global_position.y or not bottom.grow(_target_radius(target)).has_point(target.global_position): continue
-		_slam_hits[target.get_instance_id()] = true
-		if _damage_with_impact(target,attack_damage(2.3),bottom.get_center()):
-			_emit_sound(&"iron_hit",target.global_position)
-			var away:Vector2 = (target.global_position-global_position).normalized()
-			target.apply_knockback(away,30.0,230.0,0.0,0.0,{"source":self})
+		var id:int = target.get_instance_id()
+		# Only the underside presses: never the top, rear or a fully engulfed body.
+		if target.global_position.y < bottom.position.y or not bottom.grow(_target_radius(target)).has_point(target.global_position): continue
+		if not mc_line_clear(global_position,target.global_position): continue
+		var first:bool = not _slam_hits.has(id)
+		var press:Dictionary = _slam_hits.get(id,{"next":0.0,"remainder":0.0})
+		if _clock+0.000001 < float(press.next): continue
+		var amount:float = attack_damage(IRON_IMPACT_MULT if first else IRON_CRUSH_MULT)
+		# Carry fractional HP rather than rounding every tiny contact update up.
+		press.remainder = float(press.remainder)+amount
+		var settled:float = floorf(float(press.remainder))
+		press.remainder -= settled
+		press.next = _clock+IRON_CRUSH_INTERVAL
+		_slam_hits[id] = press # Same-frame sweep/contact calls cannot double-settle.
+		if not _damage_with_impact(target,settled,bottom.get_center()): continue
+		_emit_sound(&"iron_hit",target.global_position)
+		var heading:Vector2 = Vector2.DOWN
+		if not mc_position_clear(target.global_position+Vector2.DOWN*6.0,_target_radius(target)):
+			heading = Vector2.LEFT if target.global_position.x < global_position.x else Vector2.RIGHT
+		target.apply_knockback(heading,24.0 if first else 6.0,230.0 if first else 120.0,0.0,0.0,
+			{"source":self,"lock_control":false,"stop_on_character":true,"max_wall_bounces":0,"collision_damage":0.0,"control_recovery_time":0.0})
 
 func _leave_ice(from:Vector2,to:Vector2) -> void:
 	var steps:int = clampi(ceili(from.distance_to(to)/8.0),1,20)
@@ -684,7 +716,7 @@ func _mode_damage() -> float:
 	match block_mode:
 		Block.ICE: return 18.0+72.0*clampf((_actual_speed-_ice_reference_speed)/maxf(_ice_reference_speed*0.9,1.0),0.0,1.0)
 		Block.MAGMA: return 38.0
-		Block.AMETHYST: return 96.0 if not crystals_out else 0.0
+		Block.AMETHYST: return attack_damage(AMETHYST_CONTACT_MULT) if not crystals_out else 0.0
 	return 0.0
 
 func _detonate() -> void:
@@ -762,10 +794,11 @@ func get_ai_attack_threats(_receiver:ball) -> Array:
 			"danger_duration":0.12,"kind":"sulfur_cube_tnt","source":self}]
 	if dizziness or not Can_Attack: return []
 	var radius:float = get_crowd_separation_radius_world()
-	if block_mode == Block.IRON and _slam_time >= 0.38:
-		return [{"shape":"rect","position":global_position+Vector2(0,radius-0.5),
-			"half_extents":Vector2(radius,2.5),"damage":attack_damage(2.3),
-			"danger_duration":0.1,"kind":"sulfur_iron_bottom","source":self}]
+	if _iron_bottom_active():
+		var bottom:Rect2 = _iron_bottom_rect()
+		return [{"shape":"rect","position":bottom.get_center(),
+			"half_extents":bottom.size*0.5,"damage":attack_damage(_iron_damage_multiplier(_receiver)),
+			"danger_duration":IRON_CRUSH_INTERVAL,"kind":"sulfur_iron_bottom","source":self}]
 	if block_mode == Block.AMETHYST and not crystals_out and (not is_instance_valid(_native_model) or _native_model.crystals_ready()):
 		var threats:Array = []
 		var tips:Array[Vector2] = _crystal_tip_points()
@@ -773,7 +806,7 @@ func get_ai_attack_threats(_receiver:ball) -> Array:
 			if _crystal_has_hit(i,_receiver): continue
 			var tip:Vector2 = tips[i]
 			threats.append({"shape":"circle","position":tip,
-				"radius":CRYSTAL_RADIUS,"damage":attack_damage(2.0),
+				"radius":CRYSTAL_RADIUS,"damage":attack_damage(AMETHYST_CONTACT_MULT),
 				"danger_duration":CONTACT_INTERVAL,"kind":"sulfur_amethyst_crystal","source":self})
 		return threats
 	if block_mode == Block.MAGMA:

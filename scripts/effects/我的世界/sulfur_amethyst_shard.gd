@@ -1,6 +1,7 @@
 extends Node2D
 ## The exact attached native cluster model, frozen at launch then translated.
 const CRYSTAL = preload("res://scripts/effects/我的世界/sulfur_amethyst_crystal.gd")
+const DAMAGE_MULT:float = 0.945 # Previous 1.35 * 0.70
 const SPEED:float = 270.0
 const RADIUS:float = 3.0
 const LIFETIME:float = 1.25
@@ -68,7 +69,7 @@ func _physics_process(delta:float) -> void:
 			if hit.is_empty(): break
 			var collider:Variant = hit.get("collider",null)
 			if collider is ball and owner.call("mc_enemy",collider):
-				owner.call("_damage_with_impact",collider,owner.attack_damage(1.35),hit.get("position",end))
+				owner.call("_damage_with_impact",collider,owner.attack_damage(DAMAGE_MULT),hit.get("position",end))
 				queue_free()
 				return
 			if collider is CollisionObject2D and collider is ball:
@@ -82,4 +83,4 @@ func _physics_process(delta:float) -> void:
 func get_ai_hazard_info(_receiver:ball = null) -> Dictionary:
 	var owner:Variant = source_ref.get_ref() if source_ref != null else null
 	if not is_instance_valid(owner) or owner.health <= 0 or is_queued_for_deletion(): return {}
-	return {"shape":"circle","position":global_position,"radius":RADIUS,"damage":owner.attack_damage(1.35),"source":owner,"kind":"sulfur_amethyst_shard"}
+	return {"shape":"circle","position":global_position,"radius":RADIUS,"damage":owner.attack_damage(DAMAGE_MULT),"source":owner,"kind":"sulfur_amethyst_shard"}
