@@ -39,19 +39,19 @@ netherite_sword_damage = 100
 sword_attack_cooldown = 1.0
 sword_attack_range = 48.0
 sword_half_angle_degrees = 42.0
-sword_hit_delay = 0.17
-sword_swing_duration = 0.36
+sword_hit_delay = 0.22
+sword_swing_duration = 0.46
 high_damage_swing_speed_multiplier = 1.15
-sword_afterimage_count = 6
-sword_afterimage_lifetime = 0.13
-sword_afterimage_alpha = 0.34
+sword_afterimage_count = 10
+sword_afterimage_lifetime = 0.18
+sword_afterimage_alpha = 0.58
 sword_swing_base_volume_db = 1.5
 sword_hit_base_volume_db = 0.0
 sword_critical_hit_base_volume_db = 2.0
 sword_audio_db_per_damage_doubling = 1.5
 sword_audio_max_bonus_db = 9.0
-sword_visual_scale = 0.07
-sword_visual_distance = 31.0
+sword_visual_scale = 0.14
+sword_visual_distance = 35.0
 sword_visual_vertical_offset = -4.0
 sword_grip_uv = Vector2(0.206, 0.768)
 forge_visual_duration = 0.26
@@ -119,11 +119,11 @@ editor_description = "V81 挥剑枢轴：攻击时脚本只旋转/移动这个�
 visible = false
 
 [node name="剑_攻击显示" type="Sprite2D" parent="Graphics/剑_攻击枢轴" index="0" unique_id=1496378202]
-editor_description = "剑只在实际攻击动画期间显示。offset = (301,-275) 是按 Iron_Sword.png 的握把中心对位；若以后换同构图可在编辑器里微调 Offset。"
+editor_description = "剑只在实际攻击动画期间显示。offset = (301,-275) 是按 Iron_Sword.png 的握把中心对位；0.14 缩放与脚本视觉参数同步。若以后换同构图可在编辑器里微调 Offset。"
 z_index = 4
 z_as_relative = false
 texture_filter = 1
-scale = Vector2(0.07, 0.07)
+scale = Vector2(0.14, 0.14)
 texture = ExtResource("6_iron_sword")
 offset = Vector2(301, -275)
 

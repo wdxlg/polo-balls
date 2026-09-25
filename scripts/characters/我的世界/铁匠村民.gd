@@ -45,6 +45,15 @@ const MC_DAMAGE_SFX:Array[AudioStream] = [
 const FALLBACK_STRONG_ATTACK_SFX:Array[AudioStream] = [
 	preload("res://audio/sfx/我的世界/近战/重锤/猛击重/重锤猛击重.ogg"),
 ]
+const SWEEP_ATTACK_SFX:Array[AudioStream] = [
+	preload("res://audio/sfx/我的世界/近战/横扫/横扫01.ogg"),
+	preload("res://audio/sfx/我的世界/近战/横扫/横扫02.ogg"),
+	preload("res://audio/sfx/我的世界/近战/横扫/横扫03.ogg"),
+	preload("res://audio/sfx/我的世界/近战/横扫/横扫04.ogg"),
+	preload("res://audio/sfx/我的世界/近战/横扫/横扫05.ogg"),
+	preload("res://audio/sfx/我的世界/近战/横扫/横扫06.ogg"),
+	preload("res://audio/sfx/我的世界/近战/横扫/横扫07.ogg"),
+]
 const DEATH_SMOKE_FRAMES:SpriteFrames = preload("res://scenes/effects/我的世界/蠹虫死亡烟雾.tres")
 const DAMAGE_TEXT_SCENE:PackedScene = preload("res://scenes/damage_text.tscn")
 const DEATH_POSE_DURATION:float = 0.90
@@ -71,12 +80,12 @@ const COLOR_FORGE:Color = Color8(255,151,43,255)
 @export_range(0.10,3.0,0.05) var sword_attack_cooldown:float = 1.0
 @export_range(10.0,160.0,1.0) var sword_attack_range:float = 48.0
 @export_range(5.0,175.0,1.0) var sword_half_angle_degrees:float = 42.0
-@export_range(0.01,0.50,0.01) var sword_hit_delay:float = 0.17
-@export_range(0.10,1.0,0.01) var sword_swing_duration:float = 0.36
+@export_range(0.01,0.50,0.01) var sword_hit_delay:float = 0.22
+@export_range(0.10,1.0,0.01) var sword_swing_duration:float = 0.46
 @export_range(1.0,1.5,0.01) var high_damage_swing_speed_multiplier:float = 1.15
-@export_range(1,10,1) var sword_afterimage_count:int = 6
-@export_range(0.05,0.30,0.01) var sword_afterimage_lifetime:float = 0.13
-@export_range(0.05,0.80,0.01) var sword_afterimage_alpha:float = 0.34
+@export_range(1,12,1) var sword_afterimage_count:int = 10
+@export_range(0.05,0.30,0.01) var sword_afterimage_lifetime:float = 0.18
+@export_range(0.05,0.80,0.01) var sword_afterimage_alpha:float = 0.58
 
 @export_category("铁匠村民 / 攻击音效")
 @export_range(-12.0,12.0,0.5) var sword_swing_base_volume_db:float = 1.5
@@ -86,8 +95,8 @@ const COLOR_FORGE:Color = Color8(255,151,43,255)
 @export_range(0.0,12.0,0.5) var sword_audio_max_bonus_db:float = 9.0
 
 @export_category("铁匠村民 / 视觉")
-@export_range(0.01,0.50,0.005) var sword_visual_scale:float = 0.07
-@export_range(0.0,100.0,1.0) var sword_visual_distance:float = 31.0
+@export_range(0.01,0.50,0.005) var sword_visual_scale:float = 0.14
+@export_range(0.0,100.0,1.0) var sword_visual_distance:float = 35.0
 @export_range(-100.0,100.0,1.0) var sword_visual_vertical_offset:float = -4.0
 @export var sword_grip_uv:Vector2 = Vector2(0.206,0.768)
 
@@ -440,7 +449,7 @@ func Attack() -> void:
 	var effective_hit_delay:float = maxf(sword_hit_delay / swing_speed,0.01)
 	var effective_swing_duration:float = maxf(sword_swing_duration / swing_speed,0.10)
 
-	# V83：不论伤害是否 >200，起手/挥舞都始终是 Minecraft 重击音效。
+	# 起手音效按实际攻击输出伤害选取，命中后普通/暴击反馈仍各自独立。
 	_broadcast_attack_sfx(current_outgoing_damage)
 	_broadcast_sword_swing(attack_dir,high_damage_swing)
 
@@ -536,7 +545,7 @@ func _deal_sword_damage(attack_dir:Vector2) -> void:
 		if dealt_damage <= 0.0:
 			continue
 		if _is_critical_sword_hit(dealt_damage):
-			# 100（含）以上才切暴击命中音；挥剑起手音效保持不变。
+			# 命中反馈沿用既有的 >=100 暴击判定；与 >100 的挥舞音效判定无关。
 			_broadcast_critical_hit_sfx(target.global_position,dealt_damage)
 		else:
 			_broadcast_mc_damage_sfx(target.global_position,dealt_damage)
@@ -701,6 +710,8 @@ func _play_sword_swing_local(attack_dir:Vector2,high_damage_swing:bool) -> void:
 		return
 	_sword_sprite.texture = _sword_texture_for_tier(sword_tier)
 	_sword_sprite.scale = Vector2.ONE * maxf(sword_visual_scale,0.001)
+	# 暗色下界合金剑在角色自身 0.2 倍缩放后容易埋进背景；只在挥剑时略提亮原贴图。
+	_sword_sprite.self_modulate = Color(1.35,1.45,1.65) if sword_tier == TIER_NETHERITE else Color.WHITE
 	_apply_sword_grip_offset()
 	var swing_speed:float = maxf(high_damage_swing_speed_multiplier,1.0) if high_damage_swing else 1.0
 	var duration:float = maxf(sword_swing_duration / swing_speed,0.10)
@@ -716,8 +727,8 @@ func _play_sword_swing_local(attack_dir:Vector2,high_damage_swing:bool) -> void:
 	var neutral_angle:float = attack_angle + deg_to_rad(49.0)
 	var local_distance:float = maxf(sword_visual_distance,0.0)
 	var base_position:Vector2 = direction_value * local_distance + Vector2(0.0,sword_visual_vertical_offset)
-	var windup_time:float = duration * 0.22
-	var slash_time:float = duration * 0.50
+	var windup_time:float = duration * 0.18
+	var slash_time:float = duration * 0.56
 	var follow_time:float = maxf(duration - windup_time - slash_time,0.02)
 
 	_sword_pivot.visible = true
@@ -728,16 +739,17 @@ func _play_sword_swing_local(attack_dir:Vector2,high_damage_swing:bool) -> void:
 	_sword_sprite.flip_v = false
 	_sword_pivot.position = base_position - direction_value * 3.0
 	_sword_pivot.rotation = neutral_angle - deg_to_rad(92.0)
-	_sword_pivot.scale = Vector2.ONE * 0.92
+	_sword_pivot.scale = Vector2.ONE * 0.95
 
-	# V83：短蓄力 -> 带武器残影的主斩 -> 收势。>200 伤害时只把整个动作轻微提速，轨迹不变。
+	# 短蓄力 -> 可辨认的连续主斩 -> 收势。两端减速，避免原缓出曲线在主斩第一帧突跳。
+	# >200 伤害时仍按原规则轻微提速，命中延迟和视觉动作按同一倍率缩放。
 	_sword_tween = create_tween()
-	_sword_tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_sword_tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	_sword_tween.tween_property(_sword_pivot,"rotation",neutral_angle - deg_to_rad(116.0),windup_time)
-	_sword_tween.parallel().tween_property(_sword_pivot,"position",base_position - direction_value * 7.0,windup_time)
-	_sword_tween.parallel().tween_property(_sword_pivot,"scale",Vector2.ONE * 0.88,windup_time)
+	_sword_tween.parallel().tween_property(_sword_pivot,"position",base_position - direction_value * 8.0,windup_time)
+	_sword_tween.parallel().tween_property(_sword_pivot,"scale",Vector2.ONE * 0.90,windup_time)
 
-	_sword_tween.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
+	_sword_tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	_sword_tween.tween_method(
 		Callable(self,"_apply_sword_slash_progress").bind(neutral_angle,base_position,direction_value),
 		0.0,
@@ -745,9 +757,9 @@ func _play_sword_swing_local(attack_dir:Vector2,high_damage_swing:bool) -> void:
 		slash_time
 	)
 
-	_sword_tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	_sword_tween.tween_property(_sword_pivot,"rotation",neutral_angle + deg_to_rad(68.0),follow_time)
-	_sword_tween.parallel().tween_property(_sword_pivot,"position",base_position + direction_value * 4.0,follow_time)
+	_sword_tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_sword_tween.tween_property(_sword_pivot,"rotation",neutral_angle + deg_to_rad(76.0),follow_time)
+	_sword_tween.parallel().tween_property(_sword_pivot,"position",base_position + direction_value * 5.0,follow_time)
 	_sword_tween.parallel().tween_property(_sword_pivot,"scale",Vector2.ONE,follow_time)
 	_sword_tween.finished.connect(Callable(self,"_update_sword_idle_pose").bind(true),CONNECT_ONE_SHOT)
 
@@ -756,18 +768,27 @@ func _apply_sword_slash_progress(progress:float,neutral_angle:float,base_positio
 	if _sword_pivot == null or not is_instance_valid(_sword_pivot):
 		return
 	var p:float = clampf(progress,0.0,1.0)
-	_sword_pivot.rotation = lerp_angle(neutral_angle - deg_to_rad(116.0),neutral_angle + deg_to_rad(34.0),p)
-	_sword_pivot.position = (base_position - direction_value * 7.0).lerp(base_position + direction_value * 9.0,p)
-	_sword_pivot.scale = (Vector2.ONE * 0.88).lerp(Vector2.ONE * 1.06,p)
+	_sword_pivot.transform = _sword_slash_pose(p,neutral_angle,base_position,direction_value)
 
 	var wanted_count:int = maxi(sword_afterimage_count,1)
 	var step:int = mini(int(floor(clampf(p,0.0,0.9999) * float(wanted_count))),wanted_count - 1)
 	while _sword_afterimage_step < step:
 		_sword_afterimage_step += 1
-		_spawn_sword_afterimage()
+		# 掉帧时按弧线的各个历史位置补采样，不能把多个残影堆在当前帧同一点。
+		var sample:float = minf(p,float(_sword_afterimage_step) / float(maxi(wanted_count - 1,1)))
+		var world_pose:Transform2D = _sword_pivot.get_parent().global_transform * _sword_slash_pose(sample,neutral_angle,base_position,direction_value) * _sword_sprite.transform
+		_spawn_sword_afterimage(world_pose)
 
 
-func _spawn_sword_afterimage() -> void:
+func _sword_slash_pose(progress:float,neutral_angle:float,base_position:Vector2,direction_value:Vector2) -> Transform2D:
+	var p:float = clampf(progress,0.0,1.0)
+	var angle:float = lerp_angle(neutral_angle - deg_to_rad(116.0),neutral_angle + deg_to_rad(46.0),p)
+	var position:Vector2 = (base_position - direction_value * 8.0).lerp(base_position + direction_value * 13.0,p)
+	var scale_factor:Vector2 = (Vector2.ONE * 0.90).lerp(Vector2.ONE * 1.09,p)
+	return Transform2D(angle,scale_factor,0.0,position)
+
+
+func _spawn_sword_afterimage(world_pose:Transform2D) -> void:
 	if _sword_sprite == null or not is_instance_valid(_sword_sprite) or _sword_sprite.texture == null or not is_inside_tree():
 		return
 	var ghost := Sprite2D.new()
@@ -782,10 +803,10 @@ func _spawn_sword_afterimage() -> void:
 	ghost.flip_v = _sword_sprite.flip_v
 	ghost.z_as_relative = false
 	ghost.z_index = 3
-	ghost.self_modulate = Color(0.90,0.96,1.0,clampf(sword_afterimage_alpha,0.05,0.80))
+	ghost.self_modulate = Color(1.55,1.75,2.0,clampf(sword_afterimage_alpha,0.05,0.80))
 	add_child(ghost)
 	ghost.top_level = true
-	ghost.global_transform = _sword_sprite.global_transform
+	ghost.global_transform = world_pose
 	var fade := ghost.create_tween().bind_node(ghost)
 	fade.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	fade.tween_property(ghost,"self_modulate:a",0.0,maxf(sword_afterimage_lifetime,0.05))
@@ -846,9 +867,8 @@ func _draw() -> void:
 
 
 func _resolve_minecraft_attack_sfx() -> void:
-	# 用户项目里已经有原版 Minecraft player strong/crit 音效，但本轮上传的项目切片没有 audio 目录。
-	# 运行时优先在既有 Minecraft 音效树中按资源名寻找 strong/重击 与 crit/暴击。
-	# strong 用于每次挥剑起手；crit 只用于已确认承伤 >=100 的命中。strong 找不到时使用重锤“猛击重”兜底，crit 找不到时退回 strong。
+	# 重击用于 <=100 的挥舞；>100 直接复用项目已有七条原版横扫素材。
+	# 暴击音只用于已确认承伤 >=100 的命中，找不到时沿用重击兜底。
 	_strong_attack_sfx = _find_minecraft_audio_by_keywords([
 		"strong_attack",
 		"attack_strong",
@@ -924,10 +944,12 @@ func _rpc_play_attack_sfx(outgoing_damage:float) -> void:
 
 
 func _play_attack_sfx_local(outgoing_damage:float) -> void:
-	# 挥剑本身始终是 strong/重击；伤害只改变响度，不改变音效类型。
-	if _strong_attack_sfx.is_empty():
+	# 音效在出剑时按本次 attack_damage(1.0) 的结果选取，而非目标承伤或装备名称。
+	# 恰好 100 仍是重击，严格大于 100 才是 Minecraft 原版横扫。
+	var pool:Array[AudioStream] = SWEEP_ATTACK_SFX if is_finite(outgoing_damage) and outgoing_damage > 100.0 else _strong_attack_sfx
+	if pool.is_empty():
 		return
-	var stream:AudioStream = _strong_attack_sfx.pick_random()
+	var stream:AudioStream = pool.pick_random()
 	var volume_db:float = sword_swing_base_volume_db + _damage_audio_bonus_db(outgoing_damage)
 	_play_world_sfx(stream,global_position,volume_db,randf_range(0.98,1.02),1500.0)
 
