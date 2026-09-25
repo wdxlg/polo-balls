@@ -116,7 +116,8 @@ func _run() -> void:
 		for y:int in range(area.position.y,area.end.y):
 			for x:int in range(area.position.x,area.end.x):
 				if absf(_luma(image.get_pixel(x,y))-_luma(without_clock.get_pixel(x,y)))>0.12: clock_pixels+=1
-		check(clock_pixels>8,"%s clock text actually visible below toolbar" % cycle.time_text())
+		check(clock_pixels>8,"%s clock text actually visible at top right" % cycle.time_text())
+		check(is_equal_approx(rect.position.y,24.0) and is_equal_approx(root.get_visible_rect().size.x-rect.end.x,24.0),"clock keeps 24px top/right inset")
 		print("DAY_NIGHT_CLOCK rect=",rect," visible_pixels=",clock_pixels)
 		cycle.clock_label.show()
 		await _frame()

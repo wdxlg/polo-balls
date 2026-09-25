@@ -63,9 +63,9 @@ func _create_clock() -> void:
 	_clock_root.add_child(clock_label)
 	clock_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	clock_label.offset_left = -184.0
-	clock_label.offset_top = 100.0 # 位于现有顶部工具栏下方，不与按钮重叠。
+	clock_label.offset_top = 24.0 # 固定在屏幕右上角，与右侧留白一致。
 	clock_label.offset_right = -24.0
-	clock_label.offset_bottom = 148.0
+	clock_label.offset_bottom = 72.0
 
 static func daylight_at(value:float) -> float:
 	var hour:float = fposmod(value,DAY_MINUTES)/60.0
