@@ -8,6 +8,7 @@ const OAK_SIDE:Texture2D = preload("res://Images/characters/我的世界/sulfur_
 const SAND_SIDE:Texture2D = preload("res://Images/effects/我的世界/草方块背景/sandstone.png")
 const SAND_BOTTOM:Texture2D = preload("res://Images/effects/我的世界/草方块背景/sandstone_bottom.png")
 const PURPUR_SIDE:Texture2D = preload("res://Images/effects/我的世界/草方块背景/purpur_pillar_side.png")
+const COMPOSITE_SHADER:Shader = preload("res://shaders/map_wall_composite.gdshader")
 const MAX_VIEW_PIXELS:int = 2560
 const VIEW_FOV:float = 90.0
 const WALL_HEIGHT_CELLS:float = 0.4
@@ -37,6 +38,7 @@ var shadow_picture:Sprite2D
 var _center:Vector2
 var _render_scale:float = 1.0
 var _camera_height:float = 1.0
+var _composite_material:ShaderMaterial
 
 
 func _create_renderer() -> void:
@@ -125,11 +127,14 @@ func _create_renderer() -> void:
 	shadow_sun.shadow_enabled = true
 	shadow_sun.shadow_opacity = 1.0
 	shadow_viewport.add_child(shadow_sun)
+	_composite_material = ShaderMaterial.new()
+	_composite_material.shader = COMPOSITE_SHADER
 	shadow_picture = Sprite2D.new()
 	shadow_picture.name = "RealShadowOn2DGround"
 	shadow_picture.centered = false
 	shadow_picture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	shadow_picture.texture = shadow_viewport.get_texture()
+	shadow_picture.material = _composite_material
 	shadow_picture.modulate = Color(0.025,0.028,0.035,0.62)
 	shadow_picture.z_index = -1
 	add_child(shadow_picture)
@@ -138,7 +143,10 @@ func _create_renderer() -> void:
 	picture.centered = false
 	picture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	picture.texture = viewport.get_texture()
+	picture.material = _composite_material
 	add_child(picture)
+	if not RenderingServer.frame_pre_draw.is_connected(_sync_projection_before_draw):
+		RenderingServer.frame_pre_draw.connect(_sync_projection_before_draw)
 
 
 func configure_regions(ground:Array[Rect2],walls:Array[Rect2],edges:Array[Dictionary],cell:Vector2,style:String,light_source:Vector2,_height_cells:float) -> void:
@@ -191,11 +199,15 @@ func update_time_lighting(source:Vector2,daylight:float) -> void:
 	shadow_picture.modulate.a = 0.62*clampf(daylight,0.0,1.0)
 
 
-func _process(_delta:float) -> void:
-	if visible and is_instance_valid(viewport): _update_projection()
+func _sync_projection_before_draw() -> void:
+	# 等本帧所有 Camera2D/跟随/缩放逻辑完成后，使用真正将被渲染的画布。
+	# 不 force_update_scroll：墙体渲染不能再次推进主相机平滑，也须支持暂停时平移。
+	if is_visible_in_tree() and is_instance_valid(viewport): _update_projection()
 
 
 func _exit_tree() -> void:
+	if RenderingServer.frame_pre_draw.is_connected(_sync_projection_before_draw):
+		RenderingServer.frame_pre_draw.disconnect(_sync_projection_before_draw)
 	# 离开世界或测试退出时先停掉两路实时 GPU 渲染，再由 Godot 回收子视口。
 	if is_instance_valid(viewport): viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
 	if is_instance_valid(shadow_viewport): shadow_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
@@ -204,8 +216,6 @@ func _exit_tree() -> void:
 func _update_projection() -> void:
 	var screen:Vector2 = get_viewport().get_visible_rect().size
 	if screen.x < 2.0 or screen.y < 2.0: return
-	var active_camera:Camera2D = get_viewport().get_camera_2d()
-	if is_instance_valid(active_camera): active_camera.force_update_scroll()
 	var canvas:Transform2D = get_viewport().get_canvas_transform()
 	var inverse:Transform2D = canvas.affine_inverse()
 	var center:Vector2 = inverse * (screen*0.5)
@@ -228,6 +238,10 @@ func _update_projection() -> void:
 	var render_to_screen := Transform2D(Vector2(1.0/_render_scale,0.0),Vector2(0.0,1.0/_render_scale),Vector2.ZERO)
 	picture.transform = inverse * render_to_screen
 	shadow_picture.transform = picture.transform
+	# 两路 Sprite 的 UV/裁剪仍按原画布走，只绕开它们自己的 MODEL_MATRIX 平移取整。
+	var precise:Transform2D = picture.global_transform
+	_composite_material.set_shader_parameter("quad_world_basis",Vector4(precise.x.x,precise.x.y,precise.y.x,precise.y.y))
+	_composite_material.set_shader_parameter("quad_world_origin",precise.origin)
 
 
 func _side_texture(style:String) -> Texture2D:
