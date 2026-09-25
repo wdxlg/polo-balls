@@ -37,7 +37,6 @@ func select_map(map_name:String,title:String) -> Dictionary:
 	world.interaction_label.visible = false
 	world.refresh_top_text_layout()
 	if is_instance_valid(world._center_watermark_root): world._center_watermark_root.hide()
-	var map_rect:Rect2 = world.return_map_visual_rect(world.map_group[map_name])
 	var title_label:RichTextLabel = world.versus_label
 	var font:int = title_label.get_theme_font_size("bold_font_size")
 	var scale:float = world.get_map_versus_scale(world.map_group[map_name])
@@ -45,10 +44,14 @@ func select_map(map_name:String,title:String) -> Dictionary:
 		" chosen=",font," world_box=",title_label.get_rect()," content=",title_label.get_content_height(),
 		" camera=",world.get_effective_camera_zoom())
 	check(title_label.visible and font <= world.versus_font_max_size and font >= world.versus_font_min_size,map_name+": title uses the map-specific font bounds")
-	check(title_label.size.x == map_rect.size.x and absf(title_label.position.x - map_rect.position.x) < 0.1,map_name+": title stays as wide as the selected map")
+	var title_to_screen:Transform2D = world.get_viewport().get_canvas_transform() * title_label.get_global_transform()
+	var title_top:Vector2 = title_to_screen * Vector2.ZERO
+	var title_right:Vector2 = title_to_screen * Vector2(title_label.size.x,0.0)
+	check(title_top.distance_to(Vector2(12,12)) < 1.0 and absf(title_right.x - (world.get_viewport_rect().size.x-12.0)) < 1.0,map_name+": title fills the fixed upper screen band")
 	check(title_label.get_content_height() <= title_label.size.y + 0.5,map_name+": long names and effects have enough line height")
-	check(title_label.position.y + title_label.size.y <= map_rect.position.y - world.interaction_map_gap + 0.5,map_name+": title stays outside the arena")
-	return {"font":font,"max":world.versus_font_max_size,"scale":scale,"screen_font":float(font)*world.get_effective_camera_zoom()}
+	var bottom:Vector2 = title_to_screen * title_label.size
+	check(bottom.y > title_top.y and bottom.y < world.get_viewport_rect().size.y * 0.30,map_name+": title fits within the upper viewport")
+	return {"font":font,"max":world.versus_font_max_size,"scale":scale,"screen_font":float(font)*world._versus_layout_base_zoom}
 
 func save_frame(name:String) -> void:
 	await RenderingServer.frame_post_draw
@@ -75,14 +78,15 @@ func check_bilingual_mirror() -> void:
 	check(mirror.copies.has(title_id),"bilingual recording mirror captures the scaled VS title")
 	if mirror.copies.has(title_id):
 		var copies:Dictionary = mirror.copies[title_id]
-		var map_rect:Rect2 = world.return_map_visual_rect(world.map_group[world.now_choose_map])
 		for locale:String in ["zh","en"]:
 			var copy:RichTextLabel = copies[locale].text
 			check(copy.get_theme_font_size("bold_font_size") > 12,"recording "+locale+": large map title is larger than reference font")
 			if mirror.has_method("_fit_localized_versus"):
 				check(copy.get_content_height() <= copy.size.y + 0.5,"recording "+locale+": translated lines are not clipped")
-				var bottom:Vector2 = copy.get_global_transform() * Vector2(0,copy.get_content_height())
-				check(bottom.y <= map_rect.position.y - world.interaction_map_gap + 0.5,"recording "+locale+": translated title stays above the wall")
+				var copy_to_screen:Transform2D = world.get_viewport().get_canvas_transform() * copy.get_global_transform()
+				var top:Vector2 = copy_to_screen * Vector2.ZERO
+				var bottom:Vector2 = copy_to_screen * Vector2(0,copy.get_content_height())
+				check(top.y >= -0.5 and bottom.y < world.get_viewport_rect().size.y * 0.30,"recording "+locale+": translated title stays in the screen header")
 			check(copy.text.contains("[color=") and copy.text.contains("VS"),"recording "+locale+": title retains colors and separator")
 	select_map("Map10x10",LONG_TITLE)
 	mirror.sync()

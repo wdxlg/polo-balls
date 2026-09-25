@@ -550,6 +550,9 @@ func _process_portal_transits(delta:float,ball_group:Array) -> void:
 # 即使缩到最小仍放不下，也会自动换行并自动增加高度，避免文字被截断。
 @export var versus_font_max_size:int = 12
 @export var versus_font_min_size:int = 6
+# 与地图边缘和相机平移无关的屏幕标题留白（屏幕像素）。
+@export var versus_screen_top_padding_px:float = 12.0
+@export var versus_screen_side_padding_px:float = 12.0
 
 # 第二行：互动文字（紧贴在 VS 文字下面）
 # 同样使用自适应字号，不再固定高度。
@@ -568,6 +571,7 @@ func _process_portal_transits(delta:float,ball_group:Array) -> void:
 var _versus_base_max_size:int = -1
 var _versus_base_min_size:int = -1
 var _versus_base_effect_margin:float = -1.0
+var _versus_layout_base_zoom:float = 1.0
 
 @export var versus_interaction_gap:float = 1.0
 @export var interaction_map_gap:float = 4.0
@@ -731,6 +735,9 @@ var _last_versus_text:String = ""
 # 阵营颜色在本次 World 生命周期里保持固定。
 var _side_color_map:Dictionary = {}
 var _next_side_color_index:int = 0
+# VS 文案独立于人物 Shader 染色：仅缓存第三队起的随机色；前两队按当前展示顺序分色。
+var _versus_team_colors:Dictionary = {}
+var _next_versus_team_color_index:int = 0
 
 # 本次启动时只随机一次，之后不会再次修改。
 var _fixed_interaction_bbcode:String = ""
@@ -1336,6 +1343,12 @@ func _ready() -> void:
 
 	# 根据当前地图尺寸摆放黑框与两行文字。
 	refresh_map_presentation()
+	# 普通 VS 继续是 World 中的 RichTextLabel，以便双语录制复用现有镜像；
+	# 每次绘制前把它投影到固定的视口顶端，抵消跟随镜头/摇晃/手动缩放。
+	if not RenderingServer.frame_pre_draw.is_connected(_anchor_versus_to_screen):
+		RenderingServer.frame_pre_draw.connect(_anchor_versus_to_screen)
+	if not get_viewport().size_changed.is_connected(refresh_top_text_layout):
+		get_viewport().size_changed.connect(refresh_top_text_layout)
 
 	control.visible = true
 
@@ -1364,6 +1377,10 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
+	if RenderingServer.frame_pre_draw.is_connected(_anchor_versus_to_screen):
+		RenderingServer.frame_pre_draw.disconnect(_anchor_versus_to_screen)
+	if get_viewport() != null and get_viewport().size_changed.is_connected(refresh_top_text_layout):
+		get_viewport().size_changed.disconnect(refresh_top_text_layout)
 	_release_heavy_hitstop()
 	_cinematic_focus_requests.clear()
 	Game.release_time_scale_override(CINEMATIC_FOCUS_TIME_KEY)
@@ -4156,13 +4173,13 @@ func _update_map_versus_font(map_node:Node) -> void:
 
 
 #========================================================
-# 重新排版顶部两行文字。
+# 重新排版顶部战斗文字。
 #
 # 不固定字号、不固定高度：
 # - 短文字会自动变大；
 # - 长文字会自动缩小；
 # - 实在太长则换行；
-# - 互动文字始终在 VS 文字下面、地图上面。
+# - VS 锁定视口上沿；互动文字保持原来的地图上方位置。
 #========================================================
 func refresh_top_text_layout() -> void:
 	if versus_label == null or interaction_label == null:
@@ -4174,6 +4191,12 @@ func refresh_top_text_layout() -> void:
 	_update_map_versus_font(map_node)
 	var map_rect:Rect2 = return_map_visual_rect(map_node)
 	var available_width:float = map_rect.size.x
+	# 控件留在 World Canvas 供双语录制复制；宽度换算为当前地图基准 zoom 下的世界单位。
+	# 镜头跟随、Alt+滚轮与临时镜头缩放不影响标题的屏幕宽度或字号。
+	var base_zoom:float = maxf(_base_camera_zoom_value(),0.001)
+	_versus_layout_base_zoom = base_zoom
+	var viewport_width:float = get_viewport_rect().size.x
+	var versus_width:float = maxf(viewport_width - versus_screen_side_padding_px * 2.0,40.0) / base_zoom
 
 	var interaction_real_height:float = 0.0
 	if interaction_label.visible:
@@ -4191,7 +4214,7 @@ func refresh_top_text_layout() -> void:
 			versus_label,
 			versus_font_min_size,
 			versus_font_max_size,
-			available_width,
+			versus_width,
 			versus_effect_margin
 		)
 
@@ -4205,23 +4228,34 @@ func refresh_top_text_layout() -> void:
 	else:
 		interaction_label.size = Vector2(available_width,0.0)
 
-	# 第一行 VS 在互动文字正上方。
+	# VS 单独靠视口上边缘，不再被地图/互动文字/镜头带走。
 	if versus_label.visible:
-		if interaction_label.visible:
-			current_y -= versus_interaction_gap
-		current_y -= versus_real_height
-		versus_label.position = Vector2(map_rect.position.x,current_y)
-		versus_label.size = Vector2(available_width,versus_real_height)
+		versus_label.size = Vector2(versus_width,versus_real_height)
 	else:
-		versus_label.size = Vector2(available_width,0.0)
+		versus_label.size = Vector2(versus_width,0.0)
+	_anchor_versus_to_screen()
 
 	_layout_rotation_versus_hud()
 	_layout_timed_training_hud()
 	_layout_character_dialogue_hud()
 
+func _anchor_versus_to_screen() -> void:
+	if not is_inside_tree() or not is_instance_valid(versus_label) or not is_instance_valid(get_viewport()):
+		return
+	var canvas:Transform2D = get_viewport().get_canvas_transform()
+	var zoom_x:float = canvas.x.length()
+	var zoom_y:float = canvas.y.length()
+	if zoom_x < 0.001 or zoom_y < 0.001:
+		return
+	var anchor:Vector2 = Vector2(versus_screen_side_padding_px,versus_screen_top_padding_px)
+	versus_label.position = to_local(canvas.affine_inverse() * anchor)
+	versus_label.scale = Vector2(_versus_layout_base_zoom / zoom_x,_versus_layout_base_zoom / zoom_y)
+	# 相机旋转（如果将来启用）也不得带着屏幕标题旋转。
+	versus_label.rotation = -canvas.get_rotation() - global_rotation
+
 
 #========================================================
-# 更新黑框、第一行 VS、第二行互动文字的位置
+# 更新黑框及战斗文字的位置
 #========================================================
 func _refresh_map_border_geometry(map_rect:Rect2) -> void:
 	_refresh_map_inside_shadow()
@@ -4853,6 +4887,44 @@ func return_side_color(side_key:String) -> Color:
 	_next_side_color_index += 1
 	return new_color
 
+func _versus_is_named_team(side_key:String) -> bool:
+	if not side_key.begins_with("team:"):
+		return false
+	var team_name:String = side_key.trim_prefix("team:").strip_edges()
+	return not team_name.is_empty() and team_name.to_lower() not in ["中立","neutral"]
+
+func _versus_side_color(side_key:String,active_team_count:int,team_index:int) -> Color:
+	# VS 和中立者在只有一个真实队伍时也保持白字；有多个真实队伍才分色。
+	if active_team_count < 2 or not _versus_is_named_team(side_key):
+		return Color.WHITE
+	# 布阵时队伍可能移除/重排：蓝、红必须始终对应当前第一、第二队。
+	if team_index == 0:
+		return Color(0.25,0.65,1.0)
+	if team_index == 1:
+		return Color(1.0,0.26,0.26)
+	if _versus_team_colors.has(side_key):
+		return _versus_team_colors[side_key]
+	# 第三队起按本局 seed / 队名抽色，后续标题刷新与位置变化沿用缓存。
+	var picker:= RandomNumberGenerator.new()
+	picker.seed = int(_battle_random_seed) ^ int(side_key.hash()) ^ ((_next_versus_team_color_index+2) * 1315423911)
+	var hue:float = 0.31
+	for _attempt:int in range(18):
+		hue = picker.randf()
+		if minf(hue,1.0-hue) < 0.11 or absf(hue-0.59) < 0.11:
+			continue
+		var used:bool = false
+		for existing:Color in _versus_team_colors.values():
+			var gap:float = absf(existing.h-hue)
+			if minf(gap,1.0-gap) < 0.09:
+				used = true
+				break
+		if not used:
+			break
+	var color:Color = Color.from_hsv(hue,picker.randf_range(0.70,0.88),picker.randf_range(0.84,1.0))
+	_versus_team_colors[side_key] = color
+	_next_versus_team_color_index += 1
+	return color
+
 #========================================================
 # 第一行：A + B  VS  C + D
 #
@@ -5344,7 +5416,12 @@ func build_versus_text() -> String:
 	var side_order:Array = battle_data["order"]
 	var side_members:Dictionary = battle_data["members"]
 	var colored_sides:PackedStringArray = PackedStringArray()
+	var active_team_count:int = 0
+	for side_key:String in side_order:
+		if _versus_is_named_team(side_key):
+			active_team_count += 1
 
+	var team_index:int = 0
 	for side_key:String in side_order:
 		var members:PackedStringArray = PackedStringArray()
 
@@ -5352,7 +5429,9 @@ func build_versus_text() -> String:
 			members.append(escape_bbcode(Game.t(str(member)).replace("_", " ")))
 
 		var side_text:String = " + ".join(members)
-		var side_color:Color = return_side_color(side_key)
+		var side_color:Color = _versus_side_color(side_key,active_team_count,team_index)
+		if _versus_is_named_team(side_key):
+			team_index += 1
 		var color_hex:String = side_color.to_html(false)
 
 		colored_sides.append(
