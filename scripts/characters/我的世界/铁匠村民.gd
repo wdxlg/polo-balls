@@ -86,6 +86,8 @@ const COLOR_FORGE:Color = Color8(255,151,43,255)
 @export_range(1,12,1) var sword_afterimage_count:int = 10
 @export_range(0.05,0.30,0.01) var sword_afterimage_lifetime:float = 0.18
 @export_range(0.05,0.80,0.01) var sword_afterimage_alpha:float = 0.58
+@export_range(1,5,1) var sword_kill_spin_turns:int = 3
+@export_range(0.3,2.0,0.05) var sword_kill_spin_duration:float = 0.9
 
 @export_category("铁匠村民 / 攻击音效")
 @export_range(-12.0,12.0,0.5) var sword_swing_base_volume_db:float = 1.5
@@ -95,7 +97,7 @@ const COLOR_FORGE:Color = Color8(255,151,43,255)
 @export_range(0.0,12.0,0.5) var sword_audio_max_bonus_db:float = 9.0
 
 @export_category("铁匠村民 / 视觉")
-@export_range(0.01,0.50,0.005) var sword_visual_scale:float = 0.14
+@export_range(0.01,0.50,0.005) var sword_visual_scale:float = 0.12
 @export_range(0.0,100.0,1.0) var sword_visual_distance:float = 35.0
 @export_range(-100.0,100.0,1.0) var sword_visual_vertical_offset:float = -4.0
 @export var sword_grip_uv:Vector2 = Vector2(0.206,0.768)
@@ -146,6 +148,11 @@ var _sword_pivot:Node2D = null
 var _sword_sprite:Sprite2D = null
 var _sword_tween:Tween = null
 var _sword_afterimage_step:int = -1
+var _kill_spin_pending:bool = false
+var _kill_spin_active:bool = false
+var _kill_spin_direction:Vector2 = Vector2.RIGHT
+var _kill_spin_serial:int = 0
+var _last_kill_spin_serial:int = 0
 var _forge_visual_root:Node2D = null
 var _forge_item_sprite:Sprite2D = null
 var _forge_hammer_pivot:Node2D = null
@@ -498,7 +505,7 @@ func _is_enemy_target(target:ball) -> bool:
 
 
 func _deal_sword_damage(attack_dir:Vector2) -> void:
-	if get_world_2d() == null:
+	if not is_multiplayer_authority() or get_world_2d() == null:
 		return
 	var shape := CircleShape2D.new()
 	shape.radius = maxf(sword_attack_range,1.0)
@@ -512,6 +519,7 @@ func _deal_sword_damage(attack_dir:Vector2) -> void:
 	var seen:Dictionary = {}
 	var half_angle:float = deg_to_rad(clampf(sword_half_angle_degrees,5.0,175.0))
 	var outgoing:float = attack_damage(1.0)
+	var killed_enemy:bool = false
 	if outgoing <= 0.0:
 		return
 
@@ -532,6 +540,7 @@ func _deal_sword_damage(attack_dir:Vector2) -> void:
 				continue
 		seen[target_id] = true
 		var health_before:float = float(target.health)
+		var enemy_team:bool = Team.is_empty() or target.Team.is_empty() or Team != target.Team
 		set_meta("blood_damage_kind","slash")
 		var accepted:bool = target.receive_positional_damage(
 			outgoing,
@@ -544,11 +553,16 @@ func _deal_sword_damage(attack_dir:Vector2) -> void:
 		var dealt_damage:float = target.get_received_hit_feedback_damage(outgoing,health_before)
 		if dealt_damage <= 0.0:
 			continue
+		if enemy_team and health_before > 0.0 and target.health <= 0:
+			killed_enemy = true
 		if _is_critical_sword_hit(dealt_damage):
 			# 命中反馈沿用既有的 >=100 暴击判定；与 >100 的挥舞音效判定无关。
 			_broadcast_critical_hit_sfx(target.global_position,dealt_damage)
 		else:
 			_broadcast_mc_damage_sfx(target.global_position,dealt_damage)
+	# A multi-kill in one sweep celebrates once, after the damaging swing finishes.
+	if killed_enemy:
+		_broadcast_kill_spin(attack_dir)
 
 
 func _is_critical_sword_hit(dealt_damage:float) -> bool:
@@ -659,11 +673,13 @@ func _update_equipment_visuals() -> void:
 		_sword_sprite.scale = Vector2.ONE * maxf(sword_visual_scale,0.001)
 		_apply_sword_grip_offset()
 		# 剑只在真正挥剑动画期间显示；获得剑只是解锁攻击，不会常驻手持。
-		if not Attacking and _sword_visual_busy_left <= 0.0:
+		if not Attacking and _sword_visual_busy_left <= 0.0 and not _kill_spin_active:
 			_sword_sprite.visible = false
 
 
 func _update_sword_idle_pose(force:bool = false) -> void:
+	if _kill_spin_active:
+		return # The attack timer must not hide a celebration that has just started.
 	# V81：剑只在攻击段显示，并围绕贴图握把位置的独立枢轴旋转。
 	if _sword_sprite == null or not is_instance_valid(_sword_sprite):
 		return
@@ -681,12 +697,14 @@ func _broadcast_sword_swing(attack_dir:Vector2,high_damage_swing:bool) -> void:
 		_rpc_play_sword_swing.rpc(attack_dir,high_damage_swing)
 
 
-@rpc("authority","call_remote","unreliable")
+@rpc("authority","call_remote","reliable")
 func _rpc_play_sword_swing(attack_dir:Vector2,high_damage_swing:bool) -> void:
 	_play_sword_swing_local(attack_dir,high_damage_swing)
 
 
 func _interrupt_sword_attack(sync_remote:bool = false) -> void:
+	_kill_spin_pending = false
+	_kill_spin_active = false
 	_attack_serial += 1
 	Attacking = false
 	_sword_visual_busy_left = 0.0
@@ -697,8 +715,10 @@ func _interrupt_sword_attack(sync_remote:bool = false) -> void:
 		_rpc_interrupt_sword_attack.rpc()
 
 
-@rpc("authority","call_remote","unreliable")
+@rpc("authority","call_remote","reliable")
 func _rpc_interrupt_sword_attack() -> void:
+	_kill_spin_pending = false
+	_kill_spin_active = false
 	_sword_visual_busy_left = 0.0
 	if _sword_tween != null and _sword_tween.is_valid():
 		_sword_tween.kill()
@@ -706,6 +726,9 @@ func _rpc_interrupt_sword_attack() -> void:
 
 
 func _play_sword_swing_local(attack_dir:Vector2,high_damage_swing:bool) -> void:
+	# A real new attack takes priority over cosmetic celebration, never delays combat.
+	_kill_spin_pending = false
+	_kill_spin_active = false
 	if _sword_pivot == null or not is_instance_valid(_sword_pivot) or _sword_sprite == null or not is_instance_valid(_sword_sprite) or sword_tier <= TIER_NONE:
 		return
 	_sword_sprite.texture = _sword_texture_for_tier(sword_tier)
@@ -758,10 +781,82 @@ func _play_sword_swing_local(attack_dir:Vector2,high_damage_swing:bool) -> void:
 	)
 
 	_sword_tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	_sword_tween.tween_property(_sword_pivot,"rotation",neutral_angle + deg_to_rad(76.0),follow_time)
-	_sword_tween.parallel().tween_property(_sword_pivot,"position",base_position + direction_value * 5.0,follow_time)
-	_sword_tween.parallel().tween_property(_sword_pivot,"scale",Vector2.ONE,follow_time)
-	_sword_tween.finished.connect(Callable(self,"_update_sword_idle_pose").bind(true),CONNECT_ONE_SHOT)
+	# Transform2D decomposes angles into [-PI, PI]. Never tween that wrapped
+	# rotation back to an unwrapped target: across the seam it adds a full turn.
+	_sword_tween.tween_method(Callable(self,"_apply_sword_follow_progress").bind(neutral_angle,base_position,direction_value),0.0,1.0,follow_time)
+	_sword_tween.finished.connect(_finish_sword_swing_local,CONNECT_ONE_SHOT)
+
+
+func _apply_sword_follow_progress(progress:float,neutral_angle:float,base_position:Vector2,direction_value:Vector2) -> void:
+	if not is_instance_valid(_sword_pivot): return
+	var p:float = clampf(progress,0.0,1.0)
+	var angle:float = neutral_angle + deg_to_rad(lerpf(46.0,76.0,p))
+	var position_value:Vector2 = base_position + direction_value * lerpf(13.0,5.0,p)
+	_sword_pivot.transform = Transform2D(angle,Vector2.ONE * lerpf(1.09,1.0,p),0.0,position_value)
+
+
+func _finish_sword_swing_local() -> void:
+	_sword_visual_busy_left = 0.0
+	if _kill_spin_pending:
+		_start_kill_spin_local()
+	else:
+		_update_sword_idle_pose(true)
+
+
+func _broadcast_kill_spin(attack_dir:Vector2) -> void:
+	if not is_multiplayer_authority(): return
+	_kill_spin_serial += 1
+	_rpc_queue_kill_spin(_kill_spin_serial,attack_dir)
+	if multiplayer.has_multiplayer_peer():
+		_rpc_queue_kill_spin.rpc(_kill_spin_serial,attack_dir)
+
+
+@rpc("authority","call_remote","reliable")
+func _rpc_queue_kill_spin(serial:int,attack_dir:Vector2) -> void:
+	if serial <= _last_kill_spin_serial: return
+	_last_kill_spin_serial = serial
+	if health <= 0 or dizziness or _death_sequence_started or sword_tier <= TIER_NONE: return
+	_kill_spin_direction = attack_dir.normalized() if attack_dir.length_squared() > 0.000001 else Vector2.RIGHT
+	_kill_spin_pending = true
+	if _sword_tween == null or not _sword_tween.is_running():
+		_start_kill_spin_local()
+
+
+func _start_kill_spin_local() -> void:
+	_kill_spin_pending = false
+	if health <= 0 or dizziness or _death_sequence_started or sword_tier <= TIER_NONE: return
+	if not is_instance_valid(_sword_pivot) or not is_instance_valid(_sword_sprite): return
+	_kill_spin_active = true
+	_sword_visual_busy_left = 0.0
+	_sword_sprite.texture = _sword_texture_for_tier(sword_tier)
+	_sword_sprite.scale = Vector2.ONE * maxf(sword_visual_scale,0.001)
+	_apply_sword_grip_offset()
+	_sword_sprite.position = Vector2.ZERO
+	_sword_sprite.rotation = 0.0
+	_sword_sprite.flip_h = false
+	_sword_sprite.flip_v = false
+	_sword_sprite.visible = true
+	_sword_pivot.visible = true
+	var start_angle:float = _kill_spin_direction.angle() + deg_to_rad(125.0)
+	_apply_kill_spin_progress(0.0,start_angle)
+	_sword_tween = create_tween()
+	_sword_tween.tween_method(Callable(self,"_apply_kill_spin_progress").bind(start_angle),0.0,1.0,maxf(sword_kill_spin_duration,0.3)).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_sword_tween.finished.connect(_finish_kill_spin_local,CONNECT_ONE_SHOT)
+
+
+func _apply_kill_spin_progress(progress:float,start_angle:float) -> void:
+	if health <= 0 or dizziness or _death_sequence_started or sword_tier <= TIER_NONE:
+		_interrupt_sword_attack(false)
+		return
+	var angle:float = start_angle + TAU * float(clampi(sword_kill_spin_turns,1,5)) * clampf(progress,0.0,1.0)
+	var grip:Vector2 = _kill_spin_direction * maxf(sword_visual_distance,0.0) + Vector2(0.0,sword_visual_vertical_offset)
+	_sword_pivot.transform = Transform2D(angle,Vector2.ONE,0.0,grip)
+
+
+func _finish_kill_spin_local() -> void:
+	_kill_spin_active = false
+	_sword_visual_busy_left = 0.0
+	_update_sword_idle_pose(true)
 
 
 func _apply_sword_slash_progress(progress:float,neutral_angle:float,base_position:Vector2,direction_value:Vector2) -> void:

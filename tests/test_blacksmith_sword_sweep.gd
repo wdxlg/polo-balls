@@ -87,7 +87,7 @@ func run() -> void:
 	smith._apply_equipment_stats(false)
 	smith._update_equipment_visuals()
 	print("BLACKSMITH_VISUAL_METRICS canvas=%s graphics=%s image_global=%s sword_global=%s" % [root.get_canvas_transform().get_scale(),smith.get_node("Graphics").scale,smith.get_node("Graphics/Image").get_global_transform_with_canvas().get_scale(),smith._sword_sprite.get_global_transform_with_canvas().get_scale()])
-	check(smith.Damage == 100 and smith.sword_visual_scale >= 0.13 and smith.sword_swing_duration >= 0.44,"real villager keeps 100 base sword damage and enlarged readable swing")
+	check(smith.Damage == 100 and is_equal_approx(smith.sword_visual_scale,0.12) and smith.sword_swing_duration >= 0.44,"real villager keeps damage/timing with slightly smaller sword")
 	check(smith._sword_sprite.texture != null and not smith._sword_sprite.visible,"original sword art stays hidden before attack")
 	check(smith.SWEEP_ATTACK_SFX.size() == 7,"reuse seven existing Minecraft sweep variants")
 	expect_swing_audio(smith,20.0,false)
@@ -156,6 +156,7 @@ func run() -> void:
 			check(frame.save_png(save_dir.path_join("swing_"+labels[i]+".png")) == OK,"save %s GPU frame" % labels[i])
 			previous_frame = frame
 		print("BLACKSMITH_SWING_GPU renderer=%s changed=%s" % [RenderingServer.get_current_rendering_method(),pixel_counts])
+	await check_sword_revision(smith,arena)
 	# A new attack in the opposite direction starts on the other side; interruption hides it.
 	smith._play_sword_swing_local(Vector2.LEFT,true)
 	check(absf(absf(wrapf(smith._sword_pivot.rotation-start_angle,-PI,PI))-PI) < 0.06,"left-side attack uses reversed sword facing")
@@ -169,3 +170,103 @@ func run() -> void:
 	root.size = saved_size
 	await process_frame
 	quit(1 if failures>0 else 0)
+
+func check_sword_revision(smith:Node2D,arena:Node2D) -> void:
+	# Follow the real Tween through every direction and the +/-PI seam.
+	smith.state_machine.process_mode = Node.PROCESS_MODE_DISABLED
+	for tier:int in [1,2,3]:
+		smith.sword_tier = tier
+		smith._apply_equipment_stats(false)
+		for high:bool in [false,true]:
+			for degrees:int in range(-180,181,30):
+				var direction_value:Vector2 = Vector2.RIGHT.rotated(deg_to_rad(float(degrees)))
+				smith._play_sword_swing_local(direction_value,high)
+				var previous:float = smith._sword_pivot.rotation
+				var travel:float = 0.0
+				var peak:float = 0.0
+				for frame:int in range(70):
+					if not smith._sword_tween.is_running(): break
+					smith._sword_tween.custom_step(1.0/120.0)
+					var step:float = absf(wrapf(smith._sword_pivot.rotation-previous,-PI,PI))
+					travel += step
+					peak = maxf(peak,step)
+					previous = smith._sword_pivot.rotation
+				check(travel < deg_to_rad(220.0) and peak < deg_to_rad(12.0),"tier %d high=%s direction=%d has no extra full turn; arc=%.1f peak=%.1f" % [tier,high,degrees,rad_to_deg(travel),rad_to_deg(peak)])
+				check(is_equal_approx(smith._sword_sprite.scale.x,0.12),"all sword tiers use smaller source texture scale")
+				for ghost:Sprite2D in sword_ghosts(smith): ghost.free()
+	smith._interrupt_sword_attack()
+	smith.sword_tier = 3
+	smith._apply_equipment_stats(false)
+	var victim:Node2D = load("res://scenes/ball.tscn").instantiate()
+	victim.Team = "B"
+	victim.position = smith.position + Vector2(28,0)
+	arena.add_child(victim,true)
+	victim.state_machine.process_mode = Node.PROCESS_MODE_DISABLED
+	victim.set_physics_process(false)
+	victim.Health_Restore = 0
+	victim.health = 10000
+	victim.block = 0
+	victim.Damage_reduction = 0
+	await physics_frame
+	await physics_frame
+	var serial:int = smith._kill_spin_serial
+	smith._deal_sword_damage(Vector2.RIGHT)
+	check(victim.health < 10000 and victim.health > 0 and smith._kill_spin_serial == serial,"real nonlethal hit does not celebrate")
+	victim.health = 5
+	smith._play_sword_swing_local(Vector2.RIGHT,false)
+	smith._deal_sword_damage(Vector2.RIGHT)
+	check(victim.health <= 0 and smith._kill_spin_serial == serial+1,"actual lethal sword hit emits one kill event")
+	check(smith._kill_spin_pending and not smith._kill_spin_active,"kill waits for the ordinary follow-through")
+	smith._sword_tween.custom_step(smith.sword_swing_duration+0.01)
+	check(smith._kill_spin_active and smith._sword_pivot.visible,"follow-through starts visible celebration")
+	smith._update_sword_idle_pose(true)
+	smith._update_equipment_visuals()
+	check(smith._sword_sprite.visible,"attack tail and equipment sync cannot hide celebration")
+	var spin_tween:Tween = smith._sword_tween
+	smith._rpc_queue_kill_spin(serial+1,Vector2.LEFT)
+	check(smith._sword_tween == spin_tween and not smith._kill_spin_pending,"duplicate kill packet does not replay")
+	var previous:float = smith._sword_pivot.rotation
+	var turns:float = 0.0
+	for frame:int in range(120):
+		if not spin_tween.is_running(): break
+		spin_tween.custom_step(1.0/120.0)
+		turns += wrapf(smith._sword_pivot.rotation-previous,-PI,PI)
+		previous = smith._sword_pivot.rotation
+	check(absf(turns-TAU*3.0) < 0.02,"celebration actually rotates three full turns, not shortest-angle interpolation")
+	check(not smith._kill_spin_active and not smith._sword_pivot.visible,"celebration hides cleanly at its end")
+	smith._deal_sword_damage(Vector2.RIGHT)
+	check(smith._kill_spin_serial == serial+1,"dead victim cannot trigger a second celebration")
+	victim.free()
+	# Event-only branch checks do not claim real network coverage.
+	smith._rpc_queue_kill_spin(serial+2,Vector2.LEFT)
+	check(smith._kill_spin_active,"left-direction celebration starts")
+	smith._play_sword_swing_local(Vector2.RIGHT,false)
+	check(not smith._kill_spin_active and not smith._kill_spin_pending,"new attack immediately supersedes cosmetic spin")
+	smith._interrupt_sword_attack()
+	smith._rpc_queue_kill_spin(serial+3,Vector2.RIGHT)
+	var before_pause:float = smith._sword_pivot.rotation
+	paused = true
+	await create_timer(0.06,true,false,true).timeout
+	check(is_equal_approx(smith._sword_pivot.rotation,before_pause),"tree pause freezes kill spin")
+	paused = false
+	smith.dizziness = true
+	smith._sword_tween.custom_step(0.02)
+	check(not smith._kill_spin_active and not smith._sword_pivot.visible,"stun cancels cosmetic spin")
+	smith.dizziness = false
+	smith._rpc_queue_kill_spin(serial+4,Vector2.RIGHT)
+	smith._death_sequence_started = true
+	smith._sword_tween.custom_step(0.02)
+	check(not smith._kill_spin_active and not smith._sword_pivot.visible,"death cancels cosmetic spin")
+	smith._death_sequence_started = false
+	if DisplayServer.get_name() != "headless":
+		smith._rpc_queue_kill_spin(serial+5,Vector2.RIGHT)
+		smith._sword_tween.pause()
+		var frames:Array[Image] = []
+		for p:float in [0.08,0.16,0.24]:
+			smith._apply_kill_spin_progress(p,deg_to_rad(125.0))
+			await RenderingServer.frame_post_draw
+			await process_frame
+			await RenderingServer.frame_post_draw
+			frames.append(root.get_texture().get_image())
+		check(changed_pixels(frames[0],frames[1],Rect2i(165,65,360,340)) > 30 and changed_pixels(frames[1],frames[2],Rect2i(165,65,360,340)) > 30,"GPU renders distinct original-sword celebration poses")
+		smith._interrupt_sword_attack()
