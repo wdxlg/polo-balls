@@ -27,6 +27,100 @@ var _render_cells:Dictionary = {}
 var last_draw_cell_count:int = 0
 var _loops:Dictionary = {}
 var _last_build_effect:int = 0
+var _development_node_lanes:Dictionary = {}
+var _development_start_offsets:Dictionary = {}
+var _development_current_offsets:Dictionary = {}
+var _development_draw_offsets:Dictionary = {}
+
+func development_begin_merge(lane_at:Callable,start_offsets:Dictionary) -> void:
+	# This is one world-origin graph for both teams, not a Node2D per lane.
+	_development_start_offsets = start_offsets.duplicate(true)
+	_development_current_offsets = start_offsets.duplicate(true)
+	_development_node_lanes.clear()
+	_development_draw_offsets.clear()
+	for id:Variant in nodes:
+		_development_node_lanes[id] = str(lane_at.call(nodes[id].point))
+	# A charging cart's proposal is not permanent track and its owner can be
+	# stopped/repositioned at the transition; never retain a stale preview.
+	if not _previews.is_empty():
+		_previews.clear()
+		_refresh_render_cells()
+
+func _development_change(lane:String) -> Vector2:
+	return (_development_current_offsets.get(lane,Vector2.ZERO) as Vector2)-(_development_start_offsets.get(lane,Vector2.ZERO) as Vector2)
+
+func development_preview_merge(_start_offsets:Dictionary,lanes:Dictionary) -> void:
+	for lane:String in _development_start_offsets:
+		if lanes.has(lane): _development_current_offsets[lane] = (lanes[lane] as Dictionary).get("offset",Vector2.ZERO)
+	_development_draw_offsets.clear()
+	for id:Variant in _development_node_lanes:
+		if nodes.has(id): _development_draw_offsets[nodes[id].cell] = _development_change(str(_development_node_lanes[id]))
+	queue_redraw()
+
+func development_finish_merge() -> void:
+	if _development_start_offsets.is_empty(): return
+	var old_nodes:Dictionary = nodes
+	var old_links:Array[Dictionary] = rails
+	var remapped:Dictionary = {}
+	nodes = {}; rails = []
+	_cell_ids.clear(); _edges.clear(); _edge_pairs.clear(); _adjacency.clear()
+	for id:Variant in old_nodes:
+		var n:Dictionary = old_nodes[id]
+		var change:Vector2 = _development_change(str(_development_node_lanes.get(id,"")))
+		var cell:Vector2i = world_to_cell(n.point+change)
+		var existing:int = int(_cell_ids.get(cell,0))
+		if existing != 0:
+			# Both maps can lay a rail on the same final cell. Coalesce it rather
+			# than leaving two IDs and an invalid world-grid lookup.
+			remapped[id] = existing
+			nodes[existing].powered = bool(nodes[existing].powered) or bool(n.powered)
+			continue
+		remapped[id] = id
+		n.cell = cell
+		n.point = cell_to_world(cell)
+		n.mask = 0
+		nodes[id] = n
+		_cell_ids[cell] = id
+		_adjacency[id] = []
+	var occupied:Dictionary = {}
+	for old:Dictionary in old_links:
+		var a:int = int(remapped.get(old.a,0))
+		var b:int = int(remapped.get(old.b,0))
+		if a == 0 or b == 0 or a == b: continue
+		var difference:Vector2i = nodes[b].cell-nodes[a].cell
+		if absi(difference.x)+absi(difference.y) != 1: continue
+		var pair:Vector2i = Vector2i(mini(a,b),maxi(a,b))
+		if _edge_pairs.has(pair):
+			var existing:int = int(_edge_pairs[pair])
+			if not bool(old.get("transfer",false)): _edges[existing].transfer = false
+			continue
+		var e:Dictionary = old.duplicate()
+		e.a = a; e.b = b
+		var link:int = int(e.id)
+		rails.append(e); _edges[link] = e; _edge_pairs[pair] = link
+		_adjacency[a].append(link); _adjacency[b].append(link)
+	# At a coalesced junction only two branches can form a physical rail;
+	# other traversable links are the existing virtual side-entry type.
+	for e:Dictionary in rails:
+		if bool(e.get("transfer",false)): continue
+		var a:int = int(e.a); var b:int = int(e.b)
+		if int(occupied.get(a,0)) >= 2 or int(occupied.get(b,0)) >= 2:
+			e.transfer = true
+			continue
+		occupied[a] = int(occupied.get(a,0))+1
+		occupied[b] = int(occupied.get(b,0))+1
+		var direction:Vector2i = nodes[b].cell-nodes[a].cell
+		nodes[a].mask = int(nodes[a].mask)|_bit(direction)
+		nodes[b].mask = int(nodes[b].mask)|_bit(-direction)
+	_development_node_lanes.clear()
+	_development_start_offsets.clear()
+	_development_current_offsets.clear()
+	_development_draw_offsets.clear()
+	if is_multiplayer_authority(): _publish() # Full canonical graph, including overlapping cells.
+	else:
+		_refresh_ports()
+		revision += 1
+		_refresh_render_cells()
 func _ready() -> void:
 	z_as_relative = false
 	z_index = GROUND_Z
@@ -435,7 +529,7 @@ func _draw() -> void:
 		var cell:Dictionary = _render_cells[coord]
 		var mask:int = int(cell.mask)&15
 		if mask == 0: continue
-		var position:Vector2 = to_local(cell_to_world(coord))
+		var position:Vector2 = to_local(cell_to_world(coord)+(_development_draw_offsets.get(coord,Vector2.ZERO) as Vector2))
 		var region:Rect2 = Rect2(mask*16,16 if cell.powered else 0,16,16)
 		draw_texture_rect_region(TILES,Rect2(position-Vector2.ONE*CELL*0.5,Vector2.ONE*CELL),region,Color(1,1,1,float(cell.alpha)))
 		last_draw_cell_count += 1

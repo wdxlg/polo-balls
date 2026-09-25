@@ -28,6 +28,61 @@ func _valid(a:Dictionary) -> bool:
 func _point(a:Dictionary) -> Vector2:
 	var wall:Variant = a.ref.get_ref() if a.ref!=null else null
 	return wall.to_global(a.local) if is_instance_valid(wall) else a.point
+func development_prepare_merge() -> void:
+	# Resolve attached wall coordinates before any wall or owner is relocated.
+	var anchors:Array[Dictionary] = []
+	for segment:Dictionary in segments:
+		anchors.append(segment.start)
+		anchors.append(segment.end)
+	if not anchor.is_empty(): anchors.append(anchor)
+	var resolved:Array[Dictionary] = []
+	for a:Dictionary in anchors:
+		var seen:bool = false
+		for prior:Dictionary in resolved:
+			if is_same(a,prior): seen = true; break
+		if seen: continue
+		var point:Vector2 = _point(a)
+		a.point = point
+		a.local = point
+		a.ref = null
+		resolved.append(a)
+func development_rebase(change:Vector2) -> void:
+	if change.is_zero_approx(): return
+	# A completed segment shares its endpoint Dictionary with the next one.
+	# Resolve wall attachments before the source map moves; the old wall is not
+	# the wall on the merged map. Move each anchor only once and detach it.
+	var shifted:Array[Dictionary] = []
+	for segment:Dictionary in segments:
+		for endpoint:String in ["start","end"]:
+			var a:Dictionary = segment[endpoint]
+			var seen:bool = false
+			for previous:Dictionary in shifted:
+				if is_same(a,previous): seen = true; break
+			if seen: continue
+			var point:Vector2 = _point(a)+change
+			a.point = point
+			a.local = point
+			a.ref = null
+			shifted.append(a)
+	if not anchor.is_empty():
+		var seen_anchor:bool = false
+		for previous:Dictionary in shifted:
+			if is_same(anchor,previous): seen_anchor = true; break
+		if not seen_anchor:
+			var point:Vector2 = _point(anchor)+change
+			anchor.point = point
+			anchor.local = point
+			anchor.ref = null
+	for web:Dictionary in webs.values(): web.point += change
+	# Sweep history describes an old arena. Never damage a target over the
+	# distance between two maps on the first combat tick after merging.
+	_previous.clear()
+	_previous_lines.clear()
+	for line:Array in _remote_lines:
+		line[0] += change
+		line[1] += change
+	for i:int in range(_remote_webs.size()): _remote_webs[i] += change
+	queue_redraw()
 func wall_attachment_point(contact:Vector2,normal:Vector2,surface:Node2D,tail:Vector2) -> Vector2:
 	# A body/head contact is not the silk endpoint. Extend the current abdomen
 	# strand onto the touched wall plane, preserving its direction when fixing it.

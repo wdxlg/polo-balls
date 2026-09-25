@@ -22,6 +22,84 @@ var _positions:Dictionary = {}
 var _dirty_cells:Dictionary = {}
 var _heads_dirty:bool = false
 var _head_view:Node2D
+var _development_patch_lanes:Dictionary = {}
+var _development_head_starts:Dictionary = {}
+var _development_start_offsets:Dictionary = {}
+var _development_current_offsets:Dictionary = {}
+var _development_draw_offsets:Dictionary = {}
+
+func _development_lane(entry:Dictionary,point:Vector2,lane_at:Callable,prefer_source:bool) -> String:
+	var ref:Variant = entry.get("source")
+	var actor:Variant = ref.get_ref() if ref is WeakRef else null
+	if prefer_source and is_instance_valid(actor) and actor.has_meta("development_lane_key"):
+		return str(actor.get_meta("development_lane_key"))
+	return str(lane_at.call(point))
+
+func development_begin_merge(lane_at:Callable,start_offsets:Dictionary,prefer_source:bool = true) -> void:
+	# One shared manager holds both teams' snow. Bind each tile/head to its
+	# original lane BEFORE the two maps overlap; moving this Node2D is wrong.
+	_development_start_offsets = start_offsets.duplicate(true)
+	_development_current_offsets = start_offsets.duplicate(true)
+	_development_patch_lanes.clear()
+	_development_head_starts.clear()
+	_development_draw_offsets.clear()
+	for cell:Vector2i in patches:
+		_development_patch_lanes[cell] = _development_lane(patches[cell],point_at(cell),lane_at,prefer_source)
+	for id:Variant in heads:
+		var head:Dictionary = heads[id]
+		_development_head_starts[id] = {"lane":_development_lane(head,head.point,lane_at,prefer_source),"cell":head.cell,"point":head.point,"start":head.start}
+
+func _development_change(lane:String) -> Vector2:
+	return (_development_current_offsets.get(lane,Vector2.ZERO) as Vector2)-(_development_start_offsets.get(lane,Vector2.ZERO) as Vector2)
+
+func development_preview_merge(_start_offsets:Dictionary,lanes:Dictionary) -> void:
+	_development_draw_offsets.clear()
+	for lane:String in _development_start_offsets:
+		if lanes.has(lane): _development_current_offsets[lane] = (lanes[lane] as Dictionary).get("offset",Vector2.ZERO)
+	for cell:Vector2i in _development_patch_lanes:
+		_development_draw_offsets[cell] = _development_change(str(_development_patch_lanes[cell]))
+	for id:Variant in _development_head_starts:
+		if not heads.has(id): continue
+		var original:Dictionary = _development_head_starts[id]
+		var change:Vector2 = _development_change(str(original.lane))
+		heads[id].point = (original.point as Vector2)+change
+		heads[id].start = (original.start as Vector2)+change
+	queue_redraw()
+	if is_instance_valid(_head_view): _head_view.queue_redraw()
+
+func development_finish_merge() -> void:
+	if _development_start_offsets.is_empty(): return
+	var translated:Dictionary = {}
+	for cell:Vector2i in patches:
+		var change:Vector2 = _development_change(str(_development_patch_lanes.get(cell,"")))
+		var destination:Vector2i = cell_at(point_at(cell)+change)
+		var patch:Dictionary = patches[cell]
+		var existing:Dictionary = translated.get(destination,{})
+		# Identical locations from two teams coalesce into one canonical tile;
+		# a full or longer-lived patch wins, never a duplicate grid key.
+		if existing.is_empty() or int(patch.level)>int(existing.level) or (int(patch.level)==int(existing.level) and float(patch.get("expires_at",0.0))>float(existing.get("expires_at",0.0))):
+			translated[destination] = patch
+	patches = translated
+	for id:Variant in _development_head_starts:
+		if not heads.has(id): continue
+		var original:Dictionary = _development_head_starts[id]
+		var change:Vector2 = _development_change(str(original.lane))
+		heads[id].cell = cell_at(point_at(original.cell)+change)
+		heads[id].point = point_at(heads[id].cell)
+		heads[id].start = (original.start as Vector2)+change
+	# Position history from the separated maps must not sweep across the arena.
+	_positions.clear()
+	_dirty_cells.clear()
+	_next_melt = INF
+	for patch:Dictionary in patches.values(): _next_melt = minf(_next_melt,float(patch.get("expires_at",INF)))
+	_development_start_offsets.clear()
+	_development_current_offsets.clear()
+	_development_patch_lanes.clear()
+	_development_head_starts.clear()
+	_development_draw_offsets.clear()
+	queue_redraw()
+	if is_instance_valid(_head_view): _head_view.queue_redraw()
+	if is_multiplayer_authority() and multiplayer.has_multiplayer_peer(): _field_state.rpc(_cell_snapshot(patches.keys()),_head_snapshot(),true)
 
 static func ensure(context:Node) -> Node2D:
 	var world:Node = context.get_tree().current_scene
@@ -325,7 +403,7 @@ func _process(_delta:float) -> void:
 func _draw() -> void:
 	for cell:Vector2i in patches:
 		var size:Vector2 = Vector2.ONE*CELL*(0.5 if int(patches[cell].level) == 1 else 1.0)
-		draw_texture_rect(SNOW,Rect2(point_at(cell)-size*0.5,size),false)
+		draw_texture_rect(SNOW,Rect2(point_at(cell)+(_development_draw_offsets.get(cell,Vector2.ZERO) as Vector2)-size*0.5,size),false)
 
 func emit_sound(event:String,point:Vector2,volume:float) -> void:
 	if multiplayer.has_multiplayer_peer(): _sound.rpc(event,point,volume)
