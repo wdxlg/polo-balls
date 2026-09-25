@@ -95,3 +95,4 @@
 - 六种地图背景的边界与地图形状内侧边界：五种 Minecraft 方块主题使用原版纹理的真实 3D 六面体低墙，视觉高度 **0.4 格**，相邻方块共享边界、不得内缩留缝；12:00 时位于右上的真实 3D 光源投影水平总长约 **0.6 格**，保留轻微侧面/镜头视差，不恢复整格高墙和长影。蓝色背景保持平面且禁用 3D；门洞同时裁方块和 2D 墙顶，原物理碰撞、格宽与角色建造障碍不变。原版来源、当前 D3D12 画面、验证边界与回退见 `tests/MAP_WALLS_3D.md`、`tests/test_map_wall_3d.gd`、`tests/test_map_wall_3d_visual.gd`。
 - 循环昼夜：默认 **12:00**、**1 游戏秒=1分钟**，24分钟游戏时间一昼夜；太阳从右上顺时针转一圈，16–20点渐暗、05–08点渐亮，六主题统一变暗且菜单/时钟不压暗。沿用0.4格无缝低墙与短影，只转灯不重建网格；暂停/倍速跟随物理delta，重置回中午，切背景保持时间。实现、GPU/共享录制视口验证及尚未验收的联机/编码边界见 `tests/DAY_NIGHT_CYCLE.md`、`tests/test_day_night_cycle.gd`、`tests/test_day_night_visual.gd`。
 - 唤魔者不死图腾显示期间持续从图腾周围产生原版金绿粒子；出生后独立下落至脚下地面并淡出，图腾消失后保留最后一批落地尾迹。实现与验证见 `tests/TOTEM_CONTINUOUS_PARTICLES.md`。
+- Minecraft 范围外圈和蓄力填充盘统一复用 `pixel_arc.gd::draw_ring/draw_disk`，持续预警走 `mc_combat_abilities.gd::charge_circle`，按真实技能计时更新，不另写平滑圆或复制像素算法。重锤与硫方怪 TNT 已共用；硫方怪铁块重力/水平移动、原版晶簇本体与射出同模型、冰墙反弹及手控/威胁回归见 `tests/SULFUR_CUBE_POLISH_20260926.md`。

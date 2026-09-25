@@ -5,6 +5,7 @@ extends Node3D
 
 const OUTER:Texture2D = preload("res://Images/characters/我的世界/sulfur_cube/source/sulfur_cube_outer.png")
 const INNER:Texture2D = preload("res://Images/characters/我的世界/sulfur_cube/source/sulfur_cube_inner.png")
+const CRYSTAL = preload("res://scripts/effects/我的世界/sulfur_amethyst_crystal.gd")
 const AMETHYST_CLUSTER:Texture2D = preload("res://Images/characters/我的世界/sulfur_cube/source/amethyst_cluster.png")
 const TNT_TOP:Texture2D = preload("res://Images/characters/我的世界/sulfur_cube/source/tnt_top.png")
 const TNT_BOTTOM:Texture2D = preload("res://Images/characters/我的世界/sulfur_cube/source/tnt_bottom.png")
@@ -24,8 +25,8 @@ const BLOCK_SIZE:float = 2.0*16.0/18.0 # Vanilla: full 16px block within the 18p
 # Each cluster starts *inside* the amethyst block and pierces the jelly shell.
 # The tips lean outwards and slightly towards the camera rather than standing
 # upright on four flat cards in front of the creature.
-const CRYSTAL_ROOTS:Array[Vector3] = [Vector3(0.22,0.25,0.23),Vector3(0.29,-0.12,0.26),Vector3(-0.14,-0.23,0.26),Vector3(-0.26,0.14,0.26)]
-const CRYSTAL_TIPS:Array[Vector3] = [Vector3(-0.40,1.52,1.56),Vector3(1.52,0.36,1.56),Vector3(0.39,-1.52,1.56),Vector3(-1.52,-0.39,1.56)]
+const CRYSTAL_ROOTS:Array[Vector3] = [Vector3(-0.20,0.45,0.45),Vector3(0.45,-0.12,0.38),Vector3(0.20,-0.45,0.40),Vector3(-0.45,0.10,0.40)]
+const CRYSTAL_TIPS:Array[Vector3] = [Vector3(-0.35,1.75,1.10),Vector3(1.85,0.12,1.20),Vector3(0.50,-1.60,1.35),Vector3(-1.65,-0.25,1.15)]
 const FACE_NORMALS:Array[Vector3] = [Vector3.FORWARD,Vector3.RIGHT,Vector3.BACK,Vector3.LEFT,Vector3.UP,Vector3.DOWN]
 const FACE_ROTATIONS:Array[Vector3] = [Vector3.ZERO,Vector3(0,PI/2,0),Vector3(0,PI,0),Vector3(0,-PI/2,0),Vector3(-PI/2,0,0),Vector3(PI/2,0,0)]
 # front, right, back, left, top, bottom from Mojang's two UV crosses.
@@ -41,6 +42,7 @@ var _swap_left:float = 0.0
 var _magma_materials:Array[StandardMaterial3D] = []
 var _block_initialized:bool = false
 var _crystals_active:bool = true
+var _crystal_grow_left:float = 0.0
 
 func _ready() -> void:
 	outer_shell = Node3D.new()
@@ -136,7 +138,9 @@ func animate(time:float,delta:float,playing:bool,fuse_left:float) -> void:
 	var appear:float = 1.0-_swap_left/0.24
 	var insert_scale:float = lerpf(0.3,1.0,1.0-pow(1.0-appear,3.0))
 	inner_block.scale = body_scale*insert_scale
-	crystal_layer.scale = body_scale*insert_scale
+	if playing: _crystal_grow_left = maxf(_crystal_grow_left-delta,0.0)
+	var growth:float = 1.0-_crystal_grow_left/0.24
+	crystal_layer.scale = body_scale*minf(insert_scale,lerpf(0.3,1.0,growth))
 	if block_mode == 2:
 		var frame:int = int(time*6.0)%3
 		for material:StandardMaterial3D in _magma_materials:
@@ -144,56 +148,27 @@ func animate(time:float,delta:float,playing:bool,fuse_left:float) -> void:
 	if block_mode == 5 and fuse_left > 0.0:
 		inner_block.scale *= 1.0+0.035*absf(sin(time*TAU*2.5))
 func set_crystals_active(active:bool) -> void:
+	if active and not _crystals_active: _crystal_grow_left = 0.24
 	_crystals_active = active
 	if crystal_layer != null: crystal_layer.visible = block_mode == 6 and active
 
+func crystals_ready() -> bool:
+	return _crystals_active and _swap_left <= 0.0 and _crystal_grow_left <= 0.0
+
 func _make_crystals() -> void:
-	# Native amethyst-cluster texture on crossed 3D planes, not four face-on
-	# billboards pasted onto the shell. Their lower halves are occluded by the
-	# solid interior block; only the outward-pointing tips pierce the skin.
-	var material := StandardMaterial3D.new()
-	material.albedo_texture = AMETHYST_CLUSTER
-	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
-	material.cull_mode = BaseMaterial3D.CULL_DISABLED
-	var core_material := StandardMaterial3D.new()
-	core_material.albedo_texture = BLOCK_TEXTURES[6]
-	core_material.albedo_color = Color(1.0,0.84,1.0)
-	core_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	core_material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-	core_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	for i:int in range(CRYSTAL_TIPS.size()):
 		var root:Vector3 = CRYSTAL_ROOTS[i]
 		var tip:Vector3 = CRYSTAL_TIPS[i]
-		var direction:Vector3 = (tip-root).normalized()
-		var cluster := Node3D.new()
-		cluster.name = "PiercingCrystal%d" % i
-		cluster.position = (root+tip)*0.5
-		cluster.quaternion = Quaternion(Vector3.UP,direction)
-		crystal_layer.add_child(cluster)
-		# Opaque, four-sided tapered gemstone under the official cluster pixels:
-		# this gives the protrusion real 3D volume instead of a flat decal.
-		var spike := CylinderMesh.new()
-		spike.height = root.distance_to(tip)
-		spike.bottom_radius = 0.18
-		spike.top_radius = 0.018
-		spike.radial_segments = 4
-		var core := MeshInstance3D.new()
-		core.name = "NativeAmethystSpike"
-		core.mesh = spike
-		core.material_override = core_material
-		cluster.add_child(core)
-		for cross:int in range(2):
-			var quad := QuadMesh.new()
-			quad.size = Vector2(0.43,0.87)
-			var face := MeshInstance3D.new()
-			face.name = "Cross%d" % cross
-			face.mesh = quad
-			face.material_override = material
-			face.rotation.y = float(cross)*PI*0.5
-			face.position.y = spike.height*0.5-0.39
-			cluster.add_child(face)
+		var crystal:Node3D = CRYSTAL.new()
+		crystal.name = "PiercingCrystal%d" % i
+		crystal.length = root.distance_to(tip)
+		crystal.position = root
+		crystal.quaternion = Quaternion(Vector3.UP,(tip-root).normalized())
+		crystal_layer.add_child(crystal)
+
+func crystal_render_state(index:int) -> Dictionary:
+	var crystal:Node3D = crystal_layer.get_child(index) as Node3D
+	return {"transform":crystal.global_transform,"length":crystal.length,"width":crystal.width}
 
 func crystal_tip_world(index:int) -> Vector3:
 	if crystal_layer == null or index < 0 or index >= CRYSTAL_TIPS.size(): return global_position

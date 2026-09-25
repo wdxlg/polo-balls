@@ -124,8 +124,8 @@ func run() -> void:
 		var base:Vector3 = cube._native_model.CRYSTAL_ROOTS[i]
 		var tip:Vector3 = cube._native_model.CRYSTAL_TIPS[i]
 		roots_inside = roots_inside and maxf(maxf(absf(base.x),absf(base.y)),absf(base.z)) < cube._native_model.BLOCK_SIZE*0.5 and maxf(absf(tip.x),absf(tip.y)) > 1.0 and tip.z > 1.0
-		roots_inside = roots_inside and cube._native_model.crystal_layer.get_child(i).get_child_count() == 3
-	check(roots_inside,"four solid 3D crystal roots begin inside the amethyst block and their slanted tips pierce the shell")
+		roots_inside = roots_inside and cube._native_model.crystal_layer.get_child(i).get_child_count() == 2 and cube._native_model.crystal_layer.get_child(i).get_script() == cube._native_model.CRYSTAL
+	check(roots_inside,"four native crossed 3D crystal roots begin inside the amethyst block and their slanted tips pierce the shell")
 	var tips:Array[Vector2] = cube._crystal_tip_points()
 	var aligned:bool = true
 	var threats:Array = cube.get_ai_attack_threats(enemy)

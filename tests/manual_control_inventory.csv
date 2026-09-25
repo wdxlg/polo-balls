@@ -112,7 +112,7 @@
 选角人物,scenes/characters/我的世界/烈焰人.tscn,scripts/characters/我的世界/烈焰人.gd,Attack,是,识别到入口；待逐角色验证实际命中与AI停火
 选角人物,scenes/characters/我的世界/监守者.tscn,scripts/characters/我的世界/frontier/warden.gd,"Attack,Skill,player_control_action",是,识别到入口；待逐角色验证实际命中与AI停火
 选角人物,scenes/characters/我的世界/矿车.tscn,scripts/characters/我的世界/minecart/minecart.gd,"Attack,Skill,player_control_action",是,识别到入口；待逐角色验证实际命中与AI停火
-选角人物,scenes/characters/我的世界/硫方怪.tscn,scripts/characters/我的世界/硫方怪.gd,"Attack,Skill",是,识别到入口；待逐角色验证实际命中与AI停火
+选角人物,scenes/characters/我的世界/硫方怪.tscn,scripts/characters/我的世界/硫方怪.gd,"Attack,Skill,controlled_crystal_volley",是,左冲刺或铁块单砸；右换块；紫水晶中键原四晶齐射且手控停自动；GPU专项35项与双peer复制30项通过；未做双客户端手控实战
 选角人物,scenes/characters/我的世界/粘性活塞.tscn,scripts/characters/我的世界/new5/piston.gd,,是,自定义或被动机制；待逐角色识别手动入口
 选角人物,scenes/characters/我的世界/羊.tscn,scripts/characters/我的世界/new6/sheep.gd,,是,自定义或被动机制；待逐角色识别手动入口
 选角人物,scenes/characters/我的世界/苔藓.tscn,scripts/characters/我的世界/frontier/moss.gd,"Attack,Skill,player_control_action",是,识别到入口；待逐角色验证实际命中与AI停火

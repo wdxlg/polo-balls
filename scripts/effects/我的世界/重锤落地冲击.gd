@@ -220,9 +220,7 @@ func _draw_ring_and_streaks() -> void:
 		var expand:float = 1.0 - pow(1.0 - p,3.1)
 		var alpha:float = pow(1.0 - p,1.28)
 		var radius_value:float = lerpf(_radius,_radius * maxf(ring_end_scale,1.0),expand)
-		draw_arc(Vector2.ZERO,radius_value,0.0,TAU,64,Color(1.0,1.0,1.0,0.16 * alpha),7.0,true)
-		draw_arc(Vector2.ZERO,radius_value,0.0,TAU,64,Color(1.0,1.0,1.0,0.40 * alpha),3.6,true)
-		draw_arc(Vector2.ZERO,radius_value,0.0,TAU,64,Color(1.0,1.0,1.0,0.98 * alpha),1.35,true)
+		preload("res://scripts/effects/我的世界/pixel_arc.gd").draw_ring(self,Vector2.ZERO,radius_value,Color.WHITE,alpha)
 
 	if not show_impact_streaks: return
 	for data:Dictionary in _streaks:

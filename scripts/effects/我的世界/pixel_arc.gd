@@ -57,3 +57,19 @@ static func draw(canvas:CanvasItem,center:Vector2,radius:float,start:float,end:f
 		points=points.duplicate()
 		for i:int in points.size(): points[i]+=center
 	canvas.draw_multiline(points,color,PIXEL,false)
+
+## Full Minecraft-style layered circle. Uses the SAME span rasterizer as the mace.
+## Palette entries optionally replace the three layer tints; alpha remains shared.
+static func draw_ring(canvas:CanvasItem,center:Vector2,radius:float,tint:Color = Color.WHITE,opacity:float = 1.0,palette:PackedColorArray = PackedColorArray()) -> void:
+	var widths:PackedFloat32Array = PackedFloat32Array([7.0,3.6,1.35])
+	var alphas:PackedFloat32Array = PackedFloat32Array([0.16,0.40,0.98])
+	for i:int in range(3):
+		var color:Color = palette[i] if i < palette.size() else tint
+		color.a *= clampf(opacity,0.0,1.0)*alphas[i]
+		draw(canvas,center,radius,0.0,TAU,64,color,widths[i],false)
+
+## Filled pixel disk, not a smooth circle or a second hand-written rasterizer.
+## An annulus of radius R/2 and width R has inner radius 0 and outer radius R.
+static func draw_disk(canvas:CanvasItem,center:Vector2,radius:float,color:Color) -> void:
+	if radius < PIXEL*0.5: return
+	draw(canvas,center,radius*0.5,0.0,TAU,64,color,radius,false)

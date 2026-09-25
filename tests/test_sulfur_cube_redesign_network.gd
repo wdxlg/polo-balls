@@ -132,6 +132,25 @@ func run() -> void:
 		var guest_threats:Array = guest_unit.get_ai_attack_threats(null)
 		for i:int in range(4): guest_tips_aligned = guest_tips_aligned and guest_tips[i].distance_to(guest_threats[i].position) < 0.5
 	check(guest_tips_aligned,"guest tip-only danger regions follow its own 3D protrusions, including after block insertion")
+	host_unit._fire_all_crystals()
+	var frozen_shards:Array[Node] = []
+	var volley_replicated:bool = await until(func():
+		for node:Node in get_nodes_in_group("AI_Hazard"):
+			if node.get_script() == host_unit.SHARD:
+				node.set_physics_process(false)
+				if not frozen_shards.has(node): frozen_shards.append(node)
+		return frozen_shards.size() == 8,2.0)
+	check(volley_replicated,"amethyst RPC creates four shared-model projectiles on each independent ENet peer")
+	var host_shapes:Array[Transform3D] = []
+	var guest_shapes:Array[Transform3D] = []
+	for shard:Node in frozen_shards:
+		if shard.source_ref.get_ref() == host_unit: host_shapes.append(shard.crystal.global_transform)
+		elif shard.source_ref.get_ref() == guest_unit: guest_shapes.append(shard.crystal.global_transform)
+	var same_shapes:bool = host_shapes.size() == 4 and guest_shapes.size() == 4
+	if same_shapes:
+		for i:int in range(4): same_shapes = same_shapes and host_shapes[i].is_equal_approx(guest_shapes[i])
+	check(same_shapes,"guest shard keeps the authoritative launch-frame crystal pose, not a different item icon")
+	for shard:Node in frozen_shards: shard.queue_free()
 	host_unit.crystals_out = true
 	check(await until(func(): return guest_unit.crystals_out and not guest_unit._native_model.crystal_layer.visible,2.0),"amethyst volley removes guest crystal hit regions and 3D geometry")
 	host_unit.set_block(CUBE.Block.TNT)
@@ -140,6 +159,7 @@ func run() -> void:
 	check(await until(func(): return sulfur_sound_count("fuse") >= 2,2.0),"native Minecraft fuse sample plays on host and guest via RPC")
 	host_unit.fuse_left = 1.4
 	check(await until(func(): return absf(guest_unit.fuse_left-1.4) < 0.12),"ongoing countdown synchronizes to guest")
+	check(await until(func(): return is_instance_valid(guest_unit._charge_circle) and absf(guest_unit._charge_circle.progress-(1.0-1.4/CUBE.TNT_FUSE_SECONDS)) < 0.05),"guest charge disk uses the replicated fuse rather than an independent timer")
 	var target:Node2D = load("res://scenes/ball.tscn").instantiate()
 	target.Team = "Team1"
 	world.add_child(target,true)
@@ -160,6 +180,7 @@ func run() -> void:
 	check(host_unit.health < self_before,"TNT damages its host caster once")
 	var ejected:bool = await until(func(): return guest_unit.block_mode == host_unit.block_mode and guest_unit.block_mode != CUBE.Block.TNT and guest_unit.block_mode != CUBE.Block.EMPTY and guest_unit.fuse_left == 0.0)
 	check(ejected,"random post-blast block and fuse reset reach the guest")
+	check(not is_instance_valid(guest_unit._charge_circle),"guest removes the charge indicator on the replicated post-blast block")
 	check(await until(func(): return sulfur_sound_count("explosion") >= 2,2.0),"native Minecraft explosion sample plays on both ENet peers")
 	check(await until(func(): return sulfur_sound_count("entity.player.attack.crit") >= 2,2.0),"actual-damage critical plays its original Minecraft sample on both peers")
 	var fx_count:int = 0

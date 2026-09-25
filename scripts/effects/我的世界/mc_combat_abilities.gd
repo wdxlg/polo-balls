@@ -4,6 +4,7 @@ extends RefCounted
 const LIGHTNING=preload("res://scripts/effects/我的世界/雷电.gd")
 const GROUND_IMPACT=preload("res://scripts/effects/我的世界/重锤落地冲击.gd")
 const EXPLOSION=preload("res://scripts/effects/我的世界/mc_explosion.gd")
+const CHARGE_CIRCLE=preload("res://scripts/effects/我的世界/mc_charge_circle.gd")
 const OBSTACLES=preload("res://scripts/effects/我的世界/ghast_obstacle_damage.gd")
 
 static func lightning(parent:Node,point:Vector2,seed:int,radius:float,warning:float,options:Dictionary = {}) -> Node2D:
@@ -49,3 +50,12 @@ static func obstacle_blast(context:Node2D,point:Vector2,radius:float) -> Array[D
 
 static func apply_obstacle_updates(context:Node,updates:Array) -> void:
 	OBSTACLES.ensure(context).call("apply_updates",updates)
+
+static func charge_circle(parent:Node2D,radius:float,options:Dictionary = {}) -> Node2D:
+	var effect:Node2D = CHARGE_CIRCLE.new()
+	effect.name = str(options.get("name","MCChargeCircle"))
+	if options.has("ring_color"): effect.ring_color = options.ring_color
+	if options.has("fill_color"): effect.fill_color = options.fill_color
+	parent.add_child(effect,true)
+	effect.set_charge(parent.global_position,radius,0.0)
+	return effect

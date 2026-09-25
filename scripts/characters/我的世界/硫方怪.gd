@@ -51,7 +51,11 @@ const CRYSTAL_REGROW_TIME:float = 0.8
 
 var _clock:float = 0.0
 var _view_clock:float = 0.0
-var _ring_refresh:float = 0.0
+var _charge_circle:Node2D
+var _ice_bounce_hold:float = 0.0
+var _iron_previous_gravity_mode:bool = false
+const MODEL_CAMERA_SIZE:float = 4.2
+const MODEL_IMAGE_SCALE:float = 0.8*MODEL_CAMERA_SIZE/3.3
 var _opening:float = 0.0
 var _scan_left:float = 0.0
 var _next_hit_at:Dictionary = {} # instance ID -> next time; cleared at each change
@@ -133,7 +137,7 @@ func _create_live_model() -> void:
 	var camera := Camera3D.new()
 	camera.name = "ModelCamera"
 	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
-	camera.size = 3.3
+	camera.size = MODEL_CAMERA_SIZE
 	camera.position = Vector3(1.55,0.85,6.0)
 	_model_viewport.add_child(camera)
 	camera.look_at(Vector3.ZERO)
@@ -142,6 +146,7 @@ func _create_live_model() -> void:
 	(image as Sprite2D).texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 
 func _apply_visual() -> void:
+	if block_mode != Block.TNT: _clear_charge_circle()
 	if not image is Sprite2D: return
 	var sprite:Sprite2D = image as Sprite2D
 	if is_instance_valid(_native_model):
@@ -153,32 +158,32 @@ func _apply_visual() -> void:
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 
 func _process(delta:float) -> void:
-	if not image is Sprite2D or health <= 0: return
+	if health <= 0:
+		_clear_charge_circle()
+		return
+	if not image is Sprite2D: return
 	if is_combat_runtime_active(): _view_clock += delta
 	# The rendered six-sided shell squashes independently of the actual collision
 	# circle and visible damage regions; the block switches inside it, not via
 	# replacing the complete character image with another pre-baked sprite.
-	image.scale = Vector2.ONE*(0.8 if is_instance_valid(_native_model) else 1.0)
+	image.scale = Vector2.ONE*(MODEL_IMAGE_SCALE if is_instance_valid(_native_model) else 1.0)
 	if is_instance_valid(_native_model): _native_model.animate(_view_clock,delta,is_combat_runtime_active(),fuse_left)
 	image.self_modulate = Color(1.0,0.62 if fmod(_view_clock*5.0,1.0) < 0.45 else 1.0,0.62 if fmod(_view_clock*5.0,1.0) < 0.45 else 1.0) if block_mode == Block.TNT and fuse_left > 0.0 else Color.WHITE
-	if block_mode == Block.TNT and fuse_left > 0.0:
-		_ring_refresh -= delta
-		if _ring_refresh <= 0.0:
-			_ring_refresh = 0.08 # Warning geometry at ~12.5 Hz, not a per-frame overlay.
-			queue_redraw()
+	_update_charge_circle()
 
-func _draw() -> void:
-	if block_mode != Block.TNT or fuse_left <= 0.0 or health <= 0: return
-	# A simple UI telegraph, not an extra non-Minecraft character texture.
-	# Radius is exactly the subsequent explosion's source-centered damage radius.
-	var urgency:float = 1.0 - fuse_left/TNT_FUSE_SECONDS
-	var alpha:float = 0.40 + 0.25*urgency + 0.18*absf(sin(_view_clock*TAU*2.5))
-	# CanvasItem drawing is local to the 0.2-scaled fighter. Counter-scale the
-	# visual ONLY: the ring must mark the same world-space 72 units as damage.
-	var world_scale:Vector2 = global_transform.get_scale().abs()
-	draw_set_transform(Vector2.ZERO,0.0,Vector2(1.0/maxf(world_scale.x,0.001),1.0/maxf(world_scale.y,0.001)))
-	draw_arc(Vector2.ZERO,TNT_RADIUS,0.0,TAU,48,Color(1.0,0.26,0.10,alpha),2.0,false)
-	draw_set_transform(Vector2.ZERO)
+func _update_charge_circle() -> void:
+	if block_mode != Block.TNT or fuse_left <= 0.0 or health <= 0:
+		_clear_charge_circle()
+		return
+	if not is_instance_valid(_charge_circle):
+		_charge_circle = ABILITIES.charge_circle(self,TNT_RADIUS)
+	_charge_circle.set_charge(global_position,TNT_RADIUS,1.0-fuse_left/TNT_FUSE_SECONDS)
+
+func _clear_charge_circle() -> void:
+	if is_instance_valid(_charge_circle):
+		_charge_circle.hide()
+		_charge_circle.queue_free()
+	_charge_circle = null
 
 func Attack() -> void:
 	Attacking = false
@@ -187,6 +192,16 @@ func Attack() -> void:
 		_start_single_slam()
 	else:
 		_surge_left = 0.34
+
+func player_control_extra_actions() -> Array[StringName]:
+	# Preserve the existing surge (left) and block change (right). Volley is
+	# the real third ability, only exposed while carrying amethyst.
+	return [&"controlled_crystal_volley"] if block_mode == Block.AMETHYST else []
+
+func controlled_crystal_volley() -> void:
+	if not mc_live() or not is_player_controlled() or dizziness or not Can_Attack: return
+	if block_mode == Block.AMETHYST and not crystals_out and _crystal_timer <= 0.0:
+		_release_crystals()
 
 func Skill() -> void:
 	Using_Skill = false
@@ -210,6 +225,13 @@ func set_block(next:int) -> void:
 		_break_body_crystals(global_position)
 		_emit_sound(&"amethyst_break")
 	if block_mode != Block.EMPTY: _emit_sound(&"eject")
+	if block_mode == Block.IRON:
+		configure_external_directional_gravity_locomotion(_iron_previous_gravity_mode)
+		clear_external_directional_gravity_velocity()
+	if next == Block.IRON:
+		_iron_previous_gravity_mode = is_external_directional_gravity_locomotion_enabled()
+		configure_external_directional_gravity_locomotion(true)
+		clear_external_directional_gravity_velocity()
 	block_mode = next
 	if next == Block.ICE:
 		_ice_reference_speed = maxf(Speed*CHARACTER_BASE_MOVE_SPEED_MULTIPLIER,1.0)
@@ -222,6 +244,7 @@ func set_block(next:int) -> void:
 	_next_hit_at.clear()
 	_top_hit_at.clear()
 	_slide_velocity = Vector2.ZERO
+	_ice_bounce_hold = 0.0
 	_scan_left = 0.0
 	if next != Block.EMPTY: _emit_sound(&"absorb")
 	if next == Block.TNT: _emit_sound(&"fuse")
@@ -253,10 +276,8 @@ func tick_physics(state:State,delta:float) -> void:
 				if crystals_out:
 					crystals_out = false
 					_crystal_timer = CRYSTAL_VOLLEY_TIME
-				else:
-					_fire_all_crystals()
-					crystals_out = true
-					_crystal_timer = CRYSTAL_REGROW_TIME
+				elif not is_player_controlled():
+					_release_crystals()
 		if block_mode != Block.EMPTY:
 			if _landing_wait > 0.0:
 				_landing_wait -= delta
@@ -301,17 +322,57 @@ func move(speed:float,delta:float) -> void:
 	if block_mode == Block.ICE:
 		var player:bool = is_player_controlled()
 		var intended:Vector2 = player_control_direction if player else direction
-		_slide_velocity = _slide_velocity.move_toward(intended.normalized()*speed*(1.42 if _surge_left > 0.0 else 1.0),210.0*delta)
+		_ice_bounce_hold = maxf(_ice_bounce_hold-delta,0.0)
+		var steering:Vector2 = _slide_velocity.normalized() if _ice_bounce_hold > 0.0 else intended.normalized()
+		_slide_velocity = _slide_velocity.move_toward(steering*speed*(1.42 if _surge_left > 0.0 else 1.0),210.0*delta)
 		var heading:Vector2 = _slide_velocity.normalized() if _slide_velocity.length_squared() > 0.01 else Vector2.ZERO
 		if player: player_control_direction = heading
 		else: direction = heading
 		super.move(_slide_velocity.length(),delta)
+		# The base class reflects direction, not our persistent ice momentum.
+		# Reflect EVERY inward contact normal (corners too), then retain the
+		# outgoing momentum instead of restoring the old into-wall heading.
+		var bounced:bool = false
+		for i:int in range(get_slide_collision_count()):
+			var normal:Vector2 = get_slide_collision(i).get_normal().normalized()
+			if _slide_velocity.dot(normal) < -0.01:
+				_slide_velocity = _slide_velocity.bounce(normal)
+				bounced = true
+		if bounced: _ice_bounce_hold = 0.18
 		if player: player_control_direction = intended
-		else: direction = intended
+		else: direction = _slide_velocity.normalized() if bounced else intended
+		return
+	if block_mode == Block.IRON:
+		var player:bool = is_player_controlled()
+		var intended:Vector2 = player_control_direction if player else direction
+		var horizontal:float = clampf(intended.x,-1.0,1.0) if player else signf(intended.x)
+		if not player and is_zero_approx(horizontal): horizontal = 1.0
+		if player: player_control_direction = Vector2(horizontal,0.0)
+		else: direction = Vector2(horizontal,0.0)
+		# Shared ball gravity owns v += g*dt, support and side-wall contacts.
+		# W/S cannot generate an upward drive or a phantom horizontal input.
+		super.move(speed*0.58*absf(horizontal),delta)
+		if player: player_control_direction = intended
 		return
 	var multiplier:float = 0.86 if block_mode == Block.MAGMA else 0.90 if block_mode == Block.HONEY else 0.58 if block_mode == Block.IRON else 1.0
 	if _surge_left > 0.0: multiplier *= 1.42
 	super.move(speed*multiplier,delta)
+
+func get_external_directional_gravity() -> Vector2:
+	if block_mode == Block.IRON:
+		return Vector2.DOWN*1200.0 if _slam_time < 0.0 else Vector2.ZERO
+	return super.get_external_directional_gravity()
+
+func stand(delta:float) -> void:
+	if block_mode == Block.IRON and _slam_time >= 0.0:
+		if dizziness:
+			_slam_time = -1.0
+			_restore_slam_collision()
+		else:
+			_step_single_slam(delta)
+			return
+	super.stand(delta) # Gravity still falls while idle/stunned; never hover.
+	if block_mode == Block.IRON: Repel = Vector2.ZERO
 
 func take_damage(damage:float,ignore_block:bool = false) -> void:
 	# Iron's resistance does not overwrite external buffs/debuffs on the shared
@@ -333,7 +394,7 @@ func _pulse_contact() -> void:
 		return
 	if block_mode not in [Block.ICE,Block.MAGMA,Block.AMETHYST]: return
 	# While inserting, the spikes are still buried; the plain shell is harmless.
-	if block_mode == Block.AMETHYST and is_instance_valid(_native_model) and _native_model._swap_left > 0.0: return
+	if block_mode == Block.AMETHYST and is_instance_valid(_native_model) and not _native_model.crystals_ready(): return
 	var radius:float = get_crowd_separation_radius_world()
 	var crystal_points:Array[Vector2] = []
 	if block_mode == Block.AMETHYST and not crystals_out: crystal_points = _crystal_tip_points()
@@ -386,12 +447,13 @@ func _pull_touching_enemies(delta:float) -> void:
 
 func _start_single_slam() -> void:
 	if _slam_time >= 0.0: return
-	var target:ball = mc_nearest()
+	var target:ball = null if is_player_controlled() else mc_nearest()
 	_slam_target_ref = weakref(target) if is_instance_valid(target) else null
 	_slam_start = global_position
-	_slam_end = target.global_position if is_instance_valid(target) else global_position+_last_move_direction*30.0
+	_slam_end = player_control_aim_position if is_player_controlled() and has_player_control_aim() else target.global_position if is_instance_valid(target) else global_position+_last_move_direction*30.0
 	_slam_end = _slam_end.clamp(mc_arena_rect().position+Vector2.ONE*12.0,mc_arena_rect().end-Vector2.ONE*12.0)
 	_slam_time = 0.0
+	clear_external_directional_gravity_velocity()
 	_slam_hits.clear()
 	# Like the anvil's arc, fly past character bodies while still colliding
 	# with map terrain; the downward strip alone resolves character damage.
@@ -460,21 +522,34 @@ func _spawn_ice_tile(rect:Rect2) -> void:
 	tile.setup(self,rect)
 	_ice_cells[key] = tile
 
+func _release_crystals() -> void:
+	_fire_all_crystals()
+	crystals_out = true
+	_crystal_timer = CRYSTAL_REGROW_TIME
+
 func _fire_all_crystals() -> void:
-	for point:Vector2 in _crystal_tip_points():
+	var tips:Array[Vector2] = _crystal_tip_points()
+	for i:int in range(tips.size()):
+		var point:Vector2 = tips[i]
 		# Each shard follows the individual spike's projected tip direction.
 		# Nothing here aims at an opponent or invents a cardinal volley.
 		var axis:Vector2 = (point-global_position).normalized()
-		if multiplayer.has_multiplayer_peer(): _spawn_crystal_shard.rpc(point,axis)
-		_spawn_crystal_shard(point,axis)
+		var appearance:Dictionary = _native_model.crystal_render_state(i)
+		var camera:Camera3D = _model_viewport.get_node("ModelCamera") as Camera3D
+		appearance["camera_transform"] = camera.global_transform
+		appearance["camera_size"] = camera.size
+		appearance["viewport_size"] = _model_viewport.size
+		appearance["canvas_transform"] = image.global_transform
+		if multiplayer.has_multiplayer_peer(): _spawn_crystal_shard.rpc(point,axis,appearance)
+		_spawn_crystal_shard(point,axis,appearance)
 	_emit_sound(&"amethyst_break")
 
 @rpc("authority","call_remote","reliable")
-func _spawn_crystal_shard(point:Vector2,axis:Vector2) -> void:
+func _spawn_crystal_shard(point:Vector2,axis:Vector2,appearance:Dictionary = {}) -> void:
 	if get_tree().current_scene == null: return
 	var shard:Node2D = SHARD.new()
 	get_tree().current_scene.add_child(shard,true)
-	shard.setup(self,point,axis)
+	shard.setup(self,point,axis,appearance)
 
 @rpc("authority","call_remote","reliable")
 func _break_body_crystals(point:Vector2) -> void:
@@ -533,6 +608,7 @@ func _mode_damage() -> float:
 
 func _detonate() -> void:
 	if not mc_live() or block_mode != Block.TNT: return
+	_clear_charge_circle()
 	var point:Vector2 = global_position
 	# Minecraft 26.2 explosion textures/sounds; the PvP adaptation leaves the
 	# cube alive so it can continue cycling its inner block after its finisher.
@@ -609,7 +685,7 @@ func get_ai_attack_threats(_receiver:ball) -> Array:
 		return [{"shape":"rect","position":global_position+Vector2(0,radius-0.5),
 			"half_extents":Vector2(radius,2.5),"damage":attack_damage(2.3),
 			"danger_duration":0.1,"kind":"sulfur_iron_bottom","source":self}]
-	if block_mode == Block.AMETHYST and not crystals_out and (not is_instance_valid(_native_model) or _native_model._swap_left <= 0.0):
+	if block_mode == Block.AMETHYST and not crystals_out and (not is_instance_valid(_native_model) or _native_model.crystals_ready()):
 		var threats:Array = []
 		for tip:Vector2 in _crystal_tip_points():
 			threats.append({"shape":"circle","position":tip,
@@ -634,6 +710,7 @@ func get_debug_attack_regions() -> Array:
 func Die() -> void:
 	if _sulfur_died: return
 	_sulfur_died = true
+	_clear_charge_circle()
 	_restore_slam_collision()
 	super.Die()
 	# mc_mob_base.Die() intentionally supplies the vanilla creature death,
