@@ -1946,6 +1946,9 @@ func _update_large_battle_crowd_separation(units:Array,delta:float) -> void:
 						var radius_j:float = _battle_spatial_radii[j]
 						if unit_j == null or radius_j <= 0.0:
 							continue
+						# Temporary pair leases must bypass soft separation as well as physics.
+						if preload("res://classes/body_collision_exclusions.gd").are_excluded(unit_i,unit_j):
+							continue
 						# Same-cohort bats already exclude body collisions; soft separation must agree.
 						# get_meta(key, null) still logs an error for missing keys in Godot.
 						# Most fighters are not bats, so guard both lookups in this hot pair loop.

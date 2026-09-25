@@ -13,6 +13,7 @@ const CRACKS:Array[Texture2D] = [
 	preload("res://Images/characters/我的世界/snow_golem/ice_crack_7.png"),
 	preload("res://Images/characters/我的世界/snow_golem/ice_crack_8.png"),
 	preload("res://Images/characters/我的世界/snow_golem/ice_crack_9.png")]
+const GROUND_Z:int = -4 # Ground overlay: above map floor (-5), below bodies/obstacles/projectiles.
 const LIFETIME:float = 4.0
 const CRACK_START:float = 2.0
 const BOOST_REFRESH:float = 0.18
@@ -64,7 +65,7 @@ func setup(owner:ball,rect:Rect2) -> void:
 	_crack.hide()
 	add_child(_crack)
 	z_as_relative = false
-	z_index = 4
+	z_index = GROUND_Z
 	add_to_group("BattleTransient")
 	add_to_group("MCSulfurIceTrail")
 
@@ -103,5 +104,5 @@ func _physics_process(delta:float) -> void:
 func _break_tile() -> void:
 	if is_queued_for_deletion(): return
 	if is_inside_tree():
-		FRAGMENTS.spawn_texture(self,ICE,global_position,cell_rect.size.x/maxf(ICE.get_width(),1.0),{"max_pieces":9,"scatter_radius":cell_rect.size.x})
+		FRAGMENTS.spawn_texture(self,ICE,global_position,cell_rect.size.x/maxf(ICE.get_width(),1.0),{"max_pieces":9,"scatter_radius":cell_rect.size.x,"z_layer":GROUND_Z})
 	queue_free()

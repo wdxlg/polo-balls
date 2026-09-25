@@ -22,11 +22,8 @@ const BLOCK_TEXTURES:Array[Texture2D] = [
 const OUTER_SIZE:float = 2.0
 const INNER_SIZE:float = 2.0*16.0/18.0
 const BLOCK_SIZE:float = 2.0*16.0/18.0 # Vanilla: full 16px block within the 18px outer model.
-# Each cluster starts *inside* the amethyst block and pierces the jelly shell.
-# The tips lean outwards and slightly towards the camera rather than standing
-# upright on four flat cards in front of the creature.
-const CRYSTAL_ROOTS:Array[Vector3] = [Vector3(-0.20,0.45,0.45),Vector3(0.45,-0.12,0.38),Vector3(0.20,-0.45,0.40),Vector3(-0.45,0.10,0.40)]
-const CRYSTAL_TIPS:Array[Vector3] = [Vector3(-0.35,1.75,1.10),Vector3(1.85,0.12,1.20),Vector3(0.50,-1.60,1.35),Vector3(-1.65,-0.25,1.15)]
+# Paired root/tip coordinates come from the authoritative actor, not local RNG.
+var crystal_layout:PackedVector3Array = PackedVector3Array()
 const FACE_NORMALS:Array[Vector3] = [Vector3.FORWARD,Vector3.RIGHT,Vector3.BACK,Vector3.LEFT,Vector3.UP,Vector3.DOWN]
 const FACE_ROTATIONS:Array[Vector3] = [Vector3.ZERO,Vector3(0,PI/2,0),Vector3(0,PI,0),Vector3(0,-PI/2,0),Vector3(-PI/2,0,0),Vector3(PI/2,0,0)]
 # front, right, back, left, top, bottom from Mojang's two UV crosses.
@@ -155,10 +152,22 @@ func set_crystals_active(active:bool) -> void:
 func crystals_ready() -> bool:
 	return _crystals_active and _swap_left <= 0.0 and _crystal_grow_left <= 0.0
 
+func set_crystal_layout(layout:PackedVector3Array) -> void:
+	if crystal_layout == layout: return
+	crystal_layout = layout.duplicate()
+	_crystal_grow_left = 0.24
+	if crystal_layer != null and block_mode == 6: _make_crystals()
+
+func crystal_count() -> int:
+	return crystal_layout.size()/2
+
 func _make_crystals() -> void:
-	for i:int in range(CRYSTAL_TIPS.size()):
-		var root:Vector3 = CRYSTAL_ROOTS[i]
-		var tip:Vector3 = CRYSTAL_TIPS[i]
+	for child:Node in crystal_layer.get_children():
+		crystal_layer.remove_child(child)
+		child.queue_free()
+	for i:int in range(crystal_count()):
+		var root:Vector3 = crystal_layout[i*2]
+		var tip:Vector3 = crystal_layout[i*2+1]
 		var crystal:Node3D = CRYSTAL.new()
 		crystal.name = "PiercingCrystal%d" % i
 		crystal.length = root.distance_to(tip)
@@ -171,5 +180,5 @@ func crystal_render_state(index:int) -> Dictionary:
 	return {"transform":crystal.global_transform,"length":crystal.length,"width":crystal.width}
 
 func crystal_tip_world(index:int) -> Vector3:
-	if crystal_layer == null or index < 0 or index >= CRYSTAL_TIPS.size(): return global_position
-	return crystal_layer.to_global(CRYSTAL_TIPS[index])
+	if crystal_layer == null or index < 0 or index >= crystal_count(): return global_position
+	return crystal_layer.to_global(crystal_layout[index*2+1])

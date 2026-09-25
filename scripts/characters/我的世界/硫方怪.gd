@@ -10,7 +10,9 @@ const BURN = preload("res://scripts/effects/我的世界/mc_shared_burn.gd")
 const SHARD = preload("res://scripts/effects/我的世界/sulfur_amethyst_shard.gd")
 const FRAGMENTS = preload("res://scripts/effects/我的世界/block_fragments.gd")
 const CRYSTAL_TEXTURE:Texture2D = preload("res://Images/characters/我的世界/sulfur_cube/source/amethyst_cluster.png")
-const CRYSTAL_DIRECTIONS:Array[Vector2] = [Vector2.UP,Vector2.RIGHT,Vector2.DOWN,Vector2.LEFT]
+const BODY_PAIRS = preload("res://classes/body_collision_exclusions.gd")
+const CRYSTAL_COUNT_MIN:int = 3
+const CRYSTAL_COUNT_MAX:int = 8
 
 enum Block { EMPTY, ICE, MAGMA, HONEY, IRON, TNT, AMETHYST }
 const SPRITES:Array[Texture2D] = [
@@ -40,6 +42,8 @@ const CRYSTAL_REGROW_TIME:float = 0.8
 	set(value):
 		block_mode = clampi(value,Block.EMPTY,Block.AMETHYST)
 		if is_node_ready():
+			if block_mode != Block.HONEY: _clear_honey_contacts()
+			_crystal_hits.clear()
 			_apply_visual()
 			queue_redraw()
 @export var fuse_left:float = 0.0
@@ -47,14 +51,28 @@ const CRYSTAL_REGROW_TIME:float = 0.8
 	set(value):
 		crystals_out = value
 		if is_instance_valid(_native_model): _native_model.set_crystals_active(block_mode == Block.AMETHYST and not value)
+# Explicit coordinates synchronize the model, contact tips and released projectiles.
+@export var crystal_layout:PackedVector3Array = PackedVector3Array():
+	set(value):
+		if crystal_layout == value: return
+		crystal_layout = value.duplicate()
+		_crystal_hits.clear()
+		if is_instance_valid(_native_model): _native_model.set_crystal_layout(crystal_layout)
+@export var honey_target_paths:PackedStringArray = PackedStringArray():
+	set(value):
+		honey_target_paths = value
+		if is_node_ready(): _sync_honey_collision_pairs()
 @export var first_block_delay:float = 0.65
+var _honey_contacts:Dictionary = {} # relative target path -> WeakRef
+var _crystal_hits:Dictionary = {} # crystal index -> target ID -> WeakRef, once per growth
+
 
 var _clock:float = 0.0
 var _view_clock:float = 0.0
 var _charge_circle:Node2D
 var _ice_bounce_hold:float = 0.0
 var _iron_previous_gravity_mode:bool = false
-const MODEL_CAMERA_SIZE:float = 4.2
+const MODEL_CAMERA_SIZE:float = 5.0 # Random clusters + maximum squish need more edge clearance.
 const MODEL_IMAGE_SCALE:float = 0.8*MODEL_CAMERA_SIZE/3.3
 var _opening:float = 0.0
 var _scan_left:float = 0.0
@@ -105,7 +123,9 @@ func _ready() -> void:
 	super._ready()
 	if self_hitbox != null: self_hitbox.set_deferred("monitoring",false)
 	_create_live_model()
+	if is_multiplayer_authority() and block_mode == Block.AMETHYST and crystal_layout.is_empty(): _roll_crystal_layout()
 	_apply_visual()
+	_sync_honey_collision_pairs()
 	_previous_motion_position = global_position
 	_motion_sample_valid = true
 
@@ -150,6 +170,7 @@ func _apply_visual() -> void:
 	if not image is Sprite2D: return
 	var sprite:Sprite2D = image as Sprite2D
 	if is_instance_valid(_native_model):
+		_native_model.set_crystal_layout(crystal_layout)
 		_native_model.set_block(block_mode)
 		_native_model.set_crystals_active(block_mode == Block.AMETHYST and not crystals_out)
 		sprite.texture = _model_viewport.get_texture()
@@ -158,6 +179,7 @@ func _apply_visual() -> void:
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 
 func _process(delta:float) -> void:
+	_sync_honey_collision_pairs() # Retries late-spawned replicated targets; prunes dead/removed ones.
 	if health <= 0:
 		_clear_charge_circle()
 		return
@@ -232,6 +254,8 @@ func set_block(next:int) -> void:
 		_iron_previous_gravity_mode = is_external_directional_gravity_locomotion_enabled()
 		configure_external_directional_gravity_locomotion(true)
 		clear_external_directional_gravity_velocity()
+	honey_target_paths = PackedStringArray()
+	if next == Block.AMETHYST: _roll_crystal_layout()
 	block_mode = next
 	if next == Block.ICE:
 		_ice_reference_speed = maxf(Speed*CHARACTER_BASE_MOVE_SPEED_MULTIPLIER,1.0)
@@ -274,6 +298,7 @@ func tick_physics(state:State,delta:float) -> void:
 			_crystal_timer -= delta
 			if _crystal_timer <= 0.0:
 				if crystals_out:
+					_roll_crystal_layout()
 					crystals_out = false
 					_crystal_timer = CRYSTAL_VOLLEY_TIME
 				elif not is_player_controlled():
@@ -389,6 +414,7 @@ func when_collide(speed:float,collision:KinematicCollision2D) -> void:
 		_emit_sound(&"bounce",global_position)
 
 func _pulse_contact() -> void:
+	if not mc_live() or dizziness or not Can_Attack: return
 	if block_mode == Block.IRON:
 		if _slam_time >= 0.0 and _slam_time >= 0.38: _iron_bottom_contacts()
 		return
@@ -405,12 +431,17 @@ func _pulse_contact() -> void:
 		var reach:float = radius+_target_radius(target)
 		var distance:float = global_position.distance_to(target.global_position)
 		if block_mode == Block.AMETHYST:
-			if crystals_out or _clock < float(_next_hit_at.get(id,0.0)): continue
-			for center:Vector2 in crystal_points:
+			if crystals_out: continue
+			for i:int in range(crystal_points.size()):
+				if not mc_enemy(target): break
+				if _crystal_has_hit(i,target): continue
+				var center:Vector2 = crystal_points[i]
 				if center.distance_to(target.global_position) <= CRYSTAL_RADIUS+_target_radius(target):
-					_next_hit_at[id] = _clock+CONTACT_INTERVAL
+					# Mark this crystal before callbacks. Other crystals remain independent;
+					# lingering/re-entering cannot re-hit until a NEW growth is generated.
+					if not _crystal_hits.has(i): _crystal_hits[i] = {}
+					_crystal_hits[i][id] = weakref(target)
 					_damage_with_impact(target,attack_damage(2.0),center)
-					break
 			continue
 		if distance > reach: continue
 		if block_mode == Block.MAGMA:
@@ -433,17 +464,70 @@ func _pulse_contact() -> void:
 func _target_radius(target:ball) -> float:
 	return maxf(target.get_crowd_separation_radius_world(),3.0)
 
-func _pull_touching_enemies(delta:float) -> void:
+func _pull_touching_enemies(_delta:float) -> void:
+	if not mc_live() or block_mode != Block.HONEY: return
+	var touching:PackedStringArray = PackedStringArray()
 	for raw:Variant in get_tree().get_nodes_in_group("Ball"):
 		if not mc_enemy(raw): continue
 		var target:ball = raw as ball
-		var reach:float = get_crowd_separation_radius_world()+_target_radius(target)
+		# Include the physics safe margin so touching bodies can enter adhesion.
+		var reach:float = get_crowd_separation_radius_world()+_target_radius(target)+0.5
 		if global_position.distance_to(target.global_position) > reach: continue
+		touching.append(str(get_path_to(target)))
 		var toward:Vector2 = target.global_position.direction_to(global_position)
-		if toward.is_zero_approx(): continue
-		# A bounded opposing force, not a forced lock/teleport: outward velocity
-		# exceeding it still carries the target out of contact.
+		# Bounded pull, not a forced lock: a fast outward target can still escape.
 		target.Repel += toward*170.0
+	touching.sort()
+	if honey_target_paths != touching: honey_target_paths = touching
+	else: _sync_honey_collision_pairs()
+
+func _sync_honey_collision_pairs() -> void:
+	if not is_inside_tree(): return
+	if _honey_contacts.is_empty() and (honey_target_paths.is_empty() or block_mode != Block.HONEY): return
+	var wanted:Dictionary = {}
+	if block_mode == Block.HONEY and health > 0 and not _sulfur_died:
+		for path:String in honey_target_paths:
+			var target:Node = get_node_or_null(NodePath(path))
+			if mc_enemy(target): wanted[path] = target
+	for path:String in _honey_contacts.keys():
+		var previous:Variant = (_honey_contacts[path] as WeakRef).get_ref()
+		if not wanted.has(path) or previous != wanted[path]:
+			if is_instance_valid(previous): BODY_PAIRS.release(self,previous,self)
+			_honey_contacts.erase(path)
+	for path:String in wanted:
+		if not _honey_contacts.has(path) or not BODY_PAIRS.are_excluded(self,wanted[path]):
+			var target:ball = wanted[path] as ball
+			BODY_PAIRS.acquire(self,target,self)
+			_honey_contacts[path] = weakref(target)
+
+func _clear_honey_contacts() -> void:
+	for ref:WeakRef in _honey_contacts.values():
+		var target:Variant = ref.get_ref()
+		if is_instance_valid(target): BODY_PAIRS.release(self,target,self)
+	_honey_contacts.clear()
+
+func _exit_tree() -> void:
+	_clear_honey_contacts()
+	_clear_charge_circle()
+	super._exit_tree()
+
+func _roll_crystal_layout() -> void:
+	if not is_multiplayer_authority(): return
+	var layout:PackedVector3Array = PackedVector3Array()
+	for i:int in range(_random.randi_range(CRYSTAL_COUNT_MIN,CRYSTAL_COUNT_MAX)):
+		# Independent angles, offsets and lengths: NO cardinal slots or angular
+		# exclusion, so several clusters can grow along the same side/direction.
+		var axis:Vector2 = Vector2.RIGHT.rotated(_random.randf_range(0.0,TAU))
+		var root_xy:Vector2 = axis*_random.randf_range(0.30,0.56)+axis.orthogonal()*_random.randf_range(-0.24,0.24)
+		var tip_xy:Vector2 = axis*_random.randf_range(1.60,1.83)+axis.orthogonal()*_random.randf_range(-0.12,0.12)
+		layout.append(Vector3(root_xy.x,root_xy.y,_random.randf_range(0.30,0.56)))
+		layout.append(Vector3(tip_xy.x,tip_xy.y,_random.randf_range(1.05,1.22)))
+	crystal_layout = layout
+
+func _crystal_has_hit(index:int,target:ball) -> bool:
+	if not is_instance_valid(target) or not _crystal_hits.has(index): return false
+	var ref:WeakRef = _crystal_hits[index].get(target.get_instance_id()) as WeakRef
+	return ref != null and ref.get_ref() == target
 
 func _start_single_slam() -> void:
 	if _slam_time >= 0.0: return
@@ -561,13 +645,10 @@ func _crystal_tip_points() -> Array[Vector2]:
 	var camera:Camera3D = _model_viewport.get_node_or_null("ModelCamera") as Camera3D if is_instance_valid(_model_viewport) else null
 	if is_instance_valid(camera) and is_instance_valid(_native_model) and image is Sprite2D:
 		var screen_origin:Vector2 = camera.unproject_position(_native_model.global_position)
-		for i:int in range(CRYSTAL_DIRECTIONS.size()):
+		for i:int in range(_native_model.crystal_count()):
 			var screen_tip:Vector2 = camera.unproject_position(_native_model.crystal_tip_world(i))
 			points.append((image as Sprite2D).to_global(screen_tip-screen_origin))
 		return points
-	# Only used by off-tree previews, never by a rendered combat entity.
-	for axis:Vector2 in CRYSTAL_DIRECTIONS:
-		points.append(global_position+axis*get_crowd_separation_radius_world())
 	return points
 
 static func sulfur_impact_event(actual:float) -> StringName:
@@ -687,7 +768,10 @@ func get_ai_attack_threats(_receiver:ball) -> Array:
 			"danger_duration":0.1,"kind":"sulfur_iron_bottom","source":self}]
 	if block_mode == Block.AMETHYST and not crystals_out and (not is_instance_valid(_native_model) or _native_model.crystals_ready()):
 		var threats:Array = []
-		for tip:Vector2 in _crystal_tip_points():
+		var tips:Array[Vector2] = _crystal_tip_points()
+		for i:int in range(tips.size()):
+			if _crystal_has_hit(i,_receiver): continue
+			var tip:Vector2 = tips[i]
 			threats.append({"shape":"circle","position":tip,
 				"radius":CRYSTAL_RADIUS,"damage":attack_damage(2.0),
 				"danger_duration":CONTACT_INTERVAL,"kind":"sulfur_amethyst_crystal","source":self})
@@ -710,6 +794,8 @@ func get_debug_attack_regions() -> Array:
 func Die() -> void:
 	if _sulfur_died: return
 	_sulfur_died = true
+	honey_target_paths = PackedStringArray()
+	_clear_honey_contacts()
 	_clear_charge_circle()
 	_restore_slam_collision()
 	super.Die()

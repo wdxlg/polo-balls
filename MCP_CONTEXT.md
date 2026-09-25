@@ -99,3 +99,4 @@
 - 循环昼夜：默认 **12:00**、**1 游戏秒=1分钟**，24分钟游戏时间一昼夜；太阳从右上顺时针转一圈，16–20点渐暗、05–08点渐亮，六主题统一变暗且菜单/时钟不压暗。沿用0.4格无缝低墙与短影，只转灯不重建网格；暂停/倍速跟随物理delta，重置回中午，切背景保持时间。实现、GPU/共享录制视口验证及尚未验收的联机/编码边界见 `tests/DAY_NIGHT_CYCLE.md`、`tests/test_day_night_cycle.gd`、`tests/test_day_night_visual.gd`。
 - 唤魔者不死图腾显示期间持续从图腾周围产生原版金绿粒子；出生后独立下落至脚下地面并淡出，图腾消失后保留最后一批落地尾迹。实现与验证见 `tests/TOTEM_CONTINUOUS_PARTICLES.md`。 图腾动作参考原版40 tick连续缩放/翻转曲线，战场适配为2秒；施法结束/眩晕及1.6秒庆祝结束须收手，不能用永久胜利标记维持举手。最新验证见 `tests/EVOKER_SMOOTH_AND_RESET.md`。
 - Minecraft 范围外圈和蓄力填充盘统一复用 `pixel_arc.gd::draw_ring/draw_disk`，持续预警走 `mc_combat_abilities.gd::charge_circle`，按真实技能计时更新，不另写平滑圆或复制像素算法。重锤与硫方怪 TNT 已共用；硫方怪铁块重力/水平移动、原版晶簇本体与射出同模型、冰墙反弹及手控/威胁回归见 `tests/SULFUR_CUBE_POLISH_20260926.md`。
+- 硫方怪蜂蜜仅与被黏住者成对免物理碰撞（保留其他人物/地形及受击），并与大规模软分离一致；临时成对排除复用 `classes/body_collision_exclusions.gd` 租约。冰径在地面 Z=-4；紫水晶权威随机 3–8 根及位置，允许同向多根，每根对每名敌人每轮生长独立命中一次，布局/再生/齐射同步。追补和回退范围见 `tests/SULFUR_CUBE_CONTACTS_20260926.md`。

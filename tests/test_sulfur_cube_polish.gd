@@ -165,20 +165,21 @@ func run() -> void:
 	cube._native_model.animate(0.0,0.3,true,0.0)
 	var body_model:Node3D = cube._native_model
 	var tips:Array[Vector2] = cube._crystal_tip_points()
+	var crystal_count:int = tips.size()
 	var analyzer:Node2D = load("res://scripts/training/combat_threat_analyzer.gd").new()
 	world.add_child(analyzer)
 	analyzer.set_physics_process(false)
 	game.Game_Settings.Training_Debug_Mode = true
 	analyzer._physics_process(0.1)
-	check(analyzer.visible and threat_count(analyzer,"sulfur_amethyst_crystal") == 4,"settings threat display discovers all four live crystal-tip regions without an RL receiver")
+	check(analyzer.visible and threat_count(analyzer,"sulfur_amethyst_crystal") == crystal_count,"settings threat display discovers all generated live crystal-tip regions without an RL receiver")
 	cube._fire_all_crystals()
 	var shards:Array[Node] = []
 	for node:Node in get_nodes_in_group("AI_Hazard"):
 		if node.get_script() == cube.SHARD:
 			node.set_physics_process(false)
 			shards.append(node)
-	check(shards.size() == 4,"four original native crystal models detach as four projectiles")
-	var match_pose:bool = shards.size() == 4
+	check(shards.size() == crystal_count,"all original native crystal models detach as individual projectiles")
+	var match_pose:bool = shards.size() == crystal_count
 	for i:int in range(shards.size()):
 		var attached:Node3D = body_model.crystal_layer.get_child(i)
 		var shot:Node2D = shards[i] as Node2D
@@ -190,7 +191,7 @@ func run() -> void:
 	check(match_pose,"body and projectile share mesh, native texture, full squish pose, scale, camera and launch position")
 	cube.crystals_out = true
 	analyzer._physics_process(0.1)
-	check(threat_count(analyzer,"sulfur_amethyst_crystal") == 0 and threat_count(analyzer,"sulfur_amethyst_shard") == 4,"after firing, threat display removes attached tips and follows all four real projectiles")
+	check(threat_count(analyzer,"sulfur_amethyst_crystal") == 0 and threat_count(analyzer,"sulfur_amethyst_shard") == crystal_count,"after firing, threat display removes attached tips and follows all generated real projectiles")
 	cube.crystals_out = false
 	check(not body_model.crystals_ready() and cube.get_ai_attack_threats(null).is_empty(),"regrowing crystals remain harmless while buried inside the body")
 	body_model.animate(0.0,0.3,true,0.0)
@@ -203,7 +204,7 @@ func run() -> void:
 	check(cube._surge_left > 0.0 and not cube.crystals_out,"manual left action preserves the existing amethyst surge")
 	check(cube.player_control_action_ids() == [&"Attack",&"Skill",&"controlled_crystal_volley"],"amethyst keeps surge/change/volley in left/right/middle order")
 	cube.player_control_action(2)
-	check(cube.crystals_out,"manual middle action releases the existing four-crystal attack")
+	check(cube.crystals_out,"manual middle action releases the existing variable-count crystal attack")
 	# Remove the second volley before rendering, retain the first frozen sample.
 	for node:Node in get_nodes_in_group("AI_Hazard"):
 		if node.get_script() == cube.SHARD and not shards.has(node): node.queue_free()
@@ -211,7 +212,7 @@ func run() -> void:
 	cube.set_process(false)
 	body_model.animate(0.0,0.3,true,0.0)
 	# Keep source pose exactly equal to the frozen launch snapshot for pixel parity.
-	for i:int in range(4): body_model.crystal_layer.get_child(i).global_transform = shards[i].crystal.global_transform
+	for i:int in range(crystal_count): body_model.crystal_layer.get_child(i).global_transform = shards[i].crystal.global_transform
 	if DisplayServer.get_name() != "headless":
 		RenderingServer.force_draw(false)
 		var body_image:Image = cube._model_viewport.get_texture().get_image()
@@ -222,7 +223,7 @@ func run() -> void:
 		body_model.outer_shell.hide()
 		body_model.inner_block.hide()
 		body_model.inner_shell.hide()
-		for i:int in range(1,4): body_model.crystal_layer.get_child(i).hide()
+		for i:int in range(1,crystal_count): body_model.crystal_layer.get_child(i).hide()
 		await process_frame
 		RenderingServer.force_draw(false)
 		var attached_image:Image = cube._model_viewport.get_texture().get_image()

@@ -118,19 +118,20 @@ func run() -> void:
 	cube._pulse_contact()
 	check(enemy.health == waiting_hp and cube.get_ai_attack_threats(enemy).is_empty(),"buried crystals cannot damage before the interior block grows through the shell")
 	cube._native_model.animate(0.0,0.3,true,0.0)
-	check(cube._native_model.crystal_layer.get_child_count() == 4 and cube.get_ai_attack_threats(enemy).size() == 4,"original-texture live 3D crystals have four separate hit regions")
+	var crystal_count:int = cube.crystal_layout.size()/2
+	check(cube._native_model.crystal_layer.get_child_count() == crystal_count and cube.get_ai_attack_threats(enemy).size() == crystal_count,"original-texture live 3D crystals have independent separate hit regions")
 	var roots_inside:bool = true
-	for i:int in range(4):
-		var base:Vector3 = cube._native_model.CRYSTAL_ROOTS[i]
-		var tip:Vector3 = cube._native_model.CRYSTAL_TIPS[i]
+	for i:int in range(crystal_count):
+		var base:Vector3 = cube.crystal_layout[i*2]
+		var tip:Vector3 = cube.crystal_layout[i*2+1]
 		roots_inside = roots_inside and maxf(maxf(absf(base.x),absf(base.y)),absf(base.z)) < cube._native_model.BLOCK_SIZE*0.5 and maxf(absf(tip.x),absf(tip.y)) > 1.0 and tip.z > 1.0
 		roots_inside = roots_inside and cube._native_model.crystal_layer.get_child(i).get_child_count() == 2 and cube._native_model.crystal_layer.get_child(i).get_script() == cube._native_model.CRYSTAL
-	check(roots_inside,"four native crossed 3D crystal roots begin inside the amethyst block and their slanted tips pierce the shell")
+	check(roots_inside,"random-count native crossed 3D crystal roots begin inside the amethyst block and their slanted tips pierce the shell")
 	var tips:Array[Vector2] = cube._crystal_tip_points()
 	var aligned:bool = true
 	var threats:Array = cube.get_ai_attack_threats(enemy)
-	for i:int in range(4): aligned = aligned and tips[i].distance_to(threats[i].position) < 0.5
-	check(aligned,"all four contact warnings coincide with the projected actual crystal tips")
+	for i:int in range(crystal_count): aligned = aligned and tips[i].distance_to(threats[i].position) < 0.5
+	check(aligned,"all generated contact warnings coincide with the projected actual crystal tips")
 	var old_shape:Shape2D = enemy.collision_shape_2d.shape
 	var tiny_shape := CircleShape2D.new()
 	tiny_shape.radius = 2.0
@@ -172,7 +173,7 @@ func run() -> void:
 	# tips at the exact volley frame, not from the earlier contact assertion.
 	tips = cube._crystal_tip_points()
 	cube._fire_all_crystals()
-	check(get_nodes_in_group("AI_Hazard").size() >= 4,"all four amethyst shards fire along their current directions")
+	check(get_nodes_in_group("AI_Hazard").size() >= crystal_count,"all generated amethyst shards fire along their current directions")
 	var shards_match:bool = true
 	for tip:Vector2 in tips:
 		var found:bool = false

@@ -21,6 +21,12 @@ properties/2/replication_mode = 2
 properties/3/path = NodePath(".:_slam_time")
 properties/3/spawn = true
 properties/3/replication_mode = 1
+properties/4/path = NodePath(".:crystal_layout")
+properties/4/spawn = true
+properties/4/replication_mode = 2
+properties/5/path = NodePath(".:honey_target_paths")
+properties/5/spawn = true
+properties/5/replication_mode = 2
 
 [node name="硫方怪" instance=ExtResource("1_base")]
 script = ExtResource("2_script")

@@ -122,16 +122,33 @@ func run() -> void:
 	host_unit._slam_time = 0.5
 	check(await until(func(): return guest_unit._slam_time >= 0.38 and guest_unit.get_ai_attack_threats(null).size() == 1,2.0),"guest renders only the actual iron underside threat during descent")
 	host_unit.set_block(CUBE.Block.AMETHYST)
+	var crystal_count:int = host_unit.crystal_layout.size()/2
 	var crystals_visible:bool = await until(func(): return guest_unit.block_mode == CUBE.Block.AMETHYST and guest_unit._native_model.crystal_layer.visible,2.0)
 	if not crystals_visible: print("CRYSTAL_NET_STATE host=",host_unit.block_mode," guest=",guest_unit.block_mode," model=",guest_unit._native_model.block_mode," visible=",guest_unit._native_model.crystal_layer.visible," out=",guest_unit.crystals_out)
+	check(guest_unit.crystal_layout == host_unit.crystal_layout,"authority replicates every random root and tip exactly")
+	var guest_layout:PackedVector3Array = guest_unit.crystal_layout.duplicate()
+	guest_unit._roll_crystal_layout()
+	check(guest_unit.crystal_layout == guest_layout,"guest cannot reroll its own crystal layout")
 	check(crystals_visible,"guest displays independently rendered original-texture 3D crystals")
-	var guest_tips_ready:bool = await until(func(): return guest_unit._native_model._swap_left <= 0.0 and guest_unit.get_ai_attack_threats(null).size() == 4,2.0)
+	var guest_tips_ready:bool = await until(func(): return guest_unit._native_model._swap_left <= 0.0 and guest_unit.get_ai_attack_threats(null).size() == crystal_count,2.0)
 	var guest_tips_aligned:bool = guest_tips_ready
 	if guest_tips_ready:
 		var guest_tips:Array[Vector2] = guest_unit._crystal_tip_points()
 		var guest_threats:Array = guest_unit.get_ai_attack_threats(null)
-		for i:int in range(4): guest_tips_aligned = guest_tips_aligned and guest_tips[i].distance_to(guest_threats[i].position) < 0.5
+		for i:int in range(crystal_count): guest_tips_aligned = guest_tips_aligned and guest_tips[i].distance_to(guest_threats[i].position) < 0.5
 	check(guest_tips_aligned,"guest tip-only danger regions follow its own 3D protrusions, including after block insertion")
+	var late_host:Node2D = load(SCENE_PATH).instantiate()
+	late_host.name = "AlreadyGrownCube"
+	late_host.Team = "Team0"
+	late_host.position = center+Vector2(100,0)
+	late_host.block_mode = CUBE.Block.AMETHYST
+	late_host.crystal_layout = host_unit.crystal_layout.duplicate()
+	host_root.add_child(late_host)
+	late_host.state_machine.set_physics_process(false)
+	late_host.set_physics_process(false)
+	check(await until(func(): return guest_root.has_node("AlreadyGrownCube") and guest_root.get_node("AlreadyGrownCube").crystal_layout == late_host.crystal_layout,2.0),"spawn properties carry an already-generated random layout, not guest-local randomness")
+	late_host.queue_free()
+	check(await until(func(): return not guest_root.has_node("AlreadyGrownCube"),2.0),"dynamic-layout spawn and despawn leave no extra replica")
 	host_unit._fire_all_crystals()
 	var frozen_shards:Array[Node] = []
 	var volley_replicated:bool = await until(func():
@@ -139,20 +156,46 @@ func run() -> void:
 			if node.get_script() == host_unit.SHARD:
 				node.set_physics_process(false)
 				if not frozen_shards.has(node): frozen_shards.append(node)
-		return frozen_shards.size() == 8,2.0)
-	check(volley_replicated,"amethyst RPC creates four shared-model projectiles on each independent ENet peer")
+		return frozen_shards.size() == crystal_count*2,2.0)
+	check(volley_replicated,"amethyst RPC creates every generated shared-model projectiles on each independent ENet peer")
 	var host_shapes:Array[Transform3D] = []
 	var guest_shapes:Array[Transform3D] = []
 	for shard:Node in frozen_shards:
 		if shard.source_ref.get_ref() == host_unit: host_shapes.append(shard.crystal.global_transform)
 		elif shard.source_ref.get_ref() == guest_unit: guest_shapes.append(shard.crystal.global_transform)
-	var same_shapes:bool = host_shapes.size() == 4 and guest_shapes.size() == 4
+	var same_shapes:bool = host_shapes.size() == crystal_count and guest_shapes.size() == crystal_count
 	if same_shapes:
-		for i:int in range(4): same_shapes = same_shapes and host_shapes[i].is_equal_approx(guest_shapes[i])
+		for i:int in range(crystal_count): same_shapes = same_shapes and host_shapes[i].is_equal_approx(guest_shapes[i])
 	check(same_shapes,"guest shard keeps the authoritative launch-frame crystal pose, not a different item icon")
 	for shard:Node in frozen_shards: shard.queue_free()
 	host_unit.crystals_out = true
 	check(await until(func(): return guest_unit.crystals_out and not guest_unit._native_model.crystal_layer.visible,2.0),"amethyst volley removes guest crystal hit regions and 3D geometry")
+	var previous_layout:PackedVector3Array = host_unit.crystal_layout.duplicate()
+	host_unit._crystal_timer = 0.01
+	host_unit.tick_physics(0,0.05)
+	check(host_unit.crystal_layout != previous_layout,"automatic regrowth rolls a fresh random layout")
+	check(await until(func(): return guest_unit.crystal_layout == host_unit.crystal_layout and not guest_unit.crystals_out,2.0),"regrowth replicates new random quantity and positions")
+	var host_victim:Node2D = load("res://scenes/ball.tscn").instantiate()
+	host_victim.name = "HoneyVictim"
+	host_victim.Team = "Team1"
+	host_root.add_child(host_victim)
+	host_victim.state_machine.set_physics_process(false)
+	host_victim.set_physics_process(false)
+	var guest_victim:Node2D = load("res://scenes/ball.tscn").instantiate()
+	guest_victim.name = "HoneyVictim"
+	guest_victim.Team = "Team1"
+	guest_root.add_child(guest_victim)
+	guest_victim.state_machine.set_physics_process(false)
+	guest_victim.set_physics_process(false)
+	host_victim.global_position = host_unit.global_position+Vector2(5,0)
+	host_unit.set_block(CUBE.Block.HONEY)
+	host_unit._pull_touching_enemies(0.1)
+	check(await until(func(): return guest_unit.get_collision_exceptions().has(guest_victim) and guest_victim.get_collision_exceptions().has(guest_unit),2.0),"honey pair-only collision exclusions replicate to the matching guest victim")
+	host_victim.global_position += Vector2(200,0)
+	host_unit._pull_touching_enemies(0.1)
+	check(await until(func(): return not guest_unit.get_collision_exceptions().has(guest_victim),2.0),"honey escape restores guest pair collision")
+	host_victim.queue_free()
+	guest_victim.queue_free()
 	host_unit.set_block(CUBE.Block.TNT)
 	var primed:bool = await until(func(): return guest_unit.block_mode == CUBE.Block.TNT and absf(guest_unit.fuse_left-CUBE.TNT_FUSE_SECONDS) < 0.12)
 	check(primed and guest_unit._native_model.block_mode == CUBE.Block.TNT,"network replicates the guest's internal 3D TNT block and fuse seconds")
