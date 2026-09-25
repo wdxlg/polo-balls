@@ -2,6 +2,7 @@ extends Node2D
 ## Original slimeball texture chips; purely visual, no damage/slow/collision.
 const TEX=preload("res://Images/characters/我的世界/new5/slimeball.png")
 const CONTAINER=preload("res://scripts/effects/我的世界/mc_explosion.gd")
+const LANDING_CHIP_COUNT:int=40
 var landing:bool=false
 var size_factor:float=1.0
 var reach:float=43.0
@@ -44,9 +45,12 @@ func _ready() -> void:
 		ring.width=maxf(1.0,1.8*size_factor)
 		ring.default_color=Color(0.32,0.95,0.18,0.72)
 		add_child(ring)
-	var count:int=maxi(3,roundi((16 if landing else 5)*size_factor))
+	# Landing (and the shared death burst) needs a full splash; keep takeoff sparse.
+	var count:int=maxi(3,roundi((LANDING_CHIP_COUNT if landing else 5)*size_factor))
+	var angle_step:float=TAU/float(count)
 	for i:int in range(count):
-		var angle:float=(float(i)/count*TAU+_rng.randf_range(-0.12,0.12)) if landing else _rng.randf_range(0,TAU)
+		# Scale jitter with spacing so denser chips do not bunch into random gaps.
+		var angle:float=(float(i)*angle_step+_rng.randf_range(-angle_step*0.30,angle_step*0.30)) if landing else _rng.randf_range(0,TAU)
 		var radial:Vector2=Vector2.RIGHT.rotated(angle)
 		var offset:Vector2=radial*(9.0*size_factor if landing else _rng.randf_range(2,8)*size_factor)
 		var chip:=AtlasTexture.new()

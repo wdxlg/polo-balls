@@ -65,6 +65,24 @@ func run() -> void:
 	slime.position=center
 	world.add_child(slime,true)
 	slime.state_machine.set_physics_process(false)
+	world.set_process(false)
+	world.set_physics_process(false)
+	world.camera_2d.set_process(false)
+	world.camera_2d.set_physics_process(false)
+	slime.set_process(false)
+	slime.emit_jump_fx(true)
+	var landing_fx:Node2D=slime._jump_fx_nodes.back() as Node2D
+	check(landing_fx.particles.size()==40,"ordinary large slime landing has forty chips")
+	var original_slimeball:bool=true
+	for chip:Dictionary in landing_fx.particles:
+		if chip.sprite.texture.atlas!=landing_fx.TEX: original_slimeball=false
+	check(original_slimeball,"every extra landing chip still uses the original slimeball texture")
+	await RenderingServer.frame_post_draw
+	await RenderingServer.frame_post_draw
+	var landing_pixels:Dictionary=await pixels_from_effect(landing_fx)
+	print("SLIME_LANDING_LIVE_GPU_METRIC ",landing_pixels)
+	check(landing_pixels.green>20,"denser ordinary landing burst is visible in the real battlefield")
+	slime.clear_jump_fx()
 	# A direct Die call also represents death; it must emit the same detached FX.
 	slime.Die()
 	var bursts:Array[Node]=[]
@@ -78,10 +96,6 @@ func run() -> void:
 	game.now_stop_state=true
 	# Freeze unrelated camera/children/death pose so the GPU difference on the
 	# actual battlefield comes from the impact FX, not moving green descendants.
-	world.set_process(false)
-	world.set_physics_process(false)
-	world.camera_2d.set_process(false)
-	world.camera_2d.set_physics_process(false)
 	for actor:Node in get_nodes_in_group("Ball"):
 		actor.set_process(false)
 		actor.set_physics_process(false)

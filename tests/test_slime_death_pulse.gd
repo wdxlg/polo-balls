@@ -58,6 +58,20 @@ func run() -> void:
 		family.global_position=center_point+Vector2(0,-slime.pulse_radius(true)-u.radius(family)+2)
 		family.state_machine.set_physics_process(false)
 		await physics_frame
+		var expected_landing:int=[40,27,17][stage]
+		slime.emit_jump_fx(false)
+		var takeoff_fx:Node=slime._jump_fx_nodes.back()
+		check(takeoff_fx.particles.size()==[5,3,3][stage],"takeoff chips stay sparse, stage "+str(stage))
+		slime.clear_jump_fx()
+		slime.emit_jump_fx(true)
+		var ordinary_fx:Node=slime._jump_fx_nodes.back()
+		check(ordinary_fx.particles.size()==expected_landing and ordinary_fx.ring!=null,"ordinary landing has a full ring of chips, stage "+str(stage))
+		var max_gap:float=0.0
+		for index:int in range(expected_landing):
+			var first_angle:float=(ordinary_fx.particles[index].plane as Vector2).angle()
+			var next_angle:float=(ordinary_fx.particles[(index+1)%expected_landing].plane as Vector2).angle()
+			max_gap=maxf(max_gap,fposmod(next_angle-first_angle,TAU))
+		check(max_gap<TAU/float(expected_landing)*1.65,"denser landing chips do not leave a wide empty sector, stage "+str(stage))
 		var outside_before:int=outside.health
 		var friend_before:int=friend.health
 		var family_before:int=family.health
@@ -89,12 +103,13 @@ func run() -> void:
 		check(burst.size()==bursts_before+1,"one detached landing-style FX at lethal health, stage "+str(stage))
 		var fx:Node=burst.back() if not burst.is_empty() else null
 		if fx!=null:
-			check(fx.landing and fx.owner_ref==null and fx.ring!=null and fx.ring.points.size()==72 and fx.particles.size()>=3 and fx.global_position.is_equal_approx(center_point),"original ring and slimeball chips at death ground point, stage "+str(stage))
+			check(fx.landing and fx.owner_ref==null and fx.ring!=null and fx.ring.points.size()==72 and fx.particles.size()==expected_landing and fx.global_position.is_equal_approx(center_point),"death inherits dense landing chips at ground point, stage "+str(stage))
 		var hp_after:int=victim.health
 		slime.Die()
 		slime.Die()
 		check(victim.health==hp_after and death_bursts().size()==bursts_before+1,"Die and repeated Die do not re-hit or duplicate FX, stage "+str(stage))
 		check(slime._jump_fx_nodes.is_empty(),"death clears ordinary owner-bound FX, stage "+str(stage))
+		check(not is_instance_valid(ordinary_fx) or (not ordinary_fx.visible and ordinary_fx.is_queued_for_deletion()),"ordinary landing chips still clear on death, stage "+str(stage))
 		if stage<2:
 			var children:int=0
 			for actor:Node in get_nodes_in_group("Ball"):
