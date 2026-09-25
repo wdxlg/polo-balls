@@ -1,0 +1,8 @@
+{
+  "new_asset": "totem.use.ogg",
+  "source": "Locally installed Minecraft Java asset index 1.21.json and its hashed original object",
+  "original_path": "minecraft/sounds/item/totem/use_totem.ogg",
+  "sha1": "e7f0337931cdb05c4234d2a9bc1f38ead675db26",
+  "event": "item.totem.use",
+  "rights": "Minecraft assets are copyright Mojang Studios/Microsoft. Use is subject to the Minecraft EULA; no general redistribution permission is claimed."
+}

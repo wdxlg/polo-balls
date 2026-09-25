@@ -471,8 +471,16 @@ func current_health_damage_request_amount() -> int:
 			0,
 			Max_health
 		)
+		# One-use death-prevention effects must intercept the lethal write BEFORE
+		# health_changed, on-death potion effects, state transitions and victory.
+		var prevented_lethal_loss:bool = false
+		if old_health > 0 and new_health == 0 and is_inside_tree() and (state_machine == null or state_machine.current_state != State.Die):
+			var spared_health:int = clampi(health_after_lethal_prevention(old_health),0,Max_health)
+			if spared_health > 0:
+				new_health = spared_health
+				prevented_lethal_loss = true
 
-		if new_health == health:
+		if new_health == health and not prevented_lethal_loss:
 			return
 
 		# 死亡状态禁止复活式回血。
@@ -510,6 +518,10 @@ func current_health_damage_request_amount() -> int:
 
 		# 所有扣血路径最终都会经过 health setter。月计理智等角色机制只需覆写
 		# on_actual_health_damage_received()，即可覆盖碰撞、技能、流血和直接扣血。
+		if prevented_lethal_loss:
+			# The character is now alive again; applying timed statuses before this
+			# assignment would be rejected by the shared potion catalog.
+			on_lethal_health_loss_prevented()
 		var actual_health_loss:float = maxf(float(old_health - health), 0.0)
 		if actual_health_loss > 0.0:
 			# 先清空旧归因；真正带 source 的伤害会在伤害结算返回后重新 record。
@@ -632,6 +644,12 @@ func _resolve_zero_health_after_physics() -> void:
 
 
 # 角色可覆写：只在真实生命下降时调用；护盾损失不会触发。
+func health_after_lethal_prevention(_health_before:int) -> int:
+	return 0
+
+func on_lethal_health_loss_prevented() -> void:
+	pass
+
 func on_actual_health_damage_received(_actual_health_damage:float, _health_before:float) -> void:
 	pass
 

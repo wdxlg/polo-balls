@@ -1,0 +1,8 @@
+{
+  "new_asset": "totem_of_undying.png",
+  "source": "Minecraft Java installed client Bbs.jar (local Minecraft instance using asset index 1.21)",
+  "original_path": "assets/minecraft/textures/item/totem_of_undying.png",
+  "sha256": "2ee3ccdd17f0b9acb13bac37b3b9d4db6eac72aa350a2b1ab9cc587e2f02514a",
+  "particles": "Reuses the existing original textures Images/effects/我的世界/通用粒子/glitter_7.png through glitter_0.png; assets/minecraft/particles/totem_of_undying.json in the same client lists these eight textures in that order.",
+  "rights": "Minecraft assets are copyright Mojang Studios/Microsoft. Use is subject to the Minecraft EULA; no general redistribution permission is claimed."
+}

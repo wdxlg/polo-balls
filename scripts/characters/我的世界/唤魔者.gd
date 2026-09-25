@@ -2,6 +2,10 @@ extends "res://scripts/characters/我的世界/mc_mob_base.gd"
 
 const FANG = preload("res://scripts/effects/我的世界/唤魔尖牙.gd")
 const VISUAL = preload("res://Images/characters/我的世界/唤魔者/唤魔者.png")
+const MC_EFFECTS = preload("res://scripts/effects/我的世界/mc_status_effects.gd")
+const TOTEM_FX = preload("res://scripts/effects/我的世界/mc_totem_effect.gd")
+const MC_EXPLOSION = preload("res://scripts/effects/我的世界/mc_explosion.gd")
+const TOTEM_EFFECT_SECONDS:float = 10.0
 @export var fang_interval:float = 2.2
 # 恼鬼不再自然消散，只能被杀死，所以召唤间隔放慢：首次 6 秒、之后每 14 秒补员。
 @export var summon_interval:float = 14.0
@@ -10,8 +14,38 @@ var _fang_wait:float = 0.6
 var _summon_wait:float = 6.0
 var _vex:Array[WeakRef] = []
 var _victory_cheered:bool = false
+var _totem_used:bool = false
+var _totem_visual_played:bool = false
 
 func get_preview_texture() -> Texture2D: return VISUAL
+
+func health_after_lethal_prevention(_health_before:int) -> int:
+	# A totem is consumed only by an actual lethal health hit. Forced map
+	# removal and a second death retain the normal death sound/pose/cleanup.
+	if _totem_used or not is_multiplayer_authority() or bool(get_meta(&"__out_of_bounds_forced_death",false)):
+		return 0
+	_totem_used = true
+	return mini(50,Max_health)
+
+func on_lethal_health_loss_prevented() -> void:
+	# Clear ALL negative Minecraft effects, including layers from other casters;
+	# do not erase existing positive effects. The catalog owns their lifetimes.
+	for kind:String in MC_EFFECTS.all_kinds():
+		if not MC_EFFECTS.positive(kind): MC_EFFECTS.clear(self,kind)
+	MC_EFFECTS.apply_effect(self,"regeneration",2,TOTEM_EFFECT_SECONDS,self)
+	MC_EFFECTS.apply_effect(self,"fire_resistance",1,TOTEM_EFFECT_SECONDS,self)
+	MC_EFFECTS.apply_effect(self,"absorption",2,TOTEM_EFFECT_SECONDS,self)
+	if multiplayer.has_multiplayer_peer(): _show_totem_visual.rpc()
+	_show_totem_visual()
+
+@rpc("authority","call_remote","reliable")
+func _show_totem_visual() -> void:
+	if _totem_visual_played or not is_inside_tree(): return
+	_totem_visual_played = true
+	var fx:Node2D = TOTEM_FX.new()
+	MC_EXPLOSION.runtime_container(self).add_child(fx)
+	fx.call("setup",global_position)
+	MC_AUDIO.play(self,"item.totem.use",global_position,-1.0,true,true)
 
 func tick_physics(state:State,delta:float) -> void:
 	super.tick_physics(state,delta)

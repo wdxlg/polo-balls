@@ -14,7 +14,7 @@ size = Vector2(68, 125)
 [node name="唤魔者" instance=ExtResource("1_base")]
 script = ExtResource("2_script")
 Type_Tags = PackedStringArray("我的世界", "特殊")
-Max_health = 450
+Max_health = 300
 Damage = 32
 Speed = 78.0
 Health_Restore = 0

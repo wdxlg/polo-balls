@@ -179,6 +179,12 @@ func run() -> void:
 		game.now_stop_state = false
 		var health_before:float = u.health
 		u.health = 0
+		if u == c:
+			check(c._totem_used and c.health == 50,"evoker's first lethal hit activates totem instead of dying")
+			# Death-snapshot freeze applies after the totem is spent, not on its rescue hit.
+			before = a.clip_time
+			before_texture = u.image.texture
+			u.health = 0
 		a.advance(0.2)
 		check(a.clip_time==before and u.image.texture==before_texture,"dead unit keeps last frame for death snapshot")
 		u.health = health_before

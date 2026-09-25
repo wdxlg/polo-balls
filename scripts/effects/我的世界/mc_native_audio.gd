@@ -7,6 +7,8 @@ const EVENTS:Dictionary = {
 	"entity.evoker.prepare_summon": [{"stream":preload("res://audio/characters/唤魔者/evoker.prepare_summon_1.ogg"),"volume":1,"pitch":1}],
 	"entity.evoker.hurt": [{"stream":preload("res://audio/characters/唤魔者/evoker.hurt_1.ogg"),"volume":1,"pitch":1},{"stream":preload("res://audio/characters/唤魔者/evoker.hurt_2.ogg"),"volume":1,"pitch":1}],
 	"entity.evoker.death": [{"stream":preload("res://audio/characters/唤魔者/evoker.death_1.ogg"),"volume":1,"pitch":1},{"stream":preload("res://audio/characters/唤魔者/evoker.death_2.ogg"),"volume":1,"pitch":1}],
+	# Local Minecraft client asset index; see audio/characters/唤魔者/SOURCE.json.
+	"item.totem.use": [{"stream":preload("res://audio/characters/唤魔者/totem.use.ogg"),"volume":1,"pitch":1}],
 	"entity.evoker_fangs.attack": [{"stream":preload("res://audio/characters/唤魔者/evoker_fangs.attack_1.ogg"),"volume":1,"pitch":1}],
 	"entity.vex.charge": [{"stream":preload("res://audio/characters/唤魔者/vex.charge_1.ogg"),"volume":1,"pitch":1},{"stream":preload("res://audio/characters/唤魔者/vex.charge_2.ogg"),"volume":1,"pitch":1}],
 	"entity.vex.hurt": [{"stream":preload("res://audio/characters/唤魔者/vex.hurt_1.ogg"),"volume":1,"pitch":1},{"stream":preload("res://audio/characters/唤魔者/vex.hurt_2.ogg"),"volume":1,"pitch":1}],
