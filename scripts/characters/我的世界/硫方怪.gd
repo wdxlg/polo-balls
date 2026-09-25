@@ -332,7 +332,11 @@ func _pulse_contact() -> void:
 		if _slam_time >= 0.0 and _slam_time >= 0.38: _iron_bottom_contacts()
 		return
 	if block_mode not in [Block.ICE,Block.MAGMA,Block.AMETHYST]: return
+	# While inserting, the spikes are still buried; the plain shell is harmless.
+	if block_mode == Block.AMETHYST and is_instance_valid(_native_model) and _native_model._swap_left > 0.0: return
 	var radius:float = get_crowd_separation_radius_world()
+	var crystal_points:Array[Vector2] = []
+	if block_mode == Block.AMETHYST and not crystals_out: crystal_points = _crystal_tip_points()
 	for raw:Variant in get_tree().get_nodes_in_group("Ball"):
 		if not mc_enemy(raw): continue
 		var target:ball = raw as ball
@@ -341,8 +345,7 @@ func _pulse_contact() -> void:
 		var distance:float = global_position.distance_to(target.global_position)
 		if block_mode == Block.AMETHYST:
 			if crystals_out or _clock < float(_next_hit_at.get(id,0.0)): continue
-			for axis:Vector2 in CRYSTAL_DIRECTIONS:
-				var center:Vector2 = global_position+axis*radius
+			for center:Vector2 in crystal_points:
 				if center.distance_to(target.global_position) <= CRYSTAL_RADIUS+_target_radius(target):
 					_next_hit_at[id] = _clock+CONTACT_INTERVAL
 					_damage_with_impact(target,attack_damage(2.0),center)
@@ -458,9 +461,10 @@ func _spawn_ice_tile(rect:Rect2) -> void:
 	_ice_cells[key] = tile
 
 func _fire_all_crystals() -> void:
-	var radius:float = get_crowd_separation_radius_world()
-	for axis:Vector2 in CRYSTAL_DIRECTIONS:
-		var point:Vector2 = global_position+axis*radius
+	for point:Vector2 in _crystal_tip_points():
+		# Each shard follows the individual spike's projected tip direction.
+		# Nothing here aims at an opponent or invents a cardinal volley.
+		var axis:Vector2 = (point-global_position).normalized()
 		if multiplayer.has_multiplayer_peer(): _spawn_crystal_shard.rpc(point,axis)
 		_spawn_crystal_shard(point,axis)
 	_emit_sound(&"amethyst_break")
@@ -474,8 +478,22 @@ func _spawn_crystal_shard(point:Vector2,axis:Vector2) -> void:
 
 @rpc("authority","call_remote","reliable")
 func _break_body_crystals(point:Vector2) -> void:
+	for tip:Vector2 in _crystal_tip_points():
+		FRAGMENTS.spawn_texture(self,CRYSTAL_TEXTURE,point+(tip-global_position),0.45,{"max_pieces":5,"scatter_radius":12.0})
+
+func _crystal_tip_points() -> Array[Vector2]:
+	var points:Array[Vector2] = []
+	var camera:Camera3D = _model_viewport.get_node_or_null("ModelCamera") as Camera3D if is_instance_valid(_model_viewport) else null
+	if is_instance_valid(camera) and is_instance_valid(_native_model) and image is Sprite2D:
+		var screen_origin:Vector2 = camera.unproject_position(_native_model.global_position)
+		for i:int in range(CRYSTAL_DIRECTIONS.size()):
+			var screen_tip:Vector2 = camera.unproject_position(_native_model.crystal_tip_world(i))
+			points.append((image as Sprite2D).to_global(screen_tip-screen_origin))
+		return points
+	# Only used by off-tree previews, never by a rendered combat entity.
 	for axis:Vector2 in CRYSTAL_DIRECTIONS:
-		FRAGMENTS.spawn_texture(self,CRYSTAL_TEXTURE,point+axis*get_crowd_separation_radius_world(),0.45,{"max_pieces":5,"scatter_radius":12.0})
+		points.append(global_position+axis*get_crowd_separation_radius_world())
+	return points
 
 static func sulfur_impact_event(actual:float) -> StringName:
 	return StringName(HIT_GAIN.damage_event(actual))
@@ -591,10 +609,10 @@ func get_ai_attack_threats(_receiver:ball) -> Array:
 		return [{"shape":"rect","position":global_position+Vector2(0,radius-0.5),
 			"half_extents":Vector2(radius,2.5),"damage":attack_damage(2.3),
 			"danger_duration":0.1,"kind":"sulfur_iron_bottom","source":self}]
-	if block_mode == Block.AMETHYST and not crystals_out:
+	if block_mode == Block.AMETHYST and not crystals_out and (not is_instance_valid(_native_model) or _native_model._swap_left <= 0.0):
 		var threats:Array = []
-		for axis:Vector2 in CRYSTAL_DIRECTIONS:
-			threats.append({"shape":"circle","position":global_position+axis*radius,
+		for tip:Vector2 in _crystal_tip_points():
+			threats.append({"shape":"circle","position":tip,
 				"radius":CRYSTAL_RADIUS,"damage":attack_damage(2.0),
 				"danger_duration":CONTACT_INTERVAL,"kind":"sulfur_amethyst_crystal","source":self})
 		return threats

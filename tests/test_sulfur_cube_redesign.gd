@@ -113,7 +113,48 @@ func run() -> void:
 	for i:int in range(9): cube._step_single_slam(0.10)
 	check(cube._slam_time < 0.0 and cube.collision_mask == original_mask,"one slam finishes without combo and restores body collision")
 	cube.set_block(script.Block.AMETHYST)
+	var waiting_hp:float = enemy.health
+	enemy.global_position = center
+	cube._pulse_contact()
+	check(enemy.health == waiting_hp and cube.get_ai_attack_threats(enemy).is_empty(),"buried crystals cannot damage before the interior block grows through the shell")
+	cube._native_model.animate(0.0,0.3,true,0.0)
 	check(cube._native_model.crystal_layer.get_child_count() == 4 and cube.get_ai_attack_threats(enemy).size() == 4,"original-texture live 3D crystals have four separate hit regions")
+	var roots_inside:bool = true
+	for i:int in range(4):
+		var base:Vector3 = cube._native_model.CRYSTAL_ROOTS[i]
+		var tip:Vector3 = cube._native_model.CRYSTAL_TIPS[i]
+		roots_inside = roots_inside and maxf(maxf(absf(base.x),absf(base.y)),absf(base.z)) < cube._native_model.BLOCK_SIZE*0.5 and maxf(absf(tip.x),absf(tip.y)) > 1.0 and tip.z > 1.0
+		roots_inside = roots_inside and cube._native_model.crystal_layer.get_child(i).get_child_count() == 3
+	check(roots_inside,"four solid 3D crystal roots begin inside the amethyst block and their slanted tips pierce the shell")
+	var tips:Array[Vector2] = cube._crystal_tip_points()
+	var aligned:bool = true
+	var threats:Array = cube.get_ai_attack_threats(enemy)
+	for i:int in range(4): aligned = aligned and tips[i].distance_to(threats[i].position) < 0.5
+	check(aligned,"all four contact warnings coincide with the projected actual crystal tips")
+	var old_shape:Shape2D = enemy.collision_shape_2d.shape
+	var tiny_shape := CircleShape2D.new()
+	tiny_shape.radius = 2.0
+	enemy.collision_shape_2d.shape = tiny_shape
+	var bare_position:Vector2 = center
+	var best_clearance:float = 0.0
+	var body_radius:float = cube.get_crowd_separation_radius_world()
+	for x:int in range(-3,4):
+		for y:int in range(-3,4):
+			var candidate:Vector2 = center+Vector2(x,y)*body_radius*0.22
+			if candidate.distance_to(center) > body_radius*0.7: continue
+			var clearance:float = INF
+			for tip:Vector2 in tips: clearance = minf(clearance,candidate.distance_to(tip))
+			if clearance > best_clearance:
+				best_clearance = clearance
+				bare_position = candidate
+	enemy.global_position = bare_position
+	before = enemy.health
+	cube._pulse_contact()
+	var body_safe:bool = enemy.health == before
+	enemy.global_position = tips[0]
+	cube._pulse_contact()
+	check(best_clearance > cube.CRYSTAL_RADIUS+cube._target_radius(enemy) and body_safe and enemy.health < before,"crystal tip damages but the plain body cannot deal crystal damage")
+	enemy.collision_shape_2d.shape = old_shape
 	if DisplayServer.get_name() != "headless":
 		await RenderingServer.frame_post_draw
 		var image:Image = cube._model_viewport.get_texture().get_image()
@@ -127,8 +168,20 @@ func run() -> void:
 					if pixel.b > pixel.r*1.08 and pixel.b > pixel.g*1.06: purple += 1
 		check(opaque > 1500 and purple > 25,"real GPU renders the translucent 3D shell plus visible purple crystals")
 		print("SULFUR_AMETHYST_GPU_PNG_B64=",Marshalls.raw_to_base64(image.save_png_to_buffer()))
+	# Live squish changes the 3D projection across rendered frames. Sample the
+	# tips at the exact volley frame, not from the earlier contact assertion.
+	tips = cube._crystal_tip_points()
 	cube._fire_all_crystals()
 	check(get_nodes_in_group("AI_Hazard").size() >= 4,"all four amethyst shards fire along their current directions")
+	var shards_match:bool = true
+	for tip:Vector2 in tips:
+		var found:bool = false
+		for hazard:Node in get_nodes_in_group("AI_Hazard"):
+			if hazard.get_script() == cube.SHARD and hazard.global_position.distance_to(tip) < 0.5 and hazard.direction.dot((tip-cube.global_position).normalized()) > 0.999:
+				found = true
+				break
+		shards_match = shards_match and found
+	check(shards_match,"each fired shard starts at its own rendered tip and continues in its own outward direction")
 	cube.crystals_out = true
 	check(cube.get_ai_attack_threats(enemy).is_empty() and not cube._native_model.crystal_layer.visible,"fired crystals disappear from body and no longer hit")
 	cube.crystals_out = false

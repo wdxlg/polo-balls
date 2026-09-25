@@ -125,6 +125,13 @@ func run() -> void:
 	var crystals_visible:bool = await until(func(): return guest_unit.block_mode == CUBE.Block.AMETHYST and guest_unit._native_model.crystal_layer.visible,2.0)
 	if not crystals_visible: print("CRYSTAL_NET_STATE host=",host_unit.block_mode," guest=",guest_unit.block_mode," model=",guest_unit._native_model.block_mode," visible=",guest_unit._native_model.crystal_layer.visible," out=",guest_unit.crystals_out)
 	check(crystals_visible,"guest displays independently rendered original-texture 3D crystals")
+	var guest_tips_ready:bool = await until(func(): return guest_unit._native_model._swap_left <= 0.0 and guest_unit.get_ai_attack_threats(null).size() == 4,2.0)
+	var guest_tips_aligned:bool = guest_tips_ready
+	if guest_tips_ready:
+		var guest_tips:Array[Vector2] = guest_unit._crystal_tip_points()
+		var guest_threats:Array = guest_unit.get_ai_attack_threats(null)
+		for i:int in range(4): guest_tips_aligned = guest_tips_aligned and guest_tips[i].distance_to(guest_threats[i].position) < 0.5
+	check(guest_tips_aligned,"guest tip-only danger regions follow its own 3D protrusions, including after block insertion")
 	host_unit.crystals_out = true
 	check(await until(func(): return guest_unit.crystals_out and not guest_unit._native_model.crystal_layer.visible,2.0),"amethyst volley removes guest crystal hit regions and 3D geometry")
 	host_unit.set_block(CUBE.Block.TNT)
