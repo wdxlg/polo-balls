@@ -1,7 +1,7 @@
 extends Node2D
 ## 五种 Minecraft 地图的真实单层方块墙。3D 只负责视觉；原有 2D 碰撞、门洞和
 ## 地图格不变。透视相机逐帧跟随实际 Camera2D 的画布变换，因此平移/缩放时
-## 地面逐点对齐，而离地的一格方块会出现真实的侧面与视差。
+## 地面逐点对齐，而离地的低矮方块会出现真实的侧面与视差。
 
 const THEMES = preload("res://scripts/effects/我的世界/地图背景主题.gd")
 const OAK_SIDE:Texture2D = preload("res://Images/characters/我的世界/sulfur_cube/source/oak_log.png")
@@ -10,11 +10,13 @@ const SAND_BOTTOM:Texture2D = preload("res://Images/effects/我的世界/草方�
 const PURPUR_SIDE:Texture2D = preload("res://Images/effects/我的世界/草方块背景/purpur_pillar_side.png")
 const MAX_VIEW_PIXELS:int = 2560
 const VIEW_FOV:float = 90.0
+const WALL_HEIGHT_CELLS:float = 0.4
+const LIGHT_HORIZONTAL_RATIO:float = 1.5
 
 var wall_edges:Array[Dictionary] = []
 var wall_rects:Array[Rect2] = []
 var cell_size:Vector2 = Vector2(16,16)
-var block_height:float = 16.0
+var block_height:float = 16.0*WALL_HEIGHT_CELLS
 var block_count:int = 0
 var tiled:bool = false
 var wall_texture:Texture2D
@@ -152,8 +154,8 @@ func configure_regions(ground:Array[Rect2],walls:Array[Rect2],edges:Array[Dictio
 		return
 	visible = true
 	cell_size = cell.max(Vector2(0.01,0.01))
-	# 一格高是硬约束：不读取历史上可以把墙抬到 1.8 格的设置。
-	block_height = minf(cell_size.x,cell_size.y)
+	# 低矮墙只改变视觉高度；保留完整格宽和原 2D 碰撞，不受旧高度参数影响。
+	block_height = minf(cell_size.x,cell_size.y)*WALL_HEIGHT_CELLS
 	wall_texture = THEMES.wall_texture(style)
 	wall_side_texture = _side_texture(style)
 	wall_bottom_texture = SAND_BOTTOM if style == "sand" else wall_texture
@@ -276,8 +278,8 @@ func _rebuild_mesh(ground:Array[Rect2]) -> void:
 			var y:float = rect.position.y
 			while y < rect.end.y-0.01:
 				var y2:float = minf(rect.end.y,_next_cell_boundary(y,origin.y,cell_size.y))
-				var gap:float = minf(0.34,minf(x2-x,y2-y)*0.07)
-				_add_block(tops,sides,bottoms,Rect2(x+gap,y+gap,x2-x-gap*2.0,y2-y-gap*2.0),origin)
+				# 相邻方块共享精确边界，不再内缩留缝；门洞仍由 wall_rects 裁切。
+				_add_block(tops,sides,bottoms,Rect2(x,y,x2-x,y2-y),origin)
 				block_count += 1
 				y = y2
 			x = x2
@@ -329,8 +331,8 @@ func _add_block(top:SurfaceTool,side:SurfaceTool,bottom:SurfaceTool,rect:Rect2,o
 func _update_light(source:Vector2) -> void:
 	var direction:Vector2 = source.normalized() if source.length_squared()>0.0001 else Vector2(1,-1).normalized()
 	var target := Vector3(_center.x,0.0,_center.y)
-	# 右上低角度斜阳投向左下：真实接影延伸到墙顶内缘后的战场地面。
-	sun_light.position = target+Vector3(direction.x*3.0,1.0,direction.y*3.0)*600.0
+	# 适当抬高右上光源：配合 0.4 格墙高，真实地影总长约 0.6 格，避免覆盖战场。
+	sun_light.position = target+Vector3(direction.x*LIGHT_HORIZONTAL_RATIO,1.0,direction.y*LIGHT_HORIZONTAL_RATIO)*600.0
 	sun_light.look_at(target)
 	shadow_sun.position = sun_light.position
 	shadow_sun.look_at(target)

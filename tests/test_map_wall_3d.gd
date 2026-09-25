@@ -37,6 +37,18 @@ func _wall_covers(rects:Array[Rect2],point:Vector2) -> bool:
 		if rect.has_point(point): return true
 	return false
 
+func _top_area(mesh:ArrayMesh) -> float:
+	var vertices:PackedVector3Array = mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
+	var area:float = 0.0
+	for i:int in range(0,vertices.size(),3):
+		area += (vertices[i+1]-vertices[i]).cross(vertices[i+2]-vertices[i]).length()*0.5
+	return area
+
+func _footprint_area(rects:Array[Rect2]) -> float:
+	var area:float = 0.0
+	for rect:Rect2 in rects: area += rect.get_area()
+	return area
+
 func _expected_side(style:String) -> Texture2D:
 	match style:
 		"grass": return OAK
@@ -80,13 +92,17 @@ func _run() -> void:
 		var shader:ShaderMaterial = world.map_inside_shadow.surface.material
 		check(is_instance_valid(volume) and volume.visible and volume.wall_rects.size()>0 and volume.block_count>=20,"%s: physical 3D block instances follow the actual wall footprint" % style)
 		check(volume.viewport is SubViewport and volume.viewport.own_world_3d and volume.viewport.transparent_bg and volume.camera.projection==Camera3D.PROJECTION_PERSPECTIVE and volume.viewport.render_target_update_mode==SubViewport.UPDATE_ALWAYS and volume.shadow_viewport.render_target_update_mode==SubViewport.UPDATE_ALWAYS,"%s: live transparent perspective viewport" % style)
-		check(is_equal_approx(volume.block_height,minf(cell.x,cell.y)),"%s: all wall cubes are strictly one map cell high" % style)
+		check(is_equal_approx(volume.block_height,minf(cell.x,cell.y)*0.4),"%s: all walls are low 0.4-cell blocks" % style)
 		var catcher:StandardMaterial3D = volume.ground_node.material_override as StandardMaterial3D
 		check(volume.ground_node.mesh != null and catcher.shadow_to_opacity and volume.ground_node.get_parent()==volume.shadow_viewport and volume.shadow_sun.directional_shadow_max_distance>volume._camera_height,"%s: physical 3D ground receives un-clipped directional shadows" % style)
 		check(volume.sun_light is DirectionalLight3D and volume.sun_light.shadow_enabled and volume.mesh_node is MeshInstance3D,"%s: light casts shadows on true six-faced 3D mesh" % style)
 		var mesh:ArrayMesh = volume.mesh_node.mesh as ArrayMesh
 		check(volume.shadow_mesh.mesh==mesh and volume.shadow_mesh.cast_shadow==GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY and volume.shadow_sun.shadow_enabled,"%s: independent shadow-only 3D pass uses the same real cubes" % style)
 		check(mesh != null and mesh.get_surface_count()==3 and mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX].size()==volume.block_count*6 and mesh.surface_get_arrays(1)[Mesh.ARRAY_VERTEX].size()==volume.block_count*24,"%s: top, 4 sides and underside are genuine 3D triangles" % style)
+		check(absf(_top_area(mesh)-_footprint_area(volume.wall_rects))<0.1,"%s: top triangles fill the complete wall footprint without per-block gaps" % style)
+		var light_ray:Vector3 = volume.sun_light.global_basis.z
+		var shadow_length:float = volume.block_height*Vector2(light_ray.x,light_ray.z).length()/absf(light_ray.y)
+		check(shadow_length<=minf(cell.x,cell.y)*0.61,"%s: physical cast length stays within 0.61 cells" % style)
 		var cap:StandardMaterial3D = mesh.surface_get_material(0) as StandardMaterial3D
 		var side:StandardMaterial3D = mesh.surface_get_material(1) as StandardMaterial3D
 		check(cap.albedo_texture==THEMES.wall_texture(style) and side.albedo_texture==_expected_side(style) and side.shading_mode==BaseMaterial3D.SHADING_MODE_PER_PIXEL,"%s: Mojang block top and corresponding original side in lit 3D material" % style)
@@ -133,6 +149,7 @@ func _run() -> void:
 		world.refresh_map_presentation()
 		var volume:Node2D = world.map_wall_volume
 		check(volume.visible and not volume.wall_rects.is_empty() and volume.block_count>0 and volume.viewport.size.x<=2560 and volume.viewport.size.y<=2560,"%s: map switch keeps the live viewport screen-sized and rebuilds true blocks" % map_key)
+		check(absf(_top_area(volume.mesh_node.mesh)-_footprint_area(volume.wall_rects))<0.1,"%s: large/island walls remain gap-free" % map_key)
 		check(world.map_inside_shadow.surface.material.get_shader_parameter("shadow_vector")==Vector2.ZERO and volume.ground_node.mesh != null,"%s: multi-island ground catches 3D light, no stale 2D projection" % map_key)
 	game.set_runtime_game_setting("Map_Background","grass",false)
 	world.refresh_map_presentation()
@@ -153,6 +170,7 @@ func _run() -> void:
 		for style:String in ["grass","sand","stone","nether","end"]:
 			game.set_runtime_game_setting("Map_Background",style,false)
 			world.refresh_map_presentation()
+			check(absf(_top_area(world.map_wall_volume.mesh_node.mesh)-_footprint_area(world.map_wall_volume.wall_rects))<0.1,"%s: doorway fragments preserve full remaining footprint" % style)
 			check(not _wall_covers(world.map_wall_volume.wall_rects,probe),"%s: 3D block does not bridge the opening" % style)
 			check(not _wall_covers(world.map_background_tiles.visible_wall_rects(),probe),"%s: underlying 2D wall top also stays carved" % style)
 		game.set_runtime_game_setting("Map_Background","blue",false)

@@ -92,4 +92,4 @@
 - 铁匠村民的挥舞音效以出剑时实际 `attack_damage(1.0)` **严格大于 100** 为界，超出用原版横扫、100 及以下保留重击；真实命中暴击音仍按独立承伤阈值。剑弧/握把和残影更连续可见，不更改原扇形碰撞；参数、素材复用和单机/GPU 回归见 `tests/BLACKSMITH_SWORD_SWING.md`、`tests/test_blacksmith_sword_sweep.gd`。
 - 大、中、小史莱姆死亡复用原落地绿色环与原版黏液球粒子，仅权威端按落地范围／当前攻击伤害对附近敌人结算一次并向外击退；被删除或战斗结束仍让死亡特效短暂播放完，原有跳跃、落地减速、音效和分裂保留。实现范围、现有轮放测试的失配与 GPU／战斗回归见 `tests/SLIME_DEATH_PULSE.md`、`tests/test_slime_death_pulse.gd`、`tests/test_slime_death_visual.gd`。
 - 根据落地粒子过少的反馈，史莱姆普通落地和死亡冲击大／中／小碎屑增密为 40／27／17，起跳保持 5／3／3；仍用原版素材、不改变伤害／击退，均匀圆周分布和实机 GPU／战斗回归见 `tests/SLIME_DEATH_PULSE.md`。
-- 六种地图背景的边界与地图形状内侧边界：五种 Minecraft 方块主题使用原版纹理的真实 3D 六面体方块、3D 相机/灯光，蓝色背景保持原平面墙且禁用 3D；门洞同时裁方块和 2D 墙顶，原物理碰撞与角色建造障碍不变，地面投影仍是裁剪后的 2D 着色。原版素材来源、D3D12 画面及回归见 `tests/MAP_WALLS_3D.md`、`tests/test_map_wall_3d.gd`、`tests/test_map_wall_3d_visual.gd`。
+- 六种地图背景的边界与地图形状内侧边界：五种 Minecraft 方块主题使用原版纹理的真实 3D 六面体低墙，视觉高度 **0.4 格**，相邻方块共享边界、不得内缩留缝；右上真实 3D 光源投影水平总长约 **0.6 格**，保留轻微侧面/镜头视差，不恢复整格高墙和长影。蓝色背景保持平面且禁用 3D；门洞同时裁方块和 2D 墙顶，原物理碰撞、格宽与角色建造障碍不变。原版来源、当前 D3D12 画面、验证边界与回退见 `tests/MAP_WALLS_3D.md`、`tests/test_map_wall_3d.gd`、`tests/test_map_wall_3d_visual.gd`。

@@ -1,5 +1,5 @@
 extends SceneTree
-# Windows D3D12 读回/截图：五种原版贴图、一格网格、移动镜头的视差和真实地影。
+# Windows D3D12 读回/截图：五种原版贴图、低矮无缝网格、移动镜头的视差和真实地影。
 var checks:int = 0
 var failures:int = 0
 
@@ -93,8 +93,8 @@ func _run() -> void:
 	check(world.map_wall_volume==null,"blue keeps its original flat boundary without allocating either 3D viewport")
 	check(_save_detail(root.get_texture().get_image(),folder+"/world_blue_detail.png"),"blue screenshot saved")
 	var top_point:Vector2 = Vector2(physical.get_center().x+cell.x*0.5,physical.position.y-cell.y*0.5)
-	var shadow_point:Vector2 = Vector2(physical.get_center().x-cell.x*2.0,physical.position.y+cell.y*1.75)
-	var clear_point:Vector2 = shadow_point+Vector2(0,cell.y*3.0)
+	var shadow_point:Vector2 = Vector2(physical.get_center().x-cell.x*2.0,physical.position.y+cell.y*0.3)
+	var clear_point:Vector2 = shadow_point+Vector2(0,cell.y*0.7)
 	for style:String in ["grass","sand","stone","nether","end"]:
 		game.set_runtime_game_setting("Map_Background",style,false)
 		world.refresh_map_presentation()
@@ -104,7 +104,12 @@ func _run() -> void:
 		var mesh_image:Image = volume.viewport.get_texture().get_image()
 		var shadow_image:Image = volume.shadow_viewport.get_texture().get_image()
 		check(_colored_pixels(mesh_image)>120,"%s: GPU renders opaque original Minecraft block faces" % style)
-		check(_wall_alpha(volume,top_point,volume.block_height)>0.5,"%s: real single-height block at the north boundary" % style)
+		check(_wall_alpha(volume,top_point,volume.block_height)>0.5,"%s: real low-height block at the north boundary" % style)
+		var seamless:bool = true
+		for offset:int in range(-3,4):
+			var seam:Vector2 = Vector2(physical.position.x+cell.x*(5+offset),top_point.y)
+			if _wall_alpha(volume,seam,volume.block_height)<0.98: seamless=false
+		check(seamless,"%s: GPU north-wall cell joins stay opaque, no transparent cracks" % style)
 		var cast_alpha:float = _wall_alpha(volume,shadow_point,-0.08,true)
 		check(cast_alpha>0.08 and _wall_alpha(volume,clear_point,-0.08,true)<0.03 and _wall_alpha(volume,shadow_point,0.0)<0.05,"%s: shadow-only GPU pass hits floor near wall but not open floor or block pass" % style)
 		volume.hide()
@@ -143,7 +148,7 @@ func _run() -> void:
 	check(root.get_texture().get_image().save_png(folder+"/world_grass_camera_right.png")==OK,"camera-right frame saved")
 	var left_offset:float = (left_top-left_base).x/volume._render_scale
 	var right_offset:float = (right_top-right_base).x/volume._render_scale
-	check(left_offset>6.0 and right_offset< -6.0 and left_offset-right_offset>17.0,"same real wall block exposes opposite perspective when Camera2D crosses it")
+	check(left_offset>2.0 and right_offset< -2.0 and left_offset-right_offset>6.0 and absf(left_offset)<9.0 and absf(right_offset)<9.0,"low wall retains opposite perspective but exposes less side when Camera2D crosses it")
 	check(_changed_pixels(left_image,right_image)>100,"GPU actually redraws wall from the new camera; no frozen whole-map texture")
 	print("MAP_WALL_PARALLAX left=",left_offset," right=",right_offset)
 	camera.zoom = Vector2.ONE*2.3
@@ -155,7 +160,7 @@ func _run() -> void:
 	world.refresh_map_presentation()
 	await _frame()
 	var after_light:Image = volume.viewport.get_texture().get_image()
-	var south_point:Vector2 = Vector2(physical.get_center().x+cell.x*2.0,physical.end.y-cell.y*1.75)
+	var south_point:Vector2 = Vector2(physical.get_center().x+cell.x*2.0,physical.end.y-cell.y*0.3)
 	var north_after:float = _wall_alpha(volume,shadow_point,-0.08,true)
 	var south_after:float = _wall_alpha(volume,south_point,-0.08,true)
 	check(_changed_pixels(before_light,after_light)>16,"moving DirectionalLight3D re-lights the actual six-faced mesh")

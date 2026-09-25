@@ -3692,7 +3692,7 @@ var map_wall_volume:Node2D
 @export_category("地图立体墙")
 # 指向右上角的光源，影子朝其反方向投在地面；纯视觉配置，不触碰安全墙。
 @export var map_wall_light_direction:Vector2 = Vector2(1.0,-1.0)
-var map_wall_height_cells:float = 1.0 # 真方块仅一格高；渲染端也强制限制为一格。
+var map_wall_height_cells:float = 0.4 # 低矮连续墙；渲染端同步固定为 0.4 格，物理碰撞不变。
 func _is_grass_map_background() -> bool:
 	return Game.Game_Settings.get("Map_Background","blue") == "grass"
 func map_visual_cell_size(map_node:Node) -> Vector2:

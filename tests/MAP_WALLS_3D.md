@@ -1,34 +1,44 @@
-# 地图墙：一格高原版方块、移动透视和真实地影（2026-09-26）
+# 地图墙：低矮连续 3D 方块与短地影（2026-09-26）
 
-## 行为与范围
+## 当前行为与范围
 
-- **草地、沙地、石地、下界、末地**的地图外边界及形状造成的内侧边界，由实际六面 `ArrayMesh` 方块构成，**严格一地图格高**。模型脚印直接取 `World._map_shape_walls()` 已扣除岛屿、传送门和服务员门洞的墙矩形；格间细缝和门洞断面是真实的 3D 几何，不是 2.5D 画布侧面。
-- 草地用原版**橡木原木**顶面和树皮；沙地用**砂岩**顶/侧/底；石地用**深板岩砖**；下界用**下界砖**；末地用**紫珀柱**顶/侧。面纹理按格铺设、最近邻采样；纹理及 Mojang 来源见 `Images/effects/我的世界/草方块背景/wall_side_sources.json`。
-- **蓝色地图仍是平面**：启动时不创建 3D 墙；由其它主题切回蓝色时隐藏墙并停掉两路 3D Viewport。原有蓝色边框、2D 地面、原物理墙和角色建造的障碍不变。
-- 五主题定义和完整背景切换依赖当前工作区已有的另一项并行改动（相关纹理、`地图背景主题.gd`、`world.gd` 的其它片段）；本提交不把它们混入索引。**只检出本次提交而缺少那些依赖的旧快照，并不是已验证的完整项目状态。**
-- `World.map_wall_height_cells` 的旧 1.8 格可调高度已经撤销为内部的 1.0 格；渲染脚本自身也始终把高度固定为一个地图格，不受旧调用参数影响。旧的 `map_wall_shadow_cells` 手绘长影开关已删除，避免假投影叠加真实地影。`map_inside_shadow` 仅保留贴边的 2D 接触暗边。
+- **草地、沙地、石地、下界、末地**的地图外边界及形状内侧边界使用真实六面 `ArrayMesh`。按最新画面反馈，墙高从 **1.0 格降为 0.4 格**；格宽、地面、原 2D 安全墙与角色建造障碍不变。
+- 相邻方块共享精确的网格边界，**不再对每块方块内缩留缝**。顶面三角形完整覆盖 `World._map_shape_walls()` 已扣除岛屿、传送门和服务员门洞的墙矩形。原版纹理自身的边纹仍保留；没有用放大方块跨过门洞来遮缝。
+- 草地用原版**橡木原木**顶面和树皮；沙地用**砂岩**顶/侧/底；石地用**深板岩砖**；下界用**下界砖**；末地用**紫珀柱**顶/侧。面纹理按格铺设、最近邻采样；纹理及 Mojang 来源见 `Images/effects/我的世界/草方块背景/wall_side_sources.json`。本轮未增加或合成素材。
+- **蓝色地图仍是平面**：启动时不创建 3D 墙；从其它主题切回蓝色时隐藏墙并停掉两路 3D Viewport。
+- `地图立体墙.gd` 的 `WALL_HEIGHT_CELLS = 0.4` 固定当前视觉高度，`World.map_wall_height_cells` 同步标注 0.4；不让历史高度参数恢复高墙。`LIGHT_HORIZONTAL_RATIO = 1.5` 抬高光源，投影水平总长由旧版约 **3 格降到 0.6 格**（减少约 80%；接影平面 -0.08 带来极小偏差）。右上光源方向、真实 3D 光影保留。`map_inside_shadow` 仅保留贴边 2D 接触暗边，不叠加旧手绘长影。
 
-## 为什么镜头移动时有 3D，影子为什么可见
+## 真实透视与阴影
 
-- 上一版**整图正交贴图 / `UPDATE_ONCE` 已弃用**。现在使用 90° 俯视的**透视 Camera3D**，在每一帧从实际 Camera2D 的画布变换取屏幕中心和 zoom，计算与 2D 地图对齐的地面投影，再更新 3D 相机和屏幕贴合的 Sprite2D。地面点保持逐像素重合；高出地面的一格方块会产生随镜头位置变化的透视视差和受光侧面。测试中，同一块墙从两侧观察，其顶面相对底面的水平位移从 **+16.4** 变为 **−13.9** 个 3D 视口像素，而非只平移同一张图片。两路透明 SubViewport 按当前屏幕取景更新，单边最大 2560 像素，不再渲染整幅超大地图。
-- 地面三角面只铺在真实岛屿区域，由 `DirectionalLight3D` 对共用方块网格的 **shadows-only 实例**投出影子；这是 3D 光源、3D 遮挡和 3D 接影面计算的 GPU 阴影，最终单独合成为 2D 地面上的暗影。原版方块画面与接影画面分开，避免 `shadow_to_opacity` 在全黑处变成不透明白斑并错误盖住场景。光从右上射入，地影朝左下；反转光源时影子实际换到另一边。
-- 特别将 `DirectionalLight3D.directional_shadow_max_distance` 根据当前 3D 相机高度动态加大。Godot 默认的 100 单位会在俯视相机较高时把所有地面阴影裁掉——这是上一版“有光无影”的直接原因。两路 3D Viewport 在离开世界时先停更，然后由 Godot 回收。
+- 使用 90° 俯视的**透视 Camera3D**，逐帧从 Camera2D 的画布变换取屏幕中心和 zoom，更新与 2D 地面对齐的投影及屏幕贴合 Sprite2D；不是整图正交贴图或 `UPDATE_ONCE`。两路透明 SubViewport 单边最大 2560 像素。
+- 墙变矮后仍有真实侧面与镜头视差，但露出的侧面减少。同一 GPU 相机左右测试中，顶面相对底面的水平位移由更新前 **+16.421 / -13.895** 降为 **+6.367 / -5.388** 视口像素，约减少 61%。相机参数和地图脚印未因此改动。
+- 地面三角面仅覆盖真实岛屿，由 `DirectionalLight3D` 对共用方块网格的 **shadows-only 实例**投影；方块画面与接影画面独立，避免 `shadow_to_opacity` 错误盖住场景。光源反转时短影也必须真实换边。
+- `directional_shadow_max_distance` 随实际相机高度加大，避免默认 100 单位裁掉地影；离开世界时先停止两路实时视口，再由 Godot 回收。
 
-## 验证（Godot 4.7.2 / Windows / D3D12）
+## 本轮验证：0.4 格 / 无缝 / 短影
 
-在 `E:\godot\polo-balls` 用 `E:\steam\steamapps\common\Godot Engine\godot.windows.opt.tools.64.exe` 运行；无头测试加 `--headless`，真实 GPU 截图测试加 `--rendering-driver d3d12`。用 `Start-Process -PassThru -Wait` 检查**进程退出码**，不只看打印的通过数。
+在 `E:\godot\polo-balls` 使用 `E:\steam\steamapps\common\Godot Engine\godot.windows.opt.tools.64.exe`（Godot 4.7.2 / Windows）。真实画面加 `--rendering-driver d3d12`，无头回归加 `--headless`。每次通过 `Start-Process -PassThru -Wait` 检查实际进程退出码。
 
-| 入口 | 本次结果 | 核验要点 |
+| 入口 | 结果 | 覆盖范围 |
 | --- | --- | --- |
-| `tests/test_map_wall_3d.gd`，无头 | **93/93，退出码 0** | 六主题、一格高度、两路真实 3D 通道、视差和地面对齐、50×50/多岛、门洞、蓝色停更、碰撞射线/安全墙不变。 |
-| `tests/test_map_wall_3d_visual.gd`，D3D12 | **44/44，退出码 0** | 五材质的真实 GPU 网格；接影只在地面附近有 alpha、在空地消失；合成到草地/沙地的像素明显变暗；左右平移同一墙方块视差反向；倒转光源影子换边；开门和大地图截图。 |
-| `tests/test_ground_visual_sampling.gd`，D3D12 | **failures=0，退出码 0** | 既有接触暗边、地面取色、拐角及门口渐隐不回归。 |
-| `scripts/training/test_mc_backgrounds.gd`，无头 | **126/126，退出码 0** | 六主题底图与设置切换。 |
-| `tests/test_portal_shared_wall.gd`，无头 | **19/19；复跑退出码 0** | 多岛共享墙和传送门；首次运行打印 19/19 后进程意外退出，复跑正常，详见下文。 |
-| `tests/test_mc13_revision.gd`，无头 | **21/21，退出码 0** | 地图碰撞、缩放等既有玩法回归。 |
+| 改动前 `tests/test_map_wall_3d_visual.gd`，D3D12 | **44/44，退出码 0** | 保留相同机位的改前截图及视差数据作为比较基线。 |
+| `tests/test_map_wall_3d.gd`，无头 | **111/111，退出码 0** | 六主题、0.4 格高度、短投影光向、顶面面积完整无缩缝；50×50/多岛、门洞碎片、蓝色停更、碰撞射线与安全墙不变。 |
+| `tests/test_map_wall_3d_visual.gd`，D3D12 | **49/49，退出码 0** | 五主题 GPU 真网格、每种主题七处北墙格间接缝全不透明、短影近处有 alpha 而一格内侧探针无影；相机侧面视差降低但不消失；反光向、门洞、大地图和多岛截图。 |
+| `tests/test_ground_visual_sampling.gd`，D3D12 | **failures=0，退出码 0** | 原地面取色、接触暗边与门口渐隐。 |
+| `tests/test_portal_shared_wall.gd`，无头 | **19/19，退出码 0** | 多岛共享墙、传送门。 |
 
-截图在项目 Godot `user://map_wall_true3d/`：`world_grass_camera_left.png` / `world_grass_camera_right.png`、`world_grass_detail.png` ～ `world_end_detail.png`、`shadow_receiver_grass.png`、`world_grass_door_detail.png`、`wall_mesh_Map50x50.png` 和 `wall_mesh_Map_Portal.png`。运行日志与改动前备份在 `E:\godot\polo-balls-checkpoints\map_walls_camera_shadow_20260926\`。既有其他角色的资源路径/UID 告警仍可能出现；一次并行回归批次中的 Portal 测试打印全通过后以 Windows access violation 退出，单独复跑为退出码 0；已在地图墙节点退出树时主动停止实时 GPU 视口。未宣称完成长时间 FPS 或双客户端联机压力测试。
+- 已查看改前/改后同机位草地真实 GPU 截图：原覆盖战场较深的阴影缩为贴墙短影；方块相连，顶部原版木纹边线没有被涂掉。
+- 墙渲染脚本及 GPU 测试编辑器诊断无报错/警告，相关代码 `git diff --check` 通过。
+- **验证边界**：无头运行仍有非本轮修改的史莱姆、守卫者、恶魂、活塞资源预加载错误（Portal 无头也有恶魂资源错误），所以这些结果只证明表列墙/地图断言通过，不代表所有角色都可加载。D3D12 改前/改后均有 `set_rgb_color` 大小写/UID 和退出 ObjectDB 泄漏警告；不能宣称全项目零错误。未执行长时间 FPS、双客户端联机或双语录制回归。
+- 本轮截图、日志和修改前文件备份位于 `E:\godot\polo-balls-checkpoints\map_walls_low_seamless_20260926\`，含 `before_images/`、`after_images/`、`before_gpu.*`、各测试 `.out/.err`；运行截图也写入 `user://map_wall_true3d/`。
 
-## 隔离与回退
+## 版本隔离与回退
 
-本轮只提交地图 3D 墙、World 中与该墙直接相关的三处配置、两套墙测试及本说明；不混入同时进行的 `world.gd`/其他功能差异。提交时对 `world.gd` 用精确索引补丁而非 `git add .`。旧碰撞/角色建造墙没有改变；若需回退，请针对本次提交定向恢复，先保留其它人的工作区改动。
+- 更新前提交：`02add29da27932ba546d595345e68f64f483bc93`。工作区原本已有大量其它未提交内容，不能把此 ID 当作本轮实际工作区的完整快照。
+- 备份目录保存本轮涉及文件的修改前原文、`before_commit.txt`、其它既有 World/上下文改动的 `preexisting.patch`。本轮提交仅包含墙渲染器、两项墙测试、本说明，以及 `world.gd` 高度单行和 `MCP_CONTEXT.md` 墙规则单行；后两者使用精确索引补丁，不包含原有其它工作。
+- 五主题及当前全项目仍依赖工作区已有其它任务内容；单独检出提交不宣称是已验证的完整项目快照。本轮没有新增运行资源依赖，也未推送远程。
+- 回退先检查并备份当前工作区，再针对本轮提交定向撤销；只恢复本轮六个文件中的相关差异，不清空、覆盖其它修改，不使用 `reset --hard` 或 `clean -fd`。
+
+## 历史基线（不再代表现行墙高）
+
+此前的一格高、格间细缝版本曾完成墙体 93/93、D3D12 44/44、背景 126/126 与 MC13 21/21 等回归；旧日志位于 `map_walls_camera_shadow_20260926` 检查点。当前高度、间距、光照与本轮已完成验证以本文上方为准，不能沿用旧高度断言。
