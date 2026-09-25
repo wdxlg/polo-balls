@@ -82,7 +82,7 @@
 - MCP 自动附带说明的安装、备份和验证方式：`tools/mcp_context/README.md`。
 - 兔子幼兔出生须在父类生命初始化前设置幼兔上限，不能先生成成年生命再扣到幼兔生命，以免繁殖误触发推镜、暴击粒子和受击抖动；真正伤害反馈、繁殖爱心/音效及成长保留。复现、GPU 镜头稳定性与回退范围见 `tests/RABBIT_BIRTH_FEEDBACK.md`。
 - 实际入口通常包括 `scripts/world.gd`、`global/game.gd`、`ui/control.gd`、`classes/ball.gd` 与 `scripts/training/combat_threat_analyzer.gd`；按任务定位，不随意扩大修改范围。
-- 普通 VS 标题固定在屏幕顶部留白区（逻辑视口顶部留白 96 像素），不随镜头平移/缩放；单队与中立白字，多队按当前非中立顺序蓝、红、后续稳定随机色，均为加粗黑描边（基准地图 2，随地图字号适配）；保留双语录制镜像。Boss 车轮战名单仍随地图尺寸缩放，不改变轮换训练头像框 HUD。当前规则与回归见 `tests/VS_SCREEN_TITLE_20260925.md`、`tests/test_vs_screen_title.gd`；历史地图缩放记录见 `tests/VS_MAP_SCALING.md`。
+- 普通 VS 标题固定于独立屏幕画布（逻辑视口顶部留白 240 像素），镜头平移／缩放／震动时字形保持零像素位移；单队与中立白字，多队按当前非中立顺序蓝、红、后续稳定随机色，均为加粗黑描边（基准地图 2，随地图字号适配）。FULL 双语录制各有屏幕画布镜像，FOLLOW／OVERVIEW 在地图占用标题留白时隐藏标题。Boss 车轮战名单仍随地图尺寸缩放，不改变轮换训练头像框 HUD。当前规则与回归见 `tests/VS_SCREEN_TITLE_20260925.md`、`tests/test_vs_screen_title.gd`、`tests/test_vs_title_motion.gd`；历史地图缩放记录见 `tests/VS_MAP_SCALING.md`。
 - 大规模战斗软分离只对双方确有 `mc_bat_cohort` 元数据的角色比较批次；普通角色无此键时不得使用 `get_meta(..., null)` 引发逐对报错，同批次蝙蝠不被软分离。复现、stderr 回归与测试范围见 `tests/BAT_COHORT_META_GUARD.md`、`tests/verify_bat_cohort_separation.py`。
 - 默认分类的药水测试／附魔测试盔甲架共用可配置的 Minecraft 原版信息框，出生随机展示 2–4 条效果/附魔、仅作 UI 测试不赋予战斗增益；右侧跟随且不受地图裁剪，资源来源、定制方式与 GPU 回归见 `tests/MC_EFFECT_TOOLTIPS.md`。
 - Minecraft 实战持续药水状态框与演示盔甲架分离：凋零信标抽五种一级主效果（不含生命恢复）、女巫持续状态保留真实剩余时间和无限 `∞`，凋零头颅／玫瑰与潜影贝漂浮取各自真实状态；双语录制独立镜像并避让。监守者原版黑暗在本项目尚无目标状态，本次按用户选择仅记录审查，不虚构倒计时。完整边界和回归见 `tests/MC_ACTIVE_POTIONS.md`。

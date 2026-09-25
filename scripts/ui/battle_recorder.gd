@@ -1217,7 +1217,9 @@ func _setup_sim_capture_viewport() -> void:
 		if not is_instance_valid(_locale_mirror):
 			_locale_mirror = LocaleScript.new()
 			add_child(_locale_mirror)
-			_locale_mirror.begin(_world(), main)
+			# Put VS in each capture's own screen layer. In FOLLOW/OVERVIEW the
+			# mirror hides it if the zoomed arena occupies the title header.
+			_locale_mirror.begin(_world(), main, {"zh":_sim_viewport, "en":_secondary._sim_viewport})
 		# CanvasLayers belong to the player Viewport, not its shared World2D.
 		# Add locale-specific copies to BOTH real video sources (LIVE and SIM).
 		_effect_tooltips = EffectTooltipsScript.new()

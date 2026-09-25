@@ -7,6 +7,7 @@ var world:Node
 var main:Viewport
 var old_mask:int
 var roots:Dictionary = {}
+var screen_roots:Dictionary = {}
 var sources:Dictionary = {}
 var copies:Dictionary = {}
 var masks:Dictionary = {}
@@ -15,7 +16,7 @@ var fragments:Dictionary = {}
 var pattern:RegEx
 var markup:RegEx
 
-func begin(scene:Node, viewport:Viewport) -> void:
+func begin(scene:Node, viewport:Viewport, capture_viewports:Dictionary = {}) -> void:
 	world = scene
 	main = viewport
 	old_mask = main.canvas_cull_mask
@@ -27,6 +28,17 @@ func begin(scene:Node, viewport:Viewport) -> void:
 		root.visibility_layer = ZH_BIT if locale == "zh" else EN_BIT
 		world.add_child(root)
 		roots[locale] = root
+		# Unlike World2D, a CanvasLayer does not cross Viewport boundaries. Give
+		# each recording its own screen-space VS layer, immune to camera movement.
+		if capture_viewports.has(locale) and is_instance_valid(capture_viewports[locale]):
+			var capture:SubViewport = capture_viewports[locale]
+			var layer := CanvasLayer.new()
+			layer.name = "RecordingVersus_" + locale
+			layer.layer = 1
+			layer.set_meta("recording_copy", true)
+			layer.transform = Transform2D.IDENTITY.scaled(Vector2(capture.size) / main.get_visible_rect().size)
+			capture.add_child(layer)
+			screen_roots[locale] = layer
 	_build_dictionary()
 	_scan(world)
 	get_tree().node_added.connect(_added)
@@ -38,6 +50,8 @@ func _is_wasted(node:Node) -> bool:
 
 func _is_source(node:Node) -> bool:
 	if not (node is Label or node is RichTextLabel or _is_wasted(node)): return false
+	# 唯一允许的屏幕层来源：VS 在 CanvasLayer，录制时复制到各自视口。
+	if node == world.versus_label: return true
 	var parent:Node = node
 	while parent != null and parent != world:
 		if parent is CanvasLayer or parent is Viewport or parent.has_meta("recording_copy"): return false
@@ -46,7 +60,11 @@ func _is_source(node:Node) -> bool:
 	return parent == world
 
 func _scan(node:Node) -> void:
-	if node.has_meta("recording_copy") or node is CanvasLayer or node is Viewport: return
+	if node.has_meta("recording_copy") or node is Viewport: return
+	if node is CanvasLayer:
+		if is_instance_valid(world.versus_label) and world.versus_label.get_parent() == node:
+			sources[world.versus_label.get_instance_id()] = world.versus_label
+		return
 	if _is_source(node): sources[node.get_instance_id()] = node
 	for child:Node in node.get_children(): _scan(child)
 
@@ -111,7 +129,11 @@ func _make_copy(source:Control, locale:String) -> Dictionary:
 	var holder := Node2D.new()
 	holder.set_meta("recording_copy", true)
 	holder.z_as_relative = false
-	roots[locale].add_child(holder)
+	if source == world.versus_label and screen_roots.has(locale):
+		holder.visibility_layer = ZH_BIT if locale == "zh" else EN_BIT
+		screen_roots[locale].add_child(holder)
+	else:
+		roots[locale].add_child(holder)
 	var copy:Control = source.get_script().new() if _is_wasted(source) else source.duplicate(0) as Control
 	for child:Node in copy.get_children(): child.free()
 	copy.set_meta("recording_copy", true)
@@ -207,7 +229,23 @@ func sync() -> void:
 			var holder:Node2D = pair.holder
 			var copy:Control = pair.text
 			holder.visible = source.is_visible_in_tree()
-			holder.transform = roots[locale].global_transform.affine_inverse() * source.get_global_transform()
+			if source == world.versus_label:
+				if screen_roots.has(locale):
+					# The capture layer scales logical screen coordinates to its output size.
+					holder.transform = source.get_global_transform_with_canvas()
+					var map_node:Node = world._current_map_node()
+					if is_instance_valid(map_node):
+						var capture:Viewport = screen_roots[locale].get_viewport()
+						var arena_top:float = (capture.canvas_transform * world.return_map_visual_rect(map_node).position).y
+						var title_bottom:float = (screen_roots[locale].transform * (source.get_global_transform_with_canvas() * Vector2(0.0, source.size.y))).y
+						# FOLLOW can fill the header with the arena. Never overlay combat
+						# or jitter a repositioned title; show it again when space returns.
+						holder.visible = holder.visible and title_bottom + maxf(world.map_border_width * 0.5, 12.0) < arena_top
+				else:
+					# Standalone mirror clients without capture viewports keep the World2D fallback.
+					holder.transform = roots[locale].get_global_transform_with_canvas().affine_inverse() * source.get_global_transform_with_canvas()
+			else:
+				holder.transform = roots[locale].global_transform.affine_inverse() * source.get_global_transform()
 			var previous_transform:Transform2D = source.get_global_transform()
 			for clip:Dictionary in pair.clips:
 				var clip_transform:Transform2D = clip.source.get_global_transform()
@@ -241,8 +279,9 @@ func _drop(id:int) -> void:
 	if is_instance_valid(source) and masks.has(id) and source.visibility_layer == HIDDEN_BIT: source.visibility_layer = masks[id]
 	if copies.has(id):
 		for pair:Dictionary in copies[id].values():
-			pair.holder.hide()
-			pair.holder.queue_free()
+			if is_instance_valid(pair.holder):
+				pair.holder.hide()
+				pair.holder.queue_free()
 		copies.erase(id)
 	masks.erase(id)
 	sources.erase(id)
@@ -259,6 +298,9 @@ func finish() -> void:
 			root.hide()
 			root.queue_free()
 	roots.clear()
+	for layer:CanvasLayer in screen_roots.values():
+		if is_instance_valid(layer): layer.queue_free()
+	screen_roots.clear()
 	copies.clear()
 	masks.clear()
 	sources.clear()

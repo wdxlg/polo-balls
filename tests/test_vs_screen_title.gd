@@ -16,7 +16,7 @@ func check(ok:bool,label:String) -> void:
 		push_error("VS_SCREEN_FAIL " + label)
 
 func screen_box(label:Control) -> Rect2:
-	var transform:Transform2D = world.get_viewport().get_canvas_transform() * label.get_global_transform()
+	var transform:Transform2D = label.get_global_transform_with_canvas()
 	var top_left:Vector2 = transform * Vector2.ZERO
 	return Rect2(top_left,transform * label.size - top_left)
 
@@ -83,7 +83,7 @@ func run() -> void:
 	world._anchor_versus_to_screen()
 	var before:Rect2 = screen_box(world.versus_label)
 	print("VS_SCREEN_METRIC initial logical=",world.get_viewport_rect().size," physical=",root.size," canvas=",root.get_canvas_transform()," final=",root.get_final_transform()," title=",before)
-	check(before.position.distance_to(Vector2(12,96)) < 1.0 and absf(before.size.x - (world.get_viewport_rect().size.x - 24.0)) < 1.0,"title sits lower in the logical viewport, not at the map top")
+	check(before.position.distance_to(Vector2(12,240)) < 1.0 and absf(before.size.x - (world.get_viewport_rect().size.x - 24.0)) < 1.0,"title sits lower in the logical viewport, not at the map top")
 	world.camera_2d.global_position += Vector2(70.0,-45.0)
 	world.toolbar_zoom_multiplier = 1.55
 	world._apply_camera_zoom()
@@ -112,7 +112,7 @@ func run() -> void:
 		if copies.has(locale):
 			var copy:RichTextLabel = copies[locale].text
 			var rect:Rect2 = screen_box(copy)
-			check(rect.position.y >= -1.0 and rect.position.y < 150.0 and rect.position.x >= 0.0,"recording "+locale+" VS remains near viewport top")
+			check(rect.position.y >= 0.0 and absf(rect.end.y-before.end.y) < 1.0 and rect.end.y < world.get_viewport_rect().size.y*0.30 and rect.position.x >= 0.0,"recording "+locale+" VS keeps its bottom edge within the lowered viewport header")
 			check(copy.get_theme_color("font_outline_color") == Color.BLACK and copy.get_theme_constant("outline_size") == world.versus_label.get_theme_constant("outline_size") and copy.text.contains("[b]VS[/b]"),"recording "+locale+" retains the thicker black outline and VS")
 	mirror.finish()
 	mirror.queue_free()

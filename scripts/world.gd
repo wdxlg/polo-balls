@@ -551,7 +551,7 @@ func _process_portal_transits(delta:float,ball_group:Array) -> void:
 @export var versus_font_max_size:int = 12
 @export var versus_font_min_size:int = 6
 # 与地图边缘和相机平移无关的屏幕标题留白（屏幕像素）。
-@export var versus_screen_top_padding_px:float = 96.0
+@export var versus_screen_top_padding_px:float = 240.0
 @export var versus_screen_side_padding_px:float = 12.0
 
 # 第二行：互动文字（紧贴在 VS 文字下面）
@@ -629,6 +629,7 @@ var _versus_layout_base_zoom:float = 1.0
 
 var map_border_line:Line2D
 var map_border_segment_root:Node2D = null
+var versus_screen_layer:CanvasLayer = null
 var versus_label:RichTextLabel
 var interaction_label:RichTextLabel
 # 只要场上存在任意盔甲架系角色，顶部战斗标题切换为测试信息 HUD。
@@ -1343,10 +1344,8 @@ func _ready() -> void:
 
 	# 根据当前地图尺寸摆放黑框与两行文字。
 	refresh_map_presentation()
-	# 普通 VS 继续是 World 中的 RichTextLabel，以便双语录制复用现有镜像；
-	# 每次绘制前把它投影到固定的视口顶端，抵消跟随镜头/摇晃/手动缩放。
-	if not RenderingServer.frame_pre_draw.is_connected(_anchor_versus_to_screen):
-		RenderingServer.frame_pre_draw.connect(_anchor_versus_to_screen)
+	# VS 保持 RichTextLabel 供双语录制镜像，但由独立屏幕画布绘制：
+	# 在 World 的反向 Canvas 变换下逐帧追相机，视觉像素会抖动。
 	if not get_viewport().size_changed.is_connected(refresh_top_text_layout):
 		get_viewport().size_changed.connect(refresh_top_text_layout)
 
@@ -1377,8 +1376,6 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
-	if RenderingServer.frame_pre_draw.is_connected(_anchor_versus_to_screen):
-		RenderingServer.frame_pre_draw.disconnect(_anchor_versus_to_screen)
 	if get_viewport() != null and get_viewport().size_changed.is_connected(refresh_top_text_layout):
 		get_viewport().size_changed.disconnect(refresh_top_text_layout)
 	_release_heavy_hitstop()
@@ -3804,7 +3801,11 @@ func setup_map_presentation() -> void:
 	map_border_segment_root.z_index = 100
 	add_child(map_border_segment_root)
 
-	# 第一行：不同阵营不同颜色的角色名 VS 角色名
+	# 第一行：不同阵营不同颜色的角色名 VS 角色名。屏幕画布不继承 Camera2D 的分数像素位移。
+	versus_screen_layer = CanvasLayer.new()
+	versus_screen_layer.name = "VersusScreenLayer"
+	versus_screen_layer.layer = 1
+	add_child(versus_screen_layer)
 	versus_label = RichTextLabel.new()
 	versus_label.name = "VersusLabel"
 	_apply_mojangles_rich_text_fonts(versus_label)
@@ -3822,7 +3823,7 @@ func setup_map_presentation() -> void:
 	versus_label.z_index = 101
 	versus_label.visibility_layer = COMBAT_TEXT_VISIBILITY_LAYER
 	versus_label.install_effect(HEAVY_GIRL_GLYPH_SHAKE_EFFECT.new())
-	add_child(versus_label)
+	versus_screen_layer.add_child(versus_label)
 
 	# 第二行：固定互动文字。RichText 效果在启动时随机一次。
 	interaction_label = RichTextLabel.new()
@@ -4192,7 +4193,7 @@ func refresh_top_text_layout() -> void:
 	_update_map_versus_font(map_node)
 	var map_rect:Rect2 = return_map_visual_rect(map_node)
 	var available_width:float = map_rect.size.x
-	# 控件留在 World Canvas 供双语录制复制；宽度换算为当前地图基准 zoom 下的世界单位。
+	# VS 独立于世界画布；仍用地图基准 zoom 换算控件宽度与地图适配字号。
 	# 镜头跟随、Alt+滚轮与临时镜头缩放不影响标题的屏幕宽度或字号。
 	var base_zoom:float = maxf(_base_camera_zoom_value(),0.001)
 	_versus_layout_base_zoom = base_zoom
@@ -4241,18 +4242,11 @@ func refresh_top_text_layout() -> void:
 	_layout_character_dialogue_hud()
 
 func _anchor_versus_to_screen() -> void:
-	if not is_inside_tree() or not is_instance_valid(versus_label) or not is_instance_valid(get_viewport()):
+	if not is_inside_tree() or not is_instance_valid(versus_label):
 		return
-	var canvas:Transform2D = get_viewport().get_canvas_transform()
-	var zoom_x:float = canvas.x.length()
-	var zoom_y:float = canvas.y.length()
-	if zoom_x < 0.001 or zoom_y < 0.001:
-		return
-	var anchor:Vector2 = Vector2(versus_screen_side_padding_px,versus_screen_top_padding_px)
-	versus_label.position = to_local(canvas.affine_inverse() * anchor)
-	versus_label.scale = Vector2(_versus_layout_base_zoom / zoom_x,_versus_layout_base_zoom / zoom_y)
-	# 相机旋转（如果将来启用）也不得带着屏幕标题旋转。
-	versus_label.rotation = -canvas.get_rotation() - global_rotation
+	versus_label.position = Vector2(versus_screen_side_padding_px,versus_screen_top_padding_px)
+	versus_label.scale = Vector2.ONE * _versus_layout_base_zoom
+	versus_label.rotation = 0.0
 
 
 #========================================================
