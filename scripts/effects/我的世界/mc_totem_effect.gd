@@ -4,6 +4,9 @@ const ITEM:Texture2D = preload("res://Images/characters/我的世界/唤魔者/t
 const MC_FX = preload("res://scripts/effects/我的世界/mc_visual_effects.gd")
 const PARTICLE_COUNT:int = 88
 const LIFETIME:float = 1.55
+const GRAVITY:float = 240.0
+const GROUND_FADE:float = 0.18
+const PARTICLE_TAIL:float = 1.1
 const ICON_WIDTH:float = 20.0 # Near the native 16px item size; the old 72px icon obscured the Evoker.
 const INTRO_SECONDS:float = 0.19 # Pop out of the Evoker before the fast front/back spin.
 const SPIN_RAMP_SECONDS:float = 0.045
@@ -37,10 +40,10 @@ func setup(point:Vector2, follow_target:Node2D = null) -> void:
 		add_child(sprite)
 		particles.append({
 			"sprite":sprite,
-			"origin":Vector2(_rng.randf_range(-13.0,13.0),_rng.randf_range(-22.0,10.0)),
-			"velocity":Vector2(_rng.randf_range(-105.0,105.0),_rng.randf_range(-170.0,-52.0)),
-			"delay":_rng.randf_range(0.0,0.17),
-			"life":_rng.randf_range(0.65,1.12),
+			"offset":Vector2(_rng.randf_range(-13.0,13.0),_rng.randf_range(-9.0,9.0)),
+			"velocity":Vector2(_rng.randf_range(-18.0,18.0),_rng.randf_range(-12.0,5.0)),
+			"delay":float(i)*LIFETIME/float(PARTICLE_COUNT),
+			"started":false,
 			"diameter":_rng.randf_range(2.8,5.0),
 			"color":PARTICLE_COLORS[_rng.randi_range(0,PARTICLE_COLORS.size()-1)],
 		})
@@ -59,12 +62,12 @@ func yaw_turns(time:float) -> float:
 
 func advance_visual(delta:float) -> void:
 	# Keep the detached effect at the living Evoker's position. Once its owner
-	# leaves the tree, hold the last location so the brief burst can finish.
+	# leaves the tree, hold the last location so the item and falling sparks can finish.
 	if _follow != null:
 		var owner:Node2D = _follow.get_ref() as Node2D
 		if is_instance_valid(owner) and owner.is_inside_tree(): global_position = owner.global_position
 	age += maxf(delta,0.0)
-	if age >= LIFETIME:
+	if age >= LIFETIME + PARTICLE_TAIL:
 		queue_free()
 		return
 	var progress:float = clampf(age/LIFETIME,0.0,1.0)
@@ -72,7 +75,8 @@ func advance_visual(delta:float) -> void:
 	var spin_time:float = maxf(age-INTRO_SECONDS,0.0)
 	var wobble_ramp:float = smoothstep(0.0,WOBBLE_RAMP_SECONDS,spin_time)
 	# Ease into a slow continuous sway rather than snapping from launch to shake.
-	totem_sprite.position = Vector2(sin(spin_time*8.0)*3.0*wobble_ramp,lerpf(-5.0,-53.0,pop)+sin(spin_time*6.0)*1.4*wobble_ramp)
+	totem_sprite.position = item_position(age)
+	totem_sprite.visible = age < LIFETIME
 	# A front-to-back yaw about the item's VERTICAL axis, projected into 2D:
 	# cosine foreshortens the face at the edge; the negative half shows its
 	# mirrored back. Do not rotate the flat icon in the screen plane.
@@ -86,14 +90,34 @@ func advance_visual(delta:float) -> void:
 	for particle:Dictionary in particles:
 		var sprite:Sprite2D = particle.sprite
 		var elapsed:float = age-float(particle.delay)
-		if elapsed < 0.0 or elapsed >= float(particle.life):
+		if elapsed < 0.0:
+			sprite.visible = false
+			continue
+		if not particle.started:
+			# Capture world space at birth: old sparks must not follow a moving owner.
+			particle.started = true
+			particle.origin = global_position + item_position(float(particle.delay)) + (particle.offset as Vector2)
+			particle.ground_y = global_position.y + 10.0
+			var height:float = maxf(float(particle.ground_y)-(particle.origin as Vector2).y,0.0)
+			var vy:float = (particle.velocity as Vector2).y
+			particle.flight = (-vy+sqrt(vy*vy+2.0*GRAVITY*height))/GRAVITY
+			particle.life = float(particle.flight)+GROUND_FADE
+		if elapsed >= float(particle.life):
 			sprite.visible = false
 			continue
 		sprite.visible = true
 		var phase:float = clampf(elapsed/float(particle.life),0.0,0.9999)
 		sprite.texture = MC_FX.END_ROD[mini(int(phase*MC_FX.END_ROD.size()),MC_FX.END_ROD.size()-1)]
-		sprite.position = (particle.origin as Vector2) + (particle.velocity as Vector2)*elapsed + Vector2.DOWN*82.0*elapsed*elapsed
+		var fall_time:float = minf(elapsed,float(particle.flight))
+		sprite.global_position = (particle.origin as Vector2) + (particle.velocity as Vector2)*fall_time + Vector2.DOWN*(0.5*GRAVITY*fall_time*fall_time)
+		sprite.global_position.y = minf(sprite.global_position.y,float(particle.ground_y))
 		sprite.scale = Vector2.ONE * float(particle.diameter)/float(sprite.texture.get_width()) * (1.0-0.25*phase)
 		var color:Color = particle.color
-		color.a = 0.96*(1.0-smoothstep(0.66,1.0,phase))
+		color.a = 0.96*(1.0-smoothstep(float(particle.flight),float(particle.life),elapsed))
 		sprite.modulate = color
+
+func item_position(time:float) -> Vector2:
+	var pop:float = 1.0-pow(1.0-clampf(time/INTRO_SECONDS,0.0,1.0),3.0)
+	var spin_time:float = maxf(time-INTRO_SECONDS,0.0)
+	var ramp:float = smoothstep(0.0,WOBBLE_RAMP_SECONDS,spin_time)
+	return Vector2(sin(spin_time*8.0)*3.0*ramp,lerpf(-5.0,-53.0,pop)+sin(spin_time*6.0)*1.4*ramp)

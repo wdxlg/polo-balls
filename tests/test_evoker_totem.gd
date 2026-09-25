@@ -147,7 +147,7 @@ func run() -> void:
 	replica.set_multiplayer_authority(2)
 	replica.health = 0
 	check(not replica._totem_used and EFFECTS.level_of(replica,"absorption") == 0 and active_fx().size() == 1,"non-authority cannot resolve or duplicate revival")
-	await create_timer(1.8).timeout
+	await create_timer(FX.LIFETIME + FX.PARTICLE_TAIL + 0.2).timeout
 	check(active_fx().is_empty(),"orphaned totem particles also clean up on their own")
 	print("EVOKER_TOTEM_RESULT checks=",checks," failures=",failures)
 	game.Game_Settings = saved
