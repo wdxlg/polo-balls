@@ -46,7 +46,7 @@ func _create_renderer() -> void:
 	top_level = true
 	global_position = Vector2.ZERO
 	z_as_relative = false
-	z_index = 99 # 地图外遮罩之后，边框/门扇之前；不加入任何 2D 碰撞。
+	z_index = 90 # 与地图外遮罩同层、在其后绘制；91–99 留给战斗反馈。
 	viewport = SubViewport.new()
 	viewport.name = "PerspectiveBlockViewport"
 	viewport.size = Vector2i(64,64)
@@ -136,7 +136,9 @@ func _create_renderer() -> void:
 	shadow_picture.texture = shadow_viewport.get_texture()
 	shadow_picture.material = _composite_material
 	shadow_picture.modulate = Color(0.025,0.028,0.035,0.62)
-	shadow_picture.z_index = -1
+	# 地影只盖地面(-5)，不盖状态框(-3)、人物和战斗文字。
+	shadow_picture.z_as_relative = false
+	shadow_picture.z_index = -4
 	add_child(shadow_picture)
 	picture = Sprite2D.new()
 	picture.name = "MovingBlocksAndRealShadows"
@@ -169,6 +171,12 @@ func configure_regions(ground:Array[Rect2],walls:Array[Rect2],edges:Array[Dictio
 	wall_bottom_texture = SAND_BOTTOM if style == "sand" else wall_texture
 	_emission_strength = {"grass":0.28,"sand":0.0,"stone":0.75,"nether":2.1,"end":0.05}.get(style,0.0)
 	_create_renderer()
+	# 同 Z 按场景树顺序绘制：避免遮罩擦掉墙的外侧，又不占用反馈层。
+	# 每次地图/主题刷新都校正，兼容遮罩较晚创建或节点被重新排序。
+	var host:Node = get_parent()
+	var outside_mask:Node = host.get_node_or_null("MapOutsideVisualMask") if host != null else null
+	if outside_mask != null and get_index() < outside_mask.get_index():
+		host.move_child(self,outside_mask.get_index())
 	var ambient:Environment = (viewport.get_node("BlockAmbientLight") as WorldEnvironment).environment
 	ambient.ambient_light_color = Color(0.72,0.79,0.89)
 	ambient.ambient_light_energy = 1.35
