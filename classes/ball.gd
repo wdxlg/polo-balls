@@ -6833,12 +6833,14 @@ func receive_spatial_damage(
 		return actual_health_damage > 0.0
 	# Area/skill callers may tag explosion, fall, projectile, etc.; restore the
 	# context immediately so a later unrelated hit cannot inherit that resistance.
-	var previous_enchant_element:Variant = get_meta("_mc_enchant_element",null)
+	# get_meta(key, null) still logs an error when the key is absent in Godot.
+	var had_enchant_element:bool = has_meta("_mc_enchant_element")
+	var previous_enchant_element:Variant = get_meta("_mc_enchant_element") if had_enchant_element else null
 	var typed_element:String = str(damage_space.get("element","")) if damage_space is Dictionary else ""
 	if not typed_element.is_empty(): set_meta("_mc_enchant_element",typed_element)
 	var accepted_damage:bool = receive_positional_damage(damage,impact_position,ignore_block,source)
-	if previous_enchant_element == null: remove_meta("_mc_enchant_element")
-	else: set_meta("_mc_enchant_element",previous_enchant_element)
+	if had_enchant_element: set_meta("_mc_enchant_element",previous_enchant_element)
+	elif has_meta("_mc_enchant_element"): remove_meta("_mc_enchant_element")
 	return accepted_damage
 
 

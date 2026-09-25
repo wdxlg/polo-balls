@@ -31,7 +31,12 @@ func create_newbug(border:Dictionary) -> ball:
 	new_bug.Master = self
 	new_bug.Master_name = self.name
 	new_bug.Team = Team
-	new_bug.Target_Enemy = Target_Enemy if is_instance_valid(Target_Enemy) else Nearest_Enemy
+	# 任一目标都可能在上一帧阵亡或等待删除；不要把失效引用传给幼虫。
+	# 无可用敌人时保持 null，让 World 下一帧重新选择目标。
+	if is_instance_valid(Target_Enemy) and Target_Enemy is ball and Target_Enemy.health > 0 and not Target_Enemy.is_queued_for_deletion():
+		new_bug.Target_Enemy = Target_Enemy
+	elif is_instance_valid(Nearest_Enemy) and Nearest_Enemy is ball and Nearest_Enemy.health > 0 and not Nearest_Enemy.is_queued_for_deletion():
+		new_bug.Target_Enemy = Nearest_Enemy
 
 	new_bug.global_position = Vector2(
 		clampf(global_position.x + randf_range(-bug_random_range,bug_random_range),border.start.x,border.end.x),
