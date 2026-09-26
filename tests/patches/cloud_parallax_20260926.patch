@@ -1,0 +1,280 @@
+diff --git a/shaders/minecraft_clouds.gdshader b/shaders/minecraft_clouds.gdshader
+index e1c52266f24bd07a4e624b961e591da12d904361..1201263bf7ac0fb930eb02d6abc0f276003ede80 100644
+--- a/shaders/minecraft_clouds.gdshader
++++ b/shaders/minecraft_clouds.gdshader
+@@ -6,7 +6,8 @@ render_mode unshaded;
+ uniform sampler2D cloud_mask : filter_nearest, repeat_enable;
+ uniform float cell_size = 32.0;
+ uniform float plane_depth : hint_range(1.0, 1.0) = 1.0;
+-uniform float parallax : hint_range(0.0, 1.0) = 0.6;
++// Ratios above 1 move clouds farther than the projected camera pan.
++uniform float parallax : hint_range(0.0, 2.0) = 1.25;
+ uniform float travel = 0.0;
+ uniform vec2 height_shift = vec2(0.0, 10.6666667);
+ uniform float cloud_alpha : hint_range(0.0, 1.0) = 1.0;
+diff --git a/tests/CLOUD_PARALLAX_20260926.md b/tests/CLOUD_PARALLAX_20260926.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..1471a162803e69201b8d5563809957aeb3eb2b95
+--- /dev/null
++++ b/tests/CLOUD_PARALLAX_20260926.md
+@@ -0,0 +1,77 @@
++# 云的镜头视差大于背景（2026-09-26）
++
++## 用户要求与本次调整
++
++用户要求：“云的视差效果应该比背景要大。也就是说视角移动的时候云移动的更多。”
++
++本次采用 **1.25 倍相机投影位移**作为云层的统一视差：上空云与背景云都使用同一倍率。镜头向右/下移动时，云仍向画面的左/上移动，只是幅度更大，不反向跟随镜头。
++
++- 原来蓝色上空云为 0.6，非蓝色背景云仅 0.25；后者比蓝色/草地的 0.32 和沙地的 0.30 背景移动还少。
++- 将控制器的两个视差常量统一为 1.25；Shader 的默认值同步，并允许编辑器设置大于 1 的倍率。
++- **没有降低背景速度来制造差异。** 六种平面背景仍是原来的 0.18–0.32；山巅仍用原有真实 Camera3D 透视投影。
++- 自然飘动仍为原来的 **1.6 世界像素/秒**，不随此倍率加速。
++- 不改原版 PNG、32×32 平铺云格、向下 32/3 厚边、白顶/0.70 下沿、不透明度或昼夜染色。
++- 保留本机开关、暂停、重置、多岛补集、独立视口，以及山巅“山体 → 云 → 竞技场”的遮挡关系。
++
++实际游戏代码仅改 `scripts/effects/我的世界/minecraft_clouds.gd` 的视差常量和 `shaders/minecraft_clouds.gdshader` 的默认值/范围。不改背景注册表、世界/相机控制器、山体或战斗逻辑。
++
++## 实际渲染验证
++
++引擎：Godot 4.7.2 offline；GPU：RTX 4060 Laptop。每个进程使用检查点内独立 `APPDATA`，不更改用户真实设置。
++
++| 入口 | 实际渲染后端 | 结果 |
++| --- | --- | --- |
++| `tests/test_cloud_parallax.gd` | OpenGL 3.3 Compatibility | **192/192，exit 0** |
++| 同一夹具 | D3D12 Forward+ | **192/192，exit 0** |
++| `tests/test_scenery_layers.gd` | D3D12 Forward+ | **40/43，exit 1：3 项未通过，见下文** |
++
++192 项包含原有云夹具的 55 项及新增的相对位移检查；另一渲染后端是重复验证，不算成另一批独立功能覆盖。视差专项的两个后端均无失败断言、`SCRIPT ERROR` 或 `ERROR:`；场景综合回归的未通过项不算作视差验证通过。编辑器当前定向诊断也返回零项，以真实引擎运行结果为主要依据。
++
++### 不只检查参数，而是比较实际像素
++
++新增夹具使用运行时云/背景 ShaderMaterial，在 0.5、1、2 倍缩放下分别做横向、纵向平移：六种平面背景 × 三种缩放 × 两个方向，共 36 组。
++
++以相机投影位移 100 像素计：
++
++| 内容 | 实测/验证位移 |
++| --- | --- |
++| 云 | **125 px** |
++| 蓝色、草地背景 | 32 px |
++| 沙地背景 | 30 px |
++| 石砖背景 | 22 px |
++| 下界背景 | 20 px |
++| 末地背景 | 18 px |
++
++每组云和背景都与各自对应位移后的图像逐像素匹配，零不符；强制用背景的较小位移去匹配云会失败，排除云没有真正移动或只是跟背景一起动的空检查。两种后端结果一致。
++
++山巅另外读取**当前真实背景 Camera3D** 对最近山峰高度层的投影。三种缩放下，100 px 相机投影位移对应最近山体约 **95.24 / 90.91 / 83.33 px**，均小于云的 125 px；两个方向都保持正确。该项是实际相机投影数值，不把山体截图的局部纹理相关性冒充完整 3D 像素匹配。
++
++### 原有表现不退化
++
++- 云体 CPU/GPU 参考仍为 **196608 像素、0 差异**，没有变成斜面、薄纸或透明软边。
++- 相同取景、不同分辨率的云采样 **4952 点、0 差异**；一个视口移动不会拖动另一独立视口的云。
++- 主窗口山巅平移前/后截图已打开核对云与背景的相对位移；不以截图代替未通过的综合遮挡断言。
++- 最初场景分层回归为 43/43。准备提交时检测到另一任务更新了山巅层级（云控制器新增 `SUMMIT_Z` 等）；没有覆盖其修改，在最新代码上重跑，视差专项两后端仍各 192/192。
++
++### 并发工作区的未通过边界
++
++最新山巅综合回归有三项失败：前景/背景 GPU 掩码覆盖、云确实经过前景后方的像素证据、竞技场夜间染色。另在检查点中运行只将云材质恢复为旧 0.6/0.25 视差的诊断夹具，同样为 40/43，复现相同三项失败。没有为了取得绿灯改动/放宽这些断言，也没有修改对方的层级实现。测试文件在并行维护，故这里记录观察到的边界，不宣称已经验收最新层级或定位其全部原因。
++
++初次全部通过的日志/截图保存在检查点 `before_concurrent_layer_update/`；最新结果在 `final_results.json`，旧视差对照在 `scenery_old_parallax_probe.json` / `.log`。本次提交门槛是两个后端的视差专项全部通过，并明确记录上述未解决边界，而不是宣称整个脏工作区回归全通过。
++
++本次没有验证双语视频编码、人工双客户端对局、极端缩放或长期压力；也没有把其他专题里的历史时钟问题宣称为已修复。
++
++## 检查点与局部 Git 版本
++
++- 任务开始 HEAD：`ded5cf6fbf79279b648ad8cb2f5faf069f1b22ce`。
++- 修改前检查点、最终日志/截图：`E:/godot/polo-balls-tools/checkpoints/cloud-parallax-20260926-085339`。
++- 最终父/新提交及文件清单：检查点内 `commit_result.json`，交付回复同时报告。
++- 云控制器、原云测试/报告及 `MCP_CONTEXT.md` 在任务开始时已有其他修改。本次完整备份后只修改视差常量和对应索引片段；**不提交既有山巅分层、庭院移除等其他工作**，不覆盖真实暂存区。
++- `tests/patches/cloud_parallax_20260926.patch` 是本轮独立回退补丁。共享文件部分依据当前工作区生成，仅撤回本次系数/规则修改，保留其他已存在的修改；提交前反向检查通过。不是全项目脏工作区快照。
++
++```powershell
++# 仅检查；实际回退前先备份最新工作，并核对共享文件是否又有变更。
++git apply --reverse --check -- tests/patches/cloud_parallax_20260926.patch
++```
++
++补丁不包含自身。没有远程推送，不使用全局 reset/clean。
+diff --git a/tests/test_cloud_parallax.gd b/tests/test_cloud_parallax.gd
+new file mode 100644
+index 0000000000000000000000000000000000000000..3d3c5ad5f55a5720159d2ac7882df1f4b25b0ed4
+--- /dev/null
++++ b/tests/test_cloud_parallax.gd
+@@ -0,0 +1,151 @@
++extends "res://tests/test_minecraft_clouds.gd"
++## Runs the existing cloud regression, then measures actual pixel motion against
++## each background shader and the summit's live Camera3D projection.
++const THEMES = preload("res://scripts/effects/我的世界/地图背景主题.gd")
++const MOTION_VIEW_SIZE := Vector2i(512,384)
++const CAMERA_SCREEN_STEP:float = 100.0
++
++func gpu_checks() -> void:
++	await super.gpu_checks()
++	if DisplayServer.get_name() == "headless": return
++	await relative_motion_checks()
++	await summit_motion_checks()
++	print("CLOUD_PARALLAX_SCOPED_CHECKS_COMPLETE")
++
++func motion_quad(view:SubViewport,material:Material) -> Polygon2D:
++	var quad:=Polygon2D.new()
++	# Covers every camera/zoom sample without moving/clipping the test geometry.
++	quad.polygon = PackedVector2Array([Vector2(-8192,-8192),Vector2(8192,-8192),Vector2(8192,8192),Vector2(-8192,8192)])
++	quad.material = material
++	view.add_child(quad)
++	return quad
++
++func motion_transform(center:Vector2,zoom:float) -> Transform2D:
++	return Transform2D(Vector2(zoom,0),Vector2(0,zoom),Vector2(MOTION_VIEW_SIZE)*0.5-center*zoom)
++
++func translation_errors(before:Image,after:Image,shift:Vector2i) -> Vector2i:
++	var compared:int = 0
++	var different:int = 0
++	for y:int in range(12,after.get_height()-12,5):
++		for x:int in range(12,after.get_width()-12,5):
++			var p:=Vector2i(x,y)
++			var q:Vector2i = p+shift
++			if q.x<12 or q.y<12 or q.x>=before.get_width()-12 or q.y>=before.get_height()-12: continue
++			compared += 1
++			if after.get_pixelv(p)!=before.get_pixelv(q): different += 1
++	return Vector2i(compared,different)
++
++func save_motion_image(image:Image,name:String,hdr:bool = false) -> void:
++	var folder:String = OS.get_environment("CLOUD_PARALLAX_ARTIFACTS")
++	if folder.is_empty(): return
++	DirAccess.make_dir_recursive_absolute(folder)
++	var copy:Image = image.duplicate()
++	copy.convert(Image.FORMAT_RGBA8)
++	if hdr: copy.linear_to_srgb()
++	copy.save_png(folder.path_join(name+".png"))
++
++func relative_motion_checks() -> void:
++	var sky:SubViewport = capture_view(MOTION_VIEW_SIZE,false)
++	var background:SubViewport = capture_view(MOTION_VIEW_SIZE,false)
++	var sky_quad:Polygon2D = motion_quad(sky,null)
++	var background_quad:Polygon2D = motion_quad(background,null)
++	var start_center:=Vector2(256,192)
++	var old_travel:float = cloud.travel
++	for style:String in ["blue","grass","sand","stone","nether","end"]:
++		game.set_runtime_game_setting("Map_Background",style,false)
++		world._update_map_outside_grid_parallax()
++		var cloud_material:ShaderMaterial = cloud.cloud_material.duplicate()
++		var background_material:ShaderMaterial = world.map_outside_grid_material.duplicate()
++		sky_quad.material = cloud_material
++		background_quad.material = background_material
++		cloud_material.set_shader_parameter("travel",0.0)
++		background_material.set_shader_parameter("viewport_size",Vector2(MOTION_VIEW_SIZE))
++		var cloud_ratio:float = cloud_material.get_shader_parameter("parallax")
++		var background_ratio:float = background_material.get_shader_parameter("parallax_scale")
++		check(is_equal_approx(cloud_ratio,1.25) and cloud_ratio>background_ratio,"runtime cloud motion exceeds the unchanged background: "+style)
++		check(is_equal_approx(background_ratio,float(THEMES.theme(style).get("grid_parallax"))),"background motion itself is not slowed to fake the cloud improvement: "+style)
++		for zoom:float in [0.5,1.0,2.0]:
++			background_material.set_shader_parameter("camera_zoom",Vector2.ONE*zoom)
++			for axis:Vector2 in [Vector2.RIGHT,Vector2.DOWN]:
++				sky.canvas_transform = motion_transform(start_center,zoom)
++				background.canvas_transform = sky.canvas_transform
++				background_material.set_shader_parameter("camera_position",start_center)
++				await _frame()
++				var sky_before:Image = sky.get_texture().get_image()
++				var background_before:Image = background.get_texture().get_image()
++				var moved_center:Vector2 = start_center+axis*CAMERA_SCREEN_STEP/zoom
++				sky.canvas_transform = motion_transform(moved_center,zoom)
++				background.canvas_transform = sky.canvas_transform
++				background_material.set_shader_parameter("camera_position",moved_center)
++				await _frame()
++				var sky_after:Image = sky.get_texture().get_image()
++				var background_after:Image = background.get_texture().get_image()
++				var cloud_shift:Vector2i = Vector2i((axis*CAMERA_SCREEN_STEP*cloud_ratio).round())
++				var background_shift:Vector2i = Vector2i((axis*CAMERA_SCREEN_STEP*background_ratio).round())
++				var cloud_match:Vector2i = translation_errors(sky_before,sky_after,cloud_shift)
++				var background_match:Vector2i = translation_errors(background_before,background_after,background_shift)
++				var wrong_cloud_shift:Vector2i = translation_errors(sky_before,sky_after,background_shift)
++				var label:String = "%s zoom=%.1f axis=%s" % [style,zoom,str(axis)]
++				check(cloud_match.x>1000 and cloud_match.y==0,"GPU cloud pixels move 125px per 100px camera pan: "+label)
++				check(background_match.x>1000 and background_match.y==0,"GPU background pixels retain their smaller displacement: "+label)
++				check(cloud_shift.length()>background_shift.length() and wrong_cloud_shift.y>100,"GPU cloud image does not merely follow the background: "+label)
++				print("CLOUD_RELATIVE_MOTION ",label," cloud=",cloud_shift," background=",background_shift," cloud_samples=",cloud_match," background_samples=",background_match)
++				if style=="grass" and is_equal_approx(zoom,1.0) and axis==Vector2.RIGHT:
++					save_motion_image(sky_before,"cloud_pan_before")
++					save_motion_image(sky_after,"cloud_pan_after")
++					save_motion_image(background_before,"background_pan_before")
++					save_motion_image(background_after,"background_pan_after")
++	# A second viewport shares the same material/canvas, but has its own camera.
++	var independent:SubViewport = capture_view(MOTION_VIEW_SIZE,false)
++	independent.world_2d = sky.world_2d
++	sky.canvas_transform = motion_transform(start_center,1.0)
++	independent.canvas_transform = motion_transform(start_center+Vector2(80,40),0.5)
++	await _frame()
++	var main_before:Image = sky.get_texture().get_image()
++	var other_before:Image = independent.get_texture().get_image()
++	sky.canvas_transform = motion_transform(start_center+Vector2(100,-100),1.0)
++	await _frame()
++	check(other_before.get_data()==independent.get_texture().get_image().get_data(),"panning one viewport does not drag independently centered recording/overview clouds")
++	check(main_before.get_data()!=sky.get_texture().get_image().get_data(),"the moved viewport actually changes its own cloud image")
++	check(is_equal_approx(cloud.travel,old_travel),"camera parallax does not accelerate the cloud's natural drift clock")
++	independent.queue_free()
++	sky.queue_free()
++	background.queue_free()
++	await process_frame
++
++func summit_motion_checks() -> void:
++	game.set_runtime_game_setting("Map_Background","summit",false)
++	var volume:Node = world.map_wall_volume
++	var camera:=Camera2D.new()
++	world.add_child(camera)
++	camera.position_smoothing_enabled = false
++	camera.make_current()
++	var center:Vector2 = world.return_map_world_rect(world._current_map_node()).get_center()
++	check(is_instance_valid(volume.background_camera) and volume.summit_arena.mountain_highest_y<0.0,"measure the real summit scenery camera and the nearest mountain height, not a guessed background coefficient")
++	var peak:=Vector3(center.x,volume.summit_arena.mountain_highest_y,center.y)
++	var cloud_ratio:float = cloud.cloud_material.get_shader_parameter("parallax")
++	for zoom:float in [0.5,1.0,2.0]:
++		camera.zoom = Vector2.ONE*zoom
++		for axis:Vector2 in [Vector2.RIGHT,Vector2.DOWN]:
++			camera.global_position = center
++			camera.force_update_scroll()
++			await _frame()
++			var before:Vector2 = volume.background_camera.unproject_position(peak)/volume._render_scale
++			if is_equal_approx(zoom,1.0) and axis==Vector2.RIGHT:
++				save_motion_image(root.get_texture().get_image(),"summit_pan_before",root.use_hdr_2d)
++			camera.global_position = center+axis*CAMERA_SCREEN_STEP/zoom
++			camera.force_update_scroll()
++			await _frame()
++			var after:Vector2 = volume.background_camera.unproject_position(peak)/volume._render_scale
++			var background_pixels:float = before.distance_to(after)
++			var cloud_pixels:float = CAMERA_SCREEN_STEP*cloud_ratio
++			check(background_pixels>0.1 and cloud_pixels>background_pixels,"cloud pan exceeds even the nearest summit mountain projection: zoom %.1f axis %s" % [zoom,str(axis)])
++			check((after-before).dot(axis)<0.0,"cloud and summit scenery move opposite the camera, not in reversed directions")
++			print("CLOUD_SUMMIT_MOTION zoom=",zoom," axis=",axis," cloud=",cloud_pixels," nearest_mountain=",background_pixels)
++			if is_equal_approx(zoom,1.0) and axis==Vector2.RIGHT:
++				save_motion_image(root.get_texture().get_image(),"summit_pan_after",root.use_hdr_2d)
++	check(volume.background_picture.z_index<cloud.z_index and cloud.z_index<volume.z_index,"stronger parallax preserves mountain < cloud < arena occlusion")
++	world.camera_2d.make_current()
++	camera.queue_free()
++	game.set_runtime_game_setting("Map_Background","blue",false)
++	await process_frame
+diff --git a/tests/test_cloud_parallax.gd.uid b/tests/test_cloud_parallax.gd.uid
+new file mode 100644
+index 0000000000000000000000000000000000000000..fe9df57f32c3138dc01f1e4cde7dc0e6b6ca3bc1
+--- /dev/null
++++ b/tests/test_cloud_parallax.gd.uid
+@@ -0,0 +1 @@
++uid://bx685jtm2peed
+diff --git a/scripts/effects/我的世界/minecraft_clouds.gd b/scripts/effects/我的世界/minecraft_clouds.gd
+--- a/scripts/effects/我的世界/minecraft_clouds.gd
++++ b/scripts/effects/我的世界/minecraft_clouds.gd
+@@ -9,4 +9,6 @@
+ const PLANE_DEPTH:float = 1.0 # Square footprint cells, aligned with the ground plane.
+-const OVERHEAD_PARALLAX:float = 0.6
+-const BACKGROUND_PARALLAX:float = 0.25
++# Screen-motion ratio, not natural drift speed. Clouds must outrun both the
++# 0.18-0.32 flat backgrounds and the below-arena summit scenery (<1.0).
++const OVERHEAD_PARALLAX:float = 1.25
++const BACKGROUND_PARALLAX:float = OVERHEAD_PARALLAX
+ const DRIFT_SPEED:float = CELL_SIZE*(0.03*20.0/12.0) # Native drift relative to one texture cell.
+diff --git a/MCP_CONTEXT.md b/MCP_CONTEXT.md
+--- a/MCP_CONTEXT.md
++++ b/MCP_CONTEXT.md
+@@ -126,2 +126,2 @@
+ - 天堂陨落长弓发射环须是面向弓头/出箭方向的伪3D环面，不是屏幕正圆：公共 `expanding_ring` 支持 `direction/depth_ratio`，沿发射法线压缩至0.35、横向保持原尺寸；权威RPC同步出生点及出生朝向，出圈后不追随转头。旧平面调用默认depth_ratio=1。239项回归及回退见 `tests/HEAVENFALL_MUZZLE_3D_20260926.md`。
+-- 原版方块云：设置→参数的本机开关，默认开启并保存；Java 1.21.4 原始 clouds.png 不改。用户已确认与战场方向一致的平铺角度：云格32×32，不倾斜、不压缩、不近大远小；实心白云面，下沿直向下32/3像素、明暗0.70，不恢复半透明3px纸片或斜向透视候选。各视口独立视差：蓝色上空0.6、非蓝色背景0.25；五种旧方块主题保留多岛补集，山巅连续云由真实3D前景遮挡、不盖地图或建筑及暂停/重置/共享World2D。55项云、84项墙体、41项长弓圈回归与局部回退见 `tests/MINECRAFT_CLOUD_FLAT_20260926.md`；旧昼夜地面GPU8项失败为历史记录，本轮地面/共享视口复测通过，但3项时钟像素可见性未通过，边界见 `tests/SUMMIT_LIGHTING_CLOUDS.md`。
++- 原版方块云：设置→参数的本机开关，默认开启并保存；Java 1.21.4 原始 clouds.png 不改。用户已确认与战场方向一致的平铺角度：云格32×32，不倾斜、不压缩、不近大远小；实心白云面，下沿直向下32/3像素、明暗0.70，不恢复半透明3px纸片或斜向透视候选。各视口独立视差统一为1.25，镜头移动时云必须比背景位移更多（含山巅，验证见 `tests/CLOUD_PARALLAX_20260926.md`）；五种旧方块主题保留多岛补集，山巅连续云由真实3D前景遮挡、不盖地图或建筑及暂停/重置/共享World2D。55项云、84项墙体、41项长弓圈回归与局部回退见 `tests/MINECRAFT_CLOUD_FLAT_20260926.md`；旧昼夜地面GPU8项失败为历史记录，本轮地面/共享视口复测通过，但3项时钟像素可见性未通过，边界见 `tests/SUMMIT_LIGHTING_CLOUDS.md`。

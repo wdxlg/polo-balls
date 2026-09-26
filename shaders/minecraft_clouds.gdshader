@@ -6,7 +6,8 @@ render_mode unshaded;
 uniform sampler2D cloud_mask : filter_nearest, repeat_enable;
 uniform float cell_size = 32.0;
 uniform float plane_depth : hint_range(1.0, 1.0) = 1.0;
-uniform float parallax : hint_range(0.0, 1.0) = 0.6;
+// Ratios above 1 move clouds farther than the projected camera pan.
+uniform float parallax : hint_range(0.0, 2.0) = 1.25;
 uniform float travel = 0.0;
 uniform vec2 height_shift = vec2(0.0, 10.6666667);
 uniform float cloud_alpha : hint_range(0.0, 1.0) = 1.0;

@@ -7,8 +7,10 @@ const CLOUD_SHADER:Shader = preload("res://shaders/minecraft_clouds.gdshader")
 const CELL_SIZE:float = 32.0
 const THICKNESS:float = CELL_SIZE / 3.0 # 12:4 native width/thickness ratio, adapted to 2D.
 const PLANE_DEPTH:float = 1.0 # Square footprint cells, aligned with the ground plane.
-const OVERHEAD_PARALLAX:float = 0.6
-const BACKGROUND_PARALLAX:float = 0.25
+# Screen-motion ratio, not natural drift speed. Clouds must outrun both the
+# 0.18-0.32 flat backgrounds and the below-arena summit scenery (<1.0).
+const OVERHEAD_PARALLAX:float = 1.25
+const BACKGROUND_PARALLAX:float = OVERHEAD_PARALLAX
 const DRIFT_SPEED:float = CELL_SIZE*(0.03*20.0/12.0) # Native drift relative to one texture cell.
 const PERIOD:float = CELL_SIZE*256.0
 const OVERHEAD_Z:int = 3000
