@@ -1,4 +1,5 @@
 extends Control
+const BATTLE_CONDITIONS_CATALOG = preload("res://scripts/training/battle_conditions_catalog.gd")
 
 #设定
 # V126：多人端口固定为 27018。UI 中的输入框是“服务器地址/IP”，不是端口输入框。
@@ -455,6 +456,8 @@ func _shared_settings_snapshot() -> Dictionary:
 func _apply_runtime_game_setting_local(setting:String,value:Variant,save_after:bool) -> void:
 	if not Game_Settings.has(setting):
 		return
+	if BATTLE_CONDITIONS_CATALOG.SETTING_KEYS.has(setting):
+		value = BATTLE_CONDITIONS_CATALOG.normalize_setting(setting,value)
 	if setting == "Training_Mode":
 		_training.set_training_mode(bool(value))
 	elif setting == "Training_Mode_Type":
@@ -532,7 +535,9 @@ func make_battle_random_seed() -> int:
 
 
 func begin_battle_random(seed_value:int) -> int:
-	_battle_random_seed = _normalize_battle_seed(seed_value)
+	# A recorded seed is already normalized. Normalizing it again increments it
+	# and changes every deterministic stream on an allegedly exact rematch.
+	_battle_random_seed = seed_value if seed_value>=1 and seed_value<=2147483646 else _normalize_battle_seed(seed_value)
 	_battle_random_active = true
 	_battle_random_counters.clear()
 	seed(_battle_random_seed)
@@ -605,6 +610,8 @@ func load_persistent_settings() -> void:
 		)
 
 
+	for key:String in BATTLE_CONDITIONS_CATALOG.SETTING_KEYS:
+		Game_Settings[key] = BATTLE_CONDITIONS_CATALOG.normalize_setting(key,Game_Settings.get(key))
 	# 关键：
 	# 不再恢复旧的 speed_slider。
 	# 速度倍率直接影响 physics delta，高倍率会降低高速投射物碰撞可靠性。
@@ -679,6 +686,9 @@ func _on_speed_slider_drag_ended(value_changed:bool) -> void:
 	Enable_Dialogue = false,
 	# 训练玩法类型：manual / rotation / timed / boss。
 	Training_Mode_Type = "manual",
+	Random_Events = false,
+	Random_Event_Selection = [],
+	Environment = "none",
 	# 轮放模式：false=任一方死亡后双方都换下一位；true=胜者留场，只补死亡方。
 	Training_Wheel_Battle = false,
 	# 计时模式时长（秒）。SpinBox 可自由输入。

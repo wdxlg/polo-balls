@@ -39,7 +39,10 @@ var _buff:Buff
 var _attack_buff:Buff
 var _vuln_buff:Buff
 var _freeze_tick_left:float = 0.0
-var _source:ball
+# Weather is a non-character damage source implementing attack_damage(), not a hidden golem.
+var _source:Node
+var _freeze_damage_snapshot:float = FREEZE_TICK_DAMAGE
+const FREEZE_ATTACK_RATIO:float = FREEZE_TICK_DAMAGE/9.0 # Original golem's default Damage=9.
 var freeze_damage_dealt:float = 0.0
 # 冻住期间的外来命中检测：记录上次看到的生命/护盾，真实下降即视为被打（冻伤 tick 自己扣的血在 _freeze_tick 里先记账，不算）。
 var _watch_health:float = 0.0
@@ -74,12 +77,14 @@ func _ready() -> void:
 	_attack_buff = Buff.new(2,0.25,Buff.Buff_types.Attack_Cooling,1.0,Buff.Algorithms.mul)
 	_vuln_buff = Buff.new(2,0.25,Buff.Buff_types.Damage_reduction,0.0,Buff.Algorithms.add)
 
-func add_cold(value:float,duration:float = 1.4,source:ball = null) -> bool:
+func add_cold(value:float,duration:float = 1.4,source:Node = null) -> bool:
 	if not is_multiplayer_authority() or not _usable() or not target.is_combat_runtime_active(): return false
-	if value <= 0.0 or frozen_left > 0.0 or not target.can_receive_negative_effects(): return false
+	if not is_finite(value) or not is_finite(duration) or value <= 0.0 or frozen_left > 0.0 or not target.can_receive_cold_status(): return false
 	set_process(true)
 	set_physics_process(true)
-	if source != null and is_instance_valid(source): _source = source
+	_source = source if is_instance_valid(source) else null
+	_freeze_damage_snapshot = FREEZE_TICK_DAMAGE
+	_resolve_freeze_damage()
 	amount = minf(LIMIT,amount+value*target.get_negative_effect_ratio())
 	if amount >= LIMIT-0.0001:
 		amount = 0.0
@@ -156,12 +161,35 @@ func _update_buff() -> void:
 		entry.erase(VULN_BUFF_KEY)
 	if entry.is_empty(): target.Buff_Dic.erase(key)
 
+func _resolve_freeze_damage() -> float:
+	if is_instance_valid(_source) and not _source.is_queued_for_deletion() and _source.has_method("attack_damage"):
+		if not ("health" in _source) or float(_source.health) > 0.0:
+			var value:float = float(_source.attack_damage(FREEZE_ATTACK_RATIO))
+			if is_finite(value): _freeze_damage_snapshot = maxf(0.0,value)
+	return maxf(1.0,roundf(_freeze_damage_snapshot)) if _freeze_damage_snapshot > 0.0 else 0.0
+
+func clear_for_immunity() -> void:
+	amount = 0.0
+	frozen_left = 0.0
+	freeze_total = 0.0
+	_freeze_tick_left = 0.0
+	_source = null
+	particles.clear()
+	_end_ice(false)
+	_release_lock() # Release only this cold status's lease, never other controls.
+	_update_buff()
+	_update_tint()
+	_sync_state()
+	queue_redraw()
+	set_process(false)
+	set_physics_process(false)
+
 func _freeze_tick() -> void:
-	if not _usable(): return
+	if not _usable() or not target.can_receive_cold_status(): return
 	var source:Node = _source if is_instance_valid(_source) else null
 	var before:float = float(target.health)
 	# 冰从体内冻伤，护盾挡不住；伤害本身也吃冻结的加倍。
-	target.receive_positional_damage(FREEZE_TICK_DAMAGE,target.global_position,true,source)
+	target.receive_cold_positional_damage(_resolve_freeze_damage(),target.global_position,true,source)
 	freeze_damage_dealt += maxf(before-float(target.health),0.0)
 	_watch()
 
@@ -204,17 +232,10 @@ func advance(delta:float) -> void:
 	if not _usable():
 		queue_free()
 		return
-	if not target.is_combat_runtime_active(): return
-	if not target.can_receive_negative_effects():
-		amount = 0.0
-		frozen_left = 0.0
-		freeze_total = 0.0
-		_end_ice(false)
-		_release_lock()
-		_update_buff()
-		_sync_state()
-		queue_free()
+	if not target.can_receive_cold_status():
+		clear_for_immunity()
 		return
+	if not target.is_combat_runtime_active(): return
 	if frozen_left > 0.0:
 		frozen_left = maxf(0.0,frozen_left-maxf(delta,0.0))
 		_hit_sound_left = maxf(0.0,_hit_sound_left-maxf(delta,0.0))
@@ -251,10 +272,18 @@ func _sync_state() -> void:
 	if not is_multiplayer_authority() or not multiplayer.has_multiplayer_peer() or not is_instance_valid(target): return
 	# Field exists on each peer before a shot can apply cold; status children are
 	# created locally from a victim path, not sent as unsafe Object references.
-	var field:Node = get_tree().current_scene.get_node_or_null("MCSnowField")
-	if is_instance_valid(field): field.sync_cold(target,amount,frozen_left,freeze_total)
+	var ancestor:Node = target.get_parent()
+	while is_instance_valid(ancestor):
+		var field:Node = ancestor.get_node_or_null("MCSnowField")
+		if is_instance_valid(field):
+			field.sync_cold(target,amount,frozen_left,freeze_total)
+			return
+		ancestor = ancestor.get_parent()
 
 func accept_state(value:float,frozen:float,total:float = 0.0) -> void:
+	if not _usable() or not target.can_receive_cold_status():
+		clear_for_immunity()
+		return
 	set_process(true)
 	var was_frozen:bool = frozen_left > 0.0
 	amount = clampf(value,0.0,LIMIT)
@@ -286,6 +315,9 @@ func _process(delta:float) -> void:
 		queue_free()
 		return
 	global_position = target.global_position
+	if not target.can_receive_cold_status():
+		clear_for_immunity()
+		return
 	_update_tint()
 	if not target.is_combat_runtime_active(): return
 	if not is_multiplayer_authority() and frozen_left > 0.0:

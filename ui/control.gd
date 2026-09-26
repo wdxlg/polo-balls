@@ -1006,6 +1006,7 @@ func _build_training_settings(parent_box:VBoxContainer) -> void:
 
 	_create_bool_setting_row(parent_box, "Training_Mode")
 	_create_bool_setting_row(parent_box, "Training_Debug_Mode")
+	parent_box.add_child(load("res://ui/battle_conditions_settings.gd").new(self))
 	_create_bool_setting_row(parent_box, "Manual_Training")
 
 	manual_training_options = VBoxContainer.new()
@@ -1273,6 +1274,9 @@ func _build_parameter_settings(parent_box:VBoxContainer) -> void:
 		"Manual_Training": true,
 		"Manual_Collision_Damage": true,
 		"Training_Debug_Mode": true,
+		"Random_Events": true,
+		"Random_Event_Selection": true,
+		"Environment": true,
 		"Training_Mode_Type": true,
 		"Training_Wheel_Battle": true,
 		"Training_Timed_Duration": true,

@@ -668,6 +668,10 @@ func _debug_hazard_info(hazard:Node) -> Dictionary:
 	if hazard == null or not is_instance_valid(hazard) or not hazard.has_method("get_ai_hazard_info"):
 		return {}
 
+	if hazard.has_method("get_debug_hazard_info"):
+		var declared:Variant = hazard.call("get_debug_hazard_info")
+		if declared is Dictionary: return declared
+
 	# 一些 Hazard（棋子等）要求传入 receiver 才返回数据；调试层只需要其几何/伤害，
 	# 所以依次拿任意活着的角色作为上下文。
 	for context:ball in _alive_characters():
@@ -839,6 +843,11 @@ func _debug_add_declared_polygon(info:Dictionary,source:Node,role:String,damage:
 
 
 func _debug_add_declared_threat(info:Dictionary,default_source:Node) -> void:
+	# Sparse fields may declare many exact regions without creating per-tile nodes.
+	if str(info.get("shape",""))=="compound":
+		for part:Variant in info.get("parts",[]):
+			if part is Dictionary: _debug_add_declared_threat(part,default_source)
+		return
 	var source:Node = _node_from_variant(info.get("source",default_source),default_source)
 	var damage:float = maxf(float(info.get("damage",_source_damage(source))),0.0)
 	if damage <= 0.0:
@@ -1162,6 +1171,11 @@ func _append_target_obs(obs:Array[float],info:Dictionary) -> void:
 
 
 func _add_declared_threat(info:Dictionary,default_source:Node) -> void:
+	# Sparse fields may declare many exact regions without creating per-tile nodes.
+	if str(info.get("shape",""))=="compound":
+		for part:Variant in info.get("parts",[]):
+			if part is Dictionary: _add_declared_threat(part,default_source)
+		return
 	var shape:String = str(info.get("shape","circle"))
 	var source:Node = _node_from_variant(info.get("source",default_source),default_source)
 	var damage:float = float(info.get("damage",_source_damage(source)))

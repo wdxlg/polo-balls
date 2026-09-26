@@ -39,6 +39,7 @@ func _ready() -> void:
 	Dead_Audio = ""
 	Block_Audio = ""
 	BlockBreak_Audio = ""
+	cold_effect_ratio = 0.0 # All snow golems, including minis, ignore cold damage/status.
 	motion_blur_enabled = false
 	motion_stretch_enabled = false
 	AfterImage_Speed = 0.0

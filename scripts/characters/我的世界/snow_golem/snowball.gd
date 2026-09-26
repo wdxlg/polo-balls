@@ -109,7 +109,7 @@ func _on_hitbox_on_hit(hurt:hurtbox) -> void:
 	var remaining:float = maxf(float(target.health),0.0) if is_instance_valid(target) else 0.0
 	var actual:float = maxf(before-remaining,0.0)
 	if is_instance_valid(target) and target.health > 0 and actual > 0.0 and target.can_receive_negative_effects():
-		COLD.ensure(target).add_cold(cold_gain,freeze_duration,owner_unit)
+		if target.can_receive_cold_status(): COLD.ensure(target).add_cold(cold_gain,freeze_duration,owner_unit)
 		target.apply_knockback(impact_heading,snow_knockback*target.get_negative_effect_ratio(),100.0,0.0,0.0,{"source":owner_unit,"lock_control":false})
 	# The common hit callback already reports direct Allay-owned hits once.
 	var allay_reported:bool = is_instance_valid(Master) and Master.is_in_group("MinecraftAllay")

@@ -418,6 +418,13 @@ Tiktok,tiktok,TikTok
 黑暗,黑暗,Dark
 分身,分身,Clone
 SETTING_TRAINING_MODE,训练模式,Training Mode
+SETTING_RANDOM_EVENTS,事件,Events
+EVENT_SELECTION_HINT,仅勾选的事件有机会随机触发。,Only checked events can be randomly selected.
+EVENT_SELECTION_EMPTY,暂无可选事件，后续添加。,No events available yet.
+SETTING_ENVIRONMENT,环境,Environment
+ENVIRONMENT_NONE,无,None
+ENVIRONMENT_SNOW,雪,Snow
+ENVIRONMENT_SNOW_HINT,随机生成不会融化的雪片；地面造成寒冷伤害，墙面仅作装饰。,Permanent random snow patches. Ground snow causes cold damage; wall snow is decorative only.
 SETTING_MANUAL_TRAINING,手动训练,Manual Training
 SETTING_MANUAL_COLLISION_DAMAGE,鼠标碰撞伤害,Mouse Collision Damage
 SETTING_MANUAL_ATTACK_INTERVAL,发射间隔,Fire Interval

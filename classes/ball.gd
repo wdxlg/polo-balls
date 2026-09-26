@@ -5,6 +5,7 @@ const VISUAL_PIXEL_SAMPLER_SCRIPT = preload("res://classes/visual_pixel_sampler.
 
 const WILD_DOG_OLD_AGE_AUDIO_PLAYED_META:StringName = &"wild_dog_milk_old_age_death_audio_played"
 const DAMAGE_ELEMENT_FIRE:StringName = &"fire"
+const DAMAGE_ELEMENT_COLD:StringName = &"cold"
 
 const KNOCKBACK_EFFECT_SCRIPT = preload("res://scripts/effects/knockback_effect.gd")
 const HIT_BURST_EFFECT_SCRIPT = preload("res://scripts/effects/hit_burst_effect.gd")
@@ -423,6 +424,15 @@ const CHARACTER_BASE_MOVE_SPEED_MULTIPLIER:float = 0.60
 # 所有被明确标记为“纯火焰”的直接伤害、范围伤害与灼烧 DOT 都只在 receive_fire_* 入口乘一次。
 # 0 = 完全免疫火焰伤害，并且不会附加/刷新灼烧。
 @export_range(0.0,10.0,0.05,"or_greater") var fire_effect_ratio:float = 1.0
+# Cold damage has one shared entry; immunity also prevents cold buildup/control.
+# Snowballs retain normal impact damage and only their cold status uses this gate.
+@export_range(0.0,10.0,0.05,"or_greater") var cold_effect_ratio:float = 1.0:
+	set(value):
+		cold_effect_ratio = maxf(value,0.0) if is_finite(value) else 0.0
+		if cold_effect_ratio <= 0.000001:
+			var cold_status:Node = get_node_or_null("MCSnowCold")
+			if is_instance_valid(cold_status) and cold_status.has_method("clear_for_immunity"):
+				cold_status.clear_for_immunity()
 
 @export_subgroup("Minecraft 药水")
 # 下面三个字段只服务于 res://scripts/effects/我的世界/女巫药水*.gd。
@@ -6768,6 +6778,37 @@ func _consume_minecraft_absorption(damage:float,already_blocked:bool = false) ->
 	var remainder:float = float(status.call("consume_absorption",maxf(damage,0.0)))
 	if remainder < damage and not already_blocked: _play_block_hit_audio()
 	return remainder
+
+
+func get_cold_effect_ratio() -> float:
+	if is_element_immune(DAMAGE_ELEMENT_COLD): return 0.0
+	return maxf(cold_effect_ratio,0.0) if is_finite(cold_effect_ratio) else 0.0
+
+func is_cold_immune() -> bool:
+	return get_cold_effect_ratio() <= 0.000001
+
+func can_receive_cold_status() -> bool:
+	return not is_cold_immune() and can_receive_negative_effects()
+
+func receive_cold_positional_damage(damage:float,impact_position:Vector2,ignore_block:bool = false,source:Node = null) -> bool:
+	var scaled_damage:float = damage*get_cold_effect_ratio()
+	if not is_finite(scaled_damage) or scaled_damage <= 0.0: return false
+	var prior_element:Variant = get_meta("_blood_damage_element","")
+	set_meta("_blood_damage_element","cold")
+	var accepted:bool = receive_positional_damage(scaled_damage,impact_position,ignore_block,source)
+	if prior_element == "": remove_meta("_blood_damage_element")
+	else: set_meta("_blood_damage_element",prior_element)
+	return accepted
+
+func receive_cold_spatial_damage(damage:float,damage_space:Variant,ignore_block:bool = false,raw_health:bool = false) -> bool:
+	var scaled_damage:float = damage*get_cold_effect_ratio()
+	if not is_finite(scaled_damage) or scaled_damage <= 0.0: return false
+	var prior_element:Variant = get_meta("_blood_damage_element","")
+	set_meta("_blood_damage_element","cold")
+	var accepted:bool = receive_spatial_damage(scaled_damage,damage_space,ignore_block,raw_health)
+	if prior_element == "": remove_meta("_blood_damage_element")
+	else: set_meta("_blood_damage_element",prior_element)
+	return accepted
 
 
 func get_fire_effect_ratio() -> float:

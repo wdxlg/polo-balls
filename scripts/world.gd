@@ -1315,6 +1315,7 @@ func _apply_dead_save_ui_override() -> void:
 
 var day_night_cycle:Node2D
 var minecraft_clouds:Node2D
+var battle_conditions:Node2D
 var _mc_prewarmer:Node
 var _mc_placement_generation:int = 0
 var _mc_pending_placements:Array[int] = []
@@ -1381,6 +1382,8 @@ func _ready() -> void:
 		get_tree().node_added.connect(_on_training_scene_node_added)
 	# 场景中可能已有在 World._ready() 之前进入树的投射物，延后一帧做一次兼容同步。
 	call_deferred("_resync_non_ball_projectile_registry")
+	battle_conditions = load("res://scripts/training/battle_conditions.gd").new(self)
+	add_child(battle_conditions)
 
 
 func _exit_tree() -> void:
@@ -4475,6 +4478,7 @@ func refresh_map_presentation() -> void:
 	versus_label.size.x = map_rect.size.x
 	interaction_label.size.x = map_rect.size.x
 
+	if is_instance_valid(battle_conditions): battle_conditions.refresh_layout()
 	_presentation_map_name = now_choose_map
 	_last_versus_text = ""
 	refresh_versus_text()
