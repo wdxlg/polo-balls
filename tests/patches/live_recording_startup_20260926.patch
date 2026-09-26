@@ -1,0 +1,105 @@
+diff --git a/scripts/ui/battle_recorder.gd b/scripts/ui/battle_recorder.gd
+--- a/scripts/ui/battle_recorder.gd
++++ b/scripts/ui/battle_recorder.gd
+@@ -70,6 +70,7 @@
+ var _last_error:String = ""
+ var mode:int = Mode.IDLE
+ 
++var _live_preparing:bool = false
+ var _session_active:bool = false
+ var _finalizing:bool = false
+ var _capture_viewport:Viewport = null
+@@ -295,7 +296,12 @@
+ 	return true
+ 
+ 
++func is_preparing() -> bool:
++	return _live_preparing
++
++
+ func get_pause_reason() -> String:
++	if _live_preparing: return "正在准备录制画面，准备完成后开始音画计时。"
+ 	if get_tree().paused or Game.now_stop_state: return "对局暂停中，请按 Esc 继续。"
+ 	if Game.stop_background.is_visible_in_tree() or Game.stop_text.is_visible_in_tree():
+ 		return "暂停画面或恢复倒计时中，请等待对局继续。"
+@@ -309,6 +315,7 @@
+ func _enter_mode(next_mode:int) -> void:
+ 	mode = next_mode
+ 	_session_active = true
++	_live_preparing = next_mode == Mode.LIVE
+ 	_pause_boundary = false
+ 	if _audio.effect != null: _audio.effect.clear_buffer()
+ 	_last_capture_paused = _capture_is_paused()
+@@ -597,10 +604,41 @@
+ func _capture_is_paused() -> bool:
+ 	return not get_pause_reason().is_empty()
+ 
++func _prime_live_capture() -> bool:
++	# D3D12's first bilingual viewport draw/readback may compile pipelines for
++	# seconds. This is preparation, not recorded time: otherwise the first draw
++	# fabricates ~100 repeated frames and overwhelms the bounded writer queues.
++	_prepare_next_capture()
++	await RenderingServer.frame_post_draw
++	if mode != Mode.LIVE: return false # Stop during preparation remains valid.
++	var zh:PackedByteArray = _grab_capture_rgba()
++	var en:PackedByteArray = _secondary._grab_capture_rgba()
++	var expected:int = _capture_size.x * _capture_size.y * 4
++	if zh.size() != expected or en.size() != expected:
++		return _fail("录制画面准备失败：中英文首帧不完整，本次未开始正式录制。")
++	# Drop preparation audio too; audio, video and the end-tail share the new
++	# epoch. Never reset these clocks or discard audio after recording starts.
++	_audio.drain(1.0, true)
++	if not _audio.error.is_empty(): return _fail(_audio.error)
++	return true
++
++
+ func _capture_loop() -> void:
+ 	if mode == Mode.SIM:
+ 		_offline_capture_loop()
+ 		return
++	var ready:bool = await _prime_live_capture()
++	_live_preparing = false
++	if not ready:
++		stop()
++		_finish_session()
++		return
++	_last_capture_paused = _capture_is_paused()
++	_last_capture_scale = 1.0
++	_pause_boundary = false
++	_speed_real = 0.0
++	_speed_physics_start = _physics_clock
++	_speed_warmup = 1.0
+ 	_profile_enabled = OS.get_environment("BATTLE_RECORD_PROFILE") == "1"
+ 	_profile_buckets.fill(0)
+ 	_profile_frames = 0
+@@ -666,8 +704,8 @@
+ 			break
+ 		if wanted > 0:
+ 			var read_begin:int = _wall_usec() if _profile_enabled else 0
+-			# The first frame validates both RD textures; unsupported formats keep the
+-			# original synchronous path. Later frames read back without stalling draw.
++			# Preparation validated both RD textures; unsupported formats keep the
++			# original synchronous path. Ready textures use asynchronous readback.
+ 			var async_ready:bool = _writer != null and _secondary._writer != null and _readback_texture.is_valid() and _secondary._readback_texture.is_valid() and _readback_device.has_method("texture_get_data_async")
+ 			if async_ready:
+ 				if _live_pending.size() >= 8:
+diff --git a/scripts/ui/battle_record_controls.gd b/scripts/ui/battle_record_controls.gd
+--- a/scripts/ui/battle_record_controls.gd
++++ b/scripts/ui/battle_record_controls.gd
+@@ -87,6 +87,7 @@
+ 	if active and not reason.is_empty():
+ 		button.text = "待录" if recorder._frame_index == 0 else "暂停"
+ 		button.modulate = Color(1.0, 0.8, 0.3)
++	if recorder.is_preparing(): button.text = "准备中…"
+ 	button.disabled = saving
+ 	button.tooltip_text = "左键：开始/停止高清对战录制；右键：从当前状态离线计算对局，不重打；尽快生成正常速度的有声视频。" + "\n默认：user://recordings；在设置 → 录制中选择保存目录" + "\n每次输出中文 + 英文两份视频 · 1080×1920 / 60fps · 仅对战画面和游戏声音 · 暂停不计入成片"
+ 
+@@ -101,6 +102,8 @@
+ 	english_path.text = str(recorder.last_outputs.get("en", ""))
+ 	if path.is_empty():
+ 		_show_message("录制未完成：" + recorder.get_last_error())
++	elif not recorder.get_last_error().is_empty():
++		_show_message("录制中断，已保留部分录像（%d 帧），不是完整对局。" % frames)
+ 	else:
+ 		var kind:String = "%d 个语言版本 MP4" % recorder.last_outputs.size() if path.ends_with(".mp4") else "PNG 图片序列（未找到可用的编码器）"
+ 		_show_message(("已保存 %s，%d 帧（含游戏声音）。" if path.ends_with(".mp4") else "已保存 %s，%d 帧；音频保留为 .audio.f32 临时文件，尚未合成视频。") % [kind, frames])
