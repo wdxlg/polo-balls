@@ -1,0 +1,21 @@
+diff --git a/scripts/ui/battle_recorder.gd b/scripts/ui/battle_recorder.gd
+--- a/scripts/ui/battle_recorder.gd
++++ b/scripts/ui/battle_recorder.gd
+@@ -20,6 +20,9 @@
+ const LIVE_OUTPUT_FPS:float = 60.0
+ const OUTPUT_SIZE:Vector2i = Vector2i(1080, 1920)
+ const VIDEO_CRF:String = "14"
++# NVENC still performs RGBA -> YUV preprocessing on CPU. Two auto-sized filter
++# pools can starve each other/the editor; bound these separately from x264 threads.
++const ENCODER_FILTER_THREADS:int = 2
+ const AudioCaptureScript = preload("res://scripts/ui/battle_record_audio.gd")
+ const EffectTooltipsScript = preload("res://scripts/ui/battle_record_effect_tooltips.gd")
+ const SIM_OUTPUT_FPS:float = 60.0
+@@ -426,6 +429,7 @@
+ 
+ 	var args:Array = [
+ 		"-y", "-hide_banner", "-loglevel", "error",
++		"-filter_threads", str(ENCODER_FILTER_THREADS),
+ 		"-f", "rawvideo", "-pix_fmt", "rgba",
+ 		"-s", "%dx%d" % [_capture_size.x, _capture_size.y],
+ 		"-r", "%.6f" % _output_fps,
