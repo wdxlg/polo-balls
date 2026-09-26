@@ -1,0 +1,111 @@
+diff --git a/scripts/world.gd b/scripts/world.gd
+--- a/scripts/world.gd
++++ b/scripts/world.gd
+@@ -585,10 +585,9 @@
+ @export var versus_screen_top_padding_px:float = 240.0
+ @export var versus_screen_side_padding_px:float = 24.0
+ 
+-# Armor-test prose is a separate screen-space block, above the unchanged VS anchor.
+-@export var armor_intro_screen_top_padding_px:float = 120.0
+-@export var armor_intro_font_size:int = 16
+-@export var armor_intro_versus_gap_px:float = 16.0
++# Armor introductions replace VS in test battles; ordinary match titles are unchanged.
++@export var armor_intro_screen_top_padding_px:float = 48.0
++@export var armor_intro_font_size:int = 32
+ var armor_intro_label:RichTextLabel
+ 
+ # 第二行：互动文字（紧贴在 VS 文字下面）
+@@ -3964,6 +3963,8 @@
+ 	versus_screen_layer.add_child(versus_label)
+ 	armor_intro_label = versus_label.duplicate(0) as RichTextLabel
+ 	armor_intro_label.name = "ArmorStandIntroduction"
++	armor_intro_label.add_theme_constant_override("outline_size",4)
++	armor_intro_label.add_theme_constant_override("line_separation",6)
+ 	armor_intro_label.visible = false
+ 	versus_screen_layer.add_child(armor_intro_label)
+ 
+@@ -4418,14 +4419,13 @@
+ 	if not is_instance_valid(armor_intro_label) or not armor_intro_label.visible:
+ 		return
+ 	var width:float = maxf(1.0,get_viewport_rect().size.x - 2.0 * versus_screen_side_padding_px)
++	armor_intro_label.size.x = width # Shape at the final width before measuring wrapped content.
+ 	var height:float = fit_rich_text_label(armor_intro_label,armor_intro_font_size,armor_intro_font_size,width,2.0)
+ 	height = maxf(height,float(armor_intro_label.get_content_height()) + 4.0)
+ 	armor_intro_label.size = Vector2(width,height)
+ 	armor_intro_label.scale = Vector2.ONE
+-	var top:float = maxf(24.0,minf(armor_intro_screen_top_padding_px,versus_screen_top_padding_px - armor_intro_versus_gap_px - height))
++	var top:float = maxf(24.0,armor_intro_screen_top_padding_px)
+ 	armor_intro_label.position = Vector2(maxf(0.0,versus_screen_side_padding_px),top)
+-	# Only an unusually long introduction can push the armor-test VS down.
+-	versus_label.position.y = maxf(versus_screen_top_padding_px,top + height + armor_intro_versus_gap_px)
+ 
+ 
+ #========================================================
+@@ -5590,7 +5590,9 @@
+ 		lines.append(special_text)
+ 	if lines.is_empty():
+ 		return ""
+-	return "[center][color=#F2F2F2]" + "\n".join(lines) + "[/color][/center]"
++	# Keep the selected original role name, not a matchup or a summoned unit name.
++	var role_name:String = escape_bbcode(Game.t(_armor_stand_test_primary_identity).replace("_"," "))
++	return "[center][color=#F2F2F2][b]" + role_name + "[/b]\n" + "\n".join(lines) + "[/color][/center]"
+ 
+ 
+ func _apply_armor_stand_test_hud_suppression() -> void:
+@@ -5614,8 +5616,9 @@
+ 	if armor_intro_label.text != new_text:
+ 		armor_intro_label.text = new_text
+ 	armor_intro_label.visible = not new_text.is_empty()
+-	versus_label.text = build_versus_text()
+-	versus_label.visible = not versus_label.text.is_empty()
++	versus_label.text = ""
++	versus_label.hide()
++	versus_label.size.y = 0.0
+ 	_last_versus_text = "__armor_stand_test_hud__"
+ 	refresh_top_text_layout()
+ 
+@@ -5685,7 +5688,7 @@
+ 		return
+ 
+ 	# 场上只要有任意盔甲架系角色，就把这一局视为测试。
+-	# 介绍独立显示在 VS 上方；仍隐藏轮换名单和计时器，避免测试信息重叠。
++	# 只显示放大的角色名称与机制介绍，不显示 VS、轮换名单或计时器。
+ 	if _refresh_armor_stand_test_mode_state():
+ 		_refresh_armor_stand_test_enemy_info()
+ 		return
+diff --git a/scripts/ui/battle_record_locale.gd b/scripts/ui/battle_record_locale.gd
+--- a/scripts/ui/battle_record_locale.gd
++++ b/scripts/ui/battle_record_locale.gd
+@@ -185,7 +185,7 @@
+ 			if target.get_theme_font_size(key) != source.get_theme_font_size(key): target.add_theme_font_size_override(key, source.get_theme_font_size(key))
+ 	for key:String in ["font_color", "default_color", "font_shadow_color", "font_outline_color"]:
+ 		if source.has_theme_color(key) and target.get_theme_color(key) != source.get_theme_color(key): target.add_theme_color_override(key, source.get_theme_color(key))
+-	for key:String in ["outline_size", "shadow_offset_x", "shadow_offset_y", "shadow_outline_size", "line_spacing"]:
++	for key:String in ["outline_size", "shadow_offset_x", "shadow_offset_y", "shadow_outline_size", "line_spacing", "line_separation"]:
+ 		if source.has_theme_constant(key) and target.get_theme_constant(key) != source.get_theme_constant(key): target.add_theme_constant_override(key, source.get_theme_constant(key))
+ 	if source is Label:
+ 		target.horizontal_alignment = source.horizontal_alignment
+@@ -284,6 +284,7 @@
+ 			if copy.text != texts[locale]: copy.text = texts[locale]
+ 			copy.position = Vector2.ZERO
+ 			if source == world.armor_intro_label:
++				copy.size.x = source.size.x
+ 				var intro_height:float = world.fit_rich_text_label(copy,world.armor_intro_font_size,world.armor_intro_font_size,source.size.x,2.0)
+ 				copy.size = Vector2(source.size.x,maxf(intro_height,float(copy.get_content_height()) + 4.0))
+ 				continue
+@@ -309,13 +310,8 @@
+ 	for locale:String in ["zh","en"]:
+ 		if not screen_roots.has(locale): continue
+ 		var pair:Dictionary = copies[intro.get_instance_id()][locale]
+-		var height:float = pair.text.size.y
+-		var top:float = maxf(24.0,minf(world.armor_intro_screen_top_padding_px,world.versus_screen_top_padding_px - world.armor_intro_versus_gap_px - height))
+-		pair.holder.position.y = top
+-		if copies.has(world.versus_label.get_instance_id()):
+-			var vs:Dictionary = copies[world.versus_label.get_instance_id()][locale]
+-			vs.holder.position.y = maxf(world.versus_screen_top_padding_px,top + height + world.armor_intro_versus_gap_px)
+-			vs.text.position.y = 0.0
++		pair.holder.position.y = maxf(24.0,world.armor_intro_screen_top_padding_px)
++		# VS visibility follows its source; do not reserve or reposition a hidden matchup.
+ 
+ func _drop(id:int) -> void:
+ 	var source:Variant = sources.get(id)
