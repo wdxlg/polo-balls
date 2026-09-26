@@ -92,6 +92,7 @@
 - 右键双语录制对使用屏幕纹理/BackBufferCopy 的效果必须检查真实 GPU 画面，不只检查物理节点：长弓裂缝录制与实际画面一致性及同步 RGBA 读回提速，回归入口 `tests/test_recording_heavenfall_rift.gd`、`tests/test_recording_heavenfall_e2e.gd`，性能边界和基线问题见 `tests/BATTLE_RECORDING.md`。
 - 左键实时录制长弓压力测试与双语异步 RGBA 读回入口：`tests/test_recording_live_heavenfall.gd`；必须以墙钟同时对比**物理推进和真实绘制帧率**、确认两份 1080×1920/60fps 视频与编码队列。正常射速可录完但视觉绘制仍明显低于普通游玩，高于正常射速仍可过载；不可仅凭容器帧率声称无卡顿。未完成边界见 `tests/BATTLE_RECORDING.md`。
 - MCP 自动附带说明的安装、备份和验证方式：`tools/mcp_context/README.md`。
+- LIVE 前台真实点击录制采用会话级渲染预算：原不限帧/高于60时临时限制到60fps，保留更低上限，正常完成、启动失败与退出恢复原值；不改物理速度、成片规格、画质或缓存保护。不能用后台/仅发按钮回调的通过替代前台真实点击；原版编辑器双语100秒续录、116项逻辑回归、完整MP4解码与局部回退见 `tests/LIVE_FOREGROUND_BUDGET_20260926.md`。这次更新的是实际代码，不以“重启旧进程”解释已确认的新进程故障。
 - 兔子幼兔出生须在父类生命初始化前设置幼兔上限，不能先生成成年生命再扣到幼兔生命，以免繁殖误触发推镜、暴击粒子和受击抖动；真正伤害反馈、繁殖爱心/音效及成长保留。复现、GPU 镜头稳定性与回退范围见 `tests/RABBIT_BIRTH_FEEDBACK.md`。
 - 实际入口通常包括 `scripts/world.gd`、`global/game.gd`、`ui/control.gd`、`classes/ball.gd` 与 `scripts/training/combat_threat_analyzer.gd`；按任务定位，不随意扩大修改范围。
 - 普通 VS 标题固定于独立屏幕画布（逻辑视口顶部留白 240 像素），镜头平移／缩放／震动时字形保持零像素位移；单队与中立白字，多队按当前非中立顺序蓝、红、后续稳定随机色，均为加粗黑描边（基准地图 2，随地图字号适配）。FULL 双语录制各有屏幕画布镜像，FOLLOW／OVERVIEW 在地图占用标题留白时隐藏标题。Boss 车轮战名单仍随地图尺寸缩放，不改变轮换训练头像框 HUD。当前规则与回归见 `tests/VS_SCREEN_TITLE_20260925.md`、`tests/test_vs_screen_title.gd`、`tests/test_vs_title_motion.gd`；历史地图缩放记录见 `tests/VS_MAP_SCALING.md`。
