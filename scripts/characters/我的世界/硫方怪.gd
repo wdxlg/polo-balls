@@ -15,6 +15,7 @@ const CRYSTAL_COUNT_MIN:int = 3
 const CRYSTAL_COUNT_MAX:int = 8
 const BLOCK_CAPACITY:int = 2
 const ITEM_FRAME:Texture2D = preload("res://Images/characters/我的世界/sulfur_cube/source/item_frame.png")
+const FRAME_BACK:Texture2D = preload("res://Images/characters/我的世界/sulfur_cube/source/item_frame_back.png")
 const FRAME_SIZE:float = 32.0
 const FRAME_ICON_SIZE:float = 20.0
 const FRAME_SPACING:float = 36.0
@@ -184,6 +185,13 @@ func _create_block_frames() -> void:
 		frame.texture = ITEM_FRAME
 		frame.scale = Vector2.ONE*FRAME_SIZE/float(ITEM_FRAME.get_width())
 		slot.add_child(frame)
+		# The inventory item-frame icon contains a diagonal item illustration.
+		# Cover only its inset with the unchanged original empty frame backing.
+		var backing := Sprite2D.new()
+		backing.name = "FrameBacking"
+		backing.texture = FRAME_BACK
+		backing.scale = Vector2.ONE*FRAME_ICON_SIZE/float(FRAME_BACK.get_width())
+		slot.add_child(backing)
 		var icon := Sprite2D.new()
 		icon.name = "BlockIcon"
 		icon.region_enabled = true
@@ -195,10 +203,15 @@ func _update_block_frames() -> void:
 	_block_frames.visible = health > 0 and not _sulfur_died
 	for i:int in range(BLOCK_CAPACITY):
 		var slot:Node2D = _block_frames.get_child(i) as Node2D
-		slot.visible = i < block_slots.size()
-		if not slot.visible: continue
-		var mode:int = block_slots[i]
+		# Both empty frames exist from spawn; only the block contents are conditional.
+		slot.visible = true
 		var icon:Sprite2D = slot.get_node("BlockIcon") as Sprite2D
+		icon.visible = i < block_slots.size()
+		if not icon.visible:
+			icon.texture = null
+			slot.set_meta("block_mode",Block.EMPTY)
+			continue
+		var mode:int = block_slots[i]
 		icon.texture = MODEL.BLOCK_TEXTURES[mode]
 		# The magma atlas is three frames tall; the item display uses its first
 		# original square frame, never a stretched strip or the creature portrait.

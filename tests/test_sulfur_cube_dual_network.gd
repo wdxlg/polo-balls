@@ -1,5 +1,10 @@
 extends "res://tests/test_sulfur_cube_redesign_network.gd"
 ## Reuse the existing real ENet/spawner helpers and teardown, adding two-slot contracts.
+func empty_frames_visible(unit:Node) -> bool:
+	for slot:Node2D in unit._block_frames.get_children():
+		var icon:Sprite2D = slot.get_node("BlockIcon") as Sprite2D
+		if not slot.is_visible_in_tree() or not slot.get_node("Frame").visible or icon.visible or icon.texture != null: return false
+	return unit._block_frames.get_child_count() == 2
 func run() -> void:
 	create_timer(65.0,true,false,true).timeout.connect(func(): print("SULFUR_DUAL_NETWORK_TIMEOUT"); finish(2))
 	game = root.get_node("Game")
@@ -55,10 +60,10 @@ func run() -> void:
 	var guest_unit:Node2D = guest_root.get_node("NetworkSulfurCube")
 	guest_unit.state_machine.set_physics_process(false)
 	guest_unit.set_physics_process(false)
-	check(guest_unit.block_slots.is_empty() and not guest_unit._block_frames.get_child(0).visible,"guest initially has no acquired icons")
+	check(guest_unit.block_slots.is_empty() and empty_frames_visible(guest_unit),"guest initially sees BOTH empty frames before receiving any block")
 	host_unit.acquire_block(CUBE.Block.ICE)
 	check(await until(func(): return guest_unit.block_slots == PackedInt32Array([CUBE.Block.ICE])),"one-slot snapshot replicates atomically")
-	check(guest_unit._block_frames.get_child(0).visible and not guest_unit._block_frames.get_child(1).visible,"guest fills LEFT first")
+	check(guest_unit._block_frames.get_child(0).get_node("BlockIcon").visible and guest_unit._block_frames.get_child(1).is_visible_in_tree() and not guest_unit._block_frames.get_child(1).get_node("BlockIcon").visible,"guest fills LEFT first without hiding the RIGHT empty frame")
 	host_unit.acquire_block(CUBE.Block.MAGMA)
 	check(await until(func(): return guest_unit.block_slots == host_unit.block_slots and guest_unit.block_slots.size() == 2),"both traits replicate together, not as racing previous/latest fields")
 	check(guest_unit.has_block(CUBE.Block.ICE) and guest_unit.get_fire_effect_ratio() == 0.0 and guest_unit._native_model.block_mode == CUBE.Block.MAGMA,"guest retains old ice capability and sees only newer magma inside")
@@ -137,5 +142,8 @@ func run() -> void:
 	check(guest_unit.block_slots.size() == 2 and guest_unit.block_slots[0] == CUBE.Block.IRON and guest_unit._native_model.block_mode == guest_unit.block_slots[1],"guest keeps iron left and displays replacement right/inside")
 	check(not is_instance_valid(guest_unit._charge_circle),"guest has no stale charge disk after TNT consumption")
 	check(await until(func(): return get_nodes_in_group("MCExplosion").size() == 2),"one explosion effect per peer, not one per slot or a re-primed old TNT")
+	host_unit.set_block(CUBE.Block.EMPTY)
+	check(await until(func(): return guest_unit.block_slots.is_empty()),"empty inventory snapshot reaches the guest")
+	check(empty_frames_visible(host_unit) and empty_frames_visible(guest_unit),"both peers clear stale icons but keep BOTH empty frame backgrounds")
 	print("SULFUR_DUAL_NETWORK: scoped two-peer checks completed")
 	finish(0 if failures == 0 else 1)

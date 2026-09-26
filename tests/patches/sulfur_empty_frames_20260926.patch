@@ -1,0 +1,340 @@
+diff --git a/Images/characters/我的世界/sulfur_cube/source/ITEM_FRAME_SOURCE.json b/Images/characters/我的世界/sulfur_cube/source/ITEM_FRAME_SOURCE.json
+index 5d7b74db53539fb33b05da6dfb1b3172e892d1cf..fb715d17962845def6fea697d555301648c56ef0 100644
+--- a/Images/characters/我的世界/sulfur_cube/source/ITEM_FRAME_SOURCE.json
++++ b/Images/characters/我的世界/sulfur_cube/source/ITEM_FRAME_SOURCE.json
+@@ -8,6 +8,11 @@
+       "jar_entry": "assets/minecraft/textures/item/item_frame.png",
+       "sha1": "8cb8afb4c242be406bd76497012962967f8bf2c5",
+       "processing": "None; exact original bytes. The original block textures are overlaid at runtime inside the frame."
++    },
++    "item_frame_back.png": {
++      "jar_entry": "assets/minecraft/textures/block/item_frame.png",
++      "sha1": "7faef83b54adb6bbdd62baee551cc1ff1c721d18",
++      "processing": "None; exact original bytes. Used as the empty inset of both persistent item frames."
+     }
+   },
+   "license_note": "Minecraft game assets. Source recorded for this local project; not a claim of free redistribution. Block texture provenance remains in SOURCE_MANIFEST.json / REDESIGN_SOURCE.json."
+diff --git a/Images/characters/我的世界/sulfur_cube/source/item_frame_back.png b/Images/characters/我的世界/sulfur_cube/source/item_frame_back.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..e9d40b2acf7c5dbfea62bb4142a361351febfa6f
+GIT binary patch
+literal 226
+zcmeAS@N?(olHy`uVBq!ia0vp^0wB!63?wyl`GbL!N`Oy@YqN)DwTou4gQlU5hMAGR
+zrizlfl7g|WmZ^^Bnpndnp@vg@G}Xm=Zv)j=db&7<RNS(i5Xg5pfa9>tg4YV)_rL#j
+z!HoN(prp!!Q)^VGi%Z5Y;c%VwqLD+|C+JYx#DJiM0`oQstYI|1e0PBd*W-7U1_2`4
+zItzq5?saDROjP`tuF)l8P|L8T@xbojoCME>mvgRdSjthnDW$(Tm`OGK+3$V-?RVI5
+X%w&G7IPZTy&=Cxtu6{1-oD!M<r%X;1
+
+literal 0
+HcmV?d00001
+
+diff --git a/Images/characters/我的世界/sulfur_cube/source/item_frame_back.png.import b/Images/characters/我的世界/sulfur_cube/source/item_frame_back.png.import
+new file mode 100644
+index 0000000000000000000000000000000000000000..a314ff71d3e24a6942713d8bf6796826921e0922
+--- /dev/null
++++ b/Images/characters/我的世界/sulfur_cube/source/item_frame_back.png.import
+@@ -0,0 +1,40 @@
++[remap]
++
++importer="texture"
++type="CompressedTexture2D"
++uid="uid://bghawbwemmrx2"
++path="res://.godot/imported/item_frame_back.png-c0366fce30c584d071944ea68f9523fd.ctex"
++metadata={
++"vram_texture": false
++}
++
++[deps]
++
++source_file="res://Images/characters/我的世界/sulfur_cube/source/item_frame_back.png"
++dest_files=["res://.godot/imported/item_frame_back.png-c0366fce30c584d071944ea68f9523fd.ctex"]
++
++[params]
++
++compress/mode=0
++compress/high_quality=false
++compress/lossy_quality=0.7
++compress/uastc_level=0
++compress/rdo_quality_loss=0.0
++compress/hdr_compression=1
++compress/normal_map=0
++compress/channel_pack=0
++mipmaps/generate=false
++mipmaps/limit=-1
++roughness/mode=0
++roughness/src_normal=""
++process/channel_remap/red=0
++process/channel_remap/green=1
++process/channel_remap/blue=2
++process/channel_remap/alpha=3
++process/fix_alpha_border=true
++process/premult_alpha=false
++process/normal_map_invert_y=false
++process/hdr_as_srgb=false
++process/hdr_clamp_exposure=false
++process/size_limit=0
++detect_3d/compress_to=1
+diff --git a/scripts/characters/我的世界/硫方怪.gd b/scripts/characters/我的世界/硫方怪.gd
+index 919828d9ef5be56c4c994aa3c4e2f69e8e9e11ef..7a068a2b7bd9239f7519e2ac1718f371241ebf63 100644
+--- a/scripts/characters/我的世界/硫方怪.gd
++++ b/scripts/characters/我的世界/硫方怪.gd
+@@ -15,6 +15,7 @@ const CRYSTAL_COUNT_MIN:int = 3
+ const CRYSTAL_COUNT_MAX:int = 8
+ const BLOCK_CAPACITY:int = 2
+ const ITEM_FRAME:Texture2D = preload("res://Images/characters/我的世界/sulfur_cube/source/item_frame.png")
++const FRAME_BACK:Texture2D = preload("res://Images/characters/我的世界/sulfur_cube/source/item_frame_back.png")
+ const FRAME_SIZE:float = 32.0
+ const FRAME_ICON_SIZE:float = 20.0
+ const FRAME_SPACING:float = 36.0
+@@ -184,6 +185,13 @@ func _create_block_frames() -> void:
+ 		frame.texture = ITEM_FRAME
+ 		frame.scale = Vector2.ONE*FRAME_SIZE/float(ITEM_FRAME.get_width())
+ 		slot.add_child(frame)
++		# The inventory item-frame icon contains a diagonal item illustration.
++		# Cover only its inset with the unchanged original empty frame backing.
++		var backing := Sprite2D.new()
++		backing.name = "FrameBacking"
++		backing.texture = FRAME_BACK
++		backing.scale = Vector2.ONE*FRAME_ICON_SIZE/float(FRAME_BACK.get_width())
++		slot.add_child(backing)
+ 		var icon := Sprite2D.new()
+ 		icon.name = "BlockIcon"
+ 		icon.region_enabled = true
+@@ -195,10 +203,15 @@ func _update_block_frames() -> void:
+ 	_block_frames.visible = health > 0 and not _sulfur_died
+ 	for i:int in range(BLOCK_CAPACITY):
+ 		var slot:Node2D = _block_frames.get_child(i) as Node2D
+-		slot.visible = i < block_slots.size()
+-		if not slot.visible: continue
+-		var mode:int = block_slots[i]
++		# Both empty frames exist from spawn; only the block contents are conditional.
++		slot.visible = true
+ 		var icon:Sprite2D = slot.get_node("BlockIcon") as Sprite2D
++		icon.visible = i < block_slots.size()
++		if not icon.visible:
++			icon.texture = null
++			slot.set_meta("block_mode",Block.EMPTY)
++			continue
++		var mode:int = block_slots[i]
+ 		icon.texture = MODEL.BLOCK_TEXTURES[mode]
+ 		# The magma atlas is three frames tall; the item display uses its first
+ 		# original square frame, never a stretched strip or the creature portrait.
+diff --git a/tests/SULFUR_CUBE_DUAL_BLOCKS_20260926.md b/tests/SULFUR_CUBE_DUAL_BLOCKS_20260926.md
+index fe74acbb17786d16c32560feb727ecbb2654ca6a..e4012f7444d2bb0bc74c7ecaf6b6782e5744263f 100644
+--- a/tests/SULFUR_CUBE_DUAL_BLOCKS_20260926.md
++++ b/tests/SULFUR_CUBE_DUAL_BLOCKS_20260926.md
+@@ -5,7 +5,7 @@
+ ## 用户确认的行为
+ 
+ - 同时保留最近取得的两种方块特性；首次填左框，第二次填右框，之后淘汰最左、原右移左、新方块进入右框。
+-- 两个展示框位于本体下方，各槽获得方块后才显示，未填槽不显示旧图标。使用原版物品展示框与对应原版方块贴图，不使用人物缩略图代替方块。
++- 两个展示框位于本体下方，**从出生起就同时显示**；获得方块后只填充对应内容图标，未填槽保留空框，清空时移除旧图标而不隐藏框。使用原版物品展示框与对应原版方块贴图，不使用人物缩略图代替方块。
+ - 本体内部只有最新方块。旧紫水晶的外部晶簇仍是有效攻击结构，不能因体内换成其他方块而消失。
+ - **TNT 特例由用户明确选择：爆炸后消耗 TNT，保留另一个方块并补入新方块，不把 TNT 留在左槽再次点燃。** 点燃中的 TNT 不能通过淘汰来规避自伤。
+ - 随机获取从当前未持有的方块中选择；满两槽时有四种候选。同种特性不重复堆叠，重复最新块不会刷新状态。
+@@ -51,7 +51,7 @@
+ 
+ 游戏资源的来源记录不意味着可以自由再分发。没有提交整个客户端、缓存或新生成替代素材。
+ 
+-## 最终验证
++## 双槽初版验证（空框常驻追补前）
+ 
+ 引擎：`E:/godot/polo-balls-tools/offline-engine/runtime/Godot.4.7.2.offline.exe`。
+ 
+@@ -99,3 +99,9 @@ git apply --reverse --check -- tests/patches/sulfur_cube_dual_20260926.patch
+ ```
+ 
+ 不要直接覆盖整个 `world.gd` / `MCP_CONTEXT.md`，不要未经确认使用 `reset --hard`、`clean -fd` 或强制推送。
++
++## 2026-09-26 追补：出生即显示两个空框
++
++用户纠正显示时机：两个物品展示框一开始就存在，而不是取得方块才出现。修改 `_update_block_frames()`，让框始终显示，内容图标按槽占用显示；空槽同时清除旧贴图和旧方块元数据。`_create_block_frames()` 同时加入原版空展示框背板（`FRAME_BACK` 与 `item_frame_back.png`），避免物品图标自带的斜向图案看起来像槽内已有物品。两槽能力、FIFO、最新内部外观、TNT 消耗例外及死亡清理不变。
++
++本轮验证、提交和独立回退见 `tests/SULFUR_EMPTY_FRAMES_20260926.md`。
+diff --git a/tests/SULFUR_EMPTY_FRAMES_20260926.md b/tests/SULFUR_EMPTY_FRAMES_20260926.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..faae4ce11ea1e2f40637c45ca42826db4de07951
+--- /dev/null
++++ b/tests/SULFUR_EMPTY_FRAMES_20260926.md
+@@ -0,0 +1,53 @@
++# 硫方怪：出生即显示两个空物品展示框
++
++日期：2026-09-26。用户纠正：展示框一开始就存在，不能等取得方块才出现。
++
++## 修改范围
++
++- 两个框在角色出生、尚未获取方块以及暂停时都显示，左右位置保持固定。
++- 首次获取只显示左框的方块图标，右框仍为空框；第二次填右框，后续 FIFO 顺序不变。
++- 空槽只隐藏内容图标，并清除旧贴图和方块元数据，不隐藏展示框。清空后不会留下上一次的方块。
++- 为避免原版物品图标自带的斜向物品图案看起来像空槽已有内容，在框内复用原版空展示框背板。不是重新绘制或生成贴图。
++- 未修改两种特性的计算、冷却、手控、威胁、体内最新块、TNT 消耗或既有死亡清理。
++
++实际逻辑改动位于 `scripts/characters/我的世界/硫方怪.gd` 的框创建/刷新函数。`MCP_CONTEXT.md` 和双槽专题中的旧显示时机说明已纠正。
++
++## 素材
++
++新增 `Images/characters/我的世界/sulfur_cube/source/item_frame_back.png`，直接从项目已有的官方 Minecraft Java 26.2 客户端缓存提取，字节不变。
++
++- 客户端 SHA-1：`2dc72797acbc1b63fc16a11c4ac393605f453754`
++- 原始条目：`assets/minecraft/textures/block/item_frame.png`
++- 图片 SHA-1：`7faef83b54adb6bbdd62baee551cc1ff1c721d18`
++- 来源与许可说明补充在同目录 `ITEM_FRAME_SOURCE.json`；来源记录不代表可自由再分发。
++
++## 本轮最终验证
++
++Godot 4.7.2 offline 引擎；实际 GPU 为 OpenGL Compatibility / NVIDIA RTX 4060 Laptop。测试使用检查点内隔离 `APPDATA`，不修改用户实际设置。
++
++| 夹具 | 模式 | 结果 |
++| --- | --- | --- |
++| `tests/test_sulfur_cube_dual.gd` | 无头 | 143/143，exit 0 |
++| `tests/test_sulfur_cube_dual.gd` | 实际 GPU | 149/149，exit 0 |
++| `tests/test_sulfur_cube_dual_network.gd` | 两个独立 SceneMultiplayer / ENet 端 | 36/36，exit 0 |
++
++GPU 149 项包含无头夹具中的重复逻辑，不算成独立新增覆盖。六种实际画面状态都验证了两个框可见：空槽、仅左槽、两个槽、FIFO 后、旧紫晶配新铁块、再次清空。已读取并目视核对 `empty_spawn.png` 和 `first_ice.png`：两个空框从一开始都在；取得冰块后左边填充、右边仍为空框，没有装饰性物品图案冒充内容。
++
++网络回归覆盖客端出生空框、第一块入左且右框不消失，以及同步清空后两端都保留框且不残留旧图标。双槽能力的原有组合回归仍包含在同一夹具中。
++
++第一次 GPU 运行断言全通过，但退出时报告两个资源尚未释放；增加测试退出清理等待后，最终三次运行均无 `SCRIPT ERROR`、`ERROR:` 或失败断言。没有为此改动游戏战斗逻辑。工程既有 shader UID/大小写警告保留。这里的 ENet 是同进程双端，不是两台客户端人工实战；未重做视频编码或大规模性能压测。
++
++## Git 与回退
++
++- 任务开始提交：`25024ad4cda82e79b7cef0651e8a2d6ccc5c6ec5`。
++- 修改前备份和本轮日志/截图：`E:/godot/polo-balls-tools/checkpoints/sulfur-empty-frames-20260926-081142`。
++- 最终父提交与新提交记录在上述检查点 `commit_result.json`，并在回复中报告。
++- 仅提交本次显示修正、对应原素材/来源、测试和说明。共享规则文件只提交本条差异，不混入其他任务修改，不推送远程。
++- 独立回退补丁：`tests/patches/sulfur_empty_frames_20260926.patch`，提交前执行反向检查。只回退本次“空框常驻”修正，不撤销双槽特性本身；补丁自身留存。
++
++```powershell
++# 只检查是否可回退；实际回退前仍需备份当前改动。
++git apply --reverse --check -- tests/patches/sulfur_empty_frames_20260926.patch
++```
++
++不是整个脏工作区的完整快照；不要覆盖整个共享规则文件或使用未授权的 reset/clean。
+diff --git a/tests/test_sulfur_cube_dual.gd b/tests/test_sulfur_cube_dual.gd
+index 385bfb3e601a9b529bb47e2d65492ce8ccf1f32e..742b8fefccb018c098ce05910fe505e96dd82963 100644
+--- a/tests/test_sulfur_cube_dual.gd
++++ b/tests/test_sulfur_cube_dual.gd
+@@ -27,7 +27,11 @@ func settle_model() -> void:
+ 	cube._native_model.animate(0.0,0.3,true,cube.fuse_left)
+ func has_frame(index:int,mode:int) -> bool:
+ 	var frame:Node2D = cube._block_frames.get_child(index) as Node2D
+-	return frame.visible and int(frame.get_meta("block_mode",0)) == mode and frame.get_node("BlockIcon").texture == C.MODEL.BLOCK_TEXTURES[mode]
++	return frame.is_visible_in_tree() and frame.get_node("BlockIcon").visible and int(frame.get_meta("block_mode",0)) == mode and frame.get_node("BlockIcon").texture == C.MODEL.BLOCK_TEXTURES[mode]
++func empty_frame(index:int) -> bool:
++	var frame:Node2D = cube._block_frames.get_child(index) as Node2D
++	var icon:Sprite2D = frame.get_node("BlockIcon") as Sprite2D
++	return frame.is_visible_in_tree() and frame.get_node("Frame").visible and not icon.visible and icon.texture == null and int(frame.get_meta("block_mode",0)) == C.Block.EMPTY
+ func fighter(sulfur:bool,point:Vector2) -> Node2D:
+ 	var unit:Node2D = load("res://scenes/characters/我的世界/硫方怪.tscn" if sulfur else "res://scenes/ball.tscn").instantiate()
+ 	unit.Team = "Team0" if sulfur else "Team1"
+@@ -68,9 +72,14 @@ func run() -> void:
+ 	victim.collision_shape_2d.shape = tiny
+ 	victim.get_node("hurtbox/CollisionShape2D").shape = tiny
+ 	await physics_frame
+-	check(cube.block_slots.is_empty() and not cube._block_frames.get_child(0).visible and not cube._block_frames.get_child(1).visible,"empty spawn has no phantom inventory frames")
++	check(cube.block_slots.is_empty() and empty_frame(0) and empty_frame(1),"BOTH empty frames are visible immediately at spawn, without block icons")
++	var frame_positions:PackedVector2Array = PackedVector2Array([cube._block_frames.get_child(0).position,cube._block_frames.get_child(1).position])
++	game.now_stop_state = true
++	cube._process(0.0)
++	check(empty_frame(0) and empty_frame(1),"empty frames remain visible while combat is paused / before the first pickup")
++	game.now_stop_state = false
+ 	cube.acquire_block(C.Block.ICE)
+-	check(cube.block_slots == PackedInt32Array([C.Block.ICE]) and has_frame(0,C.Block.ICE) and not cube._block_frames.get_child(1).visible,"first pickup fills LEFT only")
++	check(cube.block_slots == PackedInt32Array([C.Block.ICE]) and has_frame(0,C.Block.ICE) and empty_frame(1),"first pickup fills LEFT icon while the RIGHT empty frame stays visible")
+ 	cube.acquire_block(C.Block.MAGMA)
+ 	check(cube.block_slots == PackedInt32Array([C.Block.ICE,C.Block.MAGMA]) and has_frame(0,C.Block.ICE) and has_frame(1,C.Block.MAGMA),"second pickup fills RIGHT and keeps the left trait")
+ 	check(cube._native_model.block_mode == C.Block.MAGMA and cube.has_block(C.Block.ICE),"internal block is newest magma while older ice remains active")
+@@ -86,6 +95,9 @@ func run() -> void:
+ 		valid = valid and not cube.has_block(pick)
+ 		picks[pick] = true
+ 	check(valid and picks.size() == 4,"random acquisition selects from the four unheld block types")
++	reset_block()
++	check(empty_frame(0) and empty_frame(1),"clearing filled slots removes stale icons/textures without hiding either frame")
++	check(frame_positions == PackedVector2Array([cube._block_frames.get_child(0).position,cube._block_frames.get_child(1).position]),"empty, single and full inventories use the same fixed two frame positions")
+ 	reset_block(C.Block.ICE)
+ 	cube.Skill()
+ 	check(cube.block_slots.size() == 2 and cube.block_slots[0] == C.Block.ICE,"real Skill entry acquires into the second slot instead of replacing the first")
+@@ -305,6 +317,8 @@ func run() -> void:
+ 	world.queue_free()
+ 	await process_frame
+ 	await process_frame
++	# Allow final empty-state crystal debris / GPU resources to flush before exit.
++	await create_timer(0.15,true,false,true).timeout
+ 	game.Game_Settings = saved
+ 	game.now_stop_state = saved_stop
+ 	print("SULFUR_DUAL: %d checks / %d failures" % [checks,failures])
+@@ -328,8 +342,8 @@ func gpu_frames() -> void:
+ 			previous_layers.append((ancestor as CanvasItem).visibility_layer)
+ 			(ancestor as CanvasItem).visibility_layer |= layer
+ 		ancestor = ancestor.get_parent()
+-	var shots:Array[String] = ["ice_magma","magma_honey","amethyst_iron"]
+-	var pairs:Array = [[C.Block.ICE,C.Block.MAGMA],[C.Block.MAGMA,C.Block.HONEY],[C.Block.AMETHYST,C.Block.IRON]]
++	var shots:Array[String] = ["empty_spawn","first_ice","ice_magma","magma_honey","amethyst_iron","emptied"]
++	var pairs:Array = [[C.Block.EMPTY,C.Block.EMPTY],[C.Block.ICE,C.Block.EMPTY],[C.Block.ICE,C.Block.MAGMA],[C.Block.MAGMA,C.Block.HONEY],[C.Block.AMETHYST,C.Block.IRON],[C.Block.EMPTY,C.Block.EMPTY]]
+ 	var preview := SubViewport.new()
+ 	preview.size = Vector2i(320,320)
+ 	preview.transparent_bg = true
+@@ -341,7 +355,7 @@ func gpu_frames() -> void:
+ 	preview.canvas_transform = Transform2D(Vector2(5,0),Vector2(0,5),Vector2(160,125)-cube.global_position*5.0)
+ 	for i:int in range(shots.size()):
+ 		reset_block(int(pairs[i][0]))
+-		cube.acquire_block(int(pairs[i][1]))
++		if int(pairs[i][1]) != C.Block.EMPTY: cube.acquire_block(int(pairs[i][1]))
+ 		settle_model()
+ 		await process_frame
+ 		await RenderingServer.frame_post_draw
+@@ -355,7 +369,7 @@ func gpu_frames() -> void:
+ 				for x:int in range(int(point.x)-8,int(point.x)+8):
+ 					if x >= 0 and y >= 0 and x < image.get_width() and y < image.get_height() and image.get_pixel(x,y).a > 0.5: colored += 1
+ 			both_visible = both_visible and colored > 200
+-		check(both_visible,"real GPU shared World2D viewport contains both populated frames: "+shots[i])
++		check(both_visible,"real GPU shared World2D viewport shows both permanent frames: "+shots[i])
+ 		var folder:String = OS.get_environment("SULFUR_DUAL_ARTIFACTS")
+ 		if not folder.is_empty():
+ 			DirAccess.make_dir_recursive_absolute(folder)
+diff --git a/tests/test_sulfur_cube_dual_network.gd b/tests/test_sulfur_cube_dual_network.gd
+index 40b88830569b0b7160d981f639a5f559f685558e..0889342e0de55c456b9cead3f9a1e32722152fe3 100644
+--- a/tests/test_sulfur_cube_dual_network.gd
++++ b/tests/test_sulfur_cube_dual_network.gd
+@@ -1,5 +1,10 @@
+ extends "res://tests/test_sulfur_cube_redesign_network.gd"
+ ## Reuse the existing real ENet/spawner helpers and teardown, adding two-slot contracts.
++func empty_frames_visible(unit:Node) -> bool:
++	for slot:Node2D in unit._block_frames.get_children():
++		var icon:Sprite2D = slot.get_node("BlockIcon") as Sprite2D
++		if not slot.is_visible_in_tree() or not slot.get_node("Frame").visible or icon.visible or icon.texture != null: return false
++	return unit._block_frames.get_child_count() == 2
+ func run() -> void:
+ 	create_timer(65.0,true,false,true).timeout.connect(func(): print("SULFUR_DUAL_NETWORK_TIMEOUT"); finish(2))
+ 	game = root.get_node("Game")
+@@ -55,10 +60,10 @@ func run() -> void:
+ 	var guest_unit:Node2D = guest_root.get_node("NetworkSulfurCube")
+ 	guest_unit.state_machine.set_physics_process(false)
+ 	guest_unit.set_physics_process(false)
+-	check(guest_unit.block_slots.is_empty() and not guest_unit._block_frames.get_child(0).visible,"guest initially has no acquired icons")
++	check(guest_unit.block_slots.is_empty() and empty_frames_visible(guest_unit),"guest initially sees BOTH empty frames before receiving any block")
+ 	host_unit.acquire_block(CUBE.Block.ICE)
+ 	check(await until(func(): return guest_unit.block_slots == PackedInt32Array([CUBE.Block.ICE])),"one-slot snapshot replicates atomically")
+-	check(guest_unit._block_frames.get_child(0).visible and not guest_unit._block_frames.get_child(1).visible,"guest fills LEFT first")
++	check(guest_unit._block_frames.get_child(0).get_node("BlockIcon").visible and guest_unit._block_frames.get_child(1).is_visible_in_tree() and not guest_unit._block_frames.get_child(1).get_node("BlockIcon").visible,"guest fills LEFT first without hiding the RIGHT empty frame")
+ 	host_unit.acquire_block(CUBE.Block.MAGMA)
+ 	check(await until(func(): return guest_unit.block_slots == host_unit.block_slots and guest_unit.block_slots.size() == 2),"both traits replicate together, not as racing previous/latest fields")
+ 	check(guest_unit.has_block(CUBE.Block.ICE) and guest_unit.get_fire_effect_ratio() == 0.0 and guest_unit._native_model.block_mode == CUBE.Block.MAGMA,"guest retains old ice capability and sees only newer magma inside")
+@@ -137,5 +142,8 @@ func run() -> void:
+ 	check(guest_unit.block_slots.size() == 2 and guest_unit.block_slots[0] == CUBE.Block.IRON and guest_unit._native_model.block_mode == guest_unit.block_slots[1],"guest keeps iron left and displays replacement right/inside")
+ 	check(not is_instance_valid(guest_unit._charge_circle),"guest has no stale charge disk after TNT consumption")
+ 	check(await until(func(): return get_nodes_in_group("MCExplosion").size() == 2),"one explosion effect per peer, not one per slot or a re-primed old TNT")
++	host_unit.set_block(CUBE.Block.EMPTY)
++	check(await until(func(): return guest_unit.block_slots.is_empty()),"empty inventory snapshot reaches the guest")
++	check(empty_frames_visible(host_unit) and empty_frames_visible(guest_unit),"both peers clear stale icons but keep BOTH empty frame backgrounds")
+ 	print("SULFUR_DUAL_NETWORK: scoped two-peer checks completed")
+ 	finish(0 if failures == 0 else 1)
+diff --git a/MCP_CONTEXT.md b/MCP_CONTEXT.md
+index 3dad8e2853e7c16f953801064ad1ca35c363e835..43e4e7abdab78c6c6e98920e694ec48a2fa622fd 100644
+--- a/MCP_CONTEXT.md
++++ b/MCP_CONTEXT.md
+@@ -112,3 +112,3 @@
+ - 硫方怪平衡追补：铁首次冲击、附着紫水晶及晶体投射物的伤害系数均降低30%；铁底部常态接触及下砸均可持续碾压，低额定频结算并复用公共击退。冰径不再仅加 Speed 倍率，而用 `surface_acceleration.gd` 沿目标自身真实位移方向积分加速、限制上限并在离冰后衰减；公共移动链接 `ball.surface_motion_velocity`。实测位移、威胁/手控/ENet与回退范围见 `tests/SULFUR_CUBE_BALANCE_20260926.md`。
+-- 硫方怪同时保留最近两种方块特性：下方原版物品展示框先左后右，满槽后左旧淘汰、右移左、新块入右；本体内部只显示最新块，旧紫晶外刺/蜂蜜/铁/冰/岩浆特性不随外观切换失效。用户确认 TNT 爆炸后消耗该槽、保留另一个并补新块，不留槽重燃；两槽原子同步、手控和真实威胁随有效特性维护。实现、GPU/ENet验证及局部回退见 `tests/SULFUR_CUBE_DUAL_BLOCKS_20260926.md`。
++- 硫方怪同时保留最近两种方块特性：下方两个原版物品展示框从出生起就常驻（空槽只隐藏内容图标，不隐藏框），方块图标先填左后填右，满槽后左旧淘汰、右移左、新块入右；本体内部只显示最新块，旧紫晶外刺/蜂蜜/铁/冰/岩浆特性不随外观切换失效。用户确认 TNT 爆炸后消耗该槽、保留另一个并补新块，不留槽重燃；两槽原子同步、手控和真实威胁随有效特性维护。实现、GPU/ENet验证及局部回退见 `tests/SULFUR_CUBE_DUAL_BLOCKS_20260926.md`。
+ - 天堂陨落长弓每次真实出箭，在箭矢出生世界坐标播放8→24半径、0.38秒青绿/浅青/银白扩散渐隐空心环。纯视觉可靠RPC每端一次，不从状态回放重播；复用 `mc_combat_abilities.gd::expanding_ring` 的重锤/像素环实现，不带伤害、碎屑、地表读回或新音效，暂停冻结。参数、230项回归和回退边界见 `tests/HEAVENFALL_MUZZLE_RING_20260926.md`。

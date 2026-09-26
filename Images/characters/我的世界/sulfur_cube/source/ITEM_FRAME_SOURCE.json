@@ -8,6 +8,11 @@
       "jar_entry": "assets/minecraft/textures/item/item_frame.png",
       "sha1": "8cb8afb4c242be406bd76497012962967f8bf2c5",
       "processing": "None; exact original bytes. The original block textures are overlaid at runtime inside the frame."
+    },
+    "item_frame_back.png": {
+      "jar_entry": "assets/minecraft/textures/block/item_frame.png",
+      "sha1": "7faef83b54adb6bbdd62baee551cc1ff1c721d18",
+      "processing": "None; exact original bytes. Used as the empty inset of both persistent item frames."
     }
   },
   "license_note": "Minecraft game assets. Source recorded for this local project; not a claim of free redistribution. Block texture provenance remains in SOURCE_MANIFEST.json / REDESIGN_SOURCE.json."

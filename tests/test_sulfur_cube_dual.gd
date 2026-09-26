@@ -27,7 +27,11 @@ func settle_model() -> void:
 	cube._native_model.animate(0.0,0.3,true,cube.fuse_left)
 func has_frame(index:int,mode:int) -> bool:
 	var frame:Node2D = cube._block_frames.get_child(index) as Node2D
-	return frame.visible and int(frame.get_meta("block_mode",0)) == mode and frame.get_node("BlockIcon").texture == C.MODEL.BLOCK_TEXTURES[mode]
+	return frame.is_visible_in_tree() and frame.get_node("BlockIcon").visible and int(frame.get_meta("block_mode",0)) == mode and frame.get_node("BlockIcon").texture == C.MODEL.BLOCK_TEXTURES[mode]
+func empty_frame(index:int) -> bool:
+	var frame:Node2D = cube._block_frames.get_child(index) as Node2D
+	var icon:Sprite2D = frame.get_node("BlockIcon") as Sprite2D
+	return frame.is_visible_in_tree() and frame.get_node("Frame").visible and not icon.visible and icon.texture == null and int(frame.get_meta("block_mode",0)) == C.Block.EMPTY
 func fighter(sulfur:bool,point:Vector2) -> Node2D:
 	var unit:Node2D = load("res://scenes/characters/我的世界/硫方怪.tscn" if sulfur else "res://scenes/ball.tscn").instantiate()
 	unit.Team = "Team0" if sulfur else "Team1"
@@ -68,9 +72,14 @@ func run() -> void:
 	victim.collision_shape_2d.shape = tiny
 	victim.get_node("hurtbox/CollisionShape2D").shape = tiny
 	await physics_frame
-	check(cube.block_slots.is_empty() and not cube._block_frames.get_child(0).visible and not cube._block_frames.get_child(1).visible,"empty spawn has no phantom inventory frames")
+	check(cube.block_slots.is_empty() and empty_frame(0) and empty_frame(1),"BOTH empty frames are visible immediately at spawn, without block icons")
+	var frame_positions:PackedVector2Array = PackedVector2Array([cube._block_frames.get_child(0).position,cube._block_frames.get_child(1).position])
+	game.now_stop_state = true
+	cube._process(0.0)
+	check(empty_frame(0) and empty_frame(1),"empty frames remain visible while combat is paused / before the first pickup")
+	game.now_stop_state = false
 	cube.acquire_block(C.Block.ICE)
-	check(cube.block_slots == PackedInt32Array([C.Block.ICE]) and has_frame(0,C.Block.ICE) and not cube._block_frames.get_child(1).visible,"first pickup fills LEFT only")
+	check(cube.block_slots == PackedInt32Array([C.Block.ICE]) and has_frame(0,C.Block.ICE) and empty_frame(1),"first pickup fills LEFT icon while the RIGHT empty frame stays visible")
 	cube.acquire_block(C.Block.MAGMA)
 	check(cube.block_slots == PackedInt32Array([C.Block.ICE,C.Block.MAGMA]) and has_frame(0,C.Block.ICE) and has_frame(1,C.Block.MAGMA),"second pickup fills RIGHT and keeps the left trait")
 	check(cube._native_model.block_mode == C.Block.MAGMA and cube.has_block(C.Block.ICE),"internal block is newest magma while older ice remains active")
@@ -86,6 +95,9 @@ func run() -> void:
 		valid = valid and not cube.has_block(pick)
 		picks[pick] = true
 	check(valid and picks.size() == 4,"random acquisition selects from the four unheld block types")
+	reset_block()
+	check(empty_frame(0) and empty_frame(1),"clearing filled slots removes stale icons/textures without hiding either frame")
+	check(frame_positions == PackedVector2Array([cube._block_frames.get_child(0).position,cube._block_frames.get_child(1).position]),"empty, single and full inventories use the same fixed two frame positions")
 	reset_block(C.Block.ICE)
 	cube.Skill()
 	check(cube.block_slots.size() == 2 and cube.block_slots[0] == C.Block.ICE,"real Skill entry acquires into the second slot instead of replacing the first")
@@ -305,6 +317,8 @@ func run() -> void:
 	world.queue_free()
 	await process_frame
 	await process_frame
+	# Allow final empty-state crystal debris / GPU resources to flush before exit.
+	await create_timer(0.15,true,false,true).timeout
 	game.Game_Settings = saved
 	game.now_stop_state = saved_stop
 	print("SULFUR_DUAL: %d checks / %d failures" % [checks,failures])
@@ -328,8 +342,8 @@ func gpu_frames() -> void:
 			previous_layers.append((ancestor as CanvasItem).visibility_layer)
 			(ancestor as CanvasItem).visibility_layer |= layer
 		ancestor = ancestor.get_parent()
-	var shots:Array[String] = ["ice_magma","magma_honey","amethyst_iron"]
-	var pairs:Array = [[C.Block.ICE,C.Block.MAGMA],[C.Block.MAGMA,C.Block.HONEY],[C.Block.AMETHYST,C.Block.IRON]]
+	var shots:Array[String] = ["empty_spawn","first_ice","ice_magma","magma_honey","amethyst_iron","emptied"]
+	var pairs:Array = [[C.Block.EMPTY,C.Block.EMPTY],[C.Block.ICE,C.Block.EMPTY],[C.Block.ICE,C.Block.MAGMA],[C.Block.MAGMA,C.Block.HONEY],[C.Block.AMETHYST,C.Block.IRON],[C.Block.EMPTY,C.Block.EMPTY]]
 	var preview := SubViewport.new()
 	preview.size = Vector2i(320,320)
 	preview.transparent_bg = true
@@ -341,7 +355,7 @@ func gpu_frames() -> void:
 	preview.canvas_transform = Transform2D(Vector2(5,0),Vector2(0,5),Vector2(160,125)-cube.global_position*5.0)
 	for i:int in range(shots.size()):
 		reset_block(int(pairs[i][0]))
-		cube.acquire_block(int(pairs[i][1]))
+		if int(pairs[i][1]) != C.Block.EMPTY: cube.acquire_block(int(pairs[i][1]))
 		settle_model()
 		await process_frame
 		await RenderingServer.frame_post_draw
@@ -355,7 +369,7 @@ func gpu_frames() -> void:
 				for x:int in range(int(point.x)-8,int(point.x)+8):
 					if x >= 0 and y >= 0 and x < image.get_width() and y < image.get_height() and image.get_pixel(x,y).a > 0.5: colored += 1
 			both_visible = both_visible and colored > 200
-		check(both_visible,"real GPU shared World2D viewport contains both populated frames: "+shots[i])
+		check(both_visible,"real GPU shared World2D viewport shows both permanent frames: "+shots[i])
 		var folder:String = OS.get_environment("SULFUR_DUAL_ARTIFACTS")
 		if not folder.is_empty():
 			DirAccess.make_dir_recursive_absolute(folder)
