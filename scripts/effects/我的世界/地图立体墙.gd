@@ -331,26 +331,32 @@ func _rebuild_mesh(ground:Array[Rect2]) -> void:
 
 
 func _add_block(top:SurfaceTool,side:SurfaceTool,bottom:SurfaceTool,rect:Rect2,origin:Vector2) -> void:
+	append_world_cuboid(top,side,bottom,rect,origin,cell_size,0.0,block_height)
+
+
+func append_world_cuboid(top:SurfaceTool,side:SurfaceTool,bottom:SurfaceTool,rect:Rect2,origin:Vector2,uv_cell:Vector2,base_height:float,height:float,side_uv_y:Vector2 = Vector2(0,1)) -> void:
+	# Shared native cuboid winding, normals and UVs for blocks and raised decorations.
+	# Geometry stays in this renderer's World3D, camera and real lighting; no flat overlay.
 	var x:float = rect.position.x
 	var y:float = rect.position.y
-	var u0:float = fposmod((x-origin.x)/cell_size.x,1.0)
-	var v0:float = fposmod((y-origin.y)/cell_size.y,1.0)
-	var u1:float = u0+rect.size.x/cell_size.x
-	var v1:float = v0+rect.size.y/cell_size.y
-	var b00:Vector3 = _ground_point(rect.position,0.0)
-	var b10:Vector3 = _ground_point(Vector2(rect.end.x,y),0.0)
-	var b11:Vector3 = _ground_point(rect.end,0.0)
-	var b01:Vector3 = _ground_point(Vector2(x,rect.end.y),0.0)
-	var t00:Vector3 = b00+Vector3.UP*block_height
-	var t10:Vector3 = b10+Vector3.UP*block_height
-	var t11:Vector3 = b11+Vector3.UP*block_height
-	var t01:Vector3 = b01+Vector3.UP*block_height
+	var u0:float = fposmod((x-origin.x)/uv_cell.x,1.0)
+	var v0:float = fposmod((y-origin.y)/uv_cell.y,1.0)
+	var u1:float = u0+rect.size.x/uv_cell.x
+	var v1:float = v0+rect.size.y/uv_cell.y
+	var b00:Vector3 = _ground_point(rect.position,base_height)
+	var b10:Vector3 = _ground_point(Vector2(rect.end.x,y),base_height)
+	var b11:Vector3 = _ground_point(rect.end,base_height)
+	var b01:Vector3 = _ground_point(Vector2(x,rect.end.y),base_height)
+	var t00:Vector3 = b00+Vector3.UP*height
+	var t10:Vector3 = b10+Vector3.UP*height
+	var t11:Vector3 = b11+Vector3.UP*height
+	var t01:Vector3 = b01+Vector3.UP*height
 	_face(top,[t00,t01,t11,t10],[Vector2(u0,v0),Vector2(u0,v1),Vector2(u1,v1),Vector2(u1,v0)])
 	_face(bottom,[b00,b10,b11,b01],[Vector2(u0,v0),Vector2(u1,v0),Vector2(u1,v1),Vector2(u0,v1)])
-	_face(side,[t00,t10,b10,b00],[Vector2(u0,0),Vector2(u1,0),Vector2(u1,1),Vector2(u0,1)])
-	_face(side,[t10,t11,b11,b10],[Vector2(v0,0),Vector2(v1,0),Vector2(v1,1),Vector2(v0,1)])
-	_face(side,[t11,t01,b01,b11],[Vector2(u1,0),Vector2(u0,0),Vector2(u0,1),Vector2(u1,1)])
-	_face(side,[t01,t00,b00,b01],[Vector2(v1,0),Vector2(v0,0),Vector2(v0,1),Vector2(v1,1)])
+	_face(side,[t00,t10,b10,b00],[Vector2(u0,side_uv_y.x),Vector2(u1,side_uv_y.x),Vector2(u1,side_uv_y.y),Vector2(u0,side_uv_y.y)])
+	_face(side,[t10,t11,b11,b10],[Vector2(v0,side_uv_y.x),Vector2(v1,side_uv_y.x),Vector2(v1,side_uv_y.y),Vector2(v0,side_uv_y.y)])
+	_face(side,[t11,t01,b01,b11],[Vector2(u1,side_uv_y.x),Vector2(u0,side_uv_y.x),Vector2(u0,side_uv_y.y),Vector2(u1,side_uv_y.y)])
+	_face(side,[t01,t00,b00,b01],[Vector2(v1,side_uv_y.x),Vector2(v0,side_uv_y.x),Vector2(v0,side_uv_y.y),Vector2(v1,side_uv_y.y)])
 
 
 func _update_light(source:Vector2) -> void:
@@ -361,3 +367,17 @@ func _update_light(source:Vector2) -> void:
 	sun_light.look_at(target)
 	shadow_sun.position = sun_light.position
 	shadow_sun.look_at(target)
+
+
+func configure_surface_overlay(cell:Vector2,light_source:Vector2) -> void:
+	# Reuse the exact camera/material/projection for raised decorations on a 2D
+	# background. No duplicate block wall, floor or compensating emissive material.
+	_create_renderer()
+	cell_size = cell.max(Vector2(0.01,0.01))
+	block_height = 0.0
+	visible = true
+	_update_light(light_source)
+	_update_projection()
+	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	shadow_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	shadow_picture.hide()

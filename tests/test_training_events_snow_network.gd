@@ -122,6 +122,22 @@ func run() -> void:
 	check(host_field.get_world_2d()!=guest_field.get_world_2d(),"replicas use independent physics worlds")
 	check(guest_field._clock<10 and guest_field.environment_patches.size()==2,"late join does not mistake server absolute age for a melting deadline")
 	check(not guest_field.add_environment_patch(guest_source,{"cell":Vector2i.ONE,"decorative":false,"rects":[Rect2(12,12,24,24)]}),"client cannot independently generate damaging weather cells")
+	var local_walls:Array[Rect2] = [Rect2(-12,-49,24,2)]
+	for snow_field:Node2D in [host_field,guest_field]:
+		snow_field.wall_view.visual_walls = local_walls.duplicate()
+		snow_field.wall_view.weather_bounds = Rect2(-256,-256,512,512)
+		snow_field.wall_view.set_weather(true)
+		snow_field.wall_view.request_update()
+	var authoritative:Dictionary = guest_field.environment_patches.duplicate(true)
+	guest_source.advance(0.5)
+	check(is_equal_approx(guest_field.wall_view.weather_time,0.5) and guest_field.wall_view.weather_fade>0.0,"non-authority client runs its own native falling-snow animation")
+	check(guest_field.environment_patches==authoritative,"client precipitation does not generate, replace or age authoritative snow cells")
+	game.now_stop_state = true
+	guest_source.advance(2.0)
+	check(is_equal_approx(guest_field.wall_view.weather_time,0.5),"client weather animation respects the combat pause")
+	game.now_stop_state = false
+	for i:int in range(3): await process_frame
+	check(is_instance_valid(host_field.wall_view.mesh_node) and is_instance_valid(guest_field.wall_view.mesh_node),"both ENet peers independently build actual 3D decorative snow from one replicated record")
 	var hp:int = host_target.health
 	host_field.check_ground()
 	check(host_target.health==hp-3,"authority resolves neutral snow through the real cold damage pipeline")

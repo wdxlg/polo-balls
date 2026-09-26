@@ -1,0 +1,21 @@
+{
+  "game": "Minecraft Java Edition",
+  "version": "1.21.5",
+  "copyright": "Mojang Studios / Microsoft",
+  "license_note": "Original Minecraft assets, not public-domain or freely redistributable. Retained only under the project's existing native-asset usage constraints. https://www.minecraft.net/en-us/eula",
+  "changes": "None. All three source files are byte-for-byte copies. Runtime tiles the native weather sheet and crops the native snow cuboid to actual wall supports.",
+  "files": {
+    "snowfall.png": {
+      "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.5/assets/minecraft/textures/environment/snow.png",
+      "sha256": "2c52b4a8f924a856118f747ccd0dedce2f2f3f7a01bc9e388f7c2ea26c831cf2"
+    },
+    "snow.png": {
+      "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.5/assets/minecraft/textures/block/snow.png",
+      "sha256": "05201107fc2c60db4dc59f778a9ca7cb6101b2a332da696b33ce4b0cd2a02019"
+    },
+    "snow_height2.json": {
+      "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.5/assets/minecraft/models/block/snow_height2.json",
+      "sha256": "1ad3228902c78428faf5a0648fb2cfe67f3efc6eb8ea918b98fabe85a9479c32"
+    }
+  }
+}

@@ -156,6 +156,11 @@ func check_weather(source:Node2D,victim:Node2D,center:Vector2) -> void:
 	field.set_physics_process(false)
 	check(field==source._field and world.get_node("MCSnowField")==field,"weather and golem trails share one real sparse snow manager")
 	check(get_nodes_in_group("MCSnowGolem").size()==1,"weather does not spawn a hidden golem or duplicate combat character")
+	check(field.environment_patches.is_empty() and not is_instance_valid(field.wall_view.mesh_node),"Snow selection starts with no ground accumulation and no prebuilt wall snow")
+	check(field.wall_view.weather_enabled and field.wall_view.weather_time==0.0 and field.wall_view.weather_fade==0.0,"native falling snow also starts empty instead of appearing prewarmed")
+	conditions.advance(conditions.FIRST_SNOW_DELAY*0.5)
+	check(field.environment_patches.is_empty() and field.wall_view.weather_time>0.0,"visible snowfall advances before the first accumulation")
+	for i:int in range(20): conditions.advance(1.0)
 	var floor_count:int = 0
 	var wall_count:int = 0
 	for item:Dictionary in field.environment_patches.values():
@@ -205,10 +210,12 @@ func check_weather(source:Node2D,victim:Node2D,center:Vector2) -> void:
 	game.now_stop_state = true
 	var count:int = field.environment_patches.size()
 	var snow_left:float = conditions._snow_left
+	var weather_time:float = field.wall_view.weather_time
 	conditions.advance(5.0)
-	check(field.environment_patches.size()==count and conditions._snow_left==snow_left,"pause freezes new snowfall generation and its clock")
+	check(field.environment_patches.size()==count and conditions._snow_left==snow_left and field.wall_view.weather_time==weather_time,"pause freezes accumulation AND the native falling-snow animation")
 	game.now_stop_state = false
 	setting("Environment","none")
+	check(not field.wall_view.weather_enabled and field.wall_view.weather_fade==0.0,"None removes falling snow immediately, without a visual tail")
 	check(field.environment_patches.is_empty() and field.patches.size()==natural_count,"turning weather off removes only environmental snow, preserving ordinary golem trails")
 	field.advance(field.full_snow_lifetime+field.half_snow_lifetime+0.1)
 	check(field.patches.is_empty(),"ordinary golem trails still melt normally after weather is disabled")
@@ -216,14 +223,19 @@ func check_weather(source:Node2D,victim:Node2D,center:Vector2) -> void:
 	await physics_frame
 	await physics_frame
 	await process_frame
+	check(field.environment_patches.is_empty(),"re-enabling Snow never restores stale accumulation")
+	for i:int in range(12): conditions.advance(1.0)
 	var replay_a:Dictionary = field.environment_patches.duplicate(true)
+	var weather_phases:Array = field.wall_view.weather_phases.duplicate()
 	var rng_counters:Dictionary = game._battle_random_counters.duplicate(true)
 	setting("Environment","none")
 	setting("Environment","snow")
 	await physics_frame
 	await physics_frame
 	await process_frame
-	check(field.environment_patches==replay_a,"same battle seed and geometry reproduce the same independent snow layout")
+	check(field.environment_patches.is_empty() and field.wall_view.weather_time==0.0,"repeat selection starts both visual and gameplay weather at zero")
+	for i:int in range(12): conditions.advance(1.0)
+	check(field.environment_patches==replay_a and field.wall_view.weather_phases==weather_phases,"same seed and elapsed combat time reproduce accumulating snow and native weather phases")
 	check(game._battle_random_counters==rng_counters,"weather does not consume another system's deterministic random stream")
 	for i:int in range(400): conditions.advance(10.0)
 	check(field.environment_patches.size()<=conditions.MAX_PATCHES,"long battles retain a bounded number of environmental patches")

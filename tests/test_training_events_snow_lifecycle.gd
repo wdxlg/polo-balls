@@ -7,7 +7,12 @@ func until(condition:Callable,seconds:float = 8.0) -> bool:
 		await process_frame
 	return false
 func snow_ready() -> bool:
-	return is_instance_valid(conditions.field) and not conditions.field.is_queued_for_deletion() and conditions.field.environment_patches.size()>0 and conditions._seed==conditions._weather_seed()
+	return is_instance_valid(conditions.field) and not conditions.field.is_queued_for_deletion() and conditions._seed==conditions._weather_seed()
+
+func accumulate() -> void:
+	game.now_stop_state = false
+	for i:int in range(12): conditions.advance(1.0)
+	game.now_stop_state = true
 
 func run() -> void:
 	game = root.get_node("Game")
@@ -33,16 +38,18 @@ func run() -> void:
 	game.load_persistent_settings()
 	check(game.Game_Settings.Random_Events and game.Game_Settings.Random_Event_Selection==["future_event"] and game.Game_Settings.Environment=="snow","Events choice, checked IDs and weather persist through the real settings file")
 	check(not game.Game_Settings.Training_Mode,"weather persistence never re-enables the training-only mode")
-	check(await until(snow_ready),"paused setup still creates its initial permanent snow layout")
+	check(await until(snow_ready),"paused setup creates the weather manager without requiring deposits")
+	check(conditions.field.environment_patches.is_empty() and conditions.field.wall_view.weather_time==0.0,"paused setup starts with neither accumulated nor animated snow")
 	var field:Node2D = conditions.field
 	var count:int = field.environment_patches.size()
 	var left:float = conditions._snow_left
+	var weather_time:float = field.wall_view.weather_time
 	conditions.advance(3.0)
-	check(field.environment_patches.size()==count and conditions._snow_left==left,"global pause stops weather clock without deleting accumulated snow")
+	check(field.environment_patches.size()==count and conditions._snow_left==left and field.wall_view.weather_time==weather_time,"global pause stops weather clock without deleting accumulated snow")
 	game.now_stop_state = false
 	Engine.time_scale = 0
 	conditions.advance(3.0)
-	check(field.environment_patches.size()==count and conditions._snow_left==left,"zero time scale also stops new snow generation")
+	check(field.environment_patches.size()==count and conditions._snow_left==left and field.wall_view.weather_time==weather_time,"zero time scale also stops new snow generation")
 	Engine.time_scale = 1
 	game.now_stop_state = true
 	var previous_map:String = world.now_choose_map
@@ -54,12 +61,20 @@ func run() -> void:
 	check(not next_map.is_empty(),"production world exposes another ordinary map")
 	game.request_map_choice(next_map)
 	check(await until(func():return conditions._map_key==next_map and snow_ready()),"public map-change path replaces weather layout for the selected arena")
-	var inside:bool = true
+	check(field.environment_patches.is_empty(),"map change while paused stays entirely snow-free")
+	# Empty manual arenas are intentionally not combat-active; add a real fixture actor.
+	var map_actor:Node2D = dummy(world.return_map_world_rect(world._current_map_node()).get_center())
+	await physics_frame
+	await physics_frame
+	accumulate()
+	var inside:bool = not field.environment_patches.is_empty()
 	for record:Dictionary in field.environment_patches.values():
 		if record.decorative: continue
 		var rectangle:Array[Rect2] = [Rect2(FIELD.point_at(record.cell)-Vector2.ONE*12,Vector2.ONE*24)]
 		inside = inside and conditions.GEOMETRY.subtract(rectangle,conditions._ground).is_empty()
 	check(inside,"new map snow stays on actual floor regions instead of the old map or holes")
+	map_actor.queue_free()
+	await process_frame
 	game.request_map_choice(previous_map)
 	check(await until(func():return conditions._map_key==previous_map and snow_ready()),"returning to the original map restores its own layout")
 	# Use the production placement recorder so the normal rematch path owns the setup.
@@ -67,14 +82,21 @@ func run() -> void:
 	check(world.has_rematch_setup() and await until(snow_ready),"real character placement establishes a replayable battle and weather seed")
 	var original_seed:int = game.current_battle_random_seed()
 	check(game.begin_battle_random(original_seed)==original_seed,"reusing a recorded battle seed is idempotent rather than incrementing it")
+	conditions.refresh_layout(true)
+	check(conditions.field.environment_patches.is_empty(),"new replay baseline begins bare")
+	accumulate()
 	var replay:Dictionary = conditions.field.environment_patches.duplicate(true)
 	var old_field:WeakRef = weakref(conditions.field)
 	await world.rematch_last_battle(true)
 	check(await until(func():return not is_instance_valid(old_field.get_ref()) and snow_ready()),"normal exact rematch retires the previous transient field and recreates weather")
+	check(conditions.field.environment_patches.is_empty(),"exact rematch recreates zero accumulation, not the prior twelve seconds")
+	accumulate()
 	check(game.current_battle_random_seed()==original_seed and conditions.field.environment_patches==replay,"exact replay reproduces the actual snow layout, not just a matching RNG seed")
 	old_field = weakref(conditions.field)
 	await world.rematch_last_battle(false)
 	check(await until(func():return not is_instance_valid(old_field.get_ref()) and snow_ready()),"fresh-random rematch also creates a new authoritative snow field")
+	check(conditions.field.environment_patches.is_empty(),"fresh-random rematch also starts bare")
+	accumulate()
 	check(game.current_battle_random_seed()!=original_seed and conditions.field.environment_patches!=replay,"fresh-random replay changes snow while retaining the chosen environment")
 	var victim:Node2D = dummy(center+Vector2(72,0))
 	game.now_stop_state = false
@@ -85,6 +107,7 @@ func run() -> void:
 	old_field = weakref(conditions.field)
 	world.reset()
 	check(await until(func():return not is_instance_valid(old_field.get_ref()) and snow_ready()),"ordinary reset clears old weather but retains the user's Snow selection")
+	check(conditions.field.environment_patches.is_empty() and conditions.field.wall_view.weather_time==0.0,"ordinary reset removes old wall meshes, accumulation and falling-snow time")
 	check(not is_instance_valid(ice_ref.get_ref()) and get_nodes_in_group("MCSnowIce").is_empty(),"reset leaves no frozen victim, ice shell or control lease from the old battle")
 	field = conditions.field
 	conditions.set_physics_process(false)

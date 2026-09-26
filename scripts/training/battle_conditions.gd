@@ -8,6 +8,7 @@ const GOLEM:PackedScene = preload("res://scenes/characters/我的世界/雪傀�
 const MAX_PATCHES:int = 1024
 const MAX_CANDIDATES:int = 4096
 const SNOW_INTERVAL:float = 0.45
+const FIRST_SNOW_DELAY:float = 2.0 # Start bare; snowfall begins before the first accumulation.
 var world:Node
 var environment:String = "none"
 var field:Node2D
@@ -28,10 +29,9 @@ var _ground:Array[Rect2] = []
 var _walls:Array[Rect2] = []
 var _ground_candidates:Array[Dictionary] = []
 var _wall_candidates:Array[Dictionary] = []
-var _snow_left:float = SNOW_INTERVAL
+var _snow_left:float = FIRST_SNOW_DELAY
 var _event_seed:int = -1
 var _layout_left:float = 0.0
-var _generation:int = 0
 
 func _init(owner_world:Node = null) -> void:
 	world = owner_world
@@ -66,8 +66,9 @@ func refresh_layout(force:bool = false) -> void:
 	var choice:String = CATALOG.normalize_environment(Game.Game_Settings.get("Environment","none"))
 	if choice=="none":
 		environment = choice
-		_generation += 1
-		if is_instance_valid(field) and not field.is_queued_for_deletion(): field.clear_environment()
+		if is_instance_valid(field) and not field.is_queued_for_deletion():
+			field.wall_view.set_weather(false)
+			field.clear_environment()
 		_ground_candidates.clear()
 		_wall_candidates.clear()
 		return
@@ -77,35 +78,39 @@ func refresh_layout(force:bool = false) -> void:
 	var replaced:bool = not is_instance_valid(field) or field.is_queued_for_deletion()
 	if replaced: field = FIELD.ensure(self,world)
 	field.environment_source = self
+	field.wall_view.set_weather(true)
+	if force or replaced or previous!=choice: field.wall_view.reset_weather(_weather_seed())
 	if not field._development_start_offsets.is_empty(): return # Same field moves existing snow with the maps.
 	var map_node:Node = world._current_map_node()
 	if not is_instance_valid(map_node): return
+	var ground:Array[Rect2] = world.map_island_rects(map_node)
+	if not ground.is_empty():
+		var weather_region:Rect2 = ground[0]
+		for region:Rect2 in ground: weather_region = weather_region.merge(region)
+		field.wall_view.weather_bounds = weather_region.grow(FIELD.CELL*8.0)
 	var walls:Array[Rect2] = _wall_regions(map_node)
 	if field.wall_view.visual_walls!=walls:
 		field.wall_view.visual_walls = walls.duplicate()
-		field.wall_view.queue_redraw()
+		field.wall_view.request_update()
 	if not is_multiplayer_authority(): return # Only rendering follows local theme; clients never generate gameplay.
-	var ground:Array[Rect2] = world.map_island_rects(map_node)
 	var key:String = str(world.now_choose_map)
 	var seed_value:int = _weather_seed()
 	var restart:bool = force or replaced or previous!=choice or key!=_map_key or seed_value!=_seed
 	if restart:
-		_generation += 1
 		field.clear_environment()
+		field.wall_view.reset_weather(seed_value)
 		_seed = seed_value
 		_map_key = key
 		_rng.seed = _seed
-		_snow_left = SNOW_INTERVAL
+		_snow_left = FIRST_SNOW_DELAY
 	if restart or ground!=_ground or walls!=_walls:
 		_ground = ground.duplicate()
 		_walls = walls.duplicate()
 		field.reconcile_environment(_ground,_walls)
 		_rebuild_candidates()
-	if restart: _seed_initial.call_deferred(_generation)
 
 func _wall_regions(map_node:Node) -> Array[Rect2]:
 	if world._is_grass_map_background():
-		field.wall_view.z_index = 0 # Tile walls already render beneath the original snow field.
 		return world._map_shape_walls(map_node)
 	var result:Array[Rect2] = []
 	# Blue maps have thin black frames, not Minecraft's full-width block walls.
@@ -113,7 +118,6 @@ func _wall_regions(map_node:Node) -> Array[Rect2]:
 	# painting decorative snow over invisible wall tiles or sealed doorways.
 	var border:Node2D = world.map_border_segment_root
 	if not is_instance_valid(border): return result
-	field.wall_view.z_index = border.z_index-field.z_index+1
 	for child:Node in border.get_children():
 		if not child is Line2D or child.is_queued_for_deletion(): continue
 		var line:Line2D = child
@@ -176,12 +180,6 @@ func _shuffle(values:Array) -> void:
 		values[i] = values[j]
 		values[j] = saved
 
-func _seed_initial(generation:int) -> void:
-	await get_tree().physics_frame # Let map collision transforms settle, even during setup.
-	if generation!=_generation or environment!="snow" or not is_multiplayer_authority() or not is_instance_valid(field): return
-	for i:int in range(8): _spawn_from(_ground_candidates)
-	for i:int in range(4): _spawn_from(_wall_candidates)
-
 func _spawn_from(candidates:Array[Dictionary]) -> bool:
 	if not is_instance_valid(field) or field.is_queued_for_deletion() or field.environment_patches.size()>=MAX_PATCHES: return false
 	var attempts:int = 0
@@ -207,7 +205,10 @@ func draw_selected_event() -> String:
 	return id
 
 func advance(delta:float) -> void:
-	if not is_finite(delta) or delta<=0.0 or not is_combat_runtime_active() or not is_multiplayer_authority(): return
+	if not is_finite(delta) or delta<=0.0 or not is_combat_runtime_active(): return
+	if environment=="snow" and is_instance_valid(field) and not field.is_queued_for_deletion():
+		field.wall_view.advance_weather(delta) # Local appearance also runs on guests; never sends damage/RPCs.
+	if not is_multiplayer_authority(): return
 	if environment=="snow" and is_instance_valid(field) and not field.is_queued_for_deletion():
 		_snow_left -= delta
 		var guard:int = 0

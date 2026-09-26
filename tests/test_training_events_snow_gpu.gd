@@ -1,11 +1,12 @@
 extends "res://tests/test_training_events_snow.gd"
-## Real GPU captures of the production field, wall overlay and Settings UI.
+## Real GPU: empty start, native snowfall, wall-top 3D cuboids and Settings UI.
 var capture_dir:String
 var hidden_layers:Dictionary = {}
 
-func grab(name:String = "") -> Image:
-	await process_frame
-	await RenderingServer.frame_post_draw
+func grab(name:String = "",settle_frames:int = 2) -> Image:
+	for i:int in range(settle_frames):
+		await process_frame
+		await RenderingServer.frame_post_draw
 	var image:Image = root.get_texture().get_image()
 	if not name.is_empty(): image.save_png(capture_dir+"/"+name+".png")
 	return image
@@ -45,7 +46,7 @@ func run() -> void:
 	capture_dir = OS.get_environment("TRAINING_SNOW_CAPTURE_DIR")
 	if capture_dir.is_empty(): capture_dir = "user://training_snow_gpu"
 	DirAccess.make_dir_recursive_absolute(capture_dir)
-	create_timer(90).timeout.connect(func():finish(2))
+	create_timer(240,true,false,true).timeout.connect(func():finish(2))
 	conditions = world.battle_conditions
 	conditions.set_physics_process(false)
 	world.versus_label.hide()
@@ -61,7 +62,12 @@ func run() -> void:
 	actor.motion_blur_enabled = false
 	var field:Node2D = actor._field
 	field.set_physics_process(false)
-	for style:String in ["blue","grass","summit"]:
+	if OS.get_environment("SNOW_CAPTURE_ONSET_ONLY")=="1":
+		await capture_random_weather(camera,field)
+		print("TRAINING_SNOW_ONSET checks=",checks," failures=",failures)
+		await finish(0 if failures==0 else 1)
+		return
+	for style:String in ["blue","grass","sand","stone","nether","end","summit"]:
 		setting("Map_Background",style)
 		setting("Environment","snow")
 		conditions.refresh_layout(true)
@@ -69,6 +75,7 @@ func run() -> void:
 		await physics_frame
 		await process_frame
 		field = conditions.field
+		check(field.environment_patches.is_empty() and field.wall_view.weather_time==0.0,style+" starts empty before the controlled geometry probe")
 		field.set_physics_process(false)
 		field.clear_environment()
 		field.patches.clear()
@@ -80,7 +87,7 @@ func run() -> void:
 		if not wall.has_area(): continue
 		var x_center:float = FIELD.point_at(FIELD.cell_at(wall.get_center())).x
 		var floor_y:float = ceil((wall.end.y+24.0)/FIELD.CELL)*FIELD.CELL
-		camera.global_position = Vector2(x_center,floor_y+30)
+		camera.global_position = Vector2(x_center,floor_y+8)
 		camera.reset_smoothing()
 		actor.global_position = Vector2(x_center,floor_y+24)
 		var wall_rects:Array[Rect2] = []
@@ -102,7 +109,7 @@ func run() -> void:
 		game.now_stop_state = true
 		actor.image.hide()
 		field.hide()
-		var empty:Image = await grab()
+		var empty:Image = await grab(style+"_bare_probe")
 		actor.image.show()
 		var actor_only:Image = await grab()
 		actor.image.hide()
@@ -113,11 +120,27 @@ func run() -> void:
 		var transform:Transform2D = field.get_global_transform_with_canvas()
 		var wall_pixels:int = 0
 		var ground_pixels:int = 0
-		for rect:Rect2 in wall_rects: wall_pixels += changed_in(rect,empty,snow_only,transform)
+		var view:Node2D = field.wall_view
+		check(is_instance_valid(view.mesh_node) and view.mesh_node.mesh.get_surface_count()==1,style+" wall snow is a genuine shared ArrayMesh, not a painted 2D rectangle")
+		if not is_instance_valid(view.mesh_node): continue
+		var box:AABB = view.mesh_node.mesh.get_aabb()
+		check(is_equal_approx(box.size.y,FIELD.CELL*2.0/16.0) and is_equal_approx(box.position.y,view.renderer.block_height),style+" native 2/16 snow layer sits exactly on the wall top")
+		var material:StandardMaterial3D = view.mesh_node.mesh.surface_get_material(0)
+		check(material.albedo_texture==view.NATIVE_SNOW and not material.emission_enabled,style+" snow uses original Minecraft texture and real lighting, without emission")
+		if style!="blue":
+			check(view.renderer==world.map_wall_volume and view.mesh_node.get_parent()==world.map_wall_volume.viewport,style+" wall snow shares the actual wall camera, World3D and lights")
+		wall_pixels = changed_in(projected_snow_bounds(view),empty,snow_only,Transform2D.IDENTITY)
 		for rect:Rect2 in floor_rects: ground_pixels += changed_in(rect,empty,snow_only,transform)
 		print("SNOW_GPU style=",style," wall_pixels=",wall_pixels," ground_pixels=",ground_pixels," wall_z=",field.wall_view.z_index)
-		check(wall_pixels>40,style+" wall decoration has actual visible snow pixels on the wall surface")
+		check(wall_pixels>40,style+" raised snow has visible pixels at its actual 3D projected location")
 		check(ground_pixels>400,style+" floor uses visible native snow patches")
+		var face:Rect2 = wall_rects[wall_rects.size()/2]
+		var top:Vector2 = snow_project(view,Vector3(face.get_center().x,view.snow_base_height+view.snow_thickness,wall.get_center().y))
+		var side:Vector2 = snow_project(view,Vector3(face.get_center().x,view.snow_base_height+view.snow_thickness*0.5,wall.end.y))
+		var top_color:Color = pixel_at(snow_only,top)
+		var side_color:Color = pixel_at(snow_only,side)
+		print("SNOW_3D_FACE style=",style," top=",top_color," side=",side_color," side_pixel=",side," bare_side=",pixel_at(empty,side))
+		check(gap(pixel_at(empty,side),side_color)>0.08 and top_color.get_luminance()>side_color.get_luminance()+0.025,style+" true vertical snow face is visible and shaded differently from its top")
 		var center:=Vector2i(actor.get_global_transform_with_canvas().origin.round())
 		var tested:int = 0
 		var retained:int = 0
@@ -169,7 +192,9 @@ func check_local_replica_style(field:Node2D) -> void:
 	setting("Map_Background","blue")
 	conditions.refresh_layout()
 	check(field.environment_patches==authoritative_cells,"client-only background style never replaces authoritative snow cells")
-	check(field.wall_view.z_index==world.map_border_segment_root.z_index-field.z_index+1,"replica wall overlay follows the local blue frame's actual depth")
+	await process_frame
+	await RenderingServer.frame_post_draw
+	check(is_instance_valid(field.wall_view.renderer) and field.wall_view.renderer.z_index==world.map_border_segment_root.z_index+1,"replica uses a real 3D snow-only renderer above the unchanged local blue frame")
 	var pieces:Array[Rect2] = []
 	for cell:Vector2i in field.environment_patches:
 		var record:Dictionary = field.environment_patches[cell]
@@ -181,19 +206,108 @@ func check_local_replica_style(field:Node2D) -> void:
 	field.show()
 	var with_snow:Image = await grab("replica_local_blue")
 	var pixels:int = 0
-	for rect:Rect2 in pieces: pixels+=changed_in(rect,without,with_snow,field.get_global_transform_with_canvas())
-	check(pixels>40,"client-style projection has visible native snow pixels rather than hidden wall data")
+	pixels = changed_in(projected_snow_bounds(field.wall_view),without,with_snow,Transform2D.IDENTITY)
+	check(pixels>40,"client-style projection renders raised native snow rather than flat painted wall data")
 	conditions.set_multiplayer_authority(1)
+
+func snow_project(view:Node2D,point:Vector3) -> Vector2:
+	return view.renderer.picture.get_global_transform_with_canvas()*(view.renderer.camera as Camera3D).unproject_position(point)
+
+func projected_snow_bounds(view:Node2D) -> Rect2:
+	var box:AABB = view.mesh_node.mesh.get_aabb()
+	var bounds:=Rect2(snow_project(view,box.position),Vector2.ZERO)
+	for i:int in range(8): bounds = bounds.expand(snow_project(view,box.get_endpoint(i)))
+	return bounds.grow(2.0)
+
+func pixel_at(image:Image,point:Vector2) -> Color:
+	return image.get_pixel(clampi(roundi(point.x),0,image.get_width()-1),clampi(roundi(point.y),0,image.get_height()-1))
 
 func capture_random_weather(camera:Camera2D,_field:Node2D) -> void:
 	setting("Map_Background","grass")
+	setting("Environment","snow")
 	conditions.refresh_layout(true)
 	await physics_frame
 	await physics_frame
-	game.now_stop_state = false
-	for i:int in range(48): conditions.advance(1.0)
 	game.now_stop_state = true
+	var field:Node2D = conditions.field
+	var view:Node2D = field.wall_view
 	camera.global_position = world.return_map_world_rect(world._current_map_node()).get_center()
 	camera.zoom = Vector2(0.7,0.7)
 	camera.reset_smoothing()
+	var bare:Image = await grab("weather_00_empty")
+	check(field.environment_patches.is_empty() and not is_instance_valid(view.mesh_node),"actual first GPU frame has no preplaced ground or 3D wall snow")
+	game.now_stop_state = false
+	conditions.advance(1.0)
+	game.now_stop_state = true
+	var first:Image = await grab("weather_01_falling")
+	var whole:=Rect2(Vector2.ZERO,Vector2(root.size))
+	var falling_pixels:int = changed_in(whole,bare,first,Transform2D.IDENTITY)
+	print("SNOWFALL_PIXELS ",falling_pixels)
+	check(falling_pixels>700 and field.environment_patches.is_empty(),"native Minecraft snowfall is visibly falling before any ground or wall accumulation")
+	game.now_stop_state = false
+	conditions.advance(0.25)
+	game.now_stop_state = true
+	var moved:Image = await grab("weather_02_moved")
+	check(changed_in(whole,first,moved,Transform2D.IDENTITY)>700,"original weather flakes actually move across rendered frames")
+	var clock:float = view.weather_time
+	conditions.advance(2.0)
+	var frozen:Image = await grab()
+	check(view.weather_time==clock and changed_in(whole,moved,frozen,Transform2D.IDENTITY)<30,"pause freezes the snowfall image, not only its damage or spawn counter")
+	await check_shared_weather_view(view)
+	# This sequence uses production combat-delta advancement; no injected snow cells.
+	conditions.refresh_layout(true)
+	var save_onset:bool = OS.get_environment("SNOW_CAPTURE_ONSET")=="1"
+	if save_onset: DirAccess.make_dir_recursive_absolute(capture_dir+"/onset")
+	if save_onset: await grab("onset/frame_000")
+	for i:int in range(1,49):
+		game.now_stop_state = false
+		conditions.advance(0.1)
+		game.now_stop_state = true
+		if save_onset: await grab("onset/frame_%03d" % i,1)
+	check(field.environment_patches.size()>0 and view.weather_time>4.7,"after a bare start, actual elapsed battle time gradually deposits permanent snow")
+	game.now_stop_state = false
+	for i:int in range(36): conditions.advance(1.0)
+	game.now_stop_state = true
 	await grab("random_weather_production")
+	var retained:Dictionary = field.environment_patches.duplicate(true)
+	camera.global_position += Vector2(61,-27)
+	camera.zoom = Vector2(0.85,0.85)
+	await grab("weather_camera_moved")
+	check(field.environment_patches==retained,"camera movement/zoom affects weather appearance, not authoritative accumulated snow")
+	world.day_night_cycle.set_minutes(0.0)
+	await grab("weather_midnight")
+	check(field.environment_patches==retained,"night lighting leaves accumulated snow and its gameplay unchanged")
+	world.day_night_cycle.reset_to_noon()
+	setting("Environment","none")
+	await grab("weather_disabled")
+	check(not view.weather_enabled and not is_instance_valid(view.mesh_node) and not is_instance_valid(view._overlay_renderer),"None removes falling weather and all attached 3D snow meshes")
+	setting("Environment","snow")
+	await grab("weather_reenabled_empty")
+	check(field.environment_patches.is_empty() and view.weather_time==0.0,"re-enabling weather returns to an actually empty GPU scene")
+
+func check_shared_weather_view(view:Node2D) -> void:
+	var capture:=SubViewport.new()
+	capture.name = "SnowfallSharedWorldRecordingProbe"
+	capture.size = Vector2i(620,840)
+	capture.world_2d = world.get_viewport().find_world_2d()
+	capture.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	var center:Vector2 = world.return_map_world_rect(world._current_map_node()).get_center()
+	root.add_child(capture)
+	capture.canvas_transform = Transform2D(0.0,Vector2(0.9,0.9),0.0,Vector2(capture.size)*0.5-center*0.9)
+	view.weather_enabled = false
+	view.queue_redraw()
+	for i:int in range(3):
+		await process_frame
+		await RenderingServer.frame_post_draw
+	var empty:Image = capture.get_texture().get_image()
+	view.weather_enabled = true
+	view.queue_redraw()
+	for i:int in range(3):
+		await process_frame
+		await RenderingServer.frame_post_draw
+	var snow:Image = capture.get_texture().get_image()
+	snow.save_png(capture_dir+"/weather_shared_portrait.png")
+	check(changed_in(Rect2(Vector2.ZERO,Vector2(capture.size)),empty,snow,Transform2D.IDENTITY)>700,"shared-World2D portrait/recording viewport also sees real native snowfall")
+	capture.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	capture.queue_free()
+	await process_frame

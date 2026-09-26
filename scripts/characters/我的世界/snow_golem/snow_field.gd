@@ -79,7 +79,7 @@ func development_preview_merge(_start_offsets:Dictionary,lanes:Dictionary) -> vo
 		heads[id].point = (original.point as Vector2)+change
 		heads[id].start = (original.start as Vector2)+change
 	queue_redraw()
-	if is_instance_valid(wall_view): wall_view.queue_redraw()
+	if is_instance_valid(wall_view): wall_view.request_update()
 	if is_instance_valid(_head_view): _head_view.queue_redraw()
 
 func development_finish_merge() -> void:
@@ -126,7 +126,7 @@ func development_finish_merge() -> void:
 	_development_head_starts.clear()
 	_development_draw_offsets.clear()
 	queue_redraw()
-	if is_instance_valid(wall_view): wall_view.queue_redraw()
+	if is_instance_valid(wall_view): wall_view.request_update()
 	if is_instance_valid(_head_view): _head_view.queue_redraw()
 	if is_multiplayer_authority() and multiplayer.has_multiplayer_peer():
 		_field_state.rpc(_cell_snapshot(patches.keys()),_head_snapshot(),true)
@@ -249,7 +249,7 @@ func _environment_state(records:Array,full:bool) -> void:
 		if rects.is_empty(): continue
 		environment_patches[cell] = {"cell":cell,"decorative":bool(item.get("decorative",false)),"rects":rects}
 	queue_redraw()
-	if is_instance_valid(wall_view): wall_view.queue_redraw()
+	if is_instance_valid(wall_view): wall_view.request_update()
 
 func _same_side(source:ball,entry:Dictionary) -> bool:
 	return str(entry.family) == str(source.get_meta("mc_snow_family","")) or (not source.Team.is_empty() and source.Team == str(entry.team))

@@ -1,0 +1,1171 @@
+diff --git a/Images/effects/我的世界/雪环境/SOURCE.json b/Images/effects/我的世界/雪环境/SOURCE.json
+new file mode 100644
+index 0000000..54aa970
+--- /dev/null
++++ b/Images/effects/我的世界/雪环境/SOURCE.json
+@@ -0,0 +1,21 @@
++{
++  "game": "Minecraft Java Edition",
++  "version": "1.21.5",
++  "copyright": "Mojang Studios / Microsoft",
++  "license_note": "Original Minecraft assets, not public-domain or freely redistributable. Retained only under the project's existing native-asset usage constraints. https://www.minecraft.net/en-us/eula",
++  "changes": "None. All three source files are byte-for-byte copies. Runtime tiles the native weather sheet and crops the native snow cuboid to actual wall supports.",
++  "files": {
++    "snowfall.png": {
++      "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.5/assets/minecraft/textures/environment/snow.png",
++      "sha256": "2c52b4a8f924a856118f747ccd0dedce2f2f3f7a01bc9e388f7c2ea26c831cf2"
++    },
++    "snow.png": {
++      "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.5/assets/minecraft/textures/block/snow.png",
++      "sha256": "05201107fc2c60db4dc59f778a9ca7cb6101b2a332da696b33ce4b0cd2a02019"
++    },
++    "snow_height2.json": {
++      "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.5/assets/minecraft/models/block/snow_height2.json",
++      "sha256": "1ad3228902c78428faf5a0648fb2cfe67f3efc6eb8ea918b98fabe85a9479c32"
++    }
++  }
++}
+diff --git a/Images/effects/我的世界/雪环境/snow.png b/Images/effects/我的世界/雪环境/snow.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..294c0f9941cc1a6ca00de18728fc3644b25d88b9
+GIT binary patch
+literal 166
+zcmeAS@N?(olHy`uVBq!ia0vp^0wB!93?!50ihlx9oB=)|uK)l4|NigahrfRf7Uo_B
+z3PyOkIEGZ*N-hv66i7`-$Sz1sIFZF<6joqqP~dwpC848eVoG9xPr<{Kgh-_YM-SYv
+zP;7QQm3vZ%O@Eo^A|9rk%`%b_i<~4SB#fDNO3ayNm0{G<Vx+^$;3dI-X!-`O2S7U*
+NJYD@<);T3K0RVzWI1vB<
+
+literal 0
+HcmV?d00001
+
+diff --git a/Images/effects/我的世界/雪环境/snow.png.import b/Images/effects/我的世界/雪环境/snow.png.import
+new file mode 100644
+index 0000000..88eda13
+--- /dev/null
++++ b/Images/effects/我的世界/雪环境/snow.png.import
+@@ -0,0 +1,40 @@
++[remap]
++
++importer="texture"
++type="CompressedTexture2D"
++uid="uid://btwdkw8uiqx5t"
++path="res://.godot/imported/snow.png-6e9d6e9d9716d8386c27ef68b5e4dbf3.ctex"
++metadata={
++"vram_texture": false
++}
++
++[deps]
++
++source_file="res://Images/effects/我的世界/雪环境/snow.png"
++dest_files=["res://.godot/imported/snow.png-6e9d6e9d9716d8386c27ef68b5e4dbf3.ctex"]
++
++[params]
++
++compress/mode=0
++compress/high_quality=false
++compress/lossy_quality=0.7
++compress/uastc_level=0
++compress/rdo_quality_loss=0.0
++compress/hdr_compression=1
++compress/normal_map=0
++compress/channel_pack=0
++mipmaps/generate=false
++mipmaps/limit=-1
++roughness/mode=0
++roughness/src_normal=""
++process/channel_remap/red=0
++process/channel_remap/green=1
++process/channel_remap/blue=2
++process/channel_remap/alpha=3
++process/fix_alpha_border=true
++process/premult_alpha=false
++process/normal_map_invert_y=false
++process/hdr_as_srgb=false
++process/hdr_clamp_exposure=false
++process/size_limit=0
++detect_3d/compress_to=1
+diff --git a/Images/effects/我的世界/雪环境/snow_height2.json b/Images/effects/我的世界/雪环境/snow_height2.json
+new file mode 100644
+index 0000000..de13fc6
+--- /dev/null
++++ b/Images/effects/我的世界/雪环境/snow_height2.json
+@@ -0,0 +1,19 @@
++{   "parent": "block/thin_block",
++    "textures": {
++        "particle": "block/snow",
++        "texture": "block/snow"
++    },
++    "elements": [
++        {   "from": [ 0, 0, 0 ],
++            "to": [ 16, 2, 16 ],
++            "faces": {
++                "down":  { "uv": [ 0, 0, 16, 16 ], "texture": "#texture", "cullface": "down" },
++                "up":    { "uv": [ 0, 0, 16, 16 ], "texture": "#texture" },
++                "north": { "uv": [ 0, 14, 16, 16 ], "texture": "#texture", "cullface": "north" },
++                "south": { "uv": [ 0, 14, 16, 16 ], "texture": "#texture", "cullface": "south" },
++                "west":  { "uv": [ 0, 14, 16, 16 ], "texture": "#texture", "cullface": "west" },
++                "east":  { "uv": [ 0, 14, 16, 16 ], "texture": "#texture", "cullface": "east" }
++            }
++        }
++    ]
++}
+diff --git a/Images/effects/我的世界/雪环境/snowfall.png b/Images/effects/我的世界/雪环境/snowfall.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..57dc909aafa6c5c87bf7c3821382986628bdda52
+GIT binary patch
+literal 277
+zcmeAS@N?(olHy`uVBq!ia0vp^4h#&842;Y`mSx8yS0Kd};1dF(|NsBL^yd7#Ko(<3
+zkY6x^!?PP{K+axI7srr_TUVzT@*OhZajjpiptOvqho?uT(a`;Yhb5Q$Lk$_$z{J{4
+zm&}yYQ-7(wF73E$A<xZepT}_a8jDZlt0q>dS6{B`GnCJAH2QMpgW?u{%L@??PUK73
+zp9^wfn3>kVB)svW(`3)CofkALJ)buo>%MfeZ||gkZ5F4xvW_K{UA*yu=eW+%$;TR*
+zMDOU&@@t3{)xDaS-`;DJA)*+cud=_S|7e_CX4Fsiz_k4rzHq)cxMAtWxIB?yL%BEd
+YqTYN{=d4VM0eXbN)78&qol`;+0KbK7F8}}l
+
+literal 0
+HcmV?d00001
+
+diff --git a/Images/effects/我的世界/雪环境/snowfall.png.import b/Images/effects/我的世界/雪环境/snowfall.png.import
+new file mode 100644
+index 0000000..574fda1
+--- /dev/null
++++ b/Images/effects/我的世界/雪环境/snowfall.png.import
+@@ -0,0 +1,40 @@
++[remap]
++
++importer="texture"
++type="CompressedTexture2D"
++uid="uid://0jmcbft8s33o"
++path="res://.godot/imported/snowfall.png-c122a3e19e496076fa3f35a12f7286a7.ctex"
++metadata={
++"vram_texture": false
++}
++
++[deps]
++
++source_file="res://Images/effects/我的世界/雪环境/snowfall.png"
++dest_files=["res://.godot/imported/snowfall.png-c122a3e19e496076fa3f35a12f7286a7.ctex"]
++
++[params]
++
++compress/mode=0
++compress/high_quality=false
++compress/lossy_quality=0.7
++compress/uastc_level=0
++compress/rdo_quality_loss=0.0
++compress/hdr_compression=1
++compress/normal_map=0
++compress/channel_pack=0
++mipmaps/generate=false
++mipmaps/limit=-1
++roughness/mode=0
++roughness/src_normal=""
++process/channel_remap/red=0
++process/channel_remap/green=1
++process/channel_remap/blue=2
++process/channel_remap/alpha=3
++process/fix_alpha_border=true
++process/premult_alpha=false
++process/normal_map_invert_y=false
++process/hdr_as_srgb=false
++process/hdr_clamp_exposure=false
++process/size_limit=0
++detect_3d/compress_to=1
+diff --git a/MCP_CONTEXT.md b/MCP_CONTEXT.md
+index fb91c97..dad33d5 100644
+--- a/MCP_CONTEXT.md
++++ b/MCP_CONTEXT.md
+@@ -1,6 +1,6 @@
+ # polo-balls 项目规则与接入说明
+ 
+-- 设置→训练新增“事件”开关与勾选区：当前没有具体事件，仅勾选且注册的项可抽取；环境默认“无”，首项“雪”为随机雪傀儡雪片、环境雪不按时间融化，墙上只装饰。共用原雪地/积寒/音效与公共寒冷伤害，雪傀儡及小雪人免疫寒冷伤害、寒冷值及其控制；**雪球直击不是寒冷伤害，普通伤害和击退保留**。正常角色雪径仍按原寿命融化，关闭环境不误删角色雪；权限、重演、纯墙表现、分类和验证/恢复见 `docs/TRAINING_ENVIRONMENTS.md` 与 `tests/TRAINING_EVENTS_SNOW_20260926.md`。
++- 设置→训练新增“事件”开关与勾选区：当前没有具体事件，仅勾选且注册的项可抽取；环境默认“无”，雪环境开局/布阵/重打不预铺；运行后先播原版飘雪，再逐步积累不融化的雪傀儡雪片。墙上是共用现有相机/真实光照的原版 2/16 厚 **3D 墙顶雪层**，不是平涂，只装饰。共用原雪地/积寒/音效与公共寒冷伤害，雪傀儡及小雪人免疫寒冷伤害、寒冷值及其控制；**雪球直击不是寒冷伤害，普通伤害和击退保留**。正常角色雪径仍按原寿命融化，关闭环境不误删角色雪；权限、重演、纯墙表现、分类和验证/恢复见 `docs/TRAINING_ENVIRONMENTS.md`、`tests/TRAINING_EVENTS_SNOW_20260926.md` 与 `tests/SNOW_WEATHER_CORRECTION_20260926.md`。
+ 
+ - 铁匠村民剑缩放0.12；普通挥剑收势使用参数化姿态，禁止跨±PI角度回插而多转一圈。实际剑击杀敌人后接0.45秒匀速转剑3圈，最后35%持续渐隐至透明，同次横扫多杀只庆祝一次；纯视觉、不延迟新攻击，眩晕/死亡取消，复用原版剑图。设置威胁显示须显示蓝色检测/起手扇区及结算帧白红真实伤害扇区（48半径、半角42度取实时参数），结束/打断清理。命中角度必须取敌人真实global_position，禁止用会被手控鼠标替换的combat_target_position做命中筛选；蓝色选敌圆仅待机显示。回归与局部回退见 `tests/BLACKSMITH_SWORD_SWING.md` 的2026-09-26节。
+ 
+@@ -104,7 +104,7 @@
+ - 铁匠村民的挥舞音效以出剑时实际 `attack_damage(1.0)` **严格大于 100** 为界，超出用原版横扫、100 及以下保留重击；真实命中暴击音仍按独立承伤阈值。剑弧/握把和残影更连续可见，不更改原扇形碰撞；参数、素材复用和单机/GPU 回归见 `tests/BLACKSMITH_SWORD_SWING.md`、`tests/test_blacksmith_sword_sweep.gd`。
+ - 大、中、小史莱姆死亡复用原落地绿色环与原版黏液球粒子，仅权威端按落地范围／当前攻击伤害对附近敌人结算一次并向外击退；被删除或战斗结束仍让死亡特效短暂播放完，原有跳跃、落地减速、音效和分裂保留。实现范围、现有轮放测试的失配与 GPU／战斗回归见 `tests/SLIME_DEATH_PULSE.md`、`tests/test_slime_death_pulse.gd`、`tests/test_slime_death_visual.gd`。
+ - 根据落地粒子过少的反馈，史莱姆普通落地和死亡冲击大／中／小碎屑增密为 40／27／17，起跳保持 5／3／3；仍用原版素材、不改变伤害／击退，均匀圆周分布和实机 GPU／战斗回归见 `tests/SLIME_DEATH_PULSE.md`。
+-- 六种地图背景的边界与地图形状内侧边界：五种 Minecraft 方块主题使用原版纹理的真实 3D 六面体低墙，视觉高度 **0.4 格**，相邻方块共享边界、不得内缩留缝；12:00 时位于右上的真实 3D 光源投影水平总长约 **0.6 格**，保留轻微侧面/镜头视差，不恢复整格高墙和长影。蓝色背景保持平面且禁用 3D；门洞同时裁方块和 2D 墙顶，原物理碰撞、格宽与角色建造障碍不变。原版来源、当前 D3D12 画面、验证边界与回退见 `tests/MAP_WALLS_3D.md`、`tests/test_map_wall_3d.gd`、`tests/test_map_wall_3d_visual.gd`。
++- 六种地图背景的边界与地图形状内侧边界：五种 Minecraft 方块主题使用原版纹理的真实 3D 六面体低墙，视觉高度 **0.4 格**，相邻方块共享边界、不得内缩留缝；12:00 时位于右上的真实 3D 光源投影水平总长约 **0.6 格**，保留轻微侧面/镜头视差，不恢复整格高墙和长影。蓝色边框保持平面、不创建 3D 墙；仅雪环境的装饰雪片可使用独立 3D 雪层通道。门洞同时裁方块和 2D 墙顶，原物理碰撞、格宽与角色建造障碍不变。原版来源、当前 D3D12 画面、验证边界与回退见 `tests/MAP_WALLS_3D.md`、`tests/test_map_wall_3d.gd`、`tests/test_map_wall_3d_visual.gd`。
+ - 3D 墙镜头稳定性：墙/地影合成必须保留未取整的逆相机变换，使用 `map_wall_composite.gdshader` 绕过这两张 Sprite 的模型平移吸附；不得关闭全局 pixel snap。投影在 `frame_pre_draw` 对齐最终画布，不从墙中反复 `force_update_scroll()`；保留普通 UV 以支持共享录制/总览视口。复现与修复后 GPU 数值、暂停/平滑/回调清理边界见 `tests/MAP_WALL_CAMERA_STABILITY.md`、`tests/test_map_wall_camera_stability.gd`。
+ - 循环昼夜：默认 **12:00**、**1 游戏秒=1分钟**，24分钟游戏时间一昼夜；太阳从右上顺时针转一圈，16–20点渐暗、05–08点渐亮，六主题统一变暗且菜单/时钟不压暗。沿用0.4格无缝低墙与短影，只转灯不重建网格；暂停/倍速跟随物理delta，重置回中午，切背景保持时间。实现、GPU/共享录制视口验证及尚未验收的联机/编码边界见 `tests/DAY_NIGHT_CYCLE.md`、`tests/test_day_night_cycle.gd`、`tests/test_day_night_visual.gd`。
+ - 唤魔者不死图腾显示期间持续从图腾周围产生原版金绿粒子；出生后独立下落至脚下地面并淡出，图腾消失后保留最后一批落地尾迹。实现与验证见 `tests/TOTEM_CONTINUOUS_PARTICLES.md`。 图腾动作参考原版40 tick连续缩放/翻转曲线，战场适配为2秒；施法结束/眩晕及1.6秒庆祝结束须收手，不能用永久胜利标记维持举手。最新验证见 `tests/EVOKER_SMOOTH_AND_RESET.md`。
+diff --git a/docs/TRAINING_ENVIRONMENTS.md b/docs/TRAINING_ENVIRONMENTS.md
+index d4e0e6f..69eb1e3 100644
+--- a/docs/TRAINING_ENVIRONMENTS.md
++++ b/docs/TRAINING_ENVIRONMENTS.md
+@@ -3,7 +3,7 @@
+ ## 用户约定
+ 
+ - **设置 → 训练 → 事件**：默认关闭。打开才显示事件勾选区；只有已勾选且已注册的 ID 可参与抽取。当前注册表为空，明确显示“暂无可选事件”，没有伪造陨石、地震等事件，也没有为未来事件擅定触发周期。
+-- **环境**：默认“无”，目前支持“雪”。这里的雪是随机生成的原版雪傀儡雪片，不是用飘落粒子代替玩法。
++- **环境**：默认“无”，目前支持“雪”。**初始没有积雪**。开始战斗后先有原版 Minecraft 飘雪，再逐步生成原雪傀儡地面雪；天气表现与地面玩法并存，不能互相替代。
+ - 环境地面雪不随时间融化；墙雪只有装饰，没有伤害、积寒、冻结或物理阻挡。关掉环境只删除环境层，不删雪傀儡的普通雪径。
+ - **雪球直击不是寒冷伤害**，仍走原普通命中和轻微击退；只有附加的寒冷状态受到寒冷免疫阻止。
+ - 雪地和冻结跳伤使用公共寒冷入口。雪傀儡与小雪人默认免疫寒冷伤害，也免疫寒冷值、减速、攻速降低和冻结。
+@@ -16,7 +16,7 @@
+ | `ui/battle_conditions_settings.gd` | 设置 UI；无伤害 | 复用现有设置行和标题，使用 `Game.set_runtime_game_setting`，不另开权限旁路。中英文来自 `translations.csv` 及编译镜像。 |
+ | `scripts/training/battle_conditions.gd` | 战场系统 / 环境中立伤害来源 | 每个 World 一个。权威端生成地面玩法；使用独立、可重演的 RNG，不消费其他系统的随机计数器。事件仅预留受权限/暂停约束的抽取函数及 `event_selected` 信号，尚无事件实例或自动调度。 |
+ | `snow_golem/snow_field.gd` | 稀疏地形危险区；环境接触 / 寒冷 | 沿用同一真实位移采样、可达性查询、逐目标冷却、伤害入口、冷值和命中音效。`environment_patches` 与普通 `patches` 独立归属/寿命，不为每格创建 Area2D、计时器或隐形角色。 |
+-| `scripts/training/snow_wall_view.gd` | 纯表现 | 使用原 `snow.png` 裁切，不拉伸细墙成整片。蓝色主题复用实际黑框线段（含门/传送口缺口）；方块主题复用真实墙区域。墙面显示按本机地图外观投影及排序，不修改权威地面格。 |
++| `scripts/training/snow_wall_view.gd` | 纯表现；无攻击/载体/伤害/状态 | **真实 3D 墙顶雪层 + 原版飘雪**。墙雪是 `snow_height2` 的 2/16 厚六面体、原版纹理及侧面 UV；方块主题直接挂入现有墙的 World3D/相机/灯光，蓝色仅增加雪的独立 3D 通道，不把原平面边框变成立体墙。天气用原版 64×256 降雪贴图三层移动，不画白点、不新造一套技能粒子模拟器。 |
+ | `snow_golem/cold.gd` | 共享状态；状态跳伤 / 寒冷 | 每名受害者仅一个寒冷条；沿用原缓速、冻结、易伤、冰壳、雪花与声音。所有本地添加、持续控制和复制状态都检查寒冷免疫。 |
+ | `snow_golem/snowball.gd` | 远程 / 弹体 / **普通直击**，另附寒冷 | 不因受害者寒冷免疫而抹掉普通伤害或击退。原敌我、主人/家族、拒绝命中与寿命规则不变。 |
+ 
+@@ -41,13 +41,24 @@ if victim.can_receive_cold_status():
+ - 冻结跳伤每 0.35 秒一次，通过公共寒冷入口并保留原忽略格挡策略；按有效来源当前攻击的 2/9 计算，默认仍为原 2 点基础跳伤，再受原冻结易伤及受害者防御影响。来源消失后使用最后有效强度，环境源不用伪装成隐形雪傀儡。
+ - 原完整/小型雪径仍分别按 8/4 战斗秒融化。普通雪径保留主人、家族和敌我规则；环境地面雪是中立危险区，寒冷免疫者不受影响。重叠地面共用一个目标冷却，不能双倍跳伤。
+ - 环境雪不按时间融化，但真实地面雪仍可被原南瓜造雪人流程消耗。墙雪不可被当作地面伤害/寒冷。
+-- 初始预览生成少量雪片，之后只在战斗运行时逐步增加。累计永久格上限 1024；地图候选按面积抽样，生成循环和一次位置尝试都有上限。没有无限增长的每格节点。
++- **取消旧的 8 地面 + 4 墙面预铺及延迟种雪回调**。新局、暂停布阵、换图、重置/重打及重新启用雪时，积雪与天气动画时钟均从零开始。天气在运行后 0.9 秒内渐入；累计满 2 战斗秒才开始落地积雪，此后每 0.45 秒尝试一片。累计永久格仍上限 1024；候选、循环及位置尝试有界，不为每片雪/雪花建节点。空的手动布阵场没有存活战斗角色时，不越过原 World 的运行条件。
+ - 地面必须落在真实地板区域，不把多岛地图的总包围盒当作地板。普通障碍/墙的物理查询继续复用原雪地；地图几何变化会重建候选并裁切/剔除不再属于地板或墙的环境记录。
+ - 游戏暂停、SceneTree 暂停及零时间倍率不推进生成、伤害或寒冷计时。关闭环境保留普通雪径。重置/重打沿用 `BattleTransient` 清理并按当前选择重建；旧 field 排队删除时不抢占新 field 的稳定名称。
+ - 发育地图合并沿用原雪地的分区位移协议，环境格随所在分区移动并在重合时合并，不生成第二份伤害。
+-- 环境格、完整快照和冷值由权威端可靠同步。冷值路径相对于各自 field 的战场根，不误用另一个网络子世界。晚加入的永久雪不携带绝对时钟或融化截止值。
++- 环境格、完整快照和冷值由权威端可靠同步。冷值路径相对于各自 field 的战场根，不误用另一个网络子世界。晚加入的永久雪不携带绝对时钟或融化截止值。晚加入应显示房主已经积累的雪，不能把“新局空白”误用为清除房主快照。飘雪仅各端本地表现，房客也会播放，但不生成伤害格或额外结算。
+ - Events/Environment 不是本机视觉白名单设置，使用现有房主共享与房客权限；Map_Background 仍是本机外观，墙雪按本机实际墙体显示。
+ 
++## 原版 3D 墙雪与天气表现
++
++- 素材为 Minecraft Java 1.21.5 原文件；路径、下载地址、SHA-256 与版权说明在 `Images/effects/我的世界/雪环境/SOURCE.json`。不是自绘/生成替代图，也不声称原版素材可自由分发。
++- 墙雪顶面/侧面来自同一个 `ArrayMesh`：原模型 `[0,0,0]→[16,2,16]`，侧 UV `[0,14,16,16]`。CELL=24 对应厚度 3 世界单位；底部高度恰为现有墙顶。按真实支撑墙裁切纹理和几何，不覆盖门洞、不把雪画在墙的竖直侧面上。
++- 复用 `地图立体墙.gd::append_world_cuboid` 的六面体构造；普通墙 `_add_block` 只委托给相同参数的公共函数，原位置/格宽/高度/侧 UV 不变。雪材质不自发光；使用同一太阳/环境及真实深度，适配已有多通道地板影子，旧渲染器无地板专用通道时不要求该常量存在。
++- 方块主题雪层留在墙的背景通道；不把整个墙抬到人物前面，不改云、地板或状态框排序。蓝色边框保持原样，只有装饰雪片具有厚度。
++- 本机主题变化只把复制来的墙记录投影到本机支撑墙；共享地面格、RPC 数据和危险区不改变。发育地图仍使用原有格位移协议，墙层跟随该位移。
++- 天气是固定三次贴图绘制的世界坐标降雪层，覆盖真实岛屿总体范围及近侧天空。不同速度/尺度使用独立本地随机相位；不消费战斗 RNG、不创建碰撞、状态或音效。世界坐标使共享 World2D 的竖屏/录制视口也能看到同一飘雪，菜单 CanvasLayer 不被覆盖。
++- 不使用 shader 的墙钟 `TIME`；只推进战斗 delta。暂停/零速停止漂落和渐入；关闭环境立即隐藏天气、释放雪网格，普通雪径和共有墙渲染器保留。删除 field 会解绑帧回调并释放外挂网格，避免重打残影。
++- 分类保持既有登记：`battle_conditions.gd` 为环境系统、`snow_field.gd` 为地形危险区、`snow_wall_view.gd` 为纯表现。没有新增未登记的运行脚本；原寒冷/雪球分类不变。
++
+ ## 威胁显示与重演
+ 
+ - 雪地使用一个 `AI_Hazard` 声明 `shape="compound"` 的精确矩形列表，共用分析器，不制造每片雪的代理碰撞节点。装饰墙、小型无害雪、失效来源与免疫受害者不产生伤害威胁。
+@@ -59,6 +70,6 @@ if victim.can_receive_cold_status():
+ - `tests/test_training_events_snow.gd`：设置、目录筛选、寒冷伤害/免疫、雪球普通命中、永久雪/普通雪、重叠冷却、威胁、暂停与上限。
+ - `tests/test_training_events_snow_network.gd`：单进程、独立 SceneMultiplayer + 真实 ENet、独立物理世界；晚加入/重建快照、冷值、权威及真正连接的房客权限。不是两台机器实测。
+ - `tests/test_training_events_snow_lifecycle.gd`：真实持久化、地图入口、重置、精确/重新随机重打、发育雪地位移协议。
+-- `tests/test_training_events_snow_gpu.gd`：OpenGL / D3D12 实际像素、中英文布局、本机主题与权威雪格分离。GPU 取证中的墙/地面排列是有意控制的测试布局，不冒充随机生成截图。
++- `tests/test_training_events_snow_gpu.gd`：OpenGL / D3D12 七种主题实际 3D 网格/投影/侧面明暗，空白开局、真实飘雪运动/暂停/关闭、中英文布局、共享竖屏视口及本机主题与权威雪格分离。墙面近景排列是控制的几何夹具，不冒充随机生成；`random_weather_production` 与 onset 序列则使用真实生产生成器，不注入雪格。
+ 
+-最终计数、已知边界、检查点和窄范围恢复材料见 `tests/TRAINING_EVENTS_SNOW_20260926.md`。未进行两台独立机器或视频编码输出验收，不把 headless 或静态分类覆盖当作画面/全角色逐招通过。
++基础功能记录见 `tests/TRAINING_EVENTS_SNOW_20260926.md`；**空白开局/3D 雪层/飘雪纠正**的当前计数、边界、检查点和窄范围恢复材料见 `tests/SNOW_WEATHER_CORRECTION_20260926.md`。未进行两台独立机器或视频编码输出验收，不把 headless 或静态分类覆盖当作画面/全角色逐招通过。
+diff --git a/scripts/characters/我的世界/snow_golem/snow_field.gd b/scripts/characters/我的世界/snow_golem/snow_field.gd
+index 74c4591..28d823b 100644
+--- a/scripts/characters/我的世界/snow_golem/snow_field.gd
++++ b/scripts/characters/我的世界/snow_golem/snow_field.gd
+@@ -79,7 +79,7 @@ func development_preview_merge(_start_offsets:Dictionary,lanes:Dictionary) -> vo
+ 		heads[id].point = (original.point as Vector2)+change
+ 		heads[id].start = (original.start as Vector2)+change
+ 	queue_redraw()
+-	if is_instance_valid(wall_view): wall_view.queue_redraw()
++	if is_instance_valid(wall_view): wall_view.request_update()
+ 	if is_instance_valid(_head_view): _head_view.queue_redraw()
+ 
+ func development_finish_merge() -> void:
+@@ -126,7 +126,7 @@ func development_finish_merge() -> void:
+ 	_development_head_starts.clear()
+ 	_development_draw_offsets.clear()
+ 	queue_redraw()
+-	if is_instance_valid(wall_view): wall_view.queue_redraw()
++	if is_instance_valid(wall_view): wall_view.request_update()
+ 	if is_instance_valid(_head_view): _head_view.queue_redraw()
+ 	if is_multiplayer_authority() and multiplayer.has_multiplayer_peer():
+ 		_field_state.rpc(_cell_snapshot(patches.keys()),_head_snapshot(),true)
+@@ -249,7 +249,7 @@ func _environment_state(records:Array,full:bool) -> void:
+ 		if rects.is_empty(): continue
+ 		environment_patches[cell] = {"cell":cell,"decorative":bool(item.get("decorative",false)),"rects":rects}
+ 	queue_redraw()
+-	if is_instance_valid(wall_view): wall_view.queue_redraw()
++	if is_instance_valid(wall_view): wall_view.request_update()
+ 
+ func _same_side(source:ball,entry:Dictionary) -> bool:
+ 	return str(entry.family) == str(source.get_meta("mc_snow_family","")) or (not source.Team.is_empty() and source.Team == str(entry.team))
+diff --git a/scripts/effects/我的世界/地图立体墙.gd b/scripts/effects/我的世界/地图立体墙.gd
+index 7f7207e..c4bdd89 100644
+--- a/scripts/effects/我的世界/地图立体墙.gd
++++ b/scripts/effects/我的世界/地图立体墙.gd
+@@ -331,26 +331,32 @@ func _rebuild_mesh(ground:Array[Rect2]) -> void:
+ 
+ 
+ func _add_block(top:SurfaceTool,side:SurfaceTool,bottom:SurfaceTool,rect:Rect2,origin:Vector2) -> void:
++	append_world_cuboid(top,side,bottom,rect,origin,cell_size,0.0,block_height)
++
++
++func append_world_cuboid(top:SurfaceTool,side:SurfaceTool,bottom:SurfaceTool,rect:Rect2,origin:Vector2,uv_cell:Vector2,base_height:float,height:float,side_uv_y:Vector2 = Vector2(0,1)) -> void:
++	# Shared native cuboid winding, normals and UVs for blocks and raised decorations.
++	# Geometry stays in this renderer's World3D, camera and real lighting; no flat overlay.
+ 	var x:float = rect.position.x
+ 	var y:float = rect.position.y
+-	var u0:float = fposmod((x-origin.x)/cell_size.x,1.0)
+-	var v0:float = fposmod((y-origin.y)/cell_size.y,1.0)
+-	var u1:float = u0+rect.size.x/cell_size.x
+-	var v1:float = v0+rect.size.y/cell_size.y
+-	var b00:Vector3 = _ground_point(rect.position,0.0)
+-	var b10:Vector3 = _ground_point(Vector2(rect.end.x,y),0.0)
+-	var b11:Vector3 = _ground_point(rect.end,0.0)
+-	var b01:Vector3 = _ground_point(Vector2(x,rect.end.y),0.0)
+-	var t00:Vector3 = b00+Vector3.UP*block_height
+-	var t10:Vector3 = b10+Vector3.UP*block_height
+-	var t11:Vector3 = b11+Vector3.UP*block_height
+-	var t01:Vector3 = b01+Vector3.UP*block_height
++	var u0:float = fposmod((x-origin.x)/uv_cell.x,1.0)
++	var v0:float = fposmod((y-origin.y)/uv_cell.y,1.0)
++	var u1:float = u0+rect.size.x/uv_cell.x
++	var v1:float = v0+rect.size.y/uv_cell.y
++	var b00:Vector3 = _ground_point(rect.position,base_height)
++	var b10:Vector3 = _ground_point(Vector2(rect.end.x,y),base_height)
++	var b11:Vector3 = _ground_point(rect.end,base_height)
++	var b01:Vector3 = _ground_point(Vector2(x,rect.end.y),base_height)
++	var t00:Vector3 = b00+Vector3.UP*height
++	var t10:Vector3 = b10+Vector3.UP*height
++	var t11:Vector3 = b11+Vector3.UP*height
++	var t01:Vector3 = b01+Vector3.UP*height
+ 	_face(top,[t00,t01,t11,t10],[Vector2(u0,v0),Vector2(u0,v1),Vector2(u1,v1),Vector2(u1,v0)])
+ 	_face(bottom,[b00,b10,b11,b01],[Vector2(u0,v0),Vector2(u1,v0),Vector2(u1,v1),Vector2(u0,v1)])
+-	_face(side,[t00,t10,b10,b00],[Vector2(u0,0),Vector2(u1,0),Vector2(u1,1),Vector2(u0,1)])
+-	_face(side,[t10,t11,b11,b10],[Vector2(v0,0),Vector2(v1,0),Vector2(v1,1),Vector2(v0,1)])
+-	_face(side,[t11,t01,b01,b11],[Vector2(u1,0),Vector2(u0,0),Vector2(u0,1),Vector2(u1,1)])
+-	_face(side,[t01,t00,b00,b01],[Vector2(v1,0),Vector2(v0,0),Vector2(v0,1),Vector2(v1,1)])
++	_face(side,[t00,t10,b10,b00],[Vector2(u0,side_uv_y.x),Vector2(u1,side_uv_y.x),Vector2(u1,side_uv_y.y),Vector2(u0,side_uv_y.y)])
++	_face(side,[t10,t11,b11,b10],[Vector2(v0,side_uv_y.x),Vector2(v1,side_uv_y.x),Vector2(v1,side_uv_y.y),Vector2(v0,side_uv_y.y)])
++	_face(side,[t11,t01,b01,b11],[Vector2(u1,side_uv_y.x),Vector2(u0,side_uv_y.x),Vector2(u0,side_uv_y.y),Vector2(u1,side_uv_y.y)])
++	_face(side,[t01,t00,b00,b01],[Vector2(v1,side_uv_y.x),Vector2(v0,side_uv_y.x),Vector2(v0,side_uv_y.y),Vector2(v1,side_uv_y.y)])
+ 
+ 
+ func _update_light(source:Vector2) -> void:
+@@ -361,3 +367,17 @@ func _update_light(source:Vector2) -> void:
+ 	sun_light.look_at(target)
+ 	shadow_sun.position = sun_light.position
+ 	shadow_sun.look_at(target)
++
++
++func configure_surface_overlay(cell:Vector2,light_source:Vector2) -> void:
++	# Reuse the exact camera/material/projection for raised decorations on a 2D
++	# background. No duplicate block wall, floor or compensating emissive material.
++	_create_renderer()
++	cell_size = cell.max(Vector2(0.01,0.01))
++	block_height = 0.0
++	visible = true
++	_update_light(light_source)
++	_update_projection()
++	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
++	shadow_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
++	shadow_picture.hide()
+diff --git a/scripts/training/battle_conditions.gd b/scripts/training/battle_conditions.gd
+index e344407..788bb78 100644
+--- a/scripts/training/battle_conditions.gd
++++ b/scripts/training/battle_conditions.gd
+@@ -8,6 +8,7 @@ const GOLEM:PackedScene = preload("res://scenes/characters/我的世界/雪傀
+ const MAX_PATCHES:int = 1024
+ const MAX_CANDIDATES:int = 4096
+ const SNOW_INTERVAL:float = 0.45
++const FIRST_SNOW_DELAY:float = 2.0 # Start bare; snowfall begins before the first accumulation.
+ var world:Node
+ var environment:String = "none"
+ var field:Node2D
+@@ -28,10 +29,9 @@ var _ground:Array[Rect2] = []
+ var _walls:Array[Rect2] = []
+ var _ground_candidates:Array[Dictionary] = []
+ var _wall_candidates:Array[Dictionary] = []
+-var _snow_left:float = SNOW_INTERVAL
++var _snow_left:float = FIRST_SNOW_DELAY
+ var _event_seed:int = -1
+ var _layout_left:float = 0.0
+-var _generation:int = 0
+ 
+ func _init(owner_world:Node = null) -> void:
+ 	world = owner_world
+@@ -66,8 +66,9 @@ func refresh_layout(force:bool = false) -> void:
+ 	var choice:String = CATALOG.normalize_environment(Game.Game_Settings.get("Environment","none"))
+ 	if choice=="none":
+ 		environment = choice
+-		_generation += 1
+-		if is_instance_valid(field) and not field.is_queued_for_deletion(): field.clear_environment()
++		if is_instance_valid(field) and not field.is_queued_for_deletion():
++			field.wall_view.set_weather(false)
++			field.clear_environment()
+ 		_ground_candidates.clear()
+ 		_wall_candidates.clear()
+ 		return
+@@ -77,35 +78,39 @@ func refresh_layout(force:bool = false) -> void:
+ 	var replaced:bool = not is_instance_valid(field) or field.is_queued_for_deletion()
+ 	if replaced: field = FIELD.ensure(self,world)
+ 	field.environment_source = self
++	field.wall_view.set_weather(true)
++	if force or replaced or previous!=choice: field.wall_view.reset_weather(_weather_seed())
+ 	if not field._development_start_offsets.is_empty(): return # Same field moves existing snow with the maps.
+ 	var map_node:Node = world._current_map_node()
+ 	if not is_instance_valid(map_node): return
++	var ground:Array[Rect2] = world.map_island_rects(map_node)
++	if not ground.is_empty():
++		var weather_region:Rect2 = ground[0]
++		for region:Rect2 in ground: weather_region = weather_region.merge(region)
++		field.wall_view.weather_bounds = weather_region.grow(FIELD.CELL*8.0)
+ 	var walls:Array[Rect2] = _wall_regions(map_node)
+ 	if field.wall_view.visual_walls!=walls:
+ 		field.wall_view.visual_walls = walls.duplicate()
+-		field.wall_view.queue_redraw()
++		field.wall_view.request_update()
+ 	if not is_multiplayer_authority(): return # Only rendering follows local theme; clients never generate gameplay.
+-	var ground:Array[Rect2] = world.map_island_rects(map_node)
+ 	var key:String = str(world.now_choose_map)
+ 	var seed_value:int = _weather_seed()
+ 	var restart:bool = force or replaced or previous!=choice or key!=_map_key or seed_value!=_seed
+ 	if restart:
+-		_generation += 1
+ 		field.clear_environment()
++		field.wall_view.reset_weather(seed_value)
+ 		_seed = seed_value
+ 		_map_key = key
+ 		_rng.seed = _seed
+-		_snow_left = SNOW_INTERVAL
++		_snow_left = FIRST_SNOW_DELAY
+ 	if restart or ground!=_ground or walls!=_walls:
+ 		_ground = ground.duplicate()
+ 		_walls = walls.duplicate()
+ 		field.reconcile_environment(_ground,_walls)
+ 		_rebuild_candidates()
+-	if restart: _seed_initial.call_deferred(_generation)
+ 
+ func _wall_regions(map_node:Node) -> Array[Rect2]:
+ 	if world._is_grass_map_background():
+-		field.wall_view.z_index = 0 # Tile walls already render beneath the original snow field.
+ 		return world._map_shape_walls(map_node)
+ 	var result:Array[Rect2] = []
+ 	# Blue maps have thin black frames, not Minecraft's full-width block walls.
+@@ -113,7 +118,6 @@ func _wall_regions(map_node:Node) -> Array[Rect2]:
+ 	# painting decorative snow over invisible wall tiles or sealed doorways.
+ 	var border:Node2D = world.map_border_segment_root
+ 	if not is_instance_valid(border): return result
+-	field.wall_view.z_index = border.z_index-field.z_index+1
+ 	for child:Node in border.get_children():
+ 		if not child is Line2D or child.is_queued_for_deletion(): continue
+ 		var line:Line2D = child
+@@ -176,12 +180,6 @@ func _shuffle(values:Array) -> void:
+ 		values[i] = values[j]
+ 		values[j] = saved
+ 
+-func _seed_initial(generation:int) -> void:
+-	await get_tree().physics_frame # Let map collision transforms settle, even during setup.
+-	if generation!=_generation or environment!="snow" or not is_multiplayer_authority() or not is_instance_valid(field): return
+-	for i:int in range(8): _spawn_from(_ground_candidates)
+-	for i:int in range(4): _spawn_from(_wall_candidates)
+-
+ func _spawn_from(candidates:Array[Dictionary]) -> bool:
+ 	if not is_instance_valid(field) or field.is_queued_for_deletion() or field.environment_patches.size()>=MAX_PATCHES: return false
+ 	var attempts:int = 0
+@@ -207,7 +205,10 @@ func draw_selected_event() -> String:
+ 	return id
+ 
+ func advance(delta:float) -> void:
+-	if not is_finite(delta) or delta<=0.0 or not is_combat_runtime_active() or not is_multiplayer_authority(): return
++	if not is_finite(delta) or delta<=0.0 or not is_combat_runtime_active(): return
++	if environment=="snow" and is_instance_valid(field) and not field.is_queued_for_deletion():
++		field.wall_view.advance_weather(delta) # Local appearance also runs on guests; never sends damage/RPCs.
++	if not is_multiplayer_authority(): return
+ 	if environment=="snow" and is_instance_valid(field) and not field.is_queued_for_deletion():
+ 		_snow_left -= delta
+ 		var guard:int = 0
+diff --git a/scripts/training/snow_wall_view.gd b/scripts/training/snow_wall_view.gd
+index 37aa4fc..c0acd72 100644
+--- a/scripts/training/snow_wall_view.gd
++++ b/scripts/training/snow_wall_view.gd
+@@ -1,37 +1,208 @@
+ extends Node2D
+-## Visual-only wall overlay. Never owns a collider, timer, cold meter or damage callback.
++## Minecraft snow appearance only: real wall-top cuboids + native precipitation sheets.
++## No collider, damage, cold meter, AI threat, RPC or gameplay RNG in this view.
++const WALL_RENDERER = preload("res://scripts/effects/我的世界/地图立体墙.gd")
++const NATIVE_SNOW:Texture2D = preload("res://Images/effects/我的世界/雪环境/snow.png")
++const NATIVE_WEATHER:Texture2D = preload("res://Images/effects/我的世界/雪环境/snowfall.png")
++# Vanilla snow_height2.json: [0,0,0] -> [16,2,16]; side UVs [0,14,16,16].
++const LAYER_HEIGHT:float = 2.0/16.0
++const SIDE_UV:Vector2 = Vector2(14.0/16.0,1.0)
++const WEATHER_LAYERS:Array[Vector3] = [Vector3(0.9,28,0.34),Vector3(1.4,43,0.50),Vector3(2.0,66,0.62)]
+ var field:Node2D
+ var visual_walls:Array[Rect2] = []
++var weather_bounds:Rect2
++var weather_enabled:bool = false
++var weather_time:float = 0.0
++var weather_fade:float = 0.0
++var weather_phases:Array[Vector2] = [Vector2.ZERO,Vector2(21,91),Vector2(47,183)]
++var renderer:Node2D
++var mesh_node:MeshInstance3D
++var wall_piece_count:int = 0
++var snow_base_height:float = 0.0
++var snow_thickness:float = 0.0
++var _overlay_renderer:Node2D
++var _floor_shadow:MeshInstance3D
++var _ground_shadow:MeshInstance3D
++var _dirty:bool = true
++var _last_renderer:Node2D
+ 
+ func _ready() -> void:
+-	name = "EnvironmentSnowWalls"
++	name = "EnvironmentSnowView"
+ 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
++	texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
++	# Weather is above the battlefield, below CanvasLayer UI. Wall meshes themselves
++	# stay in the existing background pass (-4), not in this foreground CanvasItem.
++	z_as_relative = false
++	z_index = 8
++	RenderingServer.frame_pre_draw.connect(_before_draw)
++
++func request_update() -> void:
++	_dirty = true
++	queue_redraw()
++
++func set_weather(enabled:bool) -> void:
++	if weather_enabled==enabled: return
++	weather_enabled = enabled
++	if not enabled:
++		weather_time = 0.0
++		weather_fade = 0.0
++	queue_redraw()
++
++func reset_weather(seed_value:int) -> void:
++	weather_time = 0.0
++	weather_fade = 0.0
++	var rng:=RandomNumberGenerator.new()
++	rng.seed = seed_value ^ 0x534e4f57
++	for i:int in range(weather_phases.size()): weather_phases[i] = Vector2(rng.randf_range(0,64),rng.randf_range(0,256))
++	request_update()
++
++func advance_weather(delta:float) -> void:
++	if not weather_enabled or not is_finite(delta) or delta<=0.0: return
++	# Controller supplies combat delta on every peer, including guests. No wall-clock
++	# TIME shader: pause/zero speed/replay cannot silently advance precipitation.
++	weather_time += delta
++	weather_fade = minf(1.0,weather_fade+delta/0.9)
++	queue_redraw()
+ 
+ func _draw() -> void:
+-	if not is_instance_valid(field): return
+-	var snow:Texture2D = field.SNOW
+-	var cell_size:float = field.CELL
+-	var native_scale:Vector2 = snow.get_size()/cell_size
++	if not weather_enabled or weather_fade<=0.0 or not weather_bounds.has_area(): return
++	# Tile the untouched vanilla 64x256 weather texture, not hand-drawn snow dots.
++	# World-space sheets cover the arena and its immediate air, so shared World2D
++	# recording/overview viewports see the same moving snow without a screen overlay.
++	for i:int in range(WEATHER_LAYERS.size()):
++		var layer:Vector3 = WEATHER_LAYERS[i]
++		var motion:=Vector2(6.0+float(i)*3.0,layer.y)*weather_time
++		var origin:Vector2 = (weather_bounds.position-motion)/layer.x+weather_phases[i]
++		origin = Vector2(fposmod(origin.x,64.0),fposmod(origin.y,256.0))
++		draw_texture_rect_region(NATIVE_WEATHER,weather_bounds,Rect2(origin,weather_bounds.size/layer.x),Color(1,1,1,layer.z*weather_fade),false,false)
++
++func _process(_delta:float) -> void:
++	_sync_geometry()
++
++func _before_draw() -> void:
++	# Also follows camera/theme/visibility changes while the game is paused.
++	_sync_geometry()
++	var active:bool = is_visible_in_tree()
++	for node:MeshInstance3D in [mesh_node,_floor_shadow,_ground_shadow]:
++		if is_instance_valid(node): node.visible = active
++	if is_instance_valid(_overlay_renderer):
++		var world:Node = field.get_parent()
++		var light:Vector2 = world.map_wall_light_direction if world.has_method("_current_map_node") else Vector2(1,-1)
++		_overlay_renderer._update_light(light)
++
++func _shared_renderer() -> Node2D:
++	if not is_instance_valid(field): return null
++	var world:Node = field.get_parent()
++	if world.has_method("_is_grass_map_background") and world._is_grass_map_background():
++		var candidate:Node2D = world.map_wall_volume
++		if is_instance_valid(candidate) and not candidate.is_queued_for_deletion() and is_instance_valid(candidate.viewport): return candidate
++	return null
++
++func _sync_geometry() -> void:
++	if not is_instance_valid(field) or not is_inside_tree(): return
++	var shared:Node2D = _shared_renderer()
++	if shared!=_last_renderer:
++		_last_renderer = shared
++		_dirty = true
++	if is_instance_valid(renderer) and not is_equal_approx(snow_base_height,float(renderer.block_height)):
++		_dirty = true
++	if not _dirty: return
++	_dirty = false
++	var pieces:Array[Dictionary] = []
++	var seen:Dictionary = {}
+ 	for cell:Vector2i in field.environment_patches:
+ 		var record:Dictionary = field.environment_patches[cell]
+ 		if not bool(record.decorative): continue
+ 		var offset:Vector2 = field._development_environment_offsets.get(cell,Vector2.ZERO)
+ 		for piece:Dictionary in projected_pieces(cell,record):
+-			var rect:Rect2 = piece.rect
+-			var corner:Vector2 = piece.corner
+-			# Crop the original native tile; never stretch a thin wall into a full snow tile.
+-			draw_texture_rect_region(snow,Rect2(rect.position+offset,rect.size),Rect2((rect.position-corner)*native_scale,rect.size*native_scale))
++			var rect:Rect2 = Rect2(piece.rect.position+offset,piece.rect.size)
++			if seen.has(rect): continue
++			seen[rect] = true
++			pieces.append({"rect":rect,"corner":piece.corner+offset})
++	wall_piece_count = pieces.size()
++	_clear_meshes()
++	if pieces.is_empty():
++		_clear_overlay()
++		renderer = null
++		return
++	if is_instance_valid(shared):
++		_clear_overlay()
++		renderer = shared
++	else:
++		# Blue retains its flat black boundary. Only the snow has 3D thickness;
++		# reuse the normal renderer instead of introducing a second camera algorithm.
++		if not is_instance_valid(_overlay_renderer):
++			_overlay_renderer = WALL_RENDERER.new()
++			_overlay_renderer.name = "BlueSnowSurfaceRenderer"
++			add_child(_overlay_renderer)
++			var world:Node = field.get_parent()
++			var light:Vector2 = world.map_wall_light_direction if world.has_method("_current_map_node") else Vector2(1,-1)
++			_overlay_renderer.configure_surface_overlay(Vector2.ONE*field.CELL,light)
++			_overlay_renderer.z_index = int(world.map_border_segment_root.z_index)+1 if world.has_method("_current_map_node") and is_instance_valid(world.map_border_segment_root) else 1
++		renderer = _overlay_renderer
++	snow_base_height = float(renderer.block_height)
++	snow_thickness = field.CELL*LAYER_HEIGHT
++	var surface:=SurfaceTool.new()
++	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
++	for piece:Dictionary in pieces:
++		renderer.append_world_cuboid(surface,surface,surface,piece.rect,piece.corner,Vector2.ONE*field.CELL,snow_base_height,snow_thickness,SIDE_UV)
++	var mesh:ArrayMesh = surface.commit()
++	var material:StandardMaterial3D = renderer._new_material(NATIVE_SNOW)
++	material.emission_enabled = false
++	mesh.surface_set_material(0,material)
++	mesh_node = MeshInstance3D.new()
++	mesh_node.name = "NativeSnowHeight2OnWallTops"
++	mesh_node.mesh = mesh
++	mesh_node.layers = renderer.mesh_node.layers
++	renderer.viewport.add_child(mesh_node)
++	# Same actual mesh casts onto summit's floor pass and the old maps' catcher.
++	# Older/two-pass renderers have no floor-only pass. Keep this decoration usable
++	# without taking ownership of a concurrent renderer-channel refactor.
++	var floor_layer:int = int(renderer.get_script().get_script_constant_map().get("FLOOR_LAYER",0))
++	if floor_layer!=0:
++		_floor_shadow = MeshInstance3D.new()
++		_floor_shadow.name = "SnowLayerShadowForFloorPass"
++		_floor_shadow.mesh = mesh
++		_floor_shadow.layers = floor_layer
++		_floor_shadow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
++		mesh_node.add_child(_floor_shadow)
++	_ground_shadow = MeshInstance3D.new()
++	_ground_shadow.name = "SnowLayerShadowForGroundCatcher"
++	_ground_shadow.mesh = mesh
++	_ground_shadow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
++	renderer.shadow_viewport.add_child(_ground_shadow)
++
++func _clear_meshes() -> void:
++	# The floor proxy is a child of mesh_node, so it is freed with its source.
++	for node:MeshInstance3D in [mesh_node,_ground_shadow]:
++		if not is_instance_valid(node): continue
++		node.hide()
++		node.get_parent().remove_child(node)
++		node.queue_free()
++	mesh_node = null
++	_floor_shadow = null
++	_ground_shadow = null
++
++func _clear_overlay() -> void:
++	if is_instance_valid(_overlay_renderer):
++		_overlay_renderer.hide()
++		_overlay_renderer.get_parent().remove_child(_overlay_renderer)
++		_overlay_renderer.queue_free()
++	_overlay_renderer = null
++
++func _exit_tree() -> void:
++	if RenderingServer.frame_pre_draw.is_connected(_before_draw): RenderingServer.frame_pre_draw.disconnect(_before_draw)
++	_clear_meshes()
++	_clear_overlay()
+ 
+ func projected_pieces(cell:Vector2i,record:Dictionary) -> Array[Dictionary]:
+ 	var result:Array[Dictionary] = []
+ 	var size:Vector2 = Vector2.ONE*field.CELL
+ 	for original:Rect2 in record.rects:
+ 		var center:Vector2 = field.point_at(cell)
+-		if visual_walls.is_empty():
+-			result.append({"rect":original,"corner":center-size*0.5})
+-			continue
+-		# Background style is a LOCAL visual preference. Project the same replicated
+-		# wall snow onto this peer's actual wall surface, never changing its ground cells.
++		if visual_walls.is_empty(): continue # No support: no floating decorative snow.
++		# Background style is local. The same replicated record is placed on this
++		# peer's real wall support; this never changes authoritative ground cells.
+ 		var nearest:Rect2
+ 		var best:float = INF
+ 		var anchor:Vector2 = original.get_center()
+diff --git a/tests/SNOW_WEATHER_CORRECTION_20260926.md b/tests/SNOW_WEATHER_CORRECTION_20260926.md
+new file mode 100644
+index 0000000..32e25dc
+--- /dev/null
++++ b/tests/SNOW_WEATHER_CORRECTION_20260926.md
+@@ -0,0 +1,75 @@
++# 雪环境：空白开局、原版 3D 墙雪与飘雪纠正
++
++## 要求及改动
++
++用户纠正：雪一开始不存在；墙上是一个 3D 的 Minecraft 雪片，不是涂白；应有 Minecraft 下雪特效。
++
++1. 删除 `_seed_initial` 及其延迟回调，不再预放 8 地面 + 4 墙面雪。新局、布阵、换图、重置/重打、重新启用均空白。运行后天气渐入，满 2 战斗秒开始积雪，后续仍每 0.45 秒尝试一片；晚加入保留房主已有积雪。
++2. 旧墙面二维 `draw_texture_rect_region` 被真正的 `ArrayMesh` 雪层替代：原版 `snow_height2` 的 2/16 厚度及侧 UV，原版雪方块纹理。底面贴墙顶，具有顶面、垂直侧面、真实深度及光照。六个方块背景直接共用墙的 World3D、相机、太阳/环境；蓝色仍是原平面边框，只为雪片复用同一 3D 渲染实现。
++3. 原版 64×256 天气降雪贴图三层移动，运行时渐入；使用世界坐标、战斗 delta 和独立随机相位。暂停冻结，关闭立即清除，各端本地播放，不发伤害 RPC。只用三次纹理绘制，没有每雪花一个节点/计时器。
++4. `地图立体墙.gd` 增加可复用的 `append_world_cuboid` 与蓝色装饰通道入口；普通墙委托给原来的尺寸、UV 和高度，其他相机/灯光/背景/云的并行改动未被替换。地板专用通道的阴影代理是可选能力，不强依赖并行新增的层常量。
++5. 保留原雪地接触、寒冷伤害/免疫/状态、雪傀儡造人和普通雪径融化；墙雪和天气无伤害/积寒/控制。**雪球直击仍是普通伤害且保留击退。**
++
++原资源、版本、来源及 SHA-256：`Images/effects/我的世界/雪环境/SOURCE.json`。素材未重绘、未生成、未修改原像素；不宣称原版游戏素材可自由再分发。
++
++## 验证
++
++引擎：`Godot.4.7.2.offline.exe`。每次测试隔离 APPDATA，不改用户正式设置。GPU 使用实际 NVIDIA GeForce RTX 4060 Laptop GPU，OpenGL 3.3 Compatibility 与 D3D12 Forward+，不是 headless 模拟渲染。
++
++| 范围 | 断言 |
++| --- | ---: |
++| 设置/空白起点/天气时钟/共享伤害与免疫/普通雪球/原雪地 | 58/58 |
++| 持久化、真实换图、精确及重新随机重打、重置、发育合并 | 26/26 |
++| 独立 SceneMultiplayer + 真实 ENet 双端；本地飘雪与权威雪格分离 | 27/27 |
++| 七种主题 GPU、立体厚度/位置/材质/侧面受光、漂落像素、暂停、共享竖屏视口、双语 UI — OpenGL | 96/96 |
++| 同上 — D3D12 | 96/96 |
++| 原雪傀儡 | 97/97 |
++| 原雪傀儡修正 | 66/66 |
++| 冰壳/冻结 | 38/38 |
++| 命中音效 | 59/59 |
++| 雪球接触 | 13/13 |
++| 原南瓜/雪块造人 | 58/58 |
++| 公共 3D 墙回归 | 111/111 |
++| 真实 GPU 墙相机稳定性 | 10/10 |
++| 从空白开始的原版飘雪独立捕捉模式 | 10/10 |
++
++雪相关及直接回归共 **634** 项；公共墙/相机 **121** 项；独立起雪捕捉再 **10** 项。分类静态检查：277 场景、601 脚本，无 missing/stale/invalid_kinds；相关运行脚本诊断 error 为 0。分类静态登记不等于全角色逐招实战通过。
++
++### GPU 实证
++
++- 每种背景检查真实 mesh、非零厚度（CELL=24 时厚 3）、底部等于实际墙顶、原版材质及关闭自发光。方块主题还检查其 parent 与 renderer 就是现有墙通道。
++- 像素取点按真实 3D 相机投影，不再在旧二维裁切矩形上凑白色像素；垂直侧面与顶面使用实际亮度比较。
++- 开始时 field 积雪为空、无雪 mesh；第一秒仅飘雪，没有任何积雪。原版天气在 OpenGL 整幅画面产生 7479 个显著变化像素；不同时间图像变化、暂停图像稳定。
++- `*_snow_and_golem.png` 是刻意排列的近景几何夹具，不冒充随机分布。`random_weather_production.png` 使用真实生成器推进 40.8 秒，不注入地面/墙雪。
++- onset 序列是 49 张实际 OpenGL 帧，0→4.8 战斗秒：先空白，再飘雪，随后自然出现积雪。预览按 10fps 合成为 4.9 秒 MP4；它是验证预览，**不是正式 BattleRecorder 双语编码链路验收**。
++- 共享 World2D 的 620×840 竖屏视口也核验了降雪像素；未进行两台独立机器或正式 1080×1920/60fps 双语成片验收。
++
++### 调试过程与边界（不隐藏失败）
++
++- 首次生命周期夹具在空的手动布阵场推进积雪失败：World 正确拒绝无存活角色的战斗计时。夹具补充真实角色并等待物理帧，未放宽生产暂停/布阵条件。
++- 首次侧面断言误用 HSV 的 `v`：蓝光侧面 B=1 不代表亮度与顶面一致。改为亮度比较，并把近景相机移到完整雪层可见处，仍保留侧面可见像素断言。
++- 首次共享视口在入树前设置 canvas transform 报错；调整为入树后设置。较长的首次 onset 抓帧达到夹具超时；改为可选独立捕捉模式，完整复跑通过。
++- ENet 新夹具曾向 `Array[Rect2]` 属性赋无类型数组，中断后只完成 8 项，不能算联机通过；修正为明确类型的数组后 27 项全部通过。
++- 一次回归命令误写音效测试文件名，文件不存在导致该组停下。随后使用实际 `hit_audio`、`projectile_contacts`、`build_revision` 路径执行并通过，不把未运行的条目计入。
++- 首次隔离编辑器导入 exit 0，但两个既有编辑器插件读取未初始化的语言设置时报告 String/Nil 错误；不是干净的编辑器全检。资产成功导入、运行时全部相关脚本实际载入且最终测试无 ERROR/FAIL/TIMEOUT。
++- 当前多项退出仍有 **156 ObjectDB instances leaked** 告警，原雪傀儡回归中也复现；本轮未定位该退出告警的归因，**不宣称整个项目无警告/无泄漏**。另保留原 `set_rgb_color.gdshader` UID/大小写告警，没有为了让日志变绿改无关资源。
++
++## 范围、检查点与回退
++
++- 修改前 main：`9fbe1afcd7093b6b634ae7252820d69d2e90ebbe`；真实暂存区为空。
++- 独立原始检查点：`E:/godot/polo-balls-tools/checkpoints/snow-weather-correction-20260926-112353`。
++- 检查点保存修改前字节、HEAD 原文、哈希、每次测试源码指纹、实际日志、图片/视频及提交发布记录。最终提交 ID 记录在其中的 `published.json`，也可用 `git log -1 --format="%H" -- tests/SNOW_WEATHER_CORRECTION_20260926.md` 查询。
++- 提交仅含本轮控制器、雪视觉、field 的刷新接线、公共 cuboid/装饰入口、原版小素材和 import 元数据、四个相关测试及说明。`MCP_CONTEXT.md` 和已有脏的墙渲染器按本轮局部改动提交，不混入其他任务的墙分通道/山巅/分类/ball/world/game/UI 等未提交修改。
++- 可逆补丁：`tests/patches/snow_weather_correction_20260926.patch`。其反向校验针对隔离的 feature index；**不等于可以直接无冲突反套到同时含其他任务改动的工作区**。
++- 回退前先重新检查并备份当前工作区与暂存区，再审查/撤销这一提交，冲突按各任务范围合并。不要整文件覆盖共享墙脚本，不用 `reset --hard` 或 `clean -fd`。本次是局部版本，不是整个脏工作区的完整快照；不推送远程。
++
++## 重跑入口
++
++```text
++--script res://tests/test_training_events_snow.gd
++--script res://tests/test_training_events_snow_lifecycle.gd
++--script res://tests/test_training_events_snow_network.gd      # 实际 OpenGL
++--script res://tests/test_training_events_snow_gpu.gd          # OpenGL / D3D12
++```
++
++GPU 用 `TRAINING_SNOW_CAPTURE_DIR` 指定截图目录。设置 `SNOW_CAPTURE_ONSET=1` 与 `SNOW_CAPTURE_ONSET_ONLY=1` 可单独保存 onset 连续帧，普通七主题回归不重复抓取整段动画。
+diff --git a/tests/test_training_events_snow.gd b/tests/test_training_events_snow.gd
+index 8428eb5..69a7124 100644
+--- a/tests/test_training_events_snow.gd
++++ b/tests/test_training_events_snow.gd
+@@ -156,6 +156,11 @@ func check_weather(source:Node2D,victim:Node2D,center:Vector2) -> void:
+ 	field.set_physics_process(false)
+ 	check(field==source._field and world.get_node("MCSnowField")==field,"weather and golem trails share one real sparse snow manager")
+ 	check(get_nodes_in_group("MCSnowGolem").size()==1,"weather does not spawn a hidden golem or duplicate combat character")
++	check(field.environment_patches.is_empty() and not is_instance_valid(field.wall_view.mesh_node),"Snow selection starts with no ground accumulation and no prebuilt wall snow")
++	check(field.wall_view.weather_enabled and field.wall_view.weather_time==0.0 and field.wall_view.weather_fade==0.0,"native falling snow also starts empty instead of appearing prewarmed")
++	conditions.advance(conditions.FIRST_SNOW_DELAY*0.5)
++	check(field.environment_patches.is_empty() and field.wall_view.weather_time>0.0,"visible snowfall advances before the first accumulation")
++	for i:int in range(20): conditions.advance(1.0)
+ 	var floor_count:int = 0
+ 	var wall_count:int = 0
+ 	for item:Dictionary in field.environment_patches.values():
+@@ -205,10 +210,12 @@ func check_weather(source:Node2D,victim:Node2D,center:Vector2) -> void:
+ 	game.now_stop_state = true
+ 	var count:int = field.environment_patches.size()
+ 	var snow_left:float = conditions._snow_left
++	var weather_time:float = field.wall_view.weather_time
+ 	conditions.advance(5.0)
+-	check(field.environment_patches.size()==count and conditions._snow_left==snow_left,"pause freezes new snowfall generation and its clock")
++	check(field.environment_patches.size()==count and conditions._snow_left==snow_left and field.wall_view.weather_time==weather_time,"pause freezes accumulation AND the native falling-snow animation")
+ 	game.now_stop_state = false
+ 	setting("Environment","none")
++	check(not field.wall_view.weather_enabled and field.wall_view.weather_fade==0.0,"None removes falling snow immediately, without a visual tail")
+ 	check(field.environment_patches.is_empty() and field.patches.size()==natural_count,"turning weather off removes only environmental snow, preserving ordinary golem trails")
+ 	field.advance(field.full_snow_lifetime+field.half_snow_lifetime+0.1)
+ 	check(field.patches.is_empty(),"ordinary golem trails still melt normally after weather is disabled")
+@@ -216,14 +223,19 @@ func check_weather(source:Node2D,victim:Node2D,center:Vector2) -> void:
+ 	await physics_frame
+ 	await physics_frame
+ 	await process_frame
++	check(field.environment_patches.is_empty(),"re-enabling Snow never restores stale accumulation")
++	for i:int in range(12): conditions.advance(1.0)
+ 	var replay_a:Dictionary = field.environment_patches.duplicate(true)
++	var weather_phases:Array = field.wall_view.weather_phases.duplicate()
+ 	var rng_counters:Dictionary = game._battle_random_counters.duplicate(true)
+ 	setting("Environment","none")
+ 	setting("Environment","snow")
+ 	await physics_frame
+ 	await physics_frame
+ 	await process_frame
+-	check(field.environment_patches==replay_a,"same battle seed and geometry reproduce the same independent snow layout")
++	check(field.environment_patches.is_empty() and field.wall_view.weather_time==0.0,"repeat selection starts both visual and gameplay weather at zero")
++	for i:int in range(12): conditions.advance(1.0)
++	check(field.environment_patches==replay_a and field.wall_view.weather_phases==weather_phases,"same seed and elapsed combat time reproduce accumulating snow and native weather phases")
+ 	check(game._battle_random_counters==rng_counters,"weather does not consume another system's deterministic random stream")
+ 	for i:int in range(400): conditions.advance(10.0)
+ 	check(field.environment_patches.size()<=conditions.MAX_PATCHES,"long battles retain a bounded number of environmental patches")
+diff --git a/tests/test_training_events_snow_gpu.gd b/tests/test_training_events_snow_gpu.gd
+index f952f5f..b2adf22 100644
+--- a/tests/test_training_events_snow_gpu.gd
++++ b/tests/test_training_events_snow_gpu.gd
+@@ -1,11 +1,12 @@
+ extends "res://tests/test_training_events_snow.gd"
+-## Real GPU captures of the production field, wall overlay and Settings UI.
++## Real GPU: empty start, native snowfall, wall-top 3D cuboids and Settings UI.
+ var capture_dir:String
+ var hidden_layers:Dictionary = {}
+ 
+-func grab(name:String = "") -> Image:
+-	await process_frame
+-	await RenderingServer.frame_post_draw
++func grab(name:String = "",settle_frames:int = 2) -> Image:
++	for i:int in range(settle_frames):
++		await process_frame
++		await RenderingServer.frame_post_draw
+ 	var image:Image = root.get_texture().get_image()
+ 	if not name.is_empty(): image.save_png(capture_dir+"/"+name+".png")
+ 	return image
+@@ -45,7 +46,7 @@ func run() -> void:
+ 	capture_dir = OS.get_environment("TRAINING_SNOW_CAPTURE_DIR")
+ 	if capture_dir.is_empty(): capture_dir = "user://training_snow_gpu"
+ 	DirAccess.make_dir_recursive_absolute(capture_dir)
+-	create_timer(90).timeout.connect(func():finish(2))
++	create_timer(240,true,false,true).timeout.connect(func():finish(2))
+ 	conditions = world.battle_conditions
+ 	conditions.set_physics_process(false)
+ 	world.versus_label.hide()
+@@ -61,7 +62,12 @@ func run() -> void:
+ 	actor.motion_blur_enabled = false
+ 	var field:Node2D = actor._field
+ 	field.set_physics_process(false)
+-	for style:String in ["blue","grass","summit"]:
++	if OS.get_environment("SNOW_CAPTURE_ONSET_ONLY")=="1":
++		await capture_random_weather(camera,field)
++		print("TRAINING_SNOW_ONSET checks=",checks," failures=",failures)
++		await finish(0 if failures==0 else 1)
++		return
++	for style:String in ["blue","grass","sand","stone","nether","end","summit"]:
+ 		setting("Map_Background",style)
+ 		setting("Environment","snow")
+ 		conditions.refresh_layout(true)
+@@ -69,6 +75,7 @@ func run() -> void:
+ 		await physics_frame
+ 		await process_frame
+ 		field = conditions.field
++		check(field.environment_patches.is_empty() and field.wall_view.weather_time==0.0,style+" starts empty before the controlled geometry probe")
+ 		field.set_physics_process(false)
+ 		field.clear_environment()
+ 		field.patches.clear()
+@@ -80,7 +87,7 @@ func run() -> void:
+ 		if not wall.has_area(): continue
+ 		var x_center:float = FIELD.point_at(FIELD.cell_at(wall.get_center())).x
+ 		var floor_y:float = ceil((wall.end.y+24.0)/FIELD.CELL)*FIELD.CELL
+-		camera.global_position = Vector2(x_center,floor_y+30)
++		camera.global_position = Vector2(x_center,floor_y+8)
+ 		camera.reset_smoothing()
+ 		actor.global_position = Vector2(x_center,floor_y+24)
+ 		var wall_rects:Array[Rect2] = []
+@@ -102,7 +109,7 @@ func run() -> void:
+ 		game.now_stop_state = true
+ 		actor.image.hide()
+ 		field.hide()
+-		var empty:Image = await grab()
++		var empty:Image = await grab(style+"_bare_probe")
+ 		actor.image.show()
+ 		var actor_only:Image = await grab()
+ 		actor.image.hide()
+@@ -113,11 +120,27 @@ func run() -> void:
+ 		var transform:Transform2D = field.get_global_transform_with_canvas()
+ 		var wall_pixels:int = 0
+ 		var ground_pixels:int = 0
+-		for rect:Rect2 in wall_rects: wall_pixels += changed_in(rect,empty,snow_only,transform)
++		var view:Node2D = field.wall_view
++		check(is_instance_valid(view.mesh_node) and view.mesh_node.mesh.get_surface_count()==1,style+" wall snow is a genuine shared ArrayMesh, not a painted 2D rectangle")
++		if not is_instance_valid(view.mesh_node): continue
++		var box:AABB = view.mesh_node.mesh.get_aabb()
++		check(is_equal_approx(box.size.y,FIELD.CELL*2.0/16.0) and is_equal_approx(box.position.y,view.renderer.block_height),style+" native 2/16 snow layer sits exactly on the wall top")
++		var material:StandardMaterial3D = view.mesh_node.mesh.surface_get_material(0)
++		check(material.albedo_texture==view.NATIVE_SNOW and not material.emission_enabled,style+" snow uses original Minecraft texture and real lighting, without emission")
++		if style!="blue":
++			check(view.renderer==world.map_wall_volume and view.mesh_node.get_parent()==world.map_wall_volume.viewport,style+" wall snow shares the actual wall camera, World3D and lights")
++		wall_pixels = changed_in(projected_snow_bounds(view),empty,snow_only,Transform2D.IDENTITY)
+ 		for rect:Rect2 in floor_rects: ground_pixels += changed_in(rect,empty,snow_only,transform)
+ 		print("SNOW_GPU style=",style," wall_pixels=",wall_pixels," ground_pixels=",ground_pixels," wall_z=",field.wall_view.z_index)
+-		check(wall_pixels>40,style+" wall decoration has actual visible snow pixels on the wall surface")
++		check(wall_pixels>40,style+" raised snow has visible pixels at its actual 3D projected location")
+ 		check(ground_pixels>400,style+" floor uses visible native snow patches")
++		var face:Rect2 = wall_rects[wall_rects.size()/2]
++		var top:Vector2 = snow_project(view,Vector3(face.get_center().x,view.snow_base_height+view.snow_thickness,wall.get_center().y))
++		var side:Vector2 = snow_project(view,Vector3(face.get_center().x,view.snow_base_height+view.snow_thickness*0.5,wall.end.y))
++		var top_color:Color = pixel_at(snow_only,top)
++		var side_color:Color = pixel_at(snow_only,side)
++		print("SNOW_3D_FACE style=",style," top=",top_color," side=",side_color," side_pixel=",side," bare_side=",pixel_at(empty,side))
++		check(gap(pixel_at(empty,side),side_color)>0.08 and top_color.get_luminance()>side_color.get_luminance()+0.025,style+" true vertical snow face is visible and shaded differently from its top")
+ 		var center:=Vector2i(actor.get_global_transform_with_canvas().origin.round())
+ 		var tested:int = 0
+ 		var retained:int = 0
+@@ -169,7 +192,9 @@ func check_local_replica_style(field:Node2D) -> void:
+ 	setting("Map_Background","blue")
+ 	conditions.refresh_layout()
+ 	check(field.environment_patches==authoritative_cells,"client-only background style never replaces authoritative snow cells")
+-	check(field.wall_view.z_index==world.map_border_segment_root.z_index-field.z_index+1,"replica wall overlay follows the local blue frame's actual depth")
++	await process_frame
++	await RenderingServer.frame_post_draw
++	check(is_instance_valid(field.wall_view.renderer) and field.wall_view.renderer.z_index==world.map_border_segment_root.z_index+1,"replica uses a real 3D snow-only renderer above the unchanged local blue frame")
+ 	var pieces:Array[Rect2] = []
+ 	for cell:Vector2i in field.environment_patches:
+ 		var record:Dictionary = field.environment_patches[cell]
+@@ -181,19 +206,108 @@ func check_local_replica_style(field:Node2D) -> void:
+ 	field.show()
+ 	var with_snow:Image = await grab("replica_local_blue")
+ 	var pixels:int = 0
+-	for rect:Rect2 in pieces: pixels+=changed_in(rect,without,with_snow,field.get_global_transform_with_canvas())
+-	check(pixels>40,"client-style projection has visible native snow pixels rather than hidden wall data")
++	pixels = changed_in(projected_snow_bounds(field.wall_view),without,with_snow,Transform2D.IDENTITY)
++	check(pixels>40,"client-style projection renders raised native snow rather than flat painted wall data")
+ 	conditions.set_multiplayer_authority(1)
+ 
++func snow_project(view:Node2D,point:Vector3) -> Vector2:
++	return view.renderer.picture.get_global_transform_with_canvas()*(view.renderer.camera as Camera3D).unproject_position(point)
++
++func projected_snow_bounds(view:Node2D) -> Rect2:
++	var box:AABB = view.mesh_node.mesh.get_aabb()
++	var bounds:=Rect2(snow_project(view,box.position),Vector2.ZERO)
++	for i:int in range(8): bounds = bounds.expand(snow_project(view,box.get_endpoint(i)))
++	return bounds.grow(2.0)
++
++func pixel_at(image:Image,point:Vector2) -> Color:
++	return image.get_pixel(clampi(roundi(point.x),0,image.get_width()-1),clampi(roundi(point.y),0,image.get_height()-1))
++
+ func capture_random_weather(camera:Camera2D,_field:Node2D) -> void:
+ 	setting("Map_Background","grass")
++	setting("Environment","snow")
+ 	conditions.refresh_layout(true)
+ 	await physics_frame
+ 	await physics_frame
+-	game.now_stop_state = false
+-	for i:int in range(48): conditions.advance(1.0)
+ 	game.now_stop_state = true
++	var field:Node2D = conditions.field
++	var view:Node2D = field.wall_view
+ 	camera.global_position = world.return_map_world_rect(world._current_map_node()).get_center()
+ 	camera.zoom = Vector2(0.7,0.7)
+ 	camera.reset_smoothing()
++	var bare:Image = await grab("weather_00_empty")
++	check(field.environment_patches.is_empty() and not is_instance_valid(view.mesh_node),"actual first GPU frame has no preplaced ground or 3D wall snow")
++	game.now_stop_state = false
++	conditions.advance(1.0)
++	game.now_stop_state = true
++	var first:Image = await grab("weather_01_falling")
++	var whole:=Rect2(Vector2.ZERO,Vector2(root.size))
++	var falling_pixels:int = changed_in(whole,bare,first,Transform2D.IDENTITY)
++	print("SNOWFALL_PIXELS ",falling_pixels)
++	check(falling_pixels>700 and field.environment_patches.is_empty(),"native Minecraft snowfall is visibly falling before any ground or wall accumulation")
++	game.now_stop_state = false
++	conditions.advance(0.25)
++	game.now_stop_state = true
++	var moved:Image = await grab("weather_02_moved")
++	check(changed_in(whole,first,moved,Transform2D.IDENTITY)>700,"original weather flakes actually move across rendered frames")
++	var clock:float = view.weather_time
++	conditions.advance(2.0)
++	var frozen:Image = await grab()
++	check(view.weather_time==clock and changed_in(whole,moved,frozen,Transform2D.IDENTITY)<30,"pause freezes the snowfall image, not only its damage or spawn counter")
++	await check_shared_weather_view(view)
++	# This sequence uses production combat-delta advancement; no injected snow cells.
++	conditions.refresh_layout(true)
++	var save_onset:bool = OS.get_environment("SNOW_CAPTURE_ONSET")=="1"
++	if save_onset: DirAccess.make_dir_recursive_absolute(capture_dir+"/onset")
++	if save_onset: await grab("onset/frame_000")
++	for i:int in range(1,49):
++		game.now_stop_state = false
++		conditions.advance(0.1)
++		game.now_stop_state = true
++		if save_onset: await grab("onset/frame_%03d" % i,1)
++	check(field.environment_patches.size()>0 and view.weather_time>4.7,"after a bare start, actual elapsed battle time gradually deposits permanent snow")
++	game.now_stop_state = false
++	for i:int in range(36): conditions.advance(1.0)
++	game.now_stop_state = true
+ 	await grab("random_weather_production")
++	var retained:Dictionary = field.environment_patches.duplicate(true)
++	camera.global_position += Vector2(61,-27)
++	camera.zoom = Vector2(0.85,0.85)
++	await grab("weather_camera_moved")
++	check(field.environment_patches==retained,"camera movement/zoom affects weather appearance, not authoritative accumulated snow")
++	world.day_night_cycle.set_minutes(0.0)
++	await grab("weather_midnight")
++	check(field.environment_patches==retained,"night lighting leaves accumulated snow and its gameplay unchanged")
++	world.day_night_cycle.reset_to_noon()
++	setting("Environment","none")
++	await grab("weather_disabled")
++	check(not view.weather_enabled and not is_instance_valid(view.mesh_node) and not is_instance_valid(view._overlay_renderer),"None removes falling weather and all attached 3D snow meshes")
++	setting("Environment","snow")
++	await grab("weather_reenabled_empty")
++	check(field.environment_patches.is_empty() and view.weather_time==0.0,"re-enabling weather returns to an actually empty GPU scene")
++
++func check_shared_weather_view(view:Node2D) -> void:
++	var capture:=SubViewport.new()
++	capture.name = "SnowfallSharedWorldRecordingProbe"
++	capture.size = Vector2i(620,840)
++	capture.world_2d = world.get_viewport().find_world_2d()
++	capture.render_target_update_mode = SubViewport.UPDATE_ALWAYS
++	var center:Vector2 = world.return_map_world_rect(world._current_map_node()).get_center()
++	root.add_child(capture)
++	capture.canvas_transform = Transform2D(0.0,Vector2(0.9,0.9),0.0,Vector2(capture.size)*0.5-center*0.9)
++	view.weather_enabled = false
++	view.queue_redraw()
++	for i:int in range(3):
++		await process_frame
++		await RenderingServer.frame_post_draw
++	var empty:Image = capture.get_texture().get_image()
++	view.weather_enabled = true
++	view.queue_redraw()
++	for i:int in range(3):
++		await process_frame
++		await RenderingServer.frame_post_draw
++	var snow:Image = capture.get_texture().get_image()
++	snow.save_png(capture_dir+"/weather_shared_portrait.png")
++	check(changed_in(Rect2(Vector2.ZERO,Vector2(capture.size)),empty,snow,Transform2D.IDENTITY)>700,"shared-World2D portrait/recording viewport also sees real native snowfall")
++	capture.render_target_update_mode = SubViewport.UPDATE_DISABLED
++	capture.queue_free()
++	await process_frame
+diff --git a/tests/test_training_events_snow_lifecycle.gd b/tests/test_training_events_snow_lifecycle.gd
+index d75dfca..2867e65 100644
+--- a/tests/test_training_events_snow_lifecycle.gd
++++ b/tests/test_training_events_snow_lifecycle.gd
+@@ -7,7 +7,12 @@ func until(condition:Callable,seconds:float = 8.0) -> bool:
+ 		await process_frame
+ 	return false
+ func snow_ready() -> bool:
+-	return is_instance_valid(conditions.field) and not conditions.field.is_queued_for_deletion() and conditions.field.environment_patches.size()>0 and conditions._seed==conditions._weather_seed()
++	return is_instance_valid(conditions.field) and not conditions.field.is_queued_for_deletion() and conditions._seed==conditions._weather_seed()
++
++func accumulate() -> void:
++	game.now_stop_state = false
++	for i:int in range(12): conditions.advance(1.0)
++	game.now_stop_state = true
+ 
+ func run() -> void:
+ 	game = root.get_node("Game")
+@@ -33,16 +38,18 @@ func run() -> void:
+ 	game.load_persistent_settings()
+ 	check(game.Game_Settings.Random_Events and game.Game_Settings.Random_Event_Selection==["future_event"] and game.Game_Settings.Environment=="snow","Events choice, checked IDs and weather persist through the real settings file")
+ 	check(not game.Game_Settings.Training_Mode,"weather persistence never re-enables the training-only mode")
+-	check(await until(snow_ready),"paused setup still creates its initial permanent snow layout")
++	check(await until(snow_ready),"paused setup creates the weather manager without requiring deposits")
++	check(conditions.field.environment_patches.is_empty() and conditions.field.wall_view.weather_time==0.0,"paused setup starts with neither accumulated nor animated snow")
+ 	var field:Node2D = conditions.field
+ 	var count:int = field.environment_patches.size()
+ 	var left:float = conditions._snow_left
++	var weather_time:float = field.wall_view.weather_time
+ 	conditions.advance(3.0)
+-	check(field.environment_patches.size()==count and conditions._snow_left==left,"global pause stops weather clock without deleting accumulated snow")
++	check(field.environment_patches.size()==count and conditions._snow_left==left and field.wall_view.weather_time==weather_time,"global pause stops weather clock without deleting accumulated snow")
+ 	game.now_stop_state = false
+ 	Engine.time_scale = 0
+ 	conditions.advance(3.0)
+-	check(field.environment_patches.size()==count and conditions._snow_left==left,"zero time scale also stops new snow generation")
++	check(field.environment_patches.size()==count and conditions._snow_left==left and field.wall_view.weather_time==weather_time,"zero time scale also stops new snow generation")
+ 	Engine.time_scale = 1
+ 	game.now_stop_state = true
+ 	var previous_map:String = world.now_choose_map
+@@ -54,12 +61,20 @@ func run() -> void:
+ 	check(not next_map.is_empty(),"production world exposes another ordinary map")
+ 	game.request_map_choice(next_map)
+ 	check(await until(func():return conditions._map_key==next_map and snow_ready()),"public map-change path replaces weather layout for the selected arena")
+-	var inside:bool = true
++	check(field.environment_patches.is_empty(),"map change while paused stays entirely snow-free")
++	# Empty manual arenas are intentionally not combat-active; add a real fixture actor.
++	var map_actor:Node2D = dummy(world.return_map_world_rect(world._current_map_node()).get_center())
++	await physics_frame
++	await physics_frame
++	accumulate()
++	var inside:bool = not field.environment_patches.is_empty()
+ 	for record:Dictionary in field.environment_patches.values():
+ 		if record.decorative: continue
+ 		var rectangle:Array[Rect2] = [Rect2(FIELD.point_at(record.cell)-Vector2.ONE*12,Vector2.ONE*24)]
+ 		inside = inside and conditions.GEOMETRY.subtract(rectangle,conditions._ground).is_empty()
+ 	check(inside,"new map snow stays on actual floor regions instead of the old map or holes")
++	map_actor.queue_free()
++	await process_frame
+ 	game.request_map_choice(previous_map)
+ 	check(await until(func():return conditions._map_key==previous_map and snow_ready()),"returning to the original map restores its own layout")
+ 	# Use the production placement recorder so the normal rematch path owns the setup.
+@@ -67,14 +82,21 @@ func run() -> void:
+ 	check(world.has_rematch_setup() and await until(snow_ready),"real character placement establishes a replayable battle and weather seed")
+ 	var original_seed:int = game.current_battle_random_seed()
+ 	check(game.begin_battle_random(original_seed)==original_seed,"reusing a recorded battle seed is idempotent rather than incrementing it")
++	conditions.refresh_layout(true)
++	check(conditions.field.environment_patches.is_empty(),"new replay baseline begins bare")
++	accumulate()
+ 	var replay:Dictionary = conditions.field.environment_patches.duplicate(true)
+ 	var old_field:WeakRef = weakref(conditions.field)
+ 	await world.rematch_last_battle(true)
+ 	check(await until(func():return not is_instance_valid(old_field.get_ref()) and snow_ready()),"normal exact rematch retires the previous transient field and recreates weather")
++	check(conditions.field.environment_patches.is_empty(),"exact rematch recreates zero accumulation, not the prior twelve seconds")
++	accumulate()
+ 	check(game.current_battle_random_seed()==original_seed and conditions.field.environment_patches==replay,"exact replay reproduces the actual snow layout, not just a matching RNG seed")
+ 	old_field = weakref(conditions.field)
+ 	await world.rematch_last_battle(false)
+ 	check(await until(func():return not is_instance_valid(old_field.get_ref()) and snow_ready()),"fresh-random rematch also creates a new authoritative snow field")
++	check(conditions.field.environment_patches.is_empty(),"fresh-random rematch also starts bare")
++	accumulate()
+ 	check(game.current_battle_random_seed()!=original_seed and conditions.field.environment_patches!=replay,"fresh-random replay changes snow while retaining the chosen environment")
+ 	var victim:Node2D = dummy(center+Vector2(72,0))
+ 	game.now_stop_state = false
+@@ -85,6 +107,7 @@ func run() -> void:
+ 	old_field = weakref(conditions.field)
+ 	world.reset()
+ 	check(await until(func():return not is_instance_valid(old_field.get_ref()) and snow_ready()),"ordinary reset clears old weather but retains the user's Snow selection")
++	check(conditions.field.environment_patches.is_empty() and conditions.field.wall_view.weather_time==0.0,"ordinary reset removes old wall meshes, accumulation and falling-snow time")
+ 	check(not is_instance_valid(ice_ref.get_ref()) and get_nodes_in_group("MCSnowIce").is_empty(),"reset leaves no frozen victim, ice shell or control lease from the old battle")
+ 	field = conditions.field
+ 	conditions.set_physics_process(false)
+diff --git a/tests/test_training_events_snow_network.gd b/tests/test_training_events_snow_network.gd
+index d114baf..f71c68f 100644
+--- a/tests/test_training_events_snow_network.gd
++++ b/tests/test_training_events_snow_network.gd
+@@ -122,6 +122,22 @@ func run() -> void:
+ 	check(host_field.get_world_2d()!=guest_field.get_world_2d(),"replicas use independent physics worlds")
+ 	check(guest_field._clock<10 and guest_field.environment_patches.size()==2,"late join does not mistake server absolute age for a melting deadline")
+ 	check(not guest_field.add_environment_patch(guest_source,{"cell":Vector2i.ONE,"decorative":false,"rects":[Rect2(12,12,24,24)]}),"client cannot independently generate damaging weather cells")
++	var local_walls:Array[Rect2] = [Rect2(-12,-49,24,2)]
++	for snow_field:Node2D in [host_field,guest_field]:
++		snow_field.wall_view.visual_walls = local_walls.duplicate()
++		snow_field.wall_view.weather_bounds = Rect2(-256,-256,512,512)
++		snow_field.wall_view.set_weather(true)
++		snow_field.wall_view.request_update()
++	var authoritative:Dictionary = guest_field.environment_patches.duplicate(true)
++	guest_source.advance(0.5)
++	check(is_equal_approx(guest_field.wall_view.weather_time,0.5) and guest_field.wall_view.weather_fade>0.0,"non-authority client runs its own native falling-snow animation")
++	check(guest_field.environment_patches==authoritative,"client precipitation does not generate, replace or age authoritative snow cells")
++	game.now_stop_state = true
++	guest_source.advance(2.0)
++	check(is_equal_approx(guest_field.wall_view.weather_time,0.5),"client weather animation respects the combat pause")
++	game.now_stop_state = false
++	for i:int in range(3): await process_frame
++	check(is_instance_valid(host_field.wall_view.mesh_node) and is_instance_valid(guest_field.wall_view.mesh_node),"both ENet peers independently build actual 3D decorative snow from one replicated record")
+ 	var hp:int = host_target.health
+ 	host_field.check_ground()
+ 	check(host_target.health==hp-3,"authority resolves neutral snow through the real cold damage pipeline")
