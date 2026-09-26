@@ -87,7 +87,7 @@ const COLOR_FORGE:Color = Color8(255,151,43,255)
 @export_range(0.05,0.30,0.01) var sword_afterimage_lifetime:float = 0.18
 @export_range(0.05,0.80,0.01) var sword_afterimage_alpha:float = 0.58
 @export_range(1,5,1) var sword_kill_spin_turns:int = 3
-@export_range(0.3,2.0,0.05) var sword_kill_spin_duration:float = 0.9
+@export_range(0.3,2.0,0.05) var sword_kill_spin_duration:float = 0.45
 
 @export_category("铁匠村民 / 攻击音效")
 @export_range(-12.0,12.0,0.5) var sword_swing_base_volume_db:float = 1.5
@@ -153,6 +153,10 @@ var _kill_spin_active:bool = false
 var _kill_spin_direction:Vector2 = Vector2.RIGHT
 var _kill_spin_serial:int = 0
 var _last_kill_spin_serial:int = 0
+var _sword_threat_direction:Vector2 = Vector2.RIGHT
+var _sword_threat_pending:bool = false
+var _sword_hit_active:bool = false
+var _sword_hit_marker:int = 0
 var _forge_visual_root:Node2D = null
 var _forge_item_sprite:Sprite2D = null
 var _forge_hammer_pivot:Node2D = null
@@ -522,6 +526,8 @@ func _deal_sword_damage(attack_dir:Vector2) -> void:
 	var killed_enemy:bool = false
 	if outgoing <= 0.0:
 		return
+	_rpc_mark_sword_hit(attack_dir)
+	if multiplayer.has_multiplayer_peer(): _rpc_mark_sword_hit.rpc(attack_dir)
 
 	for result:Dictionary in results:
 		var collider:Variant = result.get("collider",null)
@@ -567,6 +573,60 @@ func _deal_sword_damage(attack_dir:Vector2) -> void:
 
 func _is_critical_sword_hit(dealt_damage:float) -> bool:
 	return is_finite(dealt_damage) and dealt_damage >= 100.0
+
+
+func _sword_threat_available() -> bool:
+	return health > 0 and not _death_sequence_started and sword_tier > TIER_NONE and not dizziness and not is_damage_output_disabled() and is_combat_runtime_active()
+
+
+func _sword_threat_sector() -> Dictionary:
+	# Same world-space circle and center-angle gate as _deal_sword_damage.
+	# Radius intersects the victim hurtbox; it is not the sword sprite's bounds.
+	var radius:float = maxf(sword_attack_range,1.0)
+	var half:float = deg_to_rad(clampf(sword_half_angle_degrees,5.0,175.0))
+	var heading:float = _sword_threat_direction.angle()
+	var points:=PackedVector2Array([global_position])
+	for i:int in range(65):
+		points.append(global_position + Vector2.RIGHT.rotated(heading-half+2.0*half*float(i)/64.0)*radius)
+	return {"shape":"polygon","position":global_position,"points":points,"radius":radius,
+		"direction":_sword_threat_direction,"half_angle":half,"damage":attack_damage(1.0),"source":self,"kind":"blacksmith_sword"}
+
+
+func get_debug_attack_regions() -> Array[Dictionary]:
+	if not _sword_hit_active or not _sword_threat_available() or attack_damage(1.0) <= 0.0: return []
+	return [_sword_threat_sector()]
+
+
+func get_debug_detection_regions() -> Array[Dictionary]:
+	if not _sword_threat_available(): return []
+	# Idle targeting is genuinely 360 degrees; a committed windup locks its sector.
+	if _sword_threat_pending:
+		var sector:Dictionary = _sword_threat_sector()
+		sector["kind"] = "blacksmith_sword_windup"
+		return [sector]
+	return [{"shape":"circle","position":global_position,"radius":maxf(sword_attack_range,1.0),"kind":"blacksmith_sword_detection"}]
+
+
+func _refresh_sword_threat_display() -> void:
+	if not bool(Game.Game_Settings.get("Training_Debug_Mode",false)) or get_tree().current_scene == null: return
+	var analyzer:Node = get_tree().current_scene.get_node_or_null("CombatThreatAnalyzer")
+	if analyzer != null and analyzer.has_method("_refresh_debug_world"):
+		analyzer._refresh_debug_world()
+		analyzer.queue_redraw()
+
+
+@rpc("authority","call_remote","reliable")
+func _rpc_mark_sword_hit(attack_dir:Vector2) -> void:
+	_sword_threat_direction = attack_dir.normalized()
+	_sword_threat_pending = false
+	_sword_hit_active = true
+	_sword_hit_marker += 1
+	var marker:int = _sword_hit_marker
+	_refresh_sword_threat_display() # The instant strike must not miss a 40ms scan.
+	await get_tree().physics_frame
+	if marker == _sword_hit_marker:
+		_sword_hit_active = false
+		_refresh_sword_threat_display()
 
 
 func _movement_facing_direction() -> Vector2:
@@ -703,6 +763,9 @@ func _rpc_play_sword_swing(attack_dir:Vector2,high_damage_swing:bool) -> void:
 
 
 func _interrupt_sword_attack(sync_remote:bool = false) -> void:
+	_sword_threat_pending = false
+	_sword_hit_active = false
+	_refresh_sword_threat_display()
 	_kill_spin_pending = false
 	_kill_spin_active = false
 	_attack_serial += 1
@@ -717,6 +780,9 @@ func _interrupt_sword_attack(sync_remote:bool = false) -> void:
 
 @rpc("authority","call_remote","reliable")
 func _rpc_interrupt_sword_attack() -> void:
+	_sword_threat_pending = false
+	_sword_hit_active = false
+	_refresh_sword_threat_display()
 	_kill_spin_pending = false
 	_kill_spin_active = false
 	_sword_visual_busy_left = 0.0
@@ -744,6 +810,10 @@ func _play_sword_swing_local(attack_dir:Vector2,high_damage_swing:bool) -> void:
 		_sword_tween.kill()
 
 	var direction_value:Vector2 = attack_dir.normalized() if attack_dir.length_squared() > 0.000001 else Vector2.RIGHT
+	_sword_threat_direction = direction_value
+	_sword_threat_pending = true
+	_sword_hit_active = false
+	_refresh_sword_threat_display()
 	var attack_angle:float = direction_value.angle()
 	# Iron_Sword.png 的握把约在贴图 (20.6%, 76.8%)，_apply_sword_grip_offset() 会按当前剑贴图尺寸换算。
 	# 剑刃原图约朝 -49°，因此 +49° 后“中立朝向”与 attack_dir 对齐。
@@ -796,6 +866,8 @@ func _apply_sword_follow_progress(progress:float,neutral_angle:float,base_positi
 
 
 func _finish_sword_swing_local() -> void:
+	_sword_threat_pending = false
+	_refresh_sword_threat_display()
 	_sword_visual_busy_left = 0.0
 	if _kill_spin_pending:
 		_start_kill_spin_local()
@@ -828,6 +900,7 @@ func _start_kill_spin_local() -> void:
 	if not is_instance_valid(_sword_pivot) or not is_instance_valid(_sword_sprite): return
 	_kill_spin_active = true
 	_sword_visual_busy_left = 0.0
+	_sword_sprite.self_modulate.a = 1.0
 	_sword_sprite.texture = _sword_texture_for_tier(sword_tier)
 	_sword_sprite.scale = Vector2.ONE * maxf(sword_visual_scale,0.001)
 	_apply_sword_grip_offset()
@@ -840,7 +913,7 @@ func _start_kill_spin_local() -> void:
 	var start_angle:float = _kill_spin_direction.angle() + deg_to_rad(125.0)
 	_apply_kill_spin_progress(0.0,start_angle)
 	_sword_tween = create_tween()
-	_sword_tween.tween_method(Callable(self,"_apply_kill_spin_progress").bind(start_angle),0.0,1.0,maxf(sword_kill_spin_duration,0.3)).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_sword_tween.tween_method(Callable(self,"_apply_kill_spin_progress").bind(start_angle),0.0,1.0,maxf(sword_kill_spin_duration,0.3)).set_trans(Tween.TRANS_LINEAR)
 	_sword_tween.finished.connect(_finish_kill_spin_local,CONNECT_ONE_SHOT)
 
 
@@ -851,6 +924,8 @@ func _apply_kill_spin_progress(progress:float,start_angle:float) -> void:
 	var angle:float = start_angle + TAU * float(clampi(sword_kill_spin_turns,1,5)) * clampf(progress,0.0,1.0)
 	var grip:Vector2 = _kill_spin_direction * maxf(sword_visual_distance,0.0) + Vector2(0.0,sword_visual_vertical_offset)
 	_sword_pivot.transform = Transform2D(angle,Vector2.ONE,0.0,grip)
+	# Fade during the last 35% while the sword keeps spinning at full speed.
+	_sword_sprite.self_modulate.a = 1.0-smoothstep(0.65,1.0,clampf(progress,0.0,1.0))
 
 
 func _finish_kill_spin_local() -> void:

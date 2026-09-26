@@ -162,6 +162,7 @@ func run() -> void:
 	check(absf(absf(wrapf(smith._sword_pivot.rotation-start_angle,-PI,PI))-PI) < 0.06,"left-side attack uses reversed sword facing")
 	smith._interrupt_sword_attack()
 	check(not smith._sword_pivot.visible and not smith._sword_sprite.visible,"interrupted swing leaves no active sword")
+	await check_threat_and_fade(smith,arena)
 	print("BLACKSMITH_SWING_RESULT checks=%d failures=%d max_step_deg=%.2f ghost_count=%d distinct=%d" % [checks,failures,rad_to_deg(max_step),ghosts.size(),distinct.size()])
 	current_scene = saved_scene
 	arena.queue_free()
@@ -170,6 +171,116 @@ func run() -> void:
 	root.size = saved_size
 	await process_frame
 	quit(1 if failures>0 else 0)
+
+func smith_regions(analyzer:Node,smith:Node) -> Array[Dictionary]:
+	analyzer._refresh_debug_world()
+	var result:Array[Dictionary] = []
+	for info:Dictionary in analyzer.get_world_threats():
+		if str(info.get("kind","")).begins_with("blacksmith_sword") and info.get("source_id",0) == smith.get_instance_id(): result.append(info)
+	return result
+
+func check_threat_and_fade(smith:Node2D,arena:Node2D) -> void:
+	var game:Node = root.get_node("Game")
+	var old_debug:bool = bool(game.Game_Settings.get("Training_Debug_Mode",false))
+	game.Game_Settings.Training_Debug_Mode = true
+	var analyzer:Node2D = load("res://scripts/training/combat_threat_analyzer.gd").new()
+	analyzer.name = "CombatThreatAnalyzer"
+	arena.add_child(analyzer)
+	smith._interrupt_sword_attack()
+	var regions:Array[Dictionary] = smith_regions(analyzer,smith)
+	check(regions.size()==1 and regions[0].debug_role=="detection" and regions[0].shape=="circle" and is_equal_approx(regions[0].radius,smith.sword_attack_range),"settings threat overlay shows real 360-degree detection range without training")
+	for dir:Vector2 in [Vector2.RIGHT,Vector2.LEFT,Vector2.UP,Vector2.DOWN]:
+		smith._play_sword_swing_local(dir,false)
+		regions = smith_regions(analyzer,smith)
+		check(regions.size()==1 and regions[0].shape=="polygon" and regions[0].debug_role=="detection","windup is a blue sector, not a damaging circle")
+		var points:PackedVector2Array = regions[0].points
+		var half:float = deg_to_rad(smith.sword_half_angle_degrees)
+		check(points[0].is_equal_approx(smith.global_position) and points[1].is_equal_approx(smith.global_position+dir.rotated(-half)*smith.sword_attack_range) and points[65].is_equal_approx(smith.global_position+dir.rotated(half)*smith.sword_attack_range),"sector uses exact world center, range and both angular boundaries")
+		smith._deal_sword_damage(dir)
+		regions = smith_regions(analyzer,smith)
+		var damage_regions:Array[Dictionary] = []
+		for region:Dictionary in regions:
+			if region.debug_role=="damage": damage_regions.append(region)
+		check(damage_regions.size()==1 and damage_regions[0].shape=="polygon" and damage_regions[0].direction.is_equal_approx(dir) and is_equal_approx(damage_regions[0].damage,smith.attack_damage(1.0)),"actual strike publishes its locked direction and current attribute damage")
+		await physics_frame
+		check(smith.get_debug_attack_regions().is_empty(),"instant strike threat clears on following physics frame")
+		smith._interrupt_sword_attack()
+	smith.sword_tier = 0
+	check(smith_regions(analyzer,smith).is_empty(),"no weapon means no weapon threat")
+	smith.sword_tier = 3
+	smith.dizziness = true
+	check(smith_regions(analyzer,smith).is_empty(),"stunned character has no enabled sword region")
+	smith.dizziness = false
+	# Fixed source pose demonstrates true renderer alpha, not just a hidden flag.
+	smith._kill_spin_direction = Vector2.RIGHT
+	smith._start_kill_spin_local()
+	smith._sword_tween.pause()
+	check(is_equal_approx(smith.sword_kill_spin_duration,0.45),"three turns take 0.45 seconds, twice as fast")
+	var alphas:Array[float] = []
+	for progress:float in [0.0,0.65,0.8,0.95,1.0]:
+		smith._apply_kill_spin_progress(progress,0.0)
+		alphas.append(smith._sword_sprite.self_modulate.a)
+	check(is_equal_approx(alphas[0],1.0) and is_equal_approx(alphas[1],1.0) and alphas[2]>alphas[3] and alphas[3]>0.0 and is_zero_approx(alphas[4]),"last 35 percent fades continuously to zero before hiding")
+	check(smith.get_debug_attack_regions().is_empty(),"cosmetic spin creates no damage threat")
+	if DisplayServer.get_name() != "headless":
+		# Capture exact same sword orientation with different progress/opacity.
+		game.Game_Settings.Training_Debug_Mode = false
+		analyzer._physics_process(0.05)
+		for ghost:Sprite2D in sword_ghosts(smith): ghost.free()
+		var frames:Array[Image] = []
+		for progress:float in [0.0,0.84,1.0]:
+			smith._apply_kill_spin_progress(progress,-TAU*3.0*progress)
+			await process_frame
+			await RenderingServer.frame_post_draw
+			await process_frame
+			await RenderingServer.frame_post_draw
+			frames.append(root.get_texture().get_image())
+		var full:float = 0.0
+		var faded:float = 0.0
+		for y:int in range(65,405):
+			for x:int in range(165,525):
+				full += pixel_difference(frames[0].get_pixel(x,y),frames[2].get_pixel(x,y))
+				faded += pixel_difference(frames[1].get_pixel(x,y),frames[2].get_pixel(x,y))
+		# Readback color is gamma/tone-mapped; alpha 0.44 is not a linear RGB ratio.
+		check(full>10 and faded>0 and faded<full*0.85,"GPU sword opacity smoothly diminishes at fixed pose full=%.1f faded=%.1f" % [full,faded])
+		smith._interrupt_sword_attack()
+		game.Game_Settings.Training_Debug_Mode = true
+		smith._play_sword_swing_local(Vector2.RIGHT,false)
+		smith._sword_tween.pause()
+		# Hold the real sector geometry for a GPU-only visibility comparison.
+		smith._sword_threat_pending = false
+		smith._sword_hit_active = true
+		analyzer._physics_process(0.05)
+		analyzer._refresh_debug_world()
+		analyzer.queue_redraw()
+		await process_frame
+		await RenderingServer.frame_post_draw
+		await process_frame
+		await RenderingServer.frame_post_draw
+		var shown:Image = root.get_texture().get_image()
+		game.Game_Settings.Training_Debug_Mode = false
+		analyzer._physics_process(0.05)
+		await process_frame
+		await RenderingServer.frame_post_draw
+		await process_frame
+		await RenderingServer.frame_post_draw
+		var hidden:Image = root.get_texture().get_image()
+		check(changed_pixels(shown,hidden,Rect2i(165,65,360,340))>40,"settings toggle visibly draws/removes real attack sector on GPU")
+	check(not analyzer.visible and analyzer._debug_threats.is_empty() if not bool(game.Game_Settings.Training_Debug_Mode) else true,"turning threat setting off clears cached regions")
+	smith._interrupt_sword_attack()
+	smith._play_sword_swing_local(Vector2.RIGHT,false)
+	check(is_equal_approx(smith._sword_sprite.self_modulate.a,1.0),"next attack resets faded sword opacity")
+	smith._interrupt_sword_attack()
+	game.Game_Settings.Training_Debug_Mode = true
+	smith._death_sequence_started = true
+	check(smith_regions(analyzer,smith).is_empty(),"death removes sword detection and damage regions")
+	smith._death_sequence_started = false
+	analyzer._physics_process(0.05)
+	game.Game_Settings.Training_Debug_Mode = false
+	analyzer._physics_process(0.05)
+	check(not analyzer.visible and analyzer._debug_threats.is_empty(),"off switch clears data without a receiver")
+	analyzer.free()
+	game.Game_Settings.Training_Debug_Mode = old_debug
 
 func check_sword_revision(smith:Node2D,arena:Node2D) -> void:
 	# Follow the real Tween through every direction and the +/-PI seam.

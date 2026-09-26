@@ -460,7 +460,9 @@ func _debug_scan_explicit_attack_regions() -> void:
 
 func _debug_add_declared_detection(info:Dictionary,source:Node) -> void:
 	var shape:String = str(info.get("shape","circle"))
-	if shape == "rect":
+	if shape == "polygon":
+		_debug_add_declared_polygon(info,source,"detection",0.0)
+	elif shape == "rect":
 		_debug_add_detection_rect(
 			source,
 			Vector2(info.get("position",Vector2.ZERO)),
@@ -825,6 +827,17 @@ func _balls_are_hostile(a:ball,b:ball) -> bool:
 	return team_a.is_empty() or team_b.is_empty() or team_a != team_b
 
 
+func _debug_add_declared_polygon(info:Dictionary,source:Node,role:String,damage:float) -> void:
+	var points:PackedVector2Array = info.get("points",PackedVector2Array())
+	if points.size() < 3: return
+	var region:Dictionary = info.duplicate(true)
+	region["source"] = source
+	region["source_id"] = source.get_instance_id() if is_instance_valid(source) else 0
+	region["debug_role"] = role
+	region["damage"] = damage
+	_debug_threats.append(region)
+
+
 func _debug_add_declared_threat(info:Dictionary,default_source:Node) -> void:
 	var source:Node = _node_from_variant(info.get("source",default_source),default_source)
 	var damage:float = maxf(float(info.get("damage",_source_damage(source))),0.0)
@@ -838,7 +851,9 @@ func _debug_add_declared_threat(info:Dictionary,default_source:Node) -> void:
 	var control:float = float(info.get("control",0.0))
 	var before_count:int = _debug_threats.size()
 
-	if shape == "segment":
+	if shape == "polygon":
+		_debug_add_declared_polygon(info,source,"damage",damage)
+	elif shape == "segment":
 		var a:Vector2 = info.get("start",Vector2.ZERO)
 		var b:Vector2 = info.get("end",a)
 		var radius:float = maxf(float(info.get("radius",4.0)),1.0)
