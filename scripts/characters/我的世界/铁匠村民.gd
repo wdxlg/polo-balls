@@ -539,7 +539,9 @@ func _deal_sword_damage(attack_dir:Vector2) -> void:
 		var target_id:int = target.get_instance_id()
 		if seen.has(target_id):
 			continue
-		var offset:Vector2 = combat_target_position(target) - global_position
+		# Aiming may substitute the mouse point; hit geometry must use each
+		# victim's real position, otherwise manual control hits the entire circle.
+		var offset:Vector2 = target.global_position - global_position
 		if offset.length_squared() > 0.000001:
 			var direction_to_target:Vector2 = offset.normalized()
 			if absf(attack_dir.angle_to(direction_to_target)) > half_angle:
@@ -604,6 +606,9 @@ func get_debug_detection_regions() -> Array[Dictionary]:
 		var sector:Dictionary = _sword_threat_sector()
 		sector["kind"] = "blacksmith_sword_windup"
 		return [sector]
+	# The acquisition circle is idle-only, not a simultaneous damage area.
+	if _sword_hit_active or Attacking or _sword_visual_busy_left > 0.0 or _kill_spin_active:
+		return []
 	return [{"shape":"circle","position":global_position,"radius":maxf(sword_attack_range,1.0),"kind":"blacksmith_sword_detection"}]
 
 

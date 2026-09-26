@@ -163,6 +163,7 @@ func run() -> void:
 	smith._interrupt_sword_attack()
 	check(not smith._sword_pivot.visible and not smith._sword_sprite.visible,"interrupted swing leaves no active sword")
 	await check_threat_and_fade(smith,arena)
+	await check_actual_sword_sector(smith,arena)
 	print("BLACKSMITH_SWING_RESULT checks=%d failures=%d max_step_deg=%.2f ghost_count=%d distinct=%d" % [checks,failures,rad_to_deg(max_step),ghosts.size(),distinct.size()])
 	current_scene = saved_scene
 	arena.queue_free()
@@ -171,6 +172,57 @@ func run() -> void:
 	root.size = saved_size
 	await process_frame
 	quit(1 if failures>0 else 0)
+
+func check_actual_sword_sector(smith:Node2D,arena:Node2D) -> void:
+	var samples:Array[float] = [0.0,-40.0,40.0,-44.0,44.0,-90.0,90.0,180.0,0.0]
+	var targets:Array[Node2D] = []
+	for i:int in range(samples.size()):
+		var victim:Node2D = load("res://scenes/ball.tscn").instantiate()
+		victim.Team = "B"
+		victim.Max_health = 10000
+		arena.add_child(victim,true)
+		victim.state_machine.process_mode = Node.PROCESS_MODE_DISABLED
+		victim.set_physics_process(false)
+		victim.set_process(false)
+		victim.Health_Restore = 0
+		victim.Damage_reduction = 0
+		targets.append(victim)
+	for tier:int in [1,2,3]:
+		smith.sword_tier = tier
+		smith._apply_equipment_stats(false)
+		for manual:bool in [false,true]:
+			smith.set_player_control_peer(1 if manual else 0)
+			for heading:Vector2 in [Vector2.RIGHT,Vector2.LEFT,Vector2.UP,Vector2.DOWN]:
+				smith._interrupt_sword_attack()
+				smith.set_player_control_aim_position(smith.global_position+heading*100.0)
+				for i:int in range(targets.size()):
+					targets[i].global_position = smith.global_position+heading.rotated(deg_to_rad(samples[i]))*(90.0 if i==8 else 32.0)
+					targets[i].health = 10000
+					targets[i].block = 0
+				await physics_frame
+				await physics_frame
+				smith._deal_sword_damage(heading)
+				for i:int in range(targets.size()):
+					var expected:bool = i<3
+					check((targets[i].health<10000)==expected,"actual sword tier=%d manual=%s heading=%s angle=%.0f range=%s expected_hit=%s" % [tier,manual,heading,samples[i],90 if i==8 else 32,expected])
+	# Aim only decides the initial swing; moving the mouse later cannot relocate victims.
+	smith.set_player_control_peer(1)
+	smith.set_player_control_aim_position(smith.global_position+Vector2.RIGHT*100.0)
+	smith._play_sword_swing_local(Vector2.RIGHT,false)
+	smith._sword_tween.pause()
+	for i:int in range(targets.size()):
+		targets[i].global_position = smith.global_position+Vector2.RIGHT.rotated(deg_to_rad(samples[i]))*(90.0 if i==8 else 32.0)
+		targets[i].health = 10000
+		targets[i].block = 0
+	smith.set_player_control_aim_position(smith.global_position+Vector2.LEFT*100.0)
+	await physics_frame
+	await physics_frame
+	smith._deal_sword_damage(Vector2.RIGHT)
+	check(targets[0].health<10000 and targets[7].health==10000,"mouse movement after windup cannot turn a locked front strike into circle/back strike")
+	check(smith.get_debug_attack_regions().size()==1 and smith.get_debug_attack_regions()[0].direction.is_equal_approx(Vector2.RIGHT),"actual hit and threat sector keep the same committed direction")
+	smith.set_player_control_peer(0)
+	smith._interrupt_sword_attack()
+	for victim:Node2D in targets: victim.free()
 
 func smith_regions(analyzer:Node,smith:Node) -> Array[Dictionary]:
 	analyzer._refresh_debug_world()
