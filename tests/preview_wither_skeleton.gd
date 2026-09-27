@@ -32,7 +32,7 @@ func run() -> void:
 	print("WITHER_SKELETON_PREVIEW scale=",actor.global_scale," body=",actor.image.global_scale," collider=",actor.collision_shape_2d.shape.size)
 	if DisplayServer.get_name() == "headless": quit(2); return
 	var images:Array[Image] = []
-	var times:Array[float] = [-1.0,0.15,0.31,0.57,0.80,0.86,0.92,0.979]
+	var times:Array[float] = [-1.0,0.15,0.31,0.57,0.80,0.94,1.06,1.179]
 	for i:int in range(times.size()):
 		actor.combo_time = times[i]
 		actor.combo_heading = Vector2.RIGHT
@@ -44,7 +44,7 @@ func run() -> void:
 		await process_frame
 		await RenderingServer.frame_post_draw
 		var image:Image = root.get_texture().get_image()
-		image.save_png("res://tests/wither_skeleton_reach_preview_%d.png" % i)
+		image.save_png("res://tests/wither_skeleton_smooth_preview_%d.png" % i)
 		images.append(image)
 	var differences:Array[int] = []
 	for i:int in range(1,images.size()):
@@ -64,17 +64,50 @@ func run() -> void:
 		actor._fade_sprite.hide()
 		await process_frame
 		await RenderingServer.frame_post_draw
-		root.get_texture().get_image().save_png("res://tests/wither_skeleton_reach_direction_%d.png" % i)
+		root.get_texture().get_image().save_png("res://tests/wither_skeleton_smooth_direction_%d.png" % i)
 	# Actual GPU time samples of the complete wind-up/cuts/recovery sequence.
 	actor.combo_heading = Vector2.RIGHT
 	actor._face_right = true
-	for i:int in range(50):
-		actor.combo_time = float(i)*0.02
+	for i:int in range(143):
+		actor.combo_time = float(i)/120.0
 		actor.visual_mob()
 		actor._fade_sprite.hide()
 		await process_frame
 		await RenderingServer.frame_post_draw
-		root.get_texture().get_image().save_png("res://.backups/wither_skeleton_reach_20260927/motion_%02d.png" % i)
+		root.get_texture().get_image().save_png("res://.backups/wither_skeleton_smooth_20260927/motion_%02d.png" % i)
+	# Now use the real 60Hz state machine + up-to-144Hz render loop, not manually set poses.
+	Engine.max_fps = 144
+	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
+	actor.cancel_combo()
+	actor.cooldown_left = 0.0
+	actor.Speed = 0.0
+	actor.direction = Vector2.RIGHT
+	actor.begin_combo(Vector2.RIGHT)
+	actor.set_process(true)
+	actor.set_physics_process(true)
+	actor.state_machine.set_physics_process(true)
+	var trace:Array[Dictionary] = []
+	var previous_physics:float = -2.0
+	var previous_draw:float = -2.0
+	var subframe_updates:int = 0
+	var completed:bool = false
+	for frame:int in range(360):
+		await process_frame
+		await RenderingServer.frame_post_draw
+		var physical:float = actor.combo_time
+		var displayed:float = actor._recovery_draw_time
+		if physical >= actor.COMBO_DURATION and displayed >= actor.COMBO_DURATION:
+			trace.append({"usec":Time.get_ticks_usec(),"physics":physical,"display":displayed,"angle":actor.blade_angle(displayed)})
+			if is_equal_approx(previous_physics,physical) and displayed > previous_draw+0.000001: subframe_updates += 1
+			previous_physics = physical
+			previous_draw = displayed
+		if physical < 0.0:
+			completed = true
+			break
+	var trace_file:FileAccess = FileAccess.open("res://.backups/wither_skeleton_smooth_20260927/live_render_trace.json",FileAccess.WRITE)
+	trace_file.store_string(JSON.stringify(trace))
+	trace_file.close()
+	print("WITHER_SKELETON_LIVE_RENDER samples=%d subframe_updates=%d completed=%s" % [trace.size(),subframe_updates,str(completed)])
 	arena.queue_free()
 	await process_frame
-	quit(0 if differences[0] > 300 and differences[1] > 300 and differences[2] > 300 and differences[3] > 300 else 1)
+	quit(0 if differences[0] > 300 and differences[1] > 300 and differences[2] > 300 and differences[3] > 300 and completed and subframe_updates>0 else 1)

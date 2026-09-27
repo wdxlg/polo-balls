@@ -103,8 +103,8 @@ func run() -> void:
 	check(status != null and is_equal_approx(status.remaining,3.0),"second hit refreshes duration to 3 seconds")
 	actor.advance_combo(0.25)
 	check(actor.combo_time >= 0.0 and actor.swings_started == 2,"two swings landed, recover transition still playing")
-	check(absf(wrapf(actor.blade_angle(0.979)-actor.rest_angle(),-PI,PI)) < 0.06,"blade eases back toward the rest angle")
-	actor.advance_combo(0.25)
+	check(absf(wrapf(actor.blade_angle(actor.RECOVER_END-0.001)-actor.rest_angle(),-PI,PI)) < 0.06,"blade eases back toward the rest angle")
+	actor.advance_combo(0.45)
 	check(actor.combo_time < 0.0,"combo closes only after the recover transition")
 	check(actor.get_debug_attack_regions().is_empty(),"no damage threat after completion")
 	check(not actor.begin_combo(Vector2.RIGHT),"cooldown rejects spam")
@@ -226,7 +226,7 @@ func run() -> void:
 	actor.direction = Vector2.UP # Public collision response remains free to redirect.
 	actor.step_mob(0.01)
 	check(actor.direction.is_equal_approx(Vector2.UP),"combo does not restore a cached pre-bounce direction")
-	actor.advance_combo(1.0)
+	actor.advance_combo(actor.RECOVER_END)
 	check(actor.combo_time < 0.0,"natural recovery completes before restoring speed")
 	actor.move(actor.Speed,1.0/60.0)
 	check(is_equal_approx(actor.velocity.length(),normal_velocity.length()),"completed recovery restores ordinary movement speed")
@@ -346,12 +346,41 @@ func run() -> void:
 			var angle_now:float = actor.blade_angle(lerpf(actor.COMBO_DURATION,actor.RECOVER_END,float(quarter)/4.0))
 			turns.append(absf(angle_now-angle_before))
 			angle_before = angle_now
-		check(turns[0]>turns[1] and turns[1]>turns[2] and turns[2]>turns[3] and turns[0]>8.0*turns[3],"spin starts fastest and continuously decelerates toward rest")
+		check(turns[0]>turns[1] and turns[1]>turns[2] and turns[2]>turns[3] and turns[0]>4.0*turns[3],"spin starts fastest and continuously decelerates toward rest")
 		check(absf(wrapf(previous_angle-actor.rest_angle(),-PI,PI))<0.001,"unwrapped full spin ends at resting blade angle")
+		# At 60Hz even the fastest recovery step remains below 40 degrees.
+		var max_step:float = 0.0
+		var before_angle:float = actor.blade_angle(actor.COMBO_DURATION)
+		var before_hand:Vector2 = actor.hand_position(actor.COMBO_DURATION)
+		var max_hand_step:float = 0.0
+		var texture_index:int = actor._arm_source_index(actor.COMBO_DURATION)
+		var one_texture:bool = true
+		var anchors_match:bool = true
+		for frame:int in range(1,55):
+			var t:float = minf(actor.COMBO_DURATION+float(frame)/120.0,actor.RECOVER_END)
+			var angle:float = actor.blade_angle(t)
+			var hand:Vector2 = actor.hand_position(t)
+			max_hand_step = maxf(max_hand_step,hand.distance_to(before_hand))
+			before_hand = hand
+			actor.combo_time = t
+			actor.visual_mob()
+			one_texture = one_texture and actor._arm_source_index(t) == texture_index
+			var xy:Array = actor.POSES.HANDS["attack"][texture_index]
+			var pixel:Vector2 = Vector2(float(xy[0])-80.0,float(xy[1])-112.0)+actor._arm.offset
+			if t < actor.RECOVER_END:
+				anchors_match = anchors_match and (actor._arm.global_transform*pixel).distance_to(actor._sword.global_position)<0.01
+			if frame%2 == 0:
+				max_step = maxf(max_step,absf(angle-before_angle))
+				before_angle = angle
+		check(max_step < deg_to_rad(40.0),"recovery reduces per-frame angular jump at 60Hz")
+		check(max_hand_step < 1.0 and one_texture,"recovery wrist moves continuously without swapping arm textures")
+		check(anchors_match,"continuous recovery texture still joins the visible sword grip")
+		check(actor.hand_position(actor.RECOVER_END).distance_to(actor._rest_hand())<0.001,"recovery reaches actual held hand without a final snap")
+		actor.combo_time = actor.COMBO_DURATION
 		var health_before_spin:int = victim.health
-		actor.advance_combo(0.12)
+		actor.advance_combo((actor.RECOVER_END-actor.COMBO_DURATION)*0.5)
 		check(actor.get_debug_attack_regions().is_empty() and actor.get_debug_detection_regions().is_empty(),"recovery spin is not a third damage or detection sweep")
-		actor.advance_combo(0.12)
+		actor.advance_combo((actor.RECOVER_END-actor.COMBO_DURATION)*0.5+0.00001)
 		check(victim.health == health_before_spin,"full recovery turn cannot deal extra damage")
 		actor.visual_mob()
 		check(not actor._arm.visible,"separate attack arm hides after recovery")
@@ -386,6 +415,24 @@ func run() -> void:
 		actor.advance_combo(0.74)
 		check(victim.health < 10000,"extended physical sword actually damages newly reachable target")
 	victim.get_node("hurtbox/CollisionShape2D").shape = original_hurt_shape
+	# Actual render-subframe clock advances only harmless recovery; physics stays fixed.
+	fresh()
+	actor.begin_combo(Vector2.RIGHT)
+	check(is_equal_approx(actor.cooldown_left,1.2),"longer recovery does not extend original attack interval")
+	actor.combo_time = 0.8
+	actor._render_process = true
+	var draw_a:float = actor._draw_combo_time(0.0)
+	var draw_b:float = actor._draw_combo_time(0.5)
+	var draw_c:float = actor._draw_combo_time(0.9)
+	check(draw_a<draw_b and draw_b<draw_c and is_equal_approx(actor.combo_time,0.8),"high-refresh display advances between unchanged physics ticks")
+	root.get_node("Game").now_stop_state = true
+	check(is_equal_approx(actor._draw_combo_time(1.0),draw_c),"pause freezes the last displayed spin without rewinding")
+	root.get_node("Game").now_stop_state = false
+	actor.combo_time = 0.79
+	check(actor._draw_combo_time(0.0)>=draw_c,"late visual snapshot cannot reverse the recovery spin")
+	actor.combo_time = 0.23
+	check(is_equal_approx(actor._draw_combo_time(0.9),0.23),"render interpolation never advances an active damaging slash")
+	actor._render_process = false
 	# Manual vertical aim follows the same real shoulder geometry.
 	fresh()
 	actor.set_player_control_peer(1)
