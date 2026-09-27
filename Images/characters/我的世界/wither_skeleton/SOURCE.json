@@ -4,7 +4,7 @@
   "bedrock_commit": "736072450c26a7c67f07b1661f29d9a5ebaa14b1",
   "java_audio_version": "1.21.4",
   "asset_index": "https://piston-meta.mojang.com/v1/packages/f08a9f07a863fe31e36f76f19b261cd0648b3c5a/19.json",
-  "renderer": "Existing bake_native_mobs.Baker + BatchBaker matrices; original wither-skeleton model and Molang clips, fixed orthographic projection. Runtime stone sword is a separate held item with gameplay-directed swing.",
+  "renderer": "Existing bake_native_mobs.Baker + BatchBaker matrices; unchanged original model/skin, original idle/walk; project-directed raised-arm downcut/upcut/recovery transforms (not a vanilla animation claim).",
   "files": [
     {
       "file": "Images/characters/我的世界/wither_skeleton/source/wither_skeleton.png",
@@ -143,6 +143,6 @@
   "clips": {
     "idle": 16,
     "walk": 16,
-    "attack": 16
+    "attack": 50
   }
 }

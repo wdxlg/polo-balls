@@ -32,7 +32,7 @@ func run() -> void:
 	print("WITHER_SKELETON_PREVIEW scale=",actor.global_scale," body=",actor.image.global_scale," collider=",actor.collision_shape_2d.shape.size)
 	if DisplayServer.get_name() == "headless": quit(2); return
 	var images:Array[Image] = []
-	var times:Array[float] = [-1.0,0.22,0.49,0.86]
+	var times:Array[float] = [-1.0,0.15,0.31,0.57,0.86]
 	for i:int in range(times.size()):
 		actor.combo_time = times[i]
 		actor.combo_heading = Vector2.RIGHT
@@ -44,10 +44,10 @@ func run() -> void:
 		await process_frame
 		await RenderingServer.frame_post_draw
 		var image:Image = root.get_texture().get_image()
-		image.save_png("res://tests/wither_skeleton_preview_%d.png" % i)
+		image.save_png("res://tests/wither_skeleton_swing_preview_%d.png" % i)
 		images.append(image)
 	var differences:Array[int] = []
-	for i:int in range(1,4):
+	for i:int in range(1,images.size()):
 		var count:int = 0
 		for y:int in range(600):
 			for x:int in range(800):
@@ -58,4 +58,4 @@ func run() -> void:
 	print("WITHER_SKELETON_GPU_ACTOR_DIFFERENCES ",differences)
 	arena.queue_free()
 	await process_frame
-	quit(0 if differences[0] > 300 and differences[1] > 300 and differences[2] > 300 else 1)
+	quit(0 if differences[0] > 300 and differences[1] > 300 and differences[2] > 300 and differences[3] > 300 else 1)

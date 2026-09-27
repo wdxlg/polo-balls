@@ -1,8 +1,8 @@
 extends "res://scripts/characters/我的世界/new5/base.gd"
 ## One active move: two real stone-sword sweeps. Shared hurt-shape geometry,
 ## classified damage, status potency/source lifetimes, audio and death effects.
-## The swing is a fully eased arc (wind-up, slash, re-wind, slash, follow-through)
-## and closes with a smooth recover that eases blade and body back to idle.
+## One continuous original-model pose: raise, downward cut, upward cut, recover.
+## Attack aiming never steers locomotion; the shared movement/collision chain owns it.
 const SWEEP = preload("res://classes/weapon_tip_sweep.gd")
 const EFFECTS = preload("res://scripts/effects/我的世界/mc_status_effects.gd")
 const FRAMES:SpriteFrames = preload("res://Images/characters/我的世界/wither_skeleton/frames.tres")
@@ -15,7 +15,8 @@ const WITHER_SECONDS:float = 3.0
 const MAX_WITHER_LEVEL:int = 255 # Existing public potency limit, not a new balance cap.
 const WINDOWS:Array[Vector2] = [Vector2(0.15,0.31),Vector2(0.41,0.57)]
 const COMBO_DURATION:float = 0.74
-const RECOVER_END:float = 0.98 # Damage ends at COMBO_DURATION; the blade then eases home.
+const RECOVER_END:float = 0.98 # One full-body clip includes the eased recovery.
+const ATTACK_MOVE_MULTIPLIER:float = 0.3
 const BODY_SCALE:float = 0.85 # 148 visible pixels -> ~126 world units, shared humanoid footprint.
 const BODY_OFFSET_Y:float = -13.5 # Feet pixel 202 lands on the collider bottom (+63).
 @export var blade_length:float = 14.0
@@ -111,7 +112,7 @@ func step_mob(delta:float) -> void:
 	if is_player_controlled(): return
 	var target:ball = U.nearest(self)
 	if not is_instance_valid(target): return
-	if not is_direction_change_locked(): direction = global_position.direction_to(target.global_position)
+	# Acquisition selects the sword aim only. Never replace ordinary movement direction.
 	if global_position.distance_to(target.global_position) <= acquisition_range and U.line_clear(self,global_position,target.global_position):
 		begin_combo(global_position.direction_to(target.global_position))
 
@@ -184,8 +185,8 @@ func cancel_combo() -> void:
 	_publish_pose()
 
 func move(speed:float,delta:float) -> void:
-	# Player WASD stays independent. AI slows while committing a melee combination.
-	super.move(speed*(0.3 if combo_time >= 0.0 and not is_player_controlled() else 1.0),delta)
+	# Slow self-propulsion only; shared WASD, wall bounce, pull and Repel stay intact.
+	super.move(speed*(ATTACK_MOVE_MULTIPLIER if combo_time >= 0.0 else 1.0),delta)
 
 func tick_physics(state:State,delta:float) -> void:
 	if health <= 0 or dizziness or is_damage_output_disabled() or not Can_Attack: cancel_combo()
@@ -199,9 +200,8 @@ func tick_physics(state:State,delta:float) -> void:
 	super.tick_physics(state,delta)
 
 func body_pose(time:float) -> Dictionary:
-	if time >= 0.0 and time < COMBO_DURATION:
-		var start:float = 0.0 if time < 0.36 else 0.36
-		return {"clip":&"attack","index":clampi(int((time-start)/0.31*15.0),0,15)}
+	if time >= 0.0 and time < RECOVER_END:
+		return {"clip":&"attack","index":_attack_index(time)}
 	var clip:StringName = &"walk" if _walking else &"idle"
 	return {"clip":clip,"index":int(_view_clock*FRAMES.get_animation_speed(clip))%FRAMES.get_frame_count(clip)}
 
@@ -210,10 +210,11 @@ func _hand_pixel(xy:Array) -> Vector2:
 	if _face_right: pixel.x = -pixel.x # Original orthographic model faces left.
 	return image.global_transform * pixel
 
+func _attack_index(time:float) -> int:
+	return clampi(roundi(time/RECOVER_END*float(FRAMES.get_frame_count(&"attack")-1)),0,FRAMES.get_frame_count(&"attack")-1)
+
 func _attack_hand(time:float) -> Vector2:
-	var start:float = 0.0 if time < 0.36 else 0.36
-	var index:int = clampi(int((time-start)/0.31*15.0),0,15)
-	return _hand_pixel(POSES.HANDS["attack"][index])
+	return _hand_pixel(POSES.HANDS["attack"][_attack_index(time)])
 
 func _rest_hand() -> Vector2:
 	var clip:StringName = &"walk" if _walking else &"idle"
@@ -221,48 +222,36 @@ func _rest_hand() -> Vector2:
 	return _hand_pixel(POSES.HANDS[str(clip)][index])
 
 func hand_position(time:float) -> Vector2:
-	if time < 0.0: return _rest_hand()
-	if time >= COMBO_DURATION:
-		# Recover: the grip glides from the follow-through pose back to the idle hand.
-		var p:float = _eo((time-COMBO_DURATION)/(RECOVER_END-COMBO_DURATION))
-		return _attack_hand(0.735).lerp(_rest_hand(),p)
-	var hand:Vector2 = _attack_hand(time)
-	for window:Vector2 in WINDOWS:
-		if time >= window.x and time <= window.y:
-			hand += combo_heading*(sin(PI*(time-window.x)/(window.y-window.x))*2.0)
-	return hand
+	# The same sampled original-model frame supplies the visible hand and damage grip.
+	# No independent grip shove or rewind detached from the rendered arm.
+	return _rest_hand() if time < 0.0 else _attack_hand(time)
 
 func _ss(t:float) -> float:
 	t = clampf(t,0.0,1.0)
 	return t*t*(3.0-2.0*t)
-
-func _eo(t:float) -> float:
-	t = clampf(t,0.0,1.0)
-	return 1.0-(1.0-t)*(1.0-t)*(1.0-t)
 
 func rest_angle() -> float: return 0.85 if _face_right else PI-0.85
 
 func blade_angle(time:float) -> float:
 	if time < 0.0: return rest_angle()
 	var base:float = combo_heading.angle()
+	# Mirror the arc on the left: first cut must travel down, not reverse into an upcut.
+	var side:float = 1.0 if _face_right else -1.0
 	if time >= COMBO_DURATION:
-		# Recover: ease the blade from the follow-through back to the held rest angle.
-		var p:float = _eo((time-COMBO_DURATION)/(RECOVER_END-COMBO_DURATION))
-		return lerp_angle(base+deg_to_rad(112.0),rest_angle(),p)
+		return lerp_angle(base+side*deg_to_rad(-125.0),rest_angle(),_ss((time-COMBO_DURATION)/(RECOVER_END-COMBO_DURATION)))
 	var degrees:float
 	if time < WINDOWS[0].x:
-		# Wind-up starts exactly at the held rest angle: no snap when the combo begins.
-		var start_rel:float = rad_to_deg(wrapf(rest_angle()-base,-PI,PI))
-		degrees = lerpf(start_rel,-78.0,_eo(time/WINDOWS[0].x))
+		var start_rel:float = rad_to_deg(wrapf(rest_angle()-base,-PI,PI))/side
+		degrees = lerpf(start_rel,-110.0,_ss(time/WINDOWS[0].x))
 	elif time <= WINDOWS[0].y:
-		degrees = lerpf(-78.0,86.0,_ss((time-WINDOWS[0].x)/(WINDOWS[0].y-WINDOWS[0].x)))
+		degrees = lerpf(-110.0,80.0,_ss((time-WINDOWS[0].x)/(WINDOWS[0].y-WINDOWS[0].x)))
 	elif time < WINDOWS[1].x:
-		degrees = lerpf(86.0,-78.0,_ss((time-WINDOWS[0].y)/(WINDOWS[1].x-WINDOWS[0].y)))
+		degrees = lerpf(80.0,90.0,_ss((time-WINDOWS[0].y)/(WINDOWS[1].x-WINDOWS[0].y)))
 	elif time <= WINDOWS[1].y:
-		degrees = lerpf(-78.0,86.0,_ss((time-WINDOWS[1].x)/(WINDOWS[1].y-WINDOWS[1].x)))
+		degrees = lerpf(90.0,-110.0,_ss((time-WINDOWS[1].x)/(WINDOWS[1].y-WINDOWS[1].x)))
 	else:
-		degrees = lerpf(86.0,112.0,_eo((time-WINDOWS[1].y)/(COMBO_DURATION-WINDOWS[1].y)))
-	return base+deg_to_rad(degrees)
+		degrees = lerpf(-110.0,-125.0,_ss((time-WINDOWS[1].y)/(COMBO_DURATION-WINDOWS[1].y)))
+	return base+side*deg_to_rad(degrees)
 
 func blade_segment(time:float) -> Dictionary:
 	var grip:Vector2 = hand_position(time)
@@ -276,7 +265,7 @@ func visual_mob() -> void:
 	var pose:Dictionary = body_pose(combo_time)
 	if _prev_clip == &"attack" and pose.clip != &"attack" and is_instance_valid(_fade_sprite):
 		# Cross-fade the last attack frame out so the body never pops back to idle.
-		_fade_sprite.texture = FRAMES.get_frame_texture(&"attack",15)
+		_fade_sprite.texture = FRAMES.get_frame_texture(&"attack",FRAMES.get_frame_count(&"attack")-1)
 		_fade_sprite.modulate.a = 1.0
 		_fade_sprite.visible = true
 		_fade_t = 0.0

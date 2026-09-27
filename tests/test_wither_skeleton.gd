@@ -69,7 +69,7 @@ func run() -> void:
 	check(actor.Max_health == 420 and actor.Damage == 24 and actor.Speed == 88.0,"baseline attributes")
 	check(actor.player_control_action_ids() == [&"controlled_attack_action"],"exactly one left mouse action")
 	check(not actor.Has_Collision_Damage and not actor.Can_Skill,"no hidden collision or extra skill")
-	check(actor.FRAMES.get_frame_count(&"attack") == 16,"native attack animation")
+	check(actor.FRAMES.get_frame_count(&"attack") == 50,"full raised-arm downcut/upcut original-model clip")
 	check(is_equal_approx(actor.image.scale.x,actor.BODY_SCALE) and is_equal_approx(actor.image.position.y,actor.BODY_OFFSET_Y),"body keeps the shared humanoid footprint")
 	var body_shape:RectangleShape2D = actor.get_node("CollisionShape2D").shape
 	check(is_equal_approx(body_shape.size.x,40.0) and is_equal_approx(body_shape.size.y,126.0),"collider matches the slimmer visual")
@@ -196,7 +196,7 @@ func run() -> void:
 			await RenderingServer.frame_post_draw
 			var im:Image = root.get_texture().get_image()
 			images.append(im)
-			im.save_png("res://tests/wither_skeleton_gpu_%s.png" % str(t).replace(".","_"))
+			im.save_png("res://tests/wither_skeleton_swing_gpu_%s.png" % str(t).replace(".","_"))
 		check(images[0].get_data() != images[1].get_data() and images[1].get_data() != images[2].get_data() and images[2].get_data() != images[3].get_data(),"GPU idle, both slashes and recover differ")
 	actor.combo_time = -1.0
 	actor.voice.request("death",actor.global_position)
@@ -206,10 +206,63 @@ func run() -> void:
 	victim.global_position = actor.global_position+Vector2(-500,-500)
 	var ai_foe:Node2D = make_target("AIFoe",actor.global_position+Vector2(40,0))
 	await physics_frame
+	actor.direction = Vector2.UP
 	actor.step_mob(0.02)
+	check(actor.direction.is_equal_approx(Vector2.UP),"acquisition does not steer movement toward enemy")
 	check(actor.combo_time >= 0.0 and actor.combo_heading.is_equal_approx(Vector2.RIGHT),"AI starts the two-slash combo when an enemy is in range")
 	actor.cancel_combo()
 	actor.cooldown_left = 0.0
+	# Measure real public movement, not a multiplier-only assertion.
+	var origin:Vector2 = actor.global_position
+	actor.global_position = Vector2(600,500)
+	actor.direction = Vector2.LEFT
+	actor.Repel = Vector2.ZERO
+	actor.move(actor.Speed,1.0/60.0)
+	var normal_velocity:Vector2 = actor.velocity
+	actor.begin_combo(Vector2.RIGHT)
+	actor.move(actor.Speed,1.0/60.0)
+	check(actor.velocity.is_equal_approx(normal_velocity*actor.ATTACK_MOVE_MULTIPLIER),"attack slows ordinary movement to 30 percent without turning")
+	check(actor.direction.is_equal_approx(Vector2.LEFT),"aiming right preserves leftward movement")
+	actor.direction = Vector2.UP # Public collision response remains free to redirect.
+	actor.step_mob(0.01)
+	check(actor.direction.is_equal_approx(Vector2.UP),"combo does not restore a cached pre-bounce direction")
+	actor.advance_combo(1.0)
+	check(actor.combo_time < 0.0,"natural recovery completes before restoring speed")
+	actor.move(actor.Speed,1.0/60.0)
+	check(is_equal_approx(actor.velocity.length(),normal_velocity.length()),"completed recovery restores ordinary movement speed")
+	actor.cooldown_left = 0.0
+	actor.set_player_control_peer(1)
+	actor.player_control_direction = Vector2.DOWN
+	actor.begin_combo(Vector2.RIGHT)
+	actor.move(actor.Speed,1.0/60.0)
+	check(actor.velocity.y > 0.0 and absf(actor.velocity.x) < 0.001 and is_equal_approx(actor.velocity.length(),normal_velocity.length()*0.3),"manual attack slows WASD without replacing it with aim")
+	actor.Repel = Vector2(12,0)
+	actor.move(actor.Speed,1.0/60.0)
+	check(is_equal_approx(actor.velocity.x,12.0),"attack slowdown does not scale external knockback")
+	actor.Repel = Vector2.ZERO
+	actor.set_player_control_peer(0)
+	actor.cancel_combo()
+	actor.global_position = origin
+	actor.cooldown_left = 1.0
+	actor.direction = Vector2.LEFT
+	actor.step_mob(0.02)
+	check(actor.direction.is_equal_approx(Vector2.LEFT),"cooldown and enemy nearby never steer locomotion")
+	# Both facings: hand and sword go high -> low -> high, not two downward cuts.
+	for facing:Vector2 in [Vector2.RIGHT,Vector2.LEFT]:
+		fresh()
+		actor.begin_combo(facing)
+		actor.visual_mob()
+		var high:Dictionary = actor.blade_segment(0.15)
+		var low:Dictionary = actor.blade_segment(0.31)
+		var up:Dictionary = actor.blade_segment(0.57)
+		check(low.start.y-high.start.y > 10.0,"large real arm travel during downward cut")
+		check(low.end.y-high.end.y > 25.0 and low.end.y-up.end.y > 25.0,"mirrored sword tip makes a broad downcut then upcut")
+		check(actor.body_pose(0.86).clip == &"attack","body and hand share recovery clip")
+		for t:float in [0.0,0.15,0.31,0.41,0.57,0.74,0.98]:
+			actor.combo_time = t
+			actor.visual_mob()
+			check(actor._sword.global_position.is_equal_approx(actor.hand_position(t)),"visible grip equals damage grip")
+		fresh()
 	var wall:=StaticBody2D.new()
 	var wall_shape:=RectangleShape2D.new()
 	wall_shape.size = Vector2(8,240)
@@ -223,6 +276,23 @@ func run() -> void:
 	actor.begin_combo(Vector2.RIGHT)
 	actor.advance_combo(0.75)
 	check(ai_foe.health == 10000,"a wall between attacker and target blocks both slashes")
+	# Exercise an actual StaticBody2D contact during a slowed attack.
+	fresh()
+	actor.global_position = wall.global_position-Vector2(12,0)
+	actor.direction = Vector2.RIGHT
+	actor.begin_combo(Vector2.RIGHT)
+	var bounced:bool = false
+	for i:int in range(50):
+		await physics_frame
+		actor.move(actor.Speed,1.0/60.0)
+		actor.step_mob(1.0/60.0)
+		if actor.direction.x < -0.5:
+			bounced = true
+			break
+	check(bounced,"real wall contact keeps ordinary reflection during slowed attack")
+	var reflected:Vector2 = actor.direction
+	actor.step_mob(0.02)
+	check(actor.direction.is_equal_approx(reflected),"enemy aim cannot undo real wall reflection")
 	wall.queue_free()
 	await process_frame
 	actor.queue_free()

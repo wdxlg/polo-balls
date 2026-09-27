@@ -43,6 +43,21 @@ def main():
  bank='extends RefCounted\n# Original Java 1.21.4 OGGs, hashes in SOURCE.json.\nconst EVENTS:Dictionary = {\n'
  for name,paths in events.items():bank+='\t"'+name+'":['+','.join('preload("res://'+p+'")' for p in paths)+'],\n'
  bank+='}\n';(ROOT/'scripts/characters/我的世界/wither_skeleton/sounds.gd').write_text(bank,encoding='utf-8')
+ bake()
+ (OUT/'SOURCE.json').write_text(json.dumps({'owner':'Mojang / Microsoft','license':'Original Minecraft assets: Minecraft EULA/Usage Guidelines; not freely redistributable. No AI-generated or repainted source assets.','bedrock_commit':COMMIT,'java_audio_version':'1.21.4','asset_index':index_url,'renderer':RENDERER,'files':records,'clips':{'idle':16,'walk':16,'attack':50}},ensure_ascii=False,indent=2),encoding='utf-8')
+ print('WITHER_SKELETON_ASSETS',len(records),'original files; audio', {k:len(v) for k,v in events.items()})
+
+RENDERER="Existing bake_native_mobs.Baker + BatchBaker matrices; unchanged original model/skin, original idle/walk; project-directed raised-arm downcut/upcut/recovery transforms (not a vanilla animation claim)."
+def attack_arm_degrees(t):
+ keys=[(0.0,-18.0),(.15,-160.0),(.31,-10.0),(.41,0.0),(.57,-160.0),(.74,-170.0),(.98,-18.0)]
+ for (a,x),(b,y) in zip(keys,keys[1:]):
+  if t<=b:
+   u=max(0,min(1,(t-a)/(b-a)));u=u*u*(3-2*u)
+   return x+(y-x)*u
+ return -18.0
+
+def bake():
+ # Offline rebake only reads the pinned source files; no download or new source art.
  b=BatchBaker()
  b.models['skeleton']=copy.deepcopy(load_json(SRC/'wither_skeleton.geo.json')['geometry.skeleton.wither.v1.8']['bones'])
  b.skins['skeleton']=np.array(Image.open(SRC/'wither_skeleton.png').convert('RGBA'))
@@ -52,7 +67,7 @@ def main():
   result={x['name'].lower():{'position':np.zeros(3),'rotation':np.zeros(3),'scale':np.ones(3)} for x in b.models[role]}
   env={'this':0,'query.life_time':t,'variable.tcos0':math.cos(t*math.tau)*32 if state=='walk' else 0,'variable.is_holding_left':0,'variable.is_holding_right':1,'variable.attack_time':min(t/.30,1),'variable.is_brandishing_spear':0,'variable.is_holding_spyglass':0}
   names=['humanoid.move','humanoid.holding','humanoid.bob']
-  if state=='attack':names+=['humanoid.attack.rotations','wither_skeleton.attack']
+  # Keep the native model/skin, articulate its real shoulder through one full combo.
   for name in names:
    for bone,channels in b.animations['animation.'+name]['bones'].items():
     if bone.lower() not in result:continue
@@ -64,12 +79,14 @@ def main():
       env['this']=p[channel][i];v=molang(value,env)
       if channel=='scale':p[channel][i]=v
       else:p[channel][i]+=v
+  if state=='attack':
+   result['rightarm']['rotation']=np.array([attack_arm_degrees(t),0.0,5.73])
   return result
  b.pose=pose
  yaw,pitch=np.radians([30,12]);b.right=np.array([math.cos(yaw),0,math.sin(yaw)]);b.camera=np.array([math.sin(yaw)*math.cos(pitch),math.sin(pitch),-math.cos(yaw)*math.cos(pitch)]);b.up=np.cross(b.right,b.camera);b.view=np.array([b.right,-b.up,b.camera])
  b.scale['skeleton']=4.5;b.foot['skeleton']=201
  files=[];clips=[];hands={}
- for state,count,duration,loop in [('idle',16,360/103.2,True),('walk',16,1.0,True),('attack',16,.30,False)]:
+ for state,count,duration,loop in [('idle',16,360/103.2,True),('walk',16,1.0,True),('attack',50,.98,False)]:
   ids=[];hands[state]=[]
   for i in range(count):
    t=duration*i/(count if loop else count-1)
@@ -81,6 +98,10 @@ def main():
  text='[gd_resource type="SpriteFrames" format=3]\n'+''.join('\n[ext_resource type="Texture2D" path="res://Images/characters/我的世界/wither_skeleton/'+p+'" id="'+str(i+1)+'"]' for i,p in enumerate(files))+'\n\n[resource]\nanimations = ['+',\n'.join(clips)+']\n'
  (OUT/'frames.tres').write_text(text,encoding='utf-8')
  (OUT/'poses.gd').write_text('extends RefCounted\n# Projected original right-hand anchors, in 160x224 frame pixels.\nconst HANDS:Dictionary = '+json.dumps(hands)+'\n',encoding='utf-8')
- (OUT/'SOURCE.json').write_text(json.dumps({'owner':'Mojang / Microsoft','license':'Original Minecraft assets: Minecraft EULA/Usage Guidelines; not freely redistributable. No AI-generated or repainted source assets.','bedrock_commit':COMMIT,'java_audio_version':'1.21.4','asset_index':index_url,'renderer':'Existing bake_native_mobs.Baker + BatchBaker matrices; original wither-skeleton model and Molang clips, fixed orthographic projection. Runtime stone sword is a separate held item with gameplay-directed swing.','files':records,'clips':{'idle':16,'walk':16,'attack':16}},ensure_ascii=False,indent=2),encoding='utf-8')
- print('WITHER_SKELETON_ASSETS',len(records),'original files;',len(files),'frames; audio', {k:len(v) for k,v in events.items()})
-if __name__=='__main__':main()
+ print('WITHER_SKELETON_BAKE',len(files),'frames; full arm combo',len(hands['attack']))
+if __name__=='__main__':
+ if '--rebake' in sys.argv:
+  bake()
+  metadata=json.loads((OUT/'SOURCE.json').read_text(encoding='utf-8'));metadata['renderer']=RENDERER;metadata['clips']['attack']=50
+  (OUT/'SOURCE.json').write_text(json.dumps(metadata,ensure_ascii=False,indent=2),encoding='utf-8')
+ else:main()
