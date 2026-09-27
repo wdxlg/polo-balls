@@ -44,7 +44,7 @@ func run() -> void:
 		await process_frame
 		await RenderingServer.frame_post_draw
 		var image:Image = root.get_texture().get_image()
-		image.save_png("res://tests/wither_skeleton_smooth_preview_%d.png" % i)
+		image.save_png("res://tests/wither_skeleton_range_preview_%d.png" % i)
 		images.append(image)
 	var differences:Array[int] = []
 	for i:int in range(1,images.size()):
@@ -58,13 +58,13 @@ func run() -> void:
 	print("WITHER_SKELETON_GPU_ACTOR_DIFFERENCES ",differences)
 	for i:int in range(8):
 		actor.combo_heading = Vector2.RIGHT.rotated(float(i)*TAU/8.0)
-		actor._face_right = actor.combo_heading.x >= 0.0
+		actor._face_right = actor._geometry_face_right(actor.combo_heading)
 		actor.combo_time = 0.23
 		actor.visual_mob()
 		actor._fade_sprite.hide()
 		await process_frame
 		await RenderingServer.frame_post_draw
-		root.get_texture().get_image().save_png("res://tests/wither_skeleton_smooth_direction_%d.png" % i)
+		root.get_texture().get_image().save_png("res://tests/wither_skeleton_range_direction_%d.png" % i)
 	# Actual GPU time samples of the complete wind-up/cuts/recovery sequence.
 	actor.combo_heading = Vector2.RIGHT
 	actor._face_right = true
@@ -74,7 +74,7 @@ func run() -> void:
 		actor._fade_sprite.hide()
 		await process_frame
 		await RenderingServer.frame_post_draw
-		root.get_texture().get_image().save_png("res://.backups/wither_skeleton_smooth_20260927/motion_%02d.png" % i)
+		root.get_texture().get_image().save_png("res://.backups/wither_skeleton_range_20260927/motion_%02d.png" % i)
 	# Now use the real 60Hz state machine + up-to-144Hz render loop, not manually set poses.
 	Engine.max_fps = 144
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
@@ -104,7 +104,7 @@ func run() -> void:
 		if physical < 0.0:
 			completed = true
 			break
-	var trace_file:FileAccess = FileAccess.open("res://.backups/wither_skeleton_smooth_20260927/live_render_trace.json",FileAccess.WRITE)
+	var trace_file:FileAccess = FileAccess.open("res://.backups/wither_skeleton_range_20260927/live_render_trace.json",FileAccess.WRITE)
 	trace_file.store_string(JSON.stringify(trace))
 	trace_file.close()
 	print("WITHER_SKELETON_LIVE_RENDER samples=%d subframe_updates=%d completed=%s" % [trace.size(),subframe_updates,str(completed)])

@@ -19,11 +19,11 @@ const COMBO_DURATION:float = 0.74
 const BAKED_CLIP_END:float = 0.98 # Original projection timestamps; do not retime either damaging slash.
 const RECOVER_END:float = 1.18 # 0.44s visual recovery, still inside the existing 1.2s attack interval.
 const ATTACK_MOVE_MULTIPLIER:float = 0.3
-const ATTACK_HAND_REACH:float = 3.0 # Extra world-space reach, shared by the arm, grip and actual sword sweep.
+const ATTACK_HAND_REACH:float = 5.0 # Extra world-space reach, shared by the arm, grip and actual sword sweep.
 const BODY_SCALE:float = 0.85 # 148 visible pixels -> ~126 world units, shared humanoid footprint.
 const BODY_OFFSET_Y:float = -13.5 # Feet pixel 202 lands on the collider bottom (+63).
-@export var blade_length:float = 14.0
-@export var blade_radius:float = 2.0
+@export var blade_length:float = 20.0
+@export var blade_radius:float = 2.5
 @export var acquisition_range:float = 58.0
 var combo_time:float = -1.0
 var combo_heading:Vector2 = Vector2.RIGHT
@@ -95,10 +95,7 @@ func controlled_attack_action() -> void:
 	if is_player_controlled(): begin_combo(player_control_aim_direction(direction))
 func Attack() -> void:
 	if is_player_controlled(): controlled_attack_action()
-	else:
-		var target:ball = U.nearest(self)
-		if is_instance_valid(target) and global_position.distance_to(target.global_position) <= acquisition_range:
-			begin_combo(global_position.direction_to(target.global_position))
+	else: _try_start_ai_combo()
 
 func begin_combo(heading:Vector2) -> bool:
 	if not can_act() or not is_combat_runtime_active() or combo_time >= 0.0 or cooldown_left > 0.0 or heading.is_zero_approx(): return false
@@ -108,7 +105,7 @@ func begin_combo(heading:Vector2) -> bool:
 	_hit_sets = [{},{}]
 	_sounded = [false,false]
 	Attacking = true
-	_face_right = combo_heading.x >= 0.0
+	_face_right = _geometry_face_right(combo_heading)
 	_revision += 1
 	_publish_pose()
 	return true
@@ -124,11 +121,41 @@ func step_mob(delta:float) -> void:
 		advance_combo(delta)
 		return
 	if is_player_controlled(): return
+	_try_start_ai_combo()
+
+func _try_start_ai_combo() -> void:
+	if is_player_controlled() or not can_act() or combo_time >= 0.0 or cooldown_left > 0.0: return
 	var target:ball = U.nearest(self)
-	if not is_instance_valid(target): return
-	# Acquisition selects the sword aim only. Never replace ordinary movement direction.
-	if global_position.distance_to(target.global_position) <= acquisition_range and U.line_clear(self,global_position,target.global_position):
-		begin_combo(global_position.direction_to(target.global_position))
+	if can_reach_target(target): begin_combo(global_position.direction_to(target.global_position))
+
+func can_reach_target(target:ball) -> bool:
+	# Discovery radius is NOT a damage radius. Preview only the actual two sword
+	# windows against current hurt shapes and walls, via the shared contact service.
+	# Optional aim is pure geometry: no turn, cooldown, audio, RNG, damage or RPC.
+	if not is_instance_valid(target) or target.health <= 0 or not U.enemy(self,target): return false
+	if global_position.distance_squared_to(target.global_position) > acquisition_range*acquisition_range: return false
+	var aim:Vector2 = global_position.direction_to(target.global_position)
+	if aim.is_zero_approx() or not U.line_clear(self,global_position,target.global_position): return false
+	var area:Area2D = target.self_hurtbox
+	if area == null: return false
+	var bounds:Rect2
+	var has_shape:bool = false
+	for child:Node in area.get_children():
+		if child is CollisionShape2D and not child.disabled and child.shape != null:
+			var world_bounds:Rect2 = child.global_transform*child.shape.get_rect()
+			bounds = bounds.merge(world_bounds) if has_shape else world_bounds
+			has_shape = true
+	if not has_shape: return false
+	for window:Vector2 in WINDOWS:
+		for sample:int in range(25):
+			var geometry:Dictionary = blade_segment(lerpf(window.x,window.y,float(sample)/24.0),aim)
+			# Conservative broad phase only; shared exact shapes/walls still decide.
+			# Out-of-reach enemies do not trigger 50 full candidate/physics queries.
+			var blade_bounds:Rect2 = Rect2(geometry.start,Vector2.ZERO).expand(geometry.end).grow(blade_radius)
+			if not blade_bounds.intersects(bounds,true): continue
+			for contact:Dictionary in SWEEP.contacts(self,geometry.start,geometry.end,blade_radius,{},global_position):
+				if contact.target == target: return true
+	return false
 
 func advance_combo(delta:float) -> void:
 	_damage_regions.clear()
@@ -243,9 +270,17 @@ func body_pose(time:float) -> Dictionary:
 	var clip:StringName = &"walk" if _walking else &"idle"
 	return {"clip":clip,"index":int(_view_clock*FRAMES.get_animation_speed(clip))%FRAMES.get_frame_count(clip)}
 
-func _hand_pixel(xy:Array) -> Vector2:
+func _geometry_aim(aim:Vector2) -> Vector2:
+	return combo_heading if aim.is_zero_approx() else aim.normalized()
+
+func _geometry_face_right(aim:Vector2) -> bool:
+	# Canonical vertical facing: tiny trig/position-rounding X must not mirror
+	# a preview differently from the real direction_to() attack.
+	return _face_right if aim.is_zero_approx() else aim.x >= -0.00001
+
+func _hand_pixel(xy:Array,aim:Vector2 = Vector2.ZERO) -> Vector2:
 	var pixel:Vector2 = Vector2(float(xy[0])-80.0,float(xy[1])-112.0)+image.offset
-	if _face_right: pixel.x = -pixel.x # Original orthographic model faces left.
+	if _geometry_face_right(aim): pixel.x = -pixel.x # Original orthographic model faces left.
 	return image.global_transform * pixel
 
 func _attack_frame_position(time:float) -> float:
@@ -262,19 +297,19 @@ func _arm_source_index(time:float) -> int:
 	# discrete texture/hand-anchor swaps that used to make the wrist chatter.
 	return _attack_index(COMBO_DURATION) if time >= COMBO_DURATION else _attack_index(time)
 
-func _posed_hand(time:float) -> Vector2:
-	if time < COMBO_DURATION: return _hand_pixel(POSES.HANDS["attack"][_attack_index(time)])
+func _posed_hand(time:float,aim:Vector2 = Vector2.ZERO) -> Vector2:
+	if time < COMBO_DURATION: return _hand_pixel(POSES.HANDS["attack"][_attack_index(time)],aim)
 	var frame:float = _attack_frame_position(time)
 	var first:int = floori(frame)
 	var second:int = mini(first+1,FRAMES.get_frame_count(&"attack")-1)
-	return _hand_pixel(POSES.HANDS["attack"][first]).lerp(_hand_pixel(POSES.HANDS["attack"][second]),frame-float(first))
+	return _hand_pixel(POSES.HANDS["attack"][first],aim).lerp(_hand_pixel(POSES.HANDS["attack"][second],aim),frame-float(first))
 
-func shoulder_position(time:float) -> Vector2:
-	return _hand_pixel(POSES.SHOULDERS[_attack_index(time)])
+func shoulder_position(time:float,aim:Vector2 = Vector2.ZERO) -> Vector2:
+	return _hand_pixel(POSES.SHOULDERS[_attack_index(time)],aim)
 
-func arm_aim_rotation(time:float) -> float:
+func arm_aim_rotation(time:float,aim:Vector2 = Vector2.ZERO) -> float:
 	if time < 0.0: return 0.0
-	var turn:float = wrapf(combo_heading.angle()-(0.0 if _face_right else PI),-PI,PI)
+	var turn:float = wrapf(_geometry_aim(aim).angle()-(0.0 if _geometry_face_right(aim) else PI),-PI,PI)
 	# Enter and leave from the held pose, with no disconnected wrist/shoulder jump.
 	if time < WINDOWS[0].x: return turn*_ss(time/WINDOWS[0].x)
 	if time >= COMBO_DURATION: return turn*(1.0-_recovery_progress((time-COMBO_DURATION)/(RECOVER_END-COMBO_DURATION)))
@@ -286,13 +321,13 @@ func attack_hand_extension(time:float) -> float:
 	if time >= COMBO_DURATION: return ATTACK_HAND_REACH*(1.0-_recovery_progress((time-COMBO_DURATION)/(RECOVER_END-COMBO_DURATION)))
 	return ATTACK_HAND_REACH
 
-func _attack_hand(time:float) -> Vector2:
-	var shoulder:Vector2 = shoulder_position(time)
-	var posed:Vector2 = (_posed_hand(time)-shoulder).rotated(arm_aim_rotation(time))
-	var hand:Vector2 = shoulder+posed+combo_heading*attack_hand_extension(time)
+func _attack_hand(time:float,aim:Vector2 = Vector2.ZERO) -> Vector2:
+	var shoulder:Vector2 = shoulder_position(time,aim)
+	var posed:Vector2 = (_posed_hand(time,aim)-shoulder).rotated(arm_aim_rotation(time,aim))
+	var hand:Vector2 = shoulder+posed+_geometry_aim(aim)*attack_hand_extension(time)
 	if time >= COMBO_DURATION:
 		var progress:float = (time-COMBO_DURATION)/(RECOVER_END-COMBO_DURATION)
-		hand = hand.lerp(_rest_hand(),_ss((progress-0.85)/0.15))
+		hand = hand.lerp(_rest_hand(aim),_ss((progress-0.85)/0.15))
 	return hand
 
 func attack_arm_transform(time:float) -> Transform2D:
@@ -312,15 +347,15 @@ func attack_arm_transform(time:float) -> Transform2D:
 	transform.y = deformation.basis_xform(transform.y)
 	return transform
 
-func _rest_hand() -> Vector2:
+func _rest_hand(aim:Vector2 = Vector2.ZERO) -> Vector2:
 	var clip:StringName = &"walk" if _walking else &"idle"
 	var index:int = int(_view_clock*FRAMES.get_animation_speed(clip))%FRAMES.get_frame_count(clip)
-	return _hand_pixel(POSES.HANDS[str(clip)][index])
+	return _hand_pixel(POSES.HANDS[str(clip)][index],aim)
 
-func hand_position(time:float) -> Vector2:
+func hand_position(time:float,aim:Vector2 = Vector2.ZERO) -> Vector2:
 	# The same shoulder-anchored arm extension supplies the visible and damage grip.
-	# Sword length/width and damage remain unchanged; only actual reach grows.
-	return _rest_hand() if time < 0.0 else _attack_hand(time)
+	# Query previews and real contacts use the same extended hand and longer blade.
+	return _rest_hand(aim) if time < 0.0 else _attack_hand(time,aim)
 
 func _ss(t:float) -> float:
 	t = clampf(t,0.0,1.0)
@@ -330,22 +365,22 @@ func _recovery_progress(t:float) -> float:
 	t = clampf(t,0.0,1.0)
 	return sin(t*PI*0.5) # Positive, decreasing speed; zero velocity at the resting end.
 
-func rest_angle() -> float: return 0.85 if _face_right else PI-0.85
+func rest_angle(aim:Vector2 = Vector2.ZERO) -> float: return 0.85 if _geometry_face_right(aim) else PI-0.85
 
-func blade_angle(time:float) -> float:
-	if time < 0.0: return rest_angle()
-	var base:float = combo_heading.angle()
+func blade_angle(time:float,aim:Vector2 = Vector2.ZERO) -> float:
+	if time < 0.0: return rest_angle(aim)
+	var base:float = _geometry_aim(aim).angle()
 	# Mirror the arc on the left: first cut must travel down, not reverse into an upcut.
-	var side:float = 1.0 if _face_right else -1.0
+	var side:float = 1.0 if _geometry_face_right(aim) else -1.0
 	if time >= COMBO_DURATION:
 		var start:float = base+side*deg_to_rad(-125.0)
 		# Unwrapped angle: continue the upward cut for one FULL turn, then align
 		# to the resting grip in the SAME direction. lerp_angle would erase the turn.
-		var travel:float = TAU+fposmod((start-rest_angle())*side,TAU)
+		var travel:float = TAU+fposmod((start-rest_angle(aim))*side,TAU)
 		return start-side*travel*_recovery_progress((time-COMBO_DURATION)/(RECOVER_END-COMBO_DURATION))
 	var degrees:float
 	if time < WINDOWS[0].x:
-		var start_rel:float = rad_to_deg(wrapf(rest_angle()-base,-PI,PI))/side
+		var start_rel:float = rad_to_deg(wrapf(rest_angle(aim)-base,-PI,PI))/side
 		degrees = lerpf(start_rel,-110.0,_ss(time/WINDOWS[0].x))
 	elif time <= WINDOWS[0].y:
 		degrees = lerpf(-110.0,80.0,_ss((time-WINDOWS[0].x)/(WINDOWS[0].y-WINDOWS[0].x)))
@@ -357,9 +392,9 @@ func blade_angle(time:float) -> float:
 		degrees = lerpf(-110.0,-125.0,_ss((time-WINDOWS[1].y)/(COMBO_DURATION-WINDOWS[1].y)))
 	return base+side*deg_to_rad(degrees)
 
-func blade_segment(time:float) -> Dictionary:
-	var grip:Vector2 = hand_position(time)
-	var heading:Vector2 = Vector2.RIGHT.rotated(blade_angle(time))
+func blade_segment(time:float,aim:Vector2 = Vector2.ZERO) -> Dictionary:
+	var grip:Vector2 = hand_position(time,aim)
+	var heading:Vector2 = Vector2.RIGHT.rotated(blade_angle(time,aim))
 	return {"shape":"segment","start":grip+heading*4.0,"end":grip+heading*blade_length,"radius":blade_radius,"damage":attack_damage(1.0),"source":self,"kind":"wither_skeleton_sword"}
 
 func visual_mob() -> void:

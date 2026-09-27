@@ -67,6 +67,7 @@ func run() -> void:
 	actor.voice.set_physics_process(false)
 	await process_frame
 	check(actor.Max_health == 420 and actor.Damage == 24 and actor.Speed == 88.0,"baseline attributes")
+	check(is_equal_approx(actor.blade_length,20.0) and is_equal_approx(actor.blade_radius,2.5) and is_equal_approx(actor.ATTACK_HAND_REACH,5.0),"approved range buff 20 length / 2.5 radius / 5 reach")
 	check(actor.player_control_action_ids() == [&"controlled_attack_action"],"exactly one left mouse action")
 	check(not actor.Has_Collision_Damage and not actor.Can_Skill,"no hidden collision or extra skill")
 	check(actor.FRAMES.get_frame_count(&"attack") == 50,"full raised-arm downcut/upcut original-model clip")
@@ -204,7 +205,7 @@ func run() -> void:
 	check(actor.voice.played.get("death",0) == 1,"one native death cue only")
 	fresh()
 	victim.global_position = actor.global_position+Vector2(-500,-500)
-	var ai_foe:Node2D = make_target("AIFoe",actor.global_position+Vector2(40,0))
+	var ai_foe:Node2D = make_target("AIFoe",actor.global_position+Vector2(24,0))
 	await physics_frame
 	actor.direction = Vector2.UP
 	actor.step_mob(0.02)
@@ -309,7 +310,7 @@ func run() -> void:
 		actor.step_mob(0.01)
 		check(actor.combo_time >= 0.0 and actor.combo_heading.is_equal_approx(aim),"AI acquires enemy in each of eight directions")
 		check(actor.direction.is_equal_approx(Vector2(0.6,0.8)),"360 aiming never steers locomotion")
-		check(is_equal_approx(actor.attack_hand_extension(0.23),3.0) and is_zero_approx(actor.attack_hand_extension(0.0)) and is_zero_approx(actor.attack_hand_extension(actor.RECOVER_END)),"reach eases out from idle and resets after recovery")
+		check(is_equal_approx(actor.attack_hand_extension(0.23),5.0) and is_zero_approx(actor.attack_hand_extension(0.0)) and is_zero_approx(actor.attack_hand_extension(actor.RECOVER_END)),"reach eases out from idle and resets after recovery")
 		actor.combo_time = 0.23
 		actor.visual_mob()
 		var pivot:Vector2 = actor.shoulder_position(0.23)
@@ -319,6 +320,8 @@ func run() -> void:
 		var hand_pixel:Array = actor.POSES.HANDS["attack"][actor._body_frame]
 		var local_hand:Vector2 = Vector2(float(hand_pixel[0])-80.0,float(hand_pixel[1])-112.0)+actor._arm.offset
 		check((actor._arm.global_transform*local_hand).distance_to(actor._sword.global_position)<0.01,"rendered aimed arm ends at sword grip")
+		check((actor._sword.global_transform*Vector2(10.5,-10.5)).distance_to(actor.blade_segment(0.23).end)<0.01,"visible extended sword tip equals real damage geometry")
+		check(is_equal_approx(actor.blade_segment(0.23).radius,2.5),"widened threat and actual sweep share 2.5 radius")
 		check(is_zero_approx(actor.image.rotation),"aim rotates arm not torso/legs")
 		check(actor._arm.global_position.distance_to(pivot)<0.01,"extra reach leaves shoulder joined to body")
 		var raw_vector:Vector2 = raw_hand-pivot
@@ -404,17 +407,74 @@ func run() -> void:
 				if segment.end.dot(aim)>far_projection:
 					far_projection = segment.end.dot(aim)
 					farthest = segment.end
-				old_segments.append({"start":segment.start-aim*3.0,"end":segment.end-aim*3.0})
+				var sword_heading:Vector2 = (segment.end-segment.start).normalized()
+				old_segments.append({"start":segment.start-aim*2.0,"end":segment.end-aim*2.0-sword_heading*6.0})
 		victim.global_position = farthest+aim
 		await physics_frame
 		var old_hits:int = 0
 		for segment:Dictionary in old_segments:
-			for contact:Dictionary in actor.SWEEP.contacts(actor,segment.start,segment.end,actor.blade_radius,{},actor.global_position):
+			for contact:Dictionary in actor.SWEEP.contacts(actor,segment.start,segment.end,2.0,{},actor.global_position):
 				if contact.target == victim: old_hits += 1
 		check(old_hits == 0,"extension target lies outside both old sword sweep envelopes")
 		actor.advance_combo(0.74)
 		check(victim.health < 10000,"extended physical sword actually damages newly reachable target")
 	victim.get_node("hurtbox/CollisionShape2D").shape = original_hurt_shape
+	# AI gate uses current real hurt shapes, not the much larger discovery circle.
+	victim.global_position = Vector2(2000,-2000)
+	ai_foe.global_position = Vector2(-2000,2000)
+	var gate_foe:Node2D = make_target("RangeGate",actor.global_position+Vector2.RIGHT*50.0)
+	await physics_frame
+	for i:int in range(8):
+		var aim:Vector2 = Vector2.RIGHT.rotated(float(i)*TAU/8.0)
+		fresh()
+		gate_foe.global_position = actor.global_position+aim*50.0
+		await physics_frame
+		actor.direction = Vector2(0.6,0.8)
+		var old_heading:Vector2 = actor.combo_heading
+		var old_face:bool = actor._face_right
+		var old_revision:int = actor._revision
+		var old_swings:int = actor.swings_started
+		check(not actor.can_reach_target(gate_foe),"inside discovery circle but outside real two-slash reach is rejected")
+		check(actor.combo_time < 0.0 and actor.cooldown_left == 0.0 and actor.combo_heading == old_heading and actor._face_right == old_face and actor._revision == old_revision and actor.swings_started == old_swings,"range preview has no pose/cooldown/audio/state side effects")
+		actor.step_mob(0.01)
+		check(actor.combo_time < 0.0 and actor.direction.is_equal_approx(Vector2(0.6,0.8)),"AI does not empty-swing or chase an unreachable enemy")
+		actor.Attack()
+		check(actor.combo_time < 0.0,"alternate AI Attack entry respects same range gate")
+		gate_foe.global_position = actor.global_position+aim*24.0
+		await physics_frame
+		check(actor.can_reach_target(gate_foe),"reachable opponent accepted in each of eight directions")
+		var preview:Dictionary = actor.blade_segment(0.23,aim)
+		actor.step_mob(0.01)
+		check(actor.combo_time >= 0.0 and actor.combo_heading.is_equal_approx(aim),"AI starts when enemy enters actual swept reach")
+		var live:Dictionary = actor.blade_segment(0.23)
+		check(preview.start.distance_to(live.start)<0.001 and preview.end.distance_to(live.end)<0.001,"candidate preview equals actual locked attack geometry")
+		actor.advance_combo(0.74)
+		check(gate_foe.health < 10000,"AI-admitted static target receives actual sword damage")
+		reset_target(gate_foe)
+	fresh()
+	gate_foe.global_position = actor.global_position+Vector2.RIGHT*24.0
+	var gate_wall:=StaticBody2D.new()
+	var gate_wall_shape:=RectangleShape2D.new()
+	gate_wall_shape.size = Vector2(4,100)
+	var gate_wall_collision:=CollisionShape2D.new()
+	gate_wall_collision.shape = gate_wall_shape
+	gate_wall.add_child(gate_wall_collision)
+	gate_wall.global_position = actor.global_position+Vector2.RIGHT*12.0
+	arena.add_child(gate_wall)
+	await physics_frame
+	check(not actor.can_reach_target(gate_foe),"wall blocks reachable-target preview")
+	actor.step_mob(0.01)
+	check(actor.combo_time < 0.0,"AI does not start a sword combo through a wall")
+	gate_wall.queue_free()
+	await process_frame
+	fresh()
+	actor.set_player_control_peer(1)
+	actor.set_player_control_aim_position(actor.global_position+Vector2.RIGHT*200.0)
+	actor.player_control_action(0)
+	check(actor.combo_time >= 0.0,"manual click still permits intentional empty swings")
+	actor.set_player_control_peer(0)
+	gate_foe.queue_free()
+	await process_frame
 	# Actual render-subframe clock advances only harmless recovery; physics stays fixed.
 	fresh()
 	actor.begin_combo(Vector2.RIGHT)
