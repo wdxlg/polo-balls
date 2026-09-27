@@ -152,6 +152,9 @@ properties/39/replication_mode = 2
 properties/40/path = NodePath(".:Master_name")
 properties/40/spawn = true
 properties/40/replication_mode = 2
+properties/41/path = NodePath(".:character_copy_profile")
+properties/41/spawn = true
+properties/41/replication_mode = 2
 
 [node name="Ball" type="CharacterBody2D" unique_id=751516400 node_paths=PackedStringArray("image")]
 scale = Vector2(0.2, 0.2)

@@ -169,3 +169,127 @@ static func source_is_melee(source:ball) -> bool:
 	if root == null:
 		return false
 	return root.has_type_tag("近战") or root.Type == ball.Ball_Type.Ball and source.Type == ball.Ball_Type.Ball
+
+
+# Shared fresh-character copies. Parameters preserve Dice's historical third-
+# stats/current-health/cooldown behavior and allow other abilities to differ.
+const COPY_STAT_KEYS:Array[String] = ["Max_health","Damage","Speed","Attack_Cooling","Skill_Cooling","Health_Restore","Damage_reduction","max_block","max_energy"]
+static func capture_character_template(target:ball) -> Dictionary:
+	if not is_instance_valid(target) or target.is_queued_for_deletion(): return {}
+	var scene:String = str(target.scene_file_path)
+	var stats:Dictionary = {}
+	for key:String in COPY_STAT_KEYS: stats[key] = target.get(key)
+	return {"scene":scene,"label":scene.get_file().get_basename(),"stats":stats,
+		"health":maxi(int(target.health),1),"block":maxi(int(target.block),0),"energy":maxi(int(target.energy),0)}
+
+static func build_character_copy_profile(snapshot:Dictionary,factor:float,options:Dictionary = {}) -> Dictionary:
+	if snapshot.is_empty() or not snapshot.has("stats"): return {}
+	var raw:Dictionary = snapshot.stats
+	var ratio:float = maxf(factor,0.0)
+	var cooldown:float = maxf(float(options.get("cooldown_factor",1.0)),0.0001)
+	var stats:Dictionary = {}
+	for key:String in COPY_STAT_KEYS:
+		var value:float = float(raw.get(key,0.0))
+		match key:
+			"Speed": stats[key] = value
+			"Attack_Cooling","Skill_Cooling": stats[key] = value if is_equal_approx(cooldown,1.0) else maxf(value*cooldown,0.01)
+			"Damage_reduction": stats[key] = value*ratio
+			_: stats[key] = maxi(ceili(maxf(value,0.0)*ratio),1 if key=="Max_health" else 0)
+	var full:bool = bool(options.get("full_vitals",true))
+	return {"version":1,"source_scene":str(snapshot.scene),"source_label":str(snapshot.get("label","")),"stats":stats,
+		"health":int(stats.Max_health) if full else clampi(ceili(float(snapshot.get("health",1))*ratio),1,int(stats.Max_health)),
+		"block":int(stats.max_block) if full else maxi(ceili(float(snapshot.get("block",0))*ratio),0),
+		"energy":int(stats.max_energy) if full else maxi(ceili(float(snapshot.get("energy",0))*ratio),0),
+		"monochrome":bool(options.get("monochrome",false)),"master_name":str(options.get("master_name","")),
+		"team":str(options.get("team","")),"neutral_owner":str(options.get("neutral_owner",""))}
+
+static func apply_character_copy_profile(unit:ball,profile:Dictionary,apply_vitals:bool = true) -> void:
+	if not is_instance_valid(unit) or profile.is_empty(): return
+	var stats:Dictionary = profile.get("stats",{})
+	unit.inherit_master_attack_power = false
+	for key:String in COPY_STAT_KEYS:
+		if stats.has(key): unit.set(key,stats[key])
+	if not apply_vitals: return
+	if unit.default_properties != null:
+		for key:String in COPY_STAT_KEYS:
+			if stats.has(key): unit.default_properties[key] = unit.get(key)
+	# Reuse the shared silent state-migration path: creating a weaker copy is
+	# not a hit/heal/kill, and cannot trip half-health or death passives.
+	var had_silent:bool = unit.has_meta("death_return_restore")
+	var saved_silent:Variant = unit.get_meta("death_return_restore",false)
+	unit.set_meta("death_return_restore",true)
+	unit.health = clampi(int(profile.get("health",unit.Max_health)),1,maxi(unit.Max_health,1))
+	if unit.health_bar != null:
+		unit.block = clampi(int(profile.get("block",0)),0,maxi(unit.max_block,0))
+		unit.energy = clampi(int(profile.get("energy",0)),0,maxi(unit.max_energy,0))
+	if had_silent: unit.set_meta("death_return_restore",saved_silent)
+	else: unit.remove_meta("death_return_restore")
+	var parent:Node = unit.get_parent()
+	var owner_name:String = str(profile.get("master_name",""))
+	if not owner_name.is_empty():
+		unit.Master_name = owner_name
+		if not is_instance_valid(unit.Master) and parent != null: unit.Master = parent.get_node_or_null(NodePath(owner_name)) as ball
+	if not is_instance_valid(unit.Master) and not unit.has_meta("battle_lifecycle_identity"):
+		var identity:Dictionary = profile.get("lifecycle",{})
+		if not identity.is_empty(): unit.set_meta("battle_lifecycle_identity",identity.duplicate())
+	var team:String = str(profile.get("team",unit.Team))
+	if team.is_empty() and not str(profile.get("neutral_owner","")).is_empty(): team = "ReplicaFamily:"+str(profile.neutral_owner)
+	unit.Team = team
+	unit.set_meta(&"forced_combat_team",team)
+	if bool(profile.get("monochrome",false)): unit._refresh_character_copy_visuals()
+
+static func spawn_character_copy(context:Node,snapshot:Dictionary,point:Vector2,factor:float = 0.5,options:Dictionary = {}) -> ball:
+	if not is_instance_valid(context) or not context.is_inside_tree() or not context.is_multiplayer_authority() or snapshot.is_empty(): return null
+	var path:String = str(snapshot.get("scene",""))
+	if path.is_empty() or not ResourceLoader.exists(path): return null
+	var packed:PackedScene = load(path) as PackedScene
+	if packed == null: return null
+	var instance:Node = packed.instantiate()
+	if not instance is ball:
+		instance.free()
+		return null
+	var unit:ball = instance as ball
+	var owner:ball = options.get("owner",context if context is ball else null) as ball
+	var parent:Node = options.get("parent",context.get_parent()) as Node
+	if not is_instance_valid(parent) or not parent.is_inside_tree() or parent.is_queued_for_deletion():
+		unit.free()
+		return null
+	var settings:Dictionary = options.duplicate()
+	if is_instance_valid(owner):
+		settings["master_name"] = str(owner.name)
+		settings["team"] = owner.Team
+	var profile:Dictionary = build_character_copy_profile(snapshot,factor,settings)
+	if profile.is_empty():
+		unit.free()
+		return null
+	unit.character_copy_profile = profile
+	apply_character_copy_profile(unit,profile,false)
+	unit.Master = owner
+	unit.Master_name = str(profile.get("master_name",""))
+	unit.Team = str(profile.get("team",""))
+	if unit.Team.is_empty() and not str(profile.get("neutral_owner","")).is_empty(): unit.Team = "ReplicaFamily:"+str(profile.neutral_owner)
+	unit.set_meta(&"forced_combat_team",unit.Team)
+	for key:Variant in settings.get("metadata",{}): unit.set_meta(key,settings.metadata[key])
+	if bool(settings.get("assign_random_name",true)): unit.name = Game.return_random_name(unit)
+	unit.set_multiplayer_authority(context.get_multiplayer_authority())
+	var prepare:Callable = settings.get("prepare_instance",Callable())
+	if prepare.is_valid(): prepare.call(unit)
+	var world:Node = context.get_tree().current_scene
+	var ticket:int = int(settings.get("lifecycle_ticket",0))
+	if ticket > 0:
+		if not world.has_method("apply_battle_spawn_identity") or not world.apply_battle_spawn_identity(unit,ticket):
+			unit.free()
+			return null
+	elif is_instance_valid(owner) and world.has_method("bind_battle_lifecycle"):
+		world.bind_battle_lifecycle(unit,owner)
+	if unit.has_meta("battle_lifecycle_identity"):
+		profile["lifecycle"] = (unit.get_meta("battle_lifecycle_identity") as Dictionary).duplicate()
+		unit.character_copy_profile = profile
+	unit.position = (parent as Node2D).to_local(point) if parent is Node2D else point
+	parent.add_child(unit,true)
+	# Signal/metadata hooks finish after the whole subclass _ready, but keep
+	# this call for already-ready custom factories and historical Dice callers.
+	apply_character_copy_profile(unit,profile,true)
+	if Game.Game_Settings.Ball_Can_Move and world.has_method("_apply_or_record_initial_battle_direction"):
+		world._apply_or_record_initial_battle_direction(unit)
+	return unit
