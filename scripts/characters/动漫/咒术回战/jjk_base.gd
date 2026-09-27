@@ -174,6 +174,13 @@ func sfx(key:String,volume_db:float = 0.0) -> void:
 func _jjk_sound(key:String,point:Vector2,volume_db:float) -> void:
 	JJK.play_local(self,key,point,volume_db)
 
+## 大招过场特写（纯视觉）。right=true 从右侧切入。
+func cutin(title_zh:String,title_en:String,sub_zh:String,sub_en:String,color:Color,right:bool = false) -> void:
+	var face_path:String = ""
+	if image is Sprite2D and (image as Sprite2D).texture != null: face_path = (image as Sprite2D).texture.resource_path
+	var en:bool = JJK.english()
+	fx("cutin",{"face":face_path,"title":title_en if en else title_zh,"sub":sub_en if en else sub_zh,"color":color,"right":right,"world":true},1.25)
+
 func fx(kind:String,data:Dictionary,duration:float) -> void:
 	if not is_multiplayer_authority(): return
 	data = data.duplicate()
@@ -307,7 +314,7 @@ func visual_mob() -> void:
 func _on_overlay_draw() -> void:
 	if health <= 0: return
 	var o:Node2D = _overlay
-	var base:Vector2 = global_position + Vector2(-24,28)
+	var base:Vector2 = global_position + Vector2(-24,20)
 	o.draw_rect(Rect2(base,Vector2(48,5)),Color(0,0,0,0.6))
 	var ratio:float = clampf(cursed_energy / maxf(cursed_energy_max,1.0),0.0,1.0)
 	var col:Color = Color(0.55,0.4,1.0) if burnout_left <= 0.0 else Color(0.5,0.5,0.5)

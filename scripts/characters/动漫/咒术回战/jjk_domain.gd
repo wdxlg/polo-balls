@@ -162,7 +162,7 @@ func _tick_shrine(_step:float) -> void:
 			if raw is ball and raw.health > 0 and JJK.U.enemy(caster,raw) and rect.has_point(raw.global_position): targets.append(raw)
 	for t:ball in targets:
 		if protected_by_barrier(tree,t): continue
-		var amount:float = (caster.attack_damage(0.35) + float(t.Max_health) * 0.005) * mult
+		var amount:float = (caster.attack_damage(0.15) + float(t.Max_health) * 0.0025) * mult
 		JJK.hit(caster,t,amount,t.global_position,&"ordinary",{"sure_hit":true,"bypass_infinity":true,"phenomenon":"sukuna_shrine"})
 	# 斩击敌方结界外壁；翻转期间只有缩小后的领域能斩进去。
 	for d:Variant in active_domains(tree):
@@ -217,6 +217,30 @@ func _setup_visuals() -> void:
 	for i2:int in 26:
 		var a:float = r.randf() * TAU
 		_cracks.append([a,r.randf_range(0.1,0.35),r.randi()])
+	call_deferred("_open_juice")
+
+func _lens_follow(d:Node2D) -> bool:
+	if ended or not is_inside_tree(): return false
+	d.global_position = center
+	d.set("size",Vector2.ONE * maxf(_uv_r(),8.0) / 0.42)
+	return true
+
+## 展开瞬间：后处理 + 震屏 + 扭曲；无量空处的结界边缘常驻透镜折射。
+func _open_juice() -> void:
+	if not is_inside_tree(): return
+	match domain_kind:
+		"uv","uv_instant":
+			var inst:bool = domain_kind == "uv_instant"
+			V.screen(self,center,0.6 if inst else 1.1,{"blur":0.06,"aberration":0.012,"flash":Color(0.6,0.85,1.0,0.8),"flash_time":0.18,"invert":0.6 if inst else 0.0,"invert_time":0.08,"vignette":0.45},Vector3(0.03,0.35,1.0))
+			V.shake(self,10.0)
+			V.hitstop(self,1.0,center)
+			V.distort(self,0,center,Vector2.ONE * radius * 3.2,0.7,46.0,{"aberration":2.5})
+			V.distort(self,0,center,Vector2.ONE * radius / 0.42,duration,14.0,{"persistent":true,"fixed_radius":0.42,"thickness":0.05,"aberration":2.0,"z_index":69,"follow":_lens_follow})
+		"shrine":
+			V.screen(self,center,1.6,{"tint":Color(1.0,0.35,0.35,0.35),"desat":0.25,"vignette":0.4,"flash":Color(1.0,0.2,0.2,0.6),"flash_time":0.15,"aberration":0.01},Vector3(0.05,0.9,1.0))
+			V.shake(self,12.0)
+			V.hitstop(self,1.0,center)
+			V.distort(self,0,center,Vector2.ONE * 1400.0,0.9,40.0,{"aberration":2.5})
 
 func _process(delta:float) -> void:
 	if ended or Game.now_stop_state: return
@@ -273,6 +297,12 @@ func _draw_shrine_base() -> void:
 	else:
 		draw_rect(rect,Color(0.35,0.0,0.02,(0.12 + 0.06 * pulse) * fade))
 		_vignette(rect,minf(rect.size.x,rect.size.y) * 0.22,Color(0.3,0.0,0.02,0.75 * fade))
+	# 厨子背后翻滚的黑烟
+	var rise0:float = V.out_back(minf(1.0,_vt / 0.9),1.4)
+	for i:int in 5:
+		var ph:float = fmod(_vt * 0.12 + i * 0.2,1.0)
+		var sx:float = (i - 2) * 60.0 + sin(_vt * 0.7 + i) * 12.0
+		V.sprite(self,"k_smoke07" if i % 2 == 0 else "k_smoke04",center + Vector2(sx,-40.0 - ph * 220.0) * rise0,(120.0 + ph * 160.0) * rise0,Color(0.08,0.0,0.02,0.55 * sin(ph * PI) * fade),_vt * 0.2 + i)
 	_draw_shrine_building(fade)
 
 ## 边缘暗角：四条梯形带，外侧颜色、内侧透明。
@@ -378,6 +408,17 @@ func _draw_uv_add() -> void:
 		var tail:Vector2 = center + Vector2.from_angle(ang + maxf(0.0,ph - 0.08) * 0.6) * minf(r,dist + float(st[3]) * (0.5 + ph))
 		var col:Color = Color(0.55,0.8,1.0) if float(st[4]) < 0.7 else Color(0.85,0.6,1.0)
 		ci.draw_line(tail,head,Color(col,0.55 * sin(ph * PI) * fade),1.4,true)
+	# 贴图层：旋转星系漩涡 + 粒子核心 + 贴图星
+	V.sprite(ci,"k_light03",center,r * 2.1,Color(0.2,0.35,0.9,0.35 * fade),_vt * 0.1)
+	V.sprite(ci,"k_twirl02",center,r * 1.9,Color(0.35,0.5,1.0,0.55 * fade),-_vt * 0.35)
+	V.sprite(ci,"k_twirl03",center,r * 1.35,Color(0.6,0.35,1.0,0.5 * fade),-_vt * 0.6 + 1.3)
+	V.sprite(ci,"k_twirl01",center,r * 0.8,Color(0.6,0.9,1.0,0.6 * fade),-_vt * 1.1)
+	V.anim(ci,"a_pfx_cyan",center,r * 0.9,_vt * 0.5,Color(1,1,1,0.9 * fade),0.0,true)
+	for i4:int in _stars.size():
+		if i4 % 4 != 0: continue
+		var sp:Vector2 = center + (_stars[i4] - center) * (r / maxf(radius,1.0))
+		var tw4:float = 0.5 + 0.5 * sin(_vt * (1.5 + (i4 % 3)) + i4 * 0.7)
+		V.sprite(ci,["k_star01","k_star04","k_star06","k_star08"][i4 % 4],sp,(10.0 + 16.0 * tw4) * (1.0 + float(i4 % 7) * 0.2),Color(0.75,0.88,1.0,(0.3 + 0.7 * tw4) * fade),_vt * 0.3 * (1 if i4 % 2 == 0 else -1))
 	# 中心之眼
 	var eye_r:float = r * 0.16
 	V.glow(ci,center,eye_r * 3.0,Color(0.5,0.75,1.0,0.5 * fade))
@@ -392,6 +433,8 @@ func _draw_uv_add() -> void:
 	var flash:float = 1.0 - V.seg(_vt,0.0,0.35)
 	if flash > 0.0:
 		V.core(ci,center,r * 0.3 * (1.0 + flash),Color(1,1,1,flash))
+		V.sprite(ci,"k_flare01",center,r * 4.0,Color(0.7,0.9,1.0,flash),0.0,Vector2(1.0,0.3))
+	V.anim(ci,"a_bluering",center,r * 2.6,V.seg(_vt,0.0,0.7),Color(1,1,1,0.9))
 
 func _draw_shrine_add() -> void:
 	var ci:CanvasItem = _add
@@ -402,6 +445,12 @@ func _draw_shrine_add() -> void:
 	# 神龛之口的红光与背光
 	V.glow(ci,base + Vector2(0,-60) * rise,150.0 * rise,Color(0.9,0.05,0.08,(0.35 + 0.15 * pulse) * fade))
 	V.glow(ci,base + Vector2(0,-36) * 1.15 * rise,34.0 * rise,Color(1.0,0.2,0.1,(0.6 + 0.4 * pulse) * fade))
+	# 贴图层：背光法阵、两侧火把、口中火焰
+	V.sprite(ci,"k_magic04",base + Vector2(0,-60) * rise,300.0 * rise,Color(0.9,0.08,0.1,0.35 * fade),_vt * 0.25)
+	V.sprite(ci,"k_light03",base + Vector2(0,-60) * rise,260.0 * rise,Color(1.0,0.1,0.08,(0.3 + 0.15 * pulse) * fade))
+	for tx:float in [-88.0,88.0]:
+		V.anim(ci,"a_fire",base + Vector2(tx,-30.0) * 1.15 * rise,70.0 * rise,_vt * 1.2 + tx,Color(1.0,0.45,0.35,0.95 * fade),0.0,true,Vector2(1.0,1.5))
+	V.anim(ci,"a_fire",base + Vector2(0,-40.0) * 1.15 * rise,56.0 * rise,_vt * 0.9,Color(1.0,0.25,0.2,0.8 * fade),0.0,true)
 	# 升腾的火星
 	for i:int in 14:
 		var ph:float = fmod(_vt * 0.4 + i * 0.137,1.0)
@@ -427,6 +476,8 @@ func _draw_over_add() -> void:
 			# 结界亮边：内侧渐变 + 外侧细亮线
 			V.ring(ci,center,r - 26.0,r,Color(col,0.0),Color(col,0.35 * fade * shimmer),96)
 			ci.draw_arc(center,r,0.0,TAU,128,Color(col,0.9 * fade),1.5 + 2.5 * hp,true)
+			V.sprite(ci,"k_circle02",center,r * 2.12,Color(col,0.55 * fade * shimmer),_vt * 0.2)
+			V.sprite(ci,"k_circle05",center,r * 2.05,Color(col,0.3 * fade),-_vt * 0.15)
 			# 沿边缘流动的光段
 			for i:int in 6:
 				var a:float = _vt * (0.8 if i % 2 == 0 else -0.55) + TAU * i / 6.0
@@ -465,5 +516,8 @@ func _draw_over_add() -> void:
 					var bulge:float = _drng.randf_range(-8,8)
 					var red:bool = _drng.randf() < 0.3
 					var c3:Color = Color(1.0,0.25,0.25) if red else Color(1,0.95,0.95)
-					V.crescent(ci,p - d,p + d,9.0,bulge,Color(c3,0.35 * life * fade2),1.0,0.0,10)
-					V.crescent(ci,p - d,p + d,3.5,bulge,Color(1,1,1,0.9 * life * fade2),1.0,0.0,10)
+					if i3 % 3 == 0:
+						V.sprite(ci,"k_slash04",p,d.length() * 2.4,Color(c3,0.8 * life * fade2),d.angle(),Vector2(1.0,0.45))
+					else:
+						V.sprite_line(ci,"k_trace07",p - d,p + d,8.0,Color(c3,0.8 * life * fade2),true)
+						V.crescent(ci,p - d,p + d,3.0,bulge,Color(1,1,1,0.9 * life * fade2),1.0,0.0,10)

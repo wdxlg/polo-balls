@@ -9,11 +9,11 @@ const U2 = preload("res://scripts/characters/我的世界/new5/utils.gd")
 @export var aura_heal_ratio_per_second:float = 0.015
 @export var wheel_boost_value:float = 1.6
 @export var bite_cooldown:float = 0.8
-@export var bite_damage_multiplier:float = 1.6
+@export var bite_damage_multiplier:float = 1.3
 @export var thunder_cooldown:float = 3.5
 @export var thunder_radius:float = 70.0
 @export var thunder_delay:float = 0.35
-@export var thunder_damage_multiplier:float = 2.0
+@export var thunder_damage_multiplier:float = 1.8
 @export var deer_cooldown:float = 12.0
 @export var deer_radius:float = 260.0
 @export var deer_heal_ratio:float = 0.12
@@ -159,6 +159,8 @@ func draw_overlay(o:Node2D) -> void:
 
 func draw_overlay_add(o:Node2D) -> void:
 	var t:float = _view_clock
+	V.sprite(o,"k_light03",global_position,aura_radius * 2.1,Color(0.35,1.0,0.5,0.1 + 0.04 * sin(t * 2.0)),t * 0.1)
+	V.sprite(o,"k_magic04",global_position,aura_radius * 2.0,Color(0.4,1.0,0.55,0.08),-t * 0.2)
 	V.ring(o,global_position,aura_radius - 30.0,aura_radius,Color(0.4,1.0,0.55,0.0),Color(0.4,1.0,0.55,0.07 + 0.03 * sin(t * 2.0)),64)
 	o.draw_arc(global_position,aura_radius,t * 0.6,t * 0.6 + 1.2,24,Color(0.6,1.0,0.7,0.3),1.5,true)
 	o.draw_arc(global_position,aura_radius,t * 0.6 + PI,t * 0.6 + PI + 1.2,24,Color(0.6,1.0,0.7,0.3),1.5,true)
@@ -166,6 +168,8 @@ func draw_overlay_add(o:Node2D) -> void:
 		# 鵺落雷预警：收缩的警戒圈 + 地面电弧。
 		var k:float = clampf(1.0 - _thunder_left / maxf(thunder_delay,0.01),0.0,1.0)
 		V.glow(o,_thunder_at,thunder_radius * 1.2,Color(0.5,0.7,1.0,0.2 + 0.3 * k))
+		V.sprite(o,"k_magic03",_thunder_at,thunder_radius * 2.3,Color(0.55,0.75,1.0,0.3 + 0.5 * k),t * 1.5)
+		V.anim(o,"a_pfx_sparkring",_thunder_at,thunder_radius * 2.0,t * 0.9,Color(0.7,0.85,1.0,0.5 * k),0.0,true)
 		o.draw_arc(_thunder_at,thunder_radius,0.0,TAU,48,Color(0.7,0.85,1.0,0.7),1.5,true)
 		o.draw_arc(_thunder_at,thunder_radius * (1.0 - k * 0.9),0.0,TAU,48,Color(0.8,0.9,1.0,0.9),2.0,true)
 		_vrng.seed = int(t * 20.0) + 5

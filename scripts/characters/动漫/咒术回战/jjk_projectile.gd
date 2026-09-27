@@ -112,6 +112,9 @@ func _draw_add() -> void:
 			var r:float = radius * (1.25 if kind == "red_max" else 1.0)
 			var pulse:float = 1.0 + 0.1 * sin(t * 30.0)
 			V.glow(ci,Vector2.ZERO,r * 3.2 * pulse,Color(1.0,0.12,0.05,0.8))
+			V.sprite(ci,"k_flare01",Vector2.ZERO,r * 9.0,Color(1.0,0.3,0.2,0.7),dir.angle(),Vector2(1.0,0.3))
+			V.sprite(ci,"k_twirl01",Vector2.ZERO,r * 3.6 * pulse,Color(1.0,0.35,0.25,0.9),t * 16.0)
+			V.anim(ci,"a_pfx_fireburst",Vector2.ZERO,r * 4.0,t * 2.0,Color(1.0,0.5,0.4,0.7),0.0,true)
 			V.flame_blob(ci,Vector2.ZERO,r * 1.05 * pulse,0.2,t * 2.0,Color(1.0,0.2,0.08,0.9),3.0)
 			V.core(ci,Vector2.ZERO,r * 0.6,Color(1.0,0.9,0.85,1.0))
 			for i2:int in 4:
@@ -121,6 +124,9 @@ func _draw_add() -> void:
 		"fuga":
 			var n2:Vector2 = dir.orthogonal()
 			V.glow(ci,Vector2.ZERO,radius * 4.0,Color(1.0,0.4,0.05,0.7))
+			V.anim(ci,"a_fire",-dir * radius * 1.8,radius * 3.2,t * 2.0,Color(1,0.9,0.8,0.95),dir.angle() - PI * 0.5,true,Vector2(1.0,1.6))
+			V.sprite(ci,"k_muzzle02",-dir * radius * 1.2,radius * 4.0,Color(1.0,0.6,0.25,0.9),dir.angle() - PI * 0.5,Vector2(0.7,1.4))
+			V.sprite(ci,"k_flare01",Vector2.ZERO,radius * 10.0,Color(1.0,0.55,0.2,0.6),dir.angle(),Vector2(1.0,0.25))
 			V.flame_blob(ci,-dir * radius * 0.8,radius * 1.2,0.25,t * 2.5,Color(1.0,0.45,0.08,0.8),1.0)
 			# 箭头
 			var tip:PackedVector2Array = [dir * radius * 2.2,-dir * radius * 0.2 + n2 * radius * 0.8,-dir * radius * 0.6,-dir * radius * 0.2 - n2 * radius * 0.8]

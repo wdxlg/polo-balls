@@ -18,6 +18,8 @@ func cell(i:int) -> Vector2:
 func run() -> void:
 	create_timer(60.0,true,false,true).timeout.connect(func(): quit(2))
 	root.get_node("Game").now_stop_state = false
+	Engine.set_meta("jjk_no_screen",true) # 网格图鉴只看贴图本身；后处理在后面单独截图
+	Engine.set_meta("jjk_no_distort",OS.get_environment("JJK_NO_DISTORT") == "1")
 	root.size = Vector2i(1280,960)
 	root.content_scale_mode = Window.CONTENT_SCALE_MODE_DISABLED
 	arena = Node2D.new()
@@ -72,4 +74,25 @@ func run() -> void:
 		if t >= marks[k]:
 			await shot("%02d" % int(marks[k] * 100))
 			k += 1
+	# 单独：带全屏后处理的大招（茈 / 世界斩）与过场特写
+	Engine.set_meta("jjk_no_screen",false)
+	for solo:Array in [["purple_beam",{"a":Vector2(200,480),"b":Vector2(1100,480),"width":90.0},0.9,0.12,"solo_purple"],["world_slash",{"a":Vector2(100,800),"b":Vector2(1180,160),"width":70.0},0.9,0.1,"solo_world"],["black_flash",{"pos":Vector2(640,480),"radius":70.0},0.45,0.05,"solo_bf"]]:
+		for ch:Node in host.get_children(): ch.queue_free()
+		for ch2:Node in arena.get_children():
+			if ch2 is Label or ch2.name.begins_with("JJK"): ch2.queue_free()
+		await process_frame
+		var sd:Dictionary = (solo[1] as Dictionary).duplicate()
+		sd["seed"] = 7
+		if not sd.has("pos"): sd["pos"] = Vector2(640,480)
+		FX.spawn(host,solo[0],sd,solo[2])
+		var tt:float = 0.0
+		while tt < float(solo[3]):
+			await process_frame
+			tt += 1.0 / 60.0
+		await shot(solo[4])
+	for ch3:Node in host.get_children(): ch3.queue_free()
+	var V:GDScript = load("res://scripts/characters/动漫/咒术回战/jjk_vfx.gd")
+	V.cutin(arena,load("res://Images/characters/动漫/咒术回战/五条悟_face.png"),"领域展开 无量空处","五条悟",Color(0.3,0.55,1.0),false,1.25)
+	for i2:int in 30: await process_frame
+	await shot("cutin")
 	quit(0)

@@ -10,23 +10,23 @@ const MAHORAGA_SCENE_PATH:String = "res://scenes/characters/动漫/魔虚罗.tsc
 const AGITO_SCENE_PATH:String = "res://scenes/characters/动漫/嵌合暗兽.tscn"
 
 @export_category("两面宿傩")
-@export var dismantle_cooldown:float = 0.35
-@export var dismantle_damage_multiplier:float = 1.2
+@export var dismantle_cooldown:float = 0.55
+@export var dismantle_damage_multiplier:float = 0.8
 @export var dismantle_length:float = 440.0
 @export var web_cooldown:float = 5.0
 @export var web_radius:float = 150.0
-@export var web_damage_multiplier:float = 3.0
+@export var web_damage_multiplier:float = 2.0
 @export var cleave_cooldown:float = 2.5
 @export var cleave_range:float = 120.0
-@export var cleave_damage_multiplier:float = 2.0
-@export var cleave_health_ratio:float = 0.10
+@export var cleave_damage_multiplier:float = 1.5
+@export var cleave_health_ratio:float = 0.04
 @export var fuga_cooldown:float = 10.0
 @export var fuga_cost:float = 250.0
 @export var fuga_radius:float = 160.0
-@export var fuga_damage_multiplier:float = 5.0
+@export var fuga_damage_multiplier:float = 3.0
 @export var amplification_seconds:float = 6.0
 @export var amplification_cooldown:float = 14.0
-@export var punch_multiplier:float = 2.0
+@export var punch_multiplier:float = 1.4
 @export var domain_cost:float = 400.0
 @export var domain_duration:float = 8.0
 @export var domain_seal_seconds:float = 20.0
@@ -36,8 +36,8 @@ const AGITO_SCENE_PATH:String = "res://scenes/characters/动漫/嵌合暗兽.tsc
 @export var world_slash_chant:float = 1.2
 @export var world_slash_lock_time:float = 0.25
 @export var world_slash_width:float = 70.0
-@export var world_slash_health_ratio:float = 0.45
-@export var world_slash_damage_multiplier:float = 6.0
+@export var world_slash_health_ratio:float = 0.2
+@export var world_slash_damage_multiplier:float = 4.0
 @export var hp_lock_seconds:float = 1.6
 
 var dismantle_cd:float = 0.0
@@ -292,7 +292,7 @@ func cast_domain() -> bool:
 	if not can_act() or not can_open_domain() or not spend(domain_cost): return false
 	open_domain("shrine",global_position,0.0,domain_duration)
 	sfx("sukuna_domain",2.0)
-	fx("text",{"pos":global_position + Vector2(0,-120),"text":"Domain Expansion: Malevolent Shrine" if JJK.english() else "领域展开 伏魔御厨子","size":34,"color":Color(1,0.25,0.25),"world":true},2.2)
+	cutin("领域展开 伏魔御厨子","Domain Expansion: Malevolent Shrine","两面宿傩","Ryomen Sukuna",Color(0.85,0.08,0.12),true)
 	return true
 
 func shrink_domain() -> bool:
@@ -314,6 +314,7 @@ func begin_world_slash(dir:Vector2,empowered:bool) -> bool:
 	casting = true
 	_chant_step = 0
 	sfx("sukuna_world_slash",0.0)
+	cutin("世界斩","World-Cutting Slash","龙鳞 反发 双子流星","Dragon Scale, Recoil, Twin Meteors",Color(0.9,0.9,0.95),true)
 	return true
 
 func _step_chant() -> void:
@@ -352,7 +353,7 @@ func summon_mahoraga() -> bool:
 	if mahoraga_summoned or not can_act() or not spend(300.0): return false
 	mahoraga_summoned = true
 	sfx("mahoraga_summon",0.0)
-	fx("text",{"pos":global_position + Vector2(0,-70),"text":"With this treasure I summon... Mahoraga!" if JJK.english() else "布瑠部由良由良——八握剑异戒神将 魔虚罗","size":20,"color":Color(0.9,0.9,0.7),"world":true},1.8)
+	cutin("八握剑异戒神将 魔虚罗","Eight-Handled Sword Divergent Sila Divine General Mahoraga","布瑠部由良由良","With this treasure I summon...",Color(0.95,0.8,0.35),true)
 	_spawn_summon(MAHORAGA_SCENE_PATH,Vector2(-60,0))
 	return true
 
@@ -498,30 +499,27 @@ func draw_overlay(o:Node2D) -> void:
 		var b:Vector2 = global_position + chant_dir * 2400.0
 		o.draw_line(a,b,Color(0,0,0,0.55 + 0.25 * sin(t * 30.0)),2.5)
 	if domain_seal_left > 0.0:
-		o.draw_line(global_position + Vector2(-24,36),global_position + Vector2(-24 + 48 * domain_seal_left / domain_seal_seconds,36),Color(0.6,0.75,1.0,0.9),2.0)
+		o.draw_line(global_position + Vector2(-24,28),global_position + Vector2(-24 + 48 * domain_seal_left / domain_seal_seconds,28),Color(0.6,0.75,1.0,0.9),2.0)
 
 func draw_overlay_add(o:Node2D) -> void:
 	var t:float = _view_clock
 	if amp_left > 0.0:
 		var p:float = 0.8 + 0.2 * sin(t * 10.0)
-		V.glow(o,global_position,46.0 * p,Color(0.6,0.15,0.9,0.5))
-		V.flame_blob(o,global_position,26.0 * p,0.2,t,Color(0.5,0.1,0.8,0.35),5.0,0.5)
-		V.shock(o,global_position,28.0,5.0,Color(0.8,0.4,1.0,0.6 * p))
+		V.glow(o,global_position,32.0 * p,Color(0.6,0.15,0.9,0.5))
+		for fi:int in 3:
+			var fa:float = TAU * fi / 3.0 + t * 0.7
+			V.sprite(o,["k_flame02","k_flame04","k_flame06"][fi],global_position + Vector2.from_angle(fa) * 8.0 + Vector2(0,-10),34.0 * p,Color(0.65,0.25,1.0,0.55),sin(t * 3.0 + fi) * 0.2)
+		V.shock(o,global_position,20.0,4.0,Color(0.8,0.4,1.0,0.6 * p))
 	if hp_lock_left >= 0.0:
 		# 锁血：旋转的赤红咒纹法阵 + 心跳般的脉动。
 		var beat:float = pow(0.5 + 0.5 * sin(t * 9.0),6.0)
 		var c:Vector2 = global_position
-		V.glow(o,c,54.0 + 12.0 * beat,Color(1.0,0.05,0.08,0.45 + 0.3 * beat))
-		o.draw_arc(c,36.0,0.0,TAU,48,Color(1.0,0.15,0.15,0.9),2.0,true)
-		o.draw_arc(c,42.0,t * 2.0,t * 2.0 + TAU,48,Color(1.0,0.3,0.3,0.4),1.0,true)
-		for i:int in 12:
-			var a2:float = t * 1.5 + TAU * i / 12.0
-			o.draw_line(c + Vector2.from_angle(a2) * 36.0,c + Vector2.from_angle(a2) * (46.0 if i % 3 == 0 else 41.0),Color(1.0,0.3,0.3,0.9),1.5,true)
-		var tri:PackedVector2Array = []
-		for j:int in 7:
-			tri.append(c + Vector2.from_angle(-t * 2.5 + TAU * (j * 2 % 6) / 6.0 + PI / 2.0) * 30.0)
-		o.draw_polyline(tri,Color(1.0,0.2,0.2,0.75),1.5,true)
-		V.shock(o,c,36.0 + 30.0 * (1.0 - beat),8.0 * beat,Color(1.0,0.2,0.2,beat))
+		V.glow(o,c,38.0 + 9.0 * beat,Color(1.0,0.05,0.08,0.45 + 0.3 * beat))
+		V.sprite(o,"k_magic01",c,68.0 + 6.0 * beat,Color(1.0,0.12,0.12,0.8),t * 1.2)
+		V.sprite(o,"k_magic05",c,52.0,Color(1.0,0.3,0.25,0.6),-t * 2.0)
+		V.sprite(o,"k_symbol01",c + Vector2(0,-30),12.0 + 6.0 * beat,Color(1.0,0.15,0.15,0.6 + 0.4 * beat))
+		o.draw_arc(c,26.0,0.0,TAU,48,Color(1.0,0.15,0.15,0.9),2.0,true)
+		V.shock(o,c,26.0 + 22.0 * (1.0 - beat),6.0 * beat,Color(1.0,0.2,0.2,beat))
 	if chant_left >= 0.0:
 		var width:float = world_slash_width * (1.6 if chant_empowered else 1.0)
 		if chant_locked:
@@ -529,6 +527,8 @@ func draw_overlay_add(o:Node2D) -> void:
 			var b3:Vector2 = global_position + chant_dir * 2400.0
 			var fl:float = 0.6 + 0.4 * sin(t * 40.0)
 			V.streak(o,a3,b3,width * 1.2,Color(1.0,0.1,0.15,0.25 * fl))
+			V.sprite_line(o,"k_trace04",a3,b3,width * 0.8,Color(1.0,0.3,0.35,0.4 * fl),true)
+			V.sprite(o,"k_flare01",global_position,260.0,Color(1.0,0.3,0.35,0.6 * fl),chant_dir.angle(),Vector2(1.0,0.2))
 			o.draw_line(a3,b3,Color(1.0,0.6,0.6,0.8 * fl),1.5,true)
 			V.glow(o,global_position,60.0,Color(1.0,0.1,0.15,0.5))
 		else:

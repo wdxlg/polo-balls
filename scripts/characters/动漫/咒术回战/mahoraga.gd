@@ -12,10 +12,10 @@ const U2 = preload("res://scripts/characters/我的世界/new5/utils.gd")
 @export var wheel_heal_ratio:float = 0.08
 @export var sword_cooldown:float = 1.0
 @export var sword_range:float = 95.0
-@export var sword_damage_multiplier:float = 2.5
+@export var sword_damage_multiplier:float = 1.6
 @export var lunge_cooldown:float = 4.0
 @export var lunge_distance:float = 230.0
-@export var lunge_damage_multiplier:float = 2.0
+@export var lunge_damage_multiplier:float = 1.4
 @export var roar_cooldown:float = 10.0
 @export var roar_radius:float = 140.0
 @export var barrier_damage_per_swing:float = 35.0
@@ -262,7 +262,7 @@ func accept_visual(data:Dictionary) -> void:
 
 func draw_overlay(o:Node2D) -> void:
 	# 头顶八握法阵：每完成一次适应转 1/8 圈；转动中逐渐旋转。
-	var c:Vector2 = global_position + Vector2(0,-44)
+	var c:Vector2 = global_position + Vector2(0,-34)
 	var angle:float = (wheel_turns + (wheel_progress if not wheel_key.is_empty() else 0.0)) * TAU / 8.0
 	var gold:Color = Color(0.95,0.78,0.3,0.95)
 	var dark:Color = Color(0.35,0.25,0.05,0.9)
@@ -295,9 +295,11 @@ func _swing_arc(o:Node2D,r:float,w:float,col:Color) -> void:
 
 func draw_overlay_add(o:Node2D) -> void:
 	var t:float = _view_clock
-	var c:Vector2 = global_position + Vector2(0,-44)
+	var c:Vector2 = global_position + Vector2(0,-34)
 	var turning:bool = not wheel_key.is_empty()
 	V.glow(o,c,(34.0 if turning else 24.0) * (1.0 + 0.08 * sin(t * 6.0)),Color(1.0,0.8,0.35,0.55 if turning else 0.3))
+	V.sprite(o,"k_magic02",c,(52.0 if turning else 40.0),Color(1.0,0.82,0.4,0.5 if turning else 0.25),(wheel_turns + wheel_progress) * TAU / 8.0 + t * 0.2)
+	if turning: V.anim(o,"a_pfx_goldring",c,64.0,t * 0.8,Color(1,1,1,0.7),0.0,true)
 	if turning:
 		o.draw_arc(c,28.0,-PI / 2.0,-PI / 2.0 + TAU * wheel_progress,32,Color(1,0.95,0.6,0.95),2.5,true)
 		var tip:Vector2 = c + Vector2.from_angle(-PI / 2.0 + TAU * wheel_progress) * 28.0
@@ -309,6 +311,8 @@ func draw_overlay_add(o:Node2D) -> void:
 		var k:float = clampf(_swing_visual / 0.25,0.0,1.0)
 		_swing_arc(o,sword_range * 0.9,26.0 * k,Color(1.0,0.9,0.6,0.45 * k))
 		_swing_arc(o,sword_range * 0.9,9.0 * k,Color(1,1,1,0.95 * k))
+		var sd:Vector2 = direction.normalized() if direction.length_squared() > 0.01 else Vector2.RIGHT
+		V.sprite(o,"k_slash03",global_position + sd * sword_range * 0.55,sword_range * 1.6,Color(1.0,0.9,0.6,0.9 * k),sd.angle(),Vector2(0.6,1.0))
 
 func get_armor_test_effect_summary() -> String:
 	if JJK.english():

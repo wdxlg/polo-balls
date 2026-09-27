@@ -13,20 +13,20 @@ const U2 = preload("res://scripts/characters/我的世界/new5/utils.gd")
 @export var blue_radius:float = 160.0
 @export var blue_max_radius:float = 220.0
 @export var blue_pull_speed:float = 250.0
-@export var blue_damage_multiplier:float = 0.35
+@export var blue_damage_multiplier:float = 0.2
 @export var red_cooldown:float = 1.6
 @export var red_cost:float = 60.0
-@export var red_damage_multiplier:float = 3.0
-@export var red_charged_damage_multiplier:float = 6.0
+@export var red_damage_multiplier:float = 2.0
+@export var red_charged_damage_multiplier:float = 3.5
 @export var red_radius:float = 80.0
 @export var red_knockback:float = 260.0
 @export var purple_cooldown:float = 12.0
 @export var purple_cost:float = 300.0
-@export var purple_damage_multiplier:float = 12.0
+@export var purple_damage_multiplier:float = 4.0
 @export var purple_width:float = 90.0
 @export var purple_200_hold:float = 2.4
 @export var purple_200_cost:float = 600.0
-@export var purple_200_damage_multiplier:float = 45.0
+@export var purple_200_damage_multiplier:float = 10.0
 @export var teleport_distance:float = 260.0
 @export var teleport_cooldown:float = 2.5
 @export var domain_cost:float = 300.0
@@ -34,7 +34,7 @@ const U2 = preload("res://scripts/characters/我的世界/new5/utils.gd")
 @export var instant_domain_cost:float = 250.0
 @export var instant_domain_cooldown:float = 20.0
 @export var flip_cost:float = 60.0
-@export var punch_multiplier:float = 1.5
+@export var punch_multiplier:float = 1.2
 
 var blue_cd:float = 0.0
 var red_cd:float = 0.0
@@ -296,6 +296,7 @@ func release_purple(dir:Vector2,time:float) -> bool:
 	purple_cast_left = 0.35 if full else 0.5
 	purple_cd = purple_cooldown
 	sfx("gojo_purple_200" if full else "gojo_purple",0.0)
+	if full: cutin("虚式 茈","Hollow Technique: Purple","九纲 偏光 乌与声明 表里之间","Nine Ropes, Polarized Light, Crow and Declaration...",Color(0.6,0.3,1.0))
 	return true
 
 func _fire_purple() -> void:
@@ -355,7 +356,7 @@ func cast_domain() -> bool:
 	var r:float = maxf(260.0,minf(rect.size.x,rect.size.y) * 0.45)
 	open_domain("uv",global_position,r,domain_duration)
 	sfx("gojo_domain",2.0)
-	fx("text",{"pos":global_position + Vector2(0,-r * 0.35),"text":"Domain Expansion: Unlimited Void" if JJK.english() else "领域展开 无量空处","size":34,"color":Color(0.75,0.9,1.0),"world":true},2.2)
+	cutin("领域展开 无量空处","Domain Expansion: Unlimited Void","五条悟","Satoru Gojo",Color(0.3,0.55,1.0))
 	return true
 
 func cast_instant_domain() -> bool:
@@ -520,7 +521,19 @@ func _red_charge_pos() -> Vector2:
 func _purple_center() -> Vector2:
 	return global_position + Vector2(0,-34)
 
+var _blue_lens:Node2D
+
+func _blue_lens_follow(d:Node2D) -> bool:
+	if not blue_active or health <= 0 or not is_inside_tree(): return false
+	var r:float = blue_max_radius if blue_max else blue_radius
+	d.global_position = blue_pos
+	d.set("size",Vector2.ONE * r * 2.4)
+	return true
+
 func visual_particles(_dt:float) -> void:
+	if blue_active and not is_instance_valid(_blue_lens):
+		# 苍：真实的屏幕空间漩涡折射，跟随苍的位置，苍结束后自动消失。
+		_blue_lens = V.distort(self,1,blue_pos,Vector2.ONE * blue_radius * 2.4,1.0,1.2,{"persistent":true,"follow":_blue_lens_follow,"aberration":1.5,"z_index":85})
 	if blue_active:
 		var r:float = blue_max_radius if blue_max else blue_radius
 		for i:int in (3 if blue_max else 2):
@@ -550,14 +563,19 @@ func draw_overlay_add(o:Node2D) -> void:
 	if infinity_active():
 		# 无下限：极淡的蓝色空间折射，偶尔闪过一圈。
 		var sh:float = 0.5 + 0.5 * sin(t * 3.0)
-		V.ring(o,global_position,20.0,28.0,Color(0.5,0.85,1.0,0.0),Color(0.5,0.85,1.0,0.12 + 0.08 * sh),40)
+		V.ring(o,global_position,14.0,20.0,Color(0.5,0.85,1.0,0.0),Color(0.5,0.85,1.0,0.12 + 0.08 * sh),40)
+		V.sprite(o,"k_circle05",global_position,44.0,Color(0.55,0.9,1.0,0.18 + 0.1 * sh),t * 0.5)
 		for i:int in 3:
 			var a:float = t * (1.2 + 0.4 * i) + i * 2.1
-			o.draw_arc(global_position,27.0 + i,a,a + 0.5,10,Color(0.7,0.95,1.0,0.35),1.0,true)
+			o.draw_arc(global_position,19.0 + i,a,a + 0.5,10,Color(0.7,0.95,1.0,0.35),1.0,true)
 	if blue_active:
 		var r:float = blue_max_radius if blue_max else blue_radius
 		var s:float = 1.25 if blue_max else 1.0
 		V.glow(o,blue_pos,r * 0.9,Color(0.15,0.3,1.0,0.35))
+		V.sprite(o,"k_light03",blue_pos,r * 2.0,Color(0.2,0.4,1.0,0.4),t * 0.4)
+		V.sprite(o,"k_twirl02",blue_pos,r * 1.7,Color(0.35,0.6,1.0,0.7),-t * 6.0)
+		V.sprite(o,"k_twirl01",blue_pos,r * 0.9,Color(0.6,0.85,1.0,0.8),-t * 9.0 + 1.0)
+		V.anim(o,"a_pfx_cyan",blue_pos,r * 1.1,t * 0.8,Color(0.8,0.9,1.0,0.8),0.0,true)
 		# 引力透镜环
 		V.shock(o,blue_pos,r * (0.92 + 0.04 * sin(t * 5.0)),14.0,Color(0.35,0.6,1.0,0.45))
 		# 螺旋吸入臂
@@ -578,6 +596,9 @@ func draw_overlay_add(o:Node2D) -> void:
 		var p:Vector2 = _red_charge_pos()
 		var pulse:float = 0.85 + 0.15 * sin(t * (18.0 + 20.0 * k))
 		V.glow(o,p,(26.0 + 30.0 * k) * pulse,Color(1.0,0.12,0.06,0.8))
+		V.sprite(o,"k_twirl01",p,(30.0 + 40.0 * k) * pulse,Color(1.0,0.3,0.2,0.8),t * 12.0)
+		V.sprite(o,"k_flare01",p,(60.0 + 120.0 * k),Color(1.0,0.35,0.25,0.5 + 0.4 * k),0.0,Vector2(1.0,0.25))
+		V.anim(o,"a_pfx_fireburst",p,40.0 + 30.0 * k,t * 1.5,Color(1,0.6,0.5,0.6 * k),0.0,true)
 		V.flame_blob(o,p,(6.0 + 8.0 * k) * pulse,0.22,t * 2.0,Color(1.0,0.2,0.1,0.9),2.0)
 		V.core(o,p,4.0 + 5.0 * k,Color(1,0.9,0.85,1))
 		for i2:int in 6:
@@ -603,6 +624,11 @@ func draw_overlay_add(o:Node2D) -> void:
 		V.glow(o,pr,22.0,Color(1.0,0.15,0.08,0.9))
 		V.core(o,pr,6.0,Color(1.0,0.9,0.85))
 		V.glow(o,c,40.0 + 50.0 * k2,Color(0.6,0.25,1.0,0.25 + 0.5 * k2))
+		V.sprite(o,"k_twirl02",pb,34.0,Color(0.35,0.55,1.0,0.8),-t * 10.0)
+		V.sprite(o,"k_twirl02",pr,34.0,Color(1.0,0.3,0.2,0.8),t * 10.0)
+		V.sprite(o,"k_magic03",c,(70.0 + 40.0 * k2),Color(0.75,0.5,1.0,0.3 + 0.5 * k2),t * (1.0 + 3.0 * k2))
+		if k2 > 0.5: V.anim(o,"a_pfx_purple",c,60.0 + 60.0 * k2,t * 1.2,Color(1,1,1,V.seg(k2,0.5,1.0)),0.0,true)
+		if k2 >= 1.0: V.sprite(o,"k_flare01",c,220.0,Color(0.85,0.6,1.0,0.7 + 0.3 * sin(t * 20.0)),0.0,Vector2(1.0,0.2))
 		if k2 > 0.7:
 			var m:float = V.seg(k2,0.7,1.0)
 			V.flame_blob(o,c,(8.0 + 8.0 * m) * (1.0 + 0.1 * sin(t * 25.0)),0.2,t * 2.0,Color(0.75,0.45,1.0,0.9 * m),4.0)

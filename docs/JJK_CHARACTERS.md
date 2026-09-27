@@ -1,14 +1,14 @@
 # 咒术回战角色（动漫分区）
 
-四个可选角色，均为**超模**设计，外观统一使用网上找到的 Minecraft 皮肤脸部（8×8 脸 + 帽子层，放大到 128px）。
+四个可选角色（机制超模，数值已压到接近同分区普通角色；体型与普通角色一致：`CharacterAutoFit.visual_size_multiplier = 0.68`），外观统一使用网上找到的 Minecraft 皮肤脸部（8×8 脸 + 帽子层，放大到 128px）。
 音效全部来自网络（myinstants.com），来源、sha256 与版权说明见 `audio/characters/咒术回战/SOURCE.json`、`Images/characters/动漫/咒术回战/SOURCE.json`；原始文件在 `sources/jjk/`（带 `.gdignore`）。
 
 | 角色 | 场景 | 脚本 | 生命/攻击/速度 |
 |---|---|---|---|
-| 五条悟 | `scenes/characters/动漫/五条悟.tscn` | `scripts/characters/动漫/咒术回战/gojo.gd` | 3000 / 80 / 135，咒力 1500（回复 90/s） |
-| 宿傩（无真身） | `scenes/characters/动漫/宿傩.tscn` | `.../sukuna.gd` | 3600 / 90 / 128，咒力 2000 |
-| 魔虚罗（独立角色，可 C 键操控，也可被宿傩召唤） | `scenes/characters/动漫/魔虚罗.tscn` | `.../mahoraga.gd` | 2600 / 70 / 110 |
-| 嵌合暗兽（阿吉托） | `scenes/characters/动漫/嵌合暗兽.tscn` | `.../agito.gd` | 1800 / 55 / 130 |
+| 五条悟 | `scenes/characters/动漫/五条悟.tscn` | `scripts/characters/动漫/咒术回战/gojo.gd` | 1200 / 24 / 135，咒力 1500（回复 90/s） |
+| 宿傩（无真身） | `scenes/characters/动漫/宿傩.tscn` | `.../sukuna.gd` | 1400 / 26 / 128，咒力 2000 |
+| 魔虚罗（独立角色，可 C 键操控，也可被宿傩召唤） | `scenes/characters/动漫/魔虚罗.tscn` | `.../mahoraga.gd` | 1000 / 22 / 110 |
+| 嵌合暗兽（阿吉托） | `scenes/characters/动漫/嵌合暗兽.tscn` | `.../agito.gd` | 700 / 16 / 130 |
 
 ## 公共机制（`jjk_base.gd`）
 - **咒力条**（角色下方紫条）；**反转术式**：缺血时持续回血并消耗咒力。
@@ -50,7 +50,19 @@
 - 宿傩：早召唤式神；对方开领域就对拼（先解除展延）；五条悟翻转就缩小领域；对方烧断时开领域；无下限在线时逼近开展延用拳头，途中用解消耗对方咒力。
 - 无头 AI 对战 20 秒左右，双方常打到只剩一两百血（`tests/test_jjk.gd` 的 `JJK_TRACE`）。
 
-## 特效（纯视觉，`jjk_vfx.gd`）
+## 数值（第二轮下调）
+- 五条悟：苍 0.2/0.2s，赫 2 / 蓄力 3.5，茈 4，200% 茈 10，拳 1.2。
+- 宿傩：解 0.8（冷却 0.55s），蜘蛛网 2，捌 1.5 + 4% 目标最大生命，开 3，拳 1.4，世界斩 4 + 20% 目标最大生命。
+- 魔虚罗：剑 1.6，突进 1.4。嵌合暗兽：撕咬 1.3，落雷 1.8。
+- 伏魔御厨子每 0.2s：0.15×攻击 + 0.25% 目标最大生命。无量空处每 0.25s：0.15×攻击 + 定身。
+
+## 特效 2.0（贴图 + 着色器 + 演出，纯视觉）
+- 素材：`Images/characters/动漫/咒术回战/vfx/`，80 张单图 `k_*` + 17 张序列帧图集 `a_*`，全部来自 OpenGameArt 的 CC0 素材包（Kenney Particle Pack / Smoke、Explosions、Fire FX、Lightning、Animated particle fx、Blue Ring Explosion 等），来源与许可见 `vfx/SOURCE.json` 与 `sources/jjk/SOURCES.json`；`tools/build_jjk_vfx.py` 负责转成加色遮罩并切图集（生成 `jjk_vfx_atlas.gd`）。
+- `jjk_vfx.gd`：`sprite / sprite_line / anim`（贴图、沿线段贴图、序列帧）；`distort`（`jjk_distort.gdshader` 屏幕折射：冲击波环 / 漩涡 / 空间错位）；`screen`（`jjk_screen.gdshader` 全屏径向模糊/色差/反色/去色/色调/暗角/闪光，全场只有一个后处理层，参数取最大值不叠加）；`cutin`（大招过场特写：黑边 + 斜向横幅 + MC 脸 + 招式名）；`shake / hitstop / zoom_punch`（调用 world 的震屏/顿帧/推镜，顿帧只在单机生效）。无头模式与兼容渲染器下自动跳过折射/后处理。
+- 过场特写：无量空处、200% 茈、伏魔御厨子、世界斩、召唤魔虚罗。
+- 常驻折射：苍的漩涡透镜、无量空处结界边缘透镜。
+
+## 特效 1.0（程序化绘制，仍作为底层）
 - 绘制库：柔光/核心贴图、叠加混合层（`BLEND_MODE_ADD`）、缓动曲线、锥形新月斩痕、中点位移闪电、火焰轮廓、渐变圆环/冲击波、可复现的轻量粒子（`Parts`）。
 - `jjk_fx.gd`：每种特效双层绘制（普通层：暗部/烟/碎片；叠加层：光/火/电/粒子）+ 多段时间轴；随机种子随 RPC 下发，各端一致。`MIN_LIFE` 只延长演出，不影响判定。
 - `jjk_domain.gd`：无量空处（瞳孔式张开、星云、闪烁星空、向心信息流、中心之眼、结界亮边、耐久裂痕、翻转金色符文）；伏魔御厨子（暗红脉动 + 边缘暗角、从地面升起的双层飞檐神龛/獠牙之口/骨堆、角色之上 z=70 闪烁斩痕）。领域根节点保持 z=-1。

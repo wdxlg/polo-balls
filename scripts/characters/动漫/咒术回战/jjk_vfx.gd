@@ -6,6 +6,9 @@ extends RefCounted
 static var _glow:Texture2D
 static var _glow_hard:Texture2D
 static var _add_mat:CanvasItemMaterial
+static var _tex_cache:Dictionary = {}
+const TEX_DIR:String = "res://Images/characters/动漫/咒术回战/vfx/"
+const ATLAS_META = preload("res://scripts/characters/动漫/咒术回战/jjk_vfx_atlas.gd")
 
 ## 柔和的径向光斑（中心亮、边缘完全透明）。
 static func glow_tex() -> Texture2D:
@@ -202,6 +205,135 @@ static func screen_rect(node:Node2D) -> Rect2:
 	var p0:Vector2 = inv * Vector2.ZERO
 	var p1:Vector2 = inv * size
 	return Rect2(p0,p1 - p0).abs().grow(40.0)
+
+# ---------------------------------------------------------------- 贴图 / 序列帧（CC0 素材，见 vfx/SOURCE.json）
+static func tex(name:String) -> Texture2D:
+	var t:Variant = _tex_cache.get(name)
+	if t == null:
+		var path:String = TEX_DIR + name + ".png"
+		t = load(path) if ResourceLoader.exists(path) else glow_tex()
+		_tex_cache[name] = t
+	return t
+
+## 单张贴图：居中于 pos，size 为直径（可用 stretch 拉伸成长条），rot 弧度。
+static func sprite(ci:CanvasItem,name:String,pos:Vector2,size:float,color:Color,rot:float = 0.0,stretch:Vector2 = Vector2.ONE) -> void:
+	if size <= 0.5 or color.a <= 0.003: return
+	ci.draw_set_transform(pos,rot,stretch)
+	ci.draw_texture_rect(tex(name),Rect2(Vector2(-size,-size) * 0.5,Vector2(size,size)),false,color)
+	ci.draw_set_transform(Vector2.ZERO,0.0,Vector2.ONE)
+
+## 沿线段铺一张贴图（长度=线段长，宽=width）。
+## vert=true 表示贴图本身是竖直方向的（Kenney trace/spark05/06）。
+static func sprite_line(ci:CanvasItem,name:String,a:Vector2,b:Vector2,width:float,color:Color,vert:bool = false) -> void:
+	var d:Vector2 = b - a
+	var l:float = d.length()
+	if l < 1.0 or width <= 0.5 or color.a <= 0.003: return
+	if vert:
+		ci.draw_set_transform((a + b) * 0.5,d.angle() + PI * 0.5,Vector2.ONE)
+		ci.draw_texture_rect(tex(name),Rect2(Vector2(-width * 0.5,-l * 0.5),Vector2(width,l)),false,color)
+	else:
+		ci.draw_set_transform((a + b) * 0.5,d.angle(),Vector2.ONE)
+		ci.draw_texture_rect(tex(name),Rect2(Vector2(-l * 0.5,-width * 0.5),Vector2(l,width)),false,color)
+	ci.draw_set_transform(Vector2.ZERO,0.0,Vector2.ONE)
+
+static func frames(name:String) -> int:
+	var m:Array = ATLAS_META.ATLAS.get(name,[1,1,1])
+	return int(m[2])
+
+## 序列帧：k 为 0..1 的播放进度（loop=true 时取小数部分）。size 为宽，高度按帧比例。
+static func anim(ci:CanvasItem,name:String,pos:Vector2,size:float,k:float,color:Color,rot:float = 0.0,loop:bool = false,stretch:Vector2 = Vector2.ONE) -> void:
+	if size <= 0.5 or color.a <= 0.003: return
+	if not loop and (k < 0.0 or k >= 1.0): return
+	var m:Array = ATLAS_META.ATLAS.get(name,[1,1,1])
+	var cols:int = int(m[0])
+	var rows:int = int(m[1])
+	var n:int = int(m[2])
+	var kk:float = fposmod(k,1.0) if loop else k
+	var f:int = clampi(int(kk * n),0,n - 1)
+	var t:Texture2D = tex(name)
+	var cell:Vector2 = t.get_size() / Vector2(cols,rows)
+	var src:Rect2 = Rect2(Vector2(f % cols,f / cols) * cell,cell)
+	var hh:float = size * cell.y / maxf(cell.x,1.0)
+	ci.draw_set_transform(pos,rot,stretch)
+	ci.draw_texture_rect_region(t,Rect2(Vector2(-size * 0.5,-hh * 0.5),Vector2(size,hh)),src,color)
+	ci.draw_set_transform(Vector2.ZERO,0.0,Vector2.ONE)
+
+# ---------------------------------------------------------------- 演出（屏幕 / 镜头），全部纯视觉
+static func _world(node:Node) -> Node:
+	if node == null or not node.is_inside_tree(): return null
+	return node.get_tree().current_scene
+
+## 空间扭曲。mode 0 冲击波环、1 漩涡、2 空间错位（a→b）。
+static func distort(node:Node,mode:int,pos:Vector2,size:Vector2,life:float,strength:float,extra:Dictionary = {}) -> Node2D:
+	if node == null or not node.is_inside_tree() or DisplayServer.get_name() == "headless": return null
+	if Engine.has_meta("jjk_no_distort") and bool(Engine.get_meta("jjk_no_distort")): return null
+	# 兼容渲染器下多个读屏节点会让整屏被反复拷贝而发糊：该渲染器只保留贴图特效。
+	if RenderingServer.get_current_rendering_method() == "gl_compatibility": return null
+	var d:Node2D = (load("res://scripts/characters/动漫/咒术回战/jjk_distort.gd") as GDScript).new()
+	d.set("mode",mode)
+	d.set("life",life)
+	d.set("size",size)
+	d.set("strength",strength)
+	for k:Variant in extra.keys(): d.set(str(k),extra[k])
+	var host:Node = _world(node)
+	if host == null: host = node
+	host.add_child(d)
+	d.global_position = pos
+	return d
+
+## 全屏后处理：peak = {blur, aberration, invert, invert_time, desat, tint, vignette, flash, flash_time}
+## 场景内共用一个后处理层（参数取最大值），Engine meta "jjk_no_screen" 可关闭（图鉴截图用）。
+static func screen(node:Node,center:Vector2,life:float,peak:Dictionary,env:Vector3 = Vector3(0.08,0.3,1.0)) -> void:
+	if node == null or not node.is_inside_tree() or DisplayServer.get_name() == "headless": return
+	if Engine.has_meta("jjk_no_screen") and bool(Engine.get_meta("jjk_no_screen")): return
+	var host:Node = _world(node)
+	if host == null: return
+	var s:Node = host.get_node_or_null("JJKScreenFX")
+	if s == null or s.is_queued_for_deletion():
+		s = (load("res://scripts/characters/动漫/咒术回战/jjk_screenfx.gd") as GDScript).new()
+		s.name = "JJKScreenFX"
+		host.add_child(s)
+	s.call("add_entry",life,center,peak,env)
+
+## 大招过场特写。
+static func cutin(node:Node,face:Texture2D,title:String,subtitle:String,color:Color,from_right:bool = false,life:float = 1.25) -> void:
+	if node == null or not node.is_inside_tree() or DisplayServer.get_name() == "headless": return
+	var host:Node = _world(node)
+	if host == null: return
+	for old:Node in host.get_children():
+		if old.name.begins_with("JJKCutin"): old.queue_free()
+	var c:CanvasLayer = (load("res://scripts/characters/动漫/咒术回战/jjk_cutin.gd") as GDScript).new()
+	c.name = "JJKCutin"
+	c.set("face",face)
+	c.set("title",title)
+	c.set("subtitle",subtitle)
+	c.set("color",color)
+	c.set("from_right",from_right)
+	c.set("life",life)
+	host.add_child(c)
+
+## 镜头震动（尊重游戏设置；像素）。dir 非零时为定向震动。
+static func shake(node:Node,pixels:float,dir:Vector2 = Vector2.ZERO) -> void:
+	var w:Node = _world(node)
+	if w == null: return
+	if dir != Vector2.ZERO and w.has_method("request_directional_camera_shake"):
+		w.call("request_directional_camera_shake",dir.normalized(),pixels,0.6)
+	elif w.has_method("add_damage_camera_shake"):
+		# add_damage_camera_shake 以 1.25*sqrt(伤害) 像素计。
+		w.call("add_damage_camera_shake",pow(pixels / 1.25,2.0))
+
+## 命中顿帧（世界自己保证只在单机生效）。strength 0..1。
+static func hitstop(node:Node,strength:float,pos:Vector2) -> void:
+	var w:Node = _world(node)
+	if w == null or not w.has_method("request_heavy_hitstop"): return
+	# threshold 随 max_health 变化；传入 max_health=100 时阈值较小，伤害按强度放大。
+	w.call("request_heavy_hitstop",60.0 + 400.0 * clampf(strength,0.0,1.0),100.0,pos)
+
+## 镜头推近一下。strength 0..1。
+static func zoom_punch(node:Node,pos:Vector2,strength:float) -> void:
+	var w:Node = _world(node)
+	if w == null or not w.has_method("request_damage_focus"): return
+	w.call("request_damage_focus",40.0 + 160.0 * clampf(strength,0.0,1.0),0.0,pos)
 
 # ---------------------------------------------------------------- 粒子
 ## 轻量粒子：kind 0=叠加光点 1=普通（烟/碎片） 2=叠加拖尾线 3=叠加四角星。

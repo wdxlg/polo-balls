@@ -9,8 +9,8 @@ script = ExtResource("2_script")
 Has_Collision_Damage = false
 Type_Tags = PackedStringArray("动漫", "咒术", "远程", "领域", "超模")
 Negative_Tags = PackedStringArray("咒力消耗")
-Max_health = 3000
-Damage = 80
+Max_health = 1200
+Damage = 24
 Speed = 135.0
 Attack_Cooling = 1.0
 Skill_Cooling = 999.0
@@ -26,5 +26,8 @@ burnout_seconds = 2.0
 [node name="Image" parent="Graphics" index="0"]
 texture_filter = 1
 texture = ExtResource("3_face")
+
+[node name="CharacterAutoFit" parent="." index="2"]
+visual_size_multiplier = 0.68
 
 [editable path="Health_Bar"]

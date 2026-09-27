@@ -64,8 +64,8 @@ func run() -> void:
 	var gojo:Node2D = spawn("五条悟.tscn","A",Vector2(200,300))
 	var sukuna:Node2D = spawn("宿傩.tscn","B",Vector2(600,300))
 	await process_frame
-	check(gojo.Max_health == 3000 and gojo.Damage == 80,"gojo stats 3000/80")
-	check(sukuna.Max_health == 3600 and sukuna.Damage == 90,"sukuna stats 3600/90")
+	check(gojo.Max_health == 1200 and gojo.Damage == 24,"gojo stats 1200/24")
+	check(sukuna.Max_health == 1400 and sukuna.Damage == 26,"sukuna stats 1400/26")
 	check((gojo.image as Sprite2D).texture != null and (gojo.image as Sprite2D).texture.get_width() == 128,"gojo minecraft face texture 128px")
 	check(gojo.player_control_extra_actions().size() == 4 and sukuna.player_control_extra_actions().size() == 5,"extra key actions 4/5")
 
@@ -99,9 +99,9 @@ func run() -> void:
 	check(gojo.release_purple(Vector2.RIGHT,0.0),"purple cast starts")
 	gojo._fire_purple()
 	var purple_dmg:int = 10000 - t1.health
-	check(purple_dmg > 0 and purple_dmg >= int(80 * 12 * 0.9),"hollow purple hits on the line (%d)" % purple_dmg)
-	check(sukuna.health == 3600 - 0 or sukuna.health < 3600,"purple line reaches sukuna too")
-	sukuna.health = 3600
+	check(purple_dmg > 0 and purple_dmg >= int(gojo.attack_damage(gojo.purple_damage_multiplier) * 0.9),"hollow purple hits on the line (%d)" % purple_dmg)
+	check(sukuna.health <= sukuna.Max_health,"purple line reaches sukuna too")
+	sukuna.health = sukuna.Max_health
 	t1.health = 10000
 	gojo.red_cd = 0.0
 	gojo.red_charge = 0.0
@@ -218,11 +218,11 @@ func run() -> void:
 	check(gojo.health < g1,"adapted sword pierces Infinity")
 	check(maho.jjk_neutralizes_infinity(gojo),"neutralizes infinity flag")
 	# 嵌合暗兽
-	maho.health = 1000
+	maho.health = maho.Max_health - 300
 	agito.deer_cd = 0.0
 	agito.cursed_energy = 800.0
 	check(agito.round_deer(),"round deer")
-	check(maho.health > 1000,"round deer heals allies")
+	check(maho.health > maho.Max_health - 300,"round deer heals allies")
 	gojo.blue_cd = 0.0
 	gojo.cursed_energy = 1000.0
 	gojo.cast_blue(agito.global_position)
@@ -304,7 +304,7 @@ func run() -> void:
 		elapsed += get_root().get_physics_process_delta_time() * 3.0 if false else 1.0 / 60.0 * 3.0
 		if not DOMAIN.active_domains(self).is_empty(): saw_domain = true
 		if is_instance_valid(g2) and is_instance_valid(s2):
-			if g2.has_meta("_jjk_last_hp") and int(g2.get_meta("_jjk_last_hp")) - g2.health > 250: print("JJK_EVT gojo_big_hit t=%.2f %d->%d" % [elapsed,int(g2.get_meta("_jjk_last_hp")),g2.health])
+			if g2.has_meta("_jjk_last_hp") and int(g2.get_meta("_jjk_last_hp")) - g2.health > 120: print("JJK_EVT gojo_big_hit t=%.2f %d->%d" % [elapsed,int(g2.get_meta("_jjk_last_hp")),g2.health])
 			g2.set_meta("_jjk_last_hp",g2.health)
 		if int(elapsed / 1.0) != int((elapsed - 0.05) / 1.0) and is_instance_valid(g2) and is_instance_valid(s2):
 			var doms:Array = []

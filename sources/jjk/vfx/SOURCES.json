@@ -1,0 +1,67 @@
+{
+ "hit1": {
+  "page": "https://opengameart.org/content/hit-animation-frame-by-frame",
+  "file": "https://opengameart.org/sites/default/files/hit%20-%20yellow.png",
+  "license": "CC0"
+ },
+ "hit2": {
+  "page": "https://opengameart.org/content/hit-animation-2-frame-by-frame",
+  "file": "https://opengameart.org/sites/default/files/Hit-Yellow.png",
+  "license": "CC0"
+ },
+ "expl1": {
+  "page": "https://opengameart.org/content/2d-explosion-animations-frame-by-frame",
+  "file": "https://opengameart.org/sites/default/files/Free%20-%202D%20Explosion%20Animations.zip",
+  "license": "CC0"
+ },
+ "expl2": {
+  "page": "https://opengameart.org/content/2d-explosion-animations-2-frame-by-frame",
+  "file": "https://opengameart.org/sites/default/files/free%20explosion%20animations%202.zip",
+  "license": "CC0"
+ },
+ "lightning": {
+  "page": "https://opengameart.org/content/lightning-animation",
+  "file": "https://opengameart.org/sites/default/files/lightning_1.zip",
+  "license": "CC0"
+ },
+ "particlefx1": {
+  "page": "https://opengameart.org/content/animated-particle-effects-1",
+  "file": "https://opengameart.org/sites/default/files/para_CC0_particlefx-1.zip",
+  "license": "CC0"
+ },
+ "beams": {
+  "page": "https://opengameart.org/content/lasers-and-beams",
+  "file": "https://opengameart.org/sites/default/files/beams.png",
+  "license": "CC0"
+ },
+ "bluering": {
+  "page": "https://opengameart.org/content/animated-blue-ring-explosion",
+  "file": "https://opengameart.org/sites/default/files/Blue%20Ring%20Explosion.zip",
+  "license": "CC0"
+ },
+ "fire": {
+  "page": "https://opengameart.org/content/fire-fx-burning-fire-animation",
+  "file": "https://opengameart.org/sites/default/files/FIRE.zip",
+  "license": "CC0"
+ },
+ "kenney_particle": {
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "file": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0"
+ },
+ "kenney_smoke": {
+  "page": "https://opengameart.org/content/smoke-particle-assets",
+  "file": "https://opengameart.org/sites/default/files/smokeParticleAssets.zip",
+  "license": "CC0"
+ },
+ "slash_hires": {
+  "page": "https://opengameart.org/content/high-resolution-slash-effects",
+  "file": "https://opengameart.org/sites/default/files/High%20res%20slashes_1.zip",
+  "license": "CC0"
+ },
+ "slash_coll": {
+  "page": "https://opengameart.org/content/slash-effect-collection",
+  "file": "https://opengameart.org/sites/default/files/Slash%20Effect%20Collection.zip",
+  "license": "CC0"
+ }
+}

@@ -46,7 +46,13 @@ func _ready() -> void:
 	life = maxf(life,float(MIN_LIFE.get(kind,0.0)))
 	_rng.seed = _seed
 	_add = V.make_add_layer(self,_draw_add)
+	if kind == "cutin":
+		var face_path:String = str(data.get("face",""))
+		V.cutin(self,load(face_path) if ResourceLoader.exists(face_path) else null,str(data.get("title","")),str(data.get("sub","")),_c("color",Color(0.5,0.7,1.0)),bool(data.get("right",false)),life)
+		life = 0.05
+		return
 	_init_kind()
+	_juice()
 
 func _process(delta:float) -> void:
 	if Game.now_stop_state: return
@@ -217,6 +223,7 @@ func _tick_kind(delta:float) -> void:
 # ================================================================= 普通层（暗部/实体）
 func _draw() -> void:
 	var k:float = _k()
+	_sprites_normal(k)
 	_parts.draw_normal(self)
 	match kind:
 		"purple_beam":
@@ -310,6 +317,7 @@ func _draw() -> void:
 func _draw_add() -> void:
 	var ci:CanvasItem = _add
 	var k:float = _k()
+	_sprites_add(ci,k)
 	match kind:
 		"ripple":
 			# 无下限：空间在接触点凝固，几圈涟漪从外向内收缩。
@@ -624,3 +632,243 @@ func _draw_text(ci:CanvasItem,additive:bool) -> void:
 	ci.draw_string_outline(font,at2,text,HORIZONTAL_ALIGNMENT_LEFT,-1,size,5,Color(0,0,0,0.9 * alpha))
 	ci.draw_string(font,at2,text,HORIZONTAL_ALIGNMENT_LEFT,-1,size,Color(c,alpha))
 	ci.draw_set_transform(Vector2.ZERO,0.0,Vector2.ONE)
+
+# ================================================================= 演出：扭曲 / 后处理 / 震屏 / 顿帧 / 推镜
+func _juice() -> void:
+	match kind:
+		"red_burst":
+			var r:float = _f("radius",80.0)
+			V.distort(self,0,_v("pos"),Vector2.ONE * r * 5.0,0.45,30.0,{"aberration":1.5})
+			V.shake(self,7.0)
+			V.zoom_punch(self,_v("pos"),0.35)
+		"purple_beam":
+			var a:Vector2 = _v("a")
+			var b:Vector2 = _v("b")
+			var w:float = _f("width",90.0)
+			var big:float = clampf(w / 90.0,0.6,2.0)
+			V.screen(self,a,life,{"blur":0.055 * big,"aberration":0.01 * big,"flash":Color(0.8,0.6,1.0,0.55),"flash_time":0.14,"vignette":0.35,"tint":Color(0.7,0.5,1.0,0.25)},Vector3(0.05,0.35,1.0))
+			V.distort(self,0,a,Vector2.ONE * w * 7.0,0.6,40.0 * big,{"aberration":2.0})
+			V.distort(self,2,a.lerp(b,0.5),Vector2(a.distance_to(b),w * 2.4),life,7.0 * big,{"rot_angle":(b - a).angle(),"aberration":1.5})
+			V.shake(self,12.0 * big,(b - a))
+			V.hitstop(self,1.0,a)
+			V.zoom_punch(self,a,0.8)
+		"cleave":
+			V.distort(self,0,_v("pos"),Vector2.ONE * _f("radius",34.0) * 5.0,0.35,14.0)
+			V.shake(self,3.0)
+		"web":
+			V.distort(self,0,_v("pos"),Vector2.ONE * _f("radius",150.0) * 2.6,0.5,16.0)
+			V.shake(self,5.0)
+		"fuga_burst":
+			var r5:float = _f("radius",160.0)
+			V.distort(self,0,_v("pos"),Vector2.ONE * r5 * 5.0,0.6,42.0,{"aberration":2.0})
+			V.screen(self,_v("pos"),0.7,{"blur":0.035,"aberration":0.007,"tint":Color(1.0,0.55,0.25,0.3),"flash":Color(1.0,0.75,0.4,0.5),"flash_time":0.1,"vignette":0.3})
+			V.shake(self,12.0)
+			V.hitstop(self,0.8,_v("pos"))
+			V.zoom_punch(self,_v("pos"),0.7)
+		"world_slash":
+			var a6:Vector2 = _v("a")
+			var b6:Vector2 = _v("b")
+			var mid:Vector2 = a6.lerp(b6,0.5)
+			V.screen(self,mid,0.9,{"invert":1.0,"invert_time":0.14,"aberration":0.016,"blur":0.025,"flash":Color(1,1,1,0.8),"flash_time":0.08,"desat":0.5},Vector3(0.02,0.25,1.0))
+			V.distort(self,2,mid,Vector2(a6.distance_to(b6),_f("width",70.0) * 4.0),life,26.0,{"rot_angle":(b6 - a6).angle(),"aberration":3.0})
+			V.shake(self,18.0,(b6 - a6).orthogonal())
+			V.hitstop(self,1.0,mid)
+			V.zoom_punch(self,mid,0.6)
+		"black_flash":
+			var p8:Vector2 = _v("pos")
+			V.screen(self,p8,0.4,{"invert":1.0,"invert_time":0.12,"aberration":0.014,"blur":0.03,"tint":Color(1.0,0.3,0.3,0.4)},Vector3(0.02,0.2,1.0))
+			V.distort(self,0,p8,Vector2.ONE * _f("radius",70.0) * 4.5,0.4,32.0,{"aberration":3.0})
+			V.shake(self,9.0)
+			V.hitstop(self,1.0,p8)
+			V.zoom_punch(self,p8,0.9)
+		"thunder":
+			var p10:Vector2 = _v("pos")
+			V.distort(self,0,p10,Vector2.ONE * _f("radius",70.0) * 4.0,0.4,20.0)
+			V.screen(self,p10,0.3,{"flash":Color(0.8,0.9,1.0,0.35),"flash_time":0.08,"aberration":0.006})
+			V.shake(self,6.0)
+		"teleport":
+			V.distort(self,0,_v("b"),Vector2.ONE * 160.0,0.35,18.0)
+		"shockwave":
+			var r13:float = _f("radius",200.0)
+			if r13 >= 60.0: V.distort(self,0,_v("pos"),Vector2.ONE * r13 * 2.3,life,16.0 + r13 * 0.04)
+		"wheel_turn":
+			V.distort(self,0,_v("pos"),Vector2.ONE * 160.0,0.5,12.0)
+
+# ================================================================= 贴图层：普通混合（烟、碎石、黑色部分）
+func _sprites_normal(k:float) -> void:
+	match kind:
+		"red_burst":
+			var r:float = _f("radius",80.0)
+			V.anim(self,"a_smoke_black",_v("pos") + Vector2(0,-r * 0.2 * k),r * 3.0,V.seg(k,0.12,1.0),Color(0.2,0.12,0.12,0.8))
+		"fuga_burst":
+			var r2:float = _f("radius",160.0)
+			V.anim(self,"a_smoke_black",_v("pos") + Vector2(0,-r2 * 0.4 * k),r2 * 3.2,V.seg(k,0.25,1.0),Color(0.15,0.1,0.08,0.75))
+		"web":
+			var r3:float = _f("radius",150.0)
+			var fade3:float = 1.0 - V.seg(k,0.5,1.0)
+			V.sprite(self,"k_dirt02",_v("pos"),r3 * 1.4 * V.out_cubic(k / 0.2),Color(0.18,0.13,0.1,0.8 * fade3),float(_seed % 7))
+			V.anim(self,"a_smoke_white",_v("pos"),r3 * 1.6,V.seg(k,0.05,1.0),Color(0.45,0.4,0.38,0.55))
+		"black_flash":
+			var r4:float = _f("radius",70.0)
+			var a4:float = 1.0 - V.seg(k,0.2,1.0)
+			V.sprite(self,"k_scorch02",_v("pos"),r4 * 2.6 * V.out_expo(k / 0.1),Color(0,0,0,0.9 * a4),t * 2.0)
+			# 黑色闪电：伸出红光之外才看得见
+			_drng.seed = _seed * 7 + int(t / 0.06)
+			for bi:int in 5:
+				var ba:float = _drng.randf() * TAU
+				var bp:Vector2 = _v("pos") + Vector2.from_angle(ba) * r4 * 1.35
+				V.sprite(self,"k_spark06" if bi % 2 == 0 else "k_spark05",bp,r4 * 2.0,Color(0,0,0,0.95 * a4),ba + PI * 0.5,Vector2(0.7,1.0))
+		"shockwave":
+			var cw:Color = _c("color",Color(0.6,0.9,1.0))
+			if cw.get_luminance() < 0.3:
+				var r5:float = _f("radius",200.0)
+				V.sprite(self,"k_smoke10",_v("pos"),r5 * 2.4 * V.out_expo(k),Color(0.05,0.03,0.08,0.7 * (1.0 - k)),t)
+		"world_slash":
+			var a6:Vector2 = _v("a")
+			var b6:Vector2 = _v("b")
+			var open:float = V.out_expo(k / 0.12) * (1.0 - V.in_cubic(V.seg(k,0.25,0.7)))
+			V.sprite_line(self,"k_trace07",a6,b6,_f("width",70.0) * 0.6 * open,Color(0,0,0,0.9 * open),true)
+
+# ================================================================= 贴图层：叠加（光、火、电）
+func _sprites_add(ci:CanvasItem,k:float) -> void:
+	match kind:
+		"ripple":
+			var p:Vector2 = _v("pos")
+			var r:float = _f("radius",24.0)
+			var c:Color = _c("color",Color(0.55,0.9,1.0))
+			V.anim(ci,"a_bluering",p,r * 4.0,k,Color(c,0.9))
+			V.sprite(ci,"k_circle02",p,r * lerpf(3.0,1.0,V.out_cubic(k)),Color(c,0.7 * (1.0 - k)))
+			V.sprite(ci,"k_star06",p,r * 2.5 * (1.0 - k),Color(1,1,1,1.0 - k),t * 3.0)
+		"red_burst":
+			var p2:Vector2 = _v("pos")
+			var r2:float = _f("radius",80.0)
+			var fl:float = 1.0 - V.seg(k,0.0,0.2)
+			V.sprite(ci,"k_light01",p2,r2 * 3.2 * (0.6 + 0.4 * fl),Color(1.0,0.3,0.15,fl))
+			V.sprite(ci,"k_scorch02",p2,r2 * 3.0 * V.out_expo(k / 0.25),Color(1.0,0.35,0.2,0.9 * (1.0 - V.seg(k,0.1,0.5))),float(_seed % 11))
+			V.anim(ci,"a_expl_fire",p2,r2 * 3.8,V.seg(k,0.0,0.85),Color(1,0.85,0.8,1.0))
+			V.anim(ci,"a_smoke_expl",p2,r2 * 2.4,V.seg(k,0.02,0.6),Color(1.0,0.4,0.3,0.7))
+		"purple_beam":
+			var a:Vector2 = _v("a")
+			var b:Vector2 = _v("b")
+			var w:float = _f("width",90.0)
+			var head:Vector2 = a.lerp(b,V.out_cubic(k / 0.35))
+			var alive:float = 1.0 - V.in_cubic(V.seg(k,0.55,1.0))
+			var thin:float = lerpf(1.0,0.15,V.seg(k,0.55,1.0))
+			# 光束主体：竖直 trace 贴图沿光束铺开 + 两条电弧
+			V.sprite_line(ci,"k_trace06",a,head,w * 2.2 * thin,Color(0.6,0.25,1.0,0.8 * alive),true)
+			V.sprite_line(ci,"k_trace07",a,head,w * 0.9 * thin,Color(0.95,0.85,1.0,alive),true)
+			V.sprite_line(ci,"k_spark07",a,head,w * 1.1 * thin,Color(0.75,0.45,1.0,0.8 * alive * (0.6 + 0.4 * sin(t * 40.0))))
+			V.anim(ci,"a_lightning",a.lerp(head,0.5),a.distance_to(head),t * 3.0,Color(0.8,0.55,1.0,0.8 * alive),(head - a).angle(),true,Vector2(1.0,w / 90.0))
+			# 前进的球
+			var orb:float = 1.0 - V.seg(k,0.35,0.55)
+			if orb > 0.0:
+				V.sprite(ci,"k_flare01",head,w * 7.0,Color(0.8,0.6,1.0,orb),0.0,Vector2(1.0,0.35))
+				V.anim(ci,"a_pfx_purple",head,w * 3.2,t * 1.4,Color(1,1,1,orb),0.0,true)
+				V.sprite(ci,"k_twirl02",head,w * 2.6,Color(0.7,0.4,1.0,orb),-t * 14.0)
+				V.sprite(ci,"k_twirl03",head,w * 1.8,Color(1.0,0.9,1.0,orb),t * 18.0)
+			# 起点：红蓝合一的爆闪
+			var st:float = 1.0 - V.seg(k,0.0,0.3)
+			V.sprite(ci,"k_light03",a,w * 4.0 * (1.0 + (1.0 - st)),Color(0.7,0.4,1.0,st))
+			V.anim(ci,"a_expl_ring",a,w * 3.5,V.seg(k,0.0,0.6),Color(0.8,0.6,1.0,0.9))
+			# 终点冲击
+			var hit:float = V.seg(k,0.3,0.9)
+			V.anim(ci,"a_pfx_purple",b,w * 4.0,hit,Color(1,1,1,1.0 - hit * 0.5))
+		"slash":
+			var a3:Vector2 = _v("a")
+			var b3:Vector2 = _v("b")
+			var col:Color = _c("color",Color(1,1,1))
+			var rev:float = V.out_expo(k / 0.3)
+			var fade3:float = 1.0 - V.in_cubic(V.seg(k,0.3,1.0))
+			var l3:float = a3.distance_to(b3)
+			var mid3:Vector2 = a3.lerp(b3,0.5)
+			V.sprite(ci,"k_slash04",mid3,l3 * 1.15 * (0.7 + 0.3 * rev),Color(col,0.9 * fade3),(b3 - a3).angle(),Vector2(1.0,0.55))
+			V.sprite(ci,"k_star08",a3.lerp(b3,rev),l3 * 0.35 * fade3,Color(1,1,1,fade3),t * 8.0)
+		"cleave":
+			var p4:Vector2 = _v("pos")
+			var r4:float = _f("radius",34.0) * 1.6
+			for cut:Variant in _cache:
+				var ang:float = float(cut[0])
+				var delay:float = float(cut[2])
+				var kk:float = V.seg(t,delay,delay + 0.3)
+				if kk <= 0.0 or kk >= 1.0: continue
+				V.sprite(ci,"k_slash04",p4,r4 * 2.6 * float(cut[1]),Color(1.0,0.35,0.4,1.0 - kk),ang,Vector2(1.0,0.4))
+			V.sprite(ci,"k_scratch01",p4,r4 * 2.4 * V.out_expo(k / 0.2),Color(1.0,0.5,0.55,1.0 - k),float(_seed % 3))
+		"web":
+			var p5:Vector2 = _v("pos")
+			var r5:float = _f("radius",150.0)
+			V.sprite(ci,"k_scratch01",p5,r5 * 1.6 * V.out_expo(k / 0.2),Color(1,0.9,0.9,0.8 * (1.0 - k)),float(_seed % 5))
+			V.sprite(ci,"k_scratch01",p5,r5 * 1.3 * V.out_expo(k / 0.2),Color(1,0.9,0.9,0.6 * (1.0 - k)),float(_seed % 5) + 1.9)
+		"fuga_burst":
+			var p6:Vector2 = _v("pos")
+			var r6:float = _f("radius",160.0)
+			var fl6:float = 1.0 - V.seg(k,0.0,0.2)
+			V.sprite(ci,"k_light01",p6,r6 * 3.4,Color(1.0,0.55,0.2,fl6))
+			V.anim(ci,"a_expl_flare",p6,r6 * 3.4,V.seg(k,0.0,0.7),Color(1,1,1,1))
+			V.anim(ci,"a_pfx_fireburst",p6 + Vector2(0,-r6 * 0.35),r6 * 2.6,V.seg(k,0.05,0.9),Color(1,0.9,0.8,0.95))
+			V.anim(ci,"a_pfx_firering",p6,r6 * 3.0,V.seg(k,0.0,0.8),Color(1,1,1,0.9))
+			for pillar:Variant in _cache:
+				var kk6:float = V.seg(k,float(pillar[2]),float(pillar[2]) + 0.55)
+				if kk6 <= 0.0 or kk6 >= 1.0: continue
+				var hs:float = float(pillar[1]) * V.out_cubic(kk6 / 0.3) * (1.0 - V.seg(kk6,0.6,1.0))
+				V.anim(ci,"a_fire",p6 + Vector2(float(pillar[0]),-r6 * 0.5 * hs),r6 * 0.7,t * 1.5 + float(pillar[0]),Color(1,1,1,0.95),0.0,true,Vector2(1.0,hs * 1.6))
+		"world_slash":
+			var a7:Vector2 = _v("a")
+			var b7:Vector2 = _v("b")
+			var w7:float = _f("width",70.0)
+			var line_a:float = 1.0 - V.seg(k,0.3,1.0)
+			V.sprite_line(ci,"k_trace06",a7,b7,w7 * 4.0 * (0.6 + 0.4 * V.out_expo(k / 0.15)),Color(0.9,0.05,0.12,0.45 * line_a),true)
+			V.sprite_line(ci,"k_trace06",a7,b7,w7 * 1.6,Color(1.0,0.3,0.4,0.7 * line_a),true)
+			V.sprite(ci,"k_flare01",a7.lerp(b7,0.5),a7.distance_to(b7) * 0.9,Color(1.0,0.4,0.45,0.8 * (1.0 - V.seg(k,0.0,0.3))),(b7 - a7).angle(),Vector2(1.0,0.12))
+			V.sprite_line(ci,"k_trace07",a7,b7,w7 * 0.5,Color(1,1,1,line_a),true)
+			V.anim(ci,"a_lightning",a7.lerp(b7,0.5),a7.distance_to(b7),t * 4.0,Color(1,0.9,0.95,0.7 * line_a),(b7 - a7).angle(),true,Vector2(1.0,0.6))
+		"black_flash":
+			var p8:Vector2 = _v("pos")
+			var r8:float = _f("radius",70.0)
+			var a8:float = 1.0 - V.seg(k,0.25,1.0)
+			V.sprite(ci,"k_scorch03",p8,r8 * 3.4 * V.out_expo(k / 0.12),Color(0.9,0.08,0.12,0.8 * a8),-t * 3.0)
+			V.sprite(ci,"k_light01",p8,r8 * 3.0,Color(0.8,0.02,0.08,0.45 * a8))
+			V.sprite(ci,"k_star08",p8,r8 * 2.2 * (1.0 - k),Color(1.0,0.85,0.85,1.0 - k),t * 4.0)
+			V.sprite(ci,"k_light02",p8,r8 * 0.9,Color(1,0.9,0.9,a8))
+			_drng.seed = _seed + int(t / 0.05)
+			for i8:int in 4:
+				var ang8:float = _drng.randf() * TAU
+				V.sprite(ci,"k_spark06",p8 + Vector2.from_angle(ang8) * r8 * 0.7,r8 * 1.6,Color(1.0,0.15,0.2,a8),ang8 + PI * 0.5,Vector2(0.6,1.0))
+		"heal":
+			var p9:Vector2 = _v("pos")
+			var r9:float = _f("radius",30.0)
+			var e9:float = V.out_back(k / 0.3)
+			var f9:float = 1.0 - V.seg(k,0.5,1.0)
+			V.sprite(ci,"k_magic02",p9,r9 * 3.4 * e9,Color(0.45,1.0,0.6,0.85 * f9),t * 1.5)
+			V.sprite(ci,"k_light03",p9,r9 * 3.0,Color(0.4,1.0,0.55,0.4 * f9))
+		"thunder":
+			var p10:Vector2 = _v("pos")
+			var r10:float = _f("radius",70.0)
+			var strikes:Array[float] = [0.0,0.18,0.34]
+			for si:int in strikes.size():
+				var kk10:float = V.seg(k,strikes[si],strikes[si] + 0.22)
+				if kk10 <= 0.0 or kk10 >= 1.0: continue
+				var top:Vector2 = p10 + Vector2((si - 1) * 30.0,-560)
+				V.sprite_line(ci,"k_spark06" if si % 2 == 0 else "k_spark05",top,p10,r10 * 1.3,Color(0.7,0.85,1.0,1.0 - kk10),true)
+				V.sprite(ci,"k_flare01",p10,r10 * 5.0,Color(0.7,0.85,1.0,1.0 - kk10),0.0,Vector2(1.0,0.3))
+			V.sprite(ci,"k_scorch01",p10,r10 * 2.4 * V.out_expo(k / 0.2),Color(0.6,0.8,1.0,0.8 * (1.0 - k)))
+		"teleport":
+			var a11:Vector2 = _v("a")
+			var b11:Vector2 = _v("b")
+			V.anim(ci,"a_bluering",a11,90.0,1.0 - k,Color(0.6,0.95,1.0,0.9))
+			V.anim(ci,"a_bluering",b11,110.0,k,Color(0.6,0.95,1.0,0.9))
+			V.sprite(ci,"k_twirl01",a11,80.0 * (1.0 - k),Color(0.6,0.95,1.0,1.0 - k),-t * 20.0)
+			V.sprite_line(ci,"k_trace07",a11,b11,24.0 * (1.0 - k),Color(0.7,0.95,1.0,0.8 * (1.0 - k)),true)
+		"wheel_turn":
+			var p12:Vector2 = _v("pos")
+			var r12:float = _f("radius",22.0)
+			var f12:float = 1.0 - V.seg(k,0.6,1.0)
+			V.anim(ci,"a_pfx_goldring",p12,r12 * 5.0,V.seg(k,0.0,0.9),Color(1,1,1,1))
+			V.sprite(ci,"k_magic02",p12,r12 * 4.0 * V.out_back(k / 0.3),Color(1.0,0.85,0.4,0.8 * f12),V.out_back(V.seg(k,0.1,0.55),2.2) * TAU / 8.0)
+			V.sprite(ci,"k_flare01",p12,r12 * 7.0,Color(1.0,0.85,0.45,0.8 * f12),0.0,Vector2(1.0,0.25))
+		"shockwave":
+			var p13:Vector2 = _v("pos")
+			var r13:float = _f("radius",200.0)
+			var c13:Color = _c("color",Color(0.6,0.9,1.0))
+			if c13.get_luminance() < 0.3: c13 = Color(0.55,0.3,0.9)
+			V.sprite(ci,"k_circle02",p13,r13 * 2.1 * V.out_expo(k),Color(c13,0.8 * (1.0 - k)))
+			V.sprite(ci,"k_circle04",p13,r13 * 1.5 * V.out_cubic(k),Color(c13,0.5 * (1.0 - k)))

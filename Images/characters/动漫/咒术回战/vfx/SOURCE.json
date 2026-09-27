@@ -1,0 +1,885 @@
+{
+ "k_circle01": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\circle_01.png"
+  ]
+ },
+ "k_circle02": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\circle_02.png"
+  ]
+ },
+ "k_circle03": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\circle_03.png"
+  ]
+ },
+ "k_circle04": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\circle_04.png"
+  ]
+ },
+ "k_circle05": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\circle_05.png"
+  ]
+ },
+ "k_dirt01": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\dirt_01.png"
+  ]
+ },
+ "k_dirt02": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\dirt_02.png"
+  ]
+ },
+ "k_dirt03": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\dirt_03.png"
+  ]
+ },
+ "k_fire01": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\fire_01.png"
+  ]
+ },
+ "k_fire02": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\fire_02.png"
+  ]
+ },
+ "k_flame01": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\flame_01.png"
+  ]
+ },
+ "k_flame02": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\flame_02.png"
+  ]
+ },
+ "k_flame03": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\flame_03.png"
+  ]
+ },
+ "k_flame04": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\flame_04.png"
+  ]
+ },
+ "k_flame05": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\flame_05.png"
+  ]
+ },
+ "k_flame06": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\flame_06.png"
+  ]
+ },
+ "k_flare01": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\flare_01.png"
+  ]
+ },
+ "k_light01": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\light_01.png"
+  ]
+ },
+ "k_light02": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\light_02.png"
+  ]
+ },
+ "k_light03": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\light_03.png"
+  ]
+ },
+ "k_magic01": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\magic_01.png"
+  ]
+ },
+ "k_magic02": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\magic_02.png"
+  ]
+ },
+ "k_magic03": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\magic_03.png"
+  ]
+ },
+ "k_magic04": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\magic_04.png"
+  ]
+ },
+ "k_magic05": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\magic_05.png"
+  ]
+ },
+ "k_muzzle01": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\muzzle_01.png"
+  ]
+ },
+ "k_muzzle02": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\muzzle_02.png"
+  ]
+ },
+ "k_muzzle03": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\muzzle_03.png"
+  ]
+ },
+ "k_muzzle04": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\muzzle_04.png"
+  ]
+ },
+ "k_muzzle05": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\muzzle_05.png"
+  ]
+ },
+ "k_scorch01": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\scorch_01.png"
+  ]
+ },
+ "k_scorch02": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\scorch_02.png"
+  ]
+ },
+ "k_scorch03": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\scorch_03.png"
+  ]
+ },
+ "k_scratch01": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\scratch_01.png"
+  ]
+ },
+ "k_slash01": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\slash_01.png"
+  ]
+ },
+ "k_slash02": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\slash_02.png"
+  ]
+ },
+ "k_slash03": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\slash_03.png"
+  ]
+ },
+ "k_slash04": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\slash_04.png"
+  ]
+ },
+ "k_smoke01": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\smoke_01.png"
+  ]
+ },
+ "k_smoke02": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\smoke_02.png"
+  ]
+ },
+ "k_smoke03": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\smoke_03.png"
+  ]
+ },
+ "k_smoke04": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\smoke_04.png"
+  ]
+ },
+ "k_smoke05": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\smoke_05.png"
+  ]
+ },
+ "k_smoke06": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\smoke_06.png"
+  ]
+ },
+ "k_smoke07": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\smoke_07.png"
+  ]
+ },
+ "k_smoke08": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\smoke_08.png"
+  ]
+ },
+ "k_smoke09": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\smoke_09.png"
+  ]
+ },
+ "k_smoke10": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\smoke_10.png"
+  ]
+ },
+ "k_spark01": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\spark_01.png"
+  ]
+ },
+ "k_spark02": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\spark_02.png"
+  ]
+ },
+ "k_spark03": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\spark_03.png"
+  ]
+ },
+ "k_spark04": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\spark_04.png"
+  ]
+ },
+ "k_spark05": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\spark_05.png"
+  ]
+ },
+ "k_spark06": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\spark_06.png"
+  ]
+ },
+ "k_spark07": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\spark_07.png"
+  ]
+ },
+ "k_star01": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\star_01.png"
+  ]
+ },
+ "k_star02": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\star_02.png"
+  ]
+ },
+ "k_star03": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\star_03.png"
+  ]
+ },
+ "k_star04": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\star_04.png"
+  ]
+ },
+ "k_star05": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\star_05.png"
+  ]
+ },
+ "k_star06": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\star_06.png"
+  ]
+ },
+ "k_star07": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\star_07.png"
+  ]
+ },
+ "k_star08": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\star_08.png"
+  ]
+ },
+ "k_star09": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\star_09.png"
+  ]
+ },
+ "k_symbol01": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\symbol_01.png"
+  ]
+ },
+ "k_symbol02": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\symbol_02.png"
+  ]
+ },
+ "k_trace01": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\trace_01.png"
+  ]
+ },
+ "k_trace02": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\trace_02.png"
+  ]
+ },
+ "k_trace03": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\trace_03.png"
+  ]
+ },
+ "k_trace04": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\trace_04.png"
+  ]
+ },
+ "k_trace05": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\trace_05.png"
+  ]
+ },
+ "k_trace06": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\trace_06.png"
+  ]
+ },
+ "k_trace07": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\trace_07.png"
+  ]
+ },
+ "k_twirl01": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\twirl_01.png"
+  ]
+ },
+ "k_twirl02": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\twirl_02.png"
+  ]
+ },
+ "k_twirl03": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\twirl_03.png"
+  ]
+ },
+ "k_window01": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\window_01.png"
+  ]
+ },
+ "k_window02": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\window_02.png"
+  ]
+ },
+ "k_window03": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\window_03.png"
+  ]
+ },
+ "k_window04": {
+  "pack": "kenney_particle",
+  "page": "https://opengameart.org/content/particle-pack-80-sprites",
+  "download": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+  "license": "CC0",
+  "files": [
+   "PNG\\window_04.png"
+  ]
+ },
+ "a_expl_fire": {
+  "pack": "expl2",
+  "page": "https://opengameart.org/content/2d-explosion-animations-2-frame-by-frame",
+  "download": "https://opengameart.org/sites/default/files/free%20explosion%20animations%202.zip",
+  "license": "CC0",
+  "files": [
+   "Half Sized/1.png"
+  ]
+ },
+ "a_expl_flare": {
+  "pack": "expl1",
+  "page": "https://opengameart.org/content/2d-explosion-animations-frame-by-frame",
+  "download": "https://opengameart.org/sites/default/files/Free%20-%202D%20Explosion%20Animations.zip",
+  "license": "CC0",
+  "files": [
+   "Half Sized/explosion 2.png"
+  ]
+ },
+ "a_expl_ring": {
+  "pack": "expl2",
+  "page": "https://opengameart.org/content/2d-explosion-animations-2-frame-by-frame",
+  "download": "https://opengameart.org/sites/default/files/free%20explosion%20animations%202.zip",
+  "license": "CC0",
+  "files": [
+   "Half Sized/4.png"
+  ]
+ },
+ "a_hit": {
+  "pack": "hit2",
+  "page": "https://opengameart.org/content/hit-animation-2-frame-by-frame",
+  "download": "https://opengameart.org/sites/default/files/Hit-Yellow.png",
+  "license": "CC0",
+  "files": [
+   "Hit-Yellow.png"
+  ]
+ },
+ "a_hit_arc": {
+  "pack": "hit1",
+  "page": "https://opengameart.org/content/hit-animation-frame-by-frame",
+  "download": "https://opengameart.org/sites/default/files/hit%20-%20yellow.png",
+  "license": "CC0",
+  "files": [
+   "hit - yellow.png"
+  ]
+ },
+ "a_pfx_purple": {
+  "pack": "particlefx1",
+  "page": "https://opengameart.org/content/animated-particle-effects-1",
+  "download": "https://opengameart.org/sites/default/files/para_CC0_particlefx-1.zip",
+  "license": "CC0",
+  "files": [
+   "particlefx_08.png"
+  ]
+ },
+ "a_pfx_firering": {
+  "pack": "particlefx1",
+  "page": "https://opengameart.org/content/animated-particle-effects-1",
+  "download": "https://opengameart.org/sites/default/files/para_CC0_particlefx-1.zip",
+  "license": "CC0",
+  "files": [
+   "particlefx_09.png"
+  ]
+ },
+ "a_pfx_goldring": {
+  "pack": "particlefx1",
+  "page": "https://opengameart.org/content/animated-particle-effects-1",
+  "download": "https://opengameart.org/sites/default/files/para_CC0_particlefx-1.zip",
+  "license": "CC0",
+  "files": [
+   "particlefx_13.png"
+  ]
+ },
+ "a_pfx_cyan": {
+  "pack": "particlefx1",
+  "page": "https://opengameart.org/content/animated-particle-effects-1",
+  "download": "https://opengameart.org/sites/default/files/para_CC0_particlefx-1.zip",
+  "license": "CC0",
+  "files": [
+   "particlefx_14.png"
+  ]
+ },
+ "a_pfx_fireburst": {
+  "pack": "particlefx1",
+  "page": "https://opengameart.org/content/animated-particle-effects-1",
+  "download": "https://opengameart.org/sites/default/files/para_CC0_particlefx-1.zip",
+  "license": "CC0",
+  "files": [
+   "particlefx_10.png"
+  ]
+ },
+ "a_pfx_sparkring": {
+  "pack": "particlefx1",
+  "page": "https://opengameart.org/content/animated-particle-effects-1",
+  "download": "https://opengameart.org/sites/default/files/para_CC0_particlefx-1.zip",
+  "license": "CC0",
+  "files": [
+   "particlefx_01.png"
+  ]
+ },
+ "a_lightning": {
+  "pack": "lightning",
+  "page": "https://opengameart.org/content/lightning-animation",
+  "download": "https://opengameart.org/sites/default/files/lightning_1.zip",
+  "license": "CC0",
+  "files": [
+   "lightning/0.png",
+   "lightning/1.png",
+   "lightning/2.png",
+   "lightning/3.png",
+   "lightning/4.png",
+   "lightning/5.png",
+   "lightning/6.png",
+   "lightning/7.png",
+   "lightning/8.png",
+   "lightning/9.png",
+   "lightning/10.png"
+  ]
+ },
+ "a_bluering": {
+  "pack": "bluering",
+  "page": "https://opengameart.org/content/animated-blue-ring-explosion",
+  "download": "https://opengameart.org/sites/default/files/Blue%20Ring%20Explosion.zip",
+  "license": "CC0",
+  "files": [
+   "Blue Ring Explosion1..19.png"
+  ]
+ },
+ "a_fire": {
+  "pack": "fire",
+  "page": "https://opengameart.org/content/fire-fx-burning-fire-animation",
+  "download": "https://opengameart.org/sites/default/files/FIRE.zip",
+  "license": "CC0",
+  "files": [
+   "fire_1_40/fire_1b_40_*.png"
+  ]
+ },
+ "a_smoke_black": {
+  "pack": "kenney_smoke",
+  "page": "https://opengameart.org/content/smoke-particle-assets",
+  "download": "https://opengameart.org/sites/default/files/smokeParticleAssets.zip",
+  "license": "CC0",
+  "files": [
+   "Black smoke/blackSmoke00..24.png (every 2nd)"
+  ]
+ },
+ "a_smoke_expl": {
+  "pack": "kenney_smoke",
+  "page": "https://opengameart.org/content/smoke-particle-assets",
+  "download": "https://opengameart.org/sites/default/files/smokeParticleAssets.zip",
+  "license": "CC0",
+  "files": [
+   "Explosion/explosion00..08.png"
+  ]
+ },
+ "a_smoke_white": {
+  "pack": "kenney_smoke",
+  "page": "https://opengameart.org/content/smoke-particle-assets",
+  "download": "https://opengameart.org/sites/default/files/smokeParticleAssets.zip",
+  "license": "CC0",
+  "files": [
+   "White puff/whitePuff00..24.png (every 2nd)"
+  ]
+ }
+}
