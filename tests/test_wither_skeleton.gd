@@ -92,13 +92,15 @@ func run() -> void:
 				actor.visual_mob()
 				var tip:Vector2 = actor._sword.global_transform*Vector2(10.5,-10.5)
 				var grip:Vector2 = actor._sword.global_position
-				check(absf(tip.x-grip.x)<0.01 and is_equal_approx(grip.y-tip.y,20.0),"idle/walking sword points straight up, unchanged 20-unit length, both facings")
+				var diagonal:Vector2 = (tip-grip).normalized()
+				check(is_equal_approx(absf(diagonal.x),sqrt(0.5)) and is_equal_approx(diagonal.y,-sqrt(0.5)) and is_equal_approx(grip.distance_to(tip),20.0),"idle/walking sword points diagonally 45deg up-forward, unchanged 20-unit length, both facings")
+				check(diagonal.x*(1.0 if actor._face_right else -1.0)>0.7 and absf(diagonal.x)>0.7,"diagonal held sword leans outward from each facing and is never vertical")
 				var xy:Array = actor.POSES.HANDS[str(actor._body_clip)][actor._body_frame]
 				var hand:Vector2 = Vector2(float(xy[0])-80.0,float(xy[1])-112.0)+actor.image.offset
 				if actor._face_right: hand.x = -hand.x
-				check((actor.image.global_transform*hand).distance_to(grip)<0.01,"upright held sword stays attached to enlarged original hand")
-				check(tip.distance_to(actor.blade_segment(-1.0).end)<0.01,"upright render tip and geometry endpoint agree")
-				check(actor.get_debug_attack_regions().is_empty() and not actor._arm.visible,"idle/walk upright pose adds no damage or duplicate arm")
+				check((actor.image.global_transform*hand).distance_to(grip)<0.01,"diagonal held sword stays attached to enlarged original hand")
+				check(tip.distance_to(actor.blade_segment(-1.0).end)<0.01,"diagonal render tip and geometry endpoint agree")
+				check(actor.get_debug_attack_regions().is_empty() and not actor._arm.visible,"idle/walk diagonal pose adds no damage or duplicate arm")
 	actor._walking = false
 	actor._view_clock = 0.0
 	actor.direction = saved_direction
@@ -380,8 +382,8 @@ func run() -> void:
 			angle_before = angle_now
 		check(turns[0]>turns[1] and turns[1]>turns[2] and turns[2]>turns[3] and turns[0]>4.0*turns[3],"spin starts fastest and continuously decelerates toward rest")
 		check(absf(wrapf(previous_angle-actor.rest_angle(),-PI,PI))<0.001,"unwrapped full spin ends at resting blade angle")
-		# Same sine easing/time. Upright rest changes the alignment arc; a full
-		# revolution + alignment is <720deg, hence <43deg/tick at 60Hz/0.44s.
+		# Same sine easing/time. Diagonal rest still aligns after one full revolution;
+		# <720deg total travel implies <43deg/tick at 60Hz/0.44s.
 		var max_step:float = 0.0
 		var before_angle:float = actor.blade_angle(actor.COMBO_DURATION)
 		var before_hand:Vector2 = actor.hand_position(actor.COMBO_DURATION)
@@ -407,7 +409,7 @@ func run() -> void:
 				before_angle = angle
 		var total_turn:float = absf(actor.blade_angle(actor.RECOVER_END)-start_angle)
 		var peak_step:float = total_turn*PI*0.5/((actor.RECOVER_END-actor.COMBO_DURATION)*60.0)
-		check(max_step <= peak_step+0.00001 and max_step < deg_to_rad(43.0),"upright recovery stays inside continuous sine angular-step bound at 60Hz")
+		check(max_step <= peak_step+0.00001 and max_step < deg_to_rad(43.0),"diagonal recovery stays inside continuous sine angular-step bound at 60Hz")
 		check(max_hand_step/actor.BODY_ENLARGEMENT < 1.0 and one_texture,"body-relative recovery wrist continuity preserved without swapping arm textures")
 		print("WITHER_SKELETON_BODY_RECOVERY direction=%d max_degrees=%f hand_step=%f body_relative=%f" % [i,rad_to_deg(max_step),max_hand_step,max_hand_step/actor.BODY_ENLARGEMENT])
 		check(anchors_match,"continuous recovery texture still joins the visible sword grip")

@@ -366,7 +366,9 @@ func _recovery_progress(t:float) -> float:
 	t = clampf(t,0.0,1.0)
 	return sin(t*PI*0.5) # Positive, decreasing speed; zero velocity at the resting end.
 
-func rest_angle(_aim:Vector2 = Vector2.ZERO) -> float: return -PI*0.5 # Upright held sword on BOTH facings, also the recovery endpoint.
+func rest_angle(aim:Vector2 = Vector2.ZERO) -> float:
+	# Rest the 20-unit sword diagonally: 45deg up-forward from each hand, not straight vertical.
+	return -PI*0.25 if _geometry_face_right(aim) else -PI*0.75
 
 func blade_angle(time:float,aim:Vector2 = Vector2.ZERO) -> float:
 	if time < 0.0: return rest_angle(aim)
