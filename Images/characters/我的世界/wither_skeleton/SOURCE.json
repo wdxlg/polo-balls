@@ -1,0 +1,148 @@
+{
+  "owner": "Mojang / Microsoft",
+  "license": "Original Minecraft assets: Minecraft EULA/Usage Guidelines; not freely redistributable. No AI-generated or repainted source assets.",
+  "bedrock_commit": "736072450c26a7c67f07b1661f29d9a5ebaa14b1",
+  "java_audio_version": "1.21.4",
+  "asset_index": "https://piston-meta.mojang.com/v1/packages/f08a9f07a863fe31e36f76f19b261cd0648b3c5a/19.json",
+  "renderer": "Existing bake_native_mobs.Baker + BatchBaker matrices; original wither-skeleton model and Molang clips, fixed orthographic projection. Runtime stone sword is a separate held item with gameplay-directed swing.",
+  "files": [
+    {
+      "file": "Images/characters/我的世界/wither_skeleton/source/wither_skeleton.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/entity/skeleton/wither_skeleton.png",
+      "sha256": "fdfae927fd8ad6e4fc991f756488d5ca00b83e8a894f4c28eceb33475ce8f9b1",
+      "sha1": "bd84dd8438832b15994ef2dfca72db80bea08bf5",
+      "size": 728
+    },
+    {
+      "file": "Images/characters/我的世界/wither_skeleton/stone_sword.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/items/stone_sword.png",
+      "sha256": "675495afbe03f3c63a78e72b581743314f0ac02a12e43b24a5b2bd1267fce949",
+      "sha1": "0e0a283276c06d31eae070c4eab49b24a500ab77",
+      "size": 225
+    },
+    {
+      "file": "Images/characters/我的世界/wither_skeleton/source/wither_skeleton.geo.json",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/models/entity/wither_skeleton.geo.json",
+      "sha256": "9a0a512aa7cc834852bcc44765c0fbd39993f44bc47b80e7d797cb867b9480f3",
+      "sha1": "40e102607f855d17dc2861ca6aca5b51b5c2fdaf",
+      "size": 2562
+    },
+    {
+      "file": "Images/characters/我的世界/wither_skeleton/source/wither_skeleton.animation.json",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/animations/wither_skeleton.animation.json",
+      "sha256": "f522bba319f37f8213ab530609e8a00778ea26367202a5d5e45f0a46aebf2668",
+      "sha1": "2ec50596f05606fa5a4a367c1a7779a3b6ad2764",
+      "size": 952
+    },
+    {
+      "file": "Images/characters/我的世界/wither_skeleton/source/humanoid.animation.json",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/animations/humanoid.animation.json",
+      "sha256": "4059e76703386ec92b4a66e863507fd17417c7398bad071c2e0e6ffec8363a44",
+      "sha1": "130858babbc4cb509e647d3865e03e3fdabceda9",
+      "size": 19003
+    },
+    {
+      "file": "Images/characters/我的世界/wither_skeleton/source/wither_skeleton.entity.json",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/entity/wither_skeleton.entity.json",
+      "sha256": "cbf9622b50518d3157535daa3406bacbed8773f03fe2c3c1840b51ccc905dd98",
+      "sha1": "b612fcc9887489b08884c955536586d2abbf0cfc",
+      "size": 3564
+    },
+    {
+      "file": "audio/characters/我的世界/wither_skeleton/death1.ogg",
+      "url": "https://resources.download.minecraft.net/5c/5c016e18ac7a942da00fa06522166b6210c8b3e6",
+      "sha256": "1c9969d34189363af085f3c485792b555d06c294e7f236f85f914dc3cf194955",
+      "sha1": "5c016e18ac7a942da00fa06522166b6210c8b3e6",
+      "size": 16193
+    },
+    {
+      "file": "audio/characters/我的世界/wither_skeleton/death2.ogg",
+      "url": "https://resources.download.minecraft.net/5f/5f37a9b5e066526cf6cd755a74d48219799e16f6",
+      "sha256": "c796f10e2df64718147d5ebf4d42995d0ada0d88fcb19b090d61f69731e79b8f",
+      "sha1": "5f37a9b5e066526cf6cd755a74d48219799e16f6",
+      "size": 16987
+    },
+    {
+      "file": "audio/characters/我的世界/wither_skeleton/hurt1.ogg",
+      "url": "https://resources.download.minecraft.net/ac/aca61491c1ed4f91b2f97ad221ba279cb7629579",
+      "sha256": "9feded550b9c0edcf9d8145212ce93da63e72f26b881cd67e15432cddbfffea4",
+      "sha1": "aca61491c1ed4f91b2f97ad221ba279cb7629579",
+      "size": 14341
+    },
+    {
+      "file": "audio/characters/我的世界/wither_skeleton/hurt2.ogg",
+      "url": "https://resources.download.minecraft.net/bb/bbd08e5b85eed19819e376c79f01255b62ae52a1",
+      "sha256": "5991d158b440f9ef55b897e47ee9b9b5af1c32f1f801d062dc1177cd32802bf5",
+      "sha1": "bbd08e5b85eed19819e376c79f01255b62ae52a1",
+      "size": 12684
+    },
+    {
+      "file": "audio/characters/我的世界/wither_skeleton/hurt3.ogg",
+      "url": "https://resources.download.minecraft.net/1b/1b89e9af6ef35f52b41be1a3acbc0bafd8e7df40",
+      "sha256": "7e6f5fd5ba78da56fea10b7411b9f816f659a4aa8b5ca0c7e933fff6d1231316",
+      "sha1": "1b89e9af6ef35f52b41be1a3acbc0bafd8e7df40",
+      "size": 11526
+    },
+    {
+      "file": "audio/characters/我的世界/wither_skeleton/hurt4.ogg",
+      "url": "https://resources.download.minecraft.net/52/52219b8a45a0371ebd3601efd5deac6df63a8175",
+      "sha256": "860ab55c043673fe4bb1e4d5547a319a87aa2725c3792a50e2399976265c752c",
+      "sha1": "52219b8a45a0371ebd3601efd5deac6df63a8175",
+      "size": 12479
+    },
+    {
+      "file": "audio/characters/我的世界/wither_skeleton/idle1.ogg",
+      "url": "https://resources.download.minecraft.net/54/54b9403fc2362a9fc28b67e7f34f7c3efdfe0dce",
+      "sha256": "33f48ff0eeef679ca157a7764a1c0c1e40ac90b328c1abc86aa7d5f40e56aca7",
+      "sha1": "54b9403fc2362a9fc28b67e7f34f7c3efdfe0dce",
+      "size": 12111
+    },
+    {
+      "file": "audio/characters/我的世界/wither_skeleton/idle2.ogg",
+      "url": "https://resources.download.minecraft.net/63/63c3efe76ca17085f67edb073a762c5891dfe2d1",
+      "sha256": "f6be1f9873bd9615637a4840069ba6154a962c829f4890bbf0afabd1e0d66591",
+      "sha1": "63c3efe76ca17085f67edb073a762c5891dfe2d1",
+      "size": 13127
+    },
+    {
+      "file": "audio/characters/我的世界/wither_skeleton/idle3.ogg",
+      "url": "https://resources.download.minecraft.net/cd/cdcd8fab475fd1b753231cc3f8d285e246f72c63",
+      "sha256": "5033954ef0f9b44e737fe8370acfc58ae9b1d60d2252d4747ffba06c1fea9c07",
+      "sha1": "cdcd8fab475fd1b753231cc3f8d285e246f72c63",
+      "size": 11701
+    },
+    {
+      "file": "audio/characters/我的世界/wither_skeleton/step1.ogg",
+      "url": "https://resources.download.minecraft.net/c9/c9fc431f36c1d5798bd8a6a28758dc81229fd3fa",
+      "sha256": "1e4ed1187e500e06c8defe6956f4e51a16dd002ac61e8ce88e6b9c0d5bad1d38",
+      "sha1": "c9fc431f36c1d5798bd8a6a28758dc81229fd3fa",
+      "size": 8990
+    },
+    {
+      "file": "audio/characters/我的世界/wither_skeleton/step2.ogg",
+      "url": "https://resources.download.minecraft.net/a6/a6bc97e54bc4eaa1cbe8fd6b2d1c26359a481b7a",
+      "sha256": "c3f3d1ad171b26494a443275fecf43f2a66d37341e3e74fb1a8081ffb2338827",
+      "sha1": "a6bc97e54bc4eaa1cbe8fd6b2d1c26359a481b7a",
+      "size": 8785
+    },
+    {
+      "file": "audio/characters/我的世界/wither_skeleton/step3.ogg",
+      "url": "https://resources.download.minecraft.net/ab/ab4688cc0739633a0fe61ef747073fed02ec5f87",
+      "sha256": "a52614f455600df1b6eea9ea8fcff4b9649083ec6910a4db4f29434fafab606c",
+      "sha1": "ab4688cc0739633a0fe61ef747073fed02ec5f87",
+      "size": 9047
+    },
+    {
+      "file": "audio/characters/我的世界/wither_skeleton/step4.ogg",
+      "url": "https://resources.download.minecraft.net/6d/6d45eef09a06f1c16bbb90c8f4a6be1fcb5a12df",
+      "sha256": "038f5a26b5defc09ab840949146a9234ef2fd2b1819dbc3e1586a4b5d161b8ff",
+      "sha1": "6d45eef09a06f1c16bbb90c8f4a6be1fcb5a12df",
+      "size": 9542
+    }
+  ],
+  "clips": {
+    "idle": 16,
+    "walk": 16,
+    "attack": 16
+  }
+}
