@@ -261,22 +261,54 @@ func accept_visual(data:Dictionary) -> void:
 	_swing_dir = data.get("sd",_swing_dir)
 
 func draw_overlay(o:Node2D) -> void:
-	# 头顶八握法阵：每完成一次适应转 1/8 圈，转动中逐渐旋转。
+	# 头顶八握法阵：每完成一次适应转 1/8 圈；转动中逐渐旋转。
 	var c:Vector2 = global_position + Vector2(0,-44)
 	var angle:float = (wheel_turns + (wheel_progress if not wheel_key.is_empty() else 0.0)) * TAU / 8.0
-	var gold:Color = Color(0.95,0.8,0.35,0.95)
-	o.draw_arc(c,14.0,0.0,TAU,24,gold,2.0,true)
-	o.draw_circle(c,3.5,gold)
+	var gold:Color = Color(0.95,0.78,0.3,0.95)
+	var dark:Color = Color(0.35,0.25,0.05,0.9)
+	o.draw_arc(c,15.0,0.0,TAU,32,dark,4.0,true)
+	o.draw_arc(c,15.0,0.0,TAU,32,gold,2.0,true)
+	o.draw_arc(c,6.0,0.0,TAU,16,gold,1.5,true)
 	for i:int in 8:
 		var a:float = angle + TAU * i / 8.0
 		var dir:Vector2 = Vector2.from_angle(a)
-		o.draw_line(c + dir * 3.5,c + dir * 20.0,gold,2.0)
-		o.draw_circle(c + dir * 20.0,2.6,gold)
-	if not wheel_key.is_empty():
-		o.draw_arc(c,24.0,-PI / 2.0,-PI / 2.0 + TAU * wheel_progress,24,Color(1,1,0.7,0.9),2.0,true)
+		o.draw_line(c + dir * 6.0,c + dir * 21.0,dark,4.0,true)
+		o.draw_line(c + dir * 6.0,c + dir * 21.0,gold,2.0,true)
+		var knob:PackedVector2Array = [c + dir * 25.0,c + dir * 21.0 + dir.orthogonal() * 3.0,c + dir * 18.5,c + dir * 21.0 - dir.orthogonal() * 3.0]
+		o.draw_colored_polygon(knob,gold)
+
+func _swing_arc(o:Node2D,r:float,w:float,col:Color) -> void:
+	if w < 1.5: return
+	var a0:float = _swing_dir.angle() - 1.0
+	var a1:float = _swing_dir.angle() + 1.0
+	var outer:PackedVector2Array = []
+	var inner:PackedVector2Array = []
+	for i:int in 21:
+		var u:float = float(i) / 20.0
+		var a:float = lerpf(a0,a1,u)
+		var th:float = w * sin(PI * u) * (0.4 + 0.6 * u)
+		outer.append(global_position + Vector2.from_angle(a) * (r + th * 0.5))
+		inner.append(global_position + Vector2.from_angle(a) * (r - th * 0.5))
+	inner.reverse()
+	var poly:PackedVector2Array = outer + inner.slice(1,inner.size() - 1)
+	o.draw_colored_polygon(poly,col)
+
+func draw_overlay_add(o:Node2D) -> void:
+	var t:float = _view_clock
+	var c:Vector2 = global_position + Vector2(0,-44)
+	var turning:bool = not wheel_key.is_empty()
+	V.glow(o,c,(34.0 if turning else 24.0) * (1.0 + 0.08 * sin(t * 6.0)),Color(1.0,0.8,0.35,0.55 if turning else 0.3))
+	if turning:
+		o.draw_arc(c,28.0,-PI / 2.0,-PI / 2.0 + TAU * wheel_progress,32,Color(1,0.95,0.6,0.95),2.5,true)
+		var tip:Vector2 = c + Vector2.from_angle(-PI / 2.0 + TAU * wheel_progress) * 28.0
+		V.glow(o,tip,10.0,Color(1,0.95,0.7,1))
+		for i:int in 8:
+			var a:float = t * 0.8 + TAU * i / 8.0
+			V.streak(o,c,c + Vector2.from_angle(a) * 40.0,4.0,Color(1.0,0.85,0.45,0.3))
 	if _swing_visual > 0.0:
-		var k:float = _swing_visual / 0.25
-		o.draw_arc(global_position,sword_range * 0.9,_swing_dir.angle() - 1.0,_swing_dir.angle() + 1.0,20,Color(1,0.97,0.8,0.8 * k),6.0 * k + 1.0,true)
+		var k:float = clampf(_swing_visual / 0.25,0.0,1.0)
+		_swing_arc(o,sword_range * 0.9,26.0 * k,Color(1.0,0.9,0.6,0.45 * k))
+		_swing_arc(o,sword_range * 0.9,9.0 * k,Color(1,1,1,0.95 * k))
 
 func get_armor_test_effect_summary() -> String:
 	if JJK.english():

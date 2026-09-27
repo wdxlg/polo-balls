@@ -514,29 +514,110 @@ func accept_visual(data:Dictionary) -> void:
 	purple_charge = float(data.get("pc",-1.0))
 	_purple_pending_200 = bool(data.get("p2",false))
 
-func draw_overlay(o:Node2D) -> void:
-	var t:float = _view_clock
-	if infinity_active():
-		o.draw_arc(global_position,26.0,0.0,TAU,40,Color(0.6,0.9,1.0,0.18 + 0.08 * sin(t * 4.0)),1.5,true)
+func _red_charge_pos() -> Vector2:
+	return global_position + (aim_dir(direction) if is_multiplayer_authority() else direction.normalized()) * 26.0
+
+func _purple_center() -> Vector2:
+	return global_position + Vector2(0,-34)
+
+func visual_particles(_dt:float) -> void:
 	if blue_active:
 		var r:float = blue_max_radius if blue_max else blue_radius
-		o.draw_circle(blue_pos,r,Color(0.1,0.25,0.9,0.08))
-		for i:int in 5:
-			var a:float = -t * (3.0 + i) + i * 1.3
-			o.draw_arc(blue_pos,r * (0.25 + 0.15 * i),a,a + 2.0,24,Color(0.3,0.55,1.0,0.55),2.0,true)
-		o.draw_circle(blue_pos,10.0 + (6.0 if blue_max else 0.0),Color(0.2,0.45,1.0,0.95))
-		o.draw_circle(blue_pos,4.0,Color(0.9,0.95,1.0))
+		for i:int in (3 if blue_max else 2):
+			var a:float = _vrng.randf() * TAU
+			var from:Vector2 = blue_pos + Vector2.from_angle(a) * r * _vrng.randf_range(0.7,1.05)
+			var vel:Vector2 = (blue_pos - from) * 1.6 + (blue_pos - from).orthogonal() * 1.2
+			vparts.emit(from,vel,0.6,_vrng.randf_range(1.5,3.0),Color(0.45,0.7,1.0),2,0.0)
+	if red_charge >= 0.0:
+		var p:Vector2 = _red_charge_pos()
+		var a2:float = _vrng.randf() * TAU
+		var from2:Vector2 = p + Vector2.from_angle(a2) * _vrng.randf_range(26,44)
+		vparts.emit(from2,(p - from2) * 3.2,0.3,2.0,Color(1.0,0.35,0.25),2,0.0)
+	if purple_charge >= 0.0:
+		var c:Vector2 = _purple_center()
+		var a3:float = _vrng.randf() * TAU
+		var from3:Vector2 = c + Vector2.from_angle(a3) * _vrng.randf_range(30,60)
+		vparts.emit(from3,(c - from3) * 2.5,0.4,2.0,Color(0.75,0.5,1.0),2,0.0)
+
+func draw_overlay(o:Node2D) -> void:
+	if blue_active:
+		# 苍：空间被吸向中心的黑洞感（普通层先压暗中心）。
+		var r:float = blue_max_radius if blue_max else blue_radius
+		V.ring(o,blue_pos,0.0,r * 0.5,Color(0.0,0.02,0.1,0.45),Color(0.0,0.02,0.1,0.0),40)
+
+func draw_overlay_add(o:Node2D) -> void:
+	var t:float = _view_clock
+	if infinity_active():
+		# 无下限：极淡的蓝色空间折射，偶尔闪过一圈。
+		var sh:float = 0.5 + 0.5 * sin(t * 3.0)
+		V.ring(o,global_position,20.0,28.0,Color(0.5,0.85,1.0,0.0),Color(0.5,0.85,1.0,0.12 + 0.08 * sh),40)
+		for i:int in 3:
+			var a:float = t * (1.2 + 0.4 * i) + i * 2.1
+			o.draw_arc(global_position,27.0 + i,a,a + 0.5,10,Color(0.7,0.95,1.0,0.35),1.0,true)
+	if blue_active:
+		var r:float = blue_max_radius if blue_max else blue_radius
+		var s:float = 1.25 if blue_max else 1.0
+		V.glow(o,blue_pos,r * 0.9,Color(0.15,0.3,1.0,0.35))
+		# 引力透镜环
+		V.shock(o,blue_pos,r * (0.92 + 0.04 * sin(t * 5.0)),14.0,Color(0.35,0.6,1.0,0.45))
+		# 螺旋吸入臂
+		for arm:int in 4:
+			var pts:PackedVector2Array = []
+			for j:int in 18:
+				var u:float = float(j) / 17.0
+				var ang:float = -t * 4.0 + arm * TAU / 4.0 + u * 3.2
+				pts.append(blue_pos + Vector2.from_angle(ang) * r * (0.12 + 0.8 * u))
+			o.draw_polyline(pts,Color(0.4,0.65,1.0,0.5),2.0 * s,true)
+		# 核心
+		V.glow(o,blue_pos,34.0 * s,Color(0.25,0.5,1.0,0.95))
+		V.flame_blob(o,blue_pos,13.0 * s,0.18,t * 1.5,Color(0.3,0.55,1.0,0.8),1.0)
+		V.core(o,blue_pos,8.0 * s,Color(0.9,0.97,1.0,1.0))
+		o.draw_arc(blue_pos,18.0 * s,-t * 9.0,-t * 9.0 + 4.0,20,Color(0.7,0.9,1.0,0.8),1.5,true)
 	if red_charge >= 0.0:
 		var k:float = clampf(red_charge / 0.7,0.0,1.0)
-		var p:Vector2 = global_position + (aim_dir(direction) if is_multiplayer_authority() else direction.normalized()) * 26.0
-		o.draw_circle(p,5.0 + 7.0 * k,Color(1.0,0.15,0.1,0.9))
-		o.draw_arc(p,10.0 + 8.0 * k,t * 8.0,t * 8.0 + 4.0,16,Color(1.0,0.5,0.4,0.8),2.0,true)
+		var p:Vector2 = _red_charge_pos()
+		var pulse:float = 0.85 + 0.15 * sin(t * (18.0 + 20.0 * k))
+		V.glow(o,p,(26.0 + 30.0 * k) * pulse,Color(1.0,0.12,0.06,0.8))
+		V.flame_blob(o,p,(6.0 + 8.0 * k) * pulse,0.22,t * 2.0,Color(1.0,0.2,0.1,0.9),2.0)
+		V.core(o,p,4.0 + 5.0 * k,Color(1,0.9,0.85,1))
+		for i2:int in 6:
+			var a2:float = t * 10.0 + TAU * i2 / 6.0
+			var l:float = (12.0 + 12.0 * k) * (0.8 + 0.2 * sin(t * 30.0 + i2))
+			o.draw_line(p + Vector2.from_angle(a2) * 6.0,p + Vector2.from_angle(a2) * l,Color(1.0,0.5,0.35,0.7 * k),1.5,true)
+		if k >= 1.0: V.shock(o,p,22.0 + 6.0 * sin(t * 20.0),6.0,Color(1.0,0.5,0.4,0.8))
 	if purple_charge >= 0.0:
 		var k2:float = clampf(purple_charge / purple_200_hold,0.0,1.0)
-		var side:Vector2 = Vector2(18.0 * (1.0 - k2),0)
-		o.draw_circle(global_position + Vector2(0,-30) - side,7.0,Color(0.25,0.45,1.0,0.9))
-		o.draw_circle(global_position + Vector2(0,-30) + side,7.0,Color(1.0,0.2,0.15,0.9))
-		if k2 > 0.8: o.draw_circle(global_position + Vector2(0,-30),9.0 + 4.0 * sin(t * 20.0),Color(0.7,0.3,1.0,0.9))
+		var c:Vector2 = _purple_center()
+		# 苍与赫环绕公转，逐渐靠近、加速，最后合为茈。
+		var orbit:float = 22.0 * (1.0 - V.in_out(k2))
+		var ang2:float = t * (4.0 + 14.0 * k2)
+		var pb:Vector2 = c + Vector2.from_angle(ang2) * orbit
+		var pr:Vector2 = c - Vector2.from_angle(ang2) * orbit
+		for tr:int in 5:
+			var back:float = ang2 - tr * 0.18
+			var fa:float = 0.4 * (1.0 - tr / 5.0)
+			V.core(o,c + Vector2.from_angle(back) * orbit,6.0,Color(0.25,0.45,1.0,fa))
+			V.core(o,c - Vector2.from_angle(back) * orbit,6.0,Color(1.0,0.2,0.12,fa))
+		V.glow(o,pb,22.0,Color(0.2,0.4,1.0,0.9))
+		V.core(o,pb,6.0,Color(0.85,0.92,1.0))
+		V.glow(o,pr,22.0,Color(1.0,0.15,0.08,0.9))
+		V.core(o,pr,6.0,Color(1.0,0.9,0.85))
+		V.glow(o,c,40.0 + 50.0 * k2,Color(0.6,0.25,1.0,0.25 + 0.5 * k2))
+		if k2 > 0.7:
+			var m:float = V.seg(k2,0.7,1.0)
+			V.flame_blob(o,c,(8.0 + 8.0 * m) * (1.0 + 0.1 * sin(t * 25.0)),0.2,t * 2.0,Color(0.75,0.45,1.0,0.9 * m),4.0)
+			V.core(o,c,7.0 * m,Color(1,0.95,1,m))
+			_vrng.seed = int(t * 25.0) + 91
+			for b:int in 3:
+				var ba:float = _vrng.randf() * TAU
+				var pts2:PackedVector2Array = V.bolt(_vrng,c,c + Vector2.from_angle(ba) * _vrng.randf_range(24,46),8.0,3)
+				V.draw_bolt(o,pts2,1.0,Color(0.75,0.45,1.0,0.8 * m),Color(1,0.9,1,m))
+		# 咏唱法环：随蓄力逐步点亮
+		var ring_r:float = 34.0
+		o.draw_arc(c,ring_r,-PI / 2.0,-PI / 2.0 + TAU * k2,48,Color(0.8,0.6,1.0,0.8),2.0,true)
+		for g:int in 8:
+			if float(g) / 8.0 <= k2:
+				V.sparkle(o,c + Vector2.from_angle(-PI / 2.0 + TAU * g / 8.0) * ring_r,4.5,Color(0.9,0.75,1.0,0.9),t * 2.0)
 
 func get_armor_test_effect_summary() -> String:
 	if JJK.english():

@@ -477,24 +477,64 @@ func accept_visual(data:Dictionary) -> void:
 	hp_lock_left = float(data.get("hl",-1.0))
 	domain_seal_left = float(data.get("seal",0.0))
 
+func visual_particles(_dt:float) -> void:
+	if amp_left > 0.0:
+		# 领域展延：身周翻涌的紫黑色咒力。
+		var a:float = _vrng.randf() * TAU
+		vparts.emit(global_position + Vector2.from_angle(a) * _vrng.randf_range(10,24),Vector2(cos(a) * 10.0,-_vrng.randf_range(30,70)),0.6,_vrng.randf_range(4,7),Color(0.55,0.15,0.8,0.8),0,1.0,-30.0)
+		if _vrng.randf() < 0.5: vparts.emit(global_position + Vector2.from_angle(a) * 18.0,Vector2(0,-40),0.7,6.0,Color(0.08,0.0,0.1,0.5),1,1.0,-20.0)
+	if hp_lock_left >= 0.0:
+		var a2:float = _vrng.randf() * TAU
+		vparts.emit(global_position + Vector2.from_angle(a2) * 40.0,Vector2.from_angle(a2) * -40.0 + Vector2(0,-20),0.5,2.5,Color(1.0,0.15,0.15),3,1.0)
+	if chant_left >= 0.0 and chant_locked:
+		var along:Vector2 = global_position + chant_dir * _vrng.randf_range(-600,600)
+		vparts.emit(along,chant_dir.orthogonal() * _vrng.randf_range(-60,60),0.35,2.0,Color(1,0.85,0.85),2,3.0)
+
 func draw_overlay(o:Node2D) -> void:
 	var t:float = _view_clock
-	if amp_left > 0.0:
-		o.draw_arc(global_position,28.0,0,TAU,32,Color(0.75,0.25,0.95,0.55 + 0.2 * sin(t * 10.0)),3.0,true)
-	if hp_lock_left >= 0.0:
-		o.draw_circle(global_position,34.0,Color(0.8,0.0,0.05,0.18))
-		o.draw_arc(global_position,34.0,t * 6.0,t * 6.0 + 4.5,24,Color(1,0.1,0.1,0.9),3.0,true)
-	if chant_left >= 0.0:
-		var width:float = world_slash_width * (1.6 if chant_empowered else 1.0)
+	if chant_left >= 0.0 and chant_locked:
+		# 世界斩预兆：空间先出现一道细细的黑色裂缝。
 		var a:Vector2 = global_position - chant_dir * 2400.0
 		var b:Vector2 = global_position + chant_dir * 2400.0
-		if chant_locked:
-			o.draw_line(a,b,Color(1,0.1,0.1,0.35),width)
-			o.draw_line(a,b,Color(1,0.9,0.9,0.9),2.0)
-		else:
-			o.draw_line(global_position,global_position + chant_dir * 90.0,Color(1,0.2,0.2,0.6),2.0)
+		o.draw_line(a,b,Color(0,0,0,0.55 + 0.25 * sin(t * 30.0)),2.5)
 	if domain_seal_left > 0.0:
 		o.draw_line(global_position + Vector2(-24,36),global_position + Vector2(-24 + 48 * domain_seal_left / domain_seal_seconds,36),Color(0.6,0.75,1.0,0.9),2.0)
+
+func draw_overlay_add(o:Node2D) -> void:
+	var t:float = _view_clock
+	if amp_left > 0.0:
+		var p:float = 0.8 + 0.2 * sin(t * 10.0)
+		V.glow(o,global_position,46.0 * p,Color(0.6,0.15,0.9,0.5))
+		V.flame_blob(o,global_position,26.0 * p,0.2,t,Color(0.5,0.1,0.8,0.35),5.0,0.5)
+		V.shock(o,global_position,28.0,5.0,Color(0.8,0.4,1.0,0.6 * p))
+	if hp_lock_left >= 0.0:
+		# 锁血：旋转的赤红咒纹法阵 + 心跳般的脉动。
+		var beat:float = pow(0.5 + 0.5 * sin(t * 9.0),6.0)
+		var c:Vector2 = global_position
+		V.glow(o,c,54.0 + 12.0 * beat,Color(1.0,0.05,0.08,0.45 + 0.3 * beat))
+		o.draw_arc(c,36.0,0.0,TAU,48,Color(1.0,0.15,0.15,0.9),2.0,true)
+		o.draw_arc(c,42.0,t * 2.0,t * 2.0 + TAU,48,Color(1.0,0.3,0.3,0.4),1.0,true)
+		for i:int in 12:
+			var a2:float = t * 1.5 + TAU * i / 12.0
+			o.draw_line(c + Vector2.from_angle(a2) * 36.0,c + Vector2.from_angle(a2) * (46.0 if i % 3 == 0 else 41.0),Color(1.0,0.3,0.3,0.9),1.5,true)
+		var tri:PackedVector2Array = []
+		for j:int in 7:
+			tri.append(c + Vector2.from_angle(-t * 2.5 + TAU * (j * 2 % 6) / 6.0 + PI / 2.0) * 30.0)
+		o.draw_polyline(tri,Color(1.0,0.2,0.2,0.75),1.5,true)
+		V.shock(o,c,36.0 + 30.0 * (1.0 - beat),8.0 * beat,Color(1.0,0.2,0.2,beat))
+	if chant_left >= 0.0:
+		var width:float = world_slash_width * (1.6 if chant_empowered else 1.0)
+		if chant_locked:
+			var a3:Vector2 = global_position - chant_dir * 2400.0
+			var b3:Vector2 = global_position + chant_dir * 2400.0
+			var fl:float = 0.6 + 0.4 * sin(t * 40.0)
+			V.streak(o,a3,b3,width * 1.2,Color(1.0,0.1,0.15,0.25 * fl))
+			o.draw_line(a3,b3,Color(1.0,0.6,0.6,0.8 * fl),1.5,true)
+			V.glow(o,global_position,60.0,Color(1.0,0.1,0.15,0.5))
+		else:
+			var tip:Vector2 = global_position + chant_dir * 90.0
+			V.streak(o,global_position,tip,12.0,Color(1.0,0.2,0.2,0.6))
+			V.sparkle(o,tip,8.0,Color(1,0.6,0.6,0.9),t * 4.0)
 
 func get_armor_test_effect_summary() -> String:
 	if JJK.english():

@@ -4,6 +4,7 @@ extends "res://scripts/characters/我的世界/new5/base.gd"
 const JJK = preload("res://scripts/characters/动漫/咒术回战/jjk_common.gd")
 const FX = preload("res://scripts/characters/动漫/咒术回战/jjk_fx.gd")
 const DOMAIN = preload("res://scripts/characters/动漫/咒术回战/jjk_domain.gd")
+const V = preload("res://scripts/characters/动漫/咒术回战/jjk_vfx.gd")
 const PROJECTILE = preload("res://scripts/characters/动漫/咒术回战/jjk_projectile.gd")
 const KNOCKBACK = preload("res://scripts/effects/knockback_effect.gd")
 
@@ -31,6 +32,12 @@ var _held:Dictionary = {}
 var _projectiles:Dictionary = {}
 var _domains:Dictionary = {}
 var _overlay:Node2D
+var _overlay_add:Node2D
+## 纯视觉粒子（世界坐标），只在绘制层使用，不参与任何判定。
+var vparts:V.Parts = V.Parts.new()
+var _vclock_last:float = -1.0
+var vdelta:float = 0.0
+var _vrng:RandomNumberGenerator = RandomNumberGenerator.new()
 var _intro_played:bool = false
 var _ai_think:float = 0.0
 
@@ -46,6 +53,7 @@ func _ready() -> void:
 	_overlay.z_index = 60
 	add_child(_overlay)
 	_overlay.draw.connect(_on_overlay_draw)
+	_overlay_add = V.make_add_layer(_overlay,_on_overlay_add_draw)
 
 # ---------------------------------------------------------------- 每帧
 func step_mob(delta:float) -> void:
@@ -84,6 +92,10 @@ func jjk_ai() -> void: pass
 func on_projectile_impact(_kind:String,_target:ball,_point:Vector2) -> void: pass
 func on_domain_closed(_kind:String,_broken:bool) -> void: pass
 func draw_overlay(_o:Node2D) -> void: pass
+## 叠加混合（发光）层的绘制钩子；o 为叠加层节点，坐标为世界坐标。
+func draw_overlay_add(_o:Node2D) -> void: pass
+## 每个画面帧调用一次，用于发射纯视觉粒子（vdelta 为画面时间步长）。
+func visual_particles(_dt:float) -> void: pass
 
 # ---------------------------------------------------------------- 资源
 func spend(amount:float) -> bool:
@@ -283,7 +295,14 @@ func visual_mob() -> void:
 	if not is_instance_valid(_overlay): return
 	_overlay.global_position = Vector2.ZERO
 	_overlay.visible = health > 0
+	if _vclock_last < 0.0: _vclock_last = _view_clock
+	vdelta = clampf(_view_clock - _vclock_last,0.0,0.1)
+	_vclock_last = _view_clock
+	if vdelta > 0.0 and health > 0:
+		visual_particles(vdelta)
+		vparts.step(vdelta)
 	_overlay.queue_redraw()
+	if is_instance_valid(_overlay_add): _overlay_add.queue_redraw()
 
 func _on_overlay_draw() -> void:
 	if health <= 0: return
@@ -296,10 +315,27 @@ func _on_overlay_draw() -> void:
 	if burnout_left > 0.0:
 		o.draw_line(base + Vector2(0,7),base + Vector2(48 * clampf(burnout_left / maxf(burnout_seconds + 2.0,0.1),0,1),7),Color(1.0,0.4,0.3,0.9),2.0)
 	if black_flash_zone_left > 0.0:
-		var a:float = _view_clock * 5.0
-		o.draw_arc(global_position,30.0,a,a + 1.5,12,Color(0.9,0.05,0.1,0.8),2.0,true)
-		o.draw_arc(global_position,30.0,a + PI,a + PI + 1.5,12,Color(0.05,0,0,0.9),2.0,true)
+		# 黑闪状态（the zone）：黑红两色的火花电弧绕身闪烁。
+		_vrng.seed = int(_view_clock * 22.0) + get_instance_id()
+		for i:int in 3:
+			var a:float = _vrng.randf() * TAU
+			var pts:PackedVector2Array = V.bolt(_vrng,global_position + Vector2.from_angle(a) * 18.0,global_position + Vector2.from_angle(a + _vrng.randf_range(0.6,1.4)) * 30.0,6.0,3)
+			o.draw_polyline(pts,Color(0,0,0,0.9),3.0,true)
 	draw_overlay(o)
+	vparts.draw_normal(o)
+
+func _on_overlay_add_draw() -> void:
+	if health <= 0: return
+	var o:Node2D = _overlay_add
+	if black_flash_zone_left > 0.0:
+		V.glow(o,global_position,40.0,Color(0.9,0.05,0.1,0.35 + 0.15 * sin(_view_clock * 12.0)))
+		_vrng.seed = int(_view_clock * 22.0) + get_instance_id() + 7
+		for i:int in 3:
+			var a:float = _vrng.randf() * TAU
+			var pts:PackedVector2Array = V.bolt(_vrng,global_position + Vector2.from_angle(a) * 18.0,global_position + Vector2.from_angle(a + _vrng.randf_range(0.6,1.4)) * 30.0,6.0,3)
+			V.draw_bolt(o,pts,1.5,Color(1.0,0.1,0.15,0.9),Color(1,0.8,0.8,1))
+	draw_overlay_add(o)
+	vparts.draw_add(o)
 
 # ---------------------------------------------------------------- AI 工具
 func ai_target() -> ball:
