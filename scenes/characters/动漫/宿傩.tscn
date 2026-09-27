@@ -1,0 +1,28 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/动漫/咒术回战/sukuna.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/动漫/咒术回战/宿傩_face.png" id="3_face"]
+
+[node name="宿傩" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("动漫", "咒术", "近战", "领域", "召唤", "超模")
+Negative_Tags = PackedStringArray("被封印")
+Max_health = 3600
+Damage = 90
+Speed = 128.0
+Attack_Cooling = 1.0
+Skill_Cooling = 999.0
+Health_Restore = 0
+Can_Attack = true
+Can_Skill = false
+cursed_energy_max = 2000.0
+cursed_energy_regen = 40.0
+rct_heal_ratio_per_second = 0.02
+
+[node name="Image" parent="Graphics" index="0"]
+texture_filter = 1
+texture = ExtResource("3_face")
+
+[editable path="Health_Bar"]

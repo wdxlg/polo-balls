@@ -1,0 +1,25 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/动漫/咒术回战/agito.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/动漫/咒术回战/嵌合暗兽_face.png" id="3_face"]
+
+[node name="嵌合暗兽" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("动漫", "咒术", "式神", "治疗")
+Negative_Tags = PackedStringArray("脆弱")
+Max_health = 1800
+Damage = 55
+Speed = 130.0
+Attack_Cooling = 1.0
+Skill_Cooling = 999.0
+Health_Restore = 0
+Can_Attack = true
+Can_Skill = false
+
+[node name="Image" parent="Graphics" index="0"]
+texture_filter = 1
+texture = ExtResource("3_face")
+
+[editable path="Health_Bar"]

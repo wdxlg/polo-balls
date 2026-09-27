@@ -1,0 +1,25 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/动漫/咒术回战/mahoraga.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/动漫/咒术回战/魔虚罗_face.png" id="3_face"]
+
+[node name="魔虚罗" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("动漫", "咒术", "近战", "式神", "适应")
+Negative_Tags = PackedStringArray("茈")
+Max_health = 2600
+Damage = 70
+Speed = 110.0
+Attack_Cooling = 1.0
+Skill_Cooling = 999.0
+Health_Restore = 0
+Can_Attack = true
+Can_Skill = false
+
+[node name="Image" parent="Graphics" index="0"]
+texture_filter = 1
+texture = ExtResource("3_face")
+
+[editable path="Health_Bar"]

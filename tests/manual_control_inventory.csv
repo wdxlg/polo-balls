@@ -223,3 +223,7 @@
 发射物/子实体候选,scenes/shooter/领导处分文件.tscn,scripts/shooter/领导处分文件.gd,,是,待区分自主单位与纯弹道（纯弹道不选控）
 发射物/子实体候选,scenes/shooter/领导小领导.tscn,scripts/shooter/领导小领导.gd,,是,待区分自主单位与纯弹道（纯弹道不选控）
 发射物/子实体候选,scenes/shooter/魔角猎人_黑弹.tscn,scripts/shooter/魔角猎人_黑弹.gd,,是,待区分自主单位与纯弹道（纯弹道不选控）
+选角人物,scenes/characters/动漫/五条悟.tscn,scripts/characters/动漫/咒术回战/gojo.gd,"controlled_attack_action,controlled_skill_action,controlled_middle_action,controlled_teleport,controlled_domain,controlled_instant_domain,controlled_barrier_flip",是,左：苍（长按牵引点跟随鼠标）；右：赫（长按蓄力）；中：茈（长按2.4秒200%）；1瞬移 2无量空处 3 0.2秒无量空处 4结界翻转；专项见JJK_CHARACTERS.md
+选角人物,scenes/characters/动漫/宿傩.tscn,scripts/characters/动漫/咒术回战/sukuna.gd,"controlled_attack_action,controlled_skill_action,controlled_middle_action,controlled_amplification,controlled_domain,controlled_mahoraga,controlled_agito,controlled_world_slash",是,左：解（长按蜘蛛网/展延中拳脚）；右：捌；中：开；1领域展延 2伏魔御厨子（再按缩小）3魔虚罗 4嵌合暗兽 5世界斩；专项见JJK_CHARACTERS.md
+选角人物,scenes/characters/动漫/魔虚罗.tscn,scripts/characters/动漫/咒术回战/mahoraga.gd,"controlled_attack_action,controlled_skill_action,controlled_middle_action",是,左：退魔之剑；右：突进斩；中：咆哮；适应被动自动；专项见JJK_CHARACTERS.md
+选角人物,scenes/characters/动漫/嵌合暗兽.tscn,scripts/characters/动漫/咒术回战/agito.gd,"controlled_attack_action,controlled_skill_action,controlled_middle_action",是,左：撕咬；右：鵺落雷；中：圆鹿反转治疗；专项见JJK_CHARACTERS.md
