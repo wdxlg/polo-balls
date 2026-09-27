@@ -18,6 +18,7 @@ const WINDOWS:Array[Vector2] = [Vector2(0.15,0.31),Vector2(0.41,0.57)]
 const COMBO_DURATION:float = 0.74
 const RECOVER_END:float = 0.98 # One full-body clip includes the eased recovery.
 const ATTACK_MOVE_MULTIPLIER:float = 0.3
+const ATTACK_HAND_REACH:float = 3.0 # Extra world-space reach, shared by the arm, grip and actual sword sweep.
 const BODY_SCALE:float = 0.85 # 148 visible pixels -> ~126 world units, shared humanoid footprint.
 const BODY_OFFSET_Y:float = -13.5 # Feet pixel 202 lands on the collider bottom (+63).
 @export var blade_length:float = 14.0
@@ -230,12 +231,36 @@ func arm_aim_rotation(time:float) -> float:
 	var turn:float = wrapf(combo_heading.angle()-(0.0 if _face_right else PI),-PI,PI)
 	# Enter and leave from the held pose, with no disconnected wrist/shoulder jump.
 	if time < WINDOWS[0].x: return turn*_ss(time/WINDOWS[0].x)
-	if time >= COMBO_DURATION: return turn*(1.0-_ss((time-COMBO_DURATION)/(RECOVER_END-COMBO_DURATION)))
+	if time >= COMBO_DURATION: return turn*(1.0-_ease_out_cubic((time-COMBO_DURATION)/(RECOVER_END-COMBO_DURATION)))
 	return turn
+
+func attack_hand_extension(time:float) -> float:
+	if time < 0.0 or time >= RECOVER_END: return 0.0
+	if time < WINDOWS[0].x: return ATTACK_HAND_REACH*_ss(time/WINDOWS[0].x)
+	if time >= COMBO_DURATION: return ATTACK_HAND_REACH*(1.0-_ease_out_cubic((time-COMBO_DURATION)/(RECOVER_END-COMBO_DURATION)))
+	return ATTACK_HAND_REACH
 
 func _attack_hand(time:float) -> Vector2:
 	var shoulder:Vector2 = shoulder_position(time)
-	return shoulder+(_hand_pixel(POSES.HANDS["attack"][_attack_index(time)])-shoulder).rotated(arm_aim_rotation(time))
+	var posed:Vector2 = (_hand_pixel(POSES.HANDS["attack"][_attack_index(time)])-shoulder).rotated(arm_aim_rotation(time))
+	return shoulder+posed+combo_heading*attack_hand_extension(time)
+
+func attack_arm_transform(time:float) -> Transform2D:
+	# Keep the real shoulder fixed and preserve limb thickness. Stretch only along
+	# the posed limb axis so the extended hand, not a detached sword, gains reach.
+	var shoulder:Vector2 = shoulder_position(time)
+	var raw:Vector2 = _hand_pixel(POSES.HANDS["attack"][_attack_index(time)])-shoulder
+	var extended:Vector2 = _attack_hand(time)-shoulder
+	var transform:Transform2D = image.global_transform
+	transform.origin = shoulder
+	if _face_right: transform.x = -transform.x
+	if raw.length_squared() < 0.000001 or extended.length_squared() < 0.000001: return transform
+	var source_basis:Transform2D = Transform2D(raw.normalized(),raw.normalized().orthogonal(),Vector2.ZERO)
+	var reach_basis:Transform2D = Transform2D(extended/raw.length(),extended.normalized().orthogonal(),Vector2.ZERO)
+	var deformation:Transform2D = reach_basis*source_basis.affine_inverse()
+	transform.x = deformation.basis_xform(transform.x)
+	transform.y = deformation.basis_xform(transform.y)
+	return transform
 
 func _rest_hand() -> Vector2:
 	var clip:StringName = &"walk" if _walking else &"idle"
@@ -243,13 +268,17 @@ func _rest_hand() -> Vector2:
 	return _hand_pixel(POSES.HANDS[str(clip)][index])
 
 func hand_position(time:float) -> Vector2:
-	# The same sampled original-model frame supplies the visible hand and damage grip.
-	# No independent grip shove or rewind detached from the rendered arm.
+	# The same shoulder-anchored arm extension supplies the visible and damage grip.
+	# Sword length/width and damage remain unchanged; only actual reach grows.
 	return _rest_hand() if time < 0.0 else _attack_hand(time)
 
 func _ss(t:float) -> float:
 	t = clampf(t,0.0,1.0)
 	return t*t*(3.0-2.0*t)
+
+func _ease_out_cubic(t:float) -> float:
+	t = clampf(t,0.0,1.0)
+	return 1.0-pow(1.0-t,3.0)
 
 func rest_angle() -> float: return 0.85 if _face_right else PI-0.85
 
@@ -263,7 +292,7 @@ func blade_angle(time:float) -> float:
 		# Unwrapped angle: continue the upward cut for one FULL turn, then align
 		# to the resting grip in the SAME direction. lerp_angle would erase the turn.
 		var travel:float = TAU+fposmod((start-rest_angle())*side,TAU)
-		return start-side*travel*_ss((time-COMBO_DURATION)/(RECOVER_END-COMBO_DURATION))
+		return start-side*travel*_ease_out_cubic((time-COMBO_DURATION)/(RECOVER_END-COMBO_DURATION))
 	var degrees:float
 	if time < WINDOWS[0].x:
 		var start_rel:float = rad_to_deg(wrapf(rest_angle()-base,-PI,PI))/side
@@ -303,9 +332,7 @@ func visual_mob() -> void:
 		var shoulder:Array = POSES.SHOULDERS[_body_frame]
 		_arm.texture = ATTACK_PARTS.get_frame_texture(&"arm",_body_frame)
 		_arm.offset = Vector2(80.0-float(shoulder[0]),112.0-float(shoulder[1]))
-		_arm.global_position = shoulder_position(combo_time)
-		_arm.global_rotation = image.global_rotation+arm_aim_rotation(combo_time)
-		_arm.global_scale = image.global_scale*Vector2(-1.0 if _face_right else 1.0,1.0)
+		_arm.global_transform = attack_arm_transform(combo_time)
 		_arm.modulate = image.modulate
 	if is_instance_valid(_fade_sprite) and image is Sprite2D: _fade_sprite.flip_h = (image as Sprite2D).flip_h
 	_sword.global_position = hand_position(combo_time)

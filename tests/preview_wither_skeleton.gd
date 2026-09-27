@@ -44,7 +44,7 @@ func run() -> void:
 		await process_frame
 		await RenderingServer.frame_post_draw
 		var image:Image = root.get_texture().get_image()
-		image.save_png("res://tests/wither_skeleton_aim360_preview_%d.png" % i)
+		image.save_png("res://tests/wither_skeleton_reach_preview_%d.png" % i)
 		images.append(image)
 	var differences:Array[int] = []
 	for i:int in range(1,images.size()):
@@ -64,7 +64,7 @@ func run() -> void:
 		actor._fade_sprite.hide()
 		await process_frame
 		await RenderingServer.frame_post_draw
-		root.get_texture().get_image().save_png("res://tests/wither_skeleton_aim360_direction_%d.png" % i)
+		root.get_texture().get_image().save_png("res://tests/wither_skeleton_reach_direction_%d.png" % i)
 	# Actual GPU time samples of the complete wind-up/cuts/recovery sequence.
 	actor.combo_heading = Vector2.RIGHT
 	actor._face_right = true
@@ -74,7 +74,7 @@ func run() -> void:
 		actor._fade_sprite.hide()
 		await process_frame
 		await RenderingServer.frame_post_draw
-		root.get_texture().get_image().save_png("res://.backups/wither_skeleton_aim360_20260927/motion_%02d.png" % i)
+		root.get_texture().get_image().save_png("res://.backups/wither_skeleton_reach_20260927/motion_%02d.png" % i)
 	arena.queue_free()
 	await process_frame
 	quit(0 if differences[0] > 300 and differences[1] > 300 and differences[2] > 300 and differences[3] > 300 else 1)

@@ -48,6 +48,12 @@
 - 收刀沿上挑方向完整转一圈，再沿同方向对齐持刀角；使用不取模角度，不能用最短角插值吞掉整圈。收刀无伤害、没有第三刀、不显示虚假的预备段。0.98秒总时长和原移动减速/两刀规则保持。
 - 本轮八方向实战夹具、GPU、边界及局部恢复：`tests/WITHER_SKELETON_AIM360_20260927.md`。上一节直接插值回待机角的收刀方式由本节取代。
 
+## 攻击前伸与缓出收刀（2026-09-27追加）
+
+- 两个伤害窗口中，手/握把/整条实际剑轨迹沿锁定瞄准方向额外前伸 **3世界单位**；起手平滑伸出，收招回到0。肩部固定、沿原手臂纵向延伸，厚度保持；不拉长剑、不放大人物或身体碰撞。八方向视觉与命中共用同一变换。
+- 收刀角由三次缓出 `1-(1-t)^3` 驱动，先快后慢至停稳；手臂朝向和前伸量同进度归位。保留原完整同向转圈、0.98秒总动作、无额外伤害及所有移动规则。
+- 新增八方向“旧两刀扫掠均打不到、新范围实际能扣血”的验证；本轮实测和局部恢复见 `tests/WITHER_SKELETON_REACH_20260927.md`。
+
 ## 分类注册
 
 `classes/combat_classification_catalog.gd` 已注册场景与脚本：`entity_kind=character`，`attack_modes=[melee]`，`carriers=[weapon_sweep,status_tick]`，`damage_kinds=[ordinary,wither]`；`mc_creature_voice.gd`、`poses.gd`、`sounds.gd` 按 component/visual 注册。`tests/verify_combat_classification_registry.py` 通过（missing/stale/invalid 全空）。

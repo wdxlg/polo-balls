@@ -309,16 +309,25 @@ func run() -> void:
 		actor.step_mob(0.01)
 		check(actor.combo_time >= 0.0 and actor.combo_heading.is_equal_approx(aim),"AI acquires enemy in each of eight directions")
 		check(actor.direction.is_equal_approx(Vector2(0.6,0.8)),"360 aiming never steers locomotion")
+		check(is_equal_approx(actor.attack_hand_extension(0.23),3.0) and is_zero_approx(actor.attack_hand_extension(0.0)) and is_zero_approx(actor.attack_hand_extension(actor.RECOVER_END)),"reach eases out from idle and resets after recovery")
 		actor.combo_time = 0.23
 		actor.visual_mob()
 		var pivot:Vector2 = actor.shoulder_position(0.23)
 		var raw_hand:Vector2 = actor._hand_pixel(actor.POSES.HANDS["attack"][actor._attack_index(0.23)])
-		var expected_hand:Vector2 = pivot+(raw_hand-pivot).rotated(actor.arm_aim_rotation(0.23))
-		check(actor.hand_position(0.23).is_equal_approx(expected_hand),"real hand rotates about original shoulder in every direction")
+		var expected_hand:Vector2 = pivot+(raw_hand-pivot).rotated(actor.arm_aim_rotation(0.23))+aim*actor.ATTACK_HAND_REACH
+		check(actor.hand_position(0.23).is_equal_approx(expected_hand),"real hand extends forward from original shoulder in every direction")
 		var hand_pixel:Array = actor.POSES.HANDS["attack"][actor._body_frame]
 		var local_hand:Vector2 = Vector2(float(hand_pixel[0])-80.0,float(hand_pixel[1])-112.0)+actor._arm.offset
 		check((actor._arm.global_transform*local_hand).distance_to(actor._sword.global_position)<0.01,"rendered aimed arm ends at sword grip")
 		check(is_zero_approx(actor.image.rotation),"aim rotates arm not torso/legs")
+		check(actor._arm.global_position.distance_to(pivot)<0.01,"extra reach leaves shoulder joined to body")
+		var raw_vector:Vector2 = raw_hand-pivot
+		var normal_world:Vector2 = raw_vector.normalized().orthogonal()
+		var base:Transform2D = actor.image.global_transform
+		if actor._face_right: base.x = -base.x
+		# The sprite carries 0.17 scale; use the full affine inverse, not the orthonormal-only shortcut.
+		var pixel_width:Vector2 = base.affine_inverse().basis_xform(normal_world)
+		check(is_equal_approx(actor._arm.global_transform.basis_xform(pixel_width).length(),1.0),"extension preserves arm thickness instead of scaling whole character")
 		actor.combo_time = 0.0
 		actor.advance_combo(0.74)
 		check(victim.health == 9952,"actual two slashes hit enemy in each of eight directions")
@@ -331,6 +340,13 @@ func run() -> void:
 			if (angle-previous_angle)*side > 0.00001: same_direction = false
 			previous_angle = angle
 		check(same_direction and (start_angle-previous_angle)*side >= TAU-0.001,"recovery turns at least one full revolution in upcut direction")
+		var turns:Array[float] = []
+		var angle_before:float = start_angle
+		for quarter:int in range(1,5):
+			var angle_now:float = actor.blade_angle(lerpf(actor.COMBO_DURATION,actor.RECOVER_END,float(quarter)/4.0))
+			turns.append(absf(angle_now-angle_before))
+			angle_before = angle_now
+		check(turns[0]>turns[1] and turns[1]>turns[2] and turns[2]>turns[3] and turns[0]>8.0*turns[3],"spin starts fastest and continuously decelerates toward rest")
 		check(absf(wrapf(previous_angle-actor.rest_angle(),-PI,PI))<0.001,"unwrapped full spin ends at resting blade angle")
 		var health_before_spin:int = victim.health
 		actor.advance_combo(0.12)
@@ -339,6 +355,37 @@ func run() -> void:
 		check(victim.health == health_before_spin,"full recovery turn cannot deal extra damage")
 		actor.visual_mob()
 		check(not actor._arm.visible,"separate attack arm hides after recovery")
+	# A narrow victim placed beyond the ENTIRE old sweep must become hittable.
+	var original_hurt_shape:Shape2D = victim.get_node("hurtbox/CollisionShape2D").shape
+	var narrow_shape:=CircleShape2D.new()
+	narrow_shape.radius = 0.5
+	victim.get_node("hurtbox/CollisionShape2D").shape = narrow_shape
+	for i:int in range(8):
+		var aim:Vector2 = Vector2.RIGHT.rotated(float(i)*TAU/8.0)
+		fresh()
+		reset_target(victim)
+		actor.begin_combo(aim)
+		var old_segments:Array[Dictionary] = []
+		var farthest:Vector2 = actor.global_position
+		var far_projection:float = -INF
+		for window:Vector2 in actor.WINDOWS:
+			for j:int in range(25):
+				var sample:float = lerpf(window.x,window.y,float(j)/24.0)
+				var segment:Dictionary = actor.blade_segment(sample)
+				if segment.end.dot(aim)>far_projection:
+					far_projection = segment.end.dot(aim)
+					farthest = segment.end
+				old_segments.append({"start":segment.start-aim*3.0,"end":segment.end-aim*3.0})
+		victim.global_position = farthest+aim
+		await physics_frame
+		var old_hits:int = 0
+		for segment:Dictionary in old_segments:
+			for contact:Dictionary in actor.SWEEP.contacts(actor,segment.start,segment.end,actor.blade_radius,{},actor.global_position):
+				if contact.target == victim: old_hits += 1
+		check(old_hits == 0,"extension target lies outside both old sword sweep envelopes")
+		actor.advance_combo(0.74)
+		check(victim.health < 10000,"extended physical sword actually damages newly reachable target")
+	victim.get_node("hurtbox/CollisionShape2D").shape = original_hurt_shape
 	# Manual vertical aim follows the same real shoulder geometry.
 	fresh()
 	actor.set_player_control_peer(1)
