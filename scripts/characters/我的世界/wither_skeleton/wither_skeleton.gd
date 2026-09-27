@@ -20,8 +20,9 @@ const BAKED_CLIP_END:float = 0.98 # Original projection timestamps; do not retim
 const RECOVER_END:float = 1.18 # 0.44s visual recovery, still inside the existing 1.2s attack interval.
 const ATTACK_MOVE_MULTIPLIER:float = 0.3
 const ATTACK_HAND_REACH:float = 5.0 # Extra world-space reach, shared by the arm, grip and actual sword sweep.
-const BODY_SCALE:float = 0.85 # 148 visible pixels -> ~126 world units, shared humanoid footprint.
-const BODY_OFFSET_Y:float = -13.5 # Feet pixel 202 lands on the collider bottom (+63).
+const BODY_ENLARGEMENT:float = 20.0/14.0 # Match the previous sword enlargement ONCE; the sword stays at 20.
+const BODY_SCALE:float = 0.85*BODY_ENLARGEMENT # Scene body, shoulder/hand anchors and colliders share this ratio.
+const BODY_OFFSET_Y:float = -13.5*BODY_ENLARGEMENT # Feet pixel 202 lands on the enlarged collider bottom (+90).
 @export var blade_length:float = 20.0
 @export var blade_radius:float = 2.5
 @export var acquisition_range:float = 58.0
@@ -365,7 +366,7 @@ func _recovery_progress(t:float) -> float:
 	t = clampf(t,0.0,1.0)
 	return sin(t*PI*0.5) # Positive, decreasing speed; zero velocity at the resting end.
 
-func rest_angle(aim:Vector2 = Vector2.ZERO) -> float: return 0.85 if _geometry_face_right(aim) else PI-0.85
+func rest_angle(_aim:Vector2 = Vector2.ZERO) -> float: return -PI*0.5 # Upright held sword on BOTH facings, also the recovery endpoint.
 
 func blade_angle(time:float,aim:Vector2 = Vector2.ZERO) -> float:
 	if time < 0.0: return rest_angle(aim)

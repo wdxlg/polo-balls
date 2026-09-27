@@ -44,7 +44,7 @@ func run() -> void:
 		await process_frame
 		await RenderingServer.frame_post_draw
 		var image:Image = root.get_texture().get_image()
-		image.save_png("res://tests/wither_skeleton_range_preview_%d.png" % i)
+		image.save_png("res://tests/wither_skeleton_body_preview_%d.png" % i)
 		images.append(image)
 	var differences:Array[int] = []
 	for i:int in range(1,images.size()):
@@ -64,7 +64,22 @@ func run() -> void:
 		actor._fade_sprite.hide()
 		await process_frame
 		await RenderingServer.frame_post_draw
-		root.get_texture().get_image().save_png("res://tests/wither_skeleton_range_direction_%d.png" % i)
+		root.get_texture().get_image().save_png("res://tests/wither_skeleton_body_direction_%d.png" % i)
+	# Upright resting/walking grip, both facings, on actual rendered enlarged body.
+	for facing:int in range(2):
+		actor.direction = Vector2.RIGHT if facing == 0 else Vector2.LEFT
+		actor.combo_time = -1.0
+		for pose:int in range(4):
+			actor._walking = pose >= 2
+			actor._view_clock = float(pose%2)*0.25
+			actor.visual_mob()
+			actor._fade_sprite.hide()
+			await process_frame
+			await RenderingServer.frame_post_draw
+			root.get_texture().get_image().save_png("res://tests/wither_skeleton_body_held_%d_%d.png" % [facing,pose])
+	actor._walking = false
+	actor._view_clock = 0.0
+	actor.direction = Vector2.RIGHT
 	# Actual GPU time samples of the complete wind-up/cuts/recovery sequence.
 	actor.combo_heading = Vector2.RIGHT
 	actor._face_right = true
@@ -74,7 +89,7 @@ func run() -> void:
 		actor._fade_sprite.hide()
 		await process_frame
 		await RenderingServer.frame_post_draw
-		root.get_texture().get_image().save_png("res://.backups/wither_skeleton_range_20260927/motion_%02d.png" % i)
+		root.get_texture().get_image().save_png("res://.backups/wither_skeleton_body_20260927/motion_%02d.png" % i)
 	# Now use the real 60Hz state machine + up-to-144Hz render loop, not manually set poses.
 	Engine.max_fps = 144
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
@@ -104,7 +119,7 @@ func run() -> void:
 		if physical < 0.0:
 			completed = true
 			break
-	var trace_file:FileAccess = FileAccess.open("res://.backups/wither_skeleton_range_20260927/live_render_trace.json",FileAccess.WRITE)
+	var trace_file:FileAccess = FileAccess.open("res://.backups/wither_skeleton_body_20260927/live_render_trace.json",FileAccess.WRITE)
 	trace_file.store_string(JSON.stringify(trace))
 	trace_file.close()
 	print("WITHER_SKELETON_LIVE_RENDER samples=%d subframe_updates=%d completed=%s" % [trace.size(),subframe_updates,str(completed)])

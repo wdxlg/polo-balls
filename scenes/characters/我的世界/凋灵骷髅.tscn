@@ -6,11 +6,11 @@
 
 [sub_resource type="RectangleShape2D" id="BodyShape"]
 resource_local_to_scene = true
-size = Vector2(40, 126)
+size = Vector2(57.142857143, 180)
 
 [sub_resource type="RectangleShape2D" id="HurtShape"]
 resource_local_to_scene = true
-size = Vector2(38, 122)
+size = Vector2(54.285714286, 174.285714286)
 
 [node name="凋灵骷髅" instance=ExtResource("1_base")]
 script = ExtResource("2_script")
@@ -30,8 +30,8 @@ Can_Skill = false
 [node name="Image" parent="Graphics" index="0"]
 texture = ExtResource("3_visual")
 texture_filter = 1
-scale = Vector2(0.85, 0.85)
-position = Vector2(0, -13.5)
+scale = Vector2(1.214285714, 1.214285714)
+position = Vector2(0, -19.285714286)
 offset = Vector2(0, 0)
 
 [node name="CollisionShape2D" parent="." index="1"]

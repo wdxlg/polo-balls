@@ -71,9 +71,38 @@ func run() -> void:
 	check(actor.player_control_action_ids() == [&"controlled_attack_action"],"exactly one left mouse action")
 	check(not actor.Has_Collision_Damage and not actor.Can_Skill,"no hidden collision or extra skill")
 	check(actor.FRAMES.get_frame_count(&"attack") == 50,"full raised-arm downcut/upcut original-model clip")
-	check(is_equal_approx(actor.image.scale.x,actor.BODY_SCALE) and is_equal_approx(actor.image.position.y,actor.BODY_OFFSET_Y),"body keeps the shared humanoid footprint")
+	check(is_equal_approx(actor.image.scale.x,actor.BODY_SCALE) and is_equal_approx(actor.image.position.y,actor.BODY_OFFSET_Y),"body and image offset use the approved enlargement")
 	var body_shape:RectangleShape2D = actor.get_node("CollisionShape2D").shape
-	check(is_equal_approx(body_shape.size.x,40.0) and is_equal_approx(body_shape.size.y,126.0),"collider matches the slimmer visual")
+	check(body_shape.size.is_equal_approx(Vector2(40,126)*actor.BODY_ENLARGEMENT),"body collider matches enlarged visual")
+	var hurt_shape:RectangleShape2D = actor.get_node("hurtbox/CollisionShape2D").shape
+	check(hurt_shape.size.is_equal_approx(Vector2(38,122)*actor.BODY_ENLARGEMENT),"hurt shape enlarged by the same ratio")
+	check(is_equal_approx(actor.BODY_ENLARGEMENT,20.0/14.0) and is_equal_approx(actor.image.global_scale.x,0.17*20.0/14.0),"body matches sword's previous 20/14 enlargement exactly once")
+	check(actor.global_scale.is_equal_approx(Vector2.ONE*0.2),"root scale stays fixed: sword and locomotion are not scaled again")
+	var foot_y:float = (actor.image.global_transform*Vector2(0,90)).y
+	var collider_bottom:float = actor.collision_shape_2d.global_position.y+body_shape.size.y*actor.collision_shape_2d.global_scale.y*0.5
+	check(absf(foot_y-collider_bottom)<0.01,"enlarged body's feet align with physical collider bottom")
+	# Inspect the actual sprite tip and original texture hand anchor, not just angle metadata.
+	var saved_direction:Vector2 = actor.direction
+	for facing:Vector2 in [Vector2.RIGHT,Vector2.LEFT]:
+		actor.direction = facing
+		for walking:bool in [false,true]:
+			actor._walking = walking
+			for stamp:float in [0.0,0.25,0.5]:
+				actor._view_clock = stamp
+				actor.visual_mob()
+				var tip:Vector2 = actor._sword.global_transform*Vector2(10.5,-10.5)
+				var grip:Vector2 = actor._sword.global_position
+				check(absf(tip.x-grip.x)<0.01 and is_equal_approx(grip.y-tip.y,20.0),"idle/walking sword points straight up, unchanged 20-unit length, both facings")
+				var xy:Array = actor.POSES.HANDS[str(actor._body_clip)][actor._body_frame]
+				var hand:Vector2 = Vector2(float(xy[0])-80.0,float(xy[1])-112.0)+actor.image.offset
+				if actor._face_right: hand.x = -hand.x
+				check((actor.image.global_transform*hand).distance_to(grip)<0.01,"upright held sword stays attached to enlarged original hand")
+				check(tip.distance_to(actor.blade_segment(-1.0).end)<0.01,"upright render tip and geometry endpoint agree")
+				check(actor.get_debug_attack_regions().is_empty() and not actor._arm.visible,"idle/walk upright pose adds no damage or duplicate arm")
+	actor._walking = false
+	actor._view_clock = 0.0
+	actor.direction = saved_direction
+	actor.visual_mob()
 	check(actor.SOUNDS.EVENTS.size() == 4,"all four original creature audio categories")
 	actor.begin_combo(Vector2.RIGHT)
 	actor.visual_mob()
@@ -304,7 +333,7 @@ func run() -> void:
 		var aim:Vector2 = Vector2.RIGHT.rotated(float(i)*TAU/8.0)
 		fresh()
 		reset_target(victim)
-		victim.global_position = actor.global_position+aim*14.0
+		victim.global_position = actor.global_position+aim*(14.0*actor.BODY_ENLARGEMENT)
 		await physics_frame
 		actor.direction = Vector2(0.6,0.8)
 		actor.step_mob(0.01)
@@ -328,7 +357,7 @@ func run() -> void:
 		var normal_world:Vector2 = raw_vector.normalized().orthogonal()
 		var base:Transform2D = actor.image.global_transform
 		if actor._face_right: base.x = -base.x
-		# The sprite carries 0.17 scale; use the full affine inverse, not the orthonormal-only shortcut.
+		# The enlarged sprite has a non-unit scale; use the full affine inverse, not the orthonormal-only shortcut.
 		var pixel_width:Vector2 = base.affine_inverse().basis_xform(normal_world)
 		check(is_equal_approx(actor._arm.global_transform.basis_xform(pixel_width).length(),1.0),"extension preserves arm thickness instead of scaling whole character")
 		actor.combo_time = 0.0
@@ -351,7 +380,8 @@ func run() -> void:
 			angle_before = angle_now
 		check(turns[0]>turns[1] and turns[1]>turns[2] and turns[2]>turns[3] and turns[0]>4.0*turns[3],"spin starts fastest and continuously decelerates toward rest")
 		check(absf(wrapf(previous_angle-actor.rest_angle(),-PI,PI))<0.001,"unwrapped full spin ends at resting blade angle")
-		# At 60Hz even the fastest recovery step remains below 40 degrees.
+		# Same sine easing/time. Upright rest changes the alignment arc; a full
+		# revolution + alignment is <720deg, hence <43deg/tick at 60Hz/0.44s.
 		var max_step:float = 0.0
 		var before_angle:float = actor.blade_angle(actor.COMBO_DURATION)
 		var before_hand:Vector2 = actor.hand_position(actor.COMBO_DURATION)
@@ -375,8 +405,11 @@ func run() -> void:
 			if frame%2 == 0:
 				max_step = maxf(max_step,absf(angle-before_angle))
 				before_angle = angle
-		check(max_step < deg_to_rad(40.0),"recovery reduces per-frame angular jump at 60Hz")
-		check(max_hand_step < 1.0 and one_texture,"recovery wrist moves continuously without swapping arm textures")
+		var total_turn:float = absf(actor.blade_angle(actor.RECOVER_END)-start_angle)
+		var peak_step:float = total_turn*PI*0.5/((actor.RECOVER_END-actor.COMBO_DURATION)*60.0)
+		check(max_step <= peak_step+0.00001 and max_step < deg_to_rad(43.0),"upright recovery stays inside continuous sine angular-step bound at 60Hz")
+		check(max_hand_step/actor.BODY_ENLARGEMENT < 1.0 and one_texture,"body-relative recovery wrist continuity preserved without swapping arm textures")
+		print("WITHER_SKELETON_BODY_RECOVERY direction=%d max_degrees=%f hand_step=%f body_relative=%f" % [i,rad_to_deg(max_step),max_hand_step,max_hand_step/actor.BODY_ENLARGEMENT])
 		check(anchors_match,"continuous recovery texture still joins the visible sword grip")
 		check(actor.hand_position(actor.RECOVER_END).distance_to(actor._rest_hand())<0.001,"recovery reaches actual held hand without a final snap")
 		actor.combo_time = actor.COMBO_DURATION
@@ -387,7 +420,7 @@ func run() -> void:
 		check(victim.health == health_before_spin,"full recovery turn cannot deal extra damage")
 		actor.visual_mob()
 		check(not actor._arm.visible,"separate attack arm hides after recovery")
-	# A narrow victim placed beyond the ENTIRE old sweep must become hittable.
+	# Compare legacy 14/3/2 weapon settings on the SAME current body: preserve the sword range buff.
 	var original_hurt_shape:Shape2D = victim.get_node("hurtbox/CollisionShape2D").shape
 	var narrow_shape:=CircleShape2D.new()
 	narrow_shape.radius = 0.5
