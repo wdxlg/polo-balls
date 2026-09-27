@@ -41,6 +41,13 @@
 - 最新动作（2026-09-27）：一段50帧原模型肩部姿态覆盖完整0.98秒，抬手到头顶→第一刀向下劈→低位衔接→第二刀向上挑→平滑收招，不再重复两段小幅下砍。第一刀剑角 -110°→80°，第二刀90°→-110°，左右镜像保持先下后上；身体/握把/真实伤害段使用同一时钟和手锚，不再给握把添加脱离手臂的突进偏移。
 - 本轮专项验证及局部恢复见 `tests/WITHER_SKELETON_SWING_20260927.md`；原战斗伤害窗口、420HP/24每刀、凋零、冷却、体型和碰撞不变。
 
+## 全方向瞄准与同向转刀（最新用户确认）
+
+- “360度”是任意方向瞄准挥砍，**不是一刀对周身一圈结算AOE**；刀扫到哪里才在原有效窗口命中哪里。
+- 原模型攻击帧另烘焙成身体/右臂两层，`attack_parts.tres` 各50帧；肩部锚点写入 `poses.gd::SHOULDERS`。右臂绕真实肩部随 `combo_heading` 旋转，身体/腿不转；手臂矩阵、握把、剑和实际扫掠一致。待机/走路整身帧不变，死亡恢复完整模型快照。
+- 收刀沿上挑方向完整转一圈，再沿同方向对齐持刀角；使用不取模角度，不能用最短角插值吞掉整圈。收刀无伤害、没有第三刀、不显示虚假的预备段。0.98秒总时长和原移动减速/两刀规则保持。
+- 本轮八方向实战夹具、GPU、边界及局部恢复：`tests/WITHER_SKELETON_AIM360_20260927.md`。上一节直接插值回待机角的收刀方式由本节取代。
+
 ## 分类注册
 
 `classes/combat_classification_catalog.gd` 已注册场景与脚本：`entity_kind=character`，`attack_modes=[melee]`，`carriers=[weapon_sweep,status_tick]`，`damage_kinds=[ordinary,wither]`；`mc_creature_voice.gd`、`poses.gd`、`sounds.gd` 按 component/visual 注册。`tests/verify_combat_classification_registry.py` 通过（missing/stale/invalid 全空）。

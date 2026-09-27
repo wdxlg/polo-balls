@@ -32,7 +32,7 @@ func run() -> void:
 	print("WITHER_SKELETON_PREVIEW scale=",actor.global_scale," body=",actor.image.global_scale," collider=",actor.collision_shape_2d.shape.size)
 	if DisplayServer.get_name() == "headless": quit(2); return
 	var images:Array[Image] = []
-	var times:Array[float] = [-1.0,0.15,0.31,0.57,0.86]
+	var times:Array[float] = [-1.0,0.15,0.31,0.57,0.80,0.86,0.92,0.979]
 	for i:int in range(times.size()):
 		actor.combo_time = times[i]
 		actor.combo_heading = Vector2.RIGHT
@@ -44,7 +44,7 @@ func run() -> void:
 		await process_frame
 		await RenderingServer.frame_post_draw
 		var image:Image = root.get_texture().get_image()
-		image.save_png("res://tests/wither_skeleton_swing_preview_%d.png" % i)
+		image.save_png("res://tests/wither_skeleton_aim360_preview_%d.png" % i)
 		images.append(image)
 	var differences:Array[int] = []
 	for i:int in range(1,images.size()):
@@ -56,6 +56,25 @@ func run() -> void:
 				if absf(a.r-b.r)+absf(a.g-b.g)+absf(a.b-b.b) > 0.2: count += 1
 		differences.append(count)
 	print("WITHER_SKELETON_GPU_ACTOR_DIFFERENCES ",differences)
+	for i:int in range(8):
+		actor.combo_heading = Vector2.RIGHT.rotated(float(i)*TAU/8.0)
+		actor._face_right = actor.combo_heading.x >= 0.0
+		actor.combo_time = 0.23
+		actor.visual_mob()
+		actor._fade_sprite.hide()
+		await process_frame
+		await RenderingServer.frame_post_draw
+		root.get_texture().get_image().save_png("res://tests/wither_skeleton_aim360_direction_%d.png" % i)
+	# Actual GPU time samples of the complete wind-up/cuts/recovery sequence.
+	actor.combo_heading = Vector2.RIGHT
+	actor._face_right = true
+	for i:int in range(50):
+		actor.combo_time = float(i)*0.02
+		actor.visual_mob()
+		actor._fade_sprite.hide()
+		await process_frame
+		await RenderingServer.frame_post_draw
+		root.get_texture().get_image().save_png("res://.backups/wither_skeleton_aim360_20260927/motion_%02d.png" % i)
 	arena.queue_free()
 	await process_frame
 	quit(0 if differences[0] > 300 and differences[1] > 300 and differences[2] > 300 and differences[3] > 300 else 1)

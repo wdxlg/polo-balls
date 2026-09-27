@@ -47,7 +47,7 @@ def main():
  (OUT/'SOURCE.json').write_text(json.dumps({'owner':'Mojang / Microsoft','license':'Original Minecraft assets: Minecraft EULA/Usage Guidelines; not freely redistributable. No AI-generated or repainted source assets.','bedrock_commit':COMMIT,'java_audio_version':'1.21.4','asset_index':index_url,'renderer':RENDERER,'files':records,'clips':{'idle':16,'walk':16,'attack':50}},ensure_ascii=False,indent=2),encoding='utf-8')
  print('WITHER_SKELETON_ASSETS',len(records),'original files; audio', {k:len(v) for k,v in events.items()})
 
-RENDERER="Existing bake_native_mobs.Baker + BatchBaker matrices; unchanged original model/skin, original idle/walk; project-directed raised-arm downcut/upcut/recovery transforms (not a vanilla animation claim)."
+RENDERER="Existing bake_native_mobs.Baker + BatchBaker matrices; unchanged original model/skin, original idle/walk; project-directed raised-arm downcut/upcut/recovery transforms (not a vanilla animation claim). Attack torso/right arm rendered from separate original bones; runtime shoulder rotation enables full-circle aiming; no source repaint."
 def attack_arm_degrees(t):
  keys=[(0.0,-18.0),(.15,-160.0),(.31,-10.0),(.41,0.0),(.57,-160.0),(.74,-170.0),(.98,-18.0)]
  for (a,x),(b,y) in zip(keys,keys[1:]):
@@ -85,7 +85,7 @@ def bake():
  b.pose=pose
  yaw,pitch=np.radians([30,12]);b.right=np.array([math.cos(yaw),0,math.sin(yaw)]);b.camera=np.array([math.sin(yaw)*math.cos(pitch),math.sin(pitch),-math.cos(yaw)*math.cos(pitch)]);b.up=np.cross(b.right,b.camera);b.view=np.array([b.right,-b.up,b.camera])
  b.scale['skeleton']=4.5;b.foot['skeleton']=201
- files=[];clips=[];hands={}
+ files=[];clips=[];hands={};shoulders=[];part_files=[];part_ids={'body':[],'arm':[]}
  for state,count,duration,loop in [('idle',16,360/103.2,True),('walk',16,1.0,True),('attack',50,.98,False)]:
   ids=[];hands[state]=[]
   for i in range(count):
@@ -94,11 +94,30 @@ def bake():
    name=f'{state}_{i:02}.png';im.save(OUT/name);files.append(name);ids.append(len(files))
    m=b.matrices('skeleton',state,t)['rightarm'];hand=(m[:3,:3]@np.array([-5,12.75,-1.05])+m[:3,3])@b.view.T
    hands[state].append([round(float(hand[0]*4.5+W/2),4),round(float(hand[1]*4.5+201),4)])
+   if state=='attack':
+    shoulder=(m[:3,:3]@np.array([-5,22,0])+m[:3,3])@b.view.T
+    shoulders.append([round(float(shoulder[0]*4.5+W/2),4),round(float(shoulder[1]*4.5+201),4)])
+    # Render real original bones separately; do not paint/crop a fabricated limb.
+    original=b.models['skeleton']
+    for part in ['body','arm']:
+     subset=copy.deepcopy(original)
+     for bone in subset:
+      if (bone['name'].lower()=='rightarm') != (part=='arm'):bone['cubes']=[]
+     b.models['skeleton']=subset
+     part_image=Baker.render(b,'skeleton',state,t)
+     name=f'attack_{part}_{i:02}.png';part_image.save(OUT/name)
+     part_files.append(name);part_ids[part].append(len(part_files))
+    b.models['skeleton']=original
   clips.append('{"name":&"'+state+'","loop":'+str(loop).lower()+',"speed":'+str(count/duration)+',"frames":['+','.join('{"duration":1.0,"texture":ExtResource("'+str(i)+'")}' for i in ids)+']}')
  text='[gd_resource type="SpriteFrames" format=3]\n'+''.join('\n[ext_resource type="Texture2D" path="res://Images/characters/我的世界/wither_skeleton/'+p+'" id="'+str(i+1)+'"]' for i,p in enumerate(files))+'\n\n[resource]\nanimations = ['+',\n'.join(clips)+']\n'
  (OUT/'frames.tres').write_text(text,encoding='utf-8')
- (OUT/'poses.gd').write_text('extends RefCounted\n# Projected original right-hand anchors, in 160x224 frame pixels.\nconst HANDS:Dictionary = '+json.dumps(hands)+'\n',encoding='utf-8')
- print('WITHER_SKELETON_BAKE',len(files),'frames; full arm combo',len(hands['attack']))
+ (OUT/'poses.gd').write_text('extends RefCounted\n# Projected original right-hand anchors, in 160x224 frame pixels.\nconst HANDS:Dictionary = '+json.dumps(hands)+'\nconst SHOULDERS:Array = '+json.dumps(shoulders)+'\n',encoding='utf-8')
+ part_clips=[]
+ for part in ['body','arm']:
+  part_clips.append('{"name":&"'+part+'","loop":false,"speed":'+str(50/.98)+',"frames":['+','.join('{"duration":1.0,"texture":ExtResource("'+str(i)+'")}' for i in part_ids[part])+']}')
+ text='[gd_resource type="SpriteFrames" format=3]\n'+''.join('\n[ext_resource type="Texture2D" path="res://Images/characters/我的世界/wither_skeleton/'+p+'" id="'+str(i+1)+'"]' for i,p in enumerate(part_files))+'\n\n[resource]\nanimations = ['+',\n'.join(part_clips)+']\n'
+ (OUT/'attack_parts.tres').write_text(text,encoding='utf-8')
+ print('WITHER_SKELETON_BAKE' ,len(files),'frames; full arm combo',len(hands['attack']))
 if __name__=='__main__':
  if '--rebake' in sys.argv:
   bake()

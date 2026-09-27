@@ -103,7 +103,7 @@ func run() -> void:
 	check(status != null and is_equal_approx(status.remaining,3.0),"second hit refreshes duration to 3 seconds")
 	actor.advance_combo(0.25)
 	check(actor.combo_time >= 0.0 and actor.swings_started == 2,"two swings landed, recover transition still playing")
-	check(absf(wrapf(actor.blade_angle(0.97)-actor.rest_angle(),-PI,PI)) < 0.06,"blade eases back toward the rest angle")
+	check(absf(wrapf(actor.blade_angle(0.979)-actor.rest_angle(),-PI,PI)) < 0.06,"blade eases back toward the rest angle")
 	actor.advance_combo(0.25)
 	check(actor.combo_time < 0.0,"combo closes only after the recover transition")
 	check(actor.get_debug_attack_regions().is_empty(),"no damage threat after completion")
@@ -295,6 +295,59 @@ func run() -> void:
 	check(actor.direction.is_equal_approx(reflected),"enemy aim cannot undo real wall reflection")
 	wall.queue_free()
 	await process_frame
+	# Full-circle AIM, not a full-circle damage pulse. Body remains upright.
+	actor.global_position = Vector2(400,350)
+	ai_foe.global_position = Vector2(2000,2000)
+	behind.global_position = Vector2(-2000,-2000)
+	for i:int in range(8):
+		var aim:Vector2 = Vector2.RIGHT.rotated(float(i)*TAU/8.0)
+		fresh()
+		reset_target(victim)
+		victim.global_position = actor.global_position+aim*14.0
+		await physics_frame
+		actor.direction = Vector2(0.6,0.8)
+		actor.step_mob(0.01)
+		check(actor.combo_time >= 0.0 and actor.combo_heading.is_equal_approx(aim),"AI acquires enemy in each of eight directions")
+		check(actor.direction.is_equal_approx(Vector2(0.6,0.8)),"360 aiming never steers locomotion")
+		actor.combo_time = 0.23
+		actor.visual_mob()
+		var pivot:Vector2 = actor.shoulder_position(0.23)
+		var raw_hand:Vector2 = actor._hand_pixel(actor.POSES.HANDS["attack"][actor._attack_index(0.23)])
+		var expected_hand:Vector2 = pivot+(raw_hand-pivot).rotated(actor.arm_aim_rotation(0.23))
+		check(actor.hand_position(0.23).is_equal_approx(expected_hand),"real hand rotates about original shoulder in every direction")
+		var hand_pixel:Array = actor.POSES.HANDS["attack"][actor._body_frame]
+		var local_hand:Vector2 = Vector2(float(hand_pixel[0])-80.0,float(hand_pixel[1])-112.0)+actor._arm.offset
+		check((actor._arm.global_transform*local_hand).distance_to(actor._sword.global_position)<0.01,"rendered aimed arm ends at sword grip")
+		check(is_zero_approx(actor.image.rotation),"aim rotates arm not torso/legs")
+		actor.combo_time = 0.0
+		actor.advance_combo(0.74)
+		check(victim.health == 9952,"actual two slashes hit enemy in each of eight directions")
+		var side:float = 1.0 if actor._face_right else -1.0
+		var previous_angle:float = actor.blade_angle(actor.COMBO_DURATION)
+		var start_angle:float = previous_angle
+		var same_direction:bool = true
+		for sample:int in range(1,61):
+			var angle:float = actor.blade_angle(lerpf(actor.COMBO_DURATION,actor.RECOVER_END,float(sample)/60.0))
+			if (angle-previous_angle)*side > 0.00001: same_direction = false
+			previous_angle = angle
+		check(same_direction and (start_angle-previous_angle)*side >= TAU-0.001,"recovery turns at least one full revolution in upcut direction")
+		check(absf(wrapf(previous_angle-actor.rest_angle(),-PI,PI))<0.001,"unwrapped full spin ends at resting blade angle")
+		var health_before_spin:int = victim.health
+		actor.advance_combo(0.12)
+		check(actor.get_debug_attack_regions().is_empty() and actor.get_debug_detection_regions().is_empty(),"recovery spin is not a third damage or detection sweep")
+		actor.advance_combo(0.12)
+		check(victim.health == health_before_spin,"full recovery turn cannot deal extra damage")
+		actor.visual_mob()
+		check(not actor._arm.visible,"separate attack arm hides after recovery")
+	# Manual vertical aim follows the same real shoulder geometry.
+	fresh()
+	actor.set_player_control_peer(1)
+	actor.set_player_control_aim_position(actor.global_position+Vector2.UP*100)
+	actor.player_control_action(0)
+	actor.combo_time = 0.23
+	actor.visual_mob()
+	check(actor.combo_heading.is_equal_approx(Vector2.UP) and absf(actor.arm_aim_rotation(0.23))>1.5,"manual overhead aim turns arm with sword")
+	actor.set_player_control_peer(0)
 	actor.queue_free()
 	victim.queue_free()
 	friend.queue_free()

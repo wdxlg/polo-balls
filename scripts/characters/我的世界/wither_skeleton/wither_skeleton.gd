@@ -6,6 +6,7 @@ extends "res://scripts/characters/我的世界/new5/base.gd"
 const SWEEP = preload("res://classes/weapon_tip_sweep.gd")
 const EFFECTS = preload("res://scripts/effects/我的世界/mc_status_effects.gd")
 const FRAMES:SpriteFrames = preload("res://Images/characters/我的世界/wither_skeleton/frames.tres")
+const ATTACK_PARTS:SpriteFrames = preload("res://Images/characters/我的世界/wither_skeleton/attack_parts.tres")
 const POSES = preload("res://Images/characters/我的世界/wither_skeleton/poses.gd")
 const STONE:Texture2D = preload("res://Images/characters/我的世界/wither_skeleton/stone_sword.png")
 const VOICE = preload("res://scripts/effects/我的世界/mc_creature_voice.gd")
@@ -43,6 +44,7 @@ var _fade_t:float = 1.0
 var _fade_sprite:Sprite2D
 var _last_position:Vector2
 var _walking:bool = false
+var _arm:Sprite2D
 var _sword:Sprite2D
 var voice:Node
 
@@ -69,6 +71,13 @@ func _ready() -> void:
 	_sword.z_index = 3
 	add_child(_sword)
 	_sword.top_level = true
+	_arm = Sprite2D.new()
+	_arm.name = "AimedSwordArm"
+	_arm.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_arm.z_index = 2
+	add_child(_arm)
+	_arm.top_level = true
+	_arm.hide()
 	_fade_sprite = Sprite2D.new()
 	_fade_sprite.name = "BodyFade"
 	_fade_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -213,8 +222,20 @@ func _hand_pixel(xy:Array) -> Vector2:
 func _attack_index(time:float) -> int:
 	return clampi(roundi(time/RECOVER_END*float(FRAMES.get_frame_count(&"attack")-1)),0,FRAMES.get_frame_count(&"attack")-1)
 
+func shoulder_position(time:float) -> Vector2:
+	return _hand_pixel(POSES.SHOULDERS[_attack_index(time)])
+
+func arm_aim_rotation(time:float) -> float:
+	if time < 0.0: return 0.0
+	var turn:float = wrapf(combo_heading.angle()-(0.0 if _face_right else PI),-PI,PI)
+	# Enter and leave from the held pose, with no disconnected wrist/shoulder jump.
+	if time < WINDOWS[0].x: return turn*_ss(time/WINDOWS[0].x)
+	if time >= COMBO_DURATION: return turn*(1.0-_ss((time-COMBO_DURATION)/(RECOVER_END-COMBO_DURATION)))
+	return turn
+
 func _attack_hand(time:float) -> Vector2:
-	return _hand_pixel(POSES.HANDS["attack"][_attack_index(time)])
+	var shoulder:Vector2 = shoulder_position(time)
+	return shoulder+(_hand_pixel(POSES.HANDS["attack"][_attack_index(time)])-shoulder).rotated(arm_aim_rotation(time))
 
 func _rest_hand() -> Vector2:
 	var clip:StringName = &"walk" if _walking else &"idle"
@@ -238,7 +259,11 @@ func blade_angle(time:float) -> float:
 	# Mirror the arc on the left: first cut must travel down, not reverse into an upcut.
 	var side:float = 1.0 if _face_right else -1.0
 	if time >= COMBO_DURATION:
-		return lerp_angle(base+side*deg_to_rad(-125.0),rest_angle(),_ss((time-COMBO_DURATION)/(RECOVER_END-COMBO_DURATION)))
+		var start:float = base+side*deg_to_rad(-125.0)
+		# Unwrapped angle: continue the upward cut for one FULL turn, then align
+		# to the resting grip in the SAME direction. lerp_angle would erase the turn.
+		var travel:float = TAU+fposmod((start-rest_angle())*side,TAU)
+		return start-side*travel*_ss((time-COMBO_DURATION)/(RECOVER_END-COMBO_DURATION))
 	var degrees:float
 	if time < WINDOWS[0].x:
 		var start_rel:float = rad_to_deg(wrapf(rest_angle()-base,-PI,PI))/side
@@ -272,7 +297,16 @@ func visual_mob() -> void:
 	_prev_clip = pose.clip
 	_body_clip = pose.clip
 	_body_frame = pose.index
-	image.texture = FRAMES.get_frame_texture(_body_clip,_body_frame)
+	image.texture = ATTACK_PARTS.get_frame_texture(&"body",_body_frame) if _body_clip == &"attack" else FRAMES.get_frame_texture(_body_clip,_body_frame)
+	_arm.visible = _body_clip == &"attack"
+	if _arm.visible:
+		var shoulder:Array = POSES.SHOULDERS[_body_frame]
+		_arm.texture = ATTACK_PARTS.get_frame_texture(&"arm",_body_frame)
+		_arm.offset = Vector2(80.0-float(shoulder[0]),112.0-float(shoulder[1]))
+		_arm.global_position = shoulder_position(combo_time)
+		_arm.global_rotation = image.global_rotation+arm_aim_rotation(combo_time)
+		_arm.global_scale = image.global_scale*Vector2(-1.0 if _face_right else 1.0,1.0)
+		_arm.modulate = image.modulate
 	if is_instance_valid(_fade_sprite) and image is Sprite2D: _fade_sprite.flip_h = (image as Sprite2D).flip_h
 	_sword.global_position = hand_position(combo_time)
 	_sword.global_rotation = blade_angle(combo_time)+PI/4.0
@@ -285,6 +319,7 @@ func get_debug_attack_regions() -> Array[Dictionary]:
 func get_ai_attack_threats(_receiver:ball) -> Array: return get_debug_attack_regions()
 func get_debug_detection_regions() -> Array[Dictionary]:
 	if health <= 0 or dizziness or not Can_Attack or not is_combat_runtime_active(): return []
+	if combo_time >= COMBO_DURATION: return []
 	if combo_time >= 0.0:
 		if not _damage_regions.is_empty(): return []
 		var region:Dictionary = blade_segment(combo_time)
@@ -352,6 +387,7 @@ func Die() -> void:
 	cancel_combo()
 	if is_instance_valid(voice): voice.request("death",global_position,0.0)
 	if is_instance_valid(_sword): _sword.hide()
+	if is_instance_valid(_arm): _arm.hide()
 	if is_instance_valid(_fade_sprite): _fade_sprite.hide()
 	super.Die() # Retains project default death sound/lifecycle.
 @rpc("authority","call_local","reliable")
@@ -360,6 +396,9 @@ func _death_visual() -> void:
 	_death_visual_done = true
 	if is_instance_valid(_sword): _sword.hide()
 	if is_instance_valid(_fade_sprite): _fade_sprite.hide()
+	if is_instance_valid(_arm): _arm.hide()
+	# The death-pose snapshot needs the complete original model, not the arm-less torso.
+	image.texture = FRAMES.get_frame_texture(_body_clip,_body_frame)
 	DEATH_FX.death_pose(self,image,_face_right)
 func get_armor_test_effect_summary() -> String:
 	if str(Game.current_locale).begins_with("en"):
