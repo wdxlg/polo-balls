@@ -1,6 +1,8 @@
 extends "res://scripts/characters/我的世界/new5/base.gd"
 ## One active move: two real stone-sword sweeps. Shared hurt-shape geometry,
 ## classified damage, status potency/source lifetimes, audio and death effects.
+## The swing is a fully eased arc (wind-up, slash, re-wind, slash, follow-through)
+## and closes with a smooth recover that eases blade and body back to idle.
 const SWEEP = preload("res://classes/weapon_tip_sweep.gd")
 const EFFECTS = preload("res://scripts/effects/我的世界/mc_status_effects.gd")
 const FRAMES:SpriteFrames = preload("res://Images/characters/我的世界/wither_skeleton/frames.tres")
@@ -13,8 +15,11 @@ const WITHER_SECONDS:float = 3.0
 const MAX_WITHER_LEVEL:int = 255 # Existing public potency limit, not a new balance cap.
 const WINDOWS:Array[Vector2] = [Vector2(0.15,0.31),Vector2(0.41,0.57)]
 const COMBO_DURATION:float = 0.74
-@export var blade_length:float = 38.0
-@export var blade_radius:float = 3.0
+const RECOVER_END:float = 0.98 # Damage ends at COMBO_DURATION; the blade then eases home.
+const BODY_SCALE:float = 0.85 # 148 visible pixels -> ~126 world units, shared humanoid footprint.
+const BODY_OFFSET_Y:float = -13.5 # Feet pixel 202 lands on the collider bottom (+63).
+@export var blade_length:float = 14.0
+@export var blade_radius:float = 2.0
 @export var acquisition_range:float = 58.0
 var combo_time:float = -1.0
 var combo_heading:Vector2 = Vector2.RIGHT
@@ -32,6 +37,9 @@ var _received_wither:int = 0
 var _status_targets:Dictionary = {}
 var _body_clip:StringName = &"idle"
 var _body_frame:int = 0
+var _prev_clip:StringName = &""
+var _fade_t:float = 1.0
+var _fade_sprite:Sprite2D
 var _last_position:Vector2
 var _walking:bool = false
 var _sword:Sprite2D
@@ -60,6 +68,11 @@ func _ready() -> void:
 	_sword.z_index = 3
 	add_child(_sword)
 	_sword.top_level = true
+	_fade_sprite = Sprite2D.new()
+	_fade_sprite.name = "BodyFade"
+	_fade_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_fade_sprite.visible = false
+	image.add_child(_fade_sprite)
 	visual_mob()
 
 func player_control_action_ids() -> Array[StringName]: return [&"controlled_attack_action"]
@@ -76,7 +89,7 @@ func begin_combo(heading:Vector2) -> bool:
 	if not can_act() or not is_combat_runtime_active() or combo_time >= 0.0 or cooldown_left > 0.0 or heading.is_zero_approx(): return false
 	combo_heading = heading.normalized()
 	combo_time = 0.0
-	cooldown_left = maxf(Attack_Cooling,COMBO_DURATION)
+	cooldown_left = maxf(Attack_Cooling,RECOVER_END)
 	_hit_sets = [{},{}]
 	_sounded = [false,false]
 	Attacking = true
@@ -109,7 +122,7 @@ func advance_combo(delta:float) -> void:
 		cancel_combo()
 		return
 	var previous:float = combo_time
-	var next:float = minf(combo_time+maxf(delta,0.0),COMBO_DURATION)
+	var next:float = minf(combo_time+maxf(delta,0.0),RECOVER_END)
 	# Interval intersection means even a long frame crosses each slash exactly once.
 	for slash:int in range(2):
 		var window:Vector2 = WINDOWS[slash]
@@ -131,7 +144,7 @@ func advance_combo(delta:float) -> void:
 				_hit_sets[slash][target.get_instance_id()] = true
 				deal_sword_hit(target,contact.point)
 	combo_time = next
-	if combo_time >= COMBO_DURATION: cancel_combo()
+	if combo_time >= RECOVER_END: cancel_combo()
 
 func deal_sword_hit(target:ball,point:Vector2) -> bool:
 	if not can_act() or not U.enemy(self,target) or target.health <= 0: return false
@@ -178,31 +191,78 @@ func tick_physics(state:State,delta:float) -> void:
 	if health <= 0 or dizziness or is_damage_output_disabled() or not Can_Attack: cancel_combo()
 	_walking = global_position.distance_squared_to(_last_position) > 0.0009
 	_last_position = global_position
+	if _fade_t < 1.0:
+		_fade_t = minf(1.0,_fade_t+delta/0.12)
+		if is_instance_valid(_fade_sprite):
+			_fade_sprite.modulate.a = 1.0-_fade_t*_fade_t
+			_fade_sprite.visible = _fade_t < 1.0
 	super.tick_physics(state,delta)
 
 func body_pose(time:float) -> Dictionary:
-	if time >= 0.0:
+	if time >= 0.0 and time < COMBO_DURATION:
 		var start:float = 0.0 if time < 0.36 else 0.36
 		return {"clip":&"attack","index":clampi(int((time-start)/0.31*15.0),0,15)}
 	var clip:StringName = &"walk" if _walking else &"idle"
 	return {"clip":clip,"index":int(_view_clock*FRAMES.get_animation_speed(clip))%FRAMES.get_frame_count(clip)}
 
-func hand_position(time:float) -> Vector2:
-	var pose:Dictionary = body_pose(time)
-	var xy:Array = POSES.HANDS[str(pose.clip)][pose.index]
+func _hand_pixel(xy:Array) -> Vector2:
 	var pixel:Vector2 = Vector2(float(xy[0])-80.0,float(xy[1])-112.0)+image.offset
 	if _face_right: pixel.x = -pixel.x # Original orthographic model faces left.
 	return image.global_transform * pixel
 
+func _attack_hand(time:float) -> Vector2:
+	var start:float = 0.0 if time < 0.36 else 0.36
+	var index:int = clampi(int((time-start)/0.31*15.0),0,15)
+	return _hand_pixel(POSES.HANDS["attack"][index])
+
+func _rest_hand() -> Vector2:
+	var clip:StringName = &"walk" if _walking else &"idle"
+	var index:int = int(_view_clock*FRAMES.get_animation_speed(clip))%FRAMES.get_frame_count(clip)
+	return _hand_pixel(POSES.HANDS[str(clip)][index])
+
+func hand_position(time:float) -> Vector2:
+	if time < 0.0: return _rest_hand()
+	if time >= COMBO_DURATION:
+		# Recover: the grip glides from the follow-through pose back to the idle hand.
+		var p:float = _eo((time-COMBO_DURATION)/(RECOVER_END-COMBO_DURATION))
+		return _attack_hand(0.735).lerp(_rest_hand(),p)
+	var hand:Vector2 = _attack_hand(time)
+	for window:Vector2 in WINDOWS:
+		if time >= window.x and time <= window.y:
+			hand += combo_heading*(sin(PI*(time-window.x)/(window.y-window.x))*2.0)
+	return hand
+
+func _ss(t:float) -> float:
+	t = clampf(t,0.0,1.0)
+	return t*t*(3.0-2.0*t)
+
+func _eo(t:float) -> float:
+	t = clampf(t,0.0,1.0)
+	return 1.0-(1.0-t)*(1.0-t)*(1.0-t)
+
+func rest_angle() -> float: return 0.85 if _face_right else PI-0.85
+
 func blade_angle(time:float) -> float:
-	if time < 0.0: return 0.85 if _face_right else PI-0.85
+	if time < 0.0: return rest_angle()
+	var base:float = combo_heading.angle()
+	if time >= COMBO_DURATION:
+		# Recover: ease the blade from the follow-through back to the held rest angle.
+		var p:float = _eo((time-COMBO_DURATION)/(RECOVER_END-COMBO_DURATION))
+		return lerp_angle(base+deg_to_rad(112.0),rest_angle(),p)
 	var degrees:float
-	if time < WINDOWS[0].x: degrees = lerpf(-35.0,-65.0,time/WINDOWS[0].x)
-	elif time <= WINDOWS[0].y: degrees = lerpf(-65.0,65.0,(time-WINDOWS[0].x)/(WINDOWS[0].y-WINDOWS[0].x))
-	elif time < WINDOWS[1].x: degrees = 65.0
-	elif time <= WINDOWS[1].y: degrees = lerpf(65.0,-65.0,(time-WINDOWS[1].x)/(WINDOWS[1].y-WINDOWS[1].x))
-	else: degrees = lerpf(-65.0,-25.0,(time-WINDOWS[1].y)/(COMBO_DURATION-WINDOWS[1].y))
-	return combo_heading.angle()+deg_to_rad(degrees)
+	if time < WINDOWS[0].x:
+		# Wind-up starts exactly at the held rest angle: no snap when the combo begins.
+		var start_rel:float = rad_to_deg(wrapf(rest_angle()-base,-PI,PI))
+		degrees = lerpf(start_rel,-78.0,_eo(time/WINDOWS[0].x))
+	elif time <= WINDOWS[0].y:
+		degrees = lerpf(-78.0,86.0,_ss((time-WINDOWS[0].x)/(WINDOWS[0].y-WINDOWS[0].x)))
+	elif time < WINDOWS[1].x:
+		degrees = lerpf(86.0,-78.0,_ss((time-WINDOWS[0].y)/(WINDOWS[1].x-WINDOWS[0].y)))
+	elif time <= WINDOWS[1].y:
+		degrees = lerpf(-78.0,86.0,_ss((time-WINDOWS[1].x)/(WINDOWS[1].y-WINDOWS[1].x)))
+	else:
+		degrees = lerpf(86.0,112.0,_eo((time-WINDOWS[1].y)/(COMBO_DURATION-WINDOWS[1].y)))
+	return base+deg_to_rad(degrees)
 
 func blade_segment(time:float) -> Dictionary:
 	var grip:Vector2 = hand_position(time)
@@ -214,9 +274,17 @@ func visual_mob() -> void:
 	if combo_time < 0.0 and absf(direction.x) > 0.01: _face_right = direction.x > 0.0
 	set_character_visual_flip_h(_face_right)
 	var pose:Dictionary = body_pose(combo_time)
+	if _prev_clip == &"attack" and pose.clip != &"attack" and is_instance_valid(_fade_sprite):
+		# Cross-fade the last attack frame out so the body never pops back to idle.
+		_fade_sprite.texture = FRAMES.get_frame_texture(&"attack",15)
+		_fade_sprite.modulate.a = 1.0
+		_fade_sprite.visible = true
+		_fade_t = 0.0
+	_prev_clip = pose.clip
 	_body_clip = pose.clip
 	_body_frame = pose.index
 	image.texture = FRAMES.get_frame_texture(_body_clip,_body_frame)
+	if is_instance_valid(_fade_sprite) and image is Sprite2D: _fade_sprite.flip_h = (image as Sprite2D).flip_h
 	_sword.global_position = hand_position(combo_time)
 	_sword.global_rotation = blade_angle(combo_time)+PI/4.0
 	_sword.global_scale = Vector2.ONE*(blade_length/Vector2(10.5,-10.5).length())
@@ -226,7 +294,7 @@ func get_debug_attack_regions() -> Array[Dictionary]:
 	if health <= 0 or dizziness or not Can_Attack or is_damage_output_disabled() or not is_combat_runtime_active(): return []
 	return _damage_regions
 func get_ai_attack_threats(_receiver:ball) -> Array: return get_debug_attack_regions()
-func get_debug_detection_regions() -> Array:
+func get_debug_detection_regions() -> Array[Dictionary]:
 	if health <= 0 or dizziness or not Can_Attack or not is_combat_runtime_active(): return []
 	if combo_time >= 0.0:
 		if not _damage_regions.is_empty(): return []
@@ -256,7 +324,7 @@ func client_visual_step(delta:float) -> void:
 	_damage_regions.clear()
 	if combo_time >= 0.0:
 		combo_time += delta
-		if combo_time >= COMBO_DURATION: combo_time = -1.0
+		if combo_time >= RECOVER_END: combo_time = -1.0
 		for window:Vector2 in WINDOWS:
 			if combo_time >= window.x and combo_time <= window.y: _damage_regions.append(blade_segment(combo_time))
 func _publish_pose() -> void:
@@ -295,12 +363,14 @@ func Die() -> void:
 	cancel_combo()
 	if is_instance_valid(voice): voice.request("death",global_position,0.0)
 	if is_instance_valid(_sword): _sword.hide()
+	if is_instance_valid(_fade_sprite): _fade_sprite.hide()
 	super.Die() # Retains project default death sound/lifecycle.
 @rpc("authority","call_local","reliable")
 func _death_visual() -> void:
 	if _death_visual_done: return
 	_death_visual_done = true
 	if is_instance_valid(_sword): _sword.hide()
+	if is_instance_valid(_fade_sprite): _fade_sprite.hide()
 	DEATH_FX.death_pose(self,image,_face_right)
 func get_armor_test_effect_summary() -> String:
 	if str(Game.current_locale).begins_with("en"):

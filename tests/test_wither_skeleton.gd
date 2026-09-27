@@ -70,6 +70,9 @@ func run() -> void:
 	check(actor.player_control_action_ids() == [&"controlled_attack_action"],"exactly one left mouse action")
 	check(not actor.Has_Collision_Damage and not actor.Can_Skill,"no hidden collision or extra skill")
 	check(actor.FRAMES.get_frame_count(&"attack") == 16,"native attack animation")
+	check(is_equal_approx(actor.image.scale.x,actor.BODY_SCALE) and is_equal_approx(actor.image.position.y,actor.BODY_OFFSET_Y),"body keeps the shared humanoid footprint")
+	var body_shape:RectangleShape2D = actor.get_node("CollisionShape2D").shape
+	check(is_equal_approx(body_shape.size.x,40.0) and is_equal_approx(body_shape.size.y,126.0),"collider matches the slimmer visual")
 	check(actor.SOUNDS.EVENTS.size() == 4,"all four original creature audio categories")
 	actor.begin_combo(Vector2.RIGHT)
 	actor.visual_mob()
@@ -99,7 +102,10 @@ func run() -> void:
 	status = EFFECTS.current(victim,"wither")
 	check(status != null and is_equal_approx(status.remaining,3.0),"second hit refreshes duration to 3 seconds")
 	actor.advance_combo(0.25)
-	check(actor.combo_time < 0.0 and actor.swings_started == 2,"exactly two swings and clean completion")
+	check(actor.combo_time >= 0.0 and actor.swings_started == 2,"two swings landed, recover transition still playing")
+	check(absf(wrapf(actor.blade_angle(0.97)-actor.rest_angle(),-PI,PI)) < 0.06,"blade eases back toward the rest angle")
+	actor.advance_combo(0.25)
+	check(actor.combo_time < 0.0,"combo closes only after the recover transition")
 	check(actor.get_debug_attack_regions().is_empty(),"no damage threat after completion")
 	check(not actor.begin_combo(Vector2.RIGHT),"cooldown rejects spam")
 	fresh()
@@ -182,7 +188,7 @@ func run() -> void:
 	check(actor.voice.played.get("step",0) == 1,"same step stream never immediately overlaps")
 	if DisplayServer.get_name() != "headless":
 		var images:Array[Image] = []
-		for t:float in [-1.0,0.22,0.49]:
+		for t:float in [-1.0,0.22,0.49,0.86]:
 			actor.combo_time = t
 			actor.combo_heading = Vector2.RIGHT
 			actor.visual_mob()
@@ -191,12 +197,13 @@ func run() -> void:
 			var im:Image = root.get_texture().get_image()
 			images.append(im)
 			im.save_png("res://tests/wither_skeleton_gpu_%s.png" % str(t).replace(".","_"))
-		check(images[0].get_data() != images[1].get_data() and images[1].get_data() != images[2].get_data(),"GPU idle, first slash and second slash differ")
+		check(images[0].get_data() != images[1].get_data() and images[1].get_data() != images[2].get_data() and images[2].get_data() != images[3].get_data(),"GPU idle, both slashes and recover differ")
 	actor.combo_time = -1.0
 	actor.voice.request("death",actor.global_position)
 	actor.voice.request("death",actor.global_position)
 	check(actor.voice.played.get("death",0) == 1,"one native death cue only")
 	fresh()
+	victim.global_position = actor.global_position+Vector2(-500,-500)
 	var ai_foe:Node2D = make_target("AIFoe",actor.global_position+Vector2(40,0))
 	await physics_frame
 	actor.step_mob(0.02)

@@ -26,13 +26,13 @@ func run() -> void:
 	actor.get_node("Health_Bar").hide()
 	var camera:=Camera2D.new()
 	camera.position = Vector2(8,0)
-	camera.zoom = Vector2.ONE*5.0
+	camera.zoom = Vector2.ONE*3.0
 	arena.add_child(camera)
 	await process_frame
 	print("WITHER_SKELETON_PREVIEW scale=",actor.global_scale," body=",actor.image.global_scale," collider=",actor.collision_shape_2d.shape.size)
 	if DisplayServer.get_name() == "headless": quit(2); return
 	var images:Array[Image] = []
-	var times:Array[float] = [-1.0,0.22,0.49]
+	var times:Array[float] = [-1.0,0.22,0.49,0.86]
 	for i:int in range(times.size()):
 		actor.combo_time = times[i]
 		actor.combo_heading = Vector2.RIGHT
@@ -47,7 +47,7 @@ func run() -> void:
 		image.save_png("res://tests/wither_skeleton_preview_%d.png" % i)
 		images.append(image)
 	var differences:Array[int] = []
-	for i:int in range(1,3):
+	for i:int in range(1,4):
 		var count:int = 0
 		for y:int in range(600):
 			for x:int in range(800):
@@ -58,4 +58,4 @@ func run() -> void:
 	print("WITHER_SKELETON_GPU_ACTOR_DIFFERENCES ",differences)
 	arena.queue_free()
 	await process_frame
-	quit(0 if differences[0] > 300 and differences[1] > 300 else 1)
+	quit(0 if differences[0] > 300 and differences[1] > 300 and differences[2] > 300 else 1)
