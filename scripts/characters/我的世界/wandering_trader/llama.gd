@@ -13,6 +13,7 @@ const AUDIO = preload("res://scripts/characters/我的世界/wandering_trader/au
 const VISUAL = preload("res://scripts/characters/我的世界/wandering_trader/visual.gd")
 const HIT_GAIN = preload("res://scripts/effects/我的世界/hit_audio_gain.gd")
 const HIT_AUDIO = preload("res://scripts/characters/我的世界/new5/audio.gd")
+const WALL_CLIP = preload("res://scripts/characters/我的世界/wandering_trader/wall_clip.gd")
 const SPIT_SCENE_PATH:String = "res://scenes/shooter/我的世界/羊驼口水.tscn"
 const FRAME_SETS:Array[StringName] = [&"llama_creamy",&"llama_brown"]
 const NORMAL_LAYER:int = 2
@@ -66,6 +67,13 @@ var _stuck_time:float = 0.0
 var _ghost_time:float = 0.0
 var _step_wait:float = 0.3
 var _retired:bool = false
+## Returning llama walking out of the wall next to the trader (driven here, clipped like him).
+var emerging:bool = false
+var _emerge_from:Vector2
+var _emerge_to:Vector2
+var _emerge_time:float = 0.0
+var _emerge_duration:float = 0.3
+var _wall_clip:Node
 
 func _ready() -> void:
 	Type = Ball_Type.Creature
@@ -131,6 +139,9 @@ func tick_physics(state:State,delta:float) -> void:
 		return
 	if not is_multiplayer_authority():
 		super.tick_physics(state,delta)
+		return
+	if emerging:
+		_tick_emerge(delta)
 		return
 	if not is_combat_runtime_active():
 		_hold_beside(owner_trader)
@@ -280,6 +291,7 @@ func wt_neck_point() -> Vector2:
 	return to_global(Vector2(facing_sign()*18.0,-11.0))
 
 func wt_visual_clip(observed_speed:float) -> StringName:
+	if emerging: return &"walk"
 	if _spit_anim > 0.0: return &"spit"
 	if observed_speed > 110.0: return &"run"
 	if observed_speed > 6.0: return &"walk"
@@ -442,6 +454,58 @@ func _do_retaliate() -> void:
 	wt_sound(&"llama_angry",-2.0)
 	spit_at(unit)
 	_spit_wait = maxf(_spit_wait,spit_interval*0.5)
+
+# ------------------------------------------------------------------ return through the wall
+## Authority: the replacement llama starts completely inside the wall and walks straight out along
+## the wall normal in the same time as the trader. Non-solid, untargetable and exempt from the
+## map-escape rescue until it is out; the body is cut at the wall surface on every peer.
+func wt_begin_emerge(from:Vector2,to:Vector2,duration:float,face:Vector2,normal:Vector2) -> void:
+	emerging = true
+	_emerge_from = from
+	_emerge_to = to
+	_emerge_time = 0.0
+	_emerge_duration = maxf(duration,0.05)
+	global_position = from
+	velocity = Vector2.ZERO
+	collision_layer = 0
+	collision_mask = 0
+	set_meta(&"ignore_combat_targeting",true)
+	set_meta(&"submission_allow_map_escape",true)
+	if self_hurtbox != null: self_hurtbox.set_deferred("monitorable",false)
+	if absf(to.x - from.x) > 0.01: _face(to.x - from.x)
+	emerge_clip(true,face,normal) # peers: the trader relays it (this node may not be spawned there yet)
+
+func _tick_emerge(delta:float) -> void:
+	_emerge_time += delta
+	var k:float = clampf(_emerge_time/_emerge_duration,0.0,1.0)
+	global_position = _emerge_from.lerp(_emerge_to,k)
+	last_speed = _emerge_from.distance_to(_emerge_to)/_emerge_duration
+	if k >= 1.0: wt_finish_emerge()
+
+func wt_finish_emerge() -> void:
+	if not emerging: return
+	emerging = false
+	global_position = _emerge_to
+	collision_layer = NORMAL_LAYER
+	collision_mask = NORMAL_MASK
+	for key:StringName in [&"ignore_combat_targeting",&"submission_allow_map_escape"]:
+		if has_meta(key): remove_meta(key)
+	if self_hurtbox != null: self_hurtbox.set_deferred("monitorable",true)
+	emerge_clip(false,Vector2.ZERO,Vector2.UP)
+
+func emerge_clip(active:bool,face:Vector2,normal:Vector2) -> void:
+	if active:
+		if image == null or not is_instance_valid(image): return
+		if _wall_clip == null or not is_instance_valid(_wall_clip):
+			_wall_clip = WALL_CLIP.new()
+			_wall_clip.name = "WallClip"
+			add_child(_wall_clip)
+		_wall_clip.call(&"start",image,face,normal)
+	elif _wall_clip != null and is_instance_valid(_wall_clip):
+		_wall_clip.call(&"stop")
+
+func wall_clip_active() -> bool:
+	return _wall_clip != null and is_instance_valid(_wall_clip) and bool(_wall_clip.get(&"active"))
 
 # ------------------------------------------------------------------ life
 func take_damage(damage:float,ignore_block:bool = false) -> void:

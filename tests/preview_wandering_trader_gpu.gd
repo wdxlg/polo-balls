@@ -1,6 +1,6 @@
 extends "res://tests/test_sulfur_cube_balance.gd"
 ## GPU preview (GUI mode only): real World rendering of the 流浪商人 herd, leash sag/taut, yank,
-## spit in flight, milk and potion drinking, wall entry/hidden/exit. Screenshots go to
+## spit in flight, milk and potion drinking, wall entry/hidden/exit tell/exit with a returning llama. Screenshots go to
 ## WANDERING_TRADER_EVIDENCE_DIR (default user://wandering_trader_gpu).
 var folder:String
 var camera:Camera2D
@@ -93,6 +93,10 @@ func run() -> void:
 	await seconds(0.6)
 	await grab("07_invisible")
 	await seconds(6.0)
+	# A dead llama whose return cooldown is over walks out of the wall with him.
+	(herd[1] as Node2D).take_damage(1e9)
+	await seconds(0.2)
+	trader._llama_return_wait[1]=0.0
 	trader.start_wall_phase()
 	# Close-up on the entry wall: the body is clipped on the wall surface, no fading.
 	var zoom_before:Vector2=camera.zoom
@@ -105,9 +109,14 @@ func run() -> void:
 		await physics_frame;t+=1.0/60.0
 	await seconds(0.05)
 	await grab("09_hidden")
+	while trader.exit_warnings==0 and trader.wall_phase!=3 and t<6.0:
+		await physics_frame;t+=1.0/60.0
+	check(trader.exit_warnings==1,"exit tell fired")
+	camera.global_position=trader.wall_face_point(trader.exit_slot)
+	await seconds(0.12)
+	await grab("09b_exit_tell")
 	while trader.wall_phase!=3 and t<6.0:
 		await physics_frame;t+=1.0/60.0
-	camera.global_position=trader.wall_face_point(trader.exit_slot)
 	for label:String in ["10a_emerging","10b_emerging","10c_emerging"]:
 		await seconds(maxf(trader._phase_duration*0.28,0.05))
 		if trader.wall_phase==3:await grab(label)
@@ -116,5 +125,6 @@ func run() -> void:
 	camera.global_position=center;camera.zoom=zoom_before
 	await seconds(0.3)
 	await grab("11_reconnected")
+	check(trader.llamas_returned==1 and trader.living_llamas().size()==2,"llama came back with him")
 	print("WANDERING_TRADER_GPU checks=",checks," failures=",failures)
 	quit(0 if failures==0 else 1)

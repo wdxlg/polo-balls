@@ -69,7 +69,7 @@ func run() -> void:
 	check(trader.leashes.size()==2 and trader.leashes[0].is_inside_tree() and trader.leashes[0].is_connected_visual() and trader.leashes[1].is_connected_visual(),"two leash views drawn in world space")
 	check(l0.is_combat_targetable() and l1.is_combat_targetable(),"llamas are killable (targetable) summons")
 	check(not l0.get_meta(&"haochen_copy",false) and l0.get_node("Graphics/Image").texture!=null and trader.get_node("Graphics/Image").texture!=null,"baked frames applied to trader and llama")
-	check(trader.Max_health==300 and l0.Max_health==350 and l1.Max_health==350,"HP: trader 300, llamas 350 (%d / %d / %d)" % [trader.Max_health,l0.Max_health,l1.Max_health])
+	check(trader.Max_health==250 and l0.Max_health==350 and l1.Max_health==350,"HP: trader 250, llamas 350 (%d / %d / %d)" % [trader.Max_health,l0.Max_health,l1.Max_health])
 	for l:Node2D in [l0,l1]:l.Max_health=100000;l.health=100000
 	# --- yank back through a character (ignore character collision) ----------------
 	hold(trader)
@@ -295,14 +295,55 @@ func run() -> void:
 	await seconds(0.1)
 	check(trader.living_llamas().size()==1 and not trader.leashes[1].is_connected_visual(),"a dead llama loses its leash")
 	await seconds(1.5)
-	check(trader.living_llamas().size()==1 and world.get_node_or_null("WT_Llama1")==null,"no respawn")
+	check(trader.living_llamas().size()==1 and world.get_node_or_null("WT_Llama1")==null and trader._llama_return_wait[1]>15.0,"no instant respawn: the 20 s return cooldown runs (%.1f)" % trader._llama_return_wait[1])
+	# --- exit tell + llama return through the wall ---------------------------------------------
+	check(trader.due_llama_slot()==-1,"dead llama not due before its return cooldown")
+	trader._llama_return_wait[1]=0.0
+	check(trader.due_llama_slot()==1,"llama slot due once the cooldown is over")
+	var warn0:int=trader.exit_warnings;var stone0:int=heard("stone_hit")
+	trader._wall_wait=0.0
+	check(trader.start_wall_phase(),"wall phase for the exit tell / llama return")
+	trader._wall_wait=999.0
+	t=0.0
+	while trader.exit_warnings==warn0 and trader.wall_phase!=3 and t<5.0:
+		await physics_frame;t+=1.0/60.0
+	var lead:float=trader.wall_hidden_time-trader._phase_time
+	check(trader.exit_warnings==warn0+1 and trader.wall_phase==2 and absf(lead-trader.wall_exit_warning)<0.05,"exit tell fires while still hidden, %.2f s before he comes out" % lead)
+	var warned:Dictionary=trader.exit_slot.duplicate()
+	var warn_face:Vector2=trader.wall_face_point(warned)
+	await physics_frame
+	var chips:int=0
+	for n:Node in get_nodes_in_group(&"MCWanderingTraderFx"):if n is Node2D and (n as Node2D).global_position.distance_to(warn_face)<30.0:chips+=1
+	check(chips>=1 and heard("stone_hit")>stone0,"exit wall cracks: stone chips at the exit surface + stone hit (%d)" % chips)
+	while trader.wall_phase==2 and t<6.0:
+		await physics_frame;t+=1.0/60.0
+	await physics_frame
+	check(trader.wall_phase==3 and (trader.exit_slot.floor as Vector2).distance_to(warned.floor)<0.5,"comes out exactly where the wall cracked")
+	var back:Node2D=world.get_node_or_null("WT_Llama1")
+	var ex_face:Vector2=trader.wall_face_point(trader.exit_slot);var ex_normal:Vector2=(trader.exit_slot.normal as Vector2).normalized()
+	check(back!=null and back.emerging and back.wall_clip_active() and back.collision_layer==0 and not back.is_combat_targetable(),"the returning llama walks out of the wall with him (clipped, non-solid, untargetable)")
+	check(back!=null and (back.global_position-ex_face).dot(ex_normal)<0.0,"the llama starts inside the wall")
+	check(back!=null and trader.llamas_returned==1 and not trader.leashes[1].is_connected_visual(),"leash not drawn while still in the wall")
+	while trader.wall_phase!=0 and t<8.0:
+		await physics_frame;t+=1.0/60.0
+	await seconds(0.2)
+	check(is_instance_valid(back) and not back.emerging and not back.wall_clip_active() and back.collision_layer==2 and back.collision_mask==3 and back.is_combat_targetable(),"llama out: normal collision, targetable, clip removed")
+	check(is_instance_valid(back) and back.Max_health==350 and back.Master==trader and trader.living_llamas().size()==2 and trader.leashes[1].is_connected_visual() and back.leash_connected,"returned llama is leashed to him again (350 HP)")
+	check(is_instance_valid(back) and back.herd_position_clear(back.global_position) and not back.has_meta(&"submission_allow_map_escape"),"returned llama stands body-clear (herd excluded), map-escape exemption cleared (clear %s, meta %s)" % [back.herd_position_clear(back.global_position) if is_instance_valid(back) else false,back.has_meta(&"submission_allow_map_escape") if is_instance_valid(back) else false])
+	trader._wall_wait=0.0
+	check(trader.start_wall_phase(),"another wall with a full herd")
+	trader._wall_wait=999.0
+	t=0.0
+	while trader.wall_phase!=0 and t<6.0:
+		await physics_frame;t+=1.0/60.0
+	check(trader.llamas_returned==1 and trader.living_llamas().size()==2,"no extra llama when none is due")
 	# --- controls ------------------------------------------------------------------------------------
 	var ids:Array=trader.player_control_action_ids()
 	check(ids.has(&"controlled_attack_action") and ids.has(&"controlled_skill_action") and ids.has(&"controlled_middle_action"),"manual controls: potion / wall / milk (%s)" % [ids])
 	# --- trader death retires the herd -------------------------------------------------------------
 	trader.take_damage(1e9)
 	await seconds(1.0)
-	check(not is_instance_valid(l0) or l0.health<=0,"remaining llama retires with the trader")
+	check((not is_instance_valid(l0) or l0.health<=0) and (not is_instance_valid(back) or back.health<=0),"remaining llamas (incl. the returned one) retire with the trader")
 	var views_ok:bool=true
 	for n:Node in world.get_children():
 		if String(n.name).begins_with("WT_Leash") and n.has_method(&"is_connected_visual") and n.is_connected_visual():views_ok=false

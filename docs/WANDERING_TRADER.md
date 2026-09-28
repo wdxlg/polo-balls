@@ -5,7 +5,7 @@ Added 2026-09-28 (task 13). User request (verbatim):
 > 加一个流浪商人角色。自带两个羊驼。有个缰绳连着商人和羊驼。羊驼会跟随流浪商人。商人和羊驼隔得远了会把羊驼拉过来。拉过来的时候无视人物碰撞。可以根据速度对敌人造成伤害和击退（向平行方向击退）。羊驼还会射出口水攻击。攻速中等。子弹速度中等偏快。羊驼受击延迟一会还会射口水。然后商人会喝牛奶，清除一切负面效果（就和铜剑一样）。只有有负面效果的时候才会喝。有长冷却。还会喝隐身药水，和女巫的一样。还有一个技能冷却中等。可以进入地图的墙然后消失。缰绳会断开。过一会会从一个尽量安全的地方出来（从墙里出来）。缰绳会在他出来的时候连上。
 
 User decisions:
-- Llamas: **killable, no respawn** (summons with their own HP; the leash goes away when one dies; they never count for victory).
+- Llamas: **killable** (summons with their own HP; the leash goes away when one dies; they never count for victory). A dead llama's slot gets a 20 s return cooldown; once it is over, the next wall exit brings one llama back out of the wall with him, leashed.
 - Speed damage: **llama body only**, knockback along the llama's own motion. Neither the rope nor the trader deals speed damage.
 - While hidden in a wall: **llamas roam and fight freely**.
 - Numbers: default (I picked them from existing MC characters, listed below).
@@ -92,10 +92,18 @@ The phase runs in four steps:
 3. **Emerging**: the exit is chosen by `WALL.safest_slot`. Slots are ranked by the distance from their floor tile to the nearest enemy (plus ≤ 6 px seeded jitter), and the first slot whose floor can hold his whole body wins (stepping out along the wall normal up to 22 px, then further until the whole drawn body is outside the wall, if that spot is clear). He starts fully inside the wall, straight behind the exit point, becomes visible already clipped, and walks straight out along the wall normal (same speed, minimum 0.3 s). Sounds: `block.stone.hit` + `reappeared`, with chips at the surface.
 4. **Finish**: collision, metas and the character material are restored (bit 2 is re-added if invisibility expired meanwhile), and the leashes reconnect (`entity.leash_knot.place`).
 
+**Exit tell** (user request 2026-09-29): `wall_exit_warning` (0.45 s) before the end of the hidden step, the exit slot is chosen and locked (`_warn_exit`), and its wall surface cracks on every peer: three pulses of stone chips spreading along the wall (`_exit_warning_visual`, reliable rpc) plus a quieter `block.stone.hit`. He then comes out exactly there. The tell is readable counterplay; the slot is still the safest one, just evaluated 0.45 s earlier.
+
+### Llama return (user request 2026-09-29)
+- When a llama dies, its slot starts `llama_return_cooldown` (20 s; the timer runs in and out of the wall).
+- At the start of emerging, the first empty slot whose cooldown is over (`due_llama_slot`) spawns a fresh llama (350 HP, same deterministic name `<trader>_Llama<i>`, the old node is long freed) completely inside the wall, offset ±18/30 px along the wall from his exit (first body-clear spot). It walks straight out with him in the same time, clipped on the same wall surface (`llama.gd` `wt_begin_emerge` / `emerge_clip`), non-solid, untargetable and map-escape-exempt until it is out.
+- On `_finish_wall` it gets normal collision and becomes targetable, and the leash reconnects together with the other one. Peers get the clip through the trader (`_llama_clip_remote`), which waits a few frames for the replicated llama.
+- One llama per exit. An exit that brings a llama gives no item (items: design draft below).
+
 If the battle stops mid-phase, `finish_wall_phase_now()` pops him out at once.
 
 ### Death and lifecycle
-- Llamas have HP 350. `retire()` removes them from the Ball group, snaps their leash (`wt_on_llama_lost`) and frees them. **No respawn.** As Type Creature they are not battle characters, so they never count for victory.
+- Llamas have HP 350. `retire()` removes them from the Ball group, snaps their leash (`wt_on_llama_lost`) and frees them. No instant respawn (see *Llama return* below). As Type Creature they are not battle characters, so they never count for victory.
 - When the trader dies, `owner_lost()` retires the remaining llamas (vanilla trader llamas despawn with him). World resets free them with every Ball.
 
 ### Manual control
@@ -108,17 +116,37 @@ If the battle stops mid-phase, `finish_wall_phase_now()` pops him out at once.
 - Sounds are rpc'd with the chosen variant.
 - The drink visual, wall hide/show and leash state go by reliable rpc. The leash is drawn locally on every peer.
 
+## Exit items (design draft, not implemented yet)
+
+User request (2026-09-29): every wall exit that does **not** bring a llama back grants one item. All items are things the vanilla wandering trader sells. Two use modes: **instant** (used the moment he steps out) and **held** (at most one in hand; a new item replaces it; the AI uses it on its condition; manual control: key 1). Suggested draw weights in brackets.
+
+| # | Item | Mode | Effect | AI use |
+|---|---|---|---|---|
+| 1 | Gunpowder 火药 (12) | instant | A primed trap at the exit floor: arms after 0.6 s, fuse hiss, triggers when an enemy comes within 28 px: 30 dmg + knockback, radius 40. Fizzles after 8 s. | on exit |
+| 2 | Blue ice 蓝冰 (10) | instant | 3×3 tile ice patch around the exit for 6 s: enemies on it slide (low steering) and move ×0.7. | on exit |
+| 3 | Pufferfish bucket 河豚桶 (8) | held | Releases a pufferfish for 6 s that puffs up near enemies; contact = Poison 4 s (Witch poison effect), `entity.puffer_fish.sting`. | enemy within 80 |
+| 4 | Pointed dripstone 滴水石锥 (10) | held | Target an enemy within 160: a 0.6 s shadow/dripstone tell above it, then it falls for 25 dmg (vanilla falling dripstone). | enemy within 160 and line clear |
+| 5 | Slimeball 粘液球 (10) | held | Thrown ball: 6 dmg, Slowness 40 % for 3 s. | enemy within 140 |
+| 6 | Hay bale 干草块 (8) | instant | Feeds the llamas (vanilla: hay heals llamas 10 HP): every living llama heals 60 HP. Re-rolled when no llama is alive. | on exit |
+| 7 | Fermented spider eye 发酵蛛眼 (8) | held | Thrown: Weakness 5 s on the target (Witch weakness effect: less outgoing damage). | strongest enemy within 140 |
+| 8 | Baked potato 烤马铃薯 (12) | held | Eats it (0.8 s, like the drink): heals the trader 35 HP. | HP < 60 % |
+| 9 | Cactus 仙人掌 (10) | instant | Places a cactus block at the exit for 10 s: solid obstacle, contact 5 dmg every 0.5 s (vanilla cactus). | on exit |
+| 10 | Tropical fish bucket 热带鱼桶 (12) | held | Releases a flopping tropical fish decoy (60 HP, 4 s): enemy AI within 120 retargets to it. | enemy within 70 |
+
+Open points for the user: which items to keep, instant vs held per item, and whether the numbers fit after a batch simulation. Every item needs its original texture + sound with a `SOURCE.json` (MCP_CONTEXT §4) and must be registered in the classification catalog (§9).
+
 ## Numbers
 
 | | value | reference |
 |---|---|---|
-| Trader HP / Speed | 300 / 80 | Witch 500 / 76 |
+| Trader HP / Speed | 250 / 80 | Witch 500 / 76 |
 | Llama HP / follow speed | 350 / 62 | dog 75, vex |
 | Spit damage / speed / interval | 14 / 300 / 2.0 s | snowball 6 / 260 |
 | Speed damage | from 130 px/s, ×0.09, cap 40 | |
 | Milk cooldown / drink | 20 s / 1.1 s | |
 | Invisibility cooldown / first / drink | 16 s / 5 s / 0.78 s | Witch drink 0.78 s |
 | Wall cooldown / first / hidden | 11 s / 7 s / 2.6 s | |
+| Exit tell / llama return cooldown | 0.45 s / 20 s | |
 | Wall walk-in / walk-out | 150 px/s straight, 0.25–1.4 s / 0.3–1.4 s | |
 | Leash slack / pull start / pull end | 42 / 60 / 28 world px | |
 

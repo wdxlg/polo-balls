@@ -1,15 +1,17 @@
 extends "res://scripts/characters/我的世界/mc_mob_base.gd"
 ## 流浪商人 (Wandering Trader). Rules, numbers and sources: docs/WANDERING_TRADER.md.
 ## * Comes with two trader llamas (scenes/creatures/流浪商人_羊驼.tscn), each on a 缰绳.
-##   Llamas are killable summons (Master = trader): no respawn, no victory weight, leash removed
-##   when one dies, and they despawn with the trader.
+##   Llamas are killable summons (Master = trader): no victory weight, leash removed when one
+##   dies, and they despawn with the trader. A dead llama's slot has a return cooldown; once it is
+##   ready, the next wall exit brings one llama back out of the wall with him, on its leash.
 ## * 牛奶: only while a negative effect is present; clears all negative effects exactly like the
 ##   copper sword (ball.cleanse_negative_effects / classes/status_cleansing.gd). Long cooldown.
 ## * 隐身药水: the Witch's own invisibility (女巫药水效果.apply_effect(self,"invisibility",self)).
 ## * 入墙: walks straight into the nearest map wall; the body is clipped on the wall surface, so it
 ##   vanishes only once it is completely inside (leashes snap). He then pushes straight out of the
 ##   safest wall slot (farthest from enemies, body-clear floor), again clipped, and the leashes
-##   reconnect. No fading.
+##   reconnect. No fading. Shortly before he comes out, the exit wall cracks (stone chips + sound)
+##   so opponents can read where he will appear.
 const AUDIO = preload("res://scripts/characters/我的世界/wandering_trader/audio.gd")
 const VISUAL = preload("res://scripts/characters/我的世界/wandering_trader/visual.gd")
 const LEASH = preload("res://scripts/characters/我的世界/wandering_trader/leash.gd")
@@ -44,7 +46,10 @@ enum Phase { NONE, ENTERING, HIDDEN, EMERGING }
 @export var wall_entry_speed:float = 150.0
 @export var wall_entry_time_max:float = 1.4
 @export var wall_emerge_time:float = 0.3 # minimum; the real time follows the walk-out distance
+@export var wall_exit_warning:float = 0.45 # exit wall cracks this long before he comes out
 @export var drink_move_ratio:float = 0.35
+@export_category("流浪商人 / 羊驼补回")
+@export var llama_return_cooldown:float = 20.0
 
 var wall_phase:int = Phase.NONE
 var leashes:Array[Node2D] = []
@@ -79,6 +84,13 @@ var _wall_clip:Node
 var _item_anchor:Node2D
 var _item_sprite:Sprite2D
 var _item_tween:Tween
+var exit_warnings:int = 0
+var llamas_returned:int = 0
+var _exit_warned:bool = false
+## Per llama slot: seconds until a dead llama may come back (<= 0 and empty slot = due).
+var _llama_return_wait:Array[float] = []
+## Slot of the llama walking out of the wall with him this exit (-1 = none).
+var _returning_llama:int = -1
 
 func _ready() -> void:
 	Can_Attack = false
@@ -93,6 +105,7 @@ func _ready() -> void:
 	_wall_wait = wall_first_delay
 	for i:int in range(llama_count):
 		_llama_refs.append(null)
+		_llama_return_wait.append(0.0)
 		var view:Node2D = LEASH.new()
 		view.name = "%s_Leash%d" % [str(name),i]
 		view.slack_length = leash_slack
@@ -119,21 +132,29 @@ func llama_name(index:int) -> String:
 
 func _spawn_llamas() -> void:
 	if not is_inside_tree() or health <= 0 or not is_multiplayer_authority(): return
-	var scene:PackedScene = load(LLAMA_SCENE_PATH) as PackedScene
-	var parent:Node = get_parent() if get_parent() != null else get_tree().current_scene
 	for i:int in range(llama_count):
 		if _llama(i) != null: continue
-		var llama:ball = scene.instantiate()
-		llama.name = llama_name(i)
-		llama.Master = self
-		llama.Master_name = str(get_path())
-		llama.Team = Team
-		llama.set_multiplayer_authority(get_multiplayer_authority())
-		parent.add_child(llama,true)
 		var side:float = -16.0 if i % 2 == 0 else 16.0
 		var wanted:Vector2 = global_position + Vector2(side,5.0)*absf(global_scale.x)/0.2
+		var llama:ball = _spawn_llama(i)
+		if llama == null: continue
 		llama.global_position = wanted if llama.mc_body_position_clear(wanted) else TOOLS.safe_spawn_position(self,wanted,18.0)
-		_register_llama(i,llama)
+
+## Deterministic name "<trader>_Llama<i>" (the slot/colour come from it on every peer); a returning
+## llama reuses its dead predecessor's name, which is long freed by then.
+func _spawn_llama(index:int) -> ball:
+	var parent:Node = get_parent() if get_parent() != null else get_tree().current_scene
+	if parent.get_node_or_null(NodePath(llama_name(index))) != null: return null
+	var scene:PackedScene = load(LLAMA_SCENE_PATH) as PackedScene
+	var llama:ball = scene.instantiate()
+	llama.name = llama_name(index)
+	llama.Master = self
+	llama.Master_name = str(get_path())
+	llama.Team = Team
+	llama.set_multiplayer_authority(get_multiplayer_authority())
+	parent.add_child(llama,true)
+	_register_llama(index,llama)
+	return llama
 
 func _register_llama(index:int,llama:ball) -> void:
 	_llama_refs[index] = weakref(llama)
@@ -170,6 +191,7 @@ func wt_on_llama_lost(llama:Node) -> void:
 		var ref:Variant = _llama_refs[i]
 		if ref is WeakRef and (ref as WeakRef).get_ref() == llama:
 			_llama_refs[i] = null
+			if i < _llama_return_wait.size(): _llama_return_wait[i] = llama_return_cooldown
 			if i < leashes.size() and is_instance_valid(leashes[i]): leashes[i].snap()
 
 func wt_leash_active() -> bool:
@@ -223,6 +245,7 @@ func tick_physics(state:State,delta:float) -> void:
 	_milk_wait -= delta
 	_invisibility_wait -= delta
 	_wall_wait -= delta
+	for i:int in range(_llama_return_wait.size()): _llama_return_wait[i] -= delta
 	if _drink_left > 0.0:
 		_drink_left -= delta
 		if _drink_left <= 0.0: _finish_drink()
@@ -453,6 +476,9 @@ func start_wall_phase() -> bool:
 	entry_slot = WALL.nearest_slot(slots,global_position)
 	if entry_slot.is_empty(): return false
 	wall_entries += 1
+	exit_slot = {}
+	_exit_warned = false
+	_returning_llama = -1
 	_wall_wait = wall_cooldown + wall_hidden_time + wall_entry_time_max + wall_emerge_time
 	_saved_layer = collision_layer
 	_saved_mask = collision_mask
@@ -495,6 +521,7 @@ func _tick_wall(delta:float) -> void:
 			global_position = _phase_from.lerp(_phase_to,k)
 			if k >= 1.0: _enter_hidden()
 		Phase.HIDDEN:
+			if not _exit_warned and _phase_time >= wall_hidden_time - wall_exit_warning: _warn_exit()
 			if _phase_time >= wall_hidden_time: _begin_emerge()
 		Phase.EMERGING:
 			global_position = _phase_from.lerp(_phase_to,k)
@@ -594,8 +621,36 @@ func exit_start_point(slot:Dictionary) -> Vector2:
 	var on_face:Vector2 = end - normal*(end - face).dot(normal)
 	return inside_wall_point(on_face,normal)
 
-func _begin_emerge() -> void:
+## Exit tell: the exit is locked now, and its wall surface cracks (stone chips in pulses + a
+## stone hit) for wall_exit_warning seconds before he walks out of it.
+func _warn_exit() -> void:
+	_exit_warned = true
 	exit_slot = choose_exit_slot()
+	if exit_slot.is_empty(): exit_slot = entry_slot
+	if exit_slot.is_empty(): return
+	exit_warnings += 1
+	var face:Vector2 = wall_face_point(exit_slot)
+	var normal:Vector2 = _slot_normal(exit_slot)
+	_exit_warning_visual(face,normal,wall_exit_warning)
+	if multiplayer.has_multiplayer_peer() and not multiplayer.get_peers().is_empty(): _exit_warning_visual.rpc(face,normal,wall_exit_warning)
+	wt_sound(&"stone_hit",-3.0,face)
+
+@rpc("authority","call_remote","reliable")
+func _exit_warning_visual(face:Vector2,normal:Vector2,duration:float) -> void:
+	var dir:Vector2 = normal if normal != Vector2.ZERO else Vector2.UP
+	var tangent:Vector2 = dir.orthogonal()
+	var pulses:int = 3
+	var tween:Tween = create_tween()
+	for i:int in range(pulses):
+		var spread:float = 8.0 + 5.0*i
+		tween.tween_callback(func() -> void:
+			for side:float in [-1.0,0.0,1.0]:
+				VISUAL.burst(self,face + tangent*side*spread,STONE_COLOR,10 + 4*i,55.0 + 15.0*i,1.8,0.5,dir)
+			VISUAL.burst(self,face,Color(0.62,0.62,0.62),8 + 2*i,40.0,1.3,0.45,dir))
+		tween.tween_interval(duration/float(pulses))
+
+func _begin_emerge() -> void:
+	if exit_slot.is_empty() or not _exit_warned: exit_slot = choose_exit_slot()
 	if exit_slot.is_empty(): exit_slot = entry_slot
 	var face:Vector2 = wall_face_point(exit_slot)
 	var normal:Vector2 = _slot_normal(exit_slot)
@@ -611,6 +666,45 @@ func _begin_emerge() -> void:
 		_wall_visual.rpc(true,face,normal,start)
 	wt_sound(&"stone_hit",0.0,face)
 	wt_sound(&"trader_reappeared")
+	_bring_back_llama(start,exit_slot.floor,_phase_duration,face,normal)
+
+## First slot whose llama is dead and whose return cooldown is over.
+func due_llama_slot() -> int:
+	for i:int in range(mini(llama_count,_llama_return_wait.size())):
+		if _llama(i) == null and _llama_return_wait[i] <= 0.0: return i
+	return -1
+
+## A due llama walks out of the wall beside him (same time, same clip), leashed once they are out.
+func _bring_back_llama(from:Vector2,to:Vector2,duration:float,face:Vector2,normal:Vector2) -> void:
+	_returning_llama = -1
+	var index:int = due_llama_slot()
+	if index < 0 or not is_multiplayer_authority(): return
+	var tangent:Vector2 = normal.orthogonal()
+	var side:float = -1.0 if index % 2 == 0 else 1.0
+	var llama:ball = _spawn_llama(index)
+	if llama == null: return
+	var target:Vector2 = to
+	for offset:float in [side*18.0,-side*18.0,side*30.0,-side*30.0]:
+		if llama.mc_body_position_clear(to + tangent*offset):
+			target = to + tangent*offset
+			break
+	var start:Vector2 = from + (target - to)
+	llama.call(&"wt_begin_emerge",start,target,duration,face,normal)
+	if multiplayer.has_multiplayer_peer() and not multiplayer.get_peers().is_empty(): _llama_clip_remote.rpc(index,true,face,normal)
+	_returning_llama = index
+	_llama_return_wait[index] = 0.0
+	llamas_returned += 1
+
+## Relayed through the trader: the replicated llama may arrive a few frames after this rpc.
+@rpc("authority","call_remote","reliable")
+func _llama_clip_remote(index:int,active:bool,face:Vector2,normal:Vector2) -> void:
+	for attempt:int in range(20):
+		var llama:Node = _llama(index)
+		if llama != null and llama.has_method(&"emerge_clip"):
+			llama.call(&"emerge_clip",active,face,normal)
+			return
+		await get_tree().process_frame
+		if not is_instance_valid(self) or not is_inside_tree(): return
 
 func _finish_wall() -> void:
 	if not exit_slot.is_empty(): global_position = exit_slot.floor
@@ -631,6 +725,11 @@ func _finish_wall() -> void:
 	if self_hitbox != null and has_collision_damage(): self_hitbox.set_deferred("monitoring",true)
 	_wall_fade(1.0)
 	_wall_wait = wall_cooldown
+	if _returning_llama >= 0:
+		var back:Node = _llama(_returning_llama)
+		if back != null and back.has_method(&"wt_finish_emerge"): back.call(&"wt_finish_emerge")
+		if multiplayer.has_multiplayer_peer() and not multiplayer.get_peers().is_empty(): _llama_clip_remote.rpc(_returning_llama,false,Vector2.ZERO,Vector2.UP)
+		_returning_llama = -1
 	_set_leash_active(true)
 	if _pending_invisibility:
 		_pending_invisibility = false
