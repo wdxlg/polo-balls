@@ -58,12 +58,12 @@ func run() -> void:
 	cactus.growth_interval = 999.0
 	await seconds(0.2)
 	var seg_hp:int = cactus.segment_health
-	check(seg_hp == 650 and cactus.levels == 1 and cactus.Max_health == 650,"starts as one segment with 650 HP (%d / %d)" % [cactus.health,cactus.Max_health])
+	check(seg_hp == 200 and cactus.levels == 1 and cactus.Max_health == 200,"starts as one segment with 200 HP (%d / %d)" % [cactus.health,cactus.Max_health])
 	# one growth: +1 segment of HP and max HP
-	cactus.health = 600
+	cactus.health = 150
 	cactus.growth_elapsed = cactus.growth_interval
 	await seconds(0.1)
-	check(cactus.levels == 2 and cactus.Max_health == 1300 and cactus.health == 1250,"growing adds one segment of health and max health (%d / %d)" % [cactus.health,cactus.Max_health])
+	check(cactus.levels == 2 and cactus.Max_health == 400 and cactus.health == 350,"growing adds one segment of health and max health (%d / %d)" % [cactus.health,cactus.Max_health])
 	# no cap: well past the old 5
 	for i:int in range(5):
 		cactus.growth_elapsed = cactus.growth_interval
