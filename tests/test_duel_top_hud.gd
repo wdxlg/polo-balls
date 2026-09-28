@@ -297,9 +297,50 @@ func run() -> void:
 	var frozen:float = hud().elapsed
 	await settle(20)
 	check(absf(hud().elapsed - frozen) < 0.0001,"victory freezes the clock")
+
+	# 对战结束：镜头推进胜利者；HUD 先快后慢移出屏幕，原版成就框落下。
+	check(hud().outro_active and hud().winner_index == 0,"victory with one survivor starts the result animation for the winner")
+	var focus_key:int = hud().get_instance_id()
+	var focus_request:Variant = world._cinematic_focus_requests.get(focus_key,null)
+	check(focus_request is Dictionary and (focus_request.target as WeakRef).get_ref() == blue and is_equal_approx(float(focus_request.slow),1.0),"camera pushes toward the winner through the shared cinematic focus (no slow motion)")
+	check(hud().ease_out(0.25) > 0.6 and is_equal_approx(hud().ease_out(1.0),1.0) and hud().ease_out(0.0) == 0.0,"animation curve is fast-then-slow (ease-out)")
+	var saved_elapsed:float = hud().outro_elapsed
+	hud().outro_elapsed = hud().OUTRO_HUD_TIME * 0.25
+	var shift_quarter:float = hud()._outro_panel_shift(hud())
+	hud().outro_elapsed = hud().OUTRO_HUD_TIME
+	var shift_full:float = hud()._outro_panel_shift(hud())
+	hud().outro_elapsed = saved_elapsed
+	check(shift_full < 0.0 and shift_quarter / shift_full > 0.6,"HUD covers most of its upward travel in the first quarter")
+	await create_timer(1.3,true,false,true).timeout
+	await settle(2)
+	var hud_xf:Transform2D = hud().get_global_transform_with_canvas()
+	var gone_shift:float = hud()._outro_panel_shift(hud())
+	var panel_bottom_screen:float = (hud_xf * Vector2(0.0,hud().TOP + hud().PANEL_HEIGHT + 24.0 + gone_shift)).y
+	check(panel_bottom_screen < 0.0,"duel panels have moved fully above the screen")
+	var toast_rect:Rect2 = hud()._toast_rect(hud())
+	var toast_top:Vector2 = hud_xf * toast_rect.position
+	var toast_bottom:Vector2 = hud_xf * toast_rect.end
+	var result_title:Rect2 = screen_box(world.versus_label)
+	print("DUEL_HUD_METRIC toast=",toast_top,"..",toast_bottom," title_top=",result_title.position.y)
+	check(toast_rect.has_area() and toast_top.y >= -0.5 and toast_bottom.y <= result_title.position.y + 0.5,"advancement toast settles in the HUD area above the text title")
+	check(absf((toast_top.x + toast_bottom.x) * 0.5 - world.get_viewport_rect().size.x * 0.5) < 1.0,"advancement toast is centered")
+	var toast_shot:Image = await save_shot(root,"main_toast.png")
+	# 原版 advancement.png 第 16 行：第 157–158 列为 555555 边框（156 仍是 212121 内底）。
+	var border_local:Vector2 = toast_rect.position + Vector2(157.5,16.5) * hud().TOAST_PIXEL
+	var border_px:Vector2i = Vector2i(hud_xf * border_local * (float(toast_shot.get_width()) / world.get_viewport_rect().size.x))
+	var border_color:Color = toast_shot.get_pixel(border_px.x,border_px.y)
+	check(color_near(border_color,Color("555555"),0.04),"GPU frame shows the vanilla advancement toast frame (" + str(border_color) + ")")
+	for locale:String in ["zh","en"]:
+		var toast_layer:CanvasLayer = mirror.screen_roots.get(locale)
+		for child:Node in toast_layer.get_children():
+			if child.name == "DuelTopHud_" + locale:
+				check(child._toast_rect(hud()).has_area() and child._toast_locale() == locale,"recording " + locale + " mirror shows the toast in its own language")
+	await save_shot(captures.zh,"recording_zh_toast.png")
+	await save_shot(captures.en,"recording_en_toast.png")
 	var result_shot:Image = await save_shot(root,"main_result.png")
 	world._reset_victory_bell_state()
 	await settle()
+	check(not hud().outro_active and not world._cinematic_focus_requests.has(focus_key),"reset ends the result animation and releases the winner camera")
 	# 手动模式下剩余角色仍在场，重置后立即重新计时；8 个物理帧约 0.13 秒。
 	check(hud().elapsed < 0.2 and hud().elapsed < frozen and not hud().visible,"reset clears the result and restarts the clock from zero")
 

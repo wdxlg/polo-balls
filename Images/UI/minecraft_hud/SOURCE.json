@@ -4,7 +4,7 @@
   "metadata_url": "https://piston-meta.mojang.com/v1/packages/d152a3712859b294a2dff641f99a7fe219cd3aec/1.21.4.json",
   "client_url": "https://piston-data.mojang.com/v1/objects/a7e5a6024bfd3cd614625aa05629adf760020304/client.jar",
   "client_sha1": "a7e5a6024bfd3cd614625aa05629adf760020304",
-  "verification": "Downloaded client JAR SHA-1 matched official Mojang metadata before extraction. PNG bytes are unmodified (heart sprites renamed with a heart_ prefix).",
+  "verification": "Downloaded client JAR SHA-1 matched official Mojang metadata before extraction. PNG bytes are unmodified (heart sprites renamed with a heart_ prefix, toast sprite with a toast_ prefix).",
   "assets": [
     {
       "filename": "heart_full.png",
@@ -45,8 +45,13 @@
       "filename": "armor_empty.png",
       "jar_path": "assets/minecraft/textures/gui/sprites/hud/armor_empty.png",
       "sha256": "e143eb0329a9b31b3b51b0a86a15bf2ebd19543ac12652aa79696bf255e9835b"
+    },
+    {
+      "filename": "toast_advancement.png",
+      "jar_path": "assets/minecraft/textures/gui/sprites/toast/advancement.png",
+      "sha256": "15a959d338d8ce98c1381f95d34f7143377669bcadae1198900bea88144d6634"
     }
   ],
   "rights": "Minecraft textures belong to Mojang/Microsoft. These assets are not newly authored or licensed by this project.",
-  "usage": "1v1 top HUD (scripts/ui/duel_top_hud.gd): 10-heart health row, armor row (damage reduction), gold absorbing hearts. The shield heart is a runtime palette swap of heart_full.png onto armor_full.png's three colours (fill b8b9c4 / highlight e6e7f2 / shade 696a70); no new art is drawn. Half sprites are mirrored horizontally for the right-side panel."
+  "usage": "1v1 top HUD (scripts/ui/duel_top_hud.gd): 10-heart health row, armor row (damage reduction), gold absorbing hearts. The shield heart is a runtime palette swap of heart_full.png onto armor_full.png's three colours (fill b8b9c4 / highlight e6e7f2 / shade 696a70); no new art is drawn. Half sprites are mirrored horizontally for the right-side panel. toast_advancement.png is the vanilla advancement toast background (160x32) used for the duel result 'Challenge Complete!' toast, drawn at integer x5; the winner portrait sits in the vanilla 16x16 icon slot at (8,8); title colour 0xFF88FF is the vanilla challenge toast title colour; English title uses the vanilla en_us key advancements.toast.challenge."
 }

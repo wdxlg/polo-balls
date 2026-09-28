@@ -20,6 +20,11 @@ extends Control
 ##
 ## 录制：CanvasLayer 只属于玩家 Viewport，battle_record_locale 会为中/英抓帧视口各调用
 ## make_mirror()，镜像只读取本体状态并按各自语言翻译角色名，不重复计时或扫描。
+##
+## 对战结束（2026-09-28）：HUD 显示中且胜利铃响时正好一方存活 → 镜头经公共
+## request_cinematic_focus 推进胜利者（不慢放）；HUD 先快后慢向上移出屏幕，随后原版成就
+## 提示框（挑战完成）从上方先快后慢落到 HUD 原位置，图标为胜利者头像，正文“xxx 获得了胜利”。
+## 保持到重置/新对阵；动画按真实时间，镜像读取本体进度按各自语言显示。
 
 const PORTRAITS = preload("res://scripts/ui/rotation_portraits.gd")
 const FONT:Font = preload("res://fonts/Mojangles.ttf")
@@ -34,6 +39,21 @@ const HEART_ABSORBING_FULL:Texture2D = preload("res://Images/UI/minecraft_hud/he
 const ARMOR_FULL:Texture2D = preload("res://Images/UI/minecraft_hud/armor_full.png")
 const ARMOR_HALF:Texture2D = preload("res://Images/UI/minecraft_hud/armor_half.png")
 const ARMOR_EMPTY:Texture2D = preload("res://Images/UI/minecraft_hud/armor_empty.png")
+const TOAST_ADVANCEMENT:Texture2D = preload("res://Images/UI/minecraft_hud/toast_advancement.png")
+# 原版成就提示框 160×32：图标槽 (8,8,16,16)，标题/正文从 x=30 起、y=7/18；挑战类标题色 0xFF88FF。
+const TOAST_PIXEL:float = 5.0
+const TOAST_SOURCE_SIZE:Vector2 = Vector2(160.0,32.0)
+const TOAST_TITLE_COLOR:Color = Color("ff88ff")
+const TOAST_BODY_COLOR:Color = Color("ffffff")
+const TOAST_TEXT:Dictionary = {
+	"zh":{"title":"挑战已完成！","body":"%s 获得了胜利"},
+	"en":{"title":"Challenge Complete!","body":"%s won!"},
+}
+const OUTRO_HUD_TIME:float = 0.45
+const OUTRO_TOAST_DELAY:float = 0.40
+const OUTRO_TOAST_TIME:float = 0.60
+const WINNER_FOCUS_SLOW:float = 1.0 # 不慢放
+const WINNER_FOCUS_ZOOM:float = -1.0 # 用 World 默认电影镜头放大倍率
 # 护盾心：原版红心三色 → 原版 armor_full 三色（主色/高光/暗部）逐像素换色，不新画。
 const SHIELD_PALETTE:Dictionary = {
 	"ff1313":Color("b8b9c4"),
@@ -100,6 +120,12 @@ var layout_fit_scale:float = 1.0
 var elapsed:float = 0.0
 ## 两侧快照：{side_key, raw_name, color, texture, nodes, hp, max_hp, dead}
 var sides:Array = []
+## 结算动画：开始后保持到重置/新对阵。outro_elapsed 为真实秒数。
+var outro_active:bool = false
+var outro_elapsed:float = 0.0
+var winner_index:int = -1
+var _focus_requested:bool = false
+var _panel_shift:float = 0.0
 
 var _portraits:RefCounted = PORTRAITS.new()
 var _pair_signature:String = ""
@@ -274,6 +300,7 @@ func _process(delta:float) -> void:
 		_refresh_pair()
 	_refresh_values()
 	_apply_layout()
+	_update_outro(delta)
 	var shown_now:bool = _should_show()
 	if visible != shown_now:
 		visible = shown_now
@@ -347,8 +374,85 @@ func _title_top_design(factor:float) -> float:
 
 
 func _clear_pair() -> void:
+	_reset_outro()
 	sides = []
 	_pair_signature = ""
+
+
+func _exit_tree() -> void:
+	if not is_mirror():
+		_reset_outro()
+
+
+## 先快后慢（quart ease-out）。
+static func ease_out(t:float) -> float:
+	var x:float = clampf(t,0.0,1.0)
+	return 1.0 - pow(1.0 - x,4.0)
+
+
+func _update_outro(delta:float) -> void:
+	if outro_active:
+		# 真实时间：不受倍速/训练加速影响；暂停时 _process 不跑，自然冻结。
+		outro_elapsed = minf(outro_elapsed + delta / maxf(Engine.time_scale,0.0001),30.0)
+		return
+	if not visible or sides.size() != 2 or not bool(world.get("_victory_bell_played")):
+		return
+	var alive:Array[int] = []
+	for i:int in range(sides.size()):
+		if not bool(sides[i].dead):
+			alive.append(i)
+	if alive.size() != 1:
+		return # 同归于尽等无唯一胜者时不播放
+	outro_active = true
+	outro_elapsed = 0.0
+	winner_index = alive[0]
+	var winner:Node2D = null
+	for raw:Variant in sides[winner_index].nodes:
+		if raw is Node2D and is_instance_valid(raw) and not (raw as Node).is_queued_for_deletion():
+			winner = raw
+			break
+	if winner != null and world.has_method("request_cinematic_focus"):
+		world.call("request_cinematic_focus",self,winner,WINNER_FOCUS_SLOW,WINNER_FOCUS_ZOOM)
+		_focus_requested = true
+
+
+func _reset_outro() -> void:
+	if _focus_requested and is_instance_valid(world) and world.has_method("release_cinematic_focus"):
+		world.call("release_cinematic_focus",self)
+	_focus_requested = false
+	outro_active = false
+	outro_elapsed = 0.0
+	winner_index = -1
+
+
+## 本实例坐标里“完全移出视口顶部”所需的位移（镜像与本体各按自己的变换计算）。
+func _offscreen_top_local() -> float:
+	return -(position.y / maxf(scale.y,0.0001))
+
+
+func _outro_panel_shift(data) -> float:
+	if not bool(data.outro_active):
+		return 0.0
+	var distance:float = TOP + PANEL_HEIGHT + TOOLTIP_TRANSPARENT_EDGE * GUI_PIXEL + 16.0 - _offscreen_top_local()
+	return -distance * ease_out(float(data.outro_elapsed) / OUTRO_HUD_TIME)
+
+
+## 成就框矩形；未到出场时间返回空矩形。
+func _toast_rect(data) -> Rect2:
+	if not bool(data.outro_active) or float(data.outro_elapsed) < OUTRO_TOAST_DELAY:
+		return Rect2()
+	var size_px:Vector2 = TOAST_SOURCE_SIZE * TOAST_PIXEL
+	var final_y:float = TOP + (PANEL_HEIGHT - size_px.y) * 0.5
+	var start_y:float = _offscreen_top_local() - size_px.y - 16.0
+	var t:float = ease_out((float(data.outro_elapsed) - OUTRO_TOAST_DELAY) / OUTRO_TOAST_TIME)
+	return Rect2((DESIGN_WIDTH - size_px.x) * 0.5,lerpf(start_y,final_y,t),size_px.x,size_px.y)
+
+
+func _toast_locale() -> String:
+	var code:String = locale
+	if code.is_empty():
+		code = str(Game.get("current_locale"))
+	return "zh" if code.begins_with("zh") else "en"
 
 
 ## 与 World.return_battle_sides() 相同的代表规则，但保留真实节点以读取生命。
@@ -490,6 +594,7 @@ func _build_sides(order:Array,entries:Dictionary) -> void:
 			"dead":false,
 		})
 	sides = built
+	_reset_outro()
 	_refresh_values()
 
 
@@ -544,10 +649,11 @@ func _absorption_of(b:ball) -> float:
 #========================================================
 func _panel_rects() -> Array:
 	var center_x:float = SIDE_MARGIN + SIDE_WIDTH + GAP
+	var top:float = TOP + _panel_shift
 	return [
-		Rect2(SIDE_MARGIN,TOP,SIDE_WIDTH,PANEL_HEIGHT),
-		Rect2(center_x,TOP,DESIGN_WIDTH - center_x * 2.0,PANEL_HEIGHT),
-		Rect2(DESIGN_WIDTH - SIDE_MARGIN - SIDE_WIDTH,TOP,SIDE_WIDTH,PANEL_HEIGHT),
+		Rect2(SIDE_MARGIN,top,SIDE_WIDTH,PANEL_HEIGHT),
+		Rect2(center_x,top,DESIGN_WIDTH - center_x * 2.0,PANEL_HEIGHT),
+		Rect2(DESIGN_WIDTH - SIDE_MARGIN - SIDE_WIDTH,top,SIDE_WIDTH,PANEL_HEIGHT),
 	]
 
 
@@ -642,6 +748,7 @@ func _draw() -> void:
 	var data = _data()
 	if not is_instance_valid(data) or data.sides.size() != 2:
 		return
+	_panel_shift = _outro_panel_shift(data)
 	var rects:Array = _panel_rects()
 	for i:int in [0,2]:
 		var panel:Rect2 = rects[i]
@@ -651,6 +758,17 @@ func _draw() -> void:
 		_draw_patch(_tooltip_frame_box,outer,GUI_PIXEL)
 		_draw_side_graphics(panel,data.sides[0 if i == 0 else 1],i == 2)
 	_draw_patch(_effect_box,rects[1],GUI_PIXEL)
+	var toast:Rect2 = _toast_rect(data)
+	if toast.has_area():
+		draw_texture_rect(TOAST_ADVANCEMENT,toast,false)
+		var winner_side:int = int(data.winner_index)
+		if winner_side >= 0 and winner_side < data.sides.size():
+			var texture:Texture2D = data.sides[winner_side].texture
+			if texture != null:
+				var slot:Rect2 = Rect2(toast.position + Vector2(8.0,8.0) * TOAST_PIXEL,Vector2(16.0,16.0) * TOAST_PIXEL)
+				var texture_size:Vector2 = texture.get_size()
+				var fitted:Vector2 = texture_size * minf(slot.size.x / maxf(texture_size.x,1.0),slot.size.y / maxf(texture_size.y,1.0))
+				draw_texture_rect(texture,Rect2(slot.get_center() - fitted * 0.5,fitted),false)
 
 
 func _draw_side_graphics(panel:Rect2,side:Dictionary,mirrored:bool) -> void:
@@ -703,6 +821,7 @@ func _draw_text() -> void:
 	var data = _data()
 	if not is_instance_valid(data) or data.sides.size() != 2:
 		return
+	_panel_shift = _outro_panel_shift(data)
 	var rects:Array = _panel_rects()
 	for i:int in [0,2]:
 		var panel:Rect2 = rects[i]
@@ -734,3 +853,18 @@ func _draw_text() -> void:
 		inner_width,time_size,TIME_COLOR,5)
 	_outlined_text(_text_layer,Vector2(inner_x,center.position.y + 146.0),"VS",HORIZONTAL_ALIGNMENT_CENTER,
 		inner_width,VS_TEXT_SIZE,Color.WHITE,8)
+	var toast:Rect2 = _toast_rect(data)
+	var winner_side:int = int(data.winner_index)
+	if toast.has_area() and winner_side >= 0 and winner_side < data.sides.size():
+		var strings:Dictionary = TOAST_TEXT[_toast_locale()]
+		var text_x:float = toast.position.x + 30.0 * TOAST_PIXEL
+		var text_width:float = toast.size.x - 30.0 * TOAST_PIXEL - 8.0 * TOAST_PIXEL
+		var title:String = str(strings.title)
+		var title_size:int = _fit_font_size(title,text_width,36,20)
+		_text_layer.draw_string(FONT,Vector2(text_x,toast.position.y + 7.0 * TOAST_PIXEL + 30.0),title,
+			HORIZONTAL_ALIGNMENT_LEFT,text_width,title_size,TOAST_TITLE_COLOR)
+		var body:String = str(strings.body) % _display_name(str(data.sides[winner_side].raw_name))
+		var body_size:int = _fit_font_size(body,text_width,36,18)
+		body = _ellipsize(body,text_width,body_size)
+		_text_layer.draw_string(FONT,Vector2(text_x,toast.position.y + 18.0 * TOAST_PIXEL + 30.0),body,
+			HORIZONTAL_ALIGNMENT_LEFT,text_width,body_size,TOAST_BODY_COLOR)
