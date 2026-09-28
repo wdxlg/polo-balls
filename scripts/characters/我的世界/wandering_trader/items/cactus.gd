@@ -12,7 +12,6 @@ var body:StaticBody2D
 var hits:int = 0
 
 func _placed() -> void:
-	life = 16.0
 	z_index = 3
 	body = StaticBody2D.new()
 	body.name = "CactusBody"

@@ -8,7 +8,8 @@ extends "res://scripts/characters/我的世界/mc_mob_base.gd"
 ## * 河豚 (puffer = true, 50 HP): puffs up when an enemy is near; touching an enemy stings it
 ##   (damage + Poison). 热带鱼 (puffer = false, 75 HP): on the trader's team; ramming an enemy deals
 ##   collision damage that scales with the fish's own speed (user rule 2026-09-29).
-## * Dries out: dies dry_time seconds after release (vanilla fish suffocate out of water).
+## * Never dries out (user rule 2026-09-29: nothing of his disappears on its own). dry_time > 0
+##   would restore the vanilla suffocation.
 const AUDIO = preload("res://scripts/characters/我的世界/wandering_trader/audio.gd")
 const CATALOG = preload("res://scripts/characters/我的世界/wandering_trader/items/catalog.gd")
 const CRUMBS = preload("res://scripts/characters/我的世界/wandering_trader/items/crumbs.gd")
@@ -27,7 +28,7 @@ const POTION_EFFECTS = preload("res://scripts/effects/我的世界/女巫药水�
 @export var sting_cooldown:float = 0.7
 @export var poison_time:float = 4.0
 @export var puff_radius:float = 34.0
-@export var dry_time:float = 25.0
+@export var dry_time:float = 0.0 # 0 = never dries out
 @export_category("鱼 / 热带鱼撞击")
 @export var ram_min_speed:float = 60.0 # own speed below this: no damage (a slow drift is harmless)
 @export var ram_damage_per_speed:float = 0.05 # 300 px/s hop = 15
@@ -199,7 +200,7 @@ func tick_physics(state:State,delta:float) -> void:
 	for id:Variant in _sting_wait.keys():
 		_sting_wait[id] = float(_sting_wait[id]) - delta
 		if float(_sting_wait[id]) <= 0.0: _sting_wait.erase(id)
-	if alive_time >= dry_time:
+	if dry_time > 0.0 and alive_time >= dry_time:
 		health = 0
 		retire()
 		return

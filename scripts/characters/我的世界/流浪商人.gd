@@ -69,12 +69,13 @@ enum Phase { NONE, ENTERING, HIDDEN, EMERGING }
 @export var item_delay_min:float = 0.6 # 火药 / 仙人掌: random delay after the wall exit
 @export var item_delay_max:float = 2.4
 @export var item_show_time:float = 0.3 # immediate items stay this long in the frame first
+@export var item_swing_time:float = 0.42 # every use: taken into the hand, small swing, effect at the end
 @export var slime_range:float = 150.0
 @export var slime_hold_max:float = 10.0
 @export var dripstone_hold_max:float = 12.0
 @export var potato_heal:float = 40.0
 @export var potato_eat_time:float = 0.96
-@export var fish_max_each:int = 2
+@export var fish_max_each:int = 0 # 0 = no cap (nothing of his vanishes on its own)
 @export var items_enabled:bool = true # off = no item roll on wall exit (deterministic herd tests)
 
 var wall_phase:int = Phase.NONE
@@ -137,6 +138,11 @@ var potato_healed:int = 0
 var fish_released:int = 0
 var _item_wait:float = 0.0
 var _item_hold:float = 0.0
+var _swing_left:float = 0.0 # >0 while an item is in his hand being swung (frame already empty)
+var _swing_kind:StringName = &""
+var _swing_manual:bool = false
+var _swing_data:Dictionary = {}
+var item_swings:int = 0
 var _item_serial:int = 0
 var _fish_serial:int = 0
 
@@ -250,6 +256,8 @@ func wt_leash_active() -> bool:
 
 func Die() -> void:
 	super.Die()
+	_swing_left = 0.0
+	_swing_kind = &""
 	_finish_drink_visual()
 	for view:Node2D in leashes:
 		if is_instance_valid(view): view.snap()
@@ -305,8 +313,11 @@ func tick_physics(state:State,delta:float) -> void:
 	if _drink_left > 0.0:
 		_drink_left -= delta
 		if _drink_left <= 0.0: _finish_drink()
+	if _swing_left > 0.0 and (wall_phase != Phase.NONE or dizziness or is_damage_output_disabled()): cancel_item_swing() # interrupted: back into the frame
 	if dizziness or is_damage_output_disabled(): return
-	if wall_phase == Phase.NONE: _tick_item(delta)
+	if wall_phase == Phase.NONE:
+		_tick_swing(delta)
+		_tick_item(delta)
 	if _drink_left <= 0.0 and wall_phase == Phase.NONE:
 		_negative_check_wait -= delta
 		if _milk_wait <= 0.0 and _negative_check_wait <= 0.0:
@@ -408,7 +419,7 @@ func cleanse_with_milk() -> int:
 
 func start_drink(kind:StringName) -> bool:
 	# The potion also works inside the wall (independent skill); milk keeps its old rule.
-	if _drink_left > 0.0 or health <= 0 or (kind != &"invisibility" and wall_phase != Phase.NONE): return false
+	if _drink_left > 0.0 or _swing_left > 0.0 or health <= 0 or (kind != &"invisibility" and wall_phase != Phase.NONE): return false
 	_drink_kind = kind
 	if kind == CATALOG.POTATO:
 		_drink_left = potato_eat_time
@@ -545,8 +556,9 @@ func when_collide(speed:float,collision:KinematicCollision2D) -> void:
 	var collider:Object = collision.get_collider() if collision != null else null
 	# His own cactus is an obstacle, not a wall: no wall entry, no dripstone on it.
 	var map_wall:bool = collision != null and not (collider is ball) and not (collider is Node and (collider as Node).is_in_group(&"WTItemObstacle"))
-	if map_wall and held_item == CATALOG.DRIPSTONE and wall_phase == Phase.NONE and is_multiplayer_authority() and health > 0:
-		if _place_item(CATALOG.DRIPSTONE,collision.get_position(),{"normal": collision.get_normal(),"grace": get_instance_id()}) != null: _item_used(CATALOG.DRIPSTONE)
+	if map_wall and held_item == CATALOG.DRIPSTONE and wall_phase == Phase.NONE and _swing_left <= 0.0 and _drink_left <= 0.0 and is_multiplayer_authority() and health > 0:
+		# Swing it, then the spike grows out of the wall point he touched.
+		_start_swing(CATALOG.DRIPSTONE,false,{"point": collision.get_position(),"normal": collision.get_normal()})
 	if wall_armed and wall_phase == Phase.NONE and is_multiplayer_authority() and map_wall:
 		if begin_wall_entry(collision.get_position(),collision.get_normal(),_last_requested_velocity): return
 	super.when_collide(speed,collision)
@@ -962,36 +974,125 @@ func _tick_item(delta:float) -> void:
 		_:
 			if _item_wait <= 0.0 and not use_held_item(): _item_wait = 0.3
 
-## Uses the held item now. Returns false when it cannot be used yet (it stays in the frame).
+## Starts using the held item: it leaves the frame, goes into his hand and is swung a little
+## (item_swing_time); the effect happens at the end of the swing and the item vanishes from the hand
+## at that moment. Returns false when it cannot be used yet (it stays in the frame).
 func use_held_item(manual:bool = false) -> bool:
 	var kind:StringName = held_item
-	if kind.is_empty() or wall_phase != Phase.NONE or health <= 0: return false
-	var used:bool = false
+	if kind.is_empty() or wall_phase != Phase.NONE or health <= 0 or _swing_left > 0.0 or _drink_left > 0.0: return false
+	var data:Dictionary = {}
 	match kind:
-		CATALOG.GUNPOWDER:
-			used = _place_item(kind,global_position,{}) != null
-		CATALOG.BLUE_ICE:
-			used = _place_item(kind,_inside_arena(global_position + _exit_inward()*14.0,18.0),{}) != null
 		CATALOG.CACTUS:
-			var spot:Variant = cactus_spot()
-			used = spot is Vector2 and _place_item(kind,spot,{}) != null
-		CATALOG.DRIPSTONE:
-			var back:Vector2 = _behind(14.0)
-			used = _place_item(kind,back,{"normal": Vector2.UP,"grace": get_instance_id()}) != null
+			if not (cactus_spot() is Vector2): return false
 		CATALOG.SLIME_BALL:
-			used = throw_slime(manual)
+			var target:ball = slime_target(false)
+			if manual and has_player_control_aim(): data["aim"] = global_position + player_control_aim_direction(direction)*minf(slime_range,120.0)
+			elif target != null: data["aim"] = target.global_position
+			else: return false
 		CATALOG.HAY:
-			var llama:Node2D = hay_target()
-			if llama == null:
+			if hay_target() == null:
 				_item_used(kind) # nobody to feed any more: drop it
 				return false
-			used = _throw(kind,llama,llama.global_position,0.7)
+		CATALOG.DRIPSTONE:
+			data = {"point": _behind(14.0),"normal": Vector2.UP}
+	_start_swing(kind,manual,data)
+	return true
+
+func _start_swing(kind:StringName,manual:bool,data:Dictionary) -> void:
+	_item_used(kind) # out of the frame, into the hand
+	_swing_kind = kind
+	_swing_manual = manual
+	_swing_data = data
+	_swing_left = maxf(item_swing_time,0.05)
+	item_swings += 1
+	_show_swing_visual(kind,_swing_left)
+	if multiplayer.has_multiplayer_peer() and not multiplayer.get_peers().is_empty(): _show_swing_visual.rpc(kind,_swing_left)
+
+func _tick_swing(delta:float) -> void:
+	if _swing_left <= 0.0: return
+	_swing_left -= delta
+	if _swing_left > 0.0: return
+	_swing_left = 0.0
+	var kind:StringName = _swing_kind
+	_swing_kind = &""
+	# The item vanishes from the hand the moment it takes effect.
+	_finish_drink_visual()
+	if multiplayer.has_multiplayer_peer() and not multiplayer.get_peers().is_empty(): _hide_item_visual.rpc()
+	if not _apply_item(kind,_swing_manual,_swing_data):
+		_return_to_frame(kind)
+
+## Wall entry (or anything else) interrupted the swing: the item goes back into the frame.
+func cancel_item_swing() -> void:
+	if _swing_left <= 0.0: return
+	var kind:StringName = _swing_kind
+	_swing_left = 0.0
+	_swing_kind = &""
+	_finish_drink_visual()
+	if multiplayer.has_multiplayer_peer() and not multiplayer.get_peers().is_empty(): _hide_item_visual.rpc()
+	_return_to_frame(kind)
+
+func _return_to_frame(kind:StringName) -> void:
+	if kind.is_empty() or health <= 0: return
+	items_used[kind] = maxi(int(items_used.get(kind,0)) - 1,0)
+	give_item(kind)
+	_item_wait = 0.3
+
+func is_swinging_item() -> bool: return _swing_left > 0.0
+
+## The actual effect at the end of the swing.
+func _apply_item(kind:StringName,manual:bool,data:Dictionary) -> bool:
+	if health <= 0 or wall_phase != Phase.NONE: return false
+	match kind:
+		CATALOG.GUNPOWDER:
+			return _place_item(kind,global_position,{}) != null
+		CATALOG.BLUE_ICE:
+			return _place_item(kind,_inside_arena(global_position + _exit_inward()*14.0,18.0),{}) != null
+		CATALOG.CACTUS:
+			var spot:Variant = cactus_spot()
+			return spot is Vector2 and _place_item(kind,spot,{}) != null
+		CATALOG.DRIPSTONE:
+			return _place_item(kind,data.get("point",_behind(14.0)),{"normal": data.get("normal",Vector2.UP),"grace": get_instance_id()}) != null
+		CATALOG.SLIME_BALL:
+			if throw_slime(manual): return true
+			if data.has("aim"): # the target moved off / died meanwhile: throw where he aimed
+				var aim:Vector2 = data.aim
+				return _throw(kind,null,aim,clampf(global_position.distance_to(aim)/220.0,0.35,0.75))
+			return false
+		CATALOG.HAY:
+			var llama:Node2D = hay_target()
+			return llama != null and _throw(kind,llama,llama.global_position,0.7)
 		CATALOG.POTATO:
-			used = start_drink(CATALOG.POTATO)
+			return start_drink(CATALOG.POTATO) # eaten from the hand; vanishes when it heals
 		CATALOG.PUFFERFISH,CATALOG.TROPICAL_FISH:
-			used = release_fish(kind == CATALOG.PUFFERFISH) != null
-	if used: _item_used(kind)
-	return used
+			return release_fish(kind == CATALOG.PUFFERFISH) != null
+	return false
+
+@rpc("authority","call_remote","reliable")
+func _show_swing_visual(kind:StringName,duration:float) -> void:
+	_drink_visual_left = duration # raised-arm pose while the item is in his hand
+	if _item_sprite == null: return
+	_item_sprite.texture = CATALOG.icon(kind)
+	var size:float = maxf(_item_sprite.texture.get_width() if _item_sprite.texture != null else 16.0,1.0)
+	_item_sprite.scale = Vector2.ONE*(24.0/size)
+	_item_anchor.visible = true
+	var hand := Vector2(12.0,-14.0)
+	_item_sprite.position = hand
+	_item_sprite.rotation = 0.0
+	if _item_tween != null and _item_tween.is_valid(): _item_tween.kill()
+	# Small wave: lift a little, two short swings, back.
+	_item_tween = create_tween()
+	_item_tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	var step:float = duration/5.0
+	_item_tween.tween_property(_item_sprite,"position",hand + Vector2(1.0,-4.0),step)
+	_item_tween.parallel().tween_property(_item_sprite,"rotation",-0.3,step)
+	_item_tween.tween_property(_item_sprite,"rotation",0.3,step)
+	_item_tween.tween_property(_item_sprite,"rotation",-0.25,step)
+	_item_tween.tween_property(_item_sprite,"rotation",0.2,step)
+	_item_tween.tween_property(_item_sprite,"rotation",0.0,step)
+
+@rpc("authority","call_remote","reliable")
+func _hide_item_visual() -> void:
+	_finish_drink_visual()
 
 func _item_used(kind:StringName) -> void:
 	items_used[kind] = int(items_used.get(kind,0)) + 1
@@ -1147,13 +1248,14 @@ func _eat_crumbs_remote(duration:float) -> void:
 		tween.tween_interval(duration*0.28)
 		tween.tween_callback(func() -> void: _eat_crumbs(to_global(Vector2(facing_sign()*11.0,-38.0))))
 
-## 河豚 / 热带鱼 out of the bucket beside him; at most fish_max_each of each kind (oldest dries out).
+## 河豚 / 热带鱼 out of the bucket beside him. No cap and no drying out (user rule 2026-09-29:
+## nothing of his disappears on its own); they only die in combat or with him.
 func release_fish(puffer:bool) -> ball:
 	if not is_multiplayer_authority() or not is_inside_tree(): return null
 	var mine:Array[Node] = []
 	for fish:Node in get_tree().get_nodes_in_group(&"MCTraderFish"):
 		if fish.get(&"Master") == self and bool(fish.get(&"puffer")) == puffer and float(fish.get(&"health")) > 0.0: mine.append(fish)
-	while mine.size() >= maxi(fish_max_each,1):
+	while fish_max_each > 0 and mine.size() >= fish_max_each: # 0 = unlimited (default)
 		var oldest:Node = mine.pop_front()
 		if oldest.has_method(&"owner_lost"): oldest.call(&"owner_lost")
 	var scene:PackedScene = load(CATALOG.PUFFERFISH_SCENE_PATH if puffer else CATALOG.TROPICAL_FISH_SCENE_PATH) as PackedScene

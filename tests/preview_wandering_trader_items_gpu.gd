@@ -83,7 +83,14 @@ func run() -> void:
 	# --- gunpowder -----------------------------------------------------------------------------------
 	trader.item_delay_min=0.1;trader.item_delay_max=0.1;trader.item_show_time=0.1
 	trader.give_item(CATALOG.GUNPOWDER)
-	await seconds(0.5)
+	var cam_back:Vector2=camera.global_position
+	camera.global_position=trader.global_position+Vector2(0,-6);camera.zoom=zoom0*3.0
+	await seconds(0.2)
+	await grab("i13b_swing_a")
+	await seconds(0.12)
+	await grab("i13c_swing_b")
+	camera.global_position=cam_back;camera.zoom=zoom0*1.4
+	await seconds(0.4)
 	await grab("i14_gunpowder_placed")
 	for gp:Node in get_nodes_in_group(&"MCWanderingTraderItem"):
 		if gp.get(&"kind")==CATALOG.GUNPOWDER:enemy.global_position=(gp as Node2D).global_position

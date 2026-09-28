@@ -58,6 +58,8 @@ func run() -> void:
 	await physics_frame
 	check(frame.global_position.y>trader.global_position.y+8.0 and absf(frame.global_position.x-trader.global_position.x)<0.5,"frame hangs under the trader (%s vs %s)" % [frame.global_position,trader.global_position])
 	check(trader.held_item==&"" and frame.kind==&"","frame starts empty")
+	await process_frame
+	check(frame.self_modulate.a==0.0 and frame.SIZE<=8.0,"empty frame is hidden, frame is small (%.0f px)" % frame.SIZE)
 	check(trader.player_control_action_ids().has(&"controlled_item_action"),"manual control: key for the held item")
 	# --- roll rules ---------------------------------------------------------------------------------
 	trader.item_show_time=999.0;trader.item_delay_min=999.0;trader.item_delay_max=999.0
@@ -75,6 +77,8 @@ func run() -> void:
 		seen[trader.roll_item()]=true
 	check(seen.has(CATALOG.HAY) and seen.has(CATALOG.POTATO) and seen.size()==9,"hurt llama / hurt trader unlock hay and potato (%d kinds)" % seen.size())
 	check(frame.kind==trader.held_item and trader.held_item!=&"","frame shows the held item (%s)" % trader.held_item)
+	await process_frame
+	check(frame.self_modulate.a==1.0,"frame visible while he holds an item")
 	trader.give_item(&"");trader.health=trader.Max_health;herd[0].health=herd[0].Max_health
 	# --- wall exit: roll + wall-texture crumbs ------------------------------------------------------
 	trader.item_show_time=999.0
@@ -108,11 +112,23 @@ func run() -> void:
 	trader.item_delay_min=0.3;trader.item_delay_max=0.3
 	trader.give_item(CATALOG.GUNPOWDER)
 	check(frame.kind==CATALOG.GUNPOWDER,"frame shows gunpowder while waiting")
-	await wait_until(func() -> bool: return not items_of(CATALOG.GUNPOWDER).is_empty(),1.5)
+	await wait_until(func() -> bool: return trader.is_swinging_item(),1.5)
+	var hand:Sprite2D=trader._item_sprite
+	await process_frame
+	check(trader.is_swinging_item() and trader._item_anchor.visible and hand.texture==CATALOG.icon(CATALOG.GUNPOWDER) and items_of(CATALOG.GUNPOWDER).is_empty(),"use = item taken into his hand first (no effect yet)")
+	check(trader.held_item==&"" and frame.self_modulate.a==0.0,"the frame empties and hides while it is in his hand")
+	var rot_min:float=0.0
+	var rot_max:float=0.0
+	while trader.is_swinging_item():
+		rot_min=minf(rot_min,hand.rotation);rot_max=maxf(rot_max,hand.rotation)
+		await physics_frame
+	check(rot_min<-0.1 and rot_max>0.1 and rot_max-rot_min<1.0,"small swing in the hand (%.2f..%.2f rad)" % [rot_min,rot_max])
+	check(not items_of(CATALOG.GUNPOWDER).is_empty() and not trader._item_anchor.visible,"at the effect the item vanishes from the hand at once")
 	var pile:Array=items_of(CATALOG.GUNPOWDER)
 	check(pile.size()==1 and trader.held_item==&"" and frame.kind==&"","gunpowder dropped after its delay, frame empties")
 	if pile.size()==1:
 		var gp:Node2D=pile[0]
+		check(gp.life==INF,"gunpowder never fizzles on its own")
 		var ally:Node2D=herd[1]
 		var ally_pos:Vector2=ally.global_position
 		ally.global_position=gp.global_position
@@ -155,7 +171,7 @@ func run() -> void:
 		var out:Vector2=(lane.normal as Vector2).normalized()
 		for l:Node2D in herd:l.global_position=center-out*20.0+Vector2(0,30)
 		ice.global_position=face+out*44.0
-		ice.life=999.0
+		check(ice.life==INF,"blue ice has no timer")
 		runner.global_position=face+out*48.0
 		runner.direction=-out;runner.Speed=40.0
 		var hp1:float=runner.health
@@ -174,7 +190,7 @@ func run() -> void:
 		var ally_on:Node2D=herd[0]
 		ally_on.global_position=ice.global_position
 		for i:int in range(10):await physics_frame
-		check(ally_on.get_node_or_null(^"WTIceBoost")==null,"the trader's side is not boosted")
+		check(ally_on.get_node_or_null(^"WTIceBoost")!=null,"neutral ice: his own llama gets the boost too")
 		ice.expire()
 	if is_instance_valid(runner):runner.take_damage(1e9)
 	await seconds(0.2)
@@ -234,7 +250,8 @@ func run() -> void:
 	trader.release_fish(false)
 	await seconds(0.2)
 	var alive:int=get_nodes_in_group(&"MCTraderFish").filter(func(n:Node) -> bool: return not n.puffer and n.health>0).size()
-	check(alive<=2,"at most two fish of a kind (%d)" % alive)
+	check(alive>=3,"no fish cap: every released fish stays (%d)" % alive)
+	check(fish.dry_time<=0.0,"fish never dry out")
 	for n:Node in get_nodes_in_group(&"MCTraderFish"):n.take_damage(1e9)
 	# --- dripstone ----------------------------------------------------------------------------------
 	trader.give_item(CATALOG.DRIPSTONE)
@@ -248,7 +265,7 @@ func run() -> void:
 	if spikes.size()==1:
 		var spike:Node2D=spikes[0]
 		check((spike.normal as Vector2).dot(near.normal)>0.7,"spike points out of the wall")
-		spike.life=999.0
+		check(spike.life==INF,"dripstone never expires on its own")
 		trader.global_position=center
 		await seconds(1.0)
 		var target:Node2D=await dummy("E4","Team1",center)
@@ -274,7 +291,7 @@ func run() -> void:
 	var hpm:float=mark.health
 	trader.item_show_time=0.1
 	trader.give_item(CATALOG.SLIME_BALL)
-	await seconds(1.5)
+	await seconds(2.2)
 	check(trader.slime_hits>=1 and hpm-mark.health>=9.9,"slime ball on a parabola hits the enemy (%.1f)" % (hpm-mark.health))
 	check(STATUS.active(mark,"slowness"),"slime ball slows")
 	mark.take_damage(1e9)
@@ -288,14 +305,17 @@ func run() -> void:
 	hurt_llama.health=hurt_llama.Max_health-150
 	var hpb:float=hurt_llama.health
 	trader.give_item(CATALOG.HAY)
-	await seconds(1.4)
+	await seconds(2.0)
 	check(trader.hay_healed>=60 and hurt_llama.health>hpb,"hay bale flies to the hurt llama and heals it (+%d)" % trader.hay_healed)
 	# --- potato ---------------------------------------------------------------------------------
 	trader.health=trader.Max_health-80
 	var hpt:float=trader.health
 	var eat0:int=heard("item_eat")
 	trader.give_item(CATALOG.POTATO)
-	await seconds(1.6)
+	await wait_until(func() -> bool: return trader.is_swinging_item(),1.0)
+	await process_frame
+	check(trader._item_sprite.texture==CATALOG.icon(CATALOG.POTATO) and trader._item_anchor.visible,"potato is swung in the hand before it is eaten")
+	await seconds(1.9)
 	check(trader.health-hpt>=39.9 and trader.potato_healed>=40,"potato is eaten at once and heals (+%d)" % (trader.health-hpt))
 	check(heard("item_eat")>=eat0+3 and heard("item_burp")>=1,"three bites + burp")
 	# --- cactus ---------------------------------------------------------------------------------
@@ -307,7 +327,7 @@ func run() -> void:
 	check(cacti.size()==1,"cactus placed a while after the exit")
 	if cacti.size()==1:
 		var cactus:Node2D=cacti[0]
-		cactus.life=999.0
+		check(cactus.life==INF,"cactus never expires on its own")
 		trader.global_position=center+Vector2(0,45);trader.direction=Vector2.ZERO
 		cactus.global_position=center+Vector2(0,-20) # open floor, clear of the tiny map's walls
 		await physics_frame

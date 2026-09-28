@@ -10,7 +10,6 @@ var normal:Vector2 = Vector2.UP
 var hits:int = 0
 
 func _placed() -> void:
-	life = 20.0
 	z_index = 3
 	normal = data.get("normal",Vector2.UP)
 	normal = normal.normalized() if normal.length_squared() > 0.000001 else Vector2.UP

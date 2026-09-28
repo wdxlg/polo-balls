@@ -84,9 +84,10 @@ func _check_wall(target:ball) -> void:
 		wall_hits += 1
 		_wall_wait = 0.45
 		momentum = momentum.bounce(normal)*0.45
-		if is_instance_valid(trader):
-			CATALOG.hurt(trader,target,amount,collision.get_position(),true)
-			trader.set(&"ice_wall_hits",int(trader.get(&"ice_wall_hits")) + 1)
+		# Neutral ice: credit the trader only against his enemies (his own side must not be blocked
+		# by the team-damage rule, like the neutral dripstone / cactus); works without him too.
+		CATALOG.hurt(trader,target,amount,collision.get_position(),CATALOG.enemy_of(trader,target))
+		if is_instance_valid(trader): trader.set(&"ice_wall_hits",int(trader.get(&"ice_wall_hits")) + 1)
 		return
 
 func _finish() -> void:

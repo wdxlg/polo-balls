@@ -15,7 +15,6 @@ var exploded:bool = false
 var _fuse:float = 0.0
 
 func _placed() -> void:
-	life = 25.0
 	sound(&"item_sand_place",-2.0)
 
 func _tick(delta:float) -> void:
@@ -26,7 +25,7 @@ func _tick(delta:float) -> void:
 	if not authoritative or age < ARM_TIME: return
 	var pad := Rect2(global_position - Vector2(TRIGGER_HALF,TRIGGER_HALF),Vector2(TRIGGER_HALF,TRIGGER_HALF)*2.0)
 	for unit:ball in CATALOG.units(self):
-		if CATALOG.enemy_of(trader(),unit) and CATALOG.body_rect(unit).intersects(pad):
+		if hostile(unit) and CATALOG.body_rect(unit).intersects(pad):
 			trigger()
 			return
 
@@ -43,15 +42,15 @@ func explode() -> void:
 	exploded = true
 	var owner_trader:Node2D = trader()
 	EXPLOSION.spawn(self,global_position,RADIUS)
-	if authoritative and owner_trader != null:
+	if authoritative:
 		sound(&"item_explode",0.0)
 		for unit:ball in CATALOG.units(self):
-			if not CATALOG.enemy_of(owner_trader,unit): continue
+			if not hostile(unit): continue
 			var rect:Rect2 = CATALOG.body_rect(unit)
 			var nearest:Vector2 = global_position.clamp(rect.position,rect.end)
 			if nearest.distance_to(global_position) > RADIUS: continue
 			var actual:float = CATALOG.hurt(owner_trader,unit,DAMAGE,global_position,true)
-			if actual > 0.0: owner_trader.set(&"gunpowder_hits",int(owner_trader.get(&"gunpowder_hits")) + 1)
+			if actual > 0.0 and owner_trader != null: owner_trader.set(&"gunpowder_hits",int(owner_trader.get(&"gunpowder_hits")) + 1)
 			if is_instance_valid(unit) and unit.health > 0 and unit.can_receive_negative_effects():
 				var away:Vector2 = unit.global_position - global_position
 				if away.length_squared() < 0.01: away = Vector2.UP
