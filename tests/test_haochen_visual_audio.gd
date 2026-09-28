@@ -120,7 +120,7 @@ func run() -> void:
 	check(voices.size()==1,"entering real charging state starts the requested phrase exactly once")
 	if not voices.is_empty():
 		check(voices[0].stream.resource_path=="res://audio/characters/我的世界/haochen/charge_start.wav" and voices[0].volume_db==0.0,"playback uses the relocated original WAV at its default gain")
-		check(absf(voices[0].stream.get_length()-2.554195)<0.002,"the supplied phrase is not silently trimmed or re-encoded")
+		check(absf(voices[0].stream.get_length()-2.368435)<0.002,"the supplied phrase (task 11 recording from 今天搬哪个.mp4) is played in full, not trimmed")
 	for i:int in range(10):hero._step_energy(0.05)
 	await create_timer(2.8,true,false,true).timeout
 	var frames:PackedVector2Array=capture.get_buffer(capture.get_frames_available())

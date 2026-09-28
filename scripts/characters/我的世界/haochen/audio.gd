@@ -1,5 +1,7 @@
 extends RefCounted
-## User-provided start phrase plus original Minecraft 1.21.11 clips (SOURCE.json).
+## User-provided voice clips plus original Minecraft 1.21.11 clips (SOURCE.json).
+## Task 11 (user 2026-09-28): charge_start = new "今天搬哪个" recording; hurt = "啊"
+## (same hurt_voice_chance as before); ambient/breathing = "好期待啊" (same cadence).
 ## Task 8 (user choices 2026-09-28): charge_soul = particle.soul_escape while energy is
 ## gained; copy_complete = entity.illusioner.mirror_move (replaces enderman.teleport).
 const NATIVE = preload("res://scripts/effects/我的世界/mc_native_audio.gd")
@@ -9,8 +11,8 @@ const EVENTS:Dictionary = {
 	&"copy_start":[preload("res://audio/characters/唤魔者/evoker.prepare_summon_1.ogg")],
 	&"copy_complete":[preload("res://audio/characters/我的世界/haochen/illusioner.mirror_move_1.ogg"),preload("res://audio/characters/我的世界/haochen/illusioner.mirror_move_2.ogg")],
 	&"step":[preload("res://audio/characters/我的世界/sulfur_cube/revision/step__stone1.ogg"),preload("res://audio/characters/我的世界/sulfur_cube/revision/step__stone2.ogg")],
-	&"ambient":[preload("res://audio/characters/唤魔者/evoker.ambient_1.ogg"),preload("res://audio/characters/唤魔者/evoker.ambient_2.ogg"),preload("res://audio/characters/唤魔者/evoker.ambient_3.ogg"),preload("res://audio/characters/唤魔者/evoker.ambient_4.ogg")],
-	&"hurt":[preload("res://audio/characters/唤魔者/evoker.hurt_1.ogg"),preload("res://audio/characters/唤魔者/evoker.hurt_2.ogg")],
+	&"ambient":[preload("res://audio/characters/我的世界/haochen/breath_haoqidai.wav")],
+	&"hurt":[preload("res://audio/characters/我的世界/haochen/hurt_ah.wav")],
 	&"death":[preload("res://audio/characters/唤魔者/evoker.death_1.ogg"),preload("res://audio/characters/唤魔者/evoker.death_2.ogg")]
 }
 static var _rng := RandomNumberGenerator.new()

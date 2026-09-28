@@ -32,12 +32,12 @@
   - **复制品出现（“像素拼身”，用户 2026-09-28 任务 9 选定，替换任务 8 的灵魂升腾）**：施放开始时各端按同步的 `source_name` 找到被复制者，把它**当前帧**切成像素格（灰度公式与复制品 `character_grayscale` 相同，屏幕上每格≥2.2px，最多 360 格，按帧缓存）。像素从复制品 1.6–3.2 倍半径外飞来（飞行中略放大、偏白，落定恢复原灰色），在施放结束前 0.15 秒拼成**半尺寸**人物；复制品出现瞬间白光一闪，碎片向外炸散、下落、0.7 秒淡出。所有距离/速度按人物大小缩放。取不到帧（被复制者已消失、无 CPU 端图像）时回退为旧的灵魂汇聚/爆散；施放被取消时碎片直接散开、不闪白。公共脚本 `scripts/effects/我的世界/像素拼身粒子.gd`（一个节点绘制全部格子，分组 `MCHaochenAssembleParticle`）。
   - 以上共用 `character_copy_request.gd::emit_stream / emit_ring` 与 `灵魂粒子.gd`，不复制实现。皓宸不再使用 portal/末影粒子。
 - **音效**（全部走公共 `mc_native_audio.queue_stream`，权威端选择变体并可靠 RPC 同步、带序号防重播）：
-  - 开始蓄能：用户提供的 `haochen/charge_start.wav`（0 dB，同一段蓄能只播一次）
+  - 开始蓄能：用户提供的“今天搬哪个”（2026-09-28 任务 11 换成用户新视频 `今天搬哪个.mp4` 的音轨，2.37 秒，仍为 `haochen/charge_start.wav`，0 dB，同一段蓄能只播一次）
   - **复制施放起手：原版 `entity.evoker.prepare_summon`（`唤魔者/evoker.prepare_summon_1.ogg`，0 dB）**——2026-09-28 新增
   - **获得能量期间：原版 `particle.soul_escape`（灵魂疾行音，13 个变体）**——敌人向能量条供能时约每 0.24 秒随机播 1 个，音高 0.85–1.15 随机，−3 dB（2026-09-28 任务 8，用户选定）
   - **复制品出现：原版 `entity.illusioner.mirror_move`（幻术师分身音，2 个变体，0 dB）**——替换被否定的末影人 teleport（2026-09-28 任务 8，用户选定）
   - 新音频均从 Mojang 官方资源 CDN 按 asset index 29 的 sha1 原样下载，存放 `audio/characters/我的世界/haochen/`，未重新编码。
-  - 脚步（石头步声，仅真实位移）、待机（唤魔者 ambient，仅 RESTING，间隔≥实际音频时长）、受伤/死亡（唤魔者）；死亡同时保留项目默认 `DeadBell`
+  - 脚步（石头步声，仅真实位移）、**呼吸/待机：用户“好期待啊”**（`haochen/breath_haoqidai.wav`，1.02 秒，−8 dB，仅 RESTING，每 3–7 秒一次且不重叠）、**受伤：用户“啊”**（`haochen/hurt_ah.wav`，0.44 秒，−4 dB，沿用 `mc_mob_base.hurt_voice_chance`=45% 概率）——两者 2026-09-28 任务 11 替换原唤魔者待机/受伤声；死亡仍为唤魔者 death，并保留项目默认 `DeadBell`。三段用户音频均由仓库根目录视频用 ffmpeg 只取音轨转 PCM16 WAV（不裁剪、不改音量），来源/哈希见 SOURCE.json
 - 皓宸本身不造成伤害，无 MC 命中音；复制品的命中音由其原角色自身逻辑负责。
 - 来源/哈希：`audio/characters/我的世界/haochen/SOURCE.json`（含两张头像、原始皮肤与处理方式）。原始皮肤保存在 `Images/characters/我的世界/皓宸/skins/`（`.gdignore`，不导入）。唤魔者头像已不再使用；待机/受伤/死亡仍用唤魔者原版声音。
 

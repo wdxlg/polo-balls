@@ -13,10 +13,36 @@
   },
   "charge_start": {
     "path": "res://audio/characters/我的世界/haochen/charge_start.wav",
-    "original_path": "1_今天搬哪个_(Vocals).wav",
-    "selection": "Explicitly supplied/selected by user for charging start. Moved unchanged; not claimed to be Mojang audio.",
-    "duration_seconds": 2.5541950113378684,
-    "format": "PCM16 stereo44100Hz",
+    "original_path": "今天搬哪个.mp4 (project root, user-supplied video 2026-09-28)",
+    "original_sha256": "868b410ec6b188e4517f5da2e9708233272d5e053ae44e86b2e1d8ed5fd4247a",
+    "conversion": "ffmpeg: audio stream only (AAC 44.1 kHz stereo) -> PCM16 WAV 44.1 kHz stereo; no trimming, no gain change",
+    "selection": "User 2026-09-28 (task 11): replaces the previous charging-start voice (1_今天搬哪个_(Vocals).wav). Not claimed to be Mojang audio.",
+    "duration_seconds": 2.368435,
+    "format": "PCM16 stereo 44100Hz",
+    "gain_db": 0.0,
+    "license": "User-provided project asset; no claim of free redistribution.",
+    "replaces": "1_今天搬哪个_(Vocals).wav (2.554 s; backup .arena_haochen/backups/task11/charge_start.wav.bak)"
+  },
+  "hurt": {
+    "path": "res://audio/characters/我的世界/haochen/hurt_ah.wav",
+    "original_path": "啊.mp4 (project root, user-supplied video 2026-09-28)",
+    "original_sha256": "7661893bcdb1b8ddc4530572eae423c7d97c935716503a104a80a01eb0d664bc",
+    "conversion": "ffmpeg: audio stream only (AAC 44.1 kHz stereo) -> PCM16 WAV 44.1 kHz stereo; no trimming, no gain change",
+    "selection": "User 2026-09-28 (task 11): Haochen hurt voice, replaces entity.evoker.hurt; plays with the unchanged mc_mob_base hurt_voice_chance.",
+    "duration_seconds": 0.441179,
+    "format": "PCM16 stereo 44100Hz",
+    "gain_db": -4.0,
+    "license": "User-provided project asset; no claim of free redistribution."
+  },
+  "ambient": {
+    "path": "res://audio/characters/我的世界/haochen/breath_haoqidai.wav",
+    "original_path": "好期待啊.mp4 (project root, user-supplied video 2026-09-28)",
+    "original_sha256": "0dc959fffd40ee6ffef88fcae71177d81afb86df4638ada4a91780f4cb470526",
+    "conversion": "ffmpeg: audio stream only (AAC 44.1 kHz stereo) -> PCM16 WAV 44.1 kHz stereo; no trimming, no gain change",
+    "selection": "User 2026-09-28 (task 11): Haochen breathing/idle voice, replaces entity.evoker.ambient; same cadence (RESTING only, every 3-7 s, never overlapping).",
+    "duration_seconds": 1.021678,
+    "format": "PCM16 stereo 44100Hz",
+    "gain_db": -8.0,
     "license": "User-provided project asset; no claim of free redistribution."
   },
   "copy_start": {
@@ -81,8 +107,16 @@
       "sha256": "42fad2fb8677a493b85239f99580dc87e9000cc185bc96e1d1ec058f49957649"
     },
     "audio/characters/我的世界/haochen/charge_start.wav": {
-      "size": 450604,
-      "sha256": "ff7c374a1ab80a8c7181c11dbb6792d45cec341ea2df9bb5e586b9668eb8e08e"
+      "size": 417870,
+      "sha256": "10796d2dd8c04c8a3b4e710297ca8451142459ade8006f6118ec19330329cc5c"
+    },
+    "audio/characters/我的世界/haochen/hurt_ah.wav": {
+      "size": 77902,
+      "sha256": "339e6d9e4037bf2cf6ded8b8fad5f135d59802b05c5ceadac43422f22a14c3d3"
+    },
+    "audio/characters/我的世界/haochen/breath_haoqidai.wav": {
+      "size": 180302,
+      "sha256": "887883f2c5971ba798d168038266f1efd2f5403f91d7685a5a935834fd022bdc"
     },
     "audio/characters/我的世界/sulfur_cube/revision/step__stone1.ogg": {
       "size": 8657,
@@ -91,30 +125,6 @@
     "audio/characters/我的世界/sulfur_cube/revision/step__stone2.ogg": {
       "size": 7689,
       "sha256": "f1d9fbcec8ae90466640b48440700e3d75499d73bdc89297939ebc6dc84a896f"
-    },
-    "audio/characters/唤魔者/evoker.ambient_1.ogg": {
-      "size": 9126,
-      "sha256": "7b073018bc2eaebcbf4aee662bd11d2cd9177afda6b0f547088882dbbec0672d"
-    },
-    "audio/characters/唤魔者/evoker.ambient_2.ogg": {
-      "size": 7158,
-      "sha256": "dbc1cbbe7ab2f540a9e94ce5e7cd84697131d9fc5ffd132f94bfc4359d91474f"
-    },
-    "audio/characters/唤魔者/evoker.ambient_3.ogg": {
-      "size": 11692,
-      "sha256": "90092a96def463cb5dcd183cb8ba8987d4c97693959806b71c3056eba1c4fbc9"
-    },
-    "audio/characters/唤魔者/evoker.ambient_4.ogg": {
-      "size": 13370,
-      "sha256": "2357295a55273e6377a382bb25c731745ac3c61882d6e550315f32bdaaae46a5"
-    },
-    "audio/characters/唤魔者/evoker.hurt_1.ogg": {
-      "size": 5565,
-      "sha256": "748a24e8121d5dc7e6569f41df579919964f0c16866c3271da63b9b4fa128ae3"
-    },
-    "audio/characters/唤魔者/evoker.hurt_2.ogg": {
-      "size": 5462,
-      "sha256": "7a7c920c7c35bc0a8d45039dfa33c12f39765296026d19aa70b4921ede96ea07"
     },
     "audio/characters/唤魔者/evoker.death_1.ogg": {
       "size": 7279,
