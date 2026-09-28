@@ -39,6 +39,11 @@ func begin(scene:Node, viewport:Viewport, capture_viewports:Dictionary = {}) -> 
 			layer.transform = Transform2D.IDENTITY.scaled(Vector2(capture.size) / main.get_visible_rect().size)
 			capture.add_child(layer)
 			screen_roots[locale] = layer
+			# 1v1 顶部 HUD 同属玩家 Viewport 的屏幕层：给每个抓帧视口一份按语言翻译的只读镜像。
+			var duel_hud:Variant = world.get("duel_top_hud")
+			# 先判有效再判类型：World 拆除时 HUD 可能已释放，对已释放对象用 is 会报脚本错误。
+			if is_instance_valid(duel_hud) and duel_hud is Control and duel_hud.has_method("make_mirror"):
+				layer.add_child(duel_hud.make_mirror(locale, ZH_BIT if locale == "zh" else EN_BIT))
 	_build_dictionary()
 	_scan(world)
 	get_tree().node_added.connect(_added)

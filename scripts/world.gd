@@ -12,6 +12,7 @@ const VICTORY_BELL_AUDIO:AudioStream = preload("res://audio/system/胜利铃声.
 const WORLD_OUTSIDE_GRID_SHADER:Shader = preload("res://shaders/world_outside_checker.gdshader")
 const HEAVY_GIRL_GLYPH_SHAKE_EFFECT = preload("res://scripts/effects/重女式逐字颤抖.gd")
 const MOJANGLES_FONT = preload("res://fonts/Mojangles.ttf")
+const DUEL_TOP_HUD_SCRIPT = preload("res://scripts/ui/duel_top_hud.gd")
 const COMBAT_IMPACT_LAYER_SCRIPT = preload("res://scripts/effects/combat_impact_layer.gd")
 
 # 地图下方创作者水印：只显示文字，不再使用任何平台图标。
@@ -631,6 +632,7 @@ var map_border_line:Line2D
 var map_border_segment_root:Node2D = null
 var versus_screen_layer:CanvasLayer = null
 var versus_label:RichTextLabel
+var duel_top_hud:Control = null
 var interaction_label:RichTextLabel
 # 只要场上存在任意盔甲架系角色，顶部战斗标题切换为测试信息 HUD。
 # 该状态由 refresh_versus_text() 以顶部 UI 的既有 5Hz 节奏刷新，避免每渲染帧扫描角色组。
@@ -3869,6 +3871,11 @@ func setup_map_presentation() -> void:
 	versus_label.visibility_layer = COMBAT_TEXT_VISIBILITY_LAYER
 	versus_label.install_effect(HEAVY_GIRL_GLYPH_SHAKE_EFFECT.new())
 	versus_screen_layer.add_child(versus_label)
+	# 1v1 顶部对战 HUD：仅在恰好两名主角色分属两方时自行显示；原文字 VS 保留。
+	duel_top_hud = DUEL_TOP_HUD_SCRIPT.new()
+	duel_top_hud.world = self
+	duel_top_hud.visibility_bit = COMBAT_TEXT_VISIBILITY_LAYER
+	versus_screen_layer.add_child(duel_top_hud)
 
 	# 第二行：固定互动文字。RichText 效果在启动时随机一次。
 	interaction_label = RichTextLabel.new()

@@ -1,0 +1,45 @@
+# 1v1 顶部对战 HUD — 2026-09-28
+
+## 用户要求与确认
+
+- 屏幕上方新增 UI，**仅在场上正好剩两名主角色且分属两方时**显示：开局 1v1，或多方混战打到只剩两人都会出现；召唤物不算角色，比赛延续/死亡演出桥沿用 `return_battle_sides()` 的代表规则（同名延续单位合并为一名、生命合并）。同队两人或三方以上不显示。
+- 背景使用项目已有的 Minecraft Java 1.21.4 原版 GUI 素材（未修改 PNG，来源见各目录 `SOURCE.json`）：
+  - 左右角色框：`minecraft_tooltips/tooltip_background.png` + `tooltip_frame.png`，九宫格 9/10，GUI 像素倍率 3（与 `mc_effect_tooltip.gd` 一致）。
+  - 头像槽：`rotation_frames/item_frame.png` ×4；头像复用 `scripts/ui/rotation_portraits.gd`（原版正脸或角色真实场景图）。
+  - 血条：`minecraft_xp/experience_bar_background.png` / `experience_bar_progress.png` ×2（364×10），左侧自左填充、右侧镜像自右填充。
+  - 中间对战框：`minecraft_tooltips/effect_background_large.png`，九宫格 5。
+- 角色框内容（用户选择）：头像 + 名字 + 当前/最大生命数字 + 血条。名字颜色与普通 VS 同源（`_versus_side_color`：两队蓝/红，中立/无队白）。
+- 中间：本局已过去的时间（`mm:ss`，超过 1 小时 `h:mm:ss`，原版黄色）+ 白色 `VS`。
+- 原来的“角色名 VS 角色名”文字标题**保留**（用户选择），新 HUD 放在其上方：逻辑视口 y=32–208，VS 标题从 y=240 开始，不重叠。
+- 计时按**游戏时间**（用户选择）：只在 `is_combat_runtime_active()` 时累加物理 delta，暂停/时间停止不走、倍速同步；胜利铃响后冻结；`_victory_bell_sequence_generation`（重置/重打/新一局）或开战序号变化时归零。计时从开战就开始，与 HUD 是否显示无关。**录像中也显示**。
+- 决出胜负后保留最后一对的结果画面（败者头像/文字变灰、0 血），直到重置或出现新对阵；再加入第三方则隐藏。
+- 与普通 VS 同步隐藏：布阵、盔甲架介绍、Boss 车轮战、死亡存档覆盖时不显示。
+
+## 实现
+
+- 新文件 `scripts/ui/duel_top_hud.gd`：挂在 World 的 `VersusScreenLayer`（屏幕画布，不随镜头移动/缩放/震动），以 1080 逻辑宽度设计并按视口宽度等比缩放。贴图层使用最近邻过滤，文字在独立子画布保持字体过滤；Mojangles 字体 + 黑描边。
+- `scripts/world.gd`：新增 `DUEL_TOP_HUD_SCRIPT` 常量、`duel_top_hud` 变量，并在 `setup_map_presentation()` 创建 HUD（共 7 行）。
+- `scripts/ui/battle_record_locale.gd`：为每个录制抓帧视口的 `RecordingVersus_<locale>` 屏幕层添加 `make_mirror(locale, 语言可见层)` 只读镜像；镜像不计时、不扫描，只读取本体数据并用 `_t_for_locale` 翻译角色名。先判 `is_instance_valid` 再判类型，避免 World 拆除时对已释放对象报错。
+- 纯本机 UI：无伤害、无 RPC；多人客户端按本地同步到的生命与战斗状态显示。
+
+## 验证（Godot 4.7.2 离线引擎，真实 GPU 窗口）
+
+| 测试 | 结果 |
+| --- | --- |
+| 新增 `tests/test_duel_top_hud.gd` | **30/30**，退出 0 |
+| `tests/test_vs_screen_title.gd` | 27/27 |
+| `tests/test_vs_map_scaling.gd`、`tests/test_vs_team_counts.gd` | 退出 0 |
+| `tests/test_rotation_frames_challenge.gd` | 97/97 |
+| `tests/test_armor_intro_readability.gd` | 48/48 |
+| `tests/test_vs_title_motion.gd` | 24/27：3 项“像素完全不变”失败，**与 `tests/ROTATION_VS_WINNER_20260927.md` 记录的既有失败相同** |
+
+- 专项覆盖：单人/同队/三方隐藏、1v1 显示、左右顺序与蓝红色、两侧头像取得、真实生命与扣血、HUD 底边高于 VS 标题、计时累加/时间停止冻结/胜利冻结/重置归零、决出胜负后保留结果、中英录制镜像可见且使用各自语言层、中英录像右侧名字实际像素不同、GPU 顶部区域出现 HUD 且左框为原版深色 tooltip 背景。
+- motion 对照：用临时副本停用并隐藏新 HUD 后仍是同样 3 项失败（live_max=2145）；带 HUD 原测试两次复跑 live_max=2303 / 2145，属于同一波动范围，失败不是本次引入。临时副本已删除。
+- 人工查看 GPU 截图：玩家画面（540×960）、中文/英文录像（1080×1920）均显示左右 tooltip 框、物品展示框头像、名字、生命数字、经验条血条及中间黄色计时 + VS；英文录像为 Creeper / Skeleton。预览：`tests/duel_top_hud_preview_zh_20260928.png`。
+- 未验证：真实录制按钮完整成片（MP4）、FOLLOW/FOLLOW_OVERVIEW 录像构图、真实双客户端联机、所有角色头像逐一检查。
+
+## Git 与局部回退
+
+- 修改前 HEAD：`bccd680949f7e742a92fca3782ce48c0e06e2577`。`world.gd`、`battle_record_locale.gd`、`battle_recorder.gd`、`MCP_CONTEXT.md` 修改前工作副本及既有脏差异备份在 `.git/agent-checkpoints/duel_top_hud_20260928/`。
+- 本次提交只含：新 HUD 脚本、专项测试、本说明、预览图，以及 `world.gd` / `battle_record_locale.gd` / `MCP_CONTEXT.md` 中本任务的差异块；这些文件里其他任务的未提交改动不在本提交内。
+- 回退：先备份当前工作区，再 `git revert <本次提交>`，或 `git show <本次提交> | git apply -R --check` 后人工合并；不要用 `reset --hard` / `clean`。
