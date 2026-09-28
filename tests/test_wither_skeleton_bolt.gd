@@ -148,6 +148,8 @@ func run() -> void:
 	var spin_sign:float = 0.0
 	var offsets:Dictionary = {}
 	var widths:Dictionary = {}
+	var body_rot:Dictionary = {}
+	var body_width_ok:bool = true
 	# 出膛补团的粒子（组内最先加入的 BODY_LAUNCH_BURST 个）以出膛点为中心，检查同向切向漂移。
 	for k:int in range(mini(BOLT.BODY_LAUNCH_BURST,body.size())):
 		var burst_off:Vector2 = (body[k]._start as Vector2)-muzzle
@@ -163,11 +165,15 @@ func run() -> void:
 		same = same and p.texture == BOLT.SMOKE and p.self_modulate.r < 0.3
 		offsets[Vector2i((off*4.0).round())] = true
 		widths[snappedf(p._pixel_width,0.05)] = true
+		body_rot[snappedf(p.rotation,0.05)] = true
+		body_width_ok = body_width_ok and p._pixel_width >= BOLT.BODY_WIDTH.x-0.001 and p._pixel_width <= BOLT.BODY_WIDTH.y+0.001
 	print("WS_BOLT_METRIC body_particles=",body.size()," distinct_offsets=",offsets.size()," distinct_widths=",widths.size())
 	check(body.size() >= BOLT.BODY_LAUNCH_BURST,"bolt body appears immediately as a burst of particles")
 	check(near,"body particles spawn within the bolt radius")
 	check(offsets.size() >= body.size()-1 and widths.size() >= 4,"body particle positions and sizes are random")
 	check(same,"body particles are the Wither-skull trail smoke particle")
+	check(body_rot.size() >= int(body.size()*0.7),"body particle angles are random (" + str(body_rot.size()) + "/" + str(body.size()) + " distinct)")
+	check(body_width_ok,"body particle size varies only in a small range (6.0-7.5)")
 	check(swirl_ok,"every body particle swirls the same way around the centre (rotating cloud)")
 	check(bolt.is_in_group("AI_Hazard") and bolt.get_ai_hazard_info().get("damage",0.0) == 5.0,"bolt is visible to AI dodge as 5-damage hazard")
 	# 飞行途中截图
@@ -191,10 +197,18 @@ func run() -> void:
 			print("WS_BOLT_METRIC bolt_at=",c)
 	check(trail_seen >= 10,"bolt leaves the same smoke trail (" + str(trail_seen) + " particles)")
 	var trail_same:bool = true
+	var trail_rot:Dictionary = {}
+	var trail_widths:Dictionary = {}
+	var trail_count:int = 0
 	for p:Node in get_nodes_in_group(BOLT.TRAIL_GROUP):
 		if p.is_in_group(BOLT.BODY_GROUP): continue # 弹体粒子另有随机宽度，单独检查
-		trail_same = trail_same and p.texture == BOLT.SMOKE and p._pixel_width <= BOLT.TRAIL_WIDTH+0.01 and p.self_modulate.r < 0.3
-	check(trail_same,"trail particles use the skull-trail texture/width")
+		trail_count += 1
+		trail_rot[snappedf(p.rotation,0.05)] = true
+		trail_widths[snappedf(p._pixel_width,0.02)] = true
+		trail_same = trail_same and p.texture == BOLT.SMOKE and p.self_modulate.r < 0.3 \
+			and p._pixel_width >= BOLT.TRAIL_WIDTH*BOLT.TRAIL_WIDTH_JITTER.x-0.001 and p._pixel_width <= BOLT.TRAIL_WIDTH*BOLT.TRAIL_WIDTH_JITTER.y+0.001
+	check(trail_same,"trail particles use the skull-trail texture, size within 8 +-12%")
+	check(trail_count >= 5 and trail_rot.size() >= int(trail_count*0.7) and trail_widths.size() >= mini(trail_count,5)-1,"trail particle angles and sizes are random (" + str(trail_rot.size()) + " angles / " + str(trail_widths.size()) + " sizes of " + str(trail_count) + ")")
 	print("WS_BOLT_METRIC hit_frames=",hit_frames)
 	check(hit_frames > 0,"bolt reaches the target")
 	check(target.health == 9995,"bolt hit deals exactly 5 (" + str(target.health) + ")")

@@ -17,15 +17,18 @@ const TRAIL_WIDTH:float = 8.0
 const TRAIL_DRIFT:float = 12.0
 const TINT:Color = Color(0.22,0.22,0.22,0.85)
 const TRAIL_GROUP:StringName = &"MCWitherSkeletonBoltTrail"
-const TRAIL_CAP:int = 256
+const TRAIL_CAP:int = 384 # 本体加密后提高上限（两发同屏仍够用）
+static var _jitter := RandomNumberGenerator.new() # 纯视觉：粒子角度/拖尾大小，不占用战斗 RNG
+static var _jitter_seeded:bool = false
 const BODY_RADIUS:float = 6.0 # 弹团视觉半径（=凋灵头颅直径 12 的一半）
 const HIT_RADIUS:float = 5.0
 # 弹体粒子发射器（2026-09-28 修订：取代固定 9 粒旋转团）。
 const BODY_GROUP:StringName = &"MCWitherSkeletonBoltBody"
-const BODY_RATE:float = 80.0 # 粒子/秒（真实战斗时间）
-const BODY_LAUNCH_BURST:int = 8 # 出膛瞬间先补一团，第一帧就可见
+const BODY_RATE:float = 220.0 # 粒子/秒（战斗时间）；第四轮：80→220，本体更密
+const BODY_LAUNCH_BURST:int = 16 # 出膛瞬间先补一团，第一帧就可见
 const BODY_LIFETIME:Vector2 = Vector2(0.12,0.24)
-const BODY_WIDTH:Vector2 = Vector2(4.5,8.5)
+const BODY_WIDTH:Vector2 = Vector2(6.0,7.5) # 小范围随机
+const TRAIL_WIDTH_JITTER:Vector2 = Vector2(0.88,1.12) # 拖尾粒子大小小范围随机（×8）
 const BODY_SWIRL:float = 5.0 # 寿命内切向漂移距离：所有粒子同向绕中心 → 旋转感
 const BODY_SPREAD:float = 1.5 # 轻微外扩
 
@@ -183,11 +186,19 @@ func _emit_trail(from:Vector2,to:Vector2) -> void:
 	var along:float = TRAIL_SPACING-fposmod(_trail_carry,TRAIL_SPACING)
 	var count:int = 0
 	while along <= length and count < 48:
-		spawn_smoke(self,from+direction*(along-BODY_RADIUS),-direction*TRAIL_DRIFT,TRAIL_LIFETIME,TRAIL_WIDTH)
+		spawn_smoke(self,from+direction*(along-BODY_RADIUS),-direction*TRAIL_DRIFT,TRAIL_LIFETIME,
+			TRAIL_WIDTH*jitter_rng().randf_range(TRAIL_WIDTH_JITTER.x,TRAIL_WIDTH_JITTER.y))
 		along += TRAIL_SPACING
 		count += 1
 	_trail_carry = fposmod(_trail_carry+length,TRAIL_SPACING)
 
+static func jitter_rng() -> RandomNumberGenerator:
+	if not _jitter_seeded:
+		_jitter.randomize()
+		_jitter_seeded = true
+	return _jitter
+
+## 每粒随机角度（0–360°）；大小由调用方在小范围内随机。
 static func spawn_smoke(context:Node,point:Vector2,motion:Vector2,lifetime:float,width:float) -> Sprite2D:
 	if context.get_tree() == null or context.get_tree().current_scene == null: return null
 	if context.get_tree().get_nodes_in_group(TRAIL_GROUP).size() >= TRAIL_CAP: return null
@@ -198,6 +209,7 @@ static func spawn_smoke(context:Node,point:Vector2,motion:Vector2,lifetime:float
 	particle._pixel_width = clampf(width,1.0,32.0)
 	particle.scale = Vector2.ONE*(particle._pixel_width/float(SMOKE.get_width()))
 	particle.self_modulate = TINT
+	particle.rotation = jitter_rng().randf()*TAU # setup 只设位置；粒子自身 _process 不改角度
 	particle.z_index = 8
 	particle.remove_from_group("MCEnderParticle")
 	particle.add_to_group(TRAIL_GROUP)
@@ -211,7 +223,8 @@ func dissipate(point:Vector2) -> void:
 	for i:int in range(10):
 		var offset:Vector2 = Vector2.RIGHT.rotated(_rng.randf()*TAU)*BODY_RADIUS*sqrt(_rng.randf())
 		var outward:Vector2 = offset.normalized() if offset.length() > 0.3 else Vector2.RIGHT.rotated(_rng.randf()*TAU)
-		spawn_smoke(self,point+offset,outward*_rng.randf_range(6.0,12.0),_rng.randf_range(0.25,0.4),_rng.randf_range(BODY_WIDTH.x,BODY_WIDTH.y))
+		var burst:Sprite2D = spawn_smoke(self,point+offset,outward*_rng.randf_range(6.0,12.0),_rng.randf_range(0.25,0.4),_rng.randf_range(BODY_WIDTH.x,BODY_WIDTH.y))
+		if burst != null: burst.add_to_group(BODY_GROUP)
 	queue_free()
 
 func get_ai_hazard_info(_receiver:ball = null) -> Dictionary:
