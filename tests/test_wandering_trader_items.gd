@@ -84,12 +84,24 @@ func run() -> void:
 	trader.item_show_time=999.0
 	var crumbs_before:int=get_nodes_in_group(&"MCWanderingTraderFx").filter(func(n:Node) -> bool: return n.get_script()==CRUMBS_SCRIPT).size()
 	var rolled0:int=trader.items_rolled
+	var bursts0:int=trader.wall_crumb_bursts
 	var entered:bool=await enter_wall(trader)
 	check(entered,"trader enters the wall")
 	var tex_ok:bool=false
 	var saw_crumbs:bool=false
 	var t:float=0.0
+	var entry_bursts:int=-1 # streams started before he is hidden
+	var entry_streaming:bool=false # a crumb stream alive (and emitting) while he is still entering
+	var exit_streaming:bool=false
+	var falling:bool=false
 	while trader.wall_phase!=0 and t<9.0:
+		if trader.wall_phase==2 and entry_bursts<0:entry_bursts=trader.wall_crumb_bursts-bursts0
+		var stream:Node2D=trader._wall_stream
+		if stream!=null and is_instance_valid(stream) and stream.alive_count()>0:
+			if trader.wall_phase==1:entry_streaming=true
+			if trader.wall_phase==3:exit_streaming=true
+			for p:Dictionary in stream.parts:
+				if p.age>0.15 and (p.vel as Vector2).y>0.0:falling=true
 		for n:Node in get_nodes_in_group(&"MCWanderingTraderFx"):
 			if n.get_script()==CRUMBS_SCRIPT:
 				saw_crumbs=true
@@ -97,6 +109,9 @@ func run() -> void:
 		await physics_frame;t+=1.0/60.0
 	check(trader.wall_phase==0 and trader.items_rolled==rolled0+1 and trader.held_item!=&"","wall exit rolls one item into the frame (%s)" % trader.held_item)
 	check(saw_crumbs and tex_ok and trader.wall_crumb_bursts>=2,"wall entry / exit spray textured block crumbs (%d bursts)" % trader.wall_crumb_bursts)
+	check(entry_bursts>=1 and entry_streaming,"entry crumbs stream while he walks into the wall, before he is hidden (%d, %s)" % [entry_bursts,entry_streaming])
+	check(exit_streaming,"exit crumbs stream while he walks out of the wall")
+	check(falling,"wall crumbs fall under gravity")
 	var tile_src:Dictionary={}
 	var slots:Array[Dictionary]=WALL_SCRIPT.wall_slots(world,trader.mc_arena_rect())
 	if not slots.is_empty():tile_src=CRUMBS_SCRIPT.wall_source(trader,WALL_SCRIPT.face_point(slots[0]),slots[0].normal)
@@ -296,6 +311,28 @@ func run() -> void:
 	check(STATUS.active(mark,"slowness"),"slime ball slows")
 	mark.take_damage(1e9)
 	await seconds(0.1)
+	# ballistic arc: rises, then drops (aim on the hand's own height), with a falling slime trail
+	var hand0:Vector2=trader.hand_point()
+	trader._throw(CATALOG.SLIME_BALL,null,hand0+Vector2(40,0),0.5)
+	var shot:Node2D=null
+	for n:Node in get_nodes_in_group(&"MCWanderingTraderItem"):
+		if n.get(&"kind")==CATALOG.SLIME_BALL and not n.done:shot=n as Node2D
+	var min_y:float=hand0.y
+	var after_peak:float=-1e9
+	var trail_fall:bool=false
+	var trail_node:Node2D=null
+	for i:int in range(30):
+		await physics_frame
+		if shot==null or not is_instance_valid(shot):break
+		min_y=minf(min_y,shot.global_position.y)
+		after_peak=shot.global_position.y
+		if shot.trail!=null and is_instance_valid(shot.trail):
+			trail_node=shot.trail
+			for p:Dictionary in trail_node.parts:
+				if p.age>0.1 and (p.vel as Vector2).y>0.0:trail_fall=true
+	check(min_y<hand0.y-8.0 and after_peak>min_y+4.0,"slime ball flies a real parabola (rise %.1f, then drop %.1f)" % [hand0.y-min_y,after_peak-min_y])
+	check(trail_node!=null and trail_node.emitted>=5 and trail_fall,"slime ball leaves a falling slime-particle trail (%d)" % (trail_node.emitted if trail_node!=null else 0))
+	await seconds(1.0)
 	var outside:Vector2=Vector2(rect.position.x-80.0,center.y)
 	trader._throw(CATALOG.SLIME_BALL,null,outside,0.5)
 	await seconds(0.8)

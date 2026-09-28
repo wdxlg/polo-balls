@@ -112,7 +112,10 @@ var _item_anchor:Node2D
 var _item_sprite:Sprite2D
 var _item_tween:Tween
 var exit_warnings:int = 0
-var wall_crumb_bursts:int = 0
+var wall_crumb_bursts:int = 0 # wall-crossing crumb streams started (entry + exit)
+@export var wall_crumb_rate:float = 60.0 # crumbs per second while his body crosses the wall surface
+var _wall_stream:Node2D
+var _wall_stream_acc:float = 0.0
 ## Wall skill triggered: he keeps his normal movement and goes in at the next wall he hits.
 var wall_armed:bool = false
 var _wall_armed_time:float = 0.0
@@ -339,6 +342,7 @@ func move(speed:float,delta:float) -> void:
 	super.move(speed*(drink_move_ratio if _drink_left > 0.0 else 1.0),delta)
 
 func _process(delta:float) -> void:
+	_update_wall_stream(delta)
 	if _drink_visual_left > 0.0:
 		_drink_visual_left -= delta
 		if _drink_visual_left <= 0.0: _finish_drink_visual()
@@ -603,6 +607,7 @@ func begin_wall_entry(face:Vector2,normal:Vector2,motion:Vector2) -> bool:
 	if multiplayer.has_multiplayer_peer() and not multiplayer.get_peers().is_empty(): _wall_clip_state.rpc(true,face,n)
 	_set_leash_active(false)
 	wt_sound(&"trader_disappeared")
+	wt_sound(&"stone_break",0.0,face) # at the contact, together with the crossing crumbs
 	return true
 
 func _begin_phase(phase:int,from:Vector2,to:Vector2,duration:float) -> void:
@@ -695,7 +700,6 @@ func _enter_hidden() -> void:
 	var face:Vector2 = wall_face_point(entry_slot)
 	_wall_visual(false,face,_slot_normal(entry_slot),global_position)
 	if multiplayer.has_multiplayer_peer() and not multiplayer.get_peers().is_empty(): _wall_visual.rpc(false,face,_slot_normal(entry_slot),global_position)
-	wt_sound(&"stone_break",0.0,face)
 
 func choose_exit_slot() -> Dictionary:
 	var slots:Array[Dictionary] = WALL.wall_slots(get_tree().current_scene,mc_arena_rect())
@@ -861,6 +865,38 @@ func finish_wall_phase_now() -> void:
 		if multiplayer.has_multiplayer_peer() and not multiplayer.get_peers().is_empty(): _wall_visual.rpc(true,face,_slot_normal(exit_slot),target)
 	_finish_wall()
 
+## Wall crumbs (user rule 2026-09-29): streamed on every peer for exactly as long as his drawn
+## body straddles the clipped wall surface, i.e. while he walks in and while he walks out (not when
+## he is already fully hidden / fully out). Crumbs are cut from that wall tile, spawn along the
+## crossing line across his body, fly out of the wall and fall under gravity.
+func _update_wall_stream(delta:float) -> void:
+	var crossing:bool = false
+	var normal:Vector2 = Vector2.UP
+	var side:float = 0.0
+	if visible and health > 0 and _wall_clip != null and is_instance_valid(_wall_clip) and bool(_wall_clip.get(&"active")) and not Game.now_stop_state:
+		normal = (_wall_clip.get(&"normal") as Vector2).normalized()
+		side = float(_wall_clip.call(&"side_of",global_position))
+		crossing = side + body_reach(normal) > 0.5 and side - body_reach(-normal) < -0.5
+	if not crossing:
+		if _wall_stream != null:
+			if is_instance_valid(_wall_stream): _wall_stream.call(&"release")
+			_wall_stream = null
+		return
+	var surface:Vector2 = global_position - normal*side
+	if _wall_stream == null or not is_instance_valid(_wall_stream):
+		_wall_stream = CRUMBS.stream(self,CRUMBS.wall_source(self,surface,normal),false) # dark wall tiles: unshaded so they read
+		_wall_stream_acc = 1.0
+		wall_crumb_bursts += 1
+		if _wall_stream == null: return
+	var tangent:Vector2 = normal.orthogonal()
+	var lo:float = -body_reach(-tangent)*0.75
+	var hi:float = body_reach(tangent)*0.75
+	_wall_stream_acc += maxf(wall_crumb_rate,0.0)*delta
+	while _wall_stream_acc >= 1.0:
+		_wall_stream_acc -= 1.0
+		var point:Vector2 = surface + tangent*randf_range(lo,hi) + normal*randf_range(0.0,1.5)
+		_wall_stream.call(&"add",point,normal,85.0,randf_range(2.2,3.2),randf_range(0.55,0.95),1.1)
+
 func _wall_fade(alpha:float) -> void:
 	if image != null and is_instance_valid(image):
 		var c:Color = image.self_modulate
@@ -873,11 +909,7 @@ func _wall_fade(alpha:float) -> void:
 func _wall_visual(show_unit:bool,point:Vector2,normal:Vector2,at:Vector2) -> void:
 	if not is_multiplayer_authority(): global_position = at
 	visible = show_unit
-	# The wall's own block particles: crumbs cut from the wall tile's texture (vanilla terrain particles).
-	var n:Vector2 = normal if normal != Vector2.ZERO else Vector2.UP
-	var source:Dictionary = CRUMBS.wall_source(self,point,n)
-	CRUMBS.spawn(self,point,source,28,n,75.0,3.0,0.75,1.25,false,4.0) # dark wall tiles: unshaded so they read
-	wall_crumb_bursts += 1
+	# The wall crumbs are streamed by _update_wall_stream while the body crosses the surface.
 
 # Hidden inside the wall: no damage, knockback or hit contacts reach him.
 func is_hidden_in_wall() -> bool: return wall_phase == Phase.HIDDEN

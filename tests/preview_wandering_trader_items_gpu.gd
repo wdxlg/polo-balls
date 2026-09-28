@@ -62,6 +62,8 @@ func run() -> void:
 	camera.global_position=trader.wall_face_point(trader.entry_slot);camera.zoom=zoom0*2.4
 	await seconds(0.12)
 	await grab("i11_entry_crumbs")
+	await seconds(0.2)
+	await grab("i11b_entry_crumbs_mid")
 	while trader.wall_phase!=3 and t<9.0:
 		await physics_frame;t+=1.0/60.0
 	camera.global_position=trader.wall_face_point(trader.exit_slot)
@@ -152,7 +154,15 @@ func run() -> void:
 	trader._throw(CATALOG.SLIME_BALL,null,Vector2(rect.position.x-60.0,trader.global_position.y),0.5)
 	await seconds(0.2)
 	await grab("i25_slime_wall")
+	await seconds(0.8)
+	camera.zoom=zoom0*2.2
+	trader._throw(CATALOG.SLIME_BALL,null,trader.hand_point()+Vector2(60,10),0.6)
+	await seconds(0.22)
+	await grab("i25b_slime_arc_rise")
+	await seconds(0.22)
+	await grab("i25c_slime_arc_fall")
 	await seconds(0.5)
+	camera.zoom=zoom0*1.4
 	# --- hay -------------------------------------------------------------------------------------------
 	var llama:Node2D=herd[1]
 	llama.global_position=trader.global_position+Vector2(60,10)
