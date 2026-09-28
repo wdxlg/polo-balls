@@ -16,7 +16,8 @@ func count(image:Image,rect:Rect2i,test:Callable) -> int:
 
 func red(c:Color) -> bool: return c.r>0.55 and c.g<0.3 and c.b<0.3
 func opaque(c:Color) -> bool: return true
-func violet(c:Color) -> bool: return c.b>0.45 and c.b>c.g+0.12 and c.r>c.g
+# Native soul frames: brown soul-sand face or cyan wisp.
+func violet(c:Color) -> bool: return (c.r>0.28 and c.r>c.g+0.04 and c.g>c.b and c.r<0.8) or (c.g>0.55 and c.b>0.55 and c.r<0.5)
 
 func run() -> void:
 	create_timer(60.0,true,false,true).timeout.connect(func():print("HAOCHEN_FACE_TIMEOUT");quit(2))
@@ -76,7 +77,7 @@ func run() -> void:
 	linked.save_png("user://haochen_copy_link_gpu.png")
 	var middle:int=count(linked,Rect2i(95,60,90,52),violet)
 	print("HAOCHEN_LINK middle_violet=",middle)
-	check(middle>20,"native portal particles are visible between the copied character and Haochen")
+	check(middle>20,"native soul particles are visible between the copied character and Haochen")
 	print("HAOCHEN_FACE_DIR ",ProjectSettings.globalize_path("user://"))
 	world.queue_free()
 	await process_frame

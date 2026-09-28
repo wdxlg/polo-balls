@@ -86,7 +86,7 @@ func run() -> void:
 	request.position=Vector2(125,110);request.remaining=10.0;request.cast_duration=10.0
 	layer.add_child(request);request.set_physics_process(false)
 	await process_frame;await process_frame
-	check(get_nodes_in_group("MCHaochenCopyParticle").size()>0,"copy cast instantiates the existing Minecraft particle implementation")
+	check(get_nodes_in_group("MCHaochenCopyParticle").size()>0 and get_nodes_in_group("MCHaochenBurstParticle").size()>=10,"copy cast instantiates native soul gathering plus the full-meter burst")
 	# Native generic_0 starts transparent/small; inspect the developed animation,
 	# not only the first two frames before its original atlas becomes visible.
 	await create_timer(0.24,true,false,true).timeout

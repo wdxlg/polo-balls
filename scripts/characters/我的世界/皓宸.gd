@@ -6,9 +6,12 @@ const COPY_TOOLS = preload("res://scripts/characters/投稿角色工具.gd")
 const CLASSIFY = preload("res://classes/combat_classification.gd")
 const AUDIO = preload("res://scripts/characters/我的世界/haochen/audio.gd")
 const STREAM = preload("res://scripts/effects/我的世界/character_copy_request.gd")
-const CHARGE_PARTICLE_SIZE:float = 3.2
-const CHARGE_STREAM_INTERVAL:float = 0.05
-const CHARGE_STREAM_PER_SOURCE:int = 3
+const SOUL = preload("res://scripts/effects/我的世界/灵魂粒子.gd")
+const CHARGE_SOUL_WIDTH:float = 8.0
+const CHARGE_STREAM_INTERVAL:float = 0.12
+const CHARGE_STREAM_PER_SOURCE:int = 1
+const AURA_INTERVAL:float = 0.15
+const AURA_SOUL_WIDTH:float = 7.0
 const CHARGE_STREAM_MAX_SOURCES:int = 4
 # User-provided Minecraft skins: exact head front + hat layer, 16x nearest (no new pixels).
 const FACE_NORMAL:Texture2D = preload("res://Images/characters/我的世界/皓宸/皓宸.png")
@@ -52,6 +55,7 @@ var _step_left:float = 0.15
 var _previous_audio_position:Vector2
 var _audio_sample_valid:bool = false
 var _drain_left:float = 0.0
+var _aura_left:float = 0.0
 var _drain_rng := RandomNumberGenerator.new() # visual-only; never touches battle RNG
 
 func _ready() -> void:
@@ -85,10 +89,15 @@ func _process(delta:float) -> void:
 	queue_redraw()
 	_step_charge_stream(delta)
 
-## Visual only, on every peer from replicated positions/phase: native portal
-## particles flow from each enemy currently feeding the meter into Haochen.
+## Visual only, on every peer from replicated positions/phase: native soul
+## particles flow from each enemy feeding the meter into Haochen, and souls
+## hover up around Haochen for as long as he is charging.
 func _step_charge_stream(delta:float) -> void:
 	if charge_phase!=Phase.CHARGING or _source_dead or health<=0 or not is_combat_runtime_active(): return
+	_aura_left -= delta
+	if _aura_left<=0.0:
+		_aura_left = AURA_INTERVAL
+		_emit_aura_soul()
 	_drain_left -= delta
 	if _drain_left>0.0: return
 	_drain_left = CHARGE_STREAM_INTERVAL
@@ -97,7 +106,18 @@ func _step_charge_stream(delta:float) -> void:
 		if fed>=CHARGE_STREAM_MAX_SOURCES: break
 		if not _valid_energy_source(raw) or global_position.distance_squared_to(raw.global_position)>energy_radius*energy_radius: continue
 		fed += 1
-		STREAM.emit_stream(get_parent(),_drain_rng,raw.global_position,global_position,CHARGE_STREAM_PER_SOURCE,CHARGE_PARTICLE_SIZE,&"MCHaochenChargeParticle",&"haochen_stream_owner",get_instance_id(),0.5)
+		STREAM.emit_stream(get_parent(),_drain_rng,raw.global_position,global_position,CHARGE_STREAM_PER_SOURCE,CHARGE_SOUL_WIDTH,&"MCHaochenChargeParticle",&"haochen_stream_owner",get_instance_id(),0.3,self)
+
+func _emit_aura_soul() -> void:
+	var parent:Node = get_parent()
+	if parent==null or not parent.is_inside_tree() or SOUL.room(get_tree())<=0: return
+	var box:Vector2 = collision_shape_2d.shape.get_rect().size*collision_shape_2d.global_scale.abs() if collision_shape_2d!=null and collision_shape_2d.shape!=null else Vector2(18,17)
+	var point:Vector2 = global_position+Vector2(_drain_rng.randf_range(-0.6,0.6)*box.x,_drain_rng.randf_range(-0.2,0.5)*box.y)
+	var soul:Node2D = SOUL.new()
+	parent.add_child(soul)
+	soul.setup(point,Vector2(_drain_rng.randf_range(-3.0,3.0),-4.0),0.9,AURA_SOUL_WIDTH,10.0)
+	soul.add_to_group("MCHaochenAuraParticle")
+	soul.set_meta("haochen_stream_owner",get_instance_id())
 
 func _draw() -> void:
 	if _source_dead or health<=0: return

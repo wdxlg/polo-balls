@@ -1,0 +1,81 @@
+{
+  "asset": "Minecraft Java native `soul` particle (particles/soul.json -> soul_0..soul_10)",
+  "source": "Mojang official Minecraft Java Edition 1.21.11 client JAR",
+  "client_url": "https://piston-data.mojang.com/v1/objects/ba2df812c2d12e0219c489c4cd9a5e1f0760f5bd/client.jar",
+  "client_sha1": "ba2df812c2d12e0219c489c4cd9a5e1f0760f5bd",
+  "particle_definition": {
+    "path": "assets/minecraft/particles/soul.json",
+    "sha1": "e3b6966c7c86f9dca4d5cfaaae4c8f3c503cdacf"
+  },
+  "processing": "Byte-for-byte copies of assets/minecraft/textures/particle/soul_N.png; no pixels changed. Played in native order 0..10 by particle age by scripts/effects/我的世界/灵魂粒子.gd.",
+  "license": "Minecraft assets are subject to the Mojang EULA / usage guidelines; not claimed as free redistribution.",
+  "files": {
+    "soul_0.png": {
+      "jar_path": "assets/minecraft/textures/particle/soul_0.png",
+      "size": 136,
+      "sha1": "d6a458105c7cfd4cce473d44ae34bf67c1f2188f",
+      "sha256": "f45a0d1300175e07f63fb88154ef8af858b5ffc3543649e8f7ff1ef0810eb9ef"
+    },
+    "soul_1.png": {
+      "jar_path": "assets/minecraft/textures/particle/soul_1.png",
+      "size": 154,
+      "sha1": "44ab16cde11bf1e27ad18508dbad5e9d86b1425d",
+      "sha256": "15a1451fe915b2dc100212faabddb89a3641539b67e9ef38eaf0ae671688f1c0"
+    },
+    "soul_2.png": {
+      "jar_path": "assets/minecraft/textures/particle/soul_2.png",
+      "size": 144,
+      "sha1": "b730a638e8537d2b78ba4ddd68fadb3cc5caa75a",
+      "sha256": "32467b6c3e5ba7a94f276dfca4fe83e54ff6068ca403d94ed4444ab44db92925"
+    },
+    "soul_3.png": {
+      "jar_path": "assets/minecraft/textures/particle/soul_3.png",
+      "size": 143,
+      "sha1": "a4443e050872308841db766f9532be9e3b4bec9b",
+      "sha256": "1c9b4caf8afb54fdbfec8e134203500560752880830dd68fd211eecb3da703a8"
+    },
+    "soul_4.png": {
+      "jar_path": "assets/minecraft/textures/particle/soul_4.png",
+      "size": 153,
+      "sha1": "911cc5cb50bf6e609ef1ca2c7e3a6294a7bcbb39",
+      "sha256": "9db6c6d4f7459d95a4e20455e834df7afdb25e870c35af0e954f02668b003890"
+    },
+    "soul_5.png": {
+      "jar_path": "assets/minecraft/textures/particle/soul_5.png",
+      "size": 146,
+      "sha1": "b1bac584e7c141d123e672c60c6120ad512d733a",
+      "sha256": "ea614924e7a7a6e9a2893d47959dc2922b7a80d2c9e5f1586157d2e48f6ff2b0"
+    },
+    "soul_6.png": {
+      "jar_path": "assets/minecraft/textures/particle/soul_6.png",
+      "size": 164,
+      "sha1": "3cac159efa163441fe18b90ebaa2c274f2bbdc59",
+      "sha256": "690cf7d127beb7770d50914a56db53a571c99ea4405ddfa98fa92192b82435a4"
+    },
+    "soul_7.png": {
+      "jar_path": "assets/minecraft/textures/particle/soul_7.png",
+      "size": 160,
+      "sha1": "04bf4ec859a0f25b2483a0fffefce1e2cc57aa88",
+      "sha256": "3cf425b0ae567b2424dc14e3ec48a63eea1ab875182b74c2b398f1ff5da26bdd"
+    },
+    "soul_8.png": {
+      "jar_path": "assets/minecraft/textures/particle/soul_8.png",
+      "size": 135,
+      "sha1": "5ea2eb91b12a1fc1075b709f9b1b77e3c2917f02",
+      "sha256": "2f0ee0e18e9128cbb124a0f11cca9f6845f75d970fb6aaa4b4ee946c9724ac99"
+    },
+    "soul_9.png": {
+      "jar_path": "assets/minecraft/textures/particle/soul_9.png",
+      "size": 123,
+      "sha1": "4eb04d182b59d541f3a43ce7db79c2cc71926fda",
+      "sha256": "f8480e9fbce6dcd2c07b98f2b7b9dc319ed07be91caa80ad675d1f25ae1c356f"
+    },
+    "soul_10.png": {
+      "jar_path": "assets/minecraft/textures/particle/soul_10.png",
+      "size": 98,
+      "sha1": "2b6fff8c3b437daf12f5173e4d81d71a14e6c268",
+      "sha256": "ffa38eca0f815397db15b6599e4cc181ea2120e59eb040517a1f189e03ba77e1"
+    }
+  },
+  "first_used_by": "皓宸 (2026-09-28)"
+}

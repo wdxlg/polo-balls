@@ -4,7 +4,7 @@
     "normal": "res://Images/characters/我的世界/皓宸/皓宸.png",
     "laughing": "res://Images/characters/我的世界/皓宸/皓宸笑.png",
     "source_skins": ["Images/characters/我的世界/皓宸/skins/雷古勒斯.png", "Images/characters/我的世界/皓宸/skins/雷古勒斯笑.png"],
-    "provenance": "2026-09-28: two 64x64 Minecraft skins supplied by the user (雷古勒斯 / 雷古勒斯笑). Only the complete head front is used: base face (8,8)-(16,16) alpha-composited with the hat layer (40,8)-(48,16), then an exact 16x nearest-neighbour upscale to 128x128 (no new/redrawn pixels). Laughing face is shown while charging/copying. Source skins kept unchanged in skins/ (.gdignore, not imported).",
+    "provenance": "2026-09-28 (rev 2): two 64x64 Minecraft skins supplied by the user (雷古勒斯 / 雷古勒斯笑). Complete head FRONT as vanilla 3D rendering shows it: base face (8,8)-(16,16) x16 nearest = 128px, outer hat layer (40,8)-(48,16) at vanilla 9/8 overlay scale x18 nearest = 144px, centred on top, so bangs/side hair protrude beyond the face (rev 1 flattened the overlay 1:1 and lost those parts). Integer nearest-neighbour only, no new pixels; canvas 144x144. Laughing face is shown while charging/copying. Source skins kept unchanged in skins/ (.gdignore, not imported).",
     "license": "User-provided project asset; no claim of free redistribution.",
     "replaces": "Temporary Minecraft Evoker portrait (no longer referenced by Haochen)."
   },
@@ -29,12 +29,12 @@
   "minecraft_eula": "https://www.minecraft.net/en-us/eula",
   "verified_files": {
     "Images/characters/我的世界/皓宸/皓宸.png": {
-      "size": 583,
-      "sha256": "da366bc6b06756b5110fbc5f9dda9fd679a02ad326818e92ee4e1365cc62d019"
+      "size": 781,
+      "sha256": "38e03654f9bfb4da474a43ddf538b2e91f6a96e3996fe56b390fd9d1a871a711"
     },
     "Images/characters/我的世界/皓宸/皓宸笑.png": {
-      "size": 587,
-      "sha256": "4bfeab8020eb6d1a14c3f08f78796331131418294f94851771cc23f903a49497"
+      "size": 793,
+      "sha256": "c492121a9b7da96ea2b1ac5040fc7638894550a4f3f8bdcb2a1287f62aec68b9"
     },
     "Images/characters/我的世界/皓宸/skins/雷古勒斯.png": {
       "size": 4254,

@@ -96,6 +96,15 @@ func run() -> void:
 	check(is_equal_approx(hero.charge_energy,60.0) and is_equal_approx(hero.contributions[donor_a.get_instance_id()].energy,60.0),"first donor supplies60 energy over three seconds")
 	check(hero.movement_ratio==hero.minimum_move_ratio and donor_a.health==hp,"charging slows only Haochen down to a positive floor and does not damage donors")
 	check(hero.image.texture==hero.FACE_LAUGH and hero.FACE_LAUGH.resource_path=="res://Images/characters/我的世界/皓宸/皓宸笑.png","charging shows the user's laughing head front")
+	hero._aura_left = 0.0;hero._drain_left = 0.0
+	hero._step_charge_stream(0.01)
+	var aura:int = 0;var drain:int = 0
+	var soul_script:Script = load("res://scripts/effects/我的世界/灵魂粒子.gd")
+	for raw:Node in get_nodes_in_group("MCHaochenAuraParticle"):
+		if int(raw.get_meta("haochen_stream_owner",0))==hero.get_instance_id() and raw.get_script()==soul_script: aura += 1
+	for raw:Node in get_nodes_in_group("MCHaochenChargeParticle"):
+		if int(raw.get_meta("haochen_stream_owner",0))==hero.get_instance_id() and raw.get_script()==soul_script: drain += 1
+	check(aura>=1 and drain>=1,"charging emits native soul particles around Haochen and from the feeding enemy")
 	donor_a.global_position = origin+Vector2(500,0)
 	hero._scan_left = 0.0
 	hero._step_energy(1.0)
@@ -123,8 +132,8 @@ func run() -> void:
 	for p:Node in link_particles:
 		var start:Vector2 = p._start
 		var nearest:Vector2 = Geometry2D.get_closest_point_to_segment(start,request.link_from,request.link_to)
-		on_segment = on_segment and start.distance_to(nearest)<=6.0 and (start+p._motion).distance_to(request.link_to)<=4.5 and p.get_script()==load("res://scripts/effects/我的世界/末影粒子.gd")
-	check(on_segment,"native portal particles spawn between them and flow into Haochen")
+		on_segment = on_segment and start.distance_to(nearest)<=6.0 and (start+p._motion).distance_to(request.link_to)<=4.5 and p.get_script()==load("res://scripts/effects/我的世界/灵魂粒子.gd")
+	check(on_segment,"native soul particles spawn between them and flow into Haochen")
 	var cast_serial:int = hero._sound_serial
 	check(not (hero._sound_tickets.get(&"copy_start",{}) as Dictionary).is_empty() and hero.AUDIO.EVENTS[&"copy_start"][0].resource_path=="res://audio/characters/唤魔者/evoker.prepare_summon_1.ogg","confirmed copy cast plays the original Evoker prepare-summon clip")
 	hero._step_energy(0.2)
@@ -144,6 +153,10 @@ func run() -> void:
 	check(hero.charge_energy==0.0 and hero.contributions.is_empty() and hero.completed_copies==1 and world._battle_spawn_tickets.is_empty(),"successful copy resets only this cycle and releases the spawn ticket")
 	check(hero.image.texture==hero.FACE_NORMAL,"face returns to normal after the copy completes")
 	check(get_nodes_in_group("MCHaochenCopyParticle").size()>0,"real copy process emits existing Minecraft particle instances")
+	var souls:Script = load("res://scripts/effects/我的世界/灵魂粒子.gd")
+	var soul_frames_ok:bool = souls.FRAMES.size()==11
+	for i:int in range(souls.FRAMES.size()):soul_frames_ok = soul_frames_ok and souls.FRAMES[i].resource_path=="res://Images/effects/我的世界/灵魂粒子/soul_%d.png"%i
+	check(soul_frames_ok,"soul particle plays the 11 native soul_0..soul_10 frames in order")
 	for i:int in range(3):
 		hero._scan_left = 0.0
 		hero._step_energy(5.0)

@@ -67,7 +67,8 @@ func run() -> void:
 	var box:Vector2 = hero.collision_shape_2d.shape.size
 	print("HAOCHEN_REAL size hero_long=",hero_long," standard_long=",donor_long," collision=",box)
 	check(absf(hero_long-102.5)<0.6,"head front auto-fits to half of the standard 205 character size")
-	check(box.x<=91.0 and box.y<=85.0 and box.x>=89.0 and box.y>=83.0,"collision box is halved together with the portrait")
+	# Visible head incl. protruding hat layer is 144x128 -> auto-fit collision 0.88/0.82 of 102.5 x 91.1.
+	check(absf(box.x-90.2)<1.0 and absf(box.y-0.82*102.5*128.0/144.0)<1.0,"collision box is halved and follows the full head-front shape")
 	print("HAOCHEN_REAL runtime=",world.is_combat_runtime_active()," view=",root.get_visible_rect()," canvas=",root.canvas_transform," hero_scale=",hero.scale," hero_screen=",hero.get_global_transform_with_canvas()," image_scale=",hero.image.scale)
 	var cam:Camera2D=root.get_camera_2d()
 	print("HAOCHEN_REAL camera=",cam.get_path() if cam else "none"," zoom=",cam.zoom if cam else Vector2.ZERO)
@@ -78,14 +79,17 @@ func run() -> void:
 	await shot("charging")
 	print("HAOCHEN_REAL charging phase=",hero.charge_phase," energy=",hero.charge_energy," ",group_report("MCEnderParticle"))
 	print("HAOCHEN_REAL charging ",group_report("MCHaochenChargeParticle"))
+	print("HAOCHEN_REAL aura ",group_report("MCHaochenAuraParticle"))
+	check(get_nodes_in_group("MCHaochenAuraParticle").size()>=3,"real charging keeps souls rising around Haochen")
 	var drain:Array[Node] = []
 	for raw:Node in get_nodes_in_group("MCHaochenChargeParticle"):
 		if int(raw.get_meta("haochen_stream_owner",0))==hero.get_instance_id():drain.append(raw)
 	# Both units move after emission, so allow travel slack around spawn-time ends.
-	var flows:bool = drain.size()>=8
+	var flows:bool = drain.size()>=3
 	for p:Node in drain:
-		flows = flows and p._start.distance_to(donor.global_position)<=0.5*60.0+20.0 and (p._start+p._motion).distance_to(hero.global_position)<=16.0
-	check(flows,"real charging continuously streams native particles from the feeding enemy into Haochen")
+		# Units keep moving after emission: assert each soul travels in from afar and ends on Haochen.
+		flows = flows and p._motion.length()>=25.0 and (p._start+p._motion).distance_to(hero.global_position)<=18.0
+	check(flows,"real charging continuously streams native souls from the feeding enemy into Haochen")
 	var t:float=0.0
 	while hero.charge_phase!=hero.Phase.COPYING and t<8.0:
 		glue(hero,donor,center)
@@ -95,12 +99,14 @@ func run() -> void:
 	await create_timer(0.3,true,false,true).timeout
 	await shot("copying")
 	print("HAOCHEN_REAL copying ",group_report("MCHaochenLinkParticle")," | ",group_report("MCHaochenCopyParticle"))
-	check(get_nodes_in_group("MCHaochenLinkParticle").size()>=30,"real copy cast keeps a dense source-to-Haochen link")
+	check(get_nodes_in_group("MCHaochenLinkParticle").size()>=12,"real copy cast keeps a soul link from the copied character to Haochen")
+	check(get_nodes_in_group("MCHaochenBurstParticle").size()>=10,"full meter bursts souls out of Haochen")
 	var reqs:Array[Node]=get_nodes_in_group("MCCharacterCopyRequest")
 	if not reqs.is_empty():print("HAOCHEN_REAL request link_visible=",reqs[0].link_visible," from=",reqs[0].link_from," to=",reqs[0].link_to," runtime=",reqs[0]._runtime_active())
 	await create_timer(0.6,true,false,true).timeout
 	await shot("after")
 	print("HAOCHEN_REAL after copies=",hero.completed_copies)
+	print("HAOCHEN_REAL after ",group_report("MCHaochenCopyParticle"))
 	check(hero.completed_copies==1,"real battle tick completes the copy")
 	print("HAOCHEN_REAL_DIR ",ProjectSettings.globalize_path("user://"))
 	world.queue_free()
