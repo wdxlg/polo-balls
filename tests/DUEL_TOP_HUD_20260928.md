@@ -76,3 +76,10 @@
 - 成就框：官方 1.21.4 `gui/sprites/toast/advancement.png`（原样，`Images/UI/minecraft_hud/toast_advancement.png`，来源见 `SOURCE.json`）×5 = 800×160；胜者头像放原版 16×16 图标槽 (8,8)；标题色为原版挑战类 0xFF88FF，正文白色；中文“挑战已完成！”/“xxx 获得了胜利”（用户原文），英文用原版 `advancements.toast.challenge` = “Challenge Complete!”/“xxx won!”。未加原版挑战完成音效（用户未要求）。
 - 验证：`test_duel_top_hud` 66/66（新增：胜者唯一时启动、公共电影镜头目标=胜者且 slow=1、ease-out 曲线、前 1/4 时间走完大半位移、面板完全出屏、成就框位于 VS 标题之上且居中、GPU 取原版边框色、中英镜像各自语言、重置结束动画并释放镜头）。真实流程诊断（普通模式、`create_char` 放两人、真实 `take_damage` 击杀）：胜利铃后 0.3 秒面板已上移 368，镜头 zoom 4.89→7.59、中心向胜者移动，time_scale=1。录像截图人工确认中英成就框。预览：`tests/duel_top_hud_toast_zh_20260928.png`。
 - 截图注意：玩家根视口读回的是线性色值（HDR 2D），直接看 PNG 会偏暗；录制视口为 sRGB。
+
+### 纠正（2026-09-28）：胜利推进太突兀、太快
+
+- 用户反馈：胜利后镜头缩进太突兀，要先快后慢，速度也太快。
+- 原因（真实对局逐帧实测）：公共电影镜头进入时长 0.34 秒 quart ease-out，zoom 4.89→7.58 约 0.2 秒完成，半程只用约 70 毫秒，单帧 zoom 跳变最大 0.254。
+- 修正：胜利推进时 HUD 把 World 导出的 `cinematic_focus_enter_duration` 临时设为 `WINNER_FOCUS_ENTER_SECONDS = 1.6` 秒再请求，请求后立即恢复（时长只在建 tween 时读取），曲线仍是 World 的 quart ease-out（先快后慢，真实时间），其他电影镜头调用方仍为 0.34 秒。未改动 `world.gd`（该文件有他人未提交修改）。
+- 验证：`test_duel_top_hud` 68/68（新增：公共时长请求后恢复为 0.34；0.33 秒时推进权重 0.61，与 1.6 秒 ease-out 理论 0.60 一致，旧版此时约 0.99）。真实对局逐帧：推进约 1.6 秒完成，单帧 zoom 变化最大约 0.04，持续减速停稳。

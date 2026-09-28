@@ -54,6 +54,9 @@ const OUTRO_TOAST_DELAY:float = 0.40
 const OUTRO_TOAST_TIME:float = 0.60
 const WINNER_FOCUS_SLOW:float = 1.0 # 不慢放
 const WINNER_FOCUS_ZOOM:float = -1.0 # 用 World 默认电影镜头放大倍率
+## 胜利推进时长（真实秒）。World 公共电影镜头默认 0.34 秒，胜利结算太突兀；仅本次请求临时改用
+## 1.6 秒，曲线仍是 World 的 quart ease-out（先快后慢），请求后立即恢复，其他调用方不受影响。
+const WINNER_FOCUS_ENTER_SECONDS:float = 1.6
 # 护盾心：原版红心三色 → 原版 armor_full 三色（主色/高光/暗部）逐像素换色，不新画。
 const SHIELD_PALETTE:Dictionary = {
 	"ff1313":Color("b8b9c4"),
@@ -412,7 +415,11 @@ func _update_outro(delta:float) -> void:
 			winner = raw
 			break
 	if winner != null and world.has_method("request_cinematic_focus"):
+		var has_duration:bool = "cinematic_focus_enter_duration" in world
+		var previous_duration:Variant = world.get("cinematic_focus_enter_duration") if has_duration else null
+		if has_duration: world.set("cinematic_focus_enter_duration",WINNER_FOCUS_ENTER_SECONDS)
 		world.call("request_cinematic_focus",self,winner,WINNER_FOCUS_SLOW,WINNER_FOCUS_ZOOM)
+		if has_duration: world.set("cinematic_focus_enter_duration",previous_duration)
 		_focus_requested = true
 
 

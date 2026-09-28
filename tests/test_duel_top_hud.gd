@@ -304,6 +304,12 @@ func run() -> void:
 	var focus_request:Variant = world._cinematic_focus_requests.get(focus_key,null)
 	check(focus_request is Dictionary and (focus_request.target as WeakRef).get_ref() == blue and is_equal_approx(float(focus_request.slow),1.0),"camera pushes toward the winner through the shared cinematic focus (no slow motion)")
 	check(hud().ease_out(0.25) > 0.6 and is_equal_approx(hud().ease_out(1.0),1.0) and hud().ease_out(0.0) == 0.0,"animation curve is fast-then-slow (ease-out)")
+	# 胜利推进：1.6 秒 quart ease-out（真实时间），World 公共时长立即恢复。
+	var push_t:float = hud().outro_elapsed/hud().WINNER_FOCUS_ENTER_SECONDS
+	var push_w:float = float(world._cinematic_focus_weight)
+	print("DUEL_HUD_METRIC push elapsed=",hud().outro_elapsed," weight=",push_w," expected=",hud().ease_out(push_t))
+	check(is_equal_approx(float(world.cinematic_focus_enter_duration),0.34),"shared cinematic enter duration is restored after the victory request")
+	check(push_t < 0.6 and push_w < 0.97 and absf(push_w-hud().ease_out(push_t)) < 0.1,"victory push-in is slow: follows the 1.6 s ease-out, not the 0.34 s default")
 	var saved_elapsed:float = hud().outro_elapsed
 	hud().outro_elapsed = hud().OUTRO_HUD_TIME * 0.25
 	var shift_quarter:float = hud()._outro_panel_shift(hud())
