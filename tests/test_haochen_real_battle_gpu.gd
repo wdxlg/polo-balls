@@ -108,6 +108,17 @@ func run() -> void:
 	print("HAOCHEN_REAL after copies=",hero.completed_copies)
 	print("HAOCHEN_REAL after ",group_report("MCHaochenCopyParticle"))
 	check(hero.completed_copies==1,"real battle tick completes the copy")
+	# Task 8: the chosen "soul rise" spawn effect is really on screen in the battle view.
+	var rising:int=0
+	for s:Node in get_nodes_in_group("MCHaochenSpawnRiseParticle"):
+		if s.visible:rising+=1
+	check(rising>=3,"real battle: cyan souls rise from the new copy's body (%d visible)" % rising)
+	var copy_voice:bool=false
+	for node:Node in get_nodes_in_group("MCHaochenAudio"):
+		if node.get_meta("haochen_event",&"")==&"copy_complete" and str(node.stream.resource_path).get_file().begins_with("illusioner.mirror_move_"):copy_voice=true
+	check(copy_voice,"real battle: the copy appears with the illusioner mirror_move sound")
+	await create_timer(0.35,true,false,true).timeout
+	await shot("rise")
 	print("HAOCHEN_REAL_DIR ",ProjectSettings.globalize_path("user://"))
 	world.queue_free()
 	await create_timer(0.3,true,false,true).timeout

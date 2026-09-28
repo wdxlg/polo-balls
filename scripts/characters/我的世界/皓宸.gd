@@ -13,6 +13,11 @@ const CHARGE_STREAM_PER_SOURCE:int = 1
 const AURA_INTERVAL:float = 0.15
 const AURA_SOUL_WIDTH:float = 7.0
 const CHARGE_STREAM_MAX_SOURCES:int = 4
+# Energy-gain sound (user choice, task 8): one random native soul_escape "whoosh" per
+# absorbed batch of souls, throttled; pitch varies like vanilla. Local on every peer,
+# driven by the same replicated state as the drain particles (no extra RPC).
+const CHARGE_SOUND_INTERVAL:float = 0.22 # checked on drain ticks (0.12 s) -> one whoosh every 0.24 s
+const CHARGE_SOUND_PITCH:Vector2 = Vector2(0.85,1.15)
 # User-provided Minecraft skins: exact head front + hat layer, 16x nearest (no new pixels).
 const FACE_NORMAL:Texture2D = preload("res://Images/characters/我的世界/皓宸/皓宸.png")
 const FACE_LAUGH:Texture2D = preload("res://Images/characters/我的世界/皓宸/皓宸笑.png")
@@ -56,6 +61,7 @@ var _previous_audio_position:Vector2
 var _audio_sample_valid:bool = false
 var _drain_left:float = 0.0
 var _aura_left:float = 0.0
+var _charge_sound_left:float = 0.0
 var _drain_rng := RandomNumberGenerator.new() # visual-only; never touches battle RNG
 
 func _ready() -> void:
@@ -74,6 +80,80 @@ func _ready() -> void:
 	_previous_audio_position = global_position
 	_refresh_face()
 	queue_redraw()
+
+## Friendly-fire guard: nothing descended from Haochen (his copies and their
+## projectiles, summons, AOE, bleeds) may ever hurt him, with or without the global
+## Have_Team_Damage setting. The full-roster sweep
+## (tests/test_haochen_copy_friendly_sweep.gd) showed every copy damage path lands
+## in one of these entries: hitbox contact asks can_receive_hit_contact(), and all
+## spatial/classified/directional/helper damage funnels into receive_positional_damage()
+## (raw-health spatial damage and bleed are their own two entries).
+const OWN_CHAIN_MAX_STEPS:int = 16
+func is_own_summon_chain(source:Variant) -> bool:
+	if not is_instance_valid(source) or not (source is Node) or source == self: return false
+	var scene_root:Node = get_tree().current_scene if is_inside_tree() else null
+	var my_id:int = get_instance_id()
+	var current:Node = source as Node
+	var seen:Dictionary = {}
+	for _i:int in range(OWN_CHAIN_MAX_STEPS):
+		if current == self: return true
+		var id:int = current.get_instance_id()
+		if seen.has(id): return false
+		seen[id] = true
+		# World family identity (world.bind_battle_lifecycle): partners/babies/backup squads
+		# a copy spawns carry Haochen as their family root even without any Master link.
+		var family:Variant = current.get_meta(&"battle_lifecycle_identity",{})
+		if family is Dictionary and int((family as Dictionary).get("root",0)) == my_id: return true
+		var next:Node = null
+		var has_master:bool = "Master" in current
+		if has_master:
+			var master:Variant = current.get("Master")
+			if is_instance_valid(master) and master is Node: next = master as Node
+		# Many projectiles/summons only store Master_name (looked up beside them or in the world).
+		if next == null and "Master_name" in current:
+			var master_name:String = str(current.get("Master_name"))
+			if not master_name.is_empty():
+				for base:Node in [current.get_parent(),scene_root]:
+					if next == null and is_instance_valid(base): next = base.get_node_or_null(NodePath(master_name))
+		if next == null: next = _declared_launcher(current)
+		# Hitbox/Area children of a projectile or effect: climb to their holder.
+		if next == null and not has_master and not ("Master_name" in current): next = current.get_parent()
+		if next == null or next == scene_root: return false
+		current = next
+	return false
+
+## Launcher links used by projectiles that deliberately keep Master empty: Area bolts
+## (_src_ref), neutral MC ghast fireballs (launch_owner_id; a reflected fireball
+## belongs to whoever reflected it, so it is NOT attributed back) and bat cohorts.
+func _declared_launcher(node:Node) -> Node:
+	var ref:Variant = node.get("_src_ref")
+	if ref is WeakRef:
+		var shooter:Variant = (ref as WeakRef).get_ref()
+		if is_instance_valid(shooter) and shooter is Node: return shooter as Node
+	var launcher_id:Variant = node.get("launch_owner_id")
+	if launcher_id is int and int(launcher_id) != 0 and not bool(node.get("reflected")):
+		var launcher:Object = instance_from_id(int(launcher_id))
+		if is_instance_valid(launcher) and launcher is Node: return launcher as Node
+	var cohort:int = int(node.get_meta(&"mc_bat_cohort",0))
+	if cohort != 0 and cohort != node.get_instance_id():
+		var leader:Object = instance_from_id(cohort)
+		if is_instance_valid(leader) and leader is Node: return leader as Node
+	return null
+
+func can_receive_hit_contact(hit:Node,_hurt:Node) -> bool:
+	return not is_own_summon_chain(hit)
+
+func receive_positional_damage(damage:float,impact_position:Vector2,ignore_block:bool = false,source:Node = null) -> bool:
+	if is_own_summon_chain(source): return false
+	return super(damage,impact_position,ignore_block,source)
+
+func _receive_spatial_damage_untyped(damage:float,damage_space:Variant,ignore_block:bool,raw_health:bool) -> bool:
+	if damage_space is Dictionary and is_own_summon_chain((damage_space as Dictionary).get("source",null)): return false
+	return super(damage,damage_space,ignore_block,raw_health)
+
+func receive_internal_status_damage(damage:float,kind:StringName,source:Node = null) -> float:
+	if is_own_summon_chain(source): return 0.0
+	return super(damage,kind,source)
 
 ## Laughs for the whole time the meter is being built or cashed in. Driven by the
 ## replicated charge_phase, so every peer shows the same face without extra RPCs.
@@ -98,6 +178,7 @@ func _step_charge_stream(delta:float) -> void:
 	if _aura_left<=0.0:
 		_aura_left = AURA_INTERVAL
 		_emit_aura_soul()
+	_charge_sound_left -= delta
 	_drain_left -= delta
 	if _drain_left>0.0: return
 	_drain_left = CHARGE_STREAM_INTERVAL
@@ -107,6 +188,9 @@ func _step_charge_stream(delta:float) -> void:
 		if not _valid_energy_source(raw) or global_position.distance_squared_to(raw.global_position)>energy_radius*energy_radius: continue
 		fed += 1
 		STREAM.emit_stream(get_parent(),_drain_rng,raw.global_position,global_position,CHARGE_STREAM_PER_SOURCE,CHARGE_SOUL_WIDTH,&"MCHaochenChargeParticle",&"haochen_stream_owner",get_instance_id(),0.3,self)
+	if fed>0 and _charge_sound_left<=0.0:
+		_charge_sound_left = CHARGE_SOUND_INTERVAL
+		AUDIO.play(self,&"charge_soul",global_position,_drain_rng.randi_range(0,AUDIO.EVENTS[&"charge_soul"].size()-1),_drain_rng.randf_range(CHARGE_SOUND_PITCH.x,CHARGE_SOUND_PITCH.y))
 
 func _emit_aura_soul() -> void:
 	var parent:Node = get_parent()

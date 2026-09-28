@@ -10,7 +10,18 @@ const LINK_SOUL_WIDTH:float = 9.0
 const LINK_INTERVAL:float = 0.05
 const LINK_PER_TICK:int = 2
 const FULL_BURST_COUNT:int = 16
-const SPAWN_BURST_COUNT:int = 18
+# Copy spawn = "灵魂升腾" (user choice 2026-09-28, task 8): cyan-white souls (frames
+# 7..10, the brown soul-sand frames 0..6 skipped: on the grey copy they read as dark
+# blobs in the real battle view) rise from all over the new copy's body,
+# staggered over ~1 s, each starting from the copy's CURRENT body so it follows a
+# copy that already walks away. Replaces the rejected 18-soul outward ring burst.
+const SPAWN_RISE_COUNT:int = 20
+const SPAWN_RISE_SPREAD:float = 1.0
+const SPAWN_RISE_FIRST_FRAME:int = 7
+const SPAWN_RISE_WIDTH:Vector2 = Vector2(22.0,28.0)
+const SPAWN_RISE_HEIGHT:Vector2 = Vector2(50.0,72.0)
+const SPAWN_RISE_LIFE:Vector2 = Vector2(0.85,1.1)
+const SPAWN_RISE_FALLBACK_BOX:Vector2 = Vector2(40.0,40.0)
 @export var template_snapshot:Dictionary = {}
 @export var owner_name:String = ""
 @export var owner_team:String = ""
@@ -87,26 +98,45 @@ func _complete_copy() -> void:
 	var copy:ball = TOOLS.spawn_character_copy(self,template_snapshot,global_position,stat_factor,options)
 	var success:bool = is_instance_valid(copy)
 	_release_ticket()
-	if multiplayer.has_multiplayer_peer(): _finish_visual.rpc(success,AUDIO.variant(&"copy_complete"))
-	else: _finish_visual(success,AUDIO.variant(&"copy_complete"))
+	var copy_name:String = str(copy.name) if success else ""
+	if multiplayer.has_multiplayer_peer(): _finish_visual.rpc(success,AUDIO.variant(&"copy_complete"),copy_name)
+	else: _finish_visual(success,AUDIO.variant(&"copy_complete"),copy_name)
 	if not _reported:
 		_reported = true
 		copy_finished.emit(success,copy)
 
 @rpc("authority","call_local","reliable")
-func _finish_visual(success:bool,audio_variant:int) -> void:
+func _finish_visual(success:bool,audio_variant:int,copy_name:String = "") -> void:
 	if not is_inside_tree() or not _runtime_active() or _finish_visual_played: return
 	_finish_visual_played = true
 	completed = true
 	if success:
-		_emit_particles(SPAWN_BURST_COUNT,true)
+		_emit_spawn_rise(copy_name)
 		AUDIO.play(self,&"copy_complete",global_position,audio_variant)
 
-## Gathering souls converge on the spawn point during the cast; on success they
-## burst out of it as the copy appears.
+## Gathering souls converge on the spawn point during the cast.
 func _emit_particles(count:int,outward:bool) -> void:
 	if outward: emit_ring(get_parent(),_rng,global_position,count,4.0,8.0,false,10.0,10.0,0.9,&"MCHaochenCopyParticle",&"haochen_copy_request",get_instance_id(),26.0)
 	else: emit_ring(get_parent(),_rng,global_position,count,14.0,24.0,true,7.0,0.0,0.6,&"MCHaochenCopyParticle",&"haochen_copy_request",get_instance_id())
+
+## All souls are created now (so the request may free itself) but start staggered;
+## each one looks the copy up by name when it starts, so peers work even if the copy
+## replicates a moment after this RPC. Visual only, per peer.
+func _emit_spawn_rise(copy_name:String) -> int:
+	var parent:Node = get_parent()
+	if parent==null or not parent.is_inside_tree() or parent.is_queued_for_deletion(): return 0
+	var room:int = mini(SPAWN_RISE_COUNT,SOUL.room(get_tree()))
+	for i:int in range(room):
+		var particle:Node2D = SOUL.new()
+		parent.add_child(particle)
+		particle.setup(global_position,Vector2(_rng.randf_range(-5.0,5.0),0.0),_rng.randf_range(SPAWN_RISE_LIFE.x,SPAWN_RISE_LIFE.y),_rng.randf_range(SPAWN_RISE_WIDTH.x,SPAWN_RISE_WIDTH.y),_rng.randf_range(SPAWN_RISE_HEIGHT.x,SPAWN_RISE_HEIGHT.y))
+		particle.from_frame(SPAWN_RISE_FIRST_FRAME)
+		var unit:Vector2 = Vector2(_rng.randf_range(-0.55,0.55),_rng.randf_range(-0.45,0.5))
+		particle.delay_start(SPAWN_RISE_SPREAD*float(i)/float(maxi(room,1))+_rng.randf_range(0.0,0.03),parent,copy_name,unit,SPAWN_RISE_FALLBACK_BOX)
+		particle.add_to_group(&"MCHaochenCopyParticle")
+		particle.add_to_group(&"MCHaochenSpawnRiseParticle")
+		particle.set_meta(&"haochen_copy_request",get_instance_id())
+	return room
 
 func _refresh_link_points() -> void:
 	var owner:Node2D = owner_ref.get_ref() as Node2D if owner_ref != null else null

@@ -11,6 +11,8 @@
 - **满条复制**：复制“本轮”累计贡献最多的人物（例：A 提供 60、B 提供 40 → 复制 A）；平局取最早开始贡献者。施放 0.65 秒，经公共 `begin_battle_spawn / apply_battle_spawn_identity / finish_battle_spawn` 票据生成原场景的**全新实例**（不是染色假人）。成功后清零并重新计分，失败/取消不消耗满条，0.5 秒后重试；已有复制品不被替换、无隐藏数量上限。
 - **复制品**：黑白画风——真实 shader 灰度（`Set_RGB_Color.gdshader` 的 `character_grayscale` 实例参数；无材质的子节点用 `shaders/character_monochrome.gdshader`），不是灰色 modulate；原角色材质不受影响。**除移速外**公共数值减半：Max_health / Damage / Health_Restore / max_block / max_energy 向上取整×0.5，Damage_reduction×0.5，生命/护盾/能量按新上限满额；Speed 不变。攻击/技能冷却保持原值（减半冷却等于加强，不按“数值减半”处理）；技能参数不改。
 - **附属**：Master=皓宸、同队，共用皓宸原 setup 的战斗存续身份；皓宸死亡后已确认的施放仍可完成，复制品继续继承原身份，不新增席位。
+- **血量**：皓宸 Max_health = **800**（`皓宸.tscn`，2026-09-28 任务 8）。
+- **复制品永不伤害皓宸**：`Have_Team_Damage` 默认开启且 hitbox 只查一层 Master，复制品的投射物/召唤物/分裂后代可能绕过。皓宸.gd `is_own_summon_chain()` 沿整条链（Master / Master_name / `launch_owner_id` / `_src_ref` / `_declared_launcher` / 战斗存续身份 root / `mc_bat_cohort`）判断来源是否属于自己的复制品，并在 `can_receive_hit_contact / receive_positional_damage / _receive_spatial_damage_untyped / receive_internal_status_damage` 拒收。只作用于皓宸本体，不改公共 ball/hitbox。
 - **手控**：蓄能与复制都是被动，C 手控不绑定按键（`player_control_action_ids()` 为空）。
 - **威胁显示**：只注册 80 半径蓝色检测圈（`haochen_energy_detection`），无伤害区域；皓宸本体无接触伤害。
 
@@ -21,13 +23,14 @@
   - **蓄能粒子流**：每个正在供能的敌人（最多 4 个）每 0.12 秒飞出 1 个灵魂流入皓宸（宽 8），分组 `MCHaochenChargeParticle`；各端按已同步的 `charge_phase` 与位置本地判断。
   - **满条瞬间**：施放开始时从皓宸身上向外爆出一圈 16 个灵魂，分组 `MCHaochenBurstParticle`。
   - **被复制者 → 皓宸 连线**：施放期间沿两人之间的线段每 0.05 秒 2 个灵魂流入皓宸（开场在被复制者身边 8 个，宽 9），分组 `MCHaochenLinkParticle`。端点 `link_from/link_to` 由权威端每物理帧按真实位置刷新并同步，客户端只按同步点绘制；被复制者中途死亡则停在最后位置。
-  - **复制品出现**：施放期间灵魂向出生点汇聚，成功时从出生点向外爆出 18 个灵魂，分组 `MCHaochenCopyParticle`。
-  - 以上共用 `character_copy_request.gd::emit_stream / emit_ring`，不复制实现。皓宸不再使用 portal/末影粒子。
-  - 施放点汇聚（开场 10 颗，之后每 0.1 秒 2 颗）与完成时 22 颗向外爆散，分组 `MCHaochenCopyParticle`。
+  - **复制品出现（“灵魂升腾”，用户 2026-09-28 选定）**：施放期间灵魂向施放点汇聚（开场 10 颗，之后每 0.1 秒 2 颗，分组 `MCHaochenCopyParticle`）；成功瞬间起约 1 秒内错开放出 20 个青白灵魂，从复制品**整个身体范围**向上升腾（只播 soul_7..10 青白魂焰帧，跳过棕色灵魂沙帧；宽 22–28、升高 50–72、寿命 0.85–1.1 秒），每颗在自己开始时按复制品当前位置/碰撞框出生，复制品走开也跟随。分组 `MCHaochenCopyParticle` + `MCHaochenSpawnRiseParticle`。替换被否定的“18 颗向外爆散”。各端用 RPC 同步的复制品名本地找到复制品，找不到时回退 40×40 区域。
+  - 以上共用 `character_copy_request.gd::emit_stream / emit_ring` 与 `灵魂粒子.gd`（新增 `from_frame / delay_start`），不复制实现。皓宸不再使用 portal/末影粒子。
 - **音效**（全部走公共 `mc_native_audio.queue_stream`，权威端选择变体并可靠 RPC 同步、带序号防重播）：
   - 开始蓄能：用户提供的 `haochen/charge_start.wav`（0 dB，同一段蓄能只播一次）
   - **复制施放起手：原版 `entity.evoker.prepare_summon`（`唤魔者/evoker.prepare_summon_1.ogg`，0 dB）**——2026-09-28 新增
-  - 复制完成：原版末影人 teleport 两个变体（0 dB）
+  - **获得能量期间：原版 `particle.soul_escape`（灵魂疾行音，13 个变体）**——敌人向能量条供能时约每 0.24 秒随机播 1 个，音高 0.85–1.15 随机，−3 dB（2026-09-28 任务 8，用户选定）
+  - **复制品出现：原版 `entity.illusioner.mirror_move`（幻术师分身音，2 个变体，0 dB）**——替换被否定的末影人 teleport（2026-09-28 任务 8，用户选定）
+  - 新音频均从 Mojang 官方资源 CDN 按 asset index 29 的 sha1 原样下载，存放 `audio/characters/我的世界/haochen/`，未重新编码。
   - 脚步（石头步声，仅真实位移）、待机（唤魔者 ambient，仅 RESTING，间隔≥实际音频时长）、受伤/死亡（唤魔者）；死亡同时保留项目默认 `DeadBell`
 - 皓宸本身不造成伤害，无 MC 命中音；复制品的命中音由其原角色自身逻辑负责。
 - 来源/哈希：`audio/characters/我的世界/haochen/SOURCE.json`（含两张头像、原始皮肤与处理方式）。原始皮肤保存在 `Images/characters/我的世界/皓宸/skins/`（`.gdignore`，不导入）。唤魔者头像已不再使用；待机/受伤/死亡仍用唤魔者原版声音。

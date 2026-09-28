@@ -3,7 +3,10 @@
   "appearance": {
     "normal": "res://Images/characters/我的世界/皓宸/皓宸.png",
     "laughing": "res://Images/characters/我的世界/皓宸/皓宸笑.png",
-    "source_skins": ["Images/characters/我的世界/皓宸/skins/雷古勒斯.png", "Images/characters/我的世界/皓宸/skins/雷古勒斯笑.png"],
+    "source_skins": [
+      "Images/characters/我的世界/皓宸/skins/雷古勒斯.png",
+      "Images/characters/我的世界/皓宸/skins/雷古勒斯笑.png"
+    ],
     "provenance": "2026-09-28 (rev 2): two 64x64 Minecraft skins supplied by the user (雷古勒斯 / 雷古勒斯笑). Complete head FRONT as vanilla 3D rendering shows it: base face (8,8)-(16,16) x16 nearest = 128px, outer hat layer (40,8)-(48,16) at vanilla 9/8 overlay scale x18 nearest = 144px, centred on top, so bangs/side hair protrude beyond the face (rev 1 flattened the overlay 1:1 and lost those parts). Integer nearest-neighbour only, no new pixels; canvas 144x144. Laughing face is shown while charging/copying. Source skins kept unchanged in skins/ (.gdignore, not imported).",
     "license": "User-provided project asset; no claim of free redistribution.",
     "replaces": "Temporary Minecraft Evoker portrait (no longer referenced by Haochen)."
@@ -16,15 +19,48 @@
     "format": "PCM16 stereo44100Hz",
     "license": "User-provided project asset; no claim of free redistribution."
   },
-  "other_audio": "Existing original Minecraft Evoker, Enderman teleport and stone-step clips reused in place; no synthesized/re-encoded substitutes.",
   "copy_start": {
     "path": "res://audio/characters/唤魔者/evoker.prepare_summon_1.ogg",
     "event": "entity.evoker.prepare_summon",
     "selection": "2026-09-28: played once when a full meter confirms a copy cast. Existing project Minecraft Evoker clip reused in place, unmodified.",
     "gain_db": 0.0
   },
-  "particle_implementation": "res://scripts/effects/我的世界/末影粒子.gd",
-  "particle_textures": "Existing Minecraft generic_0..7 portal atlas, unmodified; only engine position/tint/scale parameters differ.",
+  "charge_soul": {
+    "paths": [
+      "res://audio/characters/我的世界/haochen/particle.soul_escape_1.ogg",
+      "res://audio/characters/我的世界/haochen/particle.soul_escape_2.ogg",
+      "res://audio/characters/我的世界/haochen/particle.soul_escape_3.ogg",
+      "res://audio/characters/我的世界/haochen/particle.soul_escape_4.ogg",
+      "res://audio/characters/我的世界/haochen/particle.soul_escape_5.ogg",
+      "res://audio/characters/我的世界/haochen/particle.soul_escape_6.ogg",
+      "res://audio/characters/我的世界/haochen/particle.soul_escape_7.ogg",
+      "res://audio/characters/我的世界/haochen/particle.soul_escape_8.ogg",
+      "res://audio/characters/我的世界/haochen/particle.soul_escape_9.ogg",
+      "res://audio/characters/我的世界/haochen/particle.soul_escape_10.ogg",
+      "res://audio/characters/我的世界/haochen/particle.soul_escape_11.ogg",
+      "res://audio/characters/我的世界/haochen/particle.soul_escape_12.ogg",
+      "res://audio/characters/我的世界/haochen/particle.soul_escape_13.ogg"
+    ],
+    "event": "particle.soul_escape",
+    "selection": "2026-09-28 task 8 (user choice): played while Haochen is gaining energy; a random one of the 13 vanilla variants roughly every 0.24 s while enemies feed the meter, pitch randomised 0.85-1.15, gain -3 dB (engine playback parameters only; files unmodified).",
+    "gain_db": -3.0
+  },
+  "copy_complete": {
+    "paths": [
+      "res://audio/characters/我的世界/haochen/illusioner.mirror_move_1.ogg",
+      "res://audio/characters/我的世界/haochen/illusioner.mirror_move_2.ogg"
+    ],
+    "event": "entity.illusioner.mirror_move",
+    "selection": "2026-09-28 task 8 (user choice): played when the black-and-white copy appears. Replaces the rejected Enderman teleport clips.",
+    "gain_db": 0.0
+  },
+  "official_download": {
+    "asset_index": "https://piston-meta.mojang.com/v1/packages/adb0a43fae291fd88ee27d85a372ba6f2072b0a3/29.json",
+    "object_url_pattern": "https://resources.download.minecraft.net/<first two hex of sha1>/<sha1>",
+    "note": "Downloaded byte-for-byte from Mojang's official asset CDN; sha1 verified against asset index 29; renamed only; not re-encoded."
+  },
+  "particle_implementation": "res://scripts/effects/我的世界/灵魂粒子.gd",
+  "particle_textures": "Minecraft Java native soul particle frames soul_0..soul_10 (see Images/effects/我的世界/灵魂粒子/SOURCE.json), unmodified; only engine position/scale/alpha/frame-range parameters differ. Copy spawn ('灵魂升腾') uses frames 7..10 only.",
   "minecraft_rights": "Minecraft assets belong to Mojang/Microsoft; not represented as freely redistributable.",
   "minecraft_eula": "https://www.minecraft.net/en-us/eula",
   "verified_files": {
@@ -47,14 +83,6 @@
     "audio/characters/我的世界/haochen/charge_start.wav": {
       "size": 450604,
       "sha256": "ff7c374a1ab80a8c7181c11dbb6792d45cec341ea2df9bb5e586b9668eb8e08e"
-    },
-    "audio/characters/末影人/enderman.teleport_1.ogg": {
-      "size": 11343,
-      "sha256": "1c49b72d40de158d74c4c0250dc4b2882f6a2ef56ac2248ebec8e5a068fa601e"
-    },
-    "audio/characters/末影人/enderman.teleport_2.ogg": {
-      "size": 8158,
-      "sha256": "e9e763114c674e500c37880fbdf5fa5bdca524f1a79f60ed90755de48bf4faf5"
     },
     "audio/characters/我的世界/sulfur_cube/revision/step__stone1.ogg": {
       "size": 8657,
@@ -99,6 +127,111 @@
     "audio/characters/唤魔者/evoker.prepare_summon_1.ogg": {
       "size": 33277,
       "sha256": "7528d0f3c5f65c601cc2bc9c1f9028cfda093aeabfe7f4ab91aedfcdf29fb3ed"
+    },
+    "audio/characters/我的世界/haochen/particle.soul_escape_1.ogg": {
+      "size": 32448,
+      "sha256": "b957d248633da5e3fe4c3948279f6722cfac9df84abbdba76848c08549dba288",
+      "mojang_sha1": "e6c779bd9afddd64386267151d5be140378e5c2a",
+      "mojang_asset": "minecraft/sounds/enchant/soulspeed/soulspeed1.ogg",
+      "event": "particle.soul_escape"
+    },
+    "audio/characters/我的世界/haochen/particle.soul_escape_2.ogg": {
+      "size": 24026,
+      "sha256": "03f8be38757cfab7952fc90e43e7dc0a104fe506d78418177d764c2485300bac",
+      "mojang_sha1": "e6b0a68a971f744318c220a3a8f6e0c63ca2e48c",
+      "mojang_asset": "minecraft/sounds/enchant/soulspeed/soulspeed2.ogg",
+      "event": "particle.soul_escape"
+    },
+    "audio/characters/我的世界/haochen/particle.soul_escape_3.ogg": {
+      "size": 24875,
+      "sha256": "29381e9a2db05b496ec669fd1d93731e764765f786efacd51128af52c8130e58",
+      "mojang_sha1": "0ccca22fee32f342be3f886e5202025800a742c0",
+      "mojang_asset": "minecraft/sounds/enchant/soulspeed/soulspeed3.ogg",
+      "event": "particle.soul_escape"
+    },
+    "audio/characters/我的世界/haochen/particle.soul_escape_4.ogg": {
+      "size": 27590,
+      "sha256": "2010253ddb7b12fb6aee08191dc95a17ab6073c1e10cedfc916a32b0b2964398",
+      "mojang_sha1": "db82fb7505c936e1b5a03c4464bd10963f3c64ce",
+      "mojang_asset": "minecraft/sounds/enchant/soulspeed/soulspeed4.ogg",
+      "event": "particle.soul_escape"
+    },
+    "audio/characters/我的世界/haochen/particle.soul_escape_5.ogg": {
+      "size": 24686,
+      "sha256": "2faec62bba2855cabe2c87ce371c792bcab202f4b869be8336faab6b180fc0a9",
+      "mojang_sha1": "bde5dc6ef9a98a6ba115d6841e57c9585fb73381",
+      "mojang_asset": "minecraft/sounds/enchant/soulspeed/soulspeed5.ogg",
+      "event": "particle.soul_escape"
+    },
+    "audio/characters/我的世界/haochen/particle.soul_escape_6.ogg": {
+      "size": 25266,
+      "sha256": "43c6eb10a744d0bee444bb4ad244871ee102ddac3cfb85f06fef8412c39fcd25",
+      "mojang_sha1": "0ead26ea56117ce0715c4c9d8266a0e4ad92c275",
+      "mojang_asset": "minecraft/sounds/enchant/soulspeed/soulspeed6.ogg",
+      "event": "particle.soul_escape"
+    },
+    "audio/characters/我的世界/haochen/particle.soul_escape_7.ogg": {
+      "size": 29332,
+      "sha256": "61c73691e8eee4824958a9d9f0c7b34ec8ae433ba4552ec02e229964c86ecfee",
+      "mojang_sha1": "d07596a3ffb5c61fba9e72813caab952dd32635d",
+      "mojang_asset": "minecraft/sounds/enchant/soulspeed/soulspeed7.ogg",
+      "event": "particle.soul_escape"
+    },
+    "audio/characters/我的世界/haochen/particle.soul_escape_8.ogg": {
+      "size": 27708,
+      "sha256": "5893d6ac4a5d1255dcf45d52ebc47fc94bbe16ab94265eed5ba2d121e9727975",
+      "mojang_sha1": "824eadc9623fec95a1e1e330e48852e3dbbcbf77",
+      "mojang_asset": "minecraft/sounds/enchant/soulspeed/soulspeed8.ogg",
+      "event": "particle.soul_escape"
+    },
+    "audio/characters/我的世界/haochen/particle.soul_escape_9.ogg": {
+      "size": 25763,
+      "sha256": "5179bb2f0596709af3aadd842115efb867212ce6feded984f07db2552f40ab41",
+      "mojang_sha1": "0ea63ab9ae3849d51863299604e7fbbfed7cbfdb",
+      "mojang_asset": "minecraft/sounds/enchant/soulspeed/soulspeed9.ogg",
+      "event": "particle.soul_escape"
+    },
+    "audio/characters/我的世界/haochen/particle.soul_escape_10.ogg": {
+      "size": 28155,
+      "sha256": "aa77f1cbc8c852595ca4509952fec1c0c441f442aa609e4962815829ad9b132f",
+      "mojang_sha1": "134d89171222ab13b8f6a0c265c2e27feb08a45d",
+      "mojang_asset": "minecraft/sounds/enchant/soulspeed/soulspeed10.ogg",
+      "event": "particle.soul_escape"
+    },
+    "audio/characters/我的世界/haochen/particle.soul_escape_11.ogg": {
+      "size": 25404,
+      "sha256": "b920bd7803538f4ae6b3215ba328142ce4f02912c93a5351b465d1de98612203",
+      "mojang_sha1": "f168111f74c7b2b44dbee6b4e72d0300fa3a8b99",
+      "mojang_asset": "minecraft/sounds/enchant/soulspeed/soulspeed11.ogg",
+      "event": "particle.soul_escape"
+    },
+    "audio/characters/我的世界/haochen/particle.soul_escape_12.ogg": {
+      "size": 25267,
+      "sha256": "204b864be129cbe63e8be9d17711db3a8c63556602d37532de9935460b129b43",
+      "mojang_sha1": "bf7ad9e27109632f03424ade68c3e4330e623c82",
+      "mojang_asset": "minecraft/sounds/enchant/soulspeed/soulspeed12.ogg",
+      "event": "particle.soul_escape"
+    },
+    "audio/characters/我的世界/haochen/particle.soul_escape_13.ogg": {
+      "size": 25955,
+      "sha256": "2265511efb30ed64c01ed745c5875b0fb730ee8dd3e2645a8761498a3d446619",
+      "mojang_sha1": "711ded3c88295be8e4fa5fe657ee9e459aacd033",
+      "mojang_asset": "minecraft/sounds/enchant/soulspeed/soulspeed13.ogg",
+      "event": "particle.soul_escape"
+    },
+    "audio/characters/我的世界/haochen/illusioner.mirror_move_1.ogg": {
+      "size": 22341,
+      "sha256": "03b7ed0db1b71c38ab6f42136188fdbf5524468e21506b5c686157e3f4fa3ba0",
+      "mojang_sha1": "485339846fd58acb7ab863d914f42736db4583b1",
+      "mojang_asset": "minecraft/sounds/mob/illusion_illager/mirror_move1.ogg",
+      "event": "entity.illusioner.mirror_move"
+    },
+    "audio/characters/我的世界/haochen/illusioner.mirror_move_2.ogg": {
+      "size": 29884,
+      "sha256": "65d2b042fa878ab48fd60e2fa9aaaa85dd82a6066d504b56694542a38c069ed6",
+      "mojang_sha1": "ced0b0d9e9d87dd090c42d240b0062c6c2f7cce6",
+      "mojang_asset": "minecraft/sounds/mob/illusion_illager/mirror_move2.ogg",
+      "event": "entity.illusioner.mirror_move"
     }
   }
 }

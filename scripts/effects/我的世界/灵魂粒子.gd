@@ -23,6 +23,12 @@ var _motion:Vector2
 var _rise:float = 0.0
 var _follow:WeakRef
 var _follow_offset:Vector2 = Vector2.ZERO
+var _first_frame:int = 0
+var _delay:float = 0.0
+var _anchor_parent:WeakRef
+var _anchor_name:String = ""
+var _anchor_unit:Vector2 = Vector2.ZERO
+var _anchor_box:Vector2 = Vector2.ZERO
 
 ## Free slots under the shared soul cap (callers spawn at most this many).
 static func room(tree:SceneTree) -> int:
@@ -49,13 +55,47 @@ func follow(target:Node2D,offset:Vector2 = Vector2.ZERO) -> void:
 	_follow = weakref(target) if is_instance_valid(target) else null
 	_follow_offset = offset
 
+## Optional: play only the later cyan-wisp frames (the early frames are the brown
+## soul-sand face, which reads as dirt on grass maps).
+func from_frame(index:int) -> void:
+	_first_frame = clampi(index,0,FRAMES.size()-1)
+	texture = FRAMES[_first_frame]
+
+## Optional staggered start: stay hidden for `seconds`, then start from the anchor's
+## CURRENT body (anchor looked up by name so peers work before it replicates):
+## start = anchor position + unit_offset * anchor collision box (fallback_box if absent).
+func delay_start(seconds:float,anchor_parent:Node = null,anchor_name:String = "",unit_offset:Vector2 = Vector2.ZERO,fallback_box:Vector2 = Vector2.ZERO) -> void:
+	_delay = maxf(seconds,0.0)
+	_anchor_parent = weakref(anchor_parent) if is_instance_valid(anchor_parent) else null
+	_anchor_name = anchor_name
+	_anchor_unit = unit_offset
+	_anchor_box = fallback_box
+	visible = _delay<=0.0
+	if _delay<=0.0: _activate_anchor()
+
+func _activate_anchor() -> void:
+	var parent:Node = _anchor_parent.get_ref() as Node if _anchor_parent != null else null
+	var anchor:Node2D = parent.get_node_or_null(NodePath(_anchor_name)) as Node2D if is_instance_valid(parent) and not _anchor_name.is_empty() else null
+	var box:Vector2 = _anchor_box
+	var shape_node:CollisionShape2D = anchor.get("collision_shape_2d") as CollisionShape2D if is_instance_valid(anchor) else null
+	if is_instance_valid(shape_node) and shape_node.shape != null: box = shape_node.shape.get_rect().size*shape_node.global_scale.abs()
+	var center:Vector2 = anchor.global_position if is_instance_valid(anchor) and anchor.is_inside_tree() else _start
+	_start = center+_anchor_unit*box
+	global_position = _start
+	visible = true
+
 func _process(delta:float) -> void:
 	if Game.now_stop_state or get_tree().paused: return
+	if _delay>0.0:
+		_delay -= delta
+		if _delay>0.0: return
+		_activate_anchor()
 	_age += delta
 	var t:float = clampf(_age/_life,0.0,1.0)
 	var target:Node2D = _follow.get_ref() as Node2D if _follow != null else null
 	if is_instance_valid(target) and target.is_inside_tree(): _motion = target.global_position+_follow_offset-_start
-	texture = FRAMES[mini(int(t*FRAMES.size()),FRAMES.size()-1)]
+	var span:int = FRAMES.size()-_first_frame
+	texture = FRAMES[_first_frame+mini(int(t*span),span-1)]
 	global_position = _start+_motion*(t*t)+Vector2.UP*_rise*t
 	modulate.a = 1.0-smoothstep(0.82,1.0,t)
 	if t>=1.0: queue_free()
