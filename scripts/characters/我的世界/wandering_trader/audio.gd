@@ -1,6 +1,6 @@
 extends RefCounted
-## 流浪商人 / 羊驼 / 缰绳 / 墙体进出 sounds: original Minecraft Java 1.21 index objects,
-## bytes unchanged (audio/characters/流浪商人/SOURCE.json). Own module on purpose: the shared
+## 流浪商人 / 羊驼 / 缰绳 / 墙体进出 / 物品 sounds: original Minecraft Java 1.21 index objects,
+## bytes unchanged (audio/characters/流浪商人/SOURCE.json, items/SOURCE.json). Own module on purpose: the shared
 ## mc_native_audio EVENTS table is not edited. Keys map 1:1 to vanilla sound events (NAMES).
 const EVENTS:Dictionary = {
 	&"trader_ambient":[preload("res://audio/characters/流浪商人/trader_idle1.ogg"),preload("res://audio/characters/流浪商人/trader_idle2.ogg"),preload("res://audio/characters/流浪商人/trader_idle3.ogg"),preload("res://audio/characters/流浪商人/trader_idle4.ogg"),preload("res://audio/characters/流浪商人/trader_idle5.ogg")],
@@ -20,6 +20,29 @@ const EVENTS:Dictionary = {
 	&"leash_place":[preload("res://audio/characters/流浪商人/leash_place1.ogg"),preload("res://audio/characters/流浪商人/leash_place2.ogg"),preload("res://audio/characters/流浪商人/leash_place3.ogg")],
 	&"stone_break":[preload("res://audio/characters/流浪商人/stone_break1.ogg"),preload("res://audio/characters/流浪商人/stone_break2.ogg"),preload("res://audio/characters/流浪商人/stone_break3.ogg"),preload("res://audio/characters/流浪商人/stone_break4.ogg")],
 	&"stone_hit":[preload("res://audio/characters/流浪商人/stone_hit1.ogg"),preload("res://audio/characters/流浪商人/stone_hit2.ogg"),preload("res://audio/characters/流浪商人/stone_hit3.ogg"),preload("res://audio/characters/流浪商人/stone_hit4.ogg"),preload("res://audio/characters/流浪商人/stone_hit5.ogg"),preload("res://audio/characters/流浪商人/stone_hit6.ogg")],
+	&"item_explode":[preload("res://audio/characters/流浪商人/items/item_explode1.ogg"),preload("res://audio/characters/流浪商人/items/item_explode2.ogg"),preload("res://audio/characters/流浪商人/items/item_explode3.ogg"),preload("res://audio/characters/流浪商人/items/item_explode4.ogg")],
+	&"item_fuse":[preload("res://audio/characters/流浪商人/items/item_fuse1.ogg")],
+	&"item_sand_place":[preload("res://audio/characters/流浪商人/items/item_sand_place1.ogg"),preload("res://audio/characters/流浪商人/items/item_sand_place2.ogg"),preload("res://audio/characters/流浪商人/items/item_sand_place3.ogg"),preload("res://audio/characters/流浪商人/items/item_sand_place4.ogg")],
+	&"item_stone_place":[preload("res://audio/characters/流浪商人/items/item_stone_place1.ogg"),preload("res://audio/characters/流浪商人/items/item_stone_place2.ogg"),preload("res://audio/characters/流浪商人/items/item_stone_place3.ogg"),preload("res://audio/characters/流浪商人/items/item_stone_place4.ogg")],
+	&"item_wool_place":[preload("res://audio/characters/流浪商人/items/item_wool_place1.ogg"),preload("res://audio/characters/流浪商人/items/item_wool_place2.ogg"),preload("res://audio/characters/流浪商人/items/item_wool_place3.ogg"),preload("res://audio/characters/流浪商人/items/item_wool_place4.ogg")],
+	&"item_grass_place":[preload("res://audio/characters/流浪商人/items/item_grass_place1.ogg"),preload("res://audio/characters/流浪商人/items/item_grass_place2.ogg"),preload("res://audio/characters/流浪商人/items/item_grass_place3.ogg"),preload("res://audio/characters/流浪商人/items/item_grass_place4.ogg")],
+	&"item_dripstone_place":[preload("res://audio/characters/流浪商人/items/item_dripstone_place1.ogg"),preload("res://audio/characters/流浪商人/items/item_dripstone_place2.ogg"),preload("res://audio/characters/流浪商人/items/item_dripstone_place3.ogg"),preload("res://audio/characters/流浪商人/items/item_dripstone_place4.ogg"),preload("res://audio/characters/流浪商人/items/item_dripstone_place5.ogg")],
+	&"item_throw":[preload("res://audio/characters/流浪商人/items/item_throw1.ogg")],
+	&"item_slime_small":[preload("res://audio/characters/流浪商人/items/item_slime_small1.ogg"),preload("res://audio/characters/流浪商人/items/item_slime_small2.ogg"),preload("res://audio/characters/流浪商人/items/item_slime_small3.ogg"),preload("res://audio/characters/流浪商人/items/item_slime_small4.ogg"),preload("res://audio/characters/流浪商人/items/item_slime_small5.ogg")],
+	&"item_slime_attack":[preload("res://audio/characters/流浪商人/items/item_slime_attack1.ogg"),preload("res://audio/characters/流浪商人/items/item_slime_attack2.ogg")],
+	&"item_eat":[preload("res://audio/characters/流浪商人/items/item_eat1.ogg"),preload("res://audio/characters/流浪商人/items/item_eat2.ogg"),preload("res://audio/characters/流浪商人/items/item_eat3.ogg")],
+	&"item_burp":[preload("res://audio/characters/流浪商人/items/item_burp1.ogg")],
+	&"item_empty_fish":[preload("res://audio/characters/流浪商人/items/item_empty_fish1.ogg"),preload("res://audio/characters/流浪商人/items/item_empty_fish2.ogg"),preload("res://audio/characters/流浪商人/items/item_empty_fish3.ogg")],
+	&"item_frame_add":[preload("res://audio/characters/流浪商人/items/item_frame_add1.ogg"),preload("res://audio/characters/流浪商人/items/item_frame_add2.ogg"),preload("res://audio/characters/流浪商人/items/item_frame_add3.ogg"),preload("res://audio/characters/流浪商人/items/item_frame_add4.ogg")],
+	&"item_frame_remove":[preload("res://audio/characters/流浪商人/items/item_frame_remove1.ogg"),preload("res://audio/characters/流浪商人/items/item_frame_remove2.ogg"),preload("res://audio/characters/流浪商人/items/item_frame_remove3.ogg"),preload("res://audio/characters/流浪商人/items/item_frame_remove4.ogg")],
+	&"puffer_flop":[preload("res://audio/characters/流浪商人/items/puffer_flop1.ogg"),preload("res://audio/characters/流浪商人/items/puffer_flop2.ogg"),preload("res://audio/characters/流浪商人/items/puffer_flop3.ogg"),preload("res://audio/characters/流浪商人/items/puffer_flop4.ogg")],
+	&"puffer_hurt":[preload("res://audio/characters/流浪商人/items/puffer_hurt1.ogg"),preload("res://audio/characters/流浪商人/items/puffer_hurt2.ogg")],
+	&"puffer_death":[preload("res://audio/characters/流浪商人/items/puffer_death1.ogg"),preload("res://audio/characters/流浪商人/items/puffer_death2.ogg")],
+	&"puffer_sting":[preload("res://audio/characters/流浪商人/items/puffer_sting1.ogg"),preload("res://audio/characters/流浪商人/items/puffer_sting2.ogg")],
+	&"puffer_blow_up":[preload("res://audio/characters/流浪商人/items/puffer_blow_up1.ogg"),preload("res://audio/characters/流浪商人/items/puffer_blow_up2.ogg")],
+	&"puffer_blow_out":[preload("res://audio/characters/流浪商人/items/puffer_blow_out1.ogg"),preload("res://audio/characters/流浪商人/items/puffer_blow_out2.ogg")],
+	&"fish_flop":[preload("res://audio/characters/流浪商人/items/fish_flop1.ogg"),preload("res://audio/characters/流浪商人/items/fish_flop2.ogg"),preload("res://audio/characters/流浪商人/items/fish_flop3.ogg"),preload("res://audio/characters/流浪商人/items/fish_flop4.ogg")],
+	&"fish_hurt":[preload("res://audio/characters/流浪商人/items/fish_hurt1.ogg"),preload("res://audio/characters/流浪商人/items/fish_hurt2.ogg"),preload("res://audio/characters/流浪商人/items/fish_hurt3.ogg"),preload("res://audio/characters/流浪商人/items/fish_hurt4.ogg")],
 }
 const NAMES:Dictionary = {
 	&"trader_ambient":"entity.wandering_trader.ambient",
@@ -39,6 +62,29 @@ const NAMES:Dictionary = {
 	&"leash_place":"entity.leash_knot.place",
 	&"stone_break":"block.stone.break",
 	&"stone_hit":"block.stone.hit",
+	&"item_explode":"entity.generic.explode",
+	&"item_fuse":"entity.tnt.primed",
+	&"item_sand_place":"block.sand.place",
+	&"item_stone_place":"block.glass.place",
+	&"item_wool_place":"block.wool.place",
+	&"item_grass_place":"block.grass.place",
+	&"item_dripstone_place":"block.pointed_dripstone.place",
+	&"item_throw":"entity.snowball.throw",
+	&"item_slime_small":"entity.slime.squish_small",
+	&"item_slime_attack":"entity.slime.attack",
+	&"item_eat":"entity.generic.eat",
+	&"item_burp":"entity.player.burp",
+	&"item_empty_fish":"item.bucket.empty_fish",
+	&"item_frame_add":"entity.item_frame.add_item",
+	&"item_frame_remove":"entity.item_frame.remove_item",
+	&"puffer_flop":"entity.puffer_fish.flop",
+	&"puffer_hurt":"entity.puffer_fish.hurt",
+	&"puffer_death":"entity.puffer_fish.death",
+	&"puffer_sting":"entity.puffer_fish.sting",
+	&"puffer_blow_up":"entity.puffer_fish.blow_up",
+	&"puffer_blow_out":"entity.puffer_fish.blow_out",
+	&"fish_flop":"entity.tropical_fish.flop",
+	&"fish_hurt":"entity.tropical_fish.hurt",
 }
 const GAIN:Dictionary = {
 	&"trader_ambient":-9.0,
@@ -58,10 +104,33 @@ const GAIN:Dictionary = {
 	&"leash_place":-3.0,
 	&"stone_break":-3.0,
 	&"stone_hit":-7.0,
+	&"item_explode":-2.0,
+	&"item_fuse":-4.0,
+	&"item_sand_place":-3.0,
+	&"item_stone_place":-3.0,
+	&"item_wool_place":-3.0,
+	&"item_grass_place":-3.0,
+	&"item_dripstone_place":-3.0,
+	&"item_throw":-5.0,
+	&"item_slime_small":-4.0,
+	&"item_slime_attack":-4.0,
+	&"item_eat":-5.0,
+	&"item_burp":-5.0,
+	&"item_empty_fish":-3.0,
+	&"item_frame_add":-6.0,
+	&"item_frame_remove":-8.0,
+	&"puffer_flop":-12.0,
+	&"puffer_hurt":-5.0,
+	&"puffer_death":-4.0,
+	&"puffer_sting":-4.0,
+	&"puffer_blow_up":-9.0,
+	&"puffer_blow_out":-6.0,
+	&"fish_flop":-12.0,
+	&"fish_hurt":-5.0,
 }
-const PRIORITY:Array[StringName] = [&"trader_death",&"llama_death",&"trader_disappeared",&"trader_reappeared",&"leash_break",&"leash_place",&"drink_milk",&"drink_potion"]
+const PRIORITY:Array[StringName] = [&"trader_death",&"llama_death",&"trader_disappeared",&"trader_reappeared",&"leash_break",&"leash_place",&"drink_milk",&"drink_potion",&"item_explode",&"puffer_death"]
 const GROUP:StringName = &"MCWanderingTraderAudio"
-const MAX_VOICES:int = 14
+const MAX_VOICES:int = 18
 static var _rng := RandomNumberGenerator.new()
 static var _seeded:bool = false
 

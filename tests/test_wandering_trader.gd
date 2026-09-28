@@ -68,6 +68,7 @@ func run() -> void:
 	await process_frame
 	hold(enemy);enemy.Max_health=100000;enemy.health=100000
 	trader._invisibility_wait=999.0;trader._wall_wait=999.0;trader._milk_wait=999.0
+	trader.items_enabled=false # items: tests/test_wandering_trader_items.gd
 	for i:int in range(6):await process_frame
 	# --- herd ---------------------------------------------------------------------
 	var herd:Array=trader.living_llamas()

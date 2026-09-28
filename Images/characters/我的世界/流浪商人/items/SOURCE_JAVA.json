@@ -1,0 +1,182 @@
+{
+    "source":  "Locally installed Minecraft Java client jar (version.json id 1.21.1); texture PNG bytes copied unchanged",
+    "rights":  "Minecraft assets are copyright Mojang Studios/Microsoft. Use is subject to the Minecraft EULA; no general redistribution permission is claimed.",
+    "used_by":  "scripts/characters/我的世界/wandering_trader/items/*.gd (流浪商人物品; item frame = block/item_frame back + block/birch_planks border, as the vanilla item frame model)",
+    "files":  [
+                  {
+                      "new_asset":  "item_gunpowder.png",
+                      "original_path":  "assets/minecraft/textures/item/gunpowder.png",
+                      "sha1":  "45585c5382a713efe66245f0c9c6074847aaf5d9"
+                  },
+                  {
+                      "new_asset":  "item_slime_ball.png",
+                      "original_path":  "assets/minecraft/textures/item/slime_ball.png",
+                      "sha1":  "3aed45464d92e8d667f3b963de2206df50de4dae"
+                  },
+                  {
+                      "new_asset":  "item_baked_potato.png",
+                      "original_path":  "assets/minecraft/textures/item/baked_potato.png",
+                      "sha1":  "c0903164cde0cf53abb76ab060149327aea0b1fb"
+                  },
+                  {
+                      "new_asset":  "item_pufferfish_bucket.png",
+                      "original_path":  "assets/minecraft/textures/item/pufferfish_bucket.png",
+                      "sha1":  "4f289aaa2931aafe0872a4fd9f714853f01ab779"
+                  },
+                  {
+                      "new_asset":  "item_tropical_fish_bucket.png",
+                      "original_path":  "assets/minecraft/textures/item/tropical_fish_bucket.png",
+                      "sha1":  "a00f9406fea67f9e9e68f5104464b56583265e85"
+                  },
+                  {
+                      "new_asset":  "item_pufferfish.png",
+                      "original_path":  "assets/minecraft/textures/item/pufferfish.png",
+                      "sha1":  "37c67d6157b2c782e200eede9ce3e38e802873f5"
+                  },
+                  {
+                      "new_asset":  "item_tropical_fish.png",
+                      "original_path":  "assets/minecraft/textures/item/tropical_fish.png",
+                      "sha1":  "77ee7ed8af01f418a71ea14ad58dc34f58456b61"
+                  },
+                  {
+                      "new_asset":  "item_pointed_dripstone.png",
+                      "original_path":  "assets/minecraft/textures/item/pointed_dripstone.png",
+                      "sha1":  "307b99263b0ce5692b58e4ad3d0c81f5544bad46"
+                  },
+                  {
+                      "new_asset":  "block_blue_ice.png",
+                      "original_path":  "assets/minecraft/textures/block/blue_ice.png",
+                      "sha1":  "97e5cfdd3f8bb037bc7f4d288ed93d88d65ae47d"
+                  },
+                  {
+                      "new_asset":  "block_hay_block_side.png",
+                      "original_path":  "assets/minecraft/textures/block/hay_block_side.png",
+                      "sha1":  "980b370e4257a32b602741f0e5026b11be9acecf"
+                  },
+                  {
+                      "new_asset":  "block_hay_block_top.png",
+                      "original_path":  "assets/minecraft/textures/block/hay_block_top.png",
+                      "sha1":  "160ed72a1597aaca9ef8e9c3354072f8ce2824b2"
+                  },
+                  {
+                      "new_asset":  "block_cactus_side.png",
+                      "original_path":  "assets/minecraft/textures/block/cactus_side.png",
+                      "sha1":  "26d90bfe6a1a420043eb230bddbd669328bda958"
+                  },
+                  {
+                      "new_asset":  "block_cactus_top.png",
+                      "original_path":  "assets/minecraft/textures/block/cactus_top.png",
+                      "sha1":  "4ea1d3226ddc5de5176fcf2980deb46bf8171723"
+                  },
+                  {
+                      "new_asset":  "block_pointed_dripstone_up_tip.png",
+                      "original_path":  "assets/minecraft/textures/block/pointed_dripstone_up_tip.png",
+                      "sha1":  "2730d8d33b61703169d758b0a4cce32785b4b4ed"
+                  },
+                  {
+                      "new_asset":  "block_pointed_dripstone_up_frustum.png",
+                      "original_path":  "assets/minecraft/textures/block/pointed_dripstone_up_frustum.png",
+                      "sha1":  "355250fbbaf396ee771841ba092a378cdcc422e7"
+                  },
+                  {
+                      "new_asset":  "block_stone.png",
+                      "original_path":  "assets/minecraft/textures/block/stone.png",
+                      "sha1":  "cfd0057adbdc7338377465b843d475b577c58efc"
+                  },
+                  {
+                      "new_asset":  "block_item_frame.png",
+                      "original_path":  "assets/minecraft/textures/block/item_frame.png",
+                      "sha1":  "012fec1e1931fe11c19f795839701f629c73d3b1"
+                  },
+                  {
+                      "new_asset":  "block_birch_planks.png",
+                      "original_path":  "assets/minecraft/textures/block/birch_planks.png",
+                      "sha1":  "2bc2528e64364135ddd22ba6a2b8d01f735411a3"
+                  },
+                  {
+                      "new_asset":  "particle_explosion_0.png",
+                      "original_path":  "assets/minecraft/textures/particle/explosion_0.png",
+                      "sha1":  "59d71994b6f1183ebcf52445741608db1d1a71af"
+                  },
+                  {
+                      "new_asset":  "particle_explosion_1.png",
+                      "original_path":  "assets/minecraft/textures/particle/explosion_1.png",
+                      "sha1":  "0995bc96fedc68736dc760c3cd1a5081ebc5a9b5"
+                  },
+                  {
+                      "new_asset":  "particle_explosion_2.png",
+                      "original_path":  "assets/minecraft/textures/particle/explosion_2.png",
+                      "sha1":  "2a23c018419b318db595e06ca702ea4236193d8c"
+                  },
+                  {
+                      "new_asset":  "particle_explosion_3.png",
+                      "original_path":  "assets/minecraft/textures/particle/explosion_3.png",
+                      "sha1":  "1dc0870ce4e26853e31d77bacd16cf9adabfcc1f"
+                  },
+                  {
+                      "new_asset":  "particle_explosion_4.png",
+                      "original_path":  "assets/minecraft/textures/particle/explosion_4.png",
+                      "sha1":  "c553de524817f3063d3e8c2d5a228ab3d87c0d2a"
+                  },
+                  {
+                      "new_asset":  "particle_explosion_5.png",
+                      "original_path":  "assets/minecraft/textures/particle/explosion_5.png",
+                      "sha1":  "de622885c51d6fd95961becdfcd7c035fc626d29"
+                  },
+                  {
+                      "new_asset":  "particle_explosion_6.png",
+                      "original_path":  "assets/minecraft/textures/particle/explosion_6.png",
+                      "sha1":  "e255573da4e29f4b7246935b2e21833b7a54dc45"
+                  },
+                  {
+                      "new_asset":  "particle_explosion_7.png",
+                      "original_path":  "assets/minecraft/textures/particle/explosion_7.png",
+                      "sha1":  "6faf44a318333005e35fd49fd3dc411b191f61fd"
+                  },
+                  {
+                      "new_asset":  "particle_explosion_8.png",
+                      "original_path":  "assets/minecraft/textures/particle/explosion_8.png",
+                      "sha1":  "d192106f71d9df02b6d9a710fa11a645fdc27a2c"
+                  },
+                  {
+                      "new_asset":  "particle_explosion_9.png",
+                      "original_path":  "assets/minecraft/textures/particle/explosion_9.png",
+                      "sha1":  "c4c63a9ced1ae80b30a91a6579ac5577feec28fa"
+                  },
+                  {
+                      "new_asset":  "particle_explosion_10.png",
+                      "original_path":  "assets/minecraft/textures/particle/explosion_10.png",
+                      "sha1":  "e989cd5b461cae5e8cfb0bbb79c267820d2878c7"
+                  },
+                  {
+                      "new_asset":  "particle_explosion_11.png",
+                      "original_path":  "assets/minecraft/textures/particle/explosion_11.png",
+                      "sha1":  "c9164692b559f5d79c77226c85f92c477575da06"
+                  },
+                  {
+                      "new_asset":  "particle_explosion_12.png",
+                      "original_path":  "assets/minecraft/textures/particle/explosion_12.png",
+                      "sha1":  "3a866a7e4a6a340043c4e905500318b715e1d51c"
+                  },
+                  {
+                      "new_asset":  "particle_explosion_13.png",
+                      "original_path":  "assets/minecraft/textures/particle/explosion_13.png",
+                      "sha1":  "1763d0efdc87f186cdfe585ef654db0a25627dba"
+                  },
+                  {
+                      "new_asset":  "particle_explosion_14.png",
+                      "original_path":  "assets/minecraft/textures/particle/explosion_14.png",
+                      "sha1":  "fc91d78ec057e8fa78e4dcc123aa18ab0f9ed6fc"
+                  },
+                  {
+                      "new_asset":  "particle_explosion_15.png",
+                      "original_path":  "assets/minecraft/textures/particle/explosion_15.png",
+                      "sha1":  "63997108387afcbca93d1315f27f9073f67bc3ff"
+                  },
+                  {
+                      "new_asset":  "particle_heart.png",
+                      "original_path":  "assets/minecraft/textures/particle/heart.png",
+                      "sha1":  "8c66941a70147bd0f06f3f49046aaba546a69972"
+                  }
+              ]
+}

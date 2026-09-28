@@ -29,7 +29,13 @@ User decisions:
 | `Images/characters/我的世界/流浪商人/items/milk_bucket.png` | held milk bucket icon |
 | `audio/characters/流浪商人/` + `SOURCE.json` | 55 vanilla oggs |
 | `scripts/training/mc_native_assets/bake_wandering_trader.py`, `sources_trader.json`, `resource_pack_trader/` | reproducible bake from Mojang/bedrock-samples @ `736072450c26a7c67f07b1661f29d9a5ebaa14b1` |
-| `tests/test_wandering_trader.gd` | functional test in a real World |
+| `tests/test_wandering_trader.gd` | functional test in a real World (item rolls off: `items_enabled = false`) |
+| `wandering_trader/items/` | item catalog, display frame, wall crumbs, placed items (gunpowder, blue ice, dripstone, cactus), thrown slime / hay, fish, explosion and heart effects |
+| `scenes/creatures/流浪商人_河豚.tscn`, `流浪商人_热带鱼.tscn` | released fish (Type Creature) |
+| `Images/characters/我的世界/流浪商人/items/` + `SOURCE_JAVA.json` | vanilla Java 1.21.1 item / block / particle textures |
+| `audio/characters/流浪商人/items/` + `SOURCE.json` | 71 vanilla item sounds |
+| `tests/test_wandering_trader_items.gd` | item functional test (51 checks) |
+| `tests/preview_wandering_trader_items_gpu.gd` | GPU screenshots of the frame, crumbs and every item |
 
 ## Rules
 
@@ -114,30 +120,40 @@ If the battle stops mid-phase, `finish_wall_phase_now()` pops him out at once.
 - Left click: invisibility potion.
 - Right click: enter a wall.
 - Middle click: milk (only with a negative effect).
+- Key 1: use the held item now.
 
 ### Multiplayer
 - Llama spawns go through the auto-spawnable scene path with deterministic names. Spit uses the snowball pattern: authority spawns it locally and via rpc, with deterministic names.
 - Sounds are rpc'd with the chosen variant.
 - The drink visual, wall hide/show and leash state go by reliable rpc. The leash is drawn locally on every peer.
 
-## Exit items (design draft, not implemented yet)
+## Exit items (物品, user request 2026-09-29)
 
-User request (2026-09-29): every wall exit that does **not** bring a llama back grants one item. All items are things the vanilla wandering trader sells. Two use modes: **instant** (used the moment he steps out) and **held** (at most one in hand; a new item replaces it; the AI uses it on its condition; manual control: key 1). Suggested draw weights in brackets.
+Every wall exit rolls one item (equal weights, including exits that bring a llama back) into the **item display frame** (物品展示框, `items/frame_view.gd`) that hangs under him. The frame uses the vanilla item-frame texture and sounds (`entity.item_frame.add_item` / `remove_item`), is drawn in world space, and hides with his body while he is behind a wall surface. 干草块 is only rolled while a llama is hurt, and 马铃薯 only while he is hurt. A new roll replaces an unused item. Manual control: key 1 (`controlled_item_action`) uses the held item at once. The fermented spider eye from the draft was dropped.
 
-| # | Item | Mode | Effect | AI use |
-|---|---|---|---|---|
-| 1 | Gunpowder 火药 (12) | instant | A primed trap at the exit floor: arms after 0.6 s, fuse hiss, triggers when an enemy comes within 28 px: 30 dmg + knockback, radius 40. Fizzles after 8 s. | on exit |
-| 2 | Blue ice 蓝冰 (10) | instant | 3×3 tile ice patch around the exit for 6 s: enemies on it slide (low steering) and move ×0.7. | on exit |
-| 3 | Pufferfish bucket 河豚桶 (8) | held | Releases a pufferfish for 6 s that puffs up near enemies; contact = Poison 4 s (Witch poison effect), `entity.puffer_fish.sting`. | enemy within 80 |
-| 4 | Pointed dripstone 滴水石锥 (10) | held | Target an enemy within 160: a 0.6 s shadow/dripstone tell above it, then it falls for 25 dmg (vanilla falling dripstone). | enemy within 160 and line clear |
-| 5 | Slimeball 粘液球 (10) | held | Thrown ball: 6 dmg, Slowness 40 % for 3 s. | enemy within 140 |
-| 6 | Hay bale 干草块 (8) | instant | Feeds the llamas (vanilla: hay heals llamas 10 HP): every living llama heals 60 HP. Re-rolled when no llama is alive. | on exit |
-| 7 | Fermented spider eye 发酵蛛眼 (8) | held | Thrown: Weakness 5 s on the target (Witch weakness effect: less outgoing damage). | strongest enemy within 140 |
-| 8 | Baked potato 烤马铃薯 (12) | held | Eats it (0.8 s, like the drink): heals the trader 35 HP. | HP < 60 % |
-| 9 | Cactus 仙人掌 (10) | instant | Places a cactus block at the exit for 10 s: solid obstacle, contact 5 dmg every 0.5 s (vanilla cactus). | on exit |
-| 10 | Tropical fish bucket 热带鱼桶 (12) | held | Releases a flopping tropical fish decoy (60 HP, 4 s): enemy AI within 120 retargets to it. | enemy within 70 |
+| Item | Trigger | Effect |
+|---|---|---|
+| 火药 Gunpowder | dropped at his feet 0.6–2.4 s (random) after the exit | Arms after 0.4 s; an **enemy** stepping on it lights a 0.2 s fuse (vanilla fuse sound), then it explodes: **50** damage to enemies within 22 px plus knockback, vanilla explosion sprite + sound. His own side never sets it off. Fizzles after 25 s. |
+| 蓝冰 Blue ice | placed 0.3 s after the exit, just inward of the wall | 2×2 blocks (22 px) for 12 s. An enemy on it gains extra speed along its own movement (+240 px/s², up to 1.3× its base speed) through the shared `surface_motion_velocity` channel. Off the ice the boost decays at 70 px/s². Hitting a wall or obstacle while the boost is still ≥ 20 px/s deals 6–30 damage (scaled by the remaining boost), and the boost bounces off at 45 %. |
+| 河豚桶 Pufferfish bucket | 0.3 s after the exit | Releases a pufferfish (`scenes/creatures/流浪商人_河豚.tscn`): a killable Creature summon on his team, **150** HP. See the fish rules below. Touching an enemy stings it for 10 (14 while puffed) damage plus Poison 4 s, with a 0.7 s cooldown per target. It puffs up while an enemy is within 34 px. |
+| 热带鱼桶 Tropical fish bucket | 0.3 s after the exit | Releases a tropical fish (`流浪商人_热带鱼.tscn`): **200** HP, on his team, no attack. Same movement as the pufferfish. |
+| 滴水石锥 Pointed dripstone | the next time he touches a wall (`when_collide`) | A spike grows out of that wall along its normal (14 px long, 20 s). It is **neutral**: anyone who touches it, the trader and his llamas included, takes 18 damage plus a small push, with a 0.6 s cooldown per unit (he gets 0.8 s of grace right after placing it). If he touches no wall within 12 s, it is set down behind him as a floor spike. |
+| 粘液球 Slimeball | thrown when an enemy is within 150 px with a clear line (after 10 s: any enemy in range) | Parabolic throw (vanilla throw sound). On hit: 10 damage, knockback and Slowness 3 s, plus a slime-ball crumb splash and `entity.slime.attack`. On a wall or obstacle it splashes and bounces back once at half range. |
+| 干草块 Hay bale | 0.3 s after the exit | Thrown on a spinning parabola onto the most hurt llama, following it. Heals **70**, with vanilla heart particles and hay crumbs. |
+| 马铃薯 Baked potato | at once on exit | Eaten through the drink path (0.96 s, three vanilla eat sounds plus burp, potato crumbs). Heals **40**. |
+| 仙人掌 Cactus | placed behind him (or beside him) on a clear floor spot 0.6–2.4 s after the exit | 14 px solid block (collision layer 1, group `WTItemObstacle`, so it never counts as a wall to walk into) for 16 s. It is **neutral**: touching its **left or right** side deals 8 damage plus a sideways push, with a 0.5 s cooldown per unit. The top and bottom are harmless. |
 
-Open points for the user: which items to keep, instant vs held per item, and whether the numbers fit after a batch simulation. Every item needs its original texture + sound with a `SOURCE.json` (MCP_CONTEXT §4) and must be registered in the classification catalog (§9).
+**Fish** (`items/fish.gd`, on `mc_mob_base`):
+- Out of water it flops: gravity (900 px/s²) pulls it down to the arena floor, where every landing throws it up again with a random medium jump (210–320 px/s).
+- Horizontal drift is 40–70 px/s, like the anvil. It bounces off characters, obstacles and the arena walls.
+- The body tumbles freely: landings and bounces kick its spin, and gravity swings it.
+- It dies after 25 s out of water. At most 2 of each kind are alive; the oldest is replaced.
+- The inherited body hitbox is disabled, so the sting is the only contact damage.
+
+**Wall crumbs** (`items/crumbs.gd`, user rule "墙壁的小方块粒子"): wall entry, the exit tell and the exit spray small squares cut from the wall tile's own atlas region (`wall_source`: the tile just behind the surface point, falling back to vanilla stone), like vanilla terrain particles. They fly out along the normal, fall and vanish. They replace the old procedural chips, and the same crumb particles are used for the ice, cactus, dripstone, hay, slime and potato.
+
+**Placed items** (`items/placed.gd`): authority-owned, spawned on every peer by rpc with deterministic names, group `MCWanderingTraderItem`, and they fade out at the end of their life.
+- Their damage goes through `receive_positional_damage` with the trader as the source, and MC hit sounds follow §1.
 
 ## Numbers
 
@@ -153,6 +169,9 @@ Open points for the user: which items to keep, instant vs held per item, and whe
 | Exit tell / llama return cooldown | 0.45 s / 20 s | |
 | Wall walk-in / walk-out | his normal speed and direction (≤ 60° to the normal), ≤ 3 s each; armed ≤ 4 s | |
 | Leash slack / pull start / pull end | 42 / 60 / 28 world px | |
+| Gunpowder / dripstone / cactus side / slime | 50 / 18 / 8 / 10 damage | |
+| Pufferfish / tropical fish HP | 150 / 200 | llama 350 |
+| Hay / potato heal | 70 / 40 | |
 
 ## Art and sound sources
 

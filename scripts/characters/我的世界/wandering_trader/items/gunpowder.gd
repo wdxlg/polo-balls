@@ -1,0 +1,64 @@
+extends "res://scripts/characters/我的世界/wandering_trader/items/placed.gd"
+## 火药: a little gunpowder pile on the floor. After a short arming time the first enemy that steps
+## on it sets it off (TNT-style white blink + fuse hiss), then it explodes: 50 damage to every
+## enemy of the trader in the blast radius, knockback away from the centre, vanilla explosion
+## particles and sound. Only enemies trigger or take damage.
+const EXPLOSION = preload("res://scripts/characters/我的世界/wandering_trader/items/explosion_fx.gd")
+const ARM_TIME:float = 0.4
+const TRIGGER_HALF:float = 5.0
+const FUSE_TIME:float = 0.2
+const DAMAGE:float = 50.0
+const RADIUS:float = 22.0
+const KNOCKBACK:float = 30.0
+var triggered:bool = false
+var exploded:bool = false
+var _fuse:float = 0.0
+
+func _placed() -> void:
+	life = 25.0
+	sound(&"item_sand_place",-2.0)
+
+func _tick(delta:float) -> void:
+	if triggered:
+		_fuse += delta
+		if _fuse >= FUSE_TIME: explode()
+		return
+	if not authoritative or age < ARM_TIME: return
+	var pad := Rect2(global_position - Vector2(TRIGGER_HALF,TRIGGER_HALF),Vector2(TRIGGER_HALF,TRIGGER_HALF)*2.0)
+	for unit:ball in CATALOG.units(self):
+		if CATALOG.enemy_of(trader(),unit) and CATALOG.body_rect(unit).intersects(pad):
+			trigger()
+			return
+
+func trigger() -> void:
+	if triggered: return
+	triggered = true
+	_fuse = 0.0
+	sound(&"item_fuse",-4.0)
+	var owner_trader:Node2D = trader()
+	if authoritative and owner_trader != null and owner_trader.has_method(&"wt_item_event"): owner_trader.call(&"wt_item_event",name,&"trigger")
+
+func explode() -> void:
+	if exploded: return
+	exploded = true
+	var owner_trader:Node2D = trader()
+	EXPLOSION.spawn(self,global_position,RADIUS)
+	if authoritative and owner_trader != null:
+		sound(&"item_explode",0.0)
+		for unit:ball in CATALOG.units(self):
+			if not CATALOG.enemy_of(owner_trader,unit): continue
+			var rect:Rect2 = CATALOG.body_rect(unit)
+			var nearest:Vector2 = global_position.clamp(rect.position,rect.end)
+			if nearest.distance_to(global_position) > RADIUS: continue
+			var actual:float = CATALOG.hurt(owner_trader,unit,DAMAGE,global_position,true)
+			if actual > 0.0: owner_trader.set(&"gunpowder_hits",int(owner_trader.get(&"gunpowder_hits")) + 1)
+			if is_instance_valid(unit) and unit.health > 0 and unit.can_receive_negative_effects():
+				var away:Vector2 = unit.global_position - global_position
+				if away.length_squared() < 0.01: away = Vector2.UP
+				unit.apply_knockback(away.normalized(),KNOCKBACK*unit.get_negative_effect_ratio(),360.0,0.0,0.0,{"source":owner_trader,"lock_control":true})
+	expire()
+
+func _draw() -> void:
+	var tex:Texture2D = CATALOG.icon(CATALOG.GUNPOWDER)
+	var blink:bool = triggered and int(_fuse*20.0) % 2 == 0
+	draw_texture_rect(tex,Rect2(-4,-4,8,8),false,Color(1.8,1.8,1.8) if blink else Color.WHITE)

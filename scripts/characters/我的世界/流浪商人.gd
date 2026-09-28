@@ -12,6 +12,8 @@ extends "res://scripts/characters/我的世界/mc_mob_base.gd"
 ##   safest wall slot (farthest from enemies, body-clear floor), again clipped, and the leashes
 ##   reconnect. No fading. Shortly before he comes out, the exit wall cracks (stone chips + sound)
 ##   so opponents can read where he will appear.
+## * 物品: every wall exit rolls one item (items/catalog.gd), shown in the item frame under him
+##   until it is used: 火药 / 蓝冰 / 河豚桶 / 滴水石锥 / 粘液球 / 干草块 / 马铃薯 / 仙人掌 / 热带鱼桶.
 const AUDIO = preload("res://scripts/characters/我的世界/wandering_trader/audio.gd")
 const VISUAL = preload("res://scripts/characters/我的世界/wandering_trader/visual.gd")
 const LEASH = preload("res://scripts/characters/我的世界/wandering_trader/leash.gd")
@@ -20,9 +22,22 @@ const WALL_CLIP = preload("res://scripts/characters/我的世界/wandering_trade
 const POTION_EFFECTS = preload("res://scripts/effects/我的世界/女巫药水效果.gd")
 const TOOLS = preload("res://scripts/characters/投稿角色工具.gd")
 const STATUS_EFFECTS = preload("res://scripts/effects/我的世界/mc_status_effects.gd")
+const HIT_GAIN = preload("res://scripts/effects/我的世界/hit_audio_gain.gd")
+const HIT_AUDIO = preload("res://scripts/characters/我的世界/new5/audio.gd")
 const LLAMA_SCENE_PATH:String = "res://scenes/creatures/流浪商人_羊驼.tscn"
 const STATUS_CLEANSING_PATH:String = "res://classes/status_cleansing.gd"
 const STONE_COLOR := Color(0.49,0.49,0.49)
+const CATALOG = preload("res://scripts/characters/我的世界/wandering_trader/items/catalog.gd")
+const CRUMBS = preload("res://scripts/characters/我的世界/wandering_trader/items/crumbs.gd")
+const FRAME_VIEW = preload("res://scripts/characters/我的世界/wandering_trader/items/frame_view.gd")
+const THROWN = preload("res://scripts/characters/我的世界/wandering_trader/items/thrown.gd")
+const HEARTS = preload("res://scripts/characters/我的世界/wandering_trader/items/hearts_fx.gd")
+const PLACED_SCRIPTS:Dictionary = {
+	&"gunpowder":preload("res://scripts/characters/我的世界/wandering_trader/items/gunpowder.gd"),
+	&"blue_ice":preload("res://scripts/characters/我的世界/wandering_trader/items/blue_ice.gd"),
+	&"pointed_dripstone":preload("res://scripts/characters/我的世界/wandering_trader/items/dripstone.gd"),
+	&"cactus":preload("res://scripts/characters/我的世界/wandering_trader/items/cactus.gd"),
+}
 enum Phase { NONE, ENTERING, HIDDEN, EMERGING }
 
 @export_category("流浪商人 / 羊驼与缰绳")
@@ -50,6 +65,17 @@ enum Phase { NONE, ENTERING, HIDDEN, EMERGING }
 @export var drink_move_ratio:float = 0.35
 @export_category("流浪商人 / 羊驼补回")
 @export var llama_return_cooldown:float = 20.0
+@export_category("流浪商人 / 物品")
+@export var item_delay_min:float = 0.6 # 火药 / 仙人掌: random delay after the wall exit
+@export var item_delay_max:float = 2.4
+@export var item_show_time:float = 0.3 # immediate items stay this long in the frame first
+@export var slime_range:float = 150.0
+@export var slime_hold_max:float = 10.0
+@export var dripstone_hold_max:float = 12.0
+@export var potato_heal:float = 40.0
+@export var potato_eat_time:float = 0.96
+@export var fish_max_each:int = 2
+@export var items_enabled:bool = true # off = no item roll on wall exit (deterministic herd tests)
 
 var wall_phase:int = Phase.NONE
 var leashes:Array[Node2D] = []
@@ -85,6 +111,7 @@ var _item_anchor:Node2D
 var _item_sprite:Sprite2D
 var _item_tween:Tween
 var exit_warnings:int = 0
+var wall_crumb_bursts:int = 0
 ## Wall skill triggered: he keeps his normal movement and goes in at the next wall he hits.
 var wall_armed:bool = false
 var _wall_armed_time:float = 0.0
@@ -97,6 +124,21 @@ var _exit_warned:bool = false
 var _llama_return_wait:Array[float] = []
 ## Slot of the llama walking out of the wall with him this exit (-1 = none).
 var _returning_llama:int = -1
+var held_item:StringName = &""
+var items_rolled:int = 0
+var items_used:Dictionary = {} # kind -> count
+var item_frame:Node2D
+var gunpowder_hits:int = 0
+var ice_wall_hits:int = 0
+var slime_hits:int = 0
+var slime_wall_bounces:int = 0
+var hay_healed:int = 0
+var potato_healed:int = 0
+var fish_released:int = 0
+var _item_wait:float = 0.0
+var _item_hold:float = 0.0
+var _item_serial:int = 0
+var _fish_serial:int = 0
 
 func _ready() -> void:
 	Can_Attack = false
@@ -107,6 +149,9 @@ func _ready() -> void:
 	super._ready()
 	visual = VISUAL.attach(self,&"trader")
 	_setup_item_visual()
+	item_frame = FRAME_VIEW.new()
+	item_frame.call(&"setup",self)
+	add_child(item_frame)
 	_invisibility_wait = invisibility_first_delay
 	_wall_wait = wall_first_delay
 	for i:int in range(llama_count):
@@ -261,6 +306,7 @@ func tick_physics(state:State,delta:float) -> void:
 		_drink_left -= delta
 		if _drink_left <= 0.0: _finish_drink()
 	if dizziness or is_damage_output_disabled(): return
+	if wall_phase == Phase.NONE: _tick_item(delta)
 	if _drink_left <= 0.0 and wall_phase == Phase.NONE:
 		_negative_check_wait -= delta
 		if _milk_wait <= 0.0 and _negative_check_wait <= 0.0:
@@ -362,9 +408,12 @@ func cleanse_with_milk() -> int:
 
 func start_drink(kind:StringName) -> bool:
 	# The potion also works inside the wall (independent skill); milk keeps its old rule.
-	if _drink_left > 0.0 or health <= 0 or (kind == &"milk" and wall_phase != Phase.NONE): return false
+	if _drink_left > 0.0 or health <= 0 or (kind != &"invisibility" and wall_phase != Phase.NONE): return false
 	_drink_kind = kind
-	if kind == &"milk":
+	if kind == CATALOG.POTATO:
+		_drink_left = potato_eat_time
+		_eat_effects(potato_eat_time)
+	elif kind == &"milk":
 		_milk_wait = milk_cooldown
 		_drink_left = milk_drink_time
 		milk_drinks += 1
@@ -383,7 +432,10 @@ func _finish_drink() -> void:
 	_drink_kind = &""
 	_drink_left = 0.0
 	if health <= 0: return
-	if kind == &"milk":
+	if kind == CATALOG.POTATO:
+		potato_healed += heal(potato_heal)
+		wt_sound(&"item_burp",-2.0)
+	elif kind == &"milk":
 		last_cleansed = cleanse_with_milk()
 		VISUAL.burst(self,global_position + Vector2(0.0,-4.0),Color(1.0,1.0,1.0),12,36.0,1.3,0.5)
 	elif kind == &"invisibility":
@@ -394,7 +446,7 @@ func _finish_drink() -> void:
 func _show_drink_visual(kind:StringName,duration:float) -> void:
 	_drink_visual_left = duration
 	if _item_sprite == null: return
-	_item_sprite.texture = VISUAL.item_texture(kind)
+	_item_sprite.texture = CATALOG.icon(kind) if kind == CATALOG.POTATO else VISUAL.item_texture(kind)
 	var size:float = maxf(_item_sprite.texture.get_width() if _item_sprite.texture != null else 16.0,1.0)
 	_item_sprite.scale = Vector2.ONE*(30.0/size)
 	_item_anchor.visible = true
@@ -490,7 +542,12 @@ func start_wall_phase() -> bool:
 	return true
 
 func when_collide(speed:float,collision:KinematicCollision2D) -> void:
-	if wall_armed and wall_phase == Phase.NONE and is_multiplayer_authority() and collision != null and not (collision.get_collider() is ball):
+	var collider:Object = collision.get_collider() if collision != null else null
+	# His own cactus is an obstacle, not a wall: no wall entry, no dripstone on it.
+	var map_wall:bool = collision != null and not (collider is ball) and not (collider is Node and (collider as Node).is_in_group(&"WTItemObstacle"))
+	if map_wall and held_item == CATALOG.DRIPSTONE and wall_phase == Phase.NONE and is_multiplayer_authority() and health > 0:
+		if _place_item(CATALOG.DRIPSTONE,collision.get_position(),{"normal": collision.get_normal(),"grace": get_instance_id()}) != null: _item_used(CATALOG.DRIPSTONE)
+	if wall_armed and wall_phase == Phase.NONE and is_multiplayer_authority() and map_wall:
 		if begin_wall_entry(collision.get_position(),collision.get_normal(),_last_requested_velocity): return
 	super.when_collide(speed,collision)
 
@@ -678,13 +735,13 @@ func _exit_warning_visual(face:Vector2,normal:Vector2,duration:float) -> void:
 	var dir:Vector2 = normal if normal != Vector2.ZERO else Vector2.UP
 	var tangent:Vector2 = dir.orthogonal()
 	var pulses:int = 3
+	var source:Dictionary = CRUMBS.wall_source(self,face,dir)
 	var tween:Tween = create_tween()
 	for i:int in range(pulses):
 		var spread:float = 8.0 + 5.0*i
 		tween.tween_callback(func() -> void:
 			for side:float in [-1.0,0.0,1.0]:
-				VISUAL.burst(self,face + tangent*side*spread,STONE_COLOR,10 + 4*i,55.0 + 15.0*i,1.8,0.5,dir)
-			VISUAL.burst(self,face,Color(0.62,0.62,0.62),8 + 2*i,40.0,1.3,0.45,dir))
+				CRUMBS.spawn(self,face + tangent*side*spread,source,6 + 3*i,dir,50.0 + 15.0*i,3.0,0.55,1.2,false,1.5))
 		tween.tween_interval(duration/float(pulses))
 
 func _begin_emerge() -> void:
@@ -775,6 +832,7 @@ func _finish_wall() -> void:
 		if multiplayer.has_multiplayer_peer() and not multiplayer.get_peers().is_empty(): _llama_clip_remote.rpc(_returning_llama,false,Vector2.ZERO,Vector2.UP)
 		_returning_llama = -1
 	_set_leash_active(true)
+	if items_enabled and health > 0 and is_combat_runtime_active(): roll_item()
 	if _pending_invisibility:
 		_pending_invisibility = false
 		if health > 0 and is_combat_runtime_active(): POTION_EFFECTS.apply_effect(self,"invisibility",self)
@@ -803,8 +861,11 @@ func _wall_fade(alpha:float) -> void:
 func _wall_visual(show_unit:bool,point:Vector2,normal:Vector2,at:Vector2) -> void:
 	if not is_multiplayer_authority(): global_position = at
 	visible = show_unit
-	VISUAL.burst(self,point,STONE_COLOR,18,70.0,1.6,0.6,normal if normal != Vector2.ZERO else Vector2.UP)
-	VISUAL.burst(self,point,Color(0.62,0.62,0.62),8,40.0,1.0,0.45,normal if normal != Vector2.ZERO else Vector2.UP)
+	# The wall's own block particles: crumbs cut from the wall tile's texture (vanilla terrain particles).
+	var n:Vector2 = normal if normal != Vector2.ZERO else Vector2.UP
+	var source:Dictionary = CRUMBS.wall_source(self,point,n)
+	CRUMBS.spawn(self,point,source,28,n,75.0,3.0,0.75,1.25,false,4.0) # dark wall tiles: unshaded so they read
+	wall_crumb_bursts += 1
 
 # Hidden inside the wall: no damage, knockback or hit contacts reach him.
 func is_hidden_in_wall() -> bool: return wall_phase == Phase.HIDDEN
@@ -843,3 +904,293 @@ func controlled_middle_action() -> void:
 	# Middle click: milk, only while a negative effect is present (same rule as the AI).
 	if not is_player_controlled() or not is_multiplayer_authority() or not is_combat_runtime_active(): return
 	if _milk_wait <= 0.0 and has_negative_effect(): start_drink(&"milk")
+
+func player_control_extra_actions() -> Array:
+	return [&"controlled_item_action"]
+
+func controlled_item_action() -> void:
+	# Key 1: use the item in the frame now (slime ball toward the mouse aim).
+	if not is_player_controlled() or not is_multiplayer_authority() or not is_combat_runtime_active(): return
+	if wall_phase == Phase.NONE and not held_item.is_empty(): use_held_item(true)
+
+# ------------------------------------------------------------------ items
+## One random item per wall exit. 干草块 only while a llama is hurt, 马铃薯 only while he is hurt.
+func roll_item() -> StringName:
+	if not is_multiplayer_authority(): return &""
+	var pool:Array[StringName] = []
+	for kind:StringName in CATALOG.ALL:
+		if kind == CATALOG.HAY and hay_target() == null: continue
+		if kind == CATALOG.POTATO and health >= Max_health: continue
+		pool.append(kind)
+	if pool.is_empty(): return &""
+	give_item(pool[_mc_rng.randi_range(0,pool.size() - 1)])
+	items_rolled += 1
+	return held_item
+
+## Puts kind into the frame (replacing an unused one) and starts its trigger timer.
+func give_item(kind:StringName) -> void:
+	held_item = kind
+	_item_hold = 0.0
+	if kind == CATALOG.GUNPOWDER or kind == CATALOG.CACTUS: _item_wait = _mc_rng.randf_range(item_delay_min,item_delay_max)
+	else: _item_wait = item_show_time
+	_show_frame_item(kind)
+	if multiplayer.has_multiplayer_peer() and not multiplayer.get_peers().is_empty(): _show_frame_item.rpc(kind)
+	if not kind.is_empty(): wt_sound(&"item_frame_add",0.0,item_frame.global_position if item_frame != null else global_position)
+
+@rpc("authority","call_remote","reliable")
+func _show_frame_item(kind:StringName) -> void:
+	held_item = kind
+	if item_frame != null and is_instance_valid(item_frame): item_frame.call(&"show_item",kind)
+
+## The frame hides with his body while he is behind a wall surface.
+func frame_outside_wall(point:Vector2) -> bool:
+	if wall_phase == Phase.HIDDEN or not visible: return false
+	if _wall_clip == null or not is_instance_valid(_wall_clip) or not bool(_wall_clip.get(&"active")): return true
+	return float(_wall_clip.call(&"side_of",point)) > 0.0
+
+func _tick_item(delta:float) -> void:
+	if held_item.is_empty() or health <= 0: return
+	_item_hold += delta
+	_item_wait -= delta
+	match held_item:
+		CATALOG.DRIPSTONE:
+			# Placed by when_collide on the next wall he touches; floor spike if none in time.
+			if _item_hold >= dripstone_hold_max: use_held_item()
+		CATALOG.SLIME_BALL:
+			if is_player_controlled() or _item_wait > 0.0: return
+			if slime_target(true) != null or (_item_hold >= slime_hold_max and slime_target(false) != null): use_held_item()
+		_:
+			if _item_wait <= 0.0 and not use_held_item(): _item_wait = 0.3
+
+## Uses the held item now. Returns false when it cannot be used yet (it stays in the frame).
+func use_held_item(manual:bool = false) -> bool:
+	var kind:StringName = held_item
+	if kind.is_empty() or wall_phase != Phase.NONE or health <= 0: return false
+	var used:bool = false
+	match kind:
+		CATALOG.GUNPOWDER:
+			used = _place_item(kind,global_position,{}) != null
+		CATALOG.BLUE_ICE:
+			used = _place_item(kind,_inside_arena(global_position + _exit_inward()*14.0,16.0),{}) != null
+		CATALOG.CACTUS:
+			var spot:Variant = cactus_spot()
+			used = spot is Vector2 and _place_item(kind,spot,{}) != null
+		CATALOG.DRIPSTONE:
+			var back:Vector2 = _behind(14.0)
+			used = _place_item(kind,back,{"normal": Vector2.UP,"grace": get_instance_id()}) != null
+		CATALOG.SLIME_BALL:
+			used = throw_slime(manual)
+		CATALOG.HAY:
+			var llama:Node2D = hay_target()
+			if llama == null:
+				_item_used(kind) # nobody to feed any more: drop it
+				return false
+			used = _throw(kind,llama,llama.global_position,0.7)
+		CATALOG.POTATO:
+			used = start_drink(CATALOG.POTATO)
+		CATALOG.PUFFERFISH,CATALOG.TROPICAL_FISH:
+			used = release_fish(kind == CATALOG.PUFFERFISH) != null
+	if used: _item_used(kind)
+	return used
+
+func _item_used(kind:StringName) -> void:
+	items_used[kind] = int(items_used.get(kind,0)) + 1
+	if held_item == kind:
+		held_item = &""
+		_show_frame_item(&"")
+		if multiplayer.has_multiplayer_peer() and not multiplayer.get_peers().is_empty(): _show_frame_item.rpc(&"")
+		wt_sound(&"item_frame_remove",0.0,item_frame.global_position if item_frame != null else global_position)
+
+func item_count(kind:StringName) -> int: return int(items_used.get(kind,0))
+
+## Floor direction away from the exit wall (his walk-out direction as fallback).
+func _exit_inward() -> Vector2:
+	if not exit_slot.is_empty(): return _slot_normal(exit_slot)
+	if direction.length_squared() > 0.000001: return direction.normalized()
+	return Vector2.DOWN
+
+func _behind(distance:float) -> Vector2:
+	var heading:Vector2 = direction.normalized() if direction.length_squared() > 0.000001 else Vector2.RIGHT
+	return _inside_arena(global_position - heading*distance,8.0)
+
+func _inside_arena(point:Vector2,margin:float) -> Vector2:
+	var rect:Rect2 = mc_arena_rect().grow(-margin)
+	if rect.size.x <= 0.0 or rect.size.y <= 0.0: return point
+	return point.clamp(rect.position,rect.end)
+
+## A free 14 px square behind / beside him for the cactus (never on a unit or wall).
+func cactus_spot() -> Variant:
+	var heading:Vector2 = direction.normalized() if direction.length_squared() > 0.000001 else Vector2.RIGHT
+	var box := RectangleShape2D.new()
+	box.size = Vector2(15.0,15.0)
+	for offset:Vector2 in [-heading*18.0,-heading*26.0,heading.orthogonal()*18.0,-heading.orthogonal()*18.0,-heading*34.0]:
+		var point:Vector2 = _inside_arena(global_position + offset,9.0)
+		var query := PhysicsShapeQueryParameters2D.new()
+		query.shape = box
+		query.transform = Transform2D(0.0,point)
+		query.collision_mask = 3
+		query.collide_with_areas = false
+		if get_world_2d().direct_space_state.intersect_shape(query,1).is_empty(): return point
+	return null
+
+func _item_name(prefix:String) -> String:
+	_item_serial += 1
+	return "%s_%s%d" % [str(name),prefix,_item_serial]
+
+func _place_item(kind:StringName,point:Vector2,extra:Dictionary) -> Node2D:
+	if not PLACED_SCRIPTS.has(kind) or not is_inside_tree(): return null
+	var node_name:String = _item_name("Item")
+	var node:Node2D = _spawn_placed(kind,node_name,point,extra,true)
+	if multiplayer.has_multiplayer_peer() and not multiplayer.get_peers().is_empty(): _spawn_placed_remote.rpc(kind,node_name,point,extra)
+	return node
+
+func _spawn_placed(kind:StringName,node_name:String,point:Vector2,extra:Dictionary,authority:bool) -> Node2D:
+	var parent:Node = get_tree().current_scene if get_tree().current_scene != null else get_tree().root
+	var node:Node2D = (PLACED_SCRIPTS[kind] as Script).new()
+	node.name = node_name
+	node.set(&"kind",kind)
+	parent.add_child(node)
+	node.call(&"setup",self,point,extra,authority)
+	return node
+
+@rpc("authority","call_remote","reliable")
+func _spawn_placed_remote(kind:StringName,node_name:String,point:Vector2,extra:Dictionary) -> void:
+	if PLACED_SCRIPTS.has(kind): _spawn_placed(kind,node_name,point,extra,false)
+
+## Relays a gameplay moment of an item node (gunpowder trigger, slime hit) to remote copies.
+func wt_item_event(node_name:String,event:StringName,point:Vector2 = Vector2.ZERO) -> void:
+	if is_multiplayer_authority() and multiplayer.has_multiplayer_peer() and not multiplayer.get_peers().is_empty(): _item_event_remote.rpc(node_name,event,point)
+
+@rpc("authority","call_remote","reliable")
+func _item_event_remote(node_name:String,event:StringName,point:Vector2) -> void:
+	var parent:Node = get_tree().current_scene
+	var node:Node = parent.get_node_or_null(NodePath(node_name)) if parent != null else null
+	if node == null: return
+	if node.has_method(&"remote_event"): node.call(&"remote_event",event,point)
+	elif event == &"trigger" and node.has_method(&"trigger"): node.call(&"trigger")
+
+## Nearest enemy for the slime ball (in range with a clear line when strict).
+func slime_target(strict:bool) -> ball:
+	var best:ball
+	var distance:float = INF
+	for raw:Node in get_tree().get_nodes_in_group(&"Ball"):
+		if raw == self or not (raw is ball) or not wt_enemy(raw) or not (raw as ball).is_combat_lockable(): continue
+		var unit:ball = raw as ball
+		if unit.Type not in [Ball_Type.Ball,Ball_Type.Creature]: continue
+		var d:float = global_position.distance_to(unit.global_position)
+		if strict and (d > slime_range or not mc_line_clear(global_position,unit.global_position)): continue
+		if d < distance:
+			distance = d
+			best = unit
+	return best
+
+func throw_slime(manual:bool) -> bool:
+	var target:ball = slime_target(false)
+	var aim:Vector2
+	if manual and has_player_control_aim():
+		aim = global_position + player_control_aim_direction(direction)*minf(slime_range,120.0)
+		target = null
+	elif target != null:
+		var flight_guess:float = clampf(global_position.distance_to(target.global_position)/220.0,0.35,0.75)
+		aim = target.global_position + target.velocity*flight_guess*0.8
+	else:
+		return false
+	var flight:float = clampf(global_position.distance_to(aim)/220.0,0.35,0.75)
+	return _throw(CATALOG.SLIME_BALL,target,aim,flight)
+
+func _throw(kind:StringName,target:Node2D,aim:Vector2,flight:float) -> bool:
+	var node_name:String = _item_name("Throw")
+	var start:Vector2 = hand_point()
+	THROWN.launch(self,kind,start,target,aim,true,flight,node_name)
+	var path:String = str(target.get_path()) if target != null else ""
+	if multiplayer.has_multiplayer_peer() and not multiplayer.get_peers().is_empty(): _throw_remote.rpc(kind,start,path,aim,flight,node_name)
+	wt_sound(&"item_throw",0.0,start)
+	return true
+
+@rpc("authority","call_remote","reliable")
+func _throw_remote(kind:StringName,start:Vector2,target_path:String,aim:Vector2,flight:float,node_name:String) -> void:
+	var target:Node2D = get_node_or_null(NodePath(target_path)) as Node2D if not target_path.is_empty() else null
+	THROWN.launch(self,kind,start,target,aim,false,flight,node_name)
+
+## The hurt llama with the lowest health share (null when none is hurt).
+func hay_target() -> Node2D:
+	var best:Node2D
+	var share:float = 1.0
+	for llama:Node in living_llamas():
+		var ratio:float = float(llama.get(&"health"))/maxf(float(llama.get(&"Max_health")),1.0)
+		if ratio < share:
+			share = ratio
+			best = llama as Node2D
+	return best
+
+func wt_hearts(point:Vector2) -> void:
+	HEARTS.spawn(self,point,4)
+
+## Eating: three bites with the vanilla eat sound and baked potato crumbs at the mouth.
+func _eat_effects(duration:float) -> void:
+	var tween:Tween = create_tween()
+	for i:int in range(3):
+		tween.tween_interval(duration*0.28)
+		tween.tween_callback(func() -> void:
+			if health <= 0: return
+			wt_sound(&"item_eat",0.0)
+			_eat_crumbs(to_global(Vector2(facing_sign()*11.0,-38.0))))
+	if multiplayer.has_multiplayer_peer() and not multiplayer.get_peers().is_empty(): _eat_crumbs_remote.rpc(duration)
+
+func _eat_crumbs(point:Vector2) -> void:
+	CRUMBS.spawn(self,point,CRUMBS.texture_source(CATALOG.icon(CATALOG.POTATO)),6,Vector2.DOWN,30.0,1.6,0.45,1.1,false,1.0)
+
+@rpc("authority","call_remote","reliable")
+func _eat_crumbs_remote(duration:float) -> void:
+	var tween:Tween = create_tween()
+	for i:int in range(3):
+		tween.tween_interval(duration*0.28)
+		tween.tween_callback(func() -> void: _eat_crumbs(to_global(Vector2(facing_sign()*11.0,-38.0))))
+
+## 河豚 / 热带鱼 out of the bucket beside him; at most fish_max_each of each kind (oldest dries out).
+func release_fish(puffer:bool) -> ball:
+	if not is_multiplayer_authority() or not is_inside_tree(): return null
+	var mine:Array[Node] = []
+	for fish:Node in get_tree().get_nodes_in_group(&"MCTraderFish"):
+		if fish.get(&"Master") == self and bool(fish.get(&"puffer")) == puffer and float(fish.get(&"health")) > 0.0: mine.append(fish)
+	while mine.size() >= maxi(fish_max_each,1):
+		var oldest:Node = mine.pop_front()
+		if oldest.has_method(&"owner_lost"): oldest.call(&"owner_lost")
+	var scene:PackedScene = load(CATALOG.PUFFERFISH_SCENE_PATH if puffer else CATALOG.TROPICAL_FISH_SCENE_PATH) as PackedScene
+	if scene == null: return null
+	var fish:ball = scene.instantiate()
+	_fish_serial += 1
+	fish.name = "%s_Fish%d" % [str(name),_fish_serial]
+	fish.Master = self
+	fish.Master_name = str(get_path())
+	fish.Team = Team
+	var side:float = facing_sign()
+	fish.direction = Vector2(side,0.0)
+	fish.set_multiplayer_authority(get_multiplayer_authority())
+	var parent:Node = get_parent() if get_parent() != null else get_tree().current_scene
+	parent.add_child(fish,true)
+	var wanted:Vector2 = global_position + Vector2(side*14.0,-4.0)
+	fish.global_position = wanted if fish.call(&"mc_body_position_clear",wanted) else TOOLS.safe_spawn_position(self,wanted,14.0)
+	fish.add_to_group(&"BattleTransient")
+	fish_released += 1
+	wt_sound(&"item_empty_fish",0.0)
+	return fish
+
+func wt_on_fish_lost(_fish:Node) -> void: pass
+
+## §1 hit feedback for item damage (played at the victim, synced to peers).
+func wt_hit_sound(actual:float,point:Vector2) -> AudioStreamPlayer2D:
+	if not is_finite(actual) or actual <= 0.0: return null
+	if is_multiplayer_authority() and multiplayer.has_multiplayer_peer() and not multiplayer.get_peers().is_empty(): _wt_hit_sound_remote.rpc(actual,point)
+	return _wt_hit_sound_local(actual,point)
+
+@rpc("authority","call_remote","reliable")
+func _wt_hit_sound_remote(actual:float,point:Vector2) -> void:
+	_wt_hit_sound_local(actual,point)
+
+func _wt_hit_sound_local(actual:float,point:Vector2) -> AudioStreamPlayer2D:
+	var player:AudioStreamPlayer2D = HIT_AUDIO.play(self,HIT_GAIN.damage_event(actual),point,HIT_GAIN.damage_gain(actual),false,true,true,true)
+	if is_instance_valid(player):
+		player.set_meta(&"mc_damage_source",get_instance_id())
+		player.set_meta(&"mc_actual_damage",actual)
+	return player
