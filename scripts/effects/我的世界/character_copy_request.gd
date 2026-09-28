@@ -96,7 +96,7 @@ func _complete_copy() -> void:
 	var options:Dictionary = {"owner":owner,"parent":get_parent(),"master_name":owner_name,"team":owner_team,
 		"neutral_owner":neutral_owner,"full_vitals":true,"cooldown_factor":1.0,"monochrome":true,
 		"lifecycle_ticket":lifecycle_ticket,"metadata":{"haochen_copy":true,"haochen_owner_name":owner_name},
-		"body_scale":body_scale,"prepare_instance":_prepare_copy_body}
+		"body_scale":body_scale,"friendly_guard":true,"prepare_instance":_prepare_copy_body}
 	var copy:ball = TOOLS.spawn_character_copy(self,template_snapshot,global_position,stat_factor,options)
 	var success:bool = is_instance_valid(copy)
 	_release_ticket()
@@ -151,7 +151,7 @@ func _source_node() -> Node2D:
 
 ## Half-size copy (user request, task 9): the root scale is set once here, before the
 ## copy enters the tree, and reaches peers through ball's replicated `.:scale`; the
-## shared copy profile's `body_scale` keeps its health bar readable on every peer.
+## copy's own UI (health bar, status icon) are root children and shrink with it (task 10).
 func _prepare_copy_body(unit:Node2D) -> void:
 	if body_scale>0.0 and not is_equal_approx(body_scale,1.0): unit.scale *= body_scale
 

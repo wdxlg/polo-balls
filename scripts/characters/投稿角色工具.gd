@@ -203,9 +203,12 @@ static func build_character_copy_profile(snapshot:Dictionary,factor:float,option
 		"monochrome":bool(options.get("monochrome",false)),"master_name":str(options.get("master_name","")),
 		"team":str(options.get("team","")),"neutral_owner":str(options.get("neutral_owner",""))}
 	# Optional body scale of the copy (Haochen: 0.5). Its spawner sets the root scale;
-	# the profile carries it so every peer can keep the health bar readable.
+	# the copy's own UI (health bar etc.) shrinks with it (Haochen task 10 correction).
 	var body_scale:float = float(options.get("body_scale",1.0))
 	if body_scale>0.0 and not is_equal_approx(body_scale,1.0): profile["body_scale"] = body_scale
+	# Guarded copies (Haochen) and their offspring never hurt their side; see
+	# res://scripts/characters/我的世界/haochen/copy_friendly_guard.gd.
+	if bool(options.get("friendly_guard",false)): profile["friendly_guard"] = true
 	return profile
 
 static func apply_character_copy_profile(unit:ball,profile:Dictionary,apply_vitals:bool = true) -> void:
@@ -214,7 +217,7 @@ static func apply_character_copy_profile(unit:ball,profile:Dictionary,apply_vita
 	unit.inherit_master_attack_power = false
 	for key:String in COPY_STAT_KEYS:
 		if stats.has(key): unit.set(key,stats[key])
-	apply_character_copy_health_bar_scale(unit,profile)
+	if bool(profile.get("friendly_guard",false)) and not unit.is_in_group(&"character_copy_friendly_guard"): unit.add_to_group(&"character_copy_friendly_guard")
 	if not apply_vitals: return
 	if unit.default_properties != null:
 		for key:String in COPY_STAT_KEYS:
@@ -243,17 +246,6 @@ static func apply_character_copy_profile(unit:ball,profile:Dictionary,apply_vita
 	unit.Team = team
 	unit.set_meta(&"forced_combat_team",team)
 	if bool(profile.get("monochrome",false)): unit._refresh_character_copy_visuals()
-
-## A scaled copy (profile.body_scale) keeps an unscaled, readable health bar. The
-## bar's scale is not replicated, so this runs on every peer; idempotent. Only after
-## the unit is ready, so a character's own _ready bar scale (MC mobs use 0.9x) is the base.
-static func apply_character_copy_health_bar_scale(unit:ball,profile:Dictionary) -> void:
-	var body_scale:float = float(profile.get("body_scale",1.0))
-	if body_scale<=0.0 or is_equal_approx(body_scale,1.0) or not unit.is_node_ready(): return
-	var bar:Control = unit.get_node_or_null("Health_Bar") as Control
-	if bar == null: return
-	if not bar.has_meta(&"character_copy_base_scale"): bar.set_meta(&"character_copy_base_scale",bar.scale)
-	bar.scale = (bar.get_meta(&"character_copy_base_scale") as Vector2)/body_scale
 
 static func spawn_character_copy(context:Node,snapshot:Dictionary,point:Vector2,factor:float = 0.5,options:Dictionary = {}) -> ball:
 	if not is_instance_valid(context) or not context.is_inside_tree() or not context.is_multiplayer_authority() or snapshot.is_empty(): return null

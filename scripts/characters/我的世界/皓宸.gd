@@ -77,6 +77,7 @@ func _ready() -> void:
 	if Dead_Audio.is_empty(): Dead_Audio = "DeadBell"
 	Health_Restore = 0
 	super._ready()
+	add_to_group(&"character_copy_friendly_guard") # task 10: his copies never hurt his side
 	_fx_rng.seed = Game.battle_rng_seed_or("haochen_visual:"+str(name),int(get_instance_id()))
 	_drain_rng.seed = int(get_instance_id())
 	_previous_audio_position = global_position

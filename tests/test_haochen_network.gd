@@ -99,7 +99,7 @@ func run() -> void:
 	check(a.Master==host and b.Master==guest and a.Team=="Team0" and b.Team=="Team0","subordinate ownership resolves to the corresponding peer's Haochen")
 	check(b.character_copy_profile.monochrome and b.image.get_instance_shader_parameter("character_grayscale")==1.0,"guest copy is truly grayscale without sharing the original material state")
 	check(await until(func():return a.scale.is_equal_approx(donor.scale*0.5) and b.scale.is_equal_approx(a.scale)),"the half-size copy root scale replicates to the guest")
-	check((b.get_node("Health_Bar") as Control).scale.is_equal_approx((donor.get_node("Health_Bar") as Control).scale*2.0),"guest copy health bar is counter-scaled so it stays readable")
+	check((b.get_node("Health_Bar") as Control).scale.is_equal_approx((donor.get_node("Health_Bar") as Control).scale) and (b.get_node("Health_Bar") as Control).get_global_transform().get_scale().abs().is_equal_approx((donor.get_node("Health_Bar") as Control).get_global_transform().get_scale().abs()*0.5),"guest copy health bar is not counter-scaled: it shrinks to half with the copy")
 	check(await until(func():return guest.charge_energy==0.0 and guest.completed_copies==1),"successful cast resets the meter once and replicates its completion")
 	check(a.Attack_Cooling==1.6 and b.Attack_Cooling==1.6,"copying does not secretly halve skill/attack cooldowns")
 	game.now_stop_state=true

@@ -10,10 +10,15 @@
 - **减速/恢复**：蓄能时主动移速在 2 秒内线性降到 30% 下限（不为 0）；附近无敌人时 2 秒内恢复到 100%。只缩放自驱移动，击退/牵引/地表速度不缩放。离开范围保留已积累能量与贡献记录。
 - **满条复制**：复制“本轮”累计贡献最多的人物（例：A 提供 60、B 提供 40 → 复制 A）；平局取最早开始贡献者。施放 0.65 秒，经公共 `begin_battle_spawn / apply_battle_spawn_identity / finish_battle_spawn` 票据生成原场景的**全新实例**（不是染色假人）。成功后清零并重新计分，失败/取消不消耗满条，0.5 秒后重试；已有复制品不被替换、无隐藏数量上限。
 - **复制品**：黑白画风——真实 shader 灰度（`Set_RGB_Color.gdshader` 的 `character_grayscale` 实例参数；无材质的子节点用 `shaders/character_monochrome.gdshader`），不是灰色 modulate；原角色材质不受影响。**除移速外**公共数值减半：Max_health / Damage / Health_Restore / max_block / max_energy 向上取整×0.5，Damage_reduction×0.5，生命/护盾/能量按新上限满额；Speed 不变。攻击/技能冷却保持原值（减半冷却等于加强，不按“数值减半”处理）；技能参数不改。
-- **复制品体型减半**（2026-09-28 任务 9）：图像、碰撞体、受击/攻击判定一起缩到一半——施放方在复制品入树前把根节点 scale ×0.5（与幼年兔子同一机制，经 ball 同步的 `.:scale` 到达各端）；复制品发射的投射物/召唤物保持原大小。复制档案带 `body_scale=0.5`，各端据此把头顶血条反向放大，血条与数字保持正常可读（基准取角色自己 _ready 后的血条缩放）。
+- **复制品体型减半**（2026-09-28 任务 9）：图像、碰撞体、受击/攻击判定一起缩到一半——施放方在复制品入树前把根节点 scale ×0.5（与幼年兔子同一机制，经 ball 同步的 `.:scale` 到达各端）；复制品发射的投射物/召唤物保持原大小。**复制品自身 UI 也随身体一起缩小一半**（用户 2026-09-28 任务 10 纠正，取消任务 9 的血条反向放大）：头顶血条/护盾/能量条与状态图标都是根节点子节点，不再做任何补偿缩放。世界层的伤害数字、`set_status_image` 飘字属于全体角色共用的战斗反馈，不随复制品缩放。复制档案仍带 `body_scale=0.5`（像素拼身据此计算尺寸）。
 - **附属**：Master=皓宸、同队，共用皓宸原 setup 的战斗存续身份；皓宸死亡后已确认的施放仍可完成，复制品继续继承原身份，不新增席位。
 - **血量**：皓宸 Max_health = **800**（`皓宸.tscn`，2026-09-28 任务 8）。
-- **复制品永不伤害皓宸**：`Have_Team_Damage` 默认开启且 hitbox 只查一层 Master，复制品的投射物/召唤物/分裂后代可能绕过。皓宸.gd `is_own_summon_chain()` 沿整条链（Master / Master_name / `launch_owner_id` / `_src_ref` / `_declared_launcher` / 战斗存续身份 root / `mc_bat_cohort`）判断来源是否属于自己的复制品，并在 `can_receive_hit_contact / receive_positional_damage / _receive_spatial_damage_untyped / receive_internal_status_damage` 拒收。只作用于皓宸本体，不改公共 ball/hitbox。
+- **复制品永不伤害皓宸**：`Have_Team_Damage` 默认开启且 hitbox 只查一层 Master，复制品的投射物/召唤物/分裂后代可能绕过。皓宸.gd `is_own_summon_chain()` 沿整条链（Master / Master_name / `launch_owner_id` / `_src_ref` / `_declared_launcher` / 战斗存续身份 root / `mc_bat_cohort`）判断来源是否属于自己的复制品，并在 `can_receive_hit_contact / receive_positional_damage / _receive_spatial_damage_untyped / receive_internal_status_damage` 拒收。
+- **复制品也永不伤害/锁定皓宸一方**（2026-09-28 任务 10，用户：“复制的东西还是会攻击友军”）：皓宸一方 = 皓宸、他的复制品、同有效阵营的队友及其召唤物（无阵营/混战时只含皓宸与他自己的链）；与全局 `Have_Team_Damage` 开关无关。普通队友之间仍按原队友伤害规则。
+  - 规则唯一实现 `scripts/characters/我的世界/haochen/copy_friendly_guard.gd`（静态、鸭子类型）：成员组 `character_copy_friendly_guard`（皓宸 `_ready` 加入；复制品经共享复制档案 `friendly_guard=true` 在各端加入，皓宸死亡后仍有效），沿与 `is_own_summon_chain` 相同的链找到来源所属成员，再判断目标是否在其一方（有效阵营同 hitbox `_effective_team`，含 `forced_combat_team` 与 "Ball" 默认值回落到 Master）。
+  - 伤害入口：公共 `ball.gd::is_guarded_from_friendly_copy(source)`，在 `receive_positional_damage / _receive_spatial_damage_untyped / receive_internal_status_damage` 与 `hitbox.gd::try_hit_hurtbox`（阵营判定之后）调用；场上无成员时只做一次 `has_group`。这两处公共文件含他人未提交修改，本段钩子未入库，备份见 `.arena_haochen/backups/task10/`。
+  - 索敌：公共索敌助手 `new5/utils.gd::enemy()`（34 个脚本共用，开启队友伤害时把队友当敌人）与 `ai_original_base.gd::enemy_valid()` 跳过受保护目标（`has_method` 判断，缺少 ball 钩子时不报错）。
+  - 全角色实测：修复前开启队友伤害 34 个、关闭 2 个（伪军头子子弹、恶魂火球）角色的复制品伤到队友；修复后 284 次 0 伤害、0 锁定。
 - **手控**：蓄能与复制都是被动，C 手控不绑定按键（`player_control_action_ids()` 为空）。
 - **威胁显示**：只注册 80 半径蓝色检测圈（`haochen_energy_detection`），无伤害区域；皓宸本体无接触伤害。
 

@@ -8,6 +8,10 @@ var HAOCHEN:PackedScene
 var TOOLS:Script
 var hero:Node2D
 var hits:Dictionary = {}
+# Task 10: a Team0 ally stands next to the copy; any copy-chain damage to it, or the
+# copy locking onto it, is friendly fire against Haochen's side.
+var ally:Node2D
+var ally_hits:Dictionary = {}
 var trace:bool = false
 var current_path:String = ""
 
@@ -23,6 +27,9 @@ func collect(dir_path:String,out:Array[String]) -> void:
 		if head.contains("res://scenes/ball.tscn"):out.append(path)
 
 func on_damage(source:Node,target:Node,amount:float,_before:float) -> void:
+	if is_instance_valid(ally) and target==ally and amount>0.0:
+		var akey:String=(str(source.name)+("" if not is_instance_valid(hero) or hero.is_own_summon_chain(source) else "(not-own)")) if is_instance_valid(source) else "?"
+		ally_hits[akey]=float(ally_hits.get(akey,0.0))+amount
 	if target==hero and amount>0.0:
 		var key:String=str(source.name) if is_instance_valid(source) else "?"
 		if trace and not hits.has(key):push_error("SWEEP_TRACE scene=%s source=%s" % [current_path,key])
@@ -59,6 +66,7 @@ func run() -> void:
 	print("SWEEP_SCENES ",scenes.size())
 	var offenders:Array[String]=[]
 	var spawned_ok:int=0
+	var ally_bad:Array[String]=[]
 	var size_bad:Array[String]=[]
 	for team_damage:bool in modes:
 		game.Game_Settings.Have_Team_Damage=team_damage
@@ -67,15 +75,19 @@ func run() -> void:
 			var before:Dictionary={}
 			for c:Node in world.get_children():before[c.get_instance_id()]=true
 			hits.clear()
+			ally_hits.clear()
 			hero=HAOCHEN.instantiate();hero.name="SweepHaochen";hero.Team="Team0";hero.position=center
 			world.add_child(hero,true)
 			var dummy:Node2D=load("res://scenes/ball.tscn").instantiate();dummy.name="SweepDummy";dummy.Team="Team1";dummy.position=center+Vector2(70,0)
 			world.add_child(dummy,true)
+			ally=load("res://scenes/ball.tscn").instantiate();ally.name="SweepAlly";ally.Team="Team0";ally.position=center+Vector2(48,26)
+			world.add_child(ally,true)
 			await process_frame
-			for u:Node in [hero,dummy]:
+			for u:Node in [hero,dummy,ally]:
 				u.state_machine.set_physics_process(false);u.set_physics_process(false)
 				u.Has_Collision_Damage=false;u.Can_Attack=false;u.Can_Skill=false
 			dummy.Max_health=1000000;dummy.health=1000000
+			ally.Max_health=1000000;ally.health=1000000
 			var donor:Node=load(path).instantiate()
 			var snap:Dictionary={}
 			if donor.get("Max_health")!=null and donor.has_method("_refresh_character_copy_visuals"):
@@ -86,26 +98,29 @@ func run() -> void:
 			var copy:Node=null
 			if not snap.is_empty():
 				copy=TOOLS.spawn_character_copy(hero,snap,center+Vector2(28,0),0.5,{"owner":hero,"parent":world,"full_vitals":true,"monochrome":true,"metadata":{"haochen_copy":true},
-					"body_scale":0.5,"prepare_instance":func(u:Node2D):u.scale*=0.5})
-				# Task 9: the copy is half size, its health bar keeps the normal size.
+					"body_scale":0.5,"friendly_guard":true,"prepare_instance":func(u:Node2D):u.scale*=0.5})
+				# Task 9: the copy is half size; task 10: its health bar shrinks with it.
 				if is_instance_valid(copy):
 					var probe:Node2D=load(path).instantiate()
 					var want:Vector2=probe.scale*0.5
-					# Readable = the bar's on-screen size is not halved with the body (some
-					# characters trim their own bar in _ready, e.g. MC mobs 0.9x).
+					# The bar's on-screen size is halved with the body (some characters
+					# trim their own bar in _ready, e.g. MC mobs 0.9x -> 0.45 allowed).
 					var bar_normal:float=absf((probe.get_node("Health_Bar") as Control).scale.x*probe.scale.x) if probe.get_node_or_null("Health_Bar") is Control else 0.0
 					probe.free()
 					var bar:Control=copy.get_node_or_null("Health_Bar") as Control
 					var bar_now:float=absf(bar.get_global_transform().get_scale().x) if bar!=null else 0.0
-					if not copy.scale.is_equal_approx(want) or (bar!=null and bar_now<0.85*bar_normal):
+					if not copy.scale.is_equal_approx(want) or (bar!=null and (bar_now<0.5*0.85*bar_normal or bar_now>0.5*1.02*bar_normal)):
 						var line:String="SWEEP_SIZE scene=%s scale=%s want=%s bar=%.4f normal=%.4f" % [path,copy.scale,want,bar_now,bar_normal]
 						print(line);size_bad.append(line)
 			var spawned:bool=copy!=null
 			var lost:int=0
+			var targeted:bool=false
 			for f:int in range(180):
 				if not is_instance_valid(hero):lost=-1;break
 				hero.health=hero.Max_health # refill, then measure this frame's drop
 				await physics_frame
+				if is_instance_valid(copy) and is_instance_valid(ally) and (copy.Target_Enemy==ally or copy.Nearest_Enemy==ally):targeted=true
+				if is_instance_valid(ally):ally.health=1000000
 				if is_instance_valid(hero) and int(hero.health)<int(hero.Max_health):lost+=int(hero.Max_health)-int(hero.health)
 				if is_instance_valid(dummy):dummy.health=1000000
 			var total:float=0.0
@@ -113,6 +128,9 @@ func run() -> void:
 			if total>0.0 or lost>0:
 				var line:String="SWEEP_HIT team_damage=%s scene=%s copy=%s resolved=%s lost=%d" % [str(team_damage),path,str(copy.name) if is_instance_valid(copy) else "<gone>",str(hits),lost]
 				print(line);offenders.append(line)
+			if not ally_hits.is_empty() or targeted:
+				var aline:String="SWEEP_ALLY team_damage=%s scene=%s targeted=%s hits=%s" % [str(team_damage),path,str(targeted),str(ally_hits)]
+				print(aline);ally_bad.append(aline)
 			if not spawned:
 				print("SWEEP_NOCOPY team_damage=",team_damage," scene=",path)
 			else:spawned_ok+=1
@@ -123,7 +141,9 @@ func run() -> void:
 			for i:int in range(3):await process_frame
 	print("SWEEP_DONE spawned=",spawned_ok," offenders=",offenders.size())
 	print("SWEEP_SIZE_DONE bad=",size_bad.size())
-	check(size_bad.is_empty(),"every copy is exactly half size with a readable health bar")
+	check(size_bad.is_empty(),"every copy is exactly half size and its health bar shrinks with it")
+	print("SWEEP_ALLY_TOTAL ",ally_bad.size())
+	check(ally_bad.is_empty(),"no copy (nor its projectiles, summons, AOE or offspring) damaged or targeted a Team0 ally, team damage on or off")
 	for l:String in offenders:print("SWEEP_SUMMARY ",l)
 	check(spawned_ok==scenes.size()*modes.size(),"every roster character produced a real Haochen copy in every team-damage mode")
 	check(offenders.is_empty(),"no copy (nor its projectiles, summons, AOE or offspring) ever damaged Haochen")

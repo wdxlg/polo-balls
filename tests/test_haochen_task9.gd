@@ -1,6 +1,6 @@
 extends "res://tests/test_sulfur_cube_balance.gd"
-## Task 9 (2026-09-28): copies are half size (body, collision, hit areas; health bar
-## stays readable) and the spawn effect is "像素拼身": the copied character's own
+## Task 9 (2026-09-28): copies are half size (body, collision, hit areas; task 10: the
+## health bar shrinks with them) and the spawn effect is "像素拼身": the copied character's own
 ## grayscale pixels assemble into the half-size copy, then flash and scatter.
 ## Needs a real renderer (gui) so textures can be read back.
 var HAOCHEN:PackedScene
@@ -119,7 +119,9 @@ func run() -> void:
 		var cimg:Vector2=(copy.image as Node2D).global_scale.abs();var dimg:Vector2=(donor.image as Node2D).global_scale.abs()
 		check(cimg.is_equal_approx(dimg*0.5),"copy image is drawn at half size")
 		var cbar:Vector2=(copy.get_node("Health_Bar") as Control).get_global_transform().get_scale().abs();var dbar:Vector2=(donor.get_node("Health_Bar") as Control).get_global_transform().get_scale().abs()
-		check(cbar.is_equal_approx(dbar),"copy health bar keeps the normal, readable size (%s vs %s, local %s vs %s)" % [cbar,dbar,copy.get_node("Health_Bar").scale,donor.get_node("Health_Bar").scale])
+		check(cbar.is_equal_approx(dbar*0.5),"copy health bar shrinks with the copy to half size (%s vs %s, local %s vs %s)" % [cbar,dbar,copy.get_node("Health_Bar").scale,donor.get_node("Health_Bar").scale])
+		var cst:Node2D=copy.get_node_or_null("Status_Image") as Node2D;var dst:Node2D=donor.get_node_or_null("Status_Image") as Node2D
+		if cst!=null and dst!=null:check(cst.global_scale.abs().is_equal_approx(dst.global_scale.abs()*0.5),"copy status icon shrinks with the copy")
 		check(is_equal_approx(float(copy.character_copy_profile.get("body_scale",0.0)),0.5),"the replicated copy profile carries body_scale 0.5")
 		var real:Dictionary=ASSEMBLE.sample(copy,1.0)
 		var rbox:Rect2=bbox((real.cells as Array).map(func(c):return c.p+copy.global_position))
