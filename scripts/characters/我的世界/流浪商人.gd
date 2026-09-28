@@ -43,9 +43,9 @@ enum Phase { NONE, ENTERING, HIDDEN, EMERGING }
 @export var wall_first_delay:float = 7.0
 @export var wall_threat_radius:float = 60.0
 @export var wall_hidden_time:float = 2.6
-@export var wall_entry_speed:float = 150.0
-@export var wall_entry_time_max:float = 1.4
-@export var wall_emerge_time:float = 0.3 # minimum; the real time follows the walk-out distance
+@export var wall_arm_timeout:float = 4.0 # armed: goes into the next wall he runs into within this time
+@export var wall_walk_time_max:float = 3.0 # safety cap for one walk in / out
+@export var wall_max_angle_deg:float = 60.0 # steepest angle to the wall normal he walks in / out at
 @export var wall_exit_warning:float = 0.45 # exit wall cracks this long before he comes out
 @export var drink_move_ratio:float = 0.35
 @export_category("流浪商人 / 羊驼补回")
@@ -85,6 +85,12 @@ var _item_anchor:Node2D
 var _item_sprite:Sprite2D
 var _item_tween:Tween
 var exit_warnings:int = 0
+## Wall skill triggered: he keeps his normal movement and goes in at the next wall he hits.
+var wall_armed:bool = false
+var _wall_armed_time:float = 0.0
+var _wall_walk_speed:float = 48.0
+var _wall_walk_angle:float = 0.0 # signed angle between the inward normal and his walk direction
+var exit_direction:Vector2 = Vector2.ZERO
 var llamas_returned:int = 0
 var _exit_warned:bool = false
 ## Per llama slot: seconds until a dead llama may come back (<= 0 and empty slot = due).
@@ -246,6 +252,11 @@ func tick_physics(state:State,delta:float) -> void:
 	_invisibility_wait -= delta
 	_wall_wait -= delta
 	for i:int in range(_llama_return_wait.size()): _llama_return_wait[i] -= delta
+	if wall_armed:
+		_wall_armed_time += delta
+		if _wall_armed_time > wall_arm_timeout or wall_phase != Phase.NONE:
+			wall_armed = false
+			if wall_phase == Phase.NONE: _wall_wait = 1.5 # never reached a wall: short retry
 	if _drink_left > 0.0:
 		_drink_left -= delta
 		if _drink_left <= 0.0: _finish_drink()
@@ -259,7 +270,7 @@ func tick_physics(state:State,delta:float) -> void:
 				return
 	if is_player_controlled(): return
 	var threat:float = nearest_threat_distance()
-	if wall_phase == Phase.NONE and _wall_wait <= 0.0 and (threat <= wall_threat_radius or (_since_hurt < 0.8 and health < Max_health*0.6)):
+	if wall_phase == Phase.NONE and not wall_armed and _wall_wait <= 0.0 and (threat <= wall_threat_radius or (_since_hurt < 0.8 and health < Max_health*0.6)):
 		start_wall_phase()
 	if can_drink_invisibility() and (threat <= invisibility_threat_radius or _since_hurt < 1.0):
 		start_drink(&"invisibility")
@@ -469,17 +480,47 @@ func _set_leash_active(active:bool) -> void:
 	_update_leash_views()
 
 # ------------------------------------------------------------------ wall phase
+## Arms the wall skill. He does not steer or speed up: he keeps his normal movement and walks
+## into the next wall he runs into (when_collide), at the speed and in the direction he had.
 func start_wall_phase() -> bool:
+	if wall_phase != Phase.NONE or wall_armed or health <= 0 or not is_multiplayer_authority(): return false
+	wall_armed = true
+	_wall_armed_time = 0.0
+	_wall_wait = wall_cooldown + wall_arm_timeout + wall_hidden_time + wall_walk_time_max*2.0
+	return true
+
+func when_collide(speed:float,collision:KinematicCollision2D) -> void:
+	if wall_armed and wall_phase == Phase.NONE and is_multiplayer_authority() and collision != null and not (collision.get_collider() is ball):
+		if begin_wall_entry(collision.get_position(),collision.get_normal(),_last_requested_velocity): return
+	super.when_collide(speed,collision)
+
+## Walk direction at most wall_max_angle_deg from the inward normal (keeps its side).
+func _clamp_walk_direction(dir:Vector2,inward:Vector2) -> Vector2:
+	if dir.length_squared() < 0.000001: return inward
+	var angle:float = inward.angle_to(dir.normalized())
+	var limit:float = deg_to_rad(wall_max_angle_deg)
+	return inward.rotated(clampf(angle,-limit,limit))
+
+## face = the wall contact point, normal = wall normal (towards the floor), motion = the velocity he
+## had. He walks on in that direction at that speed until his whole drawn body is behind the face.
+func begin_wall_entry(face:Vector2,normal:Vector2,motion:Vector2) -> bool:
 	if wall_phase != Phase.NONE or health <= 0 or not is_multiplayer_authority(): return false
-	var slots:Array[Dictionary] = WALL.wall_slots(get_tree().current_scene,mc_arena_rect())
-	if slots.is_empty(): return false
-	entry_slot = WALL.nearest_slot(slots,global_position)
-	if entry_slot.is_empty(): return false
+	var n:Vector2 = normal.normalized() if normal.length_squared() > 0.000001 else Vector2.UP
+	var speed:float = motion.length()
+	if speed < 12.0: speed = maxf(Speed*CHARACTER_BASE_MOVE_SPEED_MULTIPLIER,12.0)
+	var raw:Vector2 = motion if motion.length_squared() > 0.01 else (direction if direction.length_squared() > 0.000001 else -n)
+	var walk:Vector2 = _clamp_walk_direction(raw,-n)
+	var depth:float = maxf((global_position - face).dot(n) + body_reach(n) + 1.0,0.0)
+	var distance:float = depth/maxf(walk.dot(-n),0.05)
+	wall_armed = false
+	entry_slot = {"floor": global_position,"normal": n,"contact_face": face}
+	_wall_walk_speed = speed
+	_wall_walk_angle = (-n).angle_to(walk)
 	wall_entries += 1
 	exit_slot = {}
 	_exit_warned = false
 	_returning_llama = -1
-	_wall_wait = wall_cooldown + wall_hidden_time + wall_entry_time_max + wall_emerge_time
+	_wall_wait = wall_cooldown + wall_hidden_time + wall_walk_time_max*2.0
 	_saved_layer = collision_layer
 	_saved_mask = collision_mask
 	_saved_while_invisible = is_invisible()
@@ -488,13 +529,9 @@ func start_wall_phase() -> bool:
 	set_meta(&"ignore_combat_locking",true)
 	# The body really goes past the map edge; World's squeeze rescue / out-of-bounds kill skip it.
 	set_meta(&"submission_allow_map_escape",true)
-	var face:Vector2 = wall_face_point(entry_slot)
-	var normal:Vector2 = _slot_normal(entry_slot)
-	var target:Vector2 = inside_wall_point(face,normal)
-	var travel:float = global_position.distance_to(target)
-	_begin_phase(Phase.ENTERING,global_position,target,clampf(travel/maxf(wall_entry_speed,1.0),0.25,wall_entry_time_max))
-	_wall_clip_state(true,face,normal)
-	if multiplayer.has_multiplayer_peer() and not multiplayer.get_peers().is_empty(): _wall_clip_state.rpc(true,face,normal)
+	_begin_phase(Phase.ENTERING,global_position,global_position + walk*distance,minf(distance/speed,wall_walk_time_max))
+	_wall_clip_state(true,face,n)
+	if multiplayer.has_multiplayer_peer() and not multiplayer.get_peers().is_empty(): _wall_clip_state.rpc(true,face,n)
 	_set_leash_active(false)
 	wt_sound(&"trader_disappeared")
 	return true
@@ -532,6 +569,7 @@ func _tick_wall(delta:float) -> void:
 ## walkable (e.g. Map10x10) this is the arena edge, not the tile seam. Lateral position stays on
 ## the slot. Falls back to the tile seam when nothing is hit.
 func wall_face_point(slot:Dictionary) -> Vector2:
+	if slot.has("contact_face"): return slot.contact_face # walk-in contact (real wall surface)
 	var normal:Vector2 = _slot_normal(slot)
 	var seam:Vector2 = WALL.face_point(slot)
 	if not is_inside_tree(): return seam
@@ -613,13 +651,13 @@ func resolve_exit_slot(slot:Dictionary) -> Dictionary:
 			return resolved
 	return {}
 
-## Start of the walk-out: straight behind the exit point, body completely inside the wall.
-func exit_start_point(slot:Dictionary) -> Vector2:
+## Where his walk-out line (same angle as the walk-in) crosses the exit wall surface.
+func exit_cross_point(slot:Dictionary) -> Vector2:
 	var normal:Vector2 = _slot_normal(slot)
 	var face:Vector2 = wall_face_point(slot)
 	var end:Vector2 = slot.get("floor",face)
-	var on_face:Vector2 = end - normal*(end - face).dot(normal)
-	return inside_wall_point(on_face,normal)
+	var dir:Vector2 = normal.rotated(_wall_walk_angle)
+	return end - dir*((end - face).dot(normal)/maxf(dir.dot(normal),0.05))
 
 ## Exit tell: the exit is locked now, and its wall surface cracks (stone chips in pulses + a
 ## stone hit) for wall_exit_warning seconds before he walks out of it.
@@ -629,7 +667,7 @@ func _warn_exit() -> void:
 	if exit_slot.is_empty(): exit_slot = entry_slot
 	if exit_slot.is_empty(): return
 	exit_warnings += 1
-	var face:Vector2 = wall_face_point(exit_slot)
+	var face:Vector2 = exit_cross_point(exit_slot)
 	var normal:Vector2 = _slot_normal(exit_slot)
 	_exit_warning_visual(face,normal,wall_exit_warning)
 	if multiplayer.has_multiplayer_peer() and not multiplayer.get_peers().is_empty(): _exit_warning_visual.rpc(face,normal,wall_exit_warning)
@@ -654,17 +692,22 @@ func _begin_emerge() -> void:
 	if exit_slot.is_empty(): exit_slot = entry_slot
 	var face:Vector2 = wall_face_point(exit_slot)
 	var normal:Vector2 = _slot_normal(exit_slot)
-	var start:Vector2 = exit_start_point(exit_slot)
+	# Out at the same angle he went in and at the same (normal) speed; he keeps moving that way.
+	exit_direction = normal.rotated(_wall_walk_angle)
+	var end:Vector2 = exit_slot.floor
+	var depth:float = maxf((end - face).dot(normal) + body_reach(normal) + 1.0,0.0)
+	var distance:float = depth/maxf(exit_direction.dot(normal),0.05)
+	var start:Vector2 = end - exit_direction*distance
 	global_position = start
-	var travel:float = start.distance_to(exit_slot.floor)
-	_begin_phase(Phase.EMERGING,start,exit_slot.floor,clampf(travel/maxf(wall_entry_speed,1.0),wall_emerge_time,wall_entry_time_max))
+	_begin_phase(Phase.EMERGING,start,end,minf(distance/maxf(_wall_walk_speed,1.0),wall_walk_time_max))
 	# Clip first, then show: he appears fully inside the wall and walks out through its surface.
 	_wall_clip_state(true,face,normal)
-	_wall_visual(true,face,normal,start)
+	var cross:Vector2 = exit_cross_point(exit_slot)
+	_wall_visual(true,cross,normal,start)
 	if multiplayer.has_multiplayer_peer() and not multiplayer.get_peers().is_empty():
 		_wall_clip_state.rpc(true,face,normal)
-		_wall_visual.rpc(true,face,normal,start)
-	wt_sound(&"stone_hit",0.0,face)
+		_wall_visual.rpc(true,cross,normal,start)
+	wt_sound(&"stone_hit",0.0,cross)
 	wt_sound(&"trader_reappeared")
 	_bring_back_llama(start,exit_slot.floor,_phase_duration,face,normal)
 
@@ -725,6 +768,7 @@ func _finish_wall() -> void:
 	if self_hitbox != null and has_collision_damage(): self_hitbox.set_deferred("monitoring",true)
 	_wall_fade(1.0)
 	_wall_wait = wall_cooldown
+	if exit_direction != Vector2.ZERO: direction = exit_direction
 	if _returning_llama >= 0:
 		var back:Node = _llama(_returning_llama)
 		if back != null and back.has_method(&"wt_finish_emerge"): back.call(&"wt_finish_emerge")

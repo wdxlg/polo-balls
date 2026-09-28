@@ -67,6 +67,8 @@ var _stuck_time:float = 0.0
 var _ghost_time:float = 0.0
 var _step_wait:float = 0.3
 var _retired:bool = false
+var free_moving:bool = false
+var _last_motion_dir:Vector2 = Vector2.ZERO
 ## Returning llama walking out of the wall next to the trader (driven here, clipped like him).
 var emerging:bool = false
 var _emerge_from:Vector2
@@ -99,9 +101,18 @@ func _slot_from_name() -> int:
 	var at:int = text.rfind("_Llama")
 	return maxi(int(text.substr(at + 6)),0) if at >= 0 else 0
 
+## The owning wandering trader, or null. Only a real trader (leash API) counts: a Haochen copy
+## of a llama is owned by the copier (a plain ball without leash properties).
 func trader() -> Node2D:
-	if is_instance_valid(Master) and not Master.is_queued_for_deletion() and Master.health > 0: return Master
+	if master_alive() and Master.has_method(&"wt_leash_active"): return Master
 	return null
+
+func master_alive() -> bool:
+	return is_instance_valid(Master) and not Master.is_queued_for_deletion() and Master.health > 0
+
+## A llama that is not on a trader's herd (Haochen copy): lives on its own, free movement.
+func is_free_agent() -> bool:
+	return bool(get_meta(&"haochen_copy",false)) or (master_alive() and not Master.has_method(&"wt_leash_active"))
 
 func has_collision_damage() -> bool: return false
 
@@ -132,7 +143,7 @@ func tick_physics(state:State,delta:float) -> void:
 		retire()
 		return
 	var owner_trader:Node2D = trader()
-	if owner_trader == null:
+	if owner_trader == null and not is_free_agent():
 		if is_multiplayer_authority():
 			health = 0
 			retire()
@@ -151,23 +162,27 @@ func tick_physics(state:State,delta:float) -> void:
 	super.tick_physics(state,delta)
 
 func _hold_beside(owner_trader:Node2D) -> void:
+	if owner_trader == null:
+		velocity = Vector2.ZERO
+		return
 	# Placement/pre-start: stay packed next to the trader so dragging him keeps the herd together.
 	var point:Vector2 = owner_trader.global_position + Vector2(-16.0 if slot_index % 2 == 0 else 16.0,5.0)
 	if global_position.distance_to(point) > 3.0: global_position = point
 	velocity = Vector2.ZERO
 
 func leash_active(owner_trader:Node2D) -> bool:
-	return leash_connected and owner_trader.has_method(&"wt_leash_active") and bool(owner_trader.call(&"wt_leash_active"))
+	return leash_connected and owner_trader != null and owner_trader.has_method(&"wt_leash_active") and bool(owner_trader.call(&"wt_leash_active"))
 
 func _think(owner_trader:Node2D,delta:float) -> void:
 	_spit_wait -= delta
 	_spit_anim = maxf(_spit_anim - delta,0.0)
-	var to_owner:Vector2 = owner_trader.global_position - global_position
-	var distance:float = to_owner.length()
 	var connected:bool = leash_active(owner_trader)
-	var slack:float = float(owner_trader.get(&"leash_slack"))
+	var to_owner:Vector2 = owner_trader.global_position - global_position if owner_trader != null else Vector2.ZERO
+	var distance:float = to_owner.length()
+	var slack:float = float(owner_trader.get(&"leash_slack")) if connected else 0.0
+	var pull_end:float = float(owner_trader.get(&"leash_pull_end")) if connected else 0.0
 	if connected and distance > float(owner_trader.get(&"leash_pull_start")): _set_yanking(true)
-	elif yanking and (not connected or distance <= float(owner_trader.get(&"leash_pull_end"))): _set_yanking(false)
+	elif yanking and (not connected or distance <= pull_end): _set_yanking(false)
 	_update_ghost(delta)
 	var target:ball = mc_nearest(delta)
 	var target_distance:float = INF if target == null else global_position.distance_to(target.global_position)
@@ -181,7 +196,7 @@ func _think(owner_trader:Node2D,delta:float) -> void:
 	var speed:float = 0.0
 	if yanking:
 		desired = to_owner/maxf(distance,0.001)
-		speed = clampf(yank_speed_min + (distance - float(owner_trader.get(&"leash_pull_end")))*yank_speed_per_px,yank_speed_min,yank_speed_max)
+		speed = clampf(yank_speed_min + (distance - pull_end)*yank_speed_per_px,yank_speed_min,yank_speed_max)
 	elif connected:
 		if distance > slack*0.75:
 			desired = to_owner/maxf(distance,0.001)
@@ -195,21 +210,14 @@ func _think(owner_trader:Node2D,delta:float) -> void:
 				desired = global_position.direction_to(point)
 				speed = roam_speed
 	else:
-		if target != null:
-			if target_distance > spit_range*0.8:
-				desired = global_position.direction_to(target.global_position)
-				speed = chase_speed
-			elif target_distance < spit_range*0.35:
-				desired = target.global_position.direction_to(global_position)
-				speed = roam_speed
-		else:
-			_roam_wait -= delta
-			if _roam_wait <= 0.0 or global_position.distance_to(_roam_point) < 8.0:
-				_roam_wait = _mc_rng.randf_range(1.2,2.6)
-				var rect:Rect2 = mc_arena_rect().grow(-14.0)
-				_roam_point = (global_position + Vector2.RIGHT.rotated(_mc_rng.randf_range(0.0,TAU))*_mc_rng.randf_range(20.0,60.0)).clamp(rect.position,rect.end)
-			desired = global_position.direction_to(_roam_point)
-			speed = roam_speed
+		# Leash off (trader in the wall) or no trader: normal ball movement. Keeps going the way it
+		# was just moving, at its own Speed, and bounces off walls/characters (when_collide).
+		if not free_moving:
+			free_moving = true
+			direction = _last_motion_dir if _last_motion_dir != Vector2.ZERO else Vector2.RIGHT.rotated(_mc_rng.randf_range(0.0,TAU))
+		desired = direction
+		speed = maxf(float(default_properties.get("Speed",Speed)),1.0)
+	if yanking or connected: free_moving = false
 	if _spit_anim > 0.0: speed *= 0.2
 	if target != null and _spit_anim > 0.0: _face((target.global_position - global_position).x)
 	_desired_direction = desired
@@ -257,12 +265,22 @@ func move(speed:float,delta:float) -> void:
 	var ratio:float = maxf(speed,0.0)/reference
 	if yanking: ratio = maxf(ratio,1.0) # the leash pulls; slows do not cancel it
 	var locked:bool = dizziness or (has_method(&"is_direction_change_locked") and bool(call(&"is_direction_change_locked")))
-	if not locked: direction = _desired_direction if _desired_speed > 0.01 else Vector2.ZERO
+	# Free movement owns `direction` (ball bounce); the leashed AI steers it every frame.
+	if not locked and not free_moving: direction = _desired_direction if _desired_speed > 0.01 else Vector2.ZERO
 	super.move(0.0 if locked else _desired_speed*ratio,delta)
 	var arena:Rect2 = mc_arena_rect().grow(-6.0)
-	if arena.has_area() and not arena.has_point(global_position): global_position = global_position.clamp(arena.position,arena.end)
+	if arena.has_area() and not arena.has_point(global_position):
+		var clamped:Vector2 = global_position.clamp(arena.position,arena.end)
+		# Free movement: the arena edge is a wall too (bounce instead of sliding along it).
+		if free_moving and not locked:
+			if clamped.x > global_position.x: direction.x = absf(direction.x)
+			elif clamped.x < global_position.x: direction.x = -absf(direction.x)
+			if clamped.y > global_position.y: direction.y = absf(direction.y)
+			elif clamped.y < global_position.y: direction.y = -absf(direction.y)
+		global_position = clamped
 	var moved:Vector2 = global_position - from
 	last_speed = moved.length()/maxf(delta,0.0001)
+	if moved.length_squared() > 0.0025: _last_motion_dir = moved.normalized()
 	if yanking:
 		# An internal wall between llama and trader: after a short stall let the leash drag it through.
 		_stuck_time = _stuck_time + delta if last_speed < yank_speed_min*0.25 else 0.0
@@ -275,8 +293,9 @@ func move(speed:float,delta:float) -> void:
 			_step_wait = clampf(18.0/last_speed,0.14,0.5)
 			wt_sound(&"llama_step")
 
-func when_collide(_speed:float,_collision:KinematicCollision2D) -> void:
-	pass # AI re-steers every frame; no pinball bounce or collision SFX for the herd.
+func when_collide(speed:float,collision:KinematicCollision2D) -> void:
+	# Leashed: the AI re-steers every frame (no pinball bounce). Free: normal ball bounce.
+	if free_moving: super.when_collide(speed,collision)
 
 func _face(dx:float) -> void:
 	if absf(dx) < 0.001: return

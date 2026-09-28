@@ -24,6 +24,18 @@ func seconds(t:float) -> void:
 	while left>0.0:
 		await physics_frame;left-=1.0/60.0
 
+## The wall skill only arms: aim him at the nearest wall and wait until he runs into it.
+func enter_wall(trader:Node2D) -> bool:
+	var slots:Array[Dictionary]=WALL_SCRIPT.wall_slots(world,trader.mc_arena_rect())
+	var slot:Dictionary=WALL_SCRIPT.nearest_slot(slots,trader.global_position)
+	if slot.is_empty():return false
+	trader.direction=-(slot.normal as Vector2).normalized()
+	if not trader.start_wall_phase():return false
+	var t:float=0.0
+	while trader.wall_phase==0 and t<4.0:
+		await physics_frame;t+=1.0/60.0
+	return trader.wall_phase!=0
+
 func heard(ev:String) -> int: return int(sounds.get(ev,0))
 
 ## MC §1 hit feedback players currently alive (new5 table, parented to the scene).
@@ -196,8 +208,15 @@ func run() -> void:
 	var hp_t:int=trader.health
 	var orig_material:Material=trader.image.material
 	check(WALL_CLIP_SCRIPT.clip_shader(WALL_CLIP_SCRIPT.base_shader_of(trader.image))!=null,"clip shader built from the character's own set_rgb_color shader")
-	check(trader.start_wall_phase(),"wall phase starts")
+	var near_slot:Dictionary=WALL_SCRIPT.nearest_slot(WALL_SCRIPT.wall_slots(world,trader.mc_arena_rect()),trader.global_position)
+	enemy.global_position=trader.global_position+(near_slot.normal as Vector2).normalized()*50.0
+	var l0_dir:Vector2=l0._last_motion_dir
+	var aim:Vector2=-(near_slot.normal as Vector2).normalized()
+	var entered:bool=await enter_wall(trader)
+	check(entered and not trader.wall_armed,"wall skill arms; he keeps moving and goes in at the wall he runs into")
 	var entry:Dictionary=trader.entry_slot
+	var normal_speed:float=trader.Speed*trader.CHARACTER_BASE_MOVE_SPEED_MULTIPLIER
+	check(trader._wall_walk_speed<=normal_speed*1.05+0.5 and trader._wall_walk_speed>=normal_speed*0.5,"walks in at his normal speed, no speed-up (%.1f, normal %.1f)" % [trader._wall_walk_speed,normal_speed])
 	check(trader.wall_phase==1 and not trader.wt_leash_active() and trader.collision_layer==0,"entering: leash broken, collision off")
 	await seconds(0.1)
 	check(not trader.leashes[0].is_connected_visual() and heard("leash_break")>=1 and heard("trader_disappeared")>=1,"leash views snap with leash_break + disappeared sounds")
@@ -208,17 +227,26 @@ func run() -> void:
 	var t:float=0.0
 	var seen_partial:bool=false
 	var hidden_early:bool=false
-	while trader.wall_phase==1 and t<1.6:
+	var walk_ok:bool=true;var prev:Vector2=trader.global_position
+	await physics_frame
+	check(l0.free_moving and l1.free_moving and (l0_dir==Vector2.ZERO or l0.direction.dot(l0_dir)>0.99),"leash off: llamas switch to normal free movement, starting in their last motion direction (free %s/%s, dir %s, before %s)" % [l0.free_moving,l1.free_moving,l0.direction,l0_dir])
+	while trader.wall_phase==1 and t<3.2:
+		var step_now:Vector2=trader.global_position-prev;prev=trader.global_position
+		if step_now.length()>0.01 and (step_now.length()*60.0>trader._wall_walk_speed*1.1 or step_now.normalized().dot(aim)<0.99):walk_ok=false
 		var front:float=(trader.global_position-face).dot(normal)-trader.body_reach(-normal)
 		if front<0.0 and trader.wall_body_visible():seen_partial=true
 		if not trader.visible:hidden_early=true
 		await physics_frame;t+=1.0/60.0
+	check(walk_ok,"walk-in keeps his movement direction and speed")
 	check(seen_partial and not hidden_early,"walks straight in: partly inside the wall while still visible, never hidden early")
 	check(trader.wall_phase==2 and not trader.visible and not trader.is_combat_targetable(),"hidden inside the wall: invisible and untargetable")
 	check((trader.global_position-face).dot(normal)+trader.body_reach(normal)<=0.01 and heard("stone_break")>=1,"disappears only once the whole body is behind the wall surface (stone break) pos %s face %s" % [trader.global_position,face])
 	check(not trader.receive_positional_damage(50.0,trader.global_position,false,enemy) and trader.health==hp_t,"no damage while inside the wall")
 	check(not l1.leash_active(trader),"llamas are free (leash broken) while he hides")
-	while trader.wall_phase==2 and t<5.0:
+	var free_from:Vector2=l0.global_position
+	await seconds(0.5)
+	check(l0.free_moving and l0.global_position.distance_to(free_from)>15.0,"free llama keeps moving on its own (%.1f px in 0.5 s, free %s, spit %.2f, phys %s)" % [l0.global_position.distance_to(free_from),l0.free_moving,l0._spit_anim,l0.state_machine.is_physics_processing()])
+	while trader.wall_phase==2 and t<6.5:
 		await physics_frame;t+=1.0/60.0
 	await physics_frame
 	var exit_face:Vector2=trader.wall_face_point(trader.exit_slot)
@@ -227,12 +255,13 @@ func run() -> void:
 	check((trader.global_position-exit_face).dot(exit_normal)<0.0,"emerging starts from inside the wall")
 	var dirs_ok:bool=true
 	var last:Vector2=trader.global_position
-	while trader.wall_phase==3 and t<7.0:
+	while trader.wall_phase==3 and t<9.5:
 		await physics_frame;t+=1.0/60.0
 		var step:Vector2=trader.global_position-last
-		if step.length()>0.01 and step.normalized().dot(exit_normal)<0.99:dirs_ok=false
+		if step.length()>0.01 and (step.normalized().dot(trader.exit_direction)<0.99 or step.length()*60.0>trader._wall_walk_speed*1.1):dirs_ok=false
 		last=trader.global_position
-	check(dirs_ok,"comes straight out of the wall along its normal")
+	check(dirs_ok,"comes straight out at the walk-in angle and normal speed")
+	check(trader.direction.normalized().dot(trader.exit_direction)>0.99 or trader.wall_phase!=0,"keeps moving in the exit direction afterwards")
 	check(not clip_material.call() and trader.image.material==orig_material,"original character material restored after emerging")
 	check(trader.wall_phase==0 and trader.visible and trader.is_combat_targetable(),"emerged and targetable again")
 	var WALL:Script=load("res://scripts/characters/我的世界/wandering_trader/wall_phase.gd")
@@ -257,9 +286,9 @@ func run() -> void:
 	while trader.is_invisible() and t<8.0:
 		await physics_frame;t+=1.0/60.0
 	check(not trader.is_invisible(),"previous invisibility wore off")
-	check(trader.start_wall_phase(),"wall again for the independence checks")
+	check(await enter_wall(trader),"wall again for the independence checks")
 	t=0.0
-	while trader.wall_phase!=2 and t<2.0:
+	while trader.wall_phase!=2 and t<4.0:
 		await physics_frame;t+=1.0/60.0
 	trader._invisibility_wait=0.0
 	check(trader.wall_phase==2 and trader.start_drink(&"invisibility"),"drinks the potion while hidden inside the wall")
@@ -282,10 +311,14 @@ func run() -> void:
 	enemy.global_position=trader.global_position+near_side
 	trader._wall_wait=0.0;trader._invisibility_wait=0.0
 	await physics_frame;await physics_frame
-	check(trader.wall_phase!=0 and trader._drink_left>0.0 and trader._drink_kind==&"invisibility","AI uses wall and potion together (drinking while entering the wall)")
+	check(trader.wall_armed and trader._drink_left>0.0 and trader._drink_kind==&"invisibility","AI uses wall and potion together (wall armed while drinking)")
 	enemy.global_position=center+Vector2(rect.size.x*0.4,0)
-	await seconds(0.9)
-	check(trader.wall_phase!=0 and trader._pending_invisibility,"drink started before the wall also completes inside it (deferred)")
+	var aim_slot:Dictionary=WALL_SCRIPT.nearest_slot(WALL_SCRIPT.wall_slots(world,trader.mc_arena_rect()),trader.global_position)
+	trader.direction=-(aim_slot.normal as Vector2).normalized()
+	t=0.0
+	while trader.wall_phase==0 and t<4.0:
+		await physics_frame;t+=1.0/60.0
+	check(trader.wall_phase!=0,"the armed wall goes in at the next wall he runs into")
 	trader._wall_wait=999.0;trader._invisibility_wait=999.0
 	trader.finish_wall_phase_now()
 	check(trader.wall_phase==0 and STATUS.active(trader,"invisibility") and trader.visible,"forced exit applies the deferred invisibility")
@@ -302,7 +335,7 @@ func run() -> void:
 	check(trader.due_llama_slot()==1,"llama slot due once the cooldown is over")
 	var warn0:int=trader.exit_warnings;var stone0:int=heard("stone_hit")
 	trader._wall_wait=0.0
-	check(trader.start_wall_phase(),"wall phase for the exit tell / llama return")
+	check(await enter_wall(trader),"wall phase for the exit tell / llama return")
 	trader._wall_wait=999.0
 	t=0.0
 	while trader.exit_warnings==warn0 and trader.wall_phase!=3 and t<5.0:
@@ -331,12 +364,23 @@ func run() -> void:
 	check(is_instance_valid(back) and back.Max_health==350 and back.Master==trader and trader.living_llamas().size()==2 and trader.leashes[1].is_connected_visual() and back.leash_connected,"returned llama is leashed to him again (350 HP)")
 	check(is_instance_valid(back) and back.herd_position_clear(back.global_position) and not back.has_meta(&"submission_allow_map_escape"),"returned llama stands body-clear (herd excluded), map-escape exemption cleared (clear %s, meta %s)" % [back.herd_position_clear(back.global_position) if is_instance_valid(back) else false,back.has_meta(&"submission_allow_map_escape") if is_instance_valid(back) else false])
 	trader._wall_wait=0.0
-	check(trader.start_wall_phase(),"another wall with a full herd")
+	check(await enter_wall(trader),"another wall with a full herd")
 	trader._wall_wait=999.0
 	t=0.0
 	while trader.wall_phase!=0 and t<6.0:
 		await physics_frame;t+=1.0/60.0
 	check(trader.llamas_returned==1 and trader.living_llamas().size()==2,"no extra llama when none is due")
+	# --- Haochen copy of a llama: owned by a plain ball, lives free -------------------------------
+	var copy:Node2D=load("res://scenes/creatures/流浪商人_羊驼.tscn").instantiate()
+	copy.name="HaochenLlamaCopy";copy.Team="Team1";copy.Master=enemy;copy.set_meta(&"haochen_copy",true)
+	copy.position=center
+	world.add_child(copy,true)
+	var copy_from:Vector2=center
+	await seconds(1.0)
+	check(is_instance_valid(copy) and copy.health>0 and copy.trader()==null and copy.is_free_agent() and copy.free_moving,"Haochen llama copy (plain-ball Master) lives on with free movement, no leash lookups")
+	check(is_instance_valid(copy) and copy.global_position.distance_to(copy_from)>10.0,"the copy moves")
+	if is_instance_valid(copy):copy.take_damage(1e9)
+	await seconds(0.2)
 	# --- controls ------------------------------------------------------------------------------------
 	var ids:Array=trader.player_control_action_ids()
 	check(ids.has(&"controlled_attack_action") and ids.has(&"controlled_skill_action") and ids.has(&"controlled_middle_action"),"manual controls: potion / wall / milk (%s)" % [ids])

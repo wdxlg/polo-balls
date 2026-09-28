@@ -97,7 +97,15 @@ func run() -> void:
 	(herd[1] as Node2D).take_damage(1e9)
 	await seconds(0.2)
 	trader._llama_return_wait[1]=0.0
+	# The wall skill arms; he keeps walking (normal speed) and goes into the wall he runs into.
+	var WALLS:Script=load("res://scripts/characters/我的世界/wandering_trader/wall_phase.gd")
+	var near:Dictionary=WALLS.nearest_slot(WALLS.wall_slots(world,trader.mc_arena_rect()),trader.global_position)
+	trader.direction=-(near.normal as Vector2).normalized()
 	trader.start_wall_phase()
+	var arm_t:float=0.0
+	while trader.wall_phase==0 and arm_t<4.0:
+		await physics_frame;arm_t+=1.0/60.0
+	check(trader.wall_phase==1,"armed wall entered at the wall he ran into")
 	# Close-up on the entry wall: the body is clipped on the wall surface, no fading.
 	var zoom_before:Vector2=camera.zoom
 	camera.global_position=trader.wall_face_point(trader.entry_slot);camera.zoom=zoom_before*2.2

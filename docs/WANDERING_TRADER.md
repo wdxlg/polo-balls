@@ -77,6 +77,9 @@ User rule (2026-09-28): "隐身药水和钻墙应该是独立技能" (fully inde
 ### Wall (入墙, medium cooldown 11 s, first use after 7 s)
 - **Wall slots**: every map tile with a physics-layer-1 collision polygon that touches a walkable tile. PortalMap islands use their own layers. Maps without tiles fall back to the arena edges.
 - **AI trigger**: an enemy within 60, or hurt within 0.8 s while HP < 60 %.
+- **Arming** (user rule 2026-09-29: "进墙出墙都是正常速度朝着当前移动方向进去，而不用加速"): the trigger only arms the skill (`wall_armed`). He keeps his normal ball movement, with no steering and no speed-up, and goes in at the next wall he runs into (`when_collide` against a non-ball collider, `begin_wall_entry`). He walks on at the speed he had (`_last_requested_velocity`, i.e. Speed × 0.6 for characters) in the direction he had, clamped to at most 60° from the wall normal. The contact point is the clip surface (`entry_slot.contact_face`; slots from `wall_phase.gd` already carry a tile-seam `face`, so do not reuse that key). If he hits no wall within `wall_arm_timeout` (4 s), the skill disarms and retries after 1.5 s.
+- **Walk-out**: at the same speed and at the same angle to the exit normal as the walk-in (`exit_direction`). The exit tell and the chips sit where that line crosses the wall (`exit_cross_point`). Afterwards he keeps moving in `exit_direction`.
+- **Llamas while the leash is off** (user rule 2026-09-29): normal ball movement (`free_moving`). They start in their own last motion direction, move at their Speed (62) and bounce off walls, characters and the arena edge. Spitting still works. The leashed AI takes over again once the leash reconnects.
 
 The phase runs in four steps:
 User rule (2026-09-28): "进墙就应该是直接进去，完全进去才消失。然后出来也是直接从墙钻出来". There is no fading.
@@ -87,7 +90,7 @@ User rule (2026-09-28): "进墙就应该是直接进去，完全进去才消失�
 - Do **not** use `clip_children` for this. Its canvas group rewrites the back buffer that World's outside-map mask (`MapClipBackBuffer` + `screen_texture`) samples, so an unclipped copy of the body shows up beyond the arena edge.
 
 The phase runs in four steps:
-1. **Entering**: he walks straight, at constant speed and fully opaque (`wall_entry_speed` 150 px/s, 0.25–1.4 s), from where he stands to a point behind the wall surface. That point is deep enough that his whole drawn body (sprite rect × 1.12 + 2 px) is behind it. The body disappears into the wall as it crosses. Collision is off, there is no AI locking, and `submission_allow_map_escape` is set so World's squeeze rescue and out-of-bounds kill leave him alone past the arena edge. The leashes snap (`entity.leash_knot.break` + `entity.wandering_trader.disappeared`).
+1. **Entering**: from the wall contact he walks straight on, at his normal speed and fully opaque (capped at 3 s), to a point behind the wall surface. That point is deep enough that his whole drawn body (sprite rect × 1.12 + 2 px) is behind it. The body disappears into the wall as it crosses. Collision is off, there is no AI locking, and `submission_allow_map_escape` is set so World's squeeze rescue and out-of-bounds kill leave him alone past the arena edge. The leashes snap (`entity.leash_knot.break` + `entity.wandering_trader.disappeared`).
 2. **Hidden** (2.6 s): starts only once he is completely inside. He is hidden on all peers and untargetable. Damage, hit contacts and knockback are ignored. Plays `block.stone.break` with stone chips at the wall surface. The llamas roam, chase and spit on their own.
 3. **Emerging**: the exit is chosen by `WALL.safest_slot`. Slots are ranked by the distance from their floor tile to the nearest enemy (plus ≤ 6 px seeded jitter), and the first slot whose floor can hold his whole body wins (stepping out along the wall normal up to 22 px, then further until the whole drawn body is outside the wall, if that spot is clear). He starts fully inside the wall, straight behind the exit point, becomes visible already clipped, and walks straight out along the wall normal (same speed, minimum 0.3 s). Sounds: `block.stone.hit` + `reappeared`, with chips at the surface.
 4. **Finish**: collision, metas and the character material are restored (bit 2 is re-added if invisibility expired meanwhile), and the leashes reconnect (`entity.leash_knot.place`).
@@ -103,6 +106,7 @@ The phase runs in four steps:
 If the battle stops mid-phase, `finish_wall_phase_now()` pops him out at once.
 
 ### Death and lifecycle
+- **Haochen copy of a llama**: its Master is the copier (a plain ball without leash properties). `trader()` only returns a real trader (`wt_leash_active`). A llama with `haochen_copy` meta, or with a living non-trader Master, is a free agent (`is_free_agent`): it does not retire, and it moves and spits freely. This fixes the `float(null)` crash on `leash_slack`.
 - Llamas have HP 350. `retire()` removes them from the Ball group, snaps their leash (`wt_on_llama_lost`) and frees them. No instant respawn (see *Llama return* below). As Type Creature they are not battle characters, so they never count for victory.
 - When the trader dies, `owner_lost()` retires the remaining llamas (vanilla trader llamas despawn with him). World resets free them with every Ball.
 
@@ -147,7 +151,7 @@ Open points for the user: which items to keep, instant vs held per item, and whe
 | Invisibility cooldown / first / drink | 16 s / 5 s / 0.78 s | Witch drink 0.78 s |
 | Wall cooldown / first / hidden | 11 s / 7 s / 2.6 s | |
 | Exit tell / llama return cooldown | 0.45 s / 20 s | |
-| Wall walk-in / walk-out | 150 px/s straight, 0.25–1.4 s / 0.3–1.4 s | |
+| Wall walk-in / walk-out | his normal speed and direction (≤ 60° to the normal), ≤ 3 s each; armed ≤ 4 s | |
 | Leash slack / pull start / pull end | 42 / 60 / 28 world px | |
 
 ## Art and sound sources
