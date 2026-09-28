@@ -159,6 +159,21 @@ func run() -> void:
 	check(struck == 3 and hp2 - cactus.health == 30,"one attack overlapping three segments hits all three (%d segments, -%d)" % [struck,hp2 - cactus.health])
 	sweeper.queue_free()
 	attacker.queue_free()
+	# aggro / aim: a unit beside the top segment locks onto that segment, not the bottom origin
+	var top_side:Vector2 = cactus.to_global(Vector2(0,-96.0*(cactus.levels-1))) + Vector2(30,0)
+	var hunter:Node2D = spawn("",Vector2.ZERO,"Team1")
+	hunter.global_position = top_side
+	hunter.collision_layer = 0
+	hunter.collision_mask = 0
+	var decoy:Node2D = spawn("",Vector2.ZERO,"Team0")
+	decoy.global_position = top_side + Vector2(60,0) # nearer than the cactus origin, farther than its top
+	decoy.collision_layer = 0
+	decoy.collision_mask = 0
+	for i:int in range(20): await physics_frame
+	hunter.global_position = top_side
+	var aim:Vector2 = hunter.combat_target_position(cactus)
+	check(aim.distance_to(cactus.to_global(Vector2(0,-96.0*(cactus.levels-1)))) < 1.0,"attackers aim at the segment nearest to them (%s)" % aim)
+	check(hunter.Nearest_Enemy == cactus,"nearest-enemy search measures to the nearest segment (picked %s)" % (hunter.Nearest_Enemy.name if is_instance_valid(hunter.Nearest_Enemy) else "none"))
 	finish()
 
 func finish() -> void:

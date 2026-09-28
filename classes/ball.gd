@@ -2653,6 +2653,11 @@ func combat_target_position(target:Node) -> Vector2:
 		return player_control_aim_position
 	if target == null or not is_instance_valid(target):
 		return global_position
+	# Tall / multi-part bodies (e.g. the grown cactus) aim the attacker at their part nearest to it.
+	if target.has_method("get_combat_lock_position_for"):
+		var part:Variant = target.call("get_combat_lock_position_for",self)
+		if part is Vector2:
+			return part
 	if target.has_method("get_combat_lock_position"):
 		var resolved:Variant = target.call("get_combat_lock_position")
 		if resolved is Vector2:

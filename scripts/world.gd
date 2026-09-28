@@ -1784,8 +1784,18 @@ func _nearest_enemy_candidate_distance_sq(source:ball,candidate:ball) -> float:
 		return INF
 	if source.Team != "" and candidate.Team != "" and candidate.Team == source.Team:
 		return INF
+	if candidate.has_method(&"combat_distance_point_for"):
+		# Tall / multi-part bodies: distance to their part nearest to the source.
+		return source.global_position.distance_squared_to(candidate.call(&"combat_distance_point_for",source))
 	return source.global_position.distance_squared_to(candidate.global_position)
 	_battle_targetable_units.clear()
+
+
+# Tall / multi-part bodies register here: the spatial grid only knows their origin cell, so the
+# nearest-enemy search checks them explicitly (usually an empty list).
+var _tall_combat_bodies:Array = []
+func register_tall_combat_body(body:Node) -> void:
+	if is_instance_valid(body) and not _tall_combat_bodies.has(body): _tall_combat_bodies.append(body)
 
 
 # 精确最近敌人空间查询：逐圈扩展格子；一旦当前最佳距离已经小于“已扫描矩形到外界的最短距离”，
@@ -2031,6 +2041,17 @@ func _refresh_one_nearest_enemy(b:ball,set_property_group:Array) -> void:
 			if distance_sq < nearest_distance_sq:
 				nearest_distance_sq = distance_sq
 				nearest_enemy = b2
+	if not _tall_combat_bodies.is_empty():
+		var best_sq:float = _nearest_enemy_candidate_distance_sq(b,nearest_enemy) if nearest_enemy != null else INF
+		for i:int in range(_tall_combat_bodies.size()-1,-1,-1):
+			var tall:Variant = _tall_combat_bodies[i]
+			if not is_instance_valid(tall) or not tall is ball:
+				_tall_combat_bodies.remove_at(i)
+				continue
+			var tall_sq:float = _nearest_enemy_candidate_distance_sq(b,tall as ball)
+			if tall_sq < best_sq:
+				best_sq = tall_sq
+				nearest_enemy = tall as ball
 	b.Nearest_Enemy = nearest_enemy
 
 

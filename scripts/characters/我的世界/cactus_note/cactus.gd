@@ -84,6 +84,7 @@ func get_preview_texture() -> Texture2D: return TEXTURES[0]
 func _ready() -> void:
 	segment_health = maxi(Max_health,1) # one cactus = one segment of HP
 	super._ready()
+	call_deferred(&"_register_tall_body")
 	_health_base = get_node("Health_Bar").position
 	image.z_as_relative = false
 	image.z_index = 3
@@ -347,6 +348,22 @@ func has_room_to_grow() -> bool:
 	return true
 
 func segment_count() -> int: return levels
+
+## Centre of the segment nearest to a world point (other units aim at / measure to this part,
+## via the tall-body hooks in ball.combat_target_position and World nearest-enemy search).
+func nearest_segment_point(point:Vector2) -> Vector2:
+	return to_global(Vector2(0,-SEGMENT*float(segment_at(point))))
+
+func get_combat_lock_position_for(attacker:Node) -> Vector2:
+	if attacker is Node2D: return nearest_segment_point((attacker as Node2D).global_position)
+	return global_position
+
+func combat_distance_point_for(source:Node) -> Vector2:
+	return get_combat_lock_position_for(source)
+
+func _register_tall_body() -> void:
+	var world:Node = get_tree().current_scene if is_inside_tree() else null
+	if world != null and world.has_method(&"register_tall_combat_body"): world.call(&"register_tall_combat_body",self)
 
 ## Segment index (0 = bottom) under a world point.
 func segment_at(point:Vector2) -> int:
