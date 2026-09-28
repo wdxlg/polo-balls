@@ -26,12 +26,16 @@ func seconds(t:float) -> void:
 
 func heard(ev:String) -> int: return int(sounds.get(ev,0))
 
+## MC §1 hit feedback players currently alive (new5 table, parented to the scene).
+func hit_players() -> Array:
+	return get_nodes_in_group(&"MCNativeSFX").filter(func(n:Node) -> bool: return String(n.get_meta(&"mc_sound_event","")) in ["entity.player.hurt","entity.player.attack.crit"])
+
 func _on_node_added(n:Node) -> void:
 	if n.has_meta(&"wt_event"):
 		var ev:String=String(n.get_meta(&"wt_event"));sounds[ev]=int(sounds.get(ev,0))+1
 
 func run() -> void:
-	create_timer(150.0,true,false,true).timeout.connect(func(): print("WANDERING_TRADER_TIMEOUT"); quit(2))
+	create_timer(220.0,true,false,true).timeout.connect(func(): print("WANDERING_TRADER_TIMEOUT"); quit(2))
 	game=root.get_node("Game")
 	var saved:bool=game.Game_Settings.Have_Team_Damage
 	game.now_stop_state=false
@@ -65,6 +69,7 @@ func run() -> void:
 	check(trader.leashes.size()==2 and trader.leashes[0].is_inside_tree() and trader.leashes[0].is_connected_visual() and trader.leashes[1].is_connected_visual(),"two leash views drawn in world space")
 	check(l0.is_combat_targetable() and l1.is_combat_targetable(),"llamas are killable (targetable) summons")
 	check(not l0.get_meta(&"haochen_copy",false) and l0.get_node("Graphics/Image").texture!=null and trader.get_node("Graphics/Image").texture!=null,"baked frames applied to trader and llama")
+	check(trader.Max_health==300 and l0.Max_health==350 and l1.Max_health==350,"HP: trader 300, llamas 350 (%d / %d / %d)" % [trader.Max_health,l0.Max_health,l1.Max_health])
 	for l:Node2D in [l0,l1]:l.Max_health=100000;l.health=100000
 	# --- yank back through a character (ignore character collision) ----------------
 	hold(trader)
@@ -114,7 +119,10 @@ func run() -> void:
 	await seconds(0.2)
 	var before:Vector2=foe.global_position;var hp:int=foe.health
 	l0._speed_hits.clear()
+	var hit_sfx0:Array=hit_players()
 	var hit:bool=l0.apply_speed_hit(foe,250.0,Vector2(0,1))
+	var hit_sfx:Array=hit_players().filter(func(n:Node) -> bool: return not hit_sfx0.has(n))
+	check(hit_sfx.size()==1 and String(hit_sfx[0].get_meta(&"mc_sound_event"))=="entity.player.hurt" and hit_sfx[0].volume_db>=0.0,"speed hit plays the MC hurt hit sound once (%d)" % hit_sfx.size())
 	await seconds(0.35)
 	var moved:Vector2=foe.global_position-before
 	check(hit and foe.health<hp,"direct speed hit damages")
@@ -136,10 +144,14 @@ func run() -> void:
 	check(puffs.size()==7 and along==7,"vanilla launch: 7 spit smoke puffs fly along the shot (%d, %d along)" % [puffs.size(),along])
 	check(shot!=null and absf(angle_difference(shot.image.rotation+PI,shot.direction.angle()))<0.01,"spit model turned to its flight direction")
 	var bursts_before:int=get_nodes_in_group(&"MCWanderingTraderFx").size()
+	var spit_sfx0:Array=hit_players()
 	for i:int in range(60):
 		await physics_frame
 		if enemy.health<hp:break
 	check(enemy.health<hp,"spit hits the enemy (hp %d -> %d)" % [hp,enemy.health])
+	var spit_sfx:Array=hit_players().filter(func(n:Node) -> bool: return not spit_sfx0.has(n))
+	var HG:Script=load("res://scripts/effects/我的世界/hit_audio_gain.gd")
+	check(spit_sfx.size()==1 and String(spit_sfx[0].get_meta(&"mc_sound_event"))==HG.damage_event(float(hp-enemy.health)) and is_equal_approx(spit_sfx[0].volume_db,clampf(HG.damage_gain(float(hp-enemy.health)),0.0,6.0)) and spit_sfx[0].get_parent()==world,"spit hit plays the MC hit sound once at 0 dB+ gain, outliving the spit (%d)" % spit_sfx.size())
 	check(get_nodes_in_group(&"MCWanderingTraderFx").size()==bursts_before,"no invented block-chip splash on impact (vanilla spit just disappears)")
 	check(is_equal_approx(l1.spit_interval,2.0) and l1.spit_range>100.0,"medium attack interval 2.0 s")
 	# --- retaliation --------------------------------------------------------------------
@@ -238,6 +250,45 @@ func run() -> void:
 	check(((trader.collision_layer & 2)!=0)==(not invis_now) and (trader.collision_mask & 1)!=0,"collision restored consistently (invisible at start %s, now %s, %d/%d)" % [invis_at_start,invis_now,trader.collision_layer,trader.collision_mask])
 	check(not trader.has_meta(&"ignore_combat_targeting") and not trader.has_meta(&"ignore_combat_locking") or invis_now,"wall metas cleared")
 	check(not trader.has_meta(&"submission_allow_map_escape"),"map-escape exemption cleared after the wall phase")
+	# --- potion and wall are independent skills --------------------------------------------------
+	enemy.global_position=center+Vector2(rect.size.x*0.4,0)
+	trader._wall_wait=999.0;trader._invisibility_wait=999.0
+	t=0.0
+	while trader.is_invisible() and t<8.0:
+		await physics_frame;t+=1.0/60.0
+	check(not trader.is_invisible(),"previous invisibility wore off")
+	check(trader.start_wall_phase(),"wall again for the independence checks")
+	t=0.0
+	while trader.wall_phase!=2 and t<2.0:
+		await physics_frame;t+=1.0/60.0
+	trader._invisibility_wait=0.0
+	check(trader.wall_phase==2 and trader.start_drink(&"invisibility"),"drinks the potion while hidden inside the wall")
+	var inv_w:float=trader._invisibility_wait;var wall_w:float=trader._wall_wait
+	await seconds(0.9)
+	check(trader._invisibility_wait<inv_w-0.8 and trader._wall_wait<wall_w-0.8,"both cooldowns tick inside the wall (%.2f->%.2f, %.2f->%.2f)" % [inv_w,trader._invisibility_wait,wall_w,trader._wall_wait])
+	check(trader.wall_phase!=0 and trader._drink_left<=0.0 and trader._pending_invisibility and not STATUS.active(trader,"invisibility") and trader.collision_layer==0,"potion finished in the wall: invisibility deferred, collision stays off")
+	t=0.0
+	while trader.wall_phase!=0 and t<5.0:
+		await physics_frame;t+=1.0/60.0
+	check(trader.wall_phase==0 and STATUS.active(trader,"invisibility") and not trader._pending_invisibility,"deferred invisibility applied when he comes out")
+	check((trader.collision_layer & 2)==0 and (trader.collision_layer & ~2)==(trader._saved_layer & ~2) and (trader.collision_mask & 1)!=0,"invisibility on top of the restored collision (%d/%d)" % [trader.collision_layer,trader.collision_mask])
+	trader._wall_wait=999.0;trader._invisibility_wait=999.0
+	t=0.0
+	while trader.is_invisible() and t<8.0:
+		await physics_frame;t+=1.0/60.0
+	check(((trader.collision_layer & 2)!=0) and not trader.is_invisible(),"collision layer 2 back after the deferred invisibility ends (%d)" % trader.collision_layer)
+	# AI: both skills in the same frame (threat inside both radii).
+	var near_side:Vector2=Vector2(40,0) if trader.global_position.x<center.x else Vector2(-40,0)
+	enemy.global_position=trader.global_position+near_side
+	trader._wall_wait=0.0;trader._invisibility_wait=0.0
+	await physics_frame;await physics_frame
+	check(trader.wall_phase!=0 and trader._drink_left>0.0 and trader._drink_kind==&"invisibility","AI uses wall and potion together (drinking while entering the wall)")
+	enemy.global_position=center+Vector2(rect.size.x*0.4,0)
+	await seconds(0.9)
+	check(trader.wall_phase!=0 and trader._pending_invisibility,"drink started before the wall also completes inside it (deferred)")
+	trader._wall_wait=999.0;trader._invisibility_wait=999.0
+	trader.finish_wall_phase_now()
+	check(trader.wall_phase==0 and STATUS.active(trader,"invisibility") and trader.visible,"forced exit applies the deferred invisibility")
 	# --- llama death: leash removed, no respawn ------------------------------------------------
 	trader._wall_wait=999.0;trader._invisibility_wait=999.0
 	l1.take_damage(1e9)

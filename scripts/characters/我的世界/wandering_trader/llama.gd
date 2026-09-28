@@ -12,6 +12,7 @@ extends "res://scripts/characters/我的世界/mc_mob_base.gd"
 const AUDIO = preload("res://scripts/characters/我的世界/wandering_trader/audio.gd")
 const VISUAL = preload("res://scripts/characters/我的世界/wandering_trader/visual.gd")
 const HIT_GAIN = preload("res://scripts/effects/我的世界/hit_audio_gain.gd")
+const HIT_AUDIO = preload("res://scripts/characters/我的世界/new5/audio.gd")
 const SPIT_SCENE_PATH:String = "res://scenes/shooter/我的世界/羊驼口水.tscn"
 const FRAME_SETS:Array[StringName] = [&"llama_creamy",&"llama_brown"]
 const NORMAL_LAYER:int = 2
@@ -338,8 +339,27 @@ func wt_damage(target:ball,amount:float,point:Vector2) -> bool:
 	var hit_point:Vector2 = target.global_position
 	var applied:bool = target.receive_positional_damage(amount,point,false,self)
 	var actual:float = before - (maxf(float(target.health),0.0) if is_instance_valid(target) else 0.0)
-	if actual > 0.0: MC_AUDIO.play(self,HIT_GAIN.damage_event(actual),hit_point,HIT_GAIN.damage_gain(actual))
+	if actual > 0.0: wt_hit_sound(actual,hit_point)
 	return applied
+
+## MC_CONTEXT §1 hit feedback (<=50 hurt, >50 crit, damage_gain from 0 dB). These events live in the
+## shared new5 table (mc_native_audio has none of them), played at the victim and kept after the
+## source is gone (the spit frees itself on hit), unthrottled so separate hits never swallow each other.
+func wt_hit_sound(actual:float,point:Vector2) -> AudioStreamPlayer2D:
+	if not is_finite(actual) or actual <= 0.0: return null
+	if is_multiplayer_authority() and multiplayer.has_multiplayer_peer() and not multiplayer.get_peers().is_empty(): _wt_hit_sound_remote.rpc(actual,point)
+	return _wt_hit_sound_local(actual,point)
+
+@rpc("authority","call_remote","reliable")
+func _wt_hit_sound_remote(actual:float,point:Vector2) -> void:
+	_wt_hit_sound_local(actual,point)
+
+func _wt_hit_sound_local(actual:float,point:Vector2) -> AudioStreamPlayer2D:
+	var player:AudioStreamPlayer2D = HIT_AUDIO.play(self,HIT_GAIN.damage_event(actual),point,HIT_GAIN.damage_gain(actual),false,true,true,true)
+	if is_instance_valid(player):
+		player.set_meta(&"mc_damage_source",get_instance_id())
+		player.set_meta(&"mc_actual_damage",actual)
+	return player
 
 # ------------------------------------------------------------------ spit
 func spit_at(target:ball) -> void:

@@ -9,7 +9,7 @@ extends ball
 const U = preload("res://scripts/characters/我的世界/new5/utils.gd")
 const SMOKE = preload("res://scripts/characters/我的世界/wandering_trader/spit_smoke.gd")
 const HIT_GAIN = preload("res://scripts/effects/我的世界/hit_audio_gain.gd")
-const MC_AUDIO = preload("res://scripts/effects/我的世界/mc_native_audio.gd")
+const HIT_AUDIO = preload("res://scripts/characters/我的世界/new5/audio.gd")
 @export var knockback:float = 6.0
 @export var life:float = 2.2
 var _spent:bool = false
@@ -133,7 +133,10 @@ func _on_hitbox_on_hit(hurt:hurtbox) -> void:
 func impact_sound(actual:float,point:Vector2) -> void:
 	if _impact_played or actual <= 0.0: return
 	_impact_played = true
-	MC_AUDIO.play(self,HIT_GAIN.damage_event(actual),point,HIT_GAIN.damage_gain(actual))
+	# Through the llama (it outlives the spit and syncs the sound to peers); new5 table as fallback.
+	var shooter:Node = owner_unit()
+	if is_instance_valid(shooter) and shooter.has_method(&"wt_hit_sound"): shooter.call(&"wt_hit_sound",actual,point)
+	else: HIT_AUDIO.play(self,HIT_GAIN.damage_event(actual),point,HIT_GAIN.damage_gain(actual),false,true,true,true)
 
 func can_receive_hit_contact(_incoming:hitbox,_contact:hurtbox) -> bool: return false
 func can_receive_hit_from(_incoming:hitbox) -> bool: return false

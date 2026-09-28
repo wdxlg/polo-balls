@@ -54,6 +54,7 @@ User decisions:
   - The model (geometry.llamaspit, baked facing left) is turned to the flight direction every frame, like `animation.llama_spit.setup`.
   - The launch releases 7 spit smoke puffs (`wandering_trader/spit_smoke.gd`), as in Java `LlamaSpit.recreateFromPacket` + `SpitParticle`/`ExplodeParticle`. Puff *i* flies at shot velocity × (0.4 + 0.1·i) with a ±0.05/1.5 speed jitter and 0.9 friction per tick. Shade is 0.7–1.0 grey, size is 0.1·(r·r·6 + 1) half-width in blocks (1 block ≈ 16 px), lifetime is 16/(r·0.8 + 0.2) + 2 ticks, and frames play `generic_7 → generic_0` (the same flipbook as Bedrock `particles/llama_spit.json`). The puffs are purely visual, generated on every peer, and have no gravity on the top-down field.
   - Impacts spawn nothing extra (vanilla only discards the entity). The old white-cyan block-chip splash was removed.
+  - **Hit sound** (MCP_CONTEXT §1): every real HP loss from spit or speed damage plays `entity.player.hurt` (≤50) / `entity.player.attack.crit` (>50) at the victim with `hit_audio_gain.damage_gain` (0 dB base). The events come from the shared `new5/audio.gd` table (`mc_native_audio.gd` has no hit events and silently plays nothing). The llama plays it (`wt_hit_sound`, reliable rpc to peers) because the spit frees itself on hit; the player is parented to the current scene.
 - **Retaliation**: after taking real HP damage, the llama spits at the attacker after 0.45 s, or at the nearest enemy if the attacker cannot be resolved. Minimum 0.9 s between retaliations. Plays `entity.llama.angry`.
 
 ### Milk (long cooldown)
@@ -64,6 +65,14 @@ User decisions:
 ### Invisibility potion
 - He drinks for 0.78 s (the Witch's drink time), then calls `女巫药水效果.apply_effect(self,"invisibility",self)`: exactly the Witch's effect (6 s, no AI locking, no character-body collision, faded sprite, contact chip damage).
 - AI trigger: an enemy within 70, or hurt within the last 1 s. Cooldown 16 s, first use after 5 s. Sound: `entity.wandering_trader.drink_potion`.
+
+### Potion and wall are independent skills
+User rule (2026-09-28): "隐身药水和钻墙应该是独立技能" (fully independent).
+- Both cooldowns (and milk's) and the drink timer keep ticking during the wall phase.
+- He can enter the wall while drinking, and can start the potion while inside the wall. The AI may trigger both in the same frame; manual left/right click are likewise independent.
+- A potion that finishes while `wall_phase != NONE` is deferred (`_pending_invisibility`) and applied in `_finish_wall` after collision/metas are restored, because the Witch effect saves the current collision layer (0 inside the wall).
+- The held bottle is hidden while it is on the wall side of the clip (`item_outside_wall`); the drink visual is no longer cancelled by hiding in the wall.
+- Milk keeps its rule: not inside the wall and not during another drink.
 
 ### Wall (入墙, medium cooldown 11 s, first use after 7 s)
 - **Wall slots**: every map tile with a physics-layer-1 collision polygon that touches a walkable tile. PortalMap islands use their own layers. Maps without tiles fall back to the arena edges.
@@ -86,7 +95,7 @@ The phase runs in four steps:
 If the battle stops mid-phase, `finish_wall_phase_now()` pops him out at once.
 
 ### Death and lifecycle
-- Llamas have HP 145. `retire()` removes them from the Ball group, snaps their leash (`wt_on_llama_lost`) and frees them. **No respawn.** As Type Creature they are not battle characters, so they never count for victory.
+- Llamas have HP 350. `retire()` removes them from the Ball group, snaps their leash (`wt_on_llama_lost`) and frees them. **No respawn.** As Type Creature they are not battle characters, so they never count for victory.
 - When the trader dies, `owner_lost()` retires the remaining llamas (vanilla trader llamas despawn with him). World resets free them with every Ball.
 
 ### Manual control
@@ -103,8 +112,8 @@ If the battle stops mid-phase, `finish_wall_phase_now()` pops him out at once.
 
 | | value | reference |
 |---|---|---|
-| Trader HP / Speed | 520 / 80 | Witch 500 / 76 |
-| Llama HP / follow speed | 145 / 62 | dog 75, vex |
+| Trader HP / Speed | 300 / 80 | Witch 500 / 76 |
+| Llama HP / follow speed | 350 / 62 | dog 75, vex |
 | Spit damage / speed / interval | 14 / 300 / 2.0 s | snowball 6 / 260 |
 | Speed damage | from 130 px/s, ×0.09, cap 40 | |
 | Milk cooldown / drink | 20 s / 1.1 s | |

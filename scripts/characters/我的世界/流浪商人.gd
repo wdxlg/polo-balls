@@ -72,6 +72,9 @@ var _phase_to:Vector2
 var _saved_layer:int = 2
 var _saved_mask:int = 3
 var _saved_while_invisible:bool = false
+## Potion finished inside the wall: applied once collision is restored (the Witch effect saves
+## the current collision layer, which is 0 inside the wall).
+var _pending_invisibility:bool = false
 var _wall_clip:Node
 var _item_anchor:Node2D
 var _item_sprite:Sprite2D
@@ -212,9 +215,10 @@ func tick_physics(state:State,delta:float) -> void:
 			finish_wall_phase_now()
 			return
 		_tick_wall(delta)
-		return
-	super.tick_physics(state,delta)
+	else:
+		super.tick_physics(state,delta)
 	if health <= 0 or not is_combat_runtime_active(): return
+	# Potion and wall are independent skills: both cooldowns and the drink keep running in the wall.
 	_since_hurt += delta
 	_milk_wait -= delta
 	_invisibility_wait -= delta
@@ -222,20 +226,23 @@ func tick_physics(state:State,delta:float) -> void:
 	if _drink_left > 0.0:
 		_drink_left -= delta
 		if _drink_left <= 0.0: _finish_drink()
-		return
 	if dizziness or is_damage_output_disabled(): return
-	_negative_check_wait -= delta
-	if _milk_wait <= 0.0 and _negative_check_wait <= 0.0:
-		_negative_check_wait = 0.2
-		if has_negative_effect():
-			start_drink(&"milk")
-			return
+	if _drink_left <= 0.0 and wall_phase == Phase.NONE:
+		_negative_check_wait -= delta
+		if _milk_wait <= 0.0 and _negative_check_wait <= 0.0:
+			_negative_check_wait = 0.2
+			if has_negative_effect():
+				start_drink(&"milk")
+				return
 	if is_player_controlled(): return
 	var threat:float = nearest_threat_distance()
-	if _wall_wait <= 0.0 and (threat <= wall_threat_radius or (_since_hurt < 0.8 and health < Max_health*0.6)):
-		if start_wall_phase(): return
-	if _invisibility_wait <= 0.0 and not is_invisible() and (threat <= invisibility_threat_radius or _since_hurt < 1.0):
+	if wall_phase == Phase.NONE and _wall_wait <= 0.0 and (threat <= wall_threat_radius or (_since_hurt < 0.8 and health < Max_health*0.6)):
+		start_wall_phase()
+	if can_drink_invisibility() and (threat <= invisibility_threat_radius or _since_hurt < 1.0):
 		start_drink(&"invisibility")
+
+func can_drink_invisibility() -> bool:
+	return _invisibility_wait <= 0.0 and _drink_left <= 0.0 and not _pending_invisibility and not is_invisible()
 
 func move(speed:float,delta:float) -> void:
 	super.move(speed*(drink_move_ratio if _drink_left > 0.0 else 1.0),delta)
@@ -244,6 +251,7 @@ func _process(delta:float) -> void:
 	if _drink_visual_left > 0.0:
 		_drink_visual_left -= delta
 		if _drink_visual_left <= 0.0: _finish_drink_visual()
+		elif _item_anchor != null: _item_anchor.visible = item_outside_wall()
 	_update_item_facing()
 	_update_leash_views()
 
@@ -319,7 +327,8 @@ func cleanse_with_milk() -> int:
 	return -1
 
 func start_drink(kind:StringName) -> bool:
-	if _drink_left > 0.0 or wall_phase != Phase.NONE or health <= 0: return false
+	# The potion also works inside the wall (independent skill); milk keeps its old rule.
+	if _drink_left > 0.0 or health <= 0 or (kind == &"milk" and wall_phase != Phase.NONE): return false
 	_drink_kind = kind
 	if kind == &"milk":
 		_milk_wait = milk_cooldown
@@ -344,7 +353,8 @@ func _finish_drink() -> void:
 		last_cleansed = cleanse_with_milk()
 		VISUAL.burst(self,global_position + Vector2(0.0,-4.0),Color(1.0,1.0,1.0),12,36.0,1.3,0.5)
 	elif kind == &"invisibility":
-		POTION_EFFECTS.apply_effect(self,"invisibility",self)
+		if wall_phase != Phase.NONE: _pending_invisibility = true
+		else: POTION_EFFECTS.apply_effect(self,"invisibility",self)
 
 @rpc("authority","call_remote","reliable")
 func _show_drink_visual(kind:StringName,duration:float) -> void:
@@ -374,6 +384,12 @@ func _finish_drink_visual() -> void:
 	_drink_visual_left = 0.0
 	if _item_tween != null and _item_tween.is_valid(): _item_tween.kill()
 	if _item_anchor != null: _item_anchor.visible = false
+
+## The held bottle is not covered by the body's wall clip shader: hide it while it is behind the wall.
+func item_outside_wall() -> bool:
+	if _wall_clip == null or not is_instance_valid(_wall_clip) or not bool(_wall_clip.get(&"active")): return true
+	var at:Vector2 = _item_sprite.global_position if _item_sprite != null else global_position
+	return float(_wall_clip.call(&"side_of",at)) > 0.0
 
 func _setup_item_visual() -> void:
 	var parent:Node2D = graphics if graphics != null and is_instance_valid(graphics) else self
@@ -431,7 +447,7 @@ func _set_leash_active(active:bool) -> void:
 
 # ------------------------------------------------------------------ wall phase
 func start_wall_phase() -> bool:
-	if wall_phase != Phase.NONE or _drink_left > 0.0 or health <= 0 or not is_multiplayer_authority(): return false
+	if wall_phase != Phase.NONE or health <= 0 or not is_multiplayer_authority(): return false
 	var slots:Array[Dictionary] = WALL.wall_slots(get_tree().current_scene,mc_arena_rect())
 	if slots.is_empty(): return false
 	entry_slot = WALL.nearest_slot(slots,global_position)
@@ -616,6 +632,9 @@ func _finish_wall() -> void:
 	_wall_fade(1.0)
 	_wall_wait = wall_cooldown
 	_set_leash_active(true)
+	if _pending_invisibility:
+		_pending_invisibility = false
+		if health > 0 and is_combat_runtime_active(): POTION_EFFECTS.apply_effect(self,"invisibility",self)
 
 ## Battle ended / runtime paused mid-skill: pop out at once instead of staying hidden.
 func finish_wall_phase_now() -> void:
@@ -641,7 +660,6 @@ func _wall_fade(alpha:float) -> void:
 func _wall_visual(show_unit:bool,point:Vector2,normal:Vector2,at:Vector2) -> void:
 	if not is_multiplayer_authority(): global_position = at
 	visible = show_unit
-	if not show_unit: _finish_drink_visual()
 	VISUAL.burst(self,point,STONE_COLOR,18,70.0,1.6,0.6,normal if normal != Vector2.ZERO else Vector2.UP)
 	VISUAL.burst(self,point,Color(0.62,0.62,0.62),8,40.0,1.0,0.45,normal if normal != Vector2.ZERO else Vector2.UP)
 
@@ -671,7 +689,7 @@ func apply_knockback(knockback_direction:Vector2,knockback_distance:float,knockb
 func controlled_attack_action() -> void:
 	# Left click: invisibility potion (Witch's effect).
 	if not is_player_controlled() or not is_multiplayer_authority() or not is_combat_runtime_active(): return
-	if _invisibility_wait <= 0.0 and not is_invisible(): start_drink(&"invisibility")
+	if can_drink_invisibility(): start_drink(&"invisibility")
 
 func controlled_skill_action() -> void:
 	# Right click: enter the nearest wall.
