@@ -49,6 +49,12 @@ const DEAD_TINT:Color = Color(0.38,0.38,0.38,1.0)
 # 阵亡文字比头像稍亮，保证结果画面仍能读清名字与 0 血。
 const DEAD_TEXT_TINT:Color = Color(0.62,0.62,0.62,1.0)
 const SCAN_INTERVAL:float = 0.10
+# 玩家画面顶部工具栏（游戏设置/队伍/重置…）可见时会盖住 HUD：本体改为排在工具栏下方、
+# 原文字 VS 标题上方，并整体等比缩小居中。录制画面没有工具栏，镜像保持原布局。
+const TOOLBAR_GAP:float = 8.0
+const TITLE_GAP:float = 6.0
+const DEFAULT_TITLE_TOP:float = 240.0
+const MIN_FIT_SCALE:float = 0.5
 
 var world:Node
 ## 录制镜像才设置：指向玩家画面上的本体 HUD。
@@ -56,6 +62,10 @@ var source:Control = null
 ## 空字符串 = 跟随游戏当前语言；镜像为 "zh" / "en"。
 var locale:String = ""
 var visibility_bit:int = 2
+## 视口宽度 / 1080 的基础倍率（不含避让工具栏的缩放）；镜像沿用它而不是本体的最终 scale。
+var layout_base_scale:float = 1.0
+## 避让工具栏后的额外缩放（1 = 原布局）。
+var layout_fit_scale:float = 1.0
 
 ## 已过去的游戏时间（秒）。
 var elapsed:float = 0.0
@@ -167,7 +177,9 @@ func _process(delta:float) -> void:
 		var shown:bool = is_instance_valid(source) and source.visible
 		visible = shown
 		if shown:
-			scale = source.scale
+			# 录制视口没有工具栏：只跟随基础倍率，不继承本体为避让工具栏做的下移/缩小。
+			position = Vector2.ZERO
+			scale = Vector2.ONE * source.layout_base_scale
 			size = source.size
 			queue_redraw()
 			_text_layer.queue_redraw()
@@ -204,12 +216,53 @@ func _should_show() -> bool:
 func _apply_layout() -> void:
 	var viewport_size:Vector2 = get_viewport_rect().size
 	var factor:float = maxf(viewport_size.x,1.0) / DESIGN_WIDTH
-	position = Vector2.ZERO
-	scale = Vector2.ONE * factor
+	layout_base_scale = factor
 	size = Vector2(DESIGN_WIDTH,TOP + PANEL_HEIGHT + 8.0)
+	var fit:float = 1.0
+	var offset:Vector2 = Vector2.ZERO
+	if not is_mirror():
+		var toolbar_bottom:float = _toolbar_bottom_design(factor)
+		if toolbar_bottom + TOOLBAR_GAP > TOP:
+			var top_limit:float = toolbar_bottom + TOOLBAR_GAP
+			var bottom_limit:float = _title_top_design(factor) - TITLE_GAP
+			fit = clampf((bottom_limit - top_limit) / PANEL_HEIGHT,MIN_FIT_SCALE,1.0)
+			offset = Vector2(DESIGN_WIDTH * (1.0 - fit) * 0.5,top_limit - TOP * fit)
+	layout_fit_scale = fit
+	position = offset * factor
+	scale = Vector2.ONE * factor * fit
 	if is_instance_valid(_text_layer):
 		_text_layer.position = Vector2.ZERO
 		_text_layer.size = size
+
+
+## 屏幕坐标 → 本 HUD 父级画布的设计坐标（1080 宽）。
+func _screen_to_design(point:Vector2,factor:float) -> Vector2:
+	var parent_canvas:Transform2D = get_global_transform_with_canvas() * get_transform().affine_inverse()
+	return (parent_canvas.affine_inverse() * point) / maxf(factor,0.0001)
+
+
+## 顶部工具栏可见时返回其底边（设计坐标），否则返回 -INF。
+func _toolbar_bottom_design(factor:float) -> float:
+	var control:Variant = world.get("control") if is_instance_valid(world) else null
+	if not (control is Control) or not is_instance_valid(control):
+		return -INF
+	var bar:Control = (control as Control).get_node_or_null("Settings") as Control
+	if bar == null or not bar.is_visible_in_tree():
+		return -INF
+	var bar_layer:CanvasLayer = bar.get_canvas_layer_node()
+	if bar_layer != null and not bar_layer.visible:
+		return -INF
+	var bar_canvas:Transform2D = bar.get_global_transform_with_canvas()
+	var bottom:float = maxf(_screen_to_design(bar_canvas * Vector2(0.0,bar.size.y),factor).y,_screen_to_design(bar_canvas * bar.size,factor).y)
+	# 工具栏滑出屏幕顶部（底边 ≤ 0）时视为不可见。
+	return bottom if bottom > 0.0 else -INF
+
+
+func _title_top_design(factor:float) -> float:
+	var title:Variant = world.get("versus_label") if is_instance_valid(world) else null
+	if title is Control and is_instance_valid(title):
+		return _screen_to_design((title as Control).get_global_transform_with_canvas() * Vector2.ZERO,factor).y
+	return DEFAULT_TITLE_TOP
 
 
 func _clear_pair() -> void:

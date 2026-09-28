@@ -43,3 +43,10 @@
 - 修改前 HEAD：`bccd680949f7e742a92fca3782ce48c0e06e2577`。`world.gd`、`battle_record_locale.gd`、`battle_recorder.gd`、`MCP_CONTEXT.md` 修改前工作副本及既有脏差异备份在 `.git/agent-checkpoints/duel_top_hud_20260928/`。
 - 本次提交只含：新 HUD 脚本、专项测试、本说明、预览图，以及 `world.gd` / `battle_record_locale.gd` / `MCP_CONTEXT.md` 中本任务的差异块；这些文件里其他任务的未提交改动不在本提交内。
 - 回退：先备份当前工作区，再 `git revert <本次提交>`，或 `git show <本次提交> | git apply -R --check` 后人工合并；不要用 `reset --hard` / `clean`。
+- 首次提交：`710633d`。
+
+## 纠正（2026-09-28）：“时间完全不动” → 被顶部工具栏遮挡
+
+- 原因：计时本身一直在走（诊断：普通模式、`create_char` 真实放置两人，7.5 秒 elapsed=7.52）；但真实游玩时 `World/CanvasLayer/Control/Settings` 顶部工具栏（游戏设置/队伍/重置…，底边约逻辑 y=81）盖在 HUD 上，中间计时数字和两侧名字只露出底边，看起来完全不动。原专项测试隐藏了工具栏，所以没发现。
+- 修正：本体每帧检测工具栏是否可见；可见时整组 HUD 排到工具栏下方 8、原文字 VS 标题上方 6，等比缩小（540×960 实测 0.817）并水平居中；工具栏隐藏时恢复原布局。录制画面没有工具栏，中英镜像只跟随基础倍率，保持原全尺寸布局。
+- 验证：`test_duel_top_hud` 39/39（新增：工具栏可见时缩小、面板顶 ≥ 工具栏底、面板底 ≤ VS 标题、居中、计时文字 70 物理帧内前进、镜像保持原布局、隐藏工具栏恢复）；`test_vs_screen_title` 27/27；`test_armor_intro_readability` 48/48。GPU 截图 `user://duel_top_hud/main_duel_toolbar.png` 人工确认工具栏下方完整显示 00:02 / VS / 名字 / 生命。

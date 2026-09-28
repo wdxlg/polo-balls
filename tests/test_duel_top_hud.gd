@@ -113,6 +113,7 @@ func run() -> void:
 	print("DUEL_HUD_METRIC hud=",hud_box," title=",title_box," logical=",world.get_viewport_rect().size)
 	check(hud_box.position.y >= 0.0 and hud_box.end.y <= title_box.position.y + 0.5,"HUD bottom stays above the ordinary VS title")
 	check(absf(hud_box.size.x - world.get_viewport_rect().size.x) < 1.0,"HUD spans the logical viewport width")
+	check(is_equal_approx(hud().layout_fit_scale,1.0),"without the toolbar the HUD keeps its full-size layout")
 
 	# 生命同步
 	red.health = 37
@@ -185,6 +186,37 @@ func run() -> void:
 	var zh_shot:Image = await save_shot(captures.zh,"recording_zh.png")
 	var en_shot:Image = await save_shot(captures.en,"recording_en.png")
 	check(region_difference(zh_shot,en_shot,Rect2i(560,40,480,160)) > 0.001,"zh/en recordings render different localized right-side names")
+
+	# 真实游玩时顶部工具栏（游戏设置/队伍/重置…）可见：HUD 必须排到工具栏下方、原 VS 标题上方，
+	# 计时数字不能被遮住；录制镜像没有工具栏，保持原布局。
+	var ui_layer:Node = world.control.get_parent()
+	ui_layer.show()
+	var toolbar:Control = world.control.get_node("Settings")
+	await settle(3)
+	var bar_box:Rect2 = screen_box(toolbar)
+	var fit_box:Rect2 = screen_box(hud())
+	var fit_title:Rect2 = screen_box(world.versus_label)
+	var logical:Vector2 = world.get_viewport_rect().size
+	var panel_top:float = fit_box.position.y + hud().TOP * hud().scale.y
+	var panel_bottom:float = fit_box.position.y + (hud().TOP + hud().PANEL_HEIGHT) * hud().scale.y
+	print("DUEL_HUD_METRIC toolbar=",bar_box," panels_y=",panel_top,"..",panel_bottom," title=",fit_title," fit=",hud().layout_fit_scale)
+	check(toolbar.is_visible_in_tree() and hud().layout_fit_scale < 1.0,"visible toolbar makes the HUD shrink to fit")
+	check(panel_top >= bar_box.end.y - 0.5,"HUD panels start below the top toolbar (timer not covered)")
+	check(panel_bottom <= fit_title.position.y + 0.5,"shrunken HUD still stays above the ordinary VS title")
+	check(absf((fit_box.position.x + fit_box.size.x * 0.5) - logical.x * 0.5) < 1.0,"shrunken HUD stays horizontally centered")
+	var tick0:String = hud().format_elapsed(hud().elapsed)
+	var clock_a:float = hud().elapsed
+	await settle(70)
+	check(hud().elapsed > clock_a + 1.0 and hud().format_elapsed(hud().elapsed) != tick0,"timer text advances while the toolbar is visible")
+	await save_shot(root,"main_duel_toolbar.png")
+	for locale:String in ["zh","en"]:
+		var layer_copy:CanvasLayer = mirror.screen_roots.get(locale)
+		for child:Node in layer_copy.get_children():
+			if child.name == "DuelTopHud_" + locale:
+				check(child.position == Vector2.ZERO and is_equal_approx(child.scale.x,hud().layout_base_scale),"recording " + locale + " mirror keeps the full layout (no toolbar there)")
+	ui_layer.hide()
+	await settle(3)
+	check(is_equal_approx(hud().layout_fit_scale,1.0) and hud().position == Vector2.ZERO,"hiding the toolbar restores the full-size layout")
 
 	# 决出胜负：保留最后一对的结果；胜利铃后计时冻结；重置归零并隐藏。
 	red.health = 0
