@@ -34,7 +34,7 @@ User decisions:
 | `scenes/creatures/流浪商人_河豚.tscn`, `流浪商人_热带鱼.tscn` | released fish (Type Creature) |
 | `Images/characters/我的世界/流浪商人/items/` + `SOURCE_JAVA.json` | vanilla Java 1.21.1 item / block / particle textures |
 | `audio/characters/流浪商人/items/` + `SOURCE.json` | 71 vanilla item sounds |
-| `tests/test_wandering_trader_items.gd` | item functional test (51 checks) |
+| `tests/test_wandering_trader_items.gd` | item functional test |
 | `tests/preview_wandering_trader_items_gpu.gd` | GPU screenshots of the frame, crumbs and every item |
 
 ## Rules
@@ -134,9 +134,9 @@ Every wall exit rolls one item (equal weights, including exits that bring a llam
 | Item | Trigger | Effect |
 |---|---|---|
 | 火药 Gunpowder | dropped at his feet 0.6–2.4 s (random) after the exit | Arms after 0.4 s; an **enemy** stepping on it lights a 0.2 s fuse (vanilla fuse sound), then it explodes: **50** damage to enemies within 22 px plus knockback, vanilla explosion sprite + sound. His own side never sets it off. Fizzles after 25 s. |
-| 蓝冰 Blue ice | placed 0.3 s after the exit, just inward of the wall | 2×2 blocks (22 px) for 12 s. An enemy on it gains extra speed along its own movement (+240 px/s², up to 1.3× its base speed) through the shared `surface_motion_velocity` channel. Off the ice the boost decays at 70 px/s². Hitting a wall or obstacle while the boost is still ≥ 20 px/s deals 6–30 damage (scaled by the remaining boost), and the boost bounces off at 45 %. |
-| 河豚桶 Pufferfish bucket | 0.3 s after the exit | Releases a pufferfish (`scenes/creatures/流浪商人_河豚.tscn`): a killable Creature summon on his team, **150** HP. See the fish rules below. Touching an enemy stings it for 10 (14 while puffed) damage plus Poison 4 s, with a 0.7 s cooldown per target. It puffs up while an enemy is within 34 px. |
-| 热带鱼桶 Tropical fish bucket | 0.3 s after the exit | Releases a tropical fish (`流浪商人_热带鱼.tscn`): **200** HP, on his team, no attack. Same movement as the pufferfish. |
+| 蓝冰 Blue ice | placed 0.3 s after the exit, just inward of the wall | 3×3 blocks (33 px, one block = 11 px at character scale) on the floor layer (relative z −1 = absolute −3: above the map tiles (−4), under every character (−2)) for 12 s. An enemy on it gains extra speed along its own movement (+240 px/s², up to 1.3× its base speed) through the shared `surface_motion_velocity` channel. Off the ice the boost decays at 70 px/s². Hitting a wall or obstacle while the boost is still ≥ 20 px/s deals 6–30 damage (scaled by the remaining boost), and the boost bounces off at 45 %. |
+| 河豚桶 Pufferfish bucket | 0.3 s after the exit | Releases a pufferfish (`scenes/creatures/流浪商人_河豚.tscn`): a killable Creature summon on his team, **50** HP. See the fish rules below. Touching an enemy stings it for 10 (14 while puffed) damage plus Poison 4 s, with a 0.7 s cooldown per target. It puffs up while an enemy is within 34 px. |
+| 热带鱼桶 Tropical fish bucket | 0.3 s after the exit | Releases a tropical fish (`流浪商人_热带鱼.tscn`): **75** HP, on his team. Same movement as the pufferfish. **Collision damage from its own speed** (user rule 2026-09-29): ramming an enemy deals speed × 0.05 (0 below 60 px/s, cap 22; a 300 px/s hop = 15) plus a knockback along its motion, with a 0.5 s cooldown per target. It does not poison. |
 | 滴水石锥 Pointed dripstone | the next time he touches a wall (`when_collide`) | A spike grows out of that wall along its normal (14 px long, 20 s). It is **neutral**: anyone who touches it, the trader and his llamas included, takes 18 damage plus a small push, with a 0.6 s cooldown per unit (he gets 0.8 s of grace right after placing it). If he touches no wall within 12 s, it is set down behind him as a floor spike. |
 | 粘液球 Slimeball | thrown when an enemy is within 150 px with a clear line (after 10 s: any enemy in range) | Parabolic throw (vanilla throw sound). On hit: 10 damage, knockback and Slowness 3 s, plus a slime-ball crumb splash and `entity.slime.attack`. On a wall or obstacle it splashes and bounces back once at half range. |
 | 干草块 Hay bale | 0.3 s after the exit | Thrown on a spinning parabola onto the most hurt llama, following it. Heals **70**, with vanilla heart particles and hay crumbs. |
@@ -148,7 +148,7 @@ Every wall exit rolls one item (equal weights, including exits that bring a llam
 - Horizontal drift is 40–70 px/s, like the anvil. It bounces off characters, obstacles and the arena walls.
 - The body tumbles freely: landings and bounces kick its spin, and gravity swings it.
 - It dies after 25 s out of water. At most 2 of each kind are alive; the oldest is replaced.
-- The inherited body hitbox is disabled, so the sting is the only contact damage.
+- The inherited body hitbox is disabled, so the pufferfish sting / tropical fish ram are the only contact damage.
 
 **Wall crumbs** (`items/crumbs.gd`, user rule "墙壁的小方块粒子"): wall entry, the exit tell and the exit spray small squares cut from the wall tile's own atlas region (`wall_source`: the tile just behind the surface point, falling back to vanilla stone), like vanilla terrain particles. They fly out along the normal, fall and vanish. They replace the old procedural chips, and the same crumb particles are used for the ice, cactus, dripstone, hay, slime and potato.
 
@@ -170,7 +170,8 @@ Every wall exit rolls one item (equal weights, including exits that bring a llam
 | Wall walk-in / walk-out | his normal speed and direction (≤ 60° to the normal), ≤ 3 s each; armed ≤ 4 s | |
 | Leash slack / pull start / pull end | 42 / 60 / 28 world px | |
 | Gunpowder / dripstone / cactus side / slime | 50 / 18 / 8 / 10 damage | |
-| Pufferfish / tropical fish HP | 150 / 200 | llama 350 |
+| Pufferfish / tropical fish HP | 50 / 75 | llama 350 |
+| Tropical fish ram | own speed × 0.05, from 60 px/s, cap 22 | |
 | Hay / potato heal | 70 / 40 | |
 
 ## Art and sound sources

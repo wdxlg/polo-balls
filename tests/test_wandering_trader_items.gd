@@ -134,6 +134,16 @@ func run() -> void:
 	await wait_until(func() -> bool: return not items_of(CATALOG.BLUE_ICE).is_empty(),1.0)
 	var ices:Array=items_of(CATALOG.BLUE_ICE)
 	check(ices.size()==1,"blue ice placed right after the exit")
+	if ices.size()==1:
+		var ice0:Node2D=ices[0]
+		var ice_z:int=ice0.z_index+(ice0.get_parent() as CanvasItem).z_index if ice0.z_as_relative else ice0.z_index
+		var unit_z:int=trader.z_index+(trader.get_parent() as CanvasItem).z_index
+		var map_z:int=-100
+		for layer:TileMapLayer in WALL_SCRIPT.map_layers(WALL_SCRIPT.current_map(world)):
+			var parent_z:int=(layer.get_parent() as CanvasItem).z_index if layer.get_parent() is CanvasItem else 0
+			map_z=maxi(map_z,layer.z_index+(parent_z if layer.z_as_relative else 0))
+		check(ice_z<unit_z and ice_z>map_z,"blue ice sits on the floor layer: above the tiles, under the characters (abs z: ice %d, unit %d, map %d)" % [ice_z,unit_z,map_z])
+		check(is_equal_approx(ice0.rect().size.x,ice0.BLOCK*3.0) and ice0.BLOCKS==3,"blue ice is a 3x3 block patch (%.1f px)" % ice0.rect().size.x)
 	var runner:Node2D=unit("res://scenes/ball.tscn","Runner","Team1",center)
 	await process_frame
 	runner.Has_Collision_Damage=false;runner.Can_Attack=false;runner.Can_Skill=false;runner.health=runner.Max_health
@@ -171,7 +181,7 @@ func run() -> void:
 	# --- pufferfish --------------------------------------------------------------------------------
 	var puff:Node2D=trader.release_fish(true)
 	await physics_frame
-	check(is_instance_valid(puff) and puff.Type==3 and puff.Master==trader and puff.Team==trader.Team and puff.Max_health==150,"pufferfish: killable summon on his team (150 HP)")
+	check(is_instance_valid(puff) and puff.Type==3 and puff.Master==trader and puff.Team==trader.Team and puff.Max_health==50,"pufferfish: killable summon on his team (50 HP)")
 	var y0:float=puff.global_position.y
 	var rot0:float=puff.image.rotation
 	await seconds(3.0)
@@ -195,13 +205,28 @@ func run() -> void:
 	# --- tropical fish ------------------------------------------------------------------------------
 	var fish:Node2D=trader.release_fish(false)
 	await physics_frame
-	check(is_instance_valid(fish) and fish.Max_health==200 and fish.Team==trader.Team and not fish.puffer,"tropical fish: 200 HP on his team")
-	var calm:Node2D=await dummy("E3","Team1",fish.global_position)
+	check(is_instance_valid(fish) and fish.Max_health==75 and fish.Team==trader.Team and not fish.puffer,"tropical fish: 75 HP on his team")
+	check(fish.ram_damage(30.0)==0.0 and is_equal_approx(fish.ram_damage(300.0),15.0) and fish.ram_damage(200.0)<fish.ram_damage(300.0) and fish.ram_damage(2000.0)==fish.ram_damage_max,"ram damage scales with the fish's own speed (0 / %.1f / %.1f / cap %.1f)" % [fish.ram_damage(200.0),fish.ram_damage(300.0),fish.ram_damage_max])
+	var calm:Node2D=await dummy("E3","Team1",fish.global_position+Vector2(0,-40))
+	await seconds(0.3)
 	var hpc:float=calm.health
-	for i:int in range(40):
-		calm.global_position=fish.global_position
-		await physics_frame
-	check(calm.health==hpc and fish.stings==0,"tropical fish has no attack")
+	var rammed:bool=false
+	for i:int in range(120):
+		if fish.fall_velocity.length()>=fish.ram_min_speed+40.0:
+			calm.global_position=fish.global_position
+			await physics_frame
+			if fish.rams>0:
+				rammed=true
+				break
+		else:
+			calm.global_position=fish.global_position+Vector2(0,-40)
+			await physics_frame
+	check(rammed and fish.stings==0,"tropical fish rams an enemy (no sting / poison)")
+	check(fish.last_ram_damage>=fish.ram_damage(fish.ram_min_speed+40.0)-0.01 and absf((hpc-calm.health)-fish.last_ram_damage)<0.01,"ram damage from its speed (%.1f)" % fish.last_ram_damage)
+	check(not STATUS.active(calm,"poison"),"tropical ram does not poison")
+	calm.global_position=fish.global_position+Vector2(0,-40)
+	fish.fall_velocity=Vector2(20,0)
+	check(fish.ram_damage(fish.fall_velocity.length())==0.0,"a slow drift does no ram damage")
 	await seconds(1.0)
 	check(fish.hops>=1,"tropical fish flops like the pufferfish")
 	calm.take_damage(1e9)

@@ -971,7 +971,7 @@ func use_held_item(manual:bool = false) -> bool:
 		CATALOG.GUNPOWDER:
 			used = _place_item(kind,global_position,{}) != null
 		CATALOG.BLUE_ICE:
-			used = _place_item(kind,_inside_arena(global_position + _exit_inward()*14.0,16.0),{}) != null
+			used = _place_item(kind,_inside_arena(global_position + _exit_inward()*14.0,18.0),{}) != null
 		CATALOG.CACTUS:
 			var spot:Variant = cactus_spot()
 			used = spot is Vector2 and _place_item(kind,spot,{}) != null

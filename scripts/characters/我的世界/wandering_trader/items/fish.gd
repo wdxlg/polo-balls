@@ -5,8 +5,9 @@ extends "res://scripts/characters/我的世界/mc_mob_base.gd"
 ##   every landing throws it up again with a random medium jump. Horizontal speed like the anvil:
 ##   constant left/right drive that bounces off characters, obstacles and the arena walls.
 ## * The body tumbles freely: each landing / bounce kicks its spin and gravity swings it.
-## * 河豚 (puffer = true): puffs up when an enemy is near; touching an enemy stings it (damage +
-##   Poison). 热带鱼 (puffer = false): 200 HP decoy on the trader's team, no attack.
+## * 河豚 (puffer = true, 50 HP): puffs up when an enemy is near; touching an enemy stings it
+##   (damage + Poison). 热带鱼 (puffer = false, 75 HP): on the trader's team; ramming an enemy deals
+##   collision damage that scales with the fish's own speed (user rule 2026-09-29).
 ## * Dries out: dies dry_time seconds after release (vanilla fish suffocate out of water).
 const AUDIO = preload("res://scripts/characters/我的世界/wandering_trader/audio.gd")
 const CATALOG = preload("res://scripts/characters/我的世界/wandering_trader/items/catalog.gd")
@@ -27,6 +28,12 @@ const POTION_EFFECTS = preload("res://scripts/effects/我的世界/女巫药水�
 @export var poison_time:float = 4.0
 @export var puff_radius:float = 34.0
 @export var dry_time:float = 25.0
+@export_category("鱼 / 热带鱼撞击")
+@export var ram_min_speed:float = 60.0 # own speed below this: no damage (a slow drift is harmless)
+@export var ram_damage_per_speed:float = 0.05 # 300 px/s hop = 15
+@export var ram_damage_max:float = 22.0
+@export var ram_cooldown:float = 0.5
+@export var ram_knockback:float = 0.04 # knockback px per px/s of own speed
 
 var fall_velocity:Vector2 = Vector2.ZERO
 var spin:float = 0.0
@@ -35,6 +42,8 @@ var puff_visual:float = 0.0
 var hops:int = 0
 var bounces:int = 0
 var stings:int = 0
+var rams:int = 0
+var last_ram_damage:float = 0.0
 var alive_time:float = 0.0
 var _puff_hold:float = 0.0
 var _sting_wait:Dictionary = {}
@@ -195,6 +204,7 @@ func tick_physics(state:State,delta:float) -> void:
 		retire()
 		return
 	if puffer: _tick_puffer(delta)
+	else: _tick_ram()
 
 func fish_enemy(target:Variant) -> bool:
 	var boss:Node = trader()
@@ -224,8 +234,41 @@ func _set_puffed(on:bool) -> void:
 @rpc("authority","call_remote","reliable")
 func _puff_remote(on:bool) -> void: puffed = on
 
+## 热带鱼: overlap check each tick (move_and_collide only reports the bodies it runs into).
+func _tick_ram() -> void:
+	var mine:Rect2 = CATALOG.body_rect(self).grow(1.5)
+	for unit:ball in CATALOG.units(self):
+		if unit == self or not fish_enemy(unit): continue
+		if CATALOG.body_rect(unit).intersects(mine): _ram(unit)
+
+func ram_damage(speed:float) -> float:
+	if speed < ram_min_speed: return 0.0
+	return minf(speed*ram_damage_per_speed,ram_damage_max)
+
+func _ram(unit:ball) -> void:
+	if not fish_enemy(unit) or is_damage_output_disabled(): return
+	var id:int = unit.get_instance_id()
+	if _sting_wait.has(id): return
+	var speed:float = fall_velocity.length()
+	var amount:float = ram_damage(speed)
+	if amount <= 0.0: return
+	_sting_wait[id] = ram_cooldown
+	var boss:Node = trader()
+	var before:float = maxf(float(unit.health),0.0)
+	unit.receive_positional_damage(amount,unit.global_position,false,self)
+	var actual:float = before - (maxf(float(unit.health),0.0) if is_instance_valid(unit) else 0.0)
+	last_ram_damage = actual
+	rams += 1
+	if actual > 0.0 and boss != null and boss.has_method(&"wt_hit_sound"): boss.call(&"wt_hit_sound",actual,unit.global_position)
+	if is_instance_valid(unit) and unit.health > 0 and unit.can_receive_negative_effects():
+		var push:Vector2 = fall_velocity.normalized() if speed > 0.01 else global_position.direction_to(unit.global_position)
+		unit.apply_knockback(push,speed*ram_knockback*unit.get_negative_effect_ratio(),260.0,0.0,0.0,{"source":self,"lock_control":false})
+
 func _touch(unit:ball) -> void:
-	if not puffer or not fish_enemy(unit) or is_damage_output_disabled(): return
+	if not puffer:
+		_ram(unit)
+		return
+	if not fish_enemy(unit) or is_damage_output_disabled(): return
 	var id:int = unit.get_instance_id()
 	if _sting_wait.has(id): return
 	_sting_wait[id] = sting_cooldown
