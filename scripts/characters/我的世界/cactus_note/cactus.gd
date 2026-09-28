@@ -12,6 +12,7 @@ var hit_sounds:int = 0
 var _growth_players:Array[AudioStreamPlayer2D] = []
 func _process(delta:float) -> void:
 	super._process(delta)
+	_update_segment_views(delta)
 	for i:int in range(_growth_players.size()-1,-1,-1):
 		if not is_instance_valid(_growth_players[i]): _growth_players.remove_at(i)
 		else: _growth_players[i].stream_paused = not is_combat_runtime_active()
@@ -81,13 +82,15 @@ var last_volley_count:int = 0
 var growth_count:int = 0
 func get_preview_texture() -> Texture2D: return TEXTURES[0]
 func _ready() -> void:
+	segment_health = maxi(Max_health,1) # one cactus = one segment of HP
 	super._ready()
 	_health_base = get_node("Health_Bar").position
 	image.z_as_relative = false
 	image.z_index = 3
 	apply_height()
 func apply_height() -> void:
-	levels = clampi(levels,1,5)
+	levels = maxi(levels,1)
+	_apply_segment_health()
 	if _geometry_level == levels: return
 	_geometry_level = levels
 	var height:float = 96.0*levels
@@ -98,18 +101,20 @@ func apply_height() -> void:
 		shape.size = Vector2(84,height)
 		node.shape = shape
 		node.position = Vector2(0,shift)
-	image.texture = TEXTURES[levels-1]
-	image.position = Vector2(0,shift)
+	_rebuild_segments() # image = bottom segment, the others are its children
+	image.position = Vector2.ZERO
 	image.scale = Vector2.ONE
 	get_node("Health_Bar").position = _health_base+Vector2(0,-96.0*(levels-1))
 func step_mob(delta:float) -> void:
 	growth_elapsed += delta
-	while growth_elapsed >= growth_interval and levels < 5:
+	while growth_elapsed >= growth_interval:
+		if not has_room_to_grow():
+			# No segment cap; only a wall / the map border above stops it (checked again every interval).
+			growth_elapsed = 0.0
+			growth_blocked = true
+			break
 		growth_elapsed -= growth_interval
-		levels += 1
-		growth_count += 1
-		apply_height()
-		play_growth_sound()
+		grow_segment()
 	volley_left = maxf(0,volley_left-delta)
 	contact_left = maxf(0,contact_left-delta)
 	if not can_act():
@@ -189,7 +194,7 @@ func visual_mob() -> void:
 	apply_height()
 	image.rotation = 0
 	image.scale = presentation_scale()
-	image.position = Vector2(0,48.0-48.0*levels*image.scale.y)
+	image.position = Vector2(0,48.0-48.0*image.scale.y) # bottom segment; the others ride on it
 	get_node("Health_Bar").position = _health_base+Vector2(0,-96.0*(levels-1)+96.0*levels*(1.0-image.scale.y))
 	face_horizontal(velocity if velocity.length_squared()>1.0 else direction,false)
 func visual_state() -> Dictionary: return {"time":clock,"levels":levels,"growth":growth_elapsed,"volley":volley_left,"volley_phase":volley_phase,"volley_age":volley_age,"retaliation_age":retaliation_age,"retaliation_start":retaliation_start}
@@ -209,7 +214,7 @@ func _death_visual() -> void:
 	_death_visual_done = true
 	ITEM_DEATH.spawn(self)
 func get_skill_description() -> String:
-	return "每8秒向上长一节，最多5节，底部不动，碰撞箱和血条同步升高。只有左右两侧有接触伤害；技能先收细，再弹性胀开并从左右射出本体刺色的细条，长得越高越多，数量小幅随机，主动散射为左右向外±10°。实际掉血时先快速胀粗爆刺再弹性回缩，反伤刺向外±45°、每根基础伤害固定5；总数量向下取整(实际掉血×反伤幅度÷5)，每层幅度40%、最多200%，左右合计不翻倍。每次长高播放仙人掌放置音，成功命中播放MC受击音。刺命中一次后扎在人或墙上，3秒后消失，无持续伤害或处决。"
+	return "每8秒向上长一节，没有节数上限，直到上方被墙或地图边界挡住；每长一节血量和血上限都增加一节（650）。底部不动，碰撞箱和血条同步升高。药水、附魔等效果整株共用；每节是独立的受击目标（范围攻击盖住几节就打几次，每节有自己的受击冷却），血量共用，只有被打中的那一节闪白。只有左右两侧有接触伤害；技能先收细，再弹性胀开并从左右射出本体刺色的细条，长得越高越多，数量小幅随机，主动散射为左右向外±10°。实际掉血时先快速胀粗爆刺再弹性回缩，反伤刺向外±45°、每根基础伤害固定5；总数量向下取整(实际掉血×反伤幅度÷5)，每层幅度40%、最多200%，左右合计不翻倍。每次长高播放仙人掌放置音，成功命中播放MC受击音。刺命中一次后扎在人或墙上，3秒后消失，无持续伤害或处决。"
 
 func play_action_sound(event:String) -> void:
 	if multiplayer.has_multiplayer_peer(): _action_sound.rpc(event,global_position)
@@ -276,3 +281,208 @@ func emit_retaliation() -> void:
 	play_action_sound("entity.puffer_fish.sting")
 	if multiplayer.has_multiplayer_peer(): _thorn_volley.rpc(points,headings,RETALIATION_DAMAGE,true)
 	else: _thorn_volley(points,headings,RETALIATION_DAMAGE,true)
+
+
+# --- Segments (user rule 2026-09-29) --------------------------------------------------------------
+# 每长一节: +1 segment of Max_health and health. No segment cap: it grows while the next 96 px
+# block above is free of walls / the map edge (units do not stop it). Everything that lives on the
+# ball (potion effects, enchantments, buffs) is naturally shared by the whole plant. Each segment
+# has its own hurtbox, so an attack covering several segments hits each of them (per-segment
+# duplicate guard), HP is pooled, and only the struck segment flashes white.
+const SEGMENT:float = 96.0
+const SEGMENT_SHADER_COPY:Array[StringName] = [&"character_grayscale",&"hit_white_color",&"defualt_color_mix",&"default_color",&"sprite_flip_h",&"snow_cold"]
+var segment_health:int = 650
+var growth_blocked:bool = false
+var segment_hits:Array[int] = [] # hits taken per segment (tests / tuning)
+var segment_flash:Array[float] = [] # current white power per segment
+var _segment_sprites:Array[Sprite2D] = [] # index 0 = image (bottom)
+var _segment_hurtboxes:Array[Area2D] = []
+var _segment_guard:Dictionary = {} # "hitbox id:segment" -> msec
+var _hit_segment:int = -1 # segment being damaged right now (-1 = unknown)
+var _hurt_layers:int = 0
+
+static func _segment_texture(total:int,index:int) -> Texture2D:
+	# Baked stacks: 1 = single block, 2 = top + bottom; 3+ = cactus_3's top / middle / bottom.
+	var sheet:Texture2D = TEXTURES[mini(total,3)-1]
+	var row:int = 0
+	if total == 2: row = 1 - index
+	elif total >= 3: row = 0 if index == total-1 else 2 if index == 0 else 1
+	var atlas := AtlasTexture.new()
+	atlas.atlas = sheet
+	atlas.region = Rect2(0,SEGMENT*row,SEGMENT,SEGMENT)
+	return atlas
+
+func grow_segment() -> void:
+	levels += 1
+	growth_count += 1
+	growth_blocked = false
+	apply_height()
+	health = mini(int(health) + segment_health,Max_health)
+	play_growth_sound()
+
+func _apply_segment_health() -> void:
+	var wanted:int = segment_health*maxi(levels,1)
+	# Buff / potion recalculation restores Max_health from default_properties first, so the
+	# grown maximum must live there too (else every effect tick would clamp health to one segment).
+	if int(default_properties.get("Max_health",0)) != wanted: default_properties["Max_health"] = wanted
+	if Max_health != wanted: Max_health = wanted
+
+## The next block above the top segment must be clear of static geometry (walls, map border).
+func has_room_to_grow() -> bool:
+	if not is_inside_tree(): return false
+	var shape := RectangleShape2D.new()
+	shape.size = Vector2(80,SEGMENT-6.0)
+	var query := PhysicsShapeQueryParameters2D.new()
+	query.shape = shape
+	query.collision_mask = 1
+	query.collide_with_areas = false
+	query.collide_with_bodies = true
+	query.exclude = [get_rid()]
+	query.transform = global_transform*Transform2D(0,Vector2(0,-SEGMENT*levels))
+	for contact:Dictionary in get_world_2d().direct_space_state.intersect_shape(query,32):
+		var body:Object = contact.get("collider")
+		if body is ball: continue # units never block growth
+		if body is Node and ((body as Node).get_parent() is ball or (body as Node).has_meta(&"wt_item_obstacle")): continue
+		return false
+	return true
+
+func segment_count() -> int: return levels
+
+## Segment index (0 = bottom) under a world point.
+func segment_at(point:Vector2) -> int:
+	var local_y:float = to_local(point).y
+	return clampi(int(floor((SEGMENT*0.5 - local_y)/SEGMENT)),0,levels-1)
+
+func _rebuild_segments() -> void:
+	if image == null: return
+	if _segment_sprites.is_empty(): _segment_sprites.append(image)
+	_segment_sprites[0] = image
+	image.texture = _segment_texture(levels,0)
+	for i:int in range(levels,_segment_sprites.size()):
+		if is_instance_valid(_segment_sprites[i]): _segment_sprites[i].queue_free()
+	_segment_sprites.resize(levels)
+	for i:int in range(1,levels):
+		var sprite:Sprite2D = _segment_sprites[i]
+		if sprite == null or not is_instance_valid(sprite):
+			sprite = Sprite2D.new()
+			sprite.name = "Segment%d" % i
+			sprite.texture_filter = image.texture_filter
+			sprite.material = image.material
+			image.add_child(sprite)
+			_segment_sprites[i] = sprite
+		sprite.texture = _segment_texture(levels,i)
+		sprite.position = Vector2(0,-SEGMENT*i)
+	segment_flash.resize(levels)
+	segment_hits.resize(levels)
+	_rebuild_segment_hurtboxes()
+
+func _rebuild_segment_hurtboxes() -> void:
+	if self_hurtbox == null: return
+	for i:int in range(levels,_segment_hurtboxes.size()):
+		if is_instance_valid(_segment_hurtboxes[i]): _segment_hurtboxes[i].queue_free()
+	_segment_hurtboxes.resize(levels)
+	for i:int in range(levels):
+		var box:Area2D = _segment_hurtboxes[i]
+		if box == null or not is_instance_valid(box):
+			box = (self_hurtbox.get_script() as Script).new()
+			box.name = "SegmentHurtbox%d" % i
+			box.set_meta(&"cactus_segment",i)
+			var shape := CollisionShape2D.new()
+			var rect := RectangleShape2D.new()
+			rect.size = Vector2(84,SEGMENT)
+			shape.shape = rect
+			box.add_child(shape)
+			add_child(box)
+			_segment_hurtboxes[i] = box
+		box.position = Vector2(0,-SEGMENT*i)
+	_sync_hurt_layers()
+
+## Hitboxes find the segment hurtboxes; the whole-body hurtbox keeps its shape for scripts that
+## address self_hurtbox directly (body contact) but hands its detection layers to the segments.
+func _sync_hurt_layers() -> void:
+	if self_hurtbox == null: return
+	if self_hurtbox.collision_layer != 0:
+		_hurt_layers = self_hurtbox.collision_layer
+		self_hurtbox.collision_layer = 0
+	for box:Area2D in _segment_hurtboxes:
+		if box != null and is_instance_valid(box):
+			if box.collision_layer != _hurt_layers: box.collision_layer = _hurt_layers
+			if box.collision_mask != 0: box.collision_mask = 0
+
+func should_bypass_duplicate_hit_guard(_hit:hitbox,hurt:hurtbox) -> bool:
+	return hurt != null and hurt.has_meta(&"cactus_segment")
+
+func can_receive_hit_contact(hit:hitbox,hurt:hurtbox) -> bool:
+	var index:int = -1
+	if hurt != null and hurt.has_meta(&"cactus_segment"):
+		index = clampi(int(hurt.get_meta(&"cactus_segment")),0,levels-1)
+		var key:String = "%d:%d" % [hit.get_instance_id(),index]
+		var now:int = Time.get_ticks_msec()
+		var guard:int = int(round(float(hit.duplicate_hit_guard_seconds)*1000.0))
+		if guard > 0 and _segment_guard.has(key) and now - int(_segment_guard[key]) < guard: return false
+		_segment_guard[key] = now
+		if _segment_guard.size() > 256: _segment_guard.clear()
+	elif hit != null:
+		index = segment_at(hit.global_position) # direct body contact through self_hurtbox
+	_set_hit_segment(index)
+	return true
+
+func receive_positional_damage(damage:float,impact_position:Vector2,ignore_block:bool = false,source:Node = null) -> bool:
+	var point:Vector2 = impact_position
+	if point.distance_squared_to(global_position) <= 4.0 and source is Node2D: point = (source as Node2D).global_position
+	_set_hit_segment(segment_at(point))
+	return super.receive_positional_damage(damage,impact_position,ignore_block,source)
+
+func _set_hit_segment(index:int) -> void:
+	_hit_segment = index
+	if index >= 0 and index < segment_hits.size(): segment_hits[index] += 1
+	call_deferred(&"_clear_hit_segment")
+
+func _clear_hit_segment() -> void:
+	_hit_segment = -1
+
+## Only the struck segment flashes (the whole plant only for damage without a position, e.g. DoT).
+func hit_white_visual_only() -> void:
+	flash_segment(_hit_segment,1.0)
+
+func _play_confirmed_damage_flash(actual_damage:float) -> void:
+	if not is_multiplayer_authority(): return # remote peers get the segment rpc
+	var strength:float = clampf(actual_damage/maxf(float(segment_health)*0.35,24.0),0.0,1.0)
+	flash_segment(_hit_segment,lerpf(0.65,1.0,sqrt(strength)))
+
+func flash_segment(index:int,peak:float) -> void:
+	_flash_local(index,peak)
+	if is_multiplayer_authority() and multiplayer.has_multiplayer_peer() and not multiplayer.get_peers().is_empty(): _segment_flash_remote.rpc(index,peak)
+
+@rpc("authority","call_remote","unreliable")
+func _segment_flash_remote(index:int,peak:float) -> void:
+	_flash_local(index,peak)
+
+func _flash_local(index:int,peak:float) -> void:
+	if segment_flash.size() != levels: segment_flash.resize(levels)
+	if index < 0:
+		for i:int in range(levels): segment_flash[i] = maxf(segment_flash[i],peak)
+	elif index < levels:
+		segment_flash[index] = maxf(segment_flash[index],peak)
+
+func hit_white_method(power:float):
+	# Other effects that drive the whole-body white keep working on every segment.
+	_hit_white_visual_power = clampf(power,0.0,1.0)
+	for i:int in range(segment_flash.size()): segment_flash[i] = maxf(segment_flash[i],power)
+
+func _update_segment_views(delta:float) -> void:
+	_sync_hurt_layers()
+	if image == null: return
+	var decay:float = delta/0.09
+	for i:int in range(_segment_sprites.size()):
+		var sprite:Sprite2D = _segment_sprites[i]
+		if sprite == null or not is_instance_valid(sprite): continue
+		var power:float = segment_flash[i] if i < segment_flash.size() else 0.0
+		sprite.set_instance_shader_parameter(&"power",power)
+		if i > 0:
+			sprite.flip_h = image.flip_h
+			sprite.self_modulate = image.self_modulate
+			for param:StringName in SEGMENT_SHADER_COPY:
+				var value:Variant = image.get_instance_shader_parameter(param)
+				if value != null: sprite.set_instance_shader_parameter(param,value)
+		if i < segment_flash.size(): segment_flash[i] = maxf(segment_flash[i] - decay,0.0)
