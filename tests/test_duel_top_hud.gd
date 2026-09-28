@@ -124,6 +124,22 @@ func run() -> void:
 	check(hud().sides[0].texture != null and hud().sides[1].texture != null,"both portraits resolve through the rotation portrait source")
 	check(is_equal_approx(float(hud().sides[0].max_hp),float(blue.Max_health)) and is_equal_approx(float(hud().sides[1].hp),float(red.health)),"HP values come from the live characters")
 	check(world.versus_label.visible,"the original text VS stays visible")
+	# 2026-09-28：HUD 显示时普通文字 VS 只透明隐藏（visible 仍为 true，供布局/显示条件使用）；
+	# 世界时间先快后慢移到 HUD 面板下方。
+	var clock:Control = hud().world_clock_label()
+	var clock_base_top:float = hud()._clock_base.x
+	check(world.versus_label.self_modulate.a == 0.0 and world.versus_label.has_meta(hud().TITLE_ALPHA_META),"while the duel HUD shows, the plain text VS is hidden (alpha 0, still laid out)")
+	check(is_instance_valid(clock) and is_equal_approx(clock_base_top,24.0),"world clock label found with its original top offset 24")
+	var clock_mid:float = hud().clock_shift
+	await create_timer(0.6,true,false,true).timeout
+	await settle(2)
+	var clock_full:float = hud().clock_shift
+	var hud_panel_bottom:float = (hud().get_global_transform_with_canvas() * Vector2(0.0,hud().TOP + hud().PANEL_HEIGHT)).y
+	var clock_screen:Rect2 = screen_box(clock)
+	print("DUEL_HUD_METRIC clock_mid=",clock_mid," clock_full=",clock_full," clock=",clock_screen," panel_bottom=",hud_panel_bottom)
+	check(clock_mid > 0.0 and clock_mid < clock_full,"world clock animates down (not a jump) when the HUD appears")
+	check(clock_screen.position.y >= hud_panel_bottom + hud().CLOCK_GAP - 0.5 and clock_screen.position.y <= hud_panel_bottom + hud().CLOCK_GAP + 0.5,"world clock sits just below the duel HUD panels")
+	check(is_equal_approx(clock.offset_bottom - clock.offset_top,48.0),"moved world clock keeps its height")
 
 	# 布局：HUD 在视口顶部，底边高于原 VS 标题，不重叠。
 	world._anchor_versus_to_screen()
@@ -273,6 +289,10 @@ func run() -> void:
 	check(panel_top >= bar_box.end.y - 0.5,"HUD panels start below the top toolbar (timer not covered)")
 	check(panel_bottom <= fit_title.position.y + 0.5,"shrunken HUD still stays above the ordinary VS title")
 	check(absf((fit_box.position.x + fit_box.size.x * 0.5) - logical.x * 0.5) < 1.0,"shrunken HUD stays horizontally centered")
+	await create_timer(0.6,true,false,true).timeout # 上面刚隐藏又重新显示过 HUD：等时间下移动画走完。
+	await settle(2)
+	print("DUEL_HUD_METRIC toolbar clock=",screen_box(clock)," panel_bottom=",panel_bottom)
+	check(absf(screen_box(clock).position.y - (panel_bottom + hud().CLOCK_GAP)) < 0.5,"with the toolbar layout the world clock still follows below the HUD panels")
 	var tick0:String = hud().format_elapsed(hud().elapsed)
 	var clock_a:float = hud().elapsed
 	await settle(70)
@@ -294,12 +314,30 @@ func run() -> void:
 	await settle()
 	check(hud().visible and hud().sides.size() == 2 and bool(hud().sides[1].dead) and float(hud().sides[1].hp) == 0.0,"after a death the final duel result stays on screen")
 	world._victory_bell_played = true
+	var clock_down:float = hud().clock_shift
+	await process_frame
+	await process_frame
+	var clock_early:float = hud().clock_shift
 	var frozen:float = hud().elapsed
 	await settle(20)
 	check(absf(hud().elapsed - frozen) < 0.0001,"victory freezes the clock")
 
 	# 对战结束：镜头推进胜利者；HUD 先快后慢移出屏幕，原版成就框落下。
 	check(hud().outro_active and hud().winner_index == 0,"victory with one survivor starts the result animation for the winner")
+	var clock_after:float = hud().clock_shift
+	print("DUEL_HUD_METRIC clock_return down=",clock_down," early=",clock_early," after_0.33s=",clock_after)
+	check(clock_down > 0.0 and clock_early < clock_down and clock_early > 0.0,"world clock starts moving back up with the result animation (animated, not a jump)")
+	check(clock_after < clock_down * 0.08,"world clock covers most of its way up early (fast-then-slow)")
+	check(world.versus_label.self_modulate.a == 0.0,"plain text VS stays hidden during the result animation")
+	var saved_clock:Array = [hud()._clock_from,hud()._clock_t,hud()._clock_down]
+	hud()._clock_from = 100.0
+	hud()._clock_t = 0.0
+	hud()._update_world_clock(hud().CLOCK_MOVE_TIME * 0.25 * Engine.time_scale)
+	var quarter_left:float = hud().clock_shift
+	hud()._clock_t = 1.0
+	hud()._update_world_clock(0.0)
+	hud()._clock_from = saved_clock[0]
+	check(quarter_left < 40.0 and quarter_left > 0.0 and hud().clock_shift == 0.0 and clock.offset_top == clock_base_top,"clock return curve: >60% of the travel in the first quarter, ends exactly at the original spot")
 	var focus_key:int = hud().get_instance_id()
 	var focus_request:Variant = world._cinematic_focus_requests.get(focus_key,null)
 	check(focus_request is Dictionary and (focus_request.target as WeakRef).get_ref() == blue and is_equal_approx(float(focus_request.slow),1.0),"camera pushes toward the winner through the shared cinematic focus (no slow motion)")
@@ -323,6 +361,8 @@ func run() -> void:
 	var gone_shift:float = hud()._outro_panel_shift(hud())
 	var panel_bottom_screen:float = (hud_xf * Vector2(0.0,hud().TOP + hud().PANEL_HEIGHT + 24.0 + gone_shift)).y
 	check(panel_bottom_screen < 0.0,"duel panels have moved fully above the screen")
+	check(clock.offset_top == clock_base_top and clock.offset_bottom == clock_base_top + 48.0,"after the HUD leaves, the world clock is back at its original position")
+	check(world.versus_label.self_modulate.a == 0.0,"plain text VS stays hidden while the advancement toast shows")
 	var toast_rect:Rect2 = hud()._toast_rect(hud())
 	var toast_top:Vector2 = hud_xf * toast_rect.position
 	var toast_bottom:Vector2 = hud_xf * toast_rect.end
@@ -349,6 +389,8 @@ func run() -> void:
 	check(not hud().outro_active and not world._cinematic_focus_requests.has(focus_key),"reset ends the result animation and releases the winner camera")
 	# 手动模式下剩余角色仍在场，重置后立即重新计时；8 个物理帧约 0.13 秒。
 	check(hud().elapsed < 0.2 and hud().elapsed < frozen and not hud().visible,"reset clears the result and restarts the clock from zero")
+	check(world.versus_label.self_modulate.a == 1.0 and not world.versus_label.has_meta(hud().TITLE_ALPHA_META),"when the HUD hides, the plain text VS alpha is restored")
+	check(clock.offset_top == clock_base_top and hud().clock_shift == 0.0,"hidden HUD leaves the world clock at its original position")
 
 	# GPU：显示 HUD 时顶部区域明显变化，地图区域不变。
 	blue.free()

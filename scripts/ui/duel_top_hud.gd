@@ -6,6 +6,14 @@ extends Control
 ## 角色名（与普通 VS 同色）、10 颗原版红心、盔甲值行（仅减伤 > 0 时）及当前/最大生命数字；
 ## 中间为原版药水效果背景，显示本局已过去的游戏时间与 VS。原有文字 VS 标题保留不动。
 ##
+## 与普通 VS 文字/世界时间的配合（2026-09-28 用户要求）：本 HUD 显示期间（含结算动画与
+## 成就框阶段）隐藏普通文字 VS——只把 versus_label.self_modulate 透明度置 0，不改 visible
+## （本 HUD 的显示条件与避让布局都依赖它，文字仍占位；录制镜像经 battle_record_locale._style
+## 同步 self_modulate，中/英录制里同样隐藏），HUD 隐藏/退出时恢复原透明度。右上角世界时间
+## （day_night_cycle.clock_label）在 HUD 显示期间下移到面板下方 CLOCK_GAP 处；结算动画开始
+## （HUD 上移出屏）或 HUD 隐藏时，以与 HUD 上移相同的 quart ease-out、同 0.45 秒真实时间
+## 先快后慢地移回原位；出现时的下移同样用该缓动。
+##
 ## 红心行（2026-09-28）：10 颗心 = 最大生命，全部按实时数值连续换算（不取整到半心，
 ## 37/420 就是 0.88 颗心，按原版心形可见 7 列像素比例裁切）：
 ## - 红心：当前生命，从低血量端（靠头像一侧）排起，掉血从远端往头像方向减少；
@@ -307,6 +315,8 @@ func _process(delta:float) -> void:
 	var shown_now:bool = _should_show()
 	if visible != shown_now:
 		visible = shown_now
+	_sync_versus_title(visible)
+	_update_world_clock(delta)
 	if visible:
 		queue_redraw()
 		_text_layer.queue_redraw()
@@ -385,6 +395,100 @@ func _clear_pair() -> void:
 func _exit_tree() -> void:
 	if not is_mirror():
 		_reset_outro()
+		_sync_versus_title(false)
+		_restore_world_clock()
+
+
+#========================================================
+# 普通 VS 文字 / 世界时间配合（只在本体上运行，2026-09-28）
+#========================================================
+const TITLE_ALPHA_META:StringName = &"duel_top_hud_title_alpha"
+## 时间文字顶边与 HUD 面板底边（屏幕坐标）的间距。
+const CLOCK_GAP:float = 8.0
+const CLOCK_MOVE_TIME:float = OUTRO_HUD_TIME
+## 世界时间当前相对原位置的下移量（时钟所在画布坐标）。
+var clock_shift:float = 0.0
+var _clock_label:Control = null
+var _clock_base:Vector2 = Vector2.ZERO # 原 offset_top / offset_bottom
+var _clock_down:bool = false
+var _clock_from:float = 0.0
+var _clock_t:float = 1.0
+
+
+## conceal=true：普通 VS 文字透明度置 0（记住原值）；false：恢复。绝不改 visible。
+func _sync_versus_title(conceal:bool) -> void:
+	if not is_instance_valid(world):
+		return
+	var title:Variant = world.get("versus_label")
+	if not (title is CanvasItem) or not is_instance_valid(title):
+		return
+	var item:CanvasItem = title
+	var color:Color = item.self_modulate
+	if conceal:
+		if not item.has_meta(TITLE_ALPHA_META):
+			item.set_meta(TITLE_ALPHA_META,color.a)
+		if color.a != 0.0:
+			color.a = 0.0
+			item.self_modulate = color
+	elif item.has_meta(TITLE_ALPHA_META):
+		color.a = float(item.get_meta(TITLE_ALPHA_META))
+		item.remove_meta(TITLE_ALPHA_META)
+		item.self_modulate = color
+
+
+func world_clock_label() -> Control:
+	if not is_instance_valid(world):
+		return null
+	var cycle:Variant = world.get("day_night_cycle")
+	if not (cycle is Object) or not is_instance_valid(cycle):
+		return null
+	var label:Variant = cycle.get("clock_label")
+	if label is Control and is_instance_valid(label):
+		return label
+	return null
+
+
+## 让时间文字顶边落到 HUD 面板底边下方 CLOCK_GAP 所需的下移量（不上移，最少为 0）。
+func _clock_target_shift(label:Control) -> float:
+	var panel_bottom:float = (get_global_transform_with_canvas() * Vector2(0.0,TOP + PANEL_HEIGHT)).y
+	var parent_xf:Transform2D = label.get_global_transform_with_canvas() * label.get_transform().affine_inverse()
+	var base_top:float = (parent_xf * Vector2(0.0,label.position.y - clock_shift)).y
+	var unit:float = maxf(absf(parent_xf.get_scale().y),0.0001)
+	return maxf((panel_bottom + CLOCK_GAP - base_top) / unit,0.0)
+
+
+func _update_world_clock(delta:float) -> void:
+	var label:Control = world_clock_label()
+	if label != _clock_label:
+		_restore_world_clock()
+		if label == null:
+			return
+		_clock_label = label
+		_clock_base = Vector2(label.offset_top,label.offset_bottom)
+	var down:bool = visible and not outro_active
+	var target:float = _clock_target_shift(label) if down else 0.0
+	if down != _clock_down:
+		_clock_down = down
+		_clock_from = clock_shift
+		_clock_t = 0.0
+	if _clock_t < 1.0:
+		# 与结算动画一致按真实时间推进，不受慢动作/倍速影响。
+		_clock_t = minf(_clock_t + delta / maxf(Engine.time_scale,0.0001) / CLOCK_MOVE_TIME,1.0)
+		clock_shift = lerpf(_clock_from,target,ease_out(_clock_t))
+	else:
+		clock_shift = target # 静止时直接跟随（工具栏避让等布局变化）。
+	label.offset_top = _clock_base.x + clock_shift
+	label.offset_bottom = _clock_base.y + clock_shift
+
+
+func _restore_world_clock() -> void:
+	if is_instance_valid(_clock_label):
+		_clock_label.offset_top = _clock_base.x
+		_clock_label.offset_bottom = _clock_base.y
+	_clock_label = null
+	clock_shift = 0.0
+	_clock_down = false
+	_clock_t = 1.0
 
 
 ## 先快后慢（quart ease-out）。

@@ -83,3 +83,14 @@
 - 原因（真实对局逐帧实测）：公共电影镜头进入时长 0.34 秒 quart ease-out，zoom 4.89→7.58 约 0.2 秒完成，半程只用约 70 毫秒，单帧 zoom 跳变最大 0.254。
 - 修正：胜利推进时 HUD 把 World 导出的 `cinematic_focus_enter_duration` 临时设为 `WINNER_FOCUS_ENTER_SECONDS = 1.6` 秒再请求，请求后立即恢复（时长只在建 tween 时读取），曲线仍是 World 的 quart ease-out（先快后慢，真实时间），其他电影镜头调用方仍为 0.34 秒。未改动 `world.gd`（该文件有他人未提交修改）。
 - 验证：`test_duel_top_hud` 68/68（新增：公共时长请求后恢复为 0.34；0.33 秒时推进权重 0.61，与 1.6 秒 ease-out 理论 0.60 一致，旧版此时约 0.99）。真实对局逐帧：推进约 1.6 秒完成，单帧 zoom 变化最大约 0.04，持续减速停稳。
+
+## 新增（2026-09-28）：显示对战 HUD 时隐藏文字 VS、世界时间移到 HUD 下方
+
+- 用户要求：显示 VS UI 时隐藏单纯的 VS 文字；显示 VS UI 时时间移到这个 UI 下面，直到它消失（对局结束）时再先快后慢地移上去。
+- 文字 VS：HUD 显示期间（含胜利后 HUD 上移和成就框阶段）把 `versus_label.self_modulate.a` 设为 0，原值记在 meta `duel_top_hud_title_alpha`，HUD 隐藏/退出时恢复。**不改 `visible`**：HUD 的显示条件 `_should_show()` 与工具栏避让布局 `_title_top_design()` 都依赖它（布阵/盔甲架/Boss 车轮战等主动隐藏仍生效）。录制镜像由 `battle_record_locale._style` 同步 `self_modulate`，中/英录像里同样隐藏。World 代码不写 `versus_label` 的 modulate，无冲突。
+- 世界时间（`day_night_cycle.clock_label`，原 offset_top 24 / offset_bottom 72）：HUD 显示且未进入结算动画时，下移到 HUD 面板底边（屏幕坐标）下方 `CLOCK_GAP = 8`（540×960 无工具栏时顶边 216 逻辑像素，有工具栏时跟随缩小后的面板）；结算动画开始（HUD 上移出屏）或 HUD 隐藏时，用与 HUD 上移相同的 quart ease-out、`CLOCK_MOVE_TIME = 0.45` 秒真实时间移回原位；出现时的下移同样缓动，静止时直接跟随布局变化。只改 offset，不改 `day_night_cycle.gd`（它无 git 改动，但时间逻辑不需要动）。
+- 实现全部在 `scripts/ui/duel_top_hud.gd`（`_sync_versus_title`、`world_clock_label`、`_clock_target_shift`、`_update_world_clock`、`_restore_world_clock`，`_process` 每帧调用，`_exit_tree` 恢复），只在本体运行，镜像不动。
+- 验证：`test_duel_top_hud` 82/82（连续两次；新增 14 项：显示时 VS 透明且 visible 仍为真、时间动画下移（中途 50.9 → 最终 192）且顶边 = 面板底 + 8、高度保持、工具栏布局下跟随；胜利后 2 帧开始回移（192 → 169）、0.33 秒时只剩 0.86（先快后慢）、结算与成就框阶段 VS 保持隐藏、曲线前 1/4 时间走完 >60%、HUD 出屏后时间精确回到 24、重置隐藏后 VS 透明度恢复为 1）。`test_vs_screen_title` 27/27、`test_day_night_cycle` 33/33。
+- `test_day_night_visual`：本次运行中 “clock text actually visible” 有 1–3 项失败，但把 `duel_top_hud.gd` 换回修改前版本同样 3 项失败（该测试不生成角色，HUD 不显示，时钟矩形仍为 (896,24)），属既有/环境波动，非本改动引入。另有 1 次 `test_duel_top_hud` 运行在“死亡后保留结果”处 HUD 被隐藏导致连锁失败，与本改动无关的代码路径，复跑两次均通过，记录为偶发。
+- 局部回退：从 `scripts/ui/duel_top_hud.gd` 删除上述 5 个函数/变量块及 `_process`/`_exit_tree` 中的调用，并删去测试中带“2026-09-28：HUD 显示时普通文字 VS”注释的检查。
+
