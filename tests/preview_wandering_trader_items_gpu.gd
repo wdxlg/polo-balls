@@ -94,14 +94,21 @@ func run() -> void:
 	camera.global_position=cam_back;camera.zoom=zoom0*1.4
 	await seconds(0.4)
 	await grab("i14_gunpowder_placed")
+	var pile_node:Node2D=null
 	for gp:Node in get_nodes_in_group(&"MCWanderingTraderItem"):
-		if gp.get(&"kind")==CATALOG.GUNPOWDER:enemy.global_position=(gp as Node2D).global_position
-	await seconds(0.3)
+		if gp.get(&"kind")==CATALOG.GUNPOWDER:pile_node=gp as Node2D
+	if pile_node!=null:
+		camera.global_position=pile_node.global_position+Vector2(0,-10);camera.zoom=zoom0*3.0
+		await seconds(1.6)
+		await grab("i14b_gunpowder_idle_smoke")
+		enemy.global_position=pile_node.global_position
+	await seconds(0.12)
 	await grab("i15_gunpowder_fuse")
 	for i:int in range(4):
 		await seconds(0.12)
 		await grab("i16_explosion_%d" % i)
 	enemy.global_position=center+Vector2(45,-35)
+	camera.global_position=cam_back;camera.zoom=zoom0*1.4
 	await seconds(0.8)
 	# --- blue ice ------------------------------------------------------------------------------------
 	trader.give_item(CATALOG.BLUE_ICE)

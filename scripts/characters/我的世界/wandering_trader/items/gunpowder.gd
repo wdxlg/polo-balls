@@ -2,10 +2,14 @@ extends "res://scripts/characters/我的世界/wandering_trader/items/placed.gd"
 ## 火药: a little gunpowder pile on the floor. After a short arming time the first enemy that steps
 ## on it sets it off (TNT-style white blink + fuse hiss), then it explodes: 50 damage to every
 ## enemy of the trader in the blast radius, knockback away from the centre, vanilla explosion
-## particles and sound. Only enemies trigger or take damage.
+## particles and sound. Only enemies trigger or take damage. Drawn 12 px (user rule 2026-09-29:
+## bigger and easier to spot) and it smokes lightly (white -> off-white); once triggered the smoke
+## pours out white -> black (gunpowder_smoke.gd).
 const EXPLOSION = preload("res://scripts/characters/我的世界/wandering_trader/items/explosion_fx.gd")
+const SMOKE = preload("res://scripts/characters/我的世界/wandering_trader/items/gunpowder_smoke.gd")
+const DRAW_SIZE:float = 12.0
 const ARM_TIME:float = 0.4
-const TRIGGER_HALF:float = 5.0
+const TRIGGER_HALF:float = 6.0
 const FUSE_TIME:float = 0.2
 const DAMAGE:float = 50.0
 const RADIUS:float = 22.0
@@ -13,9 +17,17 @@ const KNOCKBACK:float = 30.0
 var triggered:bool = false
 var exploded:bool = false
 var _fuse:float = 0.0
+var smoke:Node2D
 
 func _placed() -> void:
 	sound(&"item_sand_place",-2.0)
+	call_deferred(&"_start_smoke")
+
+func _start_smoke() -> void:
+	if not _gone and smoke == null: smoke = SMOKE.attach(self,global_position)
+
+func _removed() -> void:
+	if smoke != null and is_instance_valid(smoke): smoke.call(&"release")
 
 func _tick(delta:float) -> void:
 	if triggered:
@@ -33,6 +45,8 @@ func trigger() -> void:
 	if triggered: return
 	triggered = true
 	_fuse = 0.0
+	if smoke == null or not is_instance_valid(smoke): _start_smoke()
+	if smoke != null: smoke.call(&"ignite")
 	sound(&"item_fuse",-4.0)
 	var owner_trader:Node2D = trader()
 	if authoritative and owner_trader != null and owner_trader.has_method(&"wt_item_event"): owner_trader.call(&"wt_item_event",name,&"trigger")
@@ -60,4 +74,8 @@ func explode() -> void:
 func _draw() -> void:
 	var tex:Texture2D = CATALOG.icon(CATALOG.GUNPOWDER)
 	var blink:bool = triggered and int(_fuse*20.0) % 2 == 0
-	draw_texture_rect(tex,Rect2(-4,-4,8,8),false,Color(1.8,1.8,1.8) if blink else Color.WHITE)
+	var h:float = DRAW_SIZE*0.5
+	draw_set_transform(Vector2(0,h*0.55),0.0,Vector2(1.0,0.35))
+	draw_circle(Vector2.ZERO,h*0.9,Color(0,0,0,0.3)) # contact shadow so the pile reads on dark floors
+	draw_set_transform(Vector2.ZERO,0.0,Vector2.ONE)
+	draw_texture_rect(tex,Rect2(-h,-h,DRAW_SIZE,DRAW_SIZE),false,Color(1.8,1.8,1.8) if blink else Color.WHITE)

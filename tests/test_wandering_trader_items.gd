@@ -149,12 +149,30 @@ func run() -> void:
 		ally.global_position=gp.global_position
 		await seconds(0.8)
 		check(is_instance_valid(gp) and not gp.triggered,"the trader's own llama does not set it off")
+		var smoke:Node2D=gp.smoke
+		var idle_ok:bool=smoke!=null and is_instance_valid(smoke) and smoke.emitted>=1 and smoke.emitted<=14
+		if idle_ok:
+			for p:Dictionary in smoke.puffs:
+				if float(p.end)<0.6:idle_ok=false
+		check(idle_ok,"placed gunpowder smokes lightly, white -> off-white grey (%d puffs)" % (smoke.emitted if smoke!=null else -1))
+		check(gp.DRAW_SIZE>=12.0,"gunpowder pile is drawn bigger (%.0f px)" % gp.DRAW_SIZE)
 		ally.global_position=ally_pos
 		await seconds(0.2)
 		var hp0:float=enemy.health
 		var boom0:int=heard("item_explode")
+		var idle_count:int=smoke.emitted if smoke!=null else 0
 		enemy.global_position=gp.global_position
-		await seconds(0.6)
+		var dark:int=0
+		for i:int in range(40):
+			await physics_frame
+			if smoke!=null and is_instance_valid(smoke):
+				var now_dark:int=0
+				for p:Dictionary in smoke.puffs:
+					if float(p.end)<0.2:now_dark+=1
+				dark=maxi(dark,now_dark)
+			if not is_instance_valid(gp):break
+		check(smoke!=null and is_instance_valid(smoke) and dark>=12,"triggered gunpowder pours white -> black smoke (%d dark puffs, %d idle before)" % [dark,idle_count])
+		await seconds(0.2)
 		check(not is_instance_valid(gp) or gp.exploded,"enemy stepping on it sets it off")
 		check(absf((hp0-enemy.health)-50.0)<0.01,"explosion deals 50 to the enemy (%.1f)" % (hp0-enemy.health))
 		check(heard("item_explode")>boom0 and trader.gunpowder_hits>=1,"vanilla explosion sound")
