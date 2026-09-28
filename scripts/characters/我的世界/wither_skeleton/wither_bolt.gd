@@ -1,6 +1,7 @@
 extends Node2D
-## 凋灵骷髅头部远程弹：弹体本身就是凋灵头颅拖尾烟雾粒子（原版 big_smoke_0，同色同宽）的聚合团，
-## 飞行时按与凋灵头颅相同的距离采样留下同款拖尾。弹团整体持续旋转。
+## 凋灵骷髅头部远程弹：弹体没有固定贴图，而是在弹体位置周围半径 BODY_RADIUS 内持续随机生成
+## 凋灵头颅拖尾同款烟雾粒子（原版 big_smoke_0，同色；随机位置/大小/寿命），每粒沿切向绕中心
+## 漂移，整体呈旋转的粒子团；另按与凋灵头颅相同的距离采样留下同款拖尾。
 ## 轨迹（2026-09-28）：先向后上方弹出（背离瞄准方向、偏向屏幕上方一侧），被朝瞄准方向的恒定
 ## 拉力拉回形成抛物线，前向速度达到巡航速度后直线巡航。小幅追踪：瞄准方向/巡航方向每秒最多转
 ## TURN_RATE 弧度朝目标当前位置。
@@ -19,10 +20,14 @@ const TRAIL_GROUP:StringName = &"MCWitherSkeletonBoltTrail"
 const TRAIL_CAP:int = 256
 const BODY_RADIUS:float = 6.0 # 弹团视觉半径（=凋灵头颅直径 12 的一半）
 const HIT_RADIUS:float = 5.0
-const SPIN_SPEED:float = TAU*1.25 # 弹团整体持续旋转（每秒 1.25 圈），暂停时冻结
-# 聚合团：中心 1 粒 + 内环 3 粒 + 外环 5 粒，都是拖尾同款粒子。
-const BODY_LAYOUT:Array = [[0.0,0.0,1.0],[2.6,0.0,0.9],[2.6,2.094,0.9],[2.6,4.189,0.9],
-	[4.6,0.63,0.75],[4.6,1.89,0.75],[4.6,3.14,0.75],[4.6,4.4,0.75],[4.6,5.65,0.75]]
+# 弹体粒子发射器（2026-09-28 修订：取代固定 9 粒旋转团）。
+const BODY_GROUP:StringName = &"MCWitherSkeletonBoltBody"
+const BODY_RATE:float = 80.0 # 粒子/秒（真实战斗时间）
+const BODY_LAUNCH_BURST:int = 8 # 出膛瞬间先补一团，第一帧就可见
+const BODY_LIFETIME:Vector2 = Vector2(0.12,0.24)
+const BODY_WIDTH:Vector2 = Vector2(4.5,8.5)
+const BODY_SWIRL:float = 5.0 # 寿命内切向漂移距离：所有粒子同向绕中心 → 旋转感
+const BODY_SPREAD:float = 1.5 # 轻微外扩
 
 var source_ref:WeakRef
 var target_ref:WeakRef
@@ -41,9 +46,9 @@ var visual_only:bool = false
 var finished:bool = false
 var traveled:float = 0.0
 var _trail_carry:float = 0.0
-var _spin:float = 0.0
-var _body:Array[Sprite2D] = []
-var _body_root:Node2D
+var _emit_carry:float = 0.0
+var _burst_pending:bool = true # 首个物理帧（位置已设好）在出膛点补一团
+var _rng := RandomNumberGenerator.new() # 纯视觉，不占用战斗 RNG
 
 func configure(source:Node,direction:Vector2,target:Node,bolt_speed:float,bolt_turn:float,bolt_life:float,id:int,only_visual:bool,
 		bolt_launch_speed:float = 100.0,bolt_launch_angle:float = deg_to_rad(40.0),bolt_pull:float = 240.0) -> void:
@@ -75,17 +80,7 @@ func _ready() -> void:
 	z_index = 8
 	add_to_group("BattleTransient")
 	add_to_group("MCWitherSkeletonBolt")
-	_body_root = Node2D.new()
-	_body_root.name = "SpinningCluster"
-	add_child(_body_root)
-	for i:int in range(BODY_LAYOUT.size()):
-		var sprite := Sprite2D.new()
-		sprite.texture = SMOKE
-		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		sprite.self_modulate = TINT
-		_body_root.add_child(sprite)
-		_body.append(sprite)
-	_layout_body()
+	_rng.randomize()
 
 func _source() -> ball:
 	var node:Variant = source_ref.get_ref() if source_ref != null else null
@@ -129,6 +124,9 @@ func _physics_process(delta:float) -> void:
 		if not visual_only: source.call("_finish_bolt",self,global_position,false)
 		dissipate(global_position)
 		return
+	if _burst_pending:
+		_burst_pending = false
+		emit_body(global_position,global_position,BODY_LAUNCH_BURST)
 	advance_velocity(delta)
 	var start:Vector2 = global_position
 	var end:Vector2 = start+velocity*delta
@@ -146,6 +144,21 @@ func _physics_process(delta:float) -> void:
 	_emit_trail(start,end)
 	traveled += start.distance_to(end)
 	global_position = end
+	_emit_carry += BODY_RATE*delta
+	var count:int = int(_emit_carry)
+	_emit_carry -= float(count)
+	emit_body(start,end,count)
+
+## 在本帧运动段上随机取点，再在半径 BODY_RADIUS 圆盘内随机偏移生成粒子（面积均匀）。
+func emit_body(from:Vector2,to:Vector2,count:int) -> void:
+	for i:int in range(count):
+		var center:Vector2 = from.lerp(to,_rng.randf())
+		var offset:Vector2 = Vector2.RIGHT.rotated(_rng.randf()*TAU)*BODY_RADIUS*sqrt(_rng.randf())
+		var radial:Vector2 = offset.normalized() if offset.length() > 0.3 else Vector2.RIGHT.rotated(_rng.randf()*TAU)
+		var motion:Vector2 = radial.orthogonal()*BODY_SWIRL*_rng.randf_range(0.6,1.0)+radial*BODY_SPREAD
+		var particle:Sprite2D = spawn_smoke(self,center+offset,motion,
+			_rng.randf_range(BODY_LIFETIME.x,BODY_LIFETIME.y),_rng.randf_range(BODY_WIDTH.x,BODY_WIDTH.y))
+		if particle != null: particle.add_to_group(BODY_GROUP)
 
 ## 同凋灵头颅：射线查询身体/墙（mask 3），跳过发射者与非敌方单位；非单位碰撞即墙。
 func _trace(source:ball,start:Vector2,end:Vector2) -> Dictionary:
@@ -161,23 +174,6 @@ func _trace(source:ball,start:Vector2,end:Vector2) -> Dictionary:
 		return hit
 	return {}
 
-func _process(delta:float) -> void:
-	if finished: return
-	var source:ball = _source()
-	if source != null and source.is_combat_runtime_active():
-		_spin += delta
-		_body_root.rotation = fposmod(_spin*SPIN_SPEED,TAU)
-	_layout_body()
-
-func _layout_body() -> void:
-	# 整团由 _body_root 持续旋转；各粒子再轻微呼吸，读作“一团拖尾粒子”而不是实心贴图。
-	for i:int in range(_body.size()):
-		var spec:Array = BODY_LAYOUT[i]
-		var radius:float = float(spec[0])*(1.0+0.12*sin(_spin*8.5+float(i)))
-		var angle:float = float(spec[1])
-		var width:float = TRAIL_WIDTH*float(spec[2])
-		_body[i].position = Vector2.RIGHT.rotated(angle)*radius
-		_body[i].scale = Vector2.ONE*(width/float(SMOKE.get_width()))
 
 func _emit_trail(from:Vector2,to:Vector2) -> void:
 	# 距离采样（与凋灵头颅相同：帧率不影响密度），点位于弹团后方半径处。
@@ -192,9 +188,9 @@ func _emit_trail(from:Vector2,to:Vector2) -> void:
 		count += 1
 	_trail_carry = fposmod(_trail_carry+length,TRAIL_SPACING)
 
-static func spawn_smoke(context:Node,point:Vector2,motion:Vector2,lifetime:float,width:float) -> void:
-	if context.get_tree() == null or context.get_tree().current_scene == null: return
-	if context.get_tree().get_nodes_in_group(TRAIL_GROUP).size() >= TRAIL_CAP: return
+static func spawn_smoke(context:Node,point:Vector2,motion:Vector2,lifetime:float,width:float) -> Sprite2D:
+	if context.get_tree() == null or context.get_tree().current_scene == null: return null
+	if context.get_tree().get_nodes_in_group(TRAIL_GROUP).size() >= TRAIL_CAP: return null
 	var particle:Sprite2D = PARTICLE.new()
 	EXPLOSION.runtime_container(context).add_child(particle)
 	particle.frames = [SMOKE]
@@ -205,16 +201,17 @@ static func spawn_smoke(context:Node,point:Vector2,motion:Vector2,lifetime:float
 	particle.z_index = 8
 	particle.remove_from_group("MCEnderParticle")
 	particle.add_to_group(TRAIL_GROUP)
+	return particle
 
 ## 收尾：弹团散成同款粒子（向四周飘散），节点释放。
 func dissipate(point:Vector2) -> void:
 	if finished: return
 	finished = true
 	remove_from_group("AI_Hazard")
-	for i:int in range(BODY_LAYOUT.size()):
-		var spec:Array = BODY_LAYOUT[i]
-		var offset:Vector2 = Vector2.RIGHT.rotated(float(spec[1])+(_body_root.rotation if is_instance_valid(_body_root) else 0.0))*maxf(float(spec[0]),1.0)
-		spawn_smoke(self,point+offset,offset.normalized()*10.0,TRAIL_LIFETIME*0.7,TRAIL_WIDTH*float(spec[2]))
+	for i:int in range(10):
+		var offset:Vector2 = Vector2.RIGHT.rotated(_rng.randf()*TAU)*BODY_RADIUS*sqrt(_rng.randf())
+		var outward:Vector2 = offset.normalized() if offset.length() > 0.3 else Vector2.RIGHT.rotated(_rng.randf()*TAU)
+		spawn_smoke(self,point+offset,outward*_rng.randf_range(6.0,12.0),_rng.randf_range(0.25,0.4),_rng.randf_range(BODY_WIDTH.x,BODY_WIDTH.y))
 	queue_free()
 
 func get_ai_hazard_info(_receiver:ball = null) -> Dictionary:

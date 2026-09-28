@@ -1,7 +1,7 @@
 extends SceneTree
 ## 凋灵骷髅头部烟雾弹（2026-09-28）：600 血/20 近战；敌人在近战范围外才冷却（3 秒）；
 ## 弹体=凋灵头颅拖尾粒子的聚合团并留同款拖尾；小幅追踪；命中 5 伤 + 叠加凋零。
-## 修订（同日）：弹团持续旋转；先向后上方弹出再被拉回的抛物线，巡航 120；发射音效；人物整体 0.9 倍。
+## 修订（同日）：弹体改为在弹体位置随机生成粒子（同向切向漂移=旋转感）；先向后上方弹出再被拉回的抛物线，巡航 120；发射音效；人物整体 0.9 倍。
 var EFFECTS:Script
 var BOLT:Script
 var checks:int = 0
@@ -135,14 +135,40 @@ func run() -> void:
 	check(bolt.velocity.dot(fire_aim) < 0.0 and bolt.velocity.y < 0.0 and is_equal_approx(bolt.velocity.length(),100.0),"bolt pops out backward-and-up at 100 (" + str(bolt.velocity) + ")")
 	var muzzle_pixel:Vector2 = actor.image.global_transform.affine_inverse()*muzzle-actor.image.offset+Vector2(80.0,112.0)
 	check(muzzle_pixel.y > 56.0 and muzzle_pixel.y < 100.0 and absf(muzzle_pixel.x-80.0) < 1.0,"muzzle lies on the head of the original sprite (pixel " + str(muzzle_pixel) + ")")
-	# 弹体 = 同款拖尾粒子聚合团
-	var sprites:int = 0
-	var same_look:bool = true
-	for child:Node in bolt._body_root.get_children():
-		if child is Sprite2D:
-			sprites += 1
-			same_look = same_look and child.texture == BOLT.SMOKE and child.self_modulate.is_equal_approx(BOLT.TINT)
-	check(sprites == BOLT.BODY_LAYOUT.size() and sprites >= 7 and same_look,"bolt body is a cluster of Wither-skull trail smoke particles")
+	# 弹体 = 在弹体位置随机生成的同款拖尾粒子（无固定贴图）
+	var fixed_sprites:int = 0
+	for child:Node in bolt.get_children():
+		if child is Sprite2D: fixed_sprites += 1
+	check(fixed_sprites == 0,"bolt has no fixed body sprite")
+	await physics_frame
+	var body:Array[Node] = get_nodes_in_group(BOLT.BODY_GROUP)
+	var near:bool = true
+	var same:bool = true
+	var swirl_ok:bool = true
+	var spin_sign:float = 0.0
+	var offsets:Dictionary = {}
+	var widths:Dictionary = {}
+	# 出膛补团的粒子（组内最先加入的 BODY_LAUNCH_BURST 个）以出膛点为中心，检查同向切向漂移。
+	for k:int in range(mini(BOLT.BODY_LAUNCH_BURST,body.size())):
+		var burst_off:Vector2 = (body[k]._start as Vector2)-muzzle
+		if burst_off.length() > 1.0:
+			var burst_motion:Vector2 = body[k]._motion
+			var cross:float = burst_off.normalized().cross(burst_motion)
+			if spin_sign == 0.0: spin_sign = signf(cross)
+			swirl_ok = swirl_ok and signf(cross) == spin_sign and absf(burst_off.normalized().dot(burst_motion)) < burst_motion.length()*0.5
+	for p:Node in body:
+		var start:Vector2 = p._start
+		var off:Vector2 = start-bolt.global_position
+		near = near and off.length() <= BOLT.BODY_RADIUS+4.0
+		same = same and p.texture == BOLT.SMOKE and p.self_modulate.r < 0.3
+		offsets[Vector2i((off*4.0).round())] = true
+		widths[snappedf(p._pixel_width,0.05)] = true
+	print("WS_BOLT_METRIC body_particles=",body.size()," distinct_offsets=",offsets.size()," distinct_widths=",widths.size())
+	check(body.size() >= BOLT.BODY_LAUNCH_BURST,"bolt body appears immediately as a burst of particles")
+	check(near,"body particles spawn within the bolt radius")
+	check(offsets.size() >= body.size()-1 and widths.size() >= 4,"body particle positions and sizes are random")
+	check(same,"body particles are the Wither-skull trail smoke particle")
+	check(swirl_ok,"every body particle swirls the same way around the centre (rotating cloud)")
 	check(bolt.is_in_group("AI_Hazard") and bolt.get_ai_hazard_info().get("damage",0.0) == 5.0,"bolt is visible to AI dodge as 5-damage hazard")
 	# 飞行途中截图
 	var trail_seen:int = 0
@@ -166,6 +192,7 @@ func run() -> void:
 	check(trail_seen >= 10,"bolt leaves the same smoke trail (" + str(trail_seen) + " particles)")
 	var trail_same:bool = true
 	for p:Node in get_nodes_in_group(BOLT.TRAIL_GROUP):
+		if p.is_in_group(BOLT.BODY_GROUP): continue # 弹体粒子另有随机宽度，单独检查
 		trail_same = trail_same and p.texture == BOLT.SMOKE and p._pixel_width <= BOLT.TRAIL_WIDTH+0.01 and p.self_modulate.r < 0.3
 	check(trail_same,"trail particles use the skull-trail texture/width")
 	print("WS_BOLT_METRIC hit_frames=",hit_frames)
@@ -215,12 +242,11 @@ func run() -> void:
 	check(arc_end > 20 and parabola_ok,"arc is a true parabola: constant pull along the aim until cruise")
 	check(is_instance_valid(free_bolt) and free_bolt.cruising and is_equal_approx(free_bolt.velocity.length(),120.0) and free_bolt.velocity.x > 0.0,"then cruises forward at 120")
 	check(track[track.size()-1].x > origin.x+40.0,"ends up well in front of the head")
-	# 持续旋转
-	var r0:float = free_bolt._body_root.rotation
-	await physics_frame
-	await process_frame
-	await process_frame
-	check(not is_equal_approx(free_bolt._body_root.rotation,r0),"particle cluster spins continuously")
+	# 持续发射：巡航中弹体周围始终有新粒子
+	var alive_body:int = 0
+	for p:Node in get_nodes_in_group(BOLT.BODY_GROUP):
+		if (p._start as Vector2).distance_to(free_bolt.global_position) < BOLT.BODY_RADIUS+30.0: alive_body += 1
+	check(alive_body >= 8,"body keeps emitting particles around the bolt while flying (" + str(alive_body) + ")")
 	clear_bolts()
 
 	# --- 小幅追踪 ---
@@ -242,10 +268,10 @@ func run() -> void:
 	await physics_frame
 	var paused_at:Vector2 = paused_bolt.global_position
 	root.get_node("Game").now_stop_state = true
-	var paused_spin:float = paused_bolt._body_root.rotation
+	var paused_count:int = get_nodes_in_group(BOLT.BODY_GROUP).size()
 	for f:int in range(10): await physics_frame
 	check(paused_bolt.global_position.is_equal_approx(paused_at),"bolt freezes while the battle is paused")
-	check(is_equal_approx(paused_bolt._body_root.rotation,paused_spin),"spin also freezes while paused")
+	check(get_nodes_in_group(BOLT.BODY_GROUP).size() == paused_count,"no new body particles (and none fade) while paused")
 	root.get_node("Game").now_stop_state = false
 	clear_bolts()
 
