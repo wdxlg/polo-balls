@@ -6,7 +6,8 @@ extends Control
 ## 角色名（与普通 VS 同色）、10 颗原版红心、盔甲值行（仅减伤 > 0 时）及当前/最大生命数字；
 ## 中间为原版药水效果背景，显示本局已过去的游戏时间与 VS。原有文字 VS 标题保留不动。
 ##
-## 红心行（2026-09-28）：10 颗心 = 最大生命，全部按实时数值、以半心为单位：
+## 红心行（2026-09-28）：10 颗心 = 最大生命，全部按实时数值连续换算（不取整到半心，
+## 37/420 就是 0.88 颗心，按原版心形可见 7 列像素比例裁切）：
 ## - 红心：当前生命，从低血量端（靠头像一侧）排起，掉血从远端往头像方向减少；
 ## - 护盾（block）：从低血量端起把心染成原版盔甲图标的配色；
 ## - 伤害吸收（原版吸收效果剩余量）：从高血量端（远离头像）起染成原版金色吸收心；
@@ -29,9 +30,7 @@ const ITEM_FRAME:Texture2D = preload("res://Images/UI/rotation_frames/item_frame
 # 原版 1.21.4 HUD 精灵（Images/UI/minecraft_hud/SOURCE.json）。
 const HEART_CONTAINER:Texture2D = preload("res://Images/UI/minecraft_hud/heart_container.png")
 const HEART_FULL:Texture2D = preload("res://Images/UI/minecraft_hud/heart_full.png")
-const HEART_HALF:Texture2D = preload("res://Images/UI/minecraft_hud/heart_half.png")
 const HEART_ABSORBING_FULL:Texture2D = preload("res://Images/UI/minecraft_hud/heart_absorbing_full.png")
-const HEART_ABSORBING_HALF:Texture2D = preload("res://Images/UI/minecraft_hud/heart_absorbing_half.png")
 const ARMOR_FULL:Texture2D = preload("res://Images/UI/minecraft_hud/armor_full.png")
 const ARMOR_HALF:Texture2D = preload("res://Images/UI/minecraft_hud/armor_half.png")
 const ARMOR_EMPTY:Texture2D = preload("res://Images/UI/minecraft_hud/armor_empty.png")
@@ -112,7 +111,6 @@ var _tooltip_background_box:StyleBoxTexture
 var _tooltip_frame_box:StyleBoxTexture
 var _effect_box:StyleBoxTexture
 static var _shield_full:Texture2D = null
-static var _shield_half:Texture2D = null
 
 
 func _ready() -> void:
@@ -172,15 +170,23 @@ static func _palette_swap(texture:Texture2D) -> Texture2D:
 static func _ensure_shield_textures() -> void:
 	if _shield_full == null:
 		_shield_full = _palette_swap(HEART_FULL)
-	if _shield_half == null:
-		_shield_half = _palette_swap(HEART_HALF)
 
 
-## 数值 → 半心/半图标数（0..20）。任何正值至少显示半个，与原版“有血就有半颗心”一致。
-static func half_units(amount:float,full:float) -> int:
+## 数值 → 心数（0..10，连续值）：10 颗心 = full。
+static func heart_amount(amount:float,full:float) -> float:
 	if amount <= 0.0 or full <= 0.0:
-		return 0
-	return clampi(ceili(amount / full * float(HALF_UNITS) - 0.001),1,HALF_UNITS)
+		return 0.0
+	return clampf(amount / full * float(ICON_COUNT),0.0,float(ICON_COUNT))
+
+
+## 第 index 颗心（0 = 低血量端）被 amount 颗心占据的比例。
+static func heart_fill(hearts:float,index:int) -> float:
+	return clampf(hearts - float(index),0.0,1.0)
+
+
+## 从高血量端排起的 amount 颗心，覆盖第 index 颗心的比例。
+static func heart_fill_from_high(hearts:float,index:int) -> float:
+	return clampf(float(index + 1) - (float(ICON_COUNT) - hearts),0.0,1.0)
 
 
 ## 减伤比例 → 半盔甲数：10 个 = 100%，每半个 5%，四舍五入；正值至少半个。
@@ -566,7 +572,25 @@ func _icon_rect(panel:Rect2,mirrored:bool,row_top:float,index:int) -> Rect2:
 	return Rect2(x,area.position.y + row_top,icon_size,icon_size)
 
 
-## flip=true 时水平翻转（右侧面板的半心/半盔甲朝向镜像）。
+## 按比例只画心的一部分：from_left=true 时从屏幕左侧开始占 fraction。原版心形实心部分
+## 在第 1–7 列（共 7 列），比例映射到这 7 列上，0.5 正好是左右各半。
+func _draw_heart_part(texture:Texture2D,rect:Rect2,fraction:float,from_left:bool,tint:Color) -> void:
+	if texture == null or fraction <= 0.0:
+		return
+	if fraction >= 1.0:
+		draw_texture_rect(texture,rect,false,tint)
+		return
+	var source_width:float = minf(1.0 + 7.0 * fraction,ICON_SOURCE)
+	var pixel:float = rect.size.x / ICON_SOURCE
+	if from_left:
+		draw_texture_rect_region(texture,Rect2(rect.position,Vector2(source_width * pixel,rect.size.y)),
+			Rect2(0.0,0.0,source_width,ICON_SOURCE),tint)
+	else:
+		draw_texture_rect_region(texture,Rect2(rect.end.x - source_width * pixel,rect.position.y,source_width * pixel,rect.size.y),
+			Rect2(ICON_SOURCE - source_width,0.0,source_width,ICON_SOURCE),tint)
+
+
+## flip=true 时水平翻转（右侧面板的半盔甲朝向镜像）。
 func _draw_icon(texture:Texture2D,rect:Rect2,flip:bool,tint:Color) -> void:
 	if texture == null:
 		return
@@ -580,31 +604,18 @@ func _draw_icon(texture:Texture2D,rect:Rect2,flip:bool,tint:Color) -> void:
 
 func _draw_hearts(panel:Rect2,side:Dictionary,mirrored:bool,tint:Color) -> void:
 	var max_hp:float = maxf(float(side.max_hp),1.0)
-	var hp_units:int = half_units(float(side.hp),max_hp)
-	var shield_units:int = half_units(float(side.get("block",0.0)),max_hp)
-	var absorb_units:int = half_units(float(side.get("absorption",0.0)),max_hp)
-	var absorb_start:int = HALF_UNITS - absorb_units
-	# 半心原图是左半边：左面板低端在左，直接用；右面板低端在右，翻转。
-	var low_flip:bool = mirrored
+	var hp_hearts:float = heart_amount(float(side.hp),max_hp)
+	var shield_hearts:float = heart_amount(float(side.get("block",0.0)),max_hp)
+	var absorb_hearts:float = heart_amount(float(side.get("absorption",0.0)),max_hp)
+	# 左面板低血量端在左，右面板低血量端在右（镜像）。
+	var low_from_left:bool = not mirrored
 	for i:int in range(ICON_COUNT):
 		var rect:Rect2 = _icon_rect(panel,mirrored,HEART_ROW_TOP,i)
-		var low_half:int = i * 2
-		var high_half:int = low_half + 1
 		_draw_icon(HEART_CONTAINER,rect,false,tint)
-		if hp_units > high_half:
-			_draw_icon(HEART_FULL,rect,false,tint)
-		elif hp_units > low_half:
-			_draw_icon(HEART_HALF,rect,low_flip,tint)
-		if shield_units > high_half:
-			_draw_icon(_shield_full,rect,false,tint)
-		elif shield_units > low_half:
-			_draw_icon(_shield_half,rect,low_flip,tint)
-		if absorb_units > 0:
-			if low_half >= absorb_start:
-				_draw_icon(HEART_ABSORBING_FULL,rect,false,tint)
-			elif high_half >= absorb_start:
-				# 金色从高血量端排起：只占这颗心远离头像的半边。
-				_draw_icon(HEART_ABSORBING_HALF,rect,not low_flip,tint)
+		_draw_heart_part(HEART_FULL,rect,heart_fill(hp_hearts,i),low_from_left,tint)
+		_draw_heart_part(_shield_full,rect,heart_fill(shield_hearts,i),low_from_left,tint)
+		# 金色从高血量端排起：这颗心只从远离头像的一侧按比例染色。
+		_draw_heart_part(HEART_ABSORBING_FULL,rect,heart_fill_from_high(absorb_hearts,i),not low_from_left,tint)
 
 
 func _draw_armor(panel:Rect2,side:Dictionary,mirrored:bool,tint:Color) -> void:
