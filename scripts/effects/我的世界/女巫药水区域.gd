@@ -60,7 +60,7 @@ func _apply_to_units_in_radius() -> void:
 			continue
 		if target.global_position.distance_squared_to(global_position) > radius_sq:
 			continue
-		POTION_EFFECTS.apply_effect(target,effect_type,_valid_source_node(source_witch))
+		POTION_EFFECTS.apply_stacking_effect(target,effect_type,_valid_source_node(source_witch))
 
 
 func _spawn_area_particle() -> void:

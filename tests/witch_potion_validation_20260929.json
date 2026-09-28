@@ -1,0 +1,51 @@
+[
+  {
+    "name": "test_witch_potion_upgrade",
+    "exit_code": 0,
+    "summary": [
+      "WITCH POTION UPGRADE: 62/62"
+    ]
+  },
+  {
+    "name": "test_mc_unified_status_effects",
+    "exit_code": 1,
+    "summary": [
+      "ERROR: MC_UNIFIED_STATUS_FAIL charge threat reports the same buffed damage as its real hit",
+      "ERROR: MC_UNIFIED_STATUS_FAIL Wither head's direct 75 and splash 45 scale with its own Strength II",
+      "ERROR: MC_UNIFIED_STATUS_FAIL head threat displays live buffed direct damage",
+      "ERROR: MC_UNIFIED_STATUS_FAIL Weakness II also weakens the head without a second multiplier",
+      "ERROR: MC_UNIFIED_STATUS_FAIL beacon Strength I raises a head's direct hit to the live Damage attribute",
+      "MC_UNIFIED_STATUS_RESULT checks=137 failures=5"
+    ]
+  },
+  {
+    "name": "test_mc_active_potion_tooltips",
+    "exit_code": 0,
+    "summary": [
+      "MC_ACTIVE_POTIONS_RESULT checks=44 failures=0",
+      "NEW5_RESULT checks=44 failures=0"
+    ]
+  },
+  {
+    "name": "test_mc_potion_phasing",
+    "exit_code": 0,
+    "summary": [
+      "MC_POTION_PHASING_RESULT checks=17 failures=0"
+    ]
+  },
+  {
+    "name": "test_all_character_potion_contract",
+    "exit_code": 0,
+    "summary": [
+      "POTION_CHARACTER_RESULT checks=4282 failures=0 scenes=191 fighters=186 skipped=5 immune=0 tracked_only=false limit=0"
+    ]
+  },
+  {
+    "name": "test_allay_native_return",
+    "exit_code": 0,
+    "summary": [
+      "ALLAY_NATIVE_RETURN_TEST checks=87 failures=0",
+      "ALLAY_TEST checks=87 failures=0"
+    ]
+  }
+]

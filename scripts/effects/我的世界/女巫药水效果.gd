@@ -88,8 +88,9 @@ static func texture_for(effect_type:String) -> Texture2D:
 # by the beacon, Wither and Shulker. This file only chooses bottle artwork,
 # defaults for *duration*, and the existing extra Weakness on Wither bottles.
 # "level" is 1-based; -1 duration means use the Witch's existing lifetime.
-static func apply_effect(target:ball,effect_type:String,source:Variant = null,level:int = 1,duration:float = -1.0) -> void:
+static func apply_effect(target:ball,effect_type:String,source:Variant = null,level:int = 1,duration:float = -1.0,increase_level:bool = false) -> void:
 	if target == null or not is_instance_valid(target) or target.health <= 0: return
+	effect_type = EFFECTS.canonical(effect_type)
 	var lifetime:float = duration
 	if lifetime < 0.0:
 		match effect_type:
@@ -100,8 +101,18 @@ static func apply_effect(target:ball,effect_type:String,source:Variant = null,le
 			SPEED, STRENGTH, SLOWNESS: lifetime = 8.0
 			_: lifetime = 30.0
 	var caster:Node = source as Node if source is Node and is_instance_valid(source) else null
-	if not EFFECTS.apply_effect(target,effect_type,level,lifetime,caster): return
+	var grade:int = mini(EFFECTS.level_of(target,effect_type)+1,255) if increase_level and not EFFECTS.is_instant(effect_type) else level
+	if not EFFECTS.apply_effect(target,effect_type,grade,lifetime,caster): return
 	# The Witch's Wither bottle *also* carries Weakness. It is a distinct
 	# canonical status, not a source-specific damage multiplier or fake tooltip.
 	if effect_type == WITHER:
-		EFFECTS.apply_effect(target,"weakness",level,lifetime,caster)
+		var weakness_grade:int = mini(EFFECTS.level_of(target,"weakness")+1,255) if increase_level else level
+		EFFECTS.apply_effect(target,"weakness",weakness_grade,lifetime,caster)
+
+
+static func apply_stacking_effect(target:ball,effect_type:String,source:Variant = null) -> void:
+	# Witch drinking, direct hits and EACH cloud pulse upgrade the current effective
+	# level. Other callers (e.g. Trader invisibility) retain fixed-level apply_effect.
+	# Instant effects have no persistent level to upgrade; do not invent a counter.
+	if not is_instance_valid(target) or not target.is_multiplayer_authority(): return
+	apply_effect(target,effect_type,source,1,-1.0,true)

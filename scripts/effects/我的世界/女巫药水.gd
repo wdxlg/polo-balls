@@ -10,6 +10,7 @@ const DAMAGE_SFX = preload("res://scripts/effects/我的世界/女巫药水伤�
 
 var effect_type:String = ""
 var source_witch:Node = null
+var _launch_impact_damage:float = 30.0
 var start_position:Vector2 = Vector2.ZERO
 var target_position:Vector2 = Vector2.ZERO
 var flight_duration:float = 0.85
@@ -30,6 +31,7 @@ func setup(start:Vector2,target:Vector2,new_effect_type:String,new_source:Varian
 	target_position = target
 	effect_type = new_effect_type
 	source_witch = _valid_source_node(new_source)
+	_launch_impact_damage = get_projectile_damage()
 	var distance:float = start.distance_to(target)
 	flight_duration = clampf(distance / 330.0,0.62,1.18)
 	arc_height = clampf(distance * 0.38,72.0,145.0)
@@ -84,11 +86,13 @@ func _physics_process(delta:float) -> void:
 
 	var hit_target:ball = _find_segment_hit(previous,global_position)
 	if hit_target != null:
-		# 打到任何单位：保留“命中立刻施加一次药效”，再额外结算 50 点瓶身撞击伤害。
+		# 命中施加一次可升级药效；瓶身基础30（女巫20攻击×1.5），与药效伤害分开。
 		# 撞击伤害走项目现有 receive_positional_damage()；真实结算后随机播放用户提供的三段药水伤害音。
 		var active_source:Node = _valid_source_node(source_witch)
-		POTION_EFFECTS.apply_effect(hit_target,effect_type,active_source)
-		var bottle_damage_applied:bool = hit_target.receive_positional_damage(50.0,global_position,false,active_source)
+		POTION_EFFECTS.apply_stacking_effect(hit_target,effect_type,active_source)
+		var bottle_damage_applied:bool = false
+		if is_instance_valid(hit_target) and not hit_target.is_queued_for_deletion() and hit_target.health > 0:
+			bottle_damage_applied = hit_target.receive_positional_damage(get_projectile_damage(),global_position,false,active_source)
 		if bottle_damage_applied:
 			DAMAGE_SFX.play(hit_target,global_position)
 		_explode(global_position)
@@ -97,6 +101,13 @@ func _physics_process(delta:float) -> void:
 	_last_position = global_position
 	if t >= 1.0:
 		_explode(target_position)
+
+
+func get_projectile_damage() -> float:
+	# Native protocol overrides the legacy 50-point descriptor for capture/threats.
+	# Keep live attack scaling, or the launch snapshot if the caster has disappeared.
+	var caster:Node = _valid_source_node(source_witch)
+	return caster.attack_damage(1.5) if caster is ball else _launch_impact_damage
 
 
 func _valid_source_node(candidate:Variant) -> Node:

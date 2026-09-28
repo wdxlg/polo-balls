@@ -264,7 +264,7 @@ func _play_drink_sfx_repeat(index:int) -> void:
 
 
 func _finish_drink_effect(effect:String) -> void:
-	POTION_EFFECTS.apply_effect(self,effect,self)
+	POTION_EFFECTS.apply_stacking_effect(self,effect,self)
 	var color:Color = POTION_EFFECTS.color_for(effect)
 	_flash_character(color)
 	_hide_brew_visual()
