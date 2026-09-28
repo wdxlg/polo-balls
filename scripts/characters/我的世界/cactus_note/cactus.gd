@@ -215,7 +215,7 @@ func _death_visual() -> void:
 	_death_visual_done = true
 	ITEM_DEATH.spawn(self)
 func get_skill_description() -> String:
-	return "每8秒向上长一节，没有节数上限，直到上方被墙或地图边界挡住；每长一节血量和血上限都增加一节（200）。底部不动，碰撞箱和血条同步升高。药水、附魔等效果整株共用；每节是独立的受击目标（范围攻击盖住几节就打几次，每节有自己的受击冷却），血量共用，只有被打中的那一节闪白。只有左右两侧有接触伤害；技能先收细，再弹性胀开并从左右射出本体刺色的细条，长得越高越多，数量小幅随机，主动散射为左右向外±10°。实际掉血时先快速胀粗爆刺再弹性回缩，反伤刺向外±45°、每根基础伤害固定5；总数量向下取整(实际掉血×反伤幅度÷5)，每层幅度40%、最多200%，左右合计不翻倍。每次长高播放仙人掌放置音，成功命中播放MC受击音。刺命中一次后扎在人或墙上，3秒后消失，无持续伤害或处决。"
+	return "每8秒向上长一节，没有节数上限，直到上方被墙或地图边界挡住；每长一节血量和血上限都增加一节（300）。底部不动，碰撞箱和血条同步升高。药水、附魔等效果整株共用；每节是独立的受击目标（范围攻击盖住几节就打几次，每节有自己的受击冷却），血量共用，只有被打中的那一节闪白。只有左右两侧有接触伤害；技能先收细，再弹性胀开并从左右射出本体刺色的细条，长得越高越多，数量小幅随机，主动散射为左右向外±10°。实际掉血时先快速胀粗爆刺再弹性回缩，反伤刺向外±45°、每根基础伤害固定5；总数量向下取整(实际掉血×反伤幅度÷5)，每层幅度40%、最多200%，左右合计不翻倍。每次长高播放仙人掌放置音，成功命中播放MC受击音。刺命中一次后扎在人或墙上，3秒后消失，无持续伤害或处决。"
 
 func play_action_sound(event:String) -> void:
 	if multiplayer.has_multiplayer_peer(): _action_sound.rpc(event,global_position)
@@ -292,7 +292,7 @@ func emit_retaliation() -> void:
 # duplicate guard), HP is pooled, and only the struck segment flashes white.
 const SEGMENT:float = 96.0
 const SEGMENT_SHADER_COPY:Array[StringName] = [&"character_grayscale",&"hit_white_color",&"defualt_color_mix",&"default_color",&"sprite_flip_h",&"snow_cold"]
-var segment_health:int = 200
+var segment_health:int = 300
 var growth_blocked:bool = false
 var segment_hits:Array[int] = [] # hits taken per segment (tests / tuning)
 var segment_flash:Array[float] = [] # current white power per segment
@@ -413,6 +413,13 @@ func _rebuild_segment_hurtboxes() -> void:
 			_segment_hurtboxes[i] = box
 		box.position = Vector2(0,-SEGMENT*i)
 	_sync_hurt_layers()
+
+## Per-segment hurt shapes for weapon sweeps that can hit each part of a multi-part body once.
+func multi_part_hurt_shapes() -> Array:
+	var shapes:Array = []
+	for box:Area2D in _segment_hurtboxes:
+		if is_instance_valid(box) and box.get_child_count() > 0: shapes.append(box.get_child(0))
+	return shapes
 
 ## Hitboxes find the segment hurtboxes; the whole-body hurtbox keeps its shape for scripts that
 ## address self_hurtbox directly (body contact) but hands its detection layers to the segments.

@@ -11,7 +11,8 @@ static func nearest(source:ball) -> ball:
 	var best:float = INF
 	for target:Node in source.get_tree().get_nodes_in_group("Ball"):
 		if not enemy(source,target) or not target.is_combat_lockable(): continue
-		var d:float = source.global_position.distance_squared_to(target.global_position)
+		# Tall / multi-part bodies (grown cactus) measure to their part nearest to the source.
+		var d:float = source.global_position.distance_squared_to(target.call(&"combat_distance_point_for",source) if target.has_method(&"combat_distance_point_for") else target.global_position)
 		if d < best:
 			best=d
 			result=target
