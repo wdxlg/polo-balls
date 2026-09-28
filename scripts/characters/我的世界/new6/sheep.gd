@@ -22,6 +22,7 @@ enum RamState { ROAM, WINDUP, CHARGE, RECOVER, GRAZE, BRAKE_GRAZE }
 @export var retreat_speed:float = 80.0
 @export var charge_contact_speed_ratio:float = 0.65
 @export var graze_delay:float = 3.0
+@export var graze_cooldown:float = 8.0
 @export var graze_heal_ratio:float = 0.025
 @export var graze_bite_interval:float = 0.8
 @export var graze_braking:float = 120.0
@@ -48,6 +49,7 @@ var _since_hurt:float = 99.0
 var _regrow:float = 0.0
 var _heal_pool:float = 0.0
 var _graze_elapsed:float = 0.0
+var _graze_cooldown_left:float = 0.0
 var _bite_flash_left:float = 0.0
 var _bite_serial:int = 0
 var _seen_bite_serial:int = 0
@@ -181,10 +183,12 @@ func on_actual_health_damage_received(amount:float,before:float) -> void:
 	_heal_pool = 0.0
 	_graze_elapsed = 0.0
 	_bite_flash_left = 0.0
-	if ram_state in [RamState.GRAZE,RamState.BRAKE_GRAZE]: ram_state = RamState.ROAM
+	if ram_state in [RamState.GRAZE,RamState.BRAKE_GRAZE]: _finish_grazing()
 	_update_graze_grass()
 
 func step_mob(delta:float) -> void:
+	if not active(): return
+	_graze_cooldown_left = maxf(_graze_cooldown_left-maxf(delta,0.0),0.0)
 	if ram_state in [RamState.WINDUP,RamState.CHARGE]: _clear_ram_knockback()
 	_step_sheep_sounds(delta)
 	_wall_squash_age += delta
@@ -195,7 +199,7 @@ func step_mob(delta:float) -> void:
 		_heal_pool = 0.0
 		_graze_elapsed = 0.0
 		_bite_flash_left = 0.0
-		if ram_state in [RamState.GRAZE,RamState.BRAKE_GRAZE]: ram_state = RamState.ROAM
+		if ram_state in [RamState.GRAZE,RamState.BRAKE_GRAZE]: _finish_grazing()
 	_observed_health = health
 	_since_hurt += delta
 	_step_wool(delta)
@@ -205,7 +209,7 @@ func step_mob(delta:float) -> void:
 	_moving = velocity.length_squared() > 100.0
 	if ram_state == RamState.ROAM and velocity.length_squared() > 100.0: facing = velocity.normalized()
 	# 低血量休整优先于寻敌/蓄力，不受敌人距离影响；进入后只由满血或扣血结束。
-	if ram_state not in [RamState.GRAZE,RamState.BRAKE_GRAZE] and ram_state != RamState.CHARGE and health < Max_health*0.75 and _since_hurt >= graze_delay:
+	if _graze_cooldown_left <= 0.0 and ram_state not in [RamState.GRAZE,RamState.BRAKE_GRAZE] and ram_state != RamState.CHARGE and health < Max_health*0.75 and _since_hurt >= graze_delay:
 		_begin_grazing()
 	if ram_state == RamState.GRAZE:
 		_graze(delta)
@@ -279,8 +283,7 @@ func impact_profile(impact_speed:float) -> Dictionary:
 func _graze(delta:float) -> void:
 	if not active() or ram_state != RamState.GRAZE: return
 	if health >= Max_health:
-		ram_state = RamState.ROAM
-		_graze_elapsed = 0.0
+		_finish_grazing()
 		return
 	_graze_elapsed += maxf(delta,0.0)
 	var interval:float = maxf(graze_bite_interval,0.2)
@@ -302,10 +305,7 @@ func _graze(delta:float) -> void:
 		_receive_graze_bite(_bite_serial)
 		if multiplayer.has_multiplayer_peer(): _receive_graze_bite.rpc(_bite_serial)
 		if health >= Max_health:
-			ram_state = RamState.ROAM
-			_heal_pool = 0.0
-			_graze_elapsed = 0.0
-			_update_graze_grass()
+			_finish_grazing()
 
 @rpc("authority","call_remote","reliable")
 func _receive_graze_bite(serial:int) -> void:
@@ -557,7 +557,17 @@ func _wool_burst() -> void:
 		node.apply_knockback(dir,85.0,520.0,0.25,0.0,{"source":self})
 	play_sound("block.wool.place",-3.0)
 
+func _finish_grazing() -> void:
+	# 完成和中断共用退出入口；冷却从退出吃草开始，而不是被长时间吃草耗完。
+	ram_state = RamState.ROAM
+	_graze_cooldown_left = maxf(graze_cooldown,0.0)
+	_heal_pool = 0.0
+	_graze_elapsed = 0.0
+	_bite_flash_left = 0.0
+	_update_graze_grass()
+
 func _begin_grazing() -> void:
+	if not active() or _graze_cooldown_left > 0.0 or ram_state in [RamState.GRAZE,RamState.BRAKE_GRAZE]: return
 	_clear_charge_contacts()
 	_graze_elapsed = 0.0
 	_bite_flash_left = 0.0
