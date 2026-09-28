@@ -58,10 +58,13 @@ func sample(delta:float) -> void:
 		var moved:bool = point.distance_squared_to(state.point)>0.0225
 		state.remaining = maxf(0.0,float(state.remaining)-maxf(delta,0.0))
 		state.point = point
-		var owner:Node = field.get(reference.cell_at(point))
-		if moved and float(state.remaining)<=0.0 and is_instance_valid(owner) and U.enemy(owner,target) and not step_is_playing(target):
-			owner.emit_moss_sound("block.moss.step",point,-15.0,target)
-			state.remaining = next_interval()
+		if moved and float(state.remaining)<=0.0 and not step_is_playing(target):
+			for cell:Vector2i in reference.touching_moss_cells(target as ball,field):
+				var owner:Node = field[cell]
+				if not is_instance_valid(owner) or not U.enemy(owner,target): continue
+				owner.emit_moss_sound("block.moss.step",point,-15.0,target)
+				state.remaining = next_interval()
+				break # Sound is per walker, unlike the independent per-cell damage ticks.
 		states[id] = state
 	for id:Variant in states.keys():
 		if not present.has(id): states.erase(id)

@@ -61,11 +61,17 @@ func run() -> void:
 			var scheduler:Node = moss.FOOTSTEPS.ensure(moss)
 			scheduler.set_physics_process(false)
 			var walker:Node2D = dummy(Vector2(56,40))
+			# This fixture tests the map grid, not a large body spanning both cells.
+			# Body-edge overlap is covered by test_mc_moss_contact.gd.
+			walker.scale = Vector2.ONE
+			var small_body := RectangleShape2D.new()
+			small_body.size = Vector2(4,4)
+			walker.get_node("CollisionShape2D").shape = small_body
 			scheduler.states.clear()
 			scheduler.sample(0.1)
 			walker.global_position += Vector2(1,0)
 			scheduler.sample(0.1)
-			check(is_zero_approx(float(scheduler.states[walker.get_instance_id()].remaining)),"empty adjacent cell cannot trigger a moss footstep")
+			check(is_zero_approx(float(scheduler.states[walker.get_instance_id()].remaining)),"body wholly inside empty adjacent cell cannot trigger a moss footstep")
 			walker.global_position = Vector2(40,40)
 			var before_serial:int = moss._moss_sound_serial
 			scheduler.sample(0.1)

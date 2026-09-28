@@ -1,0 +1,42 @@
+[
+  {
+    "name": "test_mc_moss_contact",
+    "exit_code": 0,
+    "summary": [
+      "MOSS CONTACT CONTRACTS: 54/54",
+      "BAT RESULT: 54/54 passed"
+    ]
+  },
+  {
+    "name": "test_mc_moss_map_alignment",
+    "exit_code": 0,
+    "summary": [
+      "MOSS MAP ALIGNMENT: 25/25",
+      "BAT RESULT: 25/25 passed"
+    ]
+  },
+  {
+    "name": "test_mc_moss_placement",
+    "exit_code": 0,
+    "summary": [
+      "MOSS PLACEMENT CONTRACTS: 48/48",
+      "BAT RESULT: 48/48 passed"
+    ]
+  },
+  {
+    "name": "test_mc_moss_feedback",
+    "exit_code": 0,
+    "summary": [
+      "MOSS FEEDBACK CONTRACTS: 52/52",
+      "BAT RESULT: 52/52 passed"
+    ]
+  },
+  {
+    "name": "test_mc_moss_azalea",
+    "exit_code": 0,
+    "summary": [
+      "MC AZALEA/STAT CONTRACTS: 46/46",
+      "BAT RESULT: 46/46 passed"
+    ]
+  }
+]

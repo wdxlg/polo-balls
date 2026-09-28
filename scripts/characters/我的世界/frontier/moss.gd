@@ -44,7 +44,8 @@ var growth_left:float = 0.6
 var growth_count:int = 0
 var _field_left:float = 0.0
 var _heal_left:float = 1.0
-var _damage_until:Dictionary = {}
+var _damage_until:Dictionary = {} # victim instance ID + persistent patch serial, not one timer for the entire field.
+var _contact_tile := RectangleShape2D.new()
 var _patch_serial:int = 0
 var burrowing:bool = false
 var burrow_left:float = 0.0
@@ -60,6 +61,7 @@ var _saved_collision_mask:int = 0
 func role_key() -> String: return "moss"
 func get_preview_texture() -> Texture2D: return BODY
 func _ready() -> void:
+	_contact_tile.size = Vector2.ONE*CELL
 	super._ready()
 	_moss_rest_scale = image.scale
 	_moss_rest_position = image.position
@@ -241,6 +243,32 @@ func cancel_cultivation() -> void:
 	if is_instance_valid(frontier_fx): frontier_fx.queue_redraw()
 func slow_ratio(layers:int) -> float:
 	return [0.75,0.5,0.3][clampi(layers,1,MAX_LAYERS)-1]
+func touching_moss_cells(target:ball,field:Dictionary) -> Array[Vector2i]:
+	# Use the actual body shapes, not the sprite, weapon, centre cell or a guessed radius.
+	# Broad phase visits only cells within each transformed body AABB; Godot's native
+	# shape collision rejects empty corners (circles, capsules and rotated bodies).
+	var result:Array[Vector2i] = []
+	if not is_instance_valid(target) or target.is_queued_for_deletion() or field.is_empty(): return result
+	var seen:Dictionary = {}
+	var phase:Vector2 = moss_grid_phase()
+	for owner_id:int in target.get_shape_owners():
+		if target.is_shape_owner_disabled(owner_id): continue
+		var pose:Transform2D = target.global_transform*target.shape_owner_get_transform(owner_id)
+		for shape_index:int in range(target.shape_owner_get_shape_count(owner_id)):
+			var body:Shape2D = target.shape_owner_get_shape(owner_id,shape_index)
+			if body == null: continue
+			var bounds:Rect2 = pose*body.get_rect()
+			var first:Vector2i = Vector2i(((bounds.position-phase-Vector2.ONE*CELL*0.5)/CELL).ceil())
+			var last:Vector2i = Vector2i(((bounds.end-phase+Vector2.ONE*CELL*0.5)/CELL).floor())
+			for x:int in range(first.x,last.x+1):
+				for y:int in range(first.y,last.y+1):
+					var cell := Vector2i(x,y)
+					if seen.has(cell) or not field.has(cell): continue
+					var tile_pose := Transform2D(0.0,Vector2(cell)*CELL+phase)
+					if _contact_tile.collide(tile_pose,body,pose):
+						seen[cell] = true
+						result.append(cell)
+	return result
 func check_trampling() -> void:
 	if not can_act(): return
 	var own_cells:Dictionary = {}
@@ -248,15 +276,19 @@ func check_trampling() -> void:
 	for node:Node in get_tree().get_nodes_in_group("Ball"):
 		if not U.enemy(self,node): continue
 		var target:ball = node as ball
-		var cell:Vector2i = cell_at(target.global_position)
-		if not own_cells.has(cell): continue
-		var patch:Dictionary = own_cells[cell]
-		var layers:int = int(patch.layers)
-		U.slow(self,target,slow_ratio(layers),0.25,"苔藓缠足")
-		var id:int = target.get_instance_id()
-		if float(_damage_until.get(id,0.0)) > clock: continue
-		_damage_until[id] = clock+maxf(damage_interval,0.1)
-		damage_with_moss_sound(target,attack_damage(float(layers)*moss_damage_multiplier),patch.point,true)
+		var touched:Array[Vector2i] = touching_moss_cells(target,own_cells)
+		var strongest:int = 0
+		for cell:Vector2i in touched: strongest = maxi(strongest,int(own_cells[cell].layers))
+		if strongest <= 0: continue
+		# Preserve the existing slow policy, with no last-cell-wins or multiplicative stacking.
+		U.slow(self,target,slow_ratio(strongest),0.25,"苔藓缠足")
+		for cell:Vector2i in touched:
+			if not U.enemy(self,target): break # A previous cell may have killed/freed the victim.
+			var patch:Dictionary = own_cells[cell]
+			var key:String = str(target.get_instance_id())+":"+str(patch.serial)
+			if float(_damage_until.get(key,0.0)) > clock: continue
+			_damage_until[key] = clock+maxf(damage_interval,0.1)
+			damage_with_moss_sound(target,attack_damage(float(patch.layers)*moss_damage_multiplier),patch.point,true)
 func connected_cells(start:Vector2i,field:Dictionary) -> Dictionary:
 	var seen:Dictionary = {}
 	if not field.has(start): return seen
@@ -275,19 +307,29 @@ func connected_cells(start:Vector2i,field:Dictionary) -> Dictionary:
 func begin_burrow() -> bool:
 	if not can_act() or not Can_Skill or burrowing or burrow_wait > 0.0 or placement_active(): return false
 	var field:Dictionary = moss_field()
-	var connected:Dictionary = connected_cells(cell_at(global_position),field)
+	var connected:Dictionary = {}
+	for cell:Vector2i in touching_moss_cells(self,field):
+		if not connected.has(cell): connected.merge(connected_cells(cell,field))
 	if connected.is_empty(): return false
 	var chosen:ball
+	var exit_entry:Dictionary = {}
 	var best:float = INF
 	for node:Node in get_tree().get_nodes_in_group("Ball"):
 		if not U.enemy(self,node) or not node.is_combat_lockable(): continue
-		if not connected.has(cell_at(node.global_position)): continue
+		var touched:Array[Vector2i] = touching_moss_cells(node as ball,connected)
+		if touched.is_empty(): continue
 		var distance:float = global_position.distance_squared_to(node.global_position)
 		if distance < best:
 			chosen = node as ball
 			best = distance
+			var exit_distance:float = INF
+			for cell:Vector2i in touched:
+				var entry:Dictionary = field[cell]
+				var d:float = node.global_position.distance_squared_to(entry.patch.point)
+				if d < exit_distance:
+					exit_distance = d
+					exit_entry = entry
 	if not is_instance_valid(chosen): return false
-	var exit_entry:Dictionary = field[cell_at(chosen.global_position)]
 	burrow_destination = exit_entry.patch.point # Snapshot, never follow the enemy.
 	_exit_owner = exit_entry.owner
 	_exit_serial = int(exit_entry.patch.serial)
@@ -394,7 +436,7 @@ func step_mob(delta:float) -> void:
 	_heal_left -= delta
 	if _heal_left <= 0.0:
 		_heal_left = 1.0
-		if moss_field().has(cell_at(global_position)): heal(healing_per_second)
+		if not touching_moss_cells(self,moss_field()).is_empty(): heal(healing_per_second)
 	if burrowing:
 		burrow_left = maxf(0.0,burrow_left-delta)
 		if burrow_left <= 0.0: finish_burrow()
@@ -520,12 +562,12 @@ func get_debug_attack_regions() -> Array:
 	var result:Array = []
 	if not can_act(): return result
 	for patch:Dictionary in patches:
-		result.append({"shape":"circle","position":patch.point,"radius":CELL*0.5,"damage":attack_damage(float(patch.layers)*moss_damage_multiplier),"kind":"stacked_moss"})
+		result.append({"shape":"rect","position":patch.point,"half_extents":Vector2.ONE*CELL*0.5,"rotation":0.0,"damage":attack_damage(float(patch.layers)*moss_damage_multiplier),"kind":"stacked_moss"})
 	return result
 func get_armor_test_effect_summary() -> String:
 	if english():
-		return "Periodically spread persistent moss nearby, stacking to a limit. Deeper moss deals more trampling damage and slows enemies more; standing on moss heals the owner. Trampling does not consume it.\nBurrow through connected moss to the enemy position recorded on entry, then emerge with damage and knockback. Consume nearby moss layers to heal; destroyed or blocked exits cancel the ambush. Moss does not block movement and can be destroyed by ghast blasts."
-	return "定期在周围随机铺设苔藓，可叠层但有上限；层数越高，踩踏伤害与减速越强。自身站在苔藓上回血，踩踏不消耗苔藓。\n与敌人处于同片横纵相连的苔藓时，可钻地突袭敌人入地时的位置，造成伤害并击退；出土消耗附近苔藓，消耗越多，回血越多。\n苔藓不阻挡移动，也不会自然消失，但可被恶魂爆炸破坏；出口被毁或受阻会取消突袭。"
+		return "Periodically spread persistent moss nearby, stacking to a limit. Body contact counts as stepping on moss; every touched cell deals damage on its own cooldown. Deeper moss deals more damage; the strongest touched layer determines slowing. Touching moss heals the owner. Trampling does not consume it.\nBurrow through connected moss to the enemy position recorded on entry, then emerge with damage and knockback. Consume nearby moss layers to heal; destroyed or blocked exits cancel the ambush. Moss does not block movement and can be destroyed by ghast blasts."
+	return "定期在周围随机铺设苔藓，可叠层但有上限；身体接触即算踩入，同时踩到多格会分别造成伤害并独立冷却，减速取所踩格中最强的一档。层数越高伤害越高，自身接触苔藓即可回血，踩踏不消耗苔藓。\n与敌人处于同片横纵相连的苔藓时，可钻地突袭敌人入地时的位置，造成伤害并击退；出土消耗附近苔藓，消耗越多，回血越多。\n苔藓不阻挡移动，也不会自然消失，但可被恶魂爆炸破坏；出口被毁或受阻会取消突袭。"
 
 func Die() -> void:
 	if _death_sound_done: return
