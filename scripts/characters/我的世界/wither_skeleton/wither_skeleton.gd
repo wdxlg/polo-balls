@@ -3,7 +3,12 @@ extends "res://scripts/characters/我的世界/new5/base.gd"
 ## classified damage, status potency/source lifetimes, audio and death effects.
 ## One continuous original-model pose: raise, downward cut, upward cut, recover.
 ## Attack aiming never steers locomotion; the shared movement/collision chain owns it.
+## Ranged head bolt (2026-09-28): while the nearest enemy is OUTSIDE melee range (the sword
+## acquisition radius), a medium cooldown ticks; when ready the head fires a slightly homing
+## bolt made of the Wither-skull trail smoke particles (same trail). 5 damage + stacking Wither.
+## The cooldown is frozen whenever the enemy is inside melee range (or there is no enemy).
 const SWEEP = preload("res://classes/weapon_tip_sweep.gd")
+const BOLT = preload("res://scripts/characters/我的世界/wither_skeleton/wither_bolt.gd")
 const EFFECTS = preload("res://scripts/effects/我的世界/mc_status_effects.gd")
 const FRAMES:SpriteFrames = preload("res://Images/characters/我的世界/wither_skeleton/frames.tres")
 const ATTACK_PARTS:SpriteFrames = preload("res://Images/characters/我的世界/wither_skeleton/attack_parts.tres")
@@ -23,6 +28,14 @@ const ATTACK_HAND_REACH:float = 5.0 # Extra world-space reach, shared by the arm
 const BODY_ENLARGEMENT:float = 20.0/14.0 # Match the previous sword enlargement ONCE; the sword stays at 20.
 const BODY_SCALE:float = 0.85*BODY_ENLARGEMENT # Scene body, shoulder/hand anchors and colliders share this ratio.
 const BODY_OFFSET_Y:float = -13.5*BODY_ENLARGEMENT # Feet pixel 202 lands on the enlarged collider bottom (+90).
+const BASE_ATTACK_DAMAGE:float = 20.0 # Scene Damage; bolt damage scales with live Damage buffs.
+const BOLT_DAMAGE:float = 5.0
+const BOLT_COOLDOWN:float = 3.0 # Medium; only counts down while the enemy is outside melee range.
+const BOLT_SPEED:float = 200.0
+const BOLT_TURN_RATE:float = 1.4 # rad/s: slight homing, easy to sidestep at range.
+const BOLT_LIFE:float = 3.0
+const BOLT_MUZZLE_PIXEL:Vector2 = Vector2(80.0,86.0) # Face centre in the 160x224 original frame.
+const BOLT_AIM_ASSIST:float = 160.0 # Manual: home on the enemy nearest the cursor within this radius.
 @export var blade_length:float = 20.0
 @export var blade_radius:float = 2.5
 @export var acquisition_range:float = 58.0
@@ -53,6 +66,11 @@ var _recovery_draw_revision:int = -1
 var _arm:Sprite2D
 var _sword:Sprite2D
 var voice:Node
+var bolt_cooldown_left:float = BOLT_COOLDOWN
+var bolts_fired:int = 0
+var bolt_hits:int = 0
+var _bolt_serial:int = 0
+var _visual_bolts:Dictionary = {}
 
 func _ready() -> void:
 	Can_Attack = true
@@ -91,9 +109,23 @@ func _ready() -> void:
 	image.add_child(_fade_sprite)
 	visual_mob()
 
-func player_control_action_ids() -> Array[StringName]: return [&"controlled_attack_action"]
+func player_control_action_ids() -> Array[StringName]: return [&"controlled_attack_action",&"controlled_skill_action"]
 func controlled_attack_action() -> void:
 	if is_player_controlled(): begin_combo(player_control_aim_direction(direction))
+func controlled_skill_action() -> void:
+	# Manual bolt keeps the same rule: ready cooldown and no enemy inside melee range.
+	if not is_player_controlled() or not can_act() or not is_combat_runtime_active() or bolt_cooldown_left > 0.0: return
+	if not enemy_outside_melee(U.nearest(self)): return
+	var aim_point:Vector2 = player_control_aim_world_position() if has_player_control_aim() else global_position+player_control_aim_direction(direction)*100.0
+	var homing:ball = null
+	var best:float = BOLT_AIM_ASSIST*BOLT_AIM_ASSIST
+	for node:Node in get_tree().get_nodes_in_group("Ball"):
+		if node is ball and node.health > 0 and U.enemy(self,node) and node.is_combat_lockable():
+			var d:float = (node as Node2D).global_position.distance_squared_to(aim_point)
+			if d < best:
+				best = d
+				homing = node
+	fire_bolt(aim_point-bolt_muzzle_position(),homing)
 func Attack() -> void:
 	if is_player_controlled(): controlled_attack_action()
 	else: _try_start_ai_combo()
@@ -118,6 +150,7 @@ func step_mob(delta:float) -> void:
 	if not can_act():
 		cancel_combo()
 		return
+	_tick_bolt(delta)
 	if combo_time >= 0.0:
 		advance_combo(delta)
 		return
@@ -157,6 +190,79 @@ func can_reach_target(target:ball) -> bool:
 			for contact:Dictionary in SWEEP.contacts(self,geometry.start,geometry.end,blade_radius,{},global_position):
 				if contact.target == target: return true
 	return false
+
+## Melee range = the sword acquisition radius (the same radius that gates both slashes).
+func enemy_outside_melee(target:ball) -> bool:
+	if not is_instance_valid(target) or target.health <= 0 or not U.enemy(self,target): return false
+	return global_position.distance_squared_to(target.global_position) > acquisition_range*acquisition_range
+
+func _tick_bolt(delta:float) -> void:
+	var target:ball = U.nearest(self)
+	if not enemy_outside_melee(target): return # Frozen: enemy in melee range (or none).
+	bolt_cooldown_left = maxf(0.0,bolt_cooldown_left-delta)
+	if bolt_cooldown_left > 0.0 or is_player_controlled() or combo_time >= 0.0: return
+	var muzzle:Vector2 = bolt_muzzle_position()
+	if not U.line_clear(self,muzzle,target.global_position): return # Hold a ready shot until the line opens.
+	fire_bolt(target.global_position-muzzle,target)
+
+func bolt_muzzle_position() -> Vector2:
+	var pixel:Vector2 = BOLT_MUZZLE_PIXEL-Vector2(80.0,112.0)+image.offset
+	if _face_right: pixel.x = -pixel.x
+	return image.global_transform*pixel
+
+func bolt_damage() -> float: return attack_damage(BOLT_DAMAGE/BASE_ATTACK_DAMAGE)
+func is_bolt_enemy(target:Variant) -> bool: return target is ball and U.enemy(self,target)
+
+func fire_bolt(aim:Vector2,homing:ball) -> Node2D:
+	if not can_act() or aim.is_zero_approx(): return null
+	bolt_cooldown_left = BOLT_COOLDOWN
+	bolts_fired += 1
+	_bolt_serial += 1
+	var origin:Vector2 = bolt_muzzle_position()
+	var bolt:Node2D = _spawn_bolt(_bolt_serial,origin,aim.normalized(),homing,false)
+	if multiplayer.has_multiplayer_peer():
+		var path:NodePath = get_tree().current_scene.get_path_to(homing) if is_instance_valid(homing) else NodePath()
+		_spawn_bolt_visual.rpc(_bolt_serial,origin,aim.normalized(),path)
+	return bolt
+
+func _spawn_bolt(id:int,origin:Vector2,heading:Vector2,homing:Node,only_visual:bool) -> Node2D:
+	var bolt:Node2D = BOLT.new()
+	bolt.name = "WitherSkeletonBolt_%d" % id
+	bolt.call("configure",self,heading,homing,BOLT_SPEED,BOLT_TURN_RATE,BOLT_LIFE,id,only_visual)
+	get_tree().current_scene.add_child(bolt,true)
+	bolt.global_position = origin
+	return bolt
+
+@rpc("authority","call_remote","reliable")
+func _spawn_bolt_visual(id:int,origin:Vector2,heading:Vector2,path:NodePath) -> void:
+	var homing:Node = get_tree().current_scene.get_node_or_null(path) if not path.is_empty() else null
+	_visual_bolts[id] = weakref(_spawn_bolt(id,origin,heading,homing,true))
+
+func _finish_bolt(bolt:Node2D,point:Vector2,_hit:bool) -> void:
+	if multiplayer.has_multiplayer_peer() and is_instance_valid(bolt): _end_bolt_visual.rpc(int(bolt.get("serial")),point)
+
+@rpc("authority","call_remote","reliable")
+func _end_bolt_visual(id:int,point:Vector2) -> void:
+	var ref:WeakRef = _visual_bolts.get(id)
+	_visual_bolts.erase(id)
+	var bolt:Node2D = ref.get_ref() as Node2D if ref != null else null
+	if is_instance_valid(bolt):
+		bolt.global_position = point
+		bolt.call("dissipate",point)
+
+func deal_bolt_hit(target:ball,point:Vector2) -> bool:
+	if not active() or is_damage_output_disabled() or not U.enemy(self,target) or target.health <= 0: return false
+	var amount:float = bolt_damage()
+	var before:float = maxf(float(target.health),0.0)
+	set_meta("blood_damage_kind","pierce")
+	var accepted:bool = target.receive_classified_positional_damage(amount,point,&"ordinary",false,self)
+	set_meta("blood_damage_kind","slash")
+	var actual:float = maxf(before-(maxf(float(target.health),0.0) if is_instance_valid(target) else 0.0),0.0)
+	if not accepted or actual <= 0.0: return false
+	bolt_hits += 1
+	voice.request("crit" if actual > 50.0 else "hit",point,GAIN.damage_gain(actual))
+	if is_instance_valid(target) and target.health > 0: apply_stacking_wither(target)
+	return true
 
 func advance_combo(delta:float) -> void:
 	_damage_regions.clear()
@@ -519,5 +625,5 @@ func _death_visual() -> void:
 	DEATH_FX.death_pose(self,image,_face_right)
 func get_armor_test_effect_summary() -> String:
 	if str(Game.current_locale).begins_with("en"):
-		return "Strike twice with a stone sword; each slash can hit each enemy once.\nEach damaging hit inflicts Wither I for 3 seconds. If Wither is already active, raise its current level by one and refresh this source to 3 seconds (maximum 255). Existing sources keep their own remaining time.\nControl with C: WASD moves, the mouse aims, and left click starts the two-slash combination. Stun, death or disabled attacks cancel unfinished slashes."
-	return "手持石剑连续砍两下，每刀对同一敌人最多命中一次。\n每刀实际造成伤害后施加3秒凋零；没有凋零时为I级，已有凋零则在当前等级上提升一级，并刷新本来源为3秒（公共上限255级）。其他来源保留自己的剩余时间。\nC键手控：WASD移动、鼠标瞄准、左键两连砍。眩晕、死亡或禁攻会取消尚未完成的砍击。"
+		return "Strike twice with a stone sword; each slash can hit each enemy once.\nWhile the enemy is outside melee range, a 3-second cooldown counts down (it pauses whenever the enemy is in melee range); when ready, the head fires a slightly homing bolt of Wither smoke for 5 damage.\nEvery damaging slash or bolt inflicts Wither I for 3 seconds. If Wither is already active, raise its current level by one and refresh this source to 3 seconds (maximum 255). Existing sources keep their own remaining time.\nControl with C: WASD moves, the mouse aims, left click starts the two-slash combination and right click fires the head bolt. Stun, death or disabled attacks cancel unfinished slashes."
+	return "手持石剑连续砍两下，每刀对同一敌人最多命中一次。\n敌人在近战范围外时冷却3秒（敌人进入近战范围时冷却暂停），就绪后头部射出一团凋零烟雾弹，带小幅追踪，伤害5。\n每次砍击或烟雾弹实际造成伤害后施加3秒凋零；没有凋零时为I级，已有凋零则在当前等级上提升一级，并刷新本来源为3秒（公共上限255级）。其他来源保留自己的剩余时间。\nC键手控：WASD移动、鼠标瞄准、左键两连砍、右键头部烟雾弹。眩晕、死亡或禁攻会取消尚未完成的砍击。"

@@ -66,9 +66,9 @@ func run() -> void:
 	actor.set_process(false)
 	actor.voice.set_physics_process(false)
 	await process_frame
-	check(actor.Max_health == 420 and actor.Damage == 24 and actor.Speed == 88.0,"baseline attributes")
+	check(actor.Max_health == 600 and actor.Damage == 20 and actor.Speed == 88.0,"baseline attributes (2026-09-28: 600 HP, 20 melee)")
 	check(is_equal_approx(actor.blade_length,20.0) and is_equal_approx(actor.blade_radius,2.5) and is_equal_approx(actor.ATTACK_HAND_REACH,5.0),"approved range buff 20 length / 2.5 radius / 5 reach")
-	check(actor.player_control_action_ids() == [&"controlled_attack_action"],"exactly one left mouse action")
+	check(actor.player_control_action_ids() == [&"controlled_attack_action",&"controlled_skill_action"],"left mouse slashes, right mouse head bolt")
 	check(not actor.Has_Collision_Damage and not actor.Can_Skill,"no hidden collision or extra skill")
 	check(actor.FRAMES.get_frame_count(&"attack") == 50,"full raised-arm downcut/upcut original-model clip")
 	check(is_equal_approx(actor.image.scale.x,actor.BODY_SCALE) and is_equal_approx(actor.image.position.y,actor.BODY_OFFSET_Y),"body and image offset use the approved enlargement")
@@ -116,20 +116,20 @@ func run() -> void:
 	await physics_frame
 	await physics_frame
 	actor.advance_combo(0.31)
-	check(victim.health == 9976,"first actual swept slash inflicts exactly 24")
+	check(victim.health == 9980,"first actual swept slash inflicts exactly 20")
 	check(EFFECTS.level_of(victim,"wither") == 1,"first hit adds Wither I")
 	check(friend.health == 10000 and behind.health == 10000,"no friend or rear phantom hit")
 	check(not actor.get_debug_attack_regions().is_empty(),"actual sampled blade geometry exposed")
 	var status:Node = EFFECTS.current(victim,"wither")
 	if status != null: status.set_physics_process(false)
 	actor.advance_combo(0.01)
-	check(victim.health == 9976,"one target at most once within one slash")
+	check(victim.health == 9980,"one target at most once within one slash")
 	# Place at second slash's actual swept hand+blade, never mouse location.
 	geometry = actor.blade_segment(0.49)
 	victim.global_position = geometry.start.lerp(geometry.end,0.55)
 	await physics_frame
 	actor.advance_combo(0.25)
-	check(victim.health == 9952,"second slash inflicts a separate 24")
+	check(victim.health == 9960,"second slash inflicts a separate 20")
 	check(EFFECTS.level_of(victim,"wither") == 2,"two hits from zero produce Wither II")
 	status = EFFECTS.current(victim,"wither")
 	check(status != null and is_equal_approx(status.remaining,3.0),"second hit refreshes duration to 3 seconds")
@@ -164,7 +164,7 @@ func run() -> void:
 	actor.Damage = 48
 	actor.deal_sword_hit(victim,victim.global_position)
 	check(victim.health == 9952,"current attack attribute changes real damage")
-	actor.Damage = 24
+	actor.Damage = 20
 	reset_target(victim)
 	victim.Damage_reduction = 1.0
 	check(not actor.deal_sword_hit(victim,victim.global_position),"zero effective damage does not apply status")
@@ -364,7 +364,7 @@ func run() -> void:
 		check(is_equal_approx(actor._arm.global_transform.basis_xform(pixel_width).length(),1.0),"extension preserves arm thickness instead of scaling whole character")
 		actor.combo_time = 0.0
 		actor.advance_combo(0.74)
-		check(victim.health == 9952,"actual two slashes hit enemy in each of eight directions")
+		check(victim.health == 9960,"actual two slashes hit enemy in each of eight directions")
 		var side:float = 1.0 if actor._face_right else -1.0
 		var previous_angle:float = actor.blade_angle(actor.COMBO_DURATION)
 		var start_angle:float = previous_angle
