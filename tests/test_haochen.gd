@@ -95,10 +95,12 @@ func run() -> void:
 	hero._step_energy(3.0)
 	check(is_equal_approx(hero.charge_energy,60.0) and is_equal_approx(hero.contributions[donor_a.get_instance_id()].energy,60.0),"first donor supplies60 energy over three seconds")
 	check(hero.movement_ratio==hero.minimum_move_ratio and donor_a.health==hp,"charging slows only Haochen down to a positive floor and does not damage donors")
+	check(hero.image.texture==hero.FACE_LAUGH and hero.FACE_LAUGH.resource_path=="res://Images/characters/我的世界/皓宸/皓宸笑.png","charging shows the user's laughing head front")
 	donor_a.global_position = origin+Vector2(500,0)
 	hero._scan_left = 0.0
 	hero._step_energy(1.0)
 	check(is_equal_approx(hero.charge_energy,60.0) and hero.contributions.size()==1 and hero.movement_ratio>hero.minimum_move_ratio,"leaving range retains energy/history while movement gradually recovers")
+	check(hero.image.texture==hero.FACE_NORMAL and hero.FACE_NORMAL.resource_path=="res://Images/characters/我的世界/皓宸/皓宸.png","no nearby enemy returns to the normal head front")
 	hero._step_energy(1.0)
 	check(is_equal_approx(hero.movement_ratio,1.0),"two seconds without a nearby enemy restore ordinary voluntary speed")
 	donor_b.global_position = origin+Vector2(25,0)
@@ -108,6 +110,21 @@ func run() -> void:
 	check(is_instance_valid(request) and hero.charge_phase==hero.Phase.COPYING and is_equal_approx(hero.charge_energy,100.0),"full meter starts one confirmed copy cast")
 	check(request.template_snapshot.scene==donor_a.scene_file_path and is_equal_approx(hero.contributions[donor_b.get_instance_id()].energy,40.0),"60/40 picks the first donor's character, not the last/nearest donor")
 	check(world._battle_spawn_tickets.size()==1,"confirmed delayed copy registers a shared battle-lifecycle request")
+	check(hero.image.texture==hero.FACE_LAUGH,"Haochen keeps laughing while the full meter is being cashed in")
+	check(request.link_visible and request.link_from.distance_to(donor_a.global_position)<0.5 and request.link_to.distance_to(hero.global_position)<0.5,"copy link spans from the copied character to Haochen")
+	donor_a.global_position += Vector2(0,30)
+	request._refresh_link_points()
+	check(request.link_from.distance_to(donor_a.global_position)<0.5,"authority keeps the link attached to the moving copied character")
+	request._emit_link_particles(6,false)
+	var link_particles:Array[Node] = []
+	for raw:Node in get_nodes_in_group("MCHaochenLinkParticle"):
+		if int(raw.get_meta("haochen_copy_request",0))==request.get_instance_id(): link_particles.append(raw)
+	var on_segment:bool = link_particles.size()>=6
+	for p:Node in link_particles:
+		var start:Vector2 = p._start
+		var nearest:Vector2 = Geometry2D.get_closest_point_to_segment(start,request.link_from,request.link_to)
+		on_segment = on_segment and start.distance_to(nearest)<=6.0 and (start+p._motion).distance_to(request.link_to)<=4.5 and p.get_script()==load("res://scripts/effects/我的世界/末影粒子.gd")
+	check(on_segment,"native portal particles spawn between them and flow into Haochen")
 	var cast_serial:int = hero._sound_serial
 	check(not (hero._sound_tickets.get(&"copy_start",{}) as Dictionary).is_empty() and hero.AUDIO.EVENTS[&"copy_start"][0].resource_path=="res://audio/characters/唤魔者/evoker.prepare_summon_1.ogg","confirmed copy cast plays the original Evoker prepare-summon clip")
 	hero._step_energy(0.2)
@@ -125,6 +142,7 @@ func run() -> void:
 	check(copy.Master==hero and copy.Team==hero.Team and copy.get_meta("battle_lifecycle_identity").root==hero.get_meta("battle_lifecycle_identity").root,"copy belongs to Haochen's actual owner/team/lifecycle family")
 	check(bool(copy.character_copy_profile.monochrome) and copy.image.get_instance_shader_parameter("character_grayscale")==1.0,"copy opts into true shader grayscale instead of a gray color multiplier")
 	check(hero.charge_energy==0.0 and hero.contributions.is_empty() and hero.completed_copies==1 and world._battle_spawn_tickets.is_empty(),"successful copy resets only this cycle and releases the spawn ticket")
+	check(hero.image.texture==hero.FACE_NORMAL,"face returns to normal after the copy completes")
 	check(get_nodes_in_group("MCHaochenCopyParticle").size()>0,"real copy process emits existing Minecraft particle instances")
 	for i:int in range(3):
 		hero._scan_left = 0.0

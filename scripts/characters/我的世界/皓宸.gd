@@ -5,6 +5,9 @@ const COPY_REQUEST = preload("res://scenes/effects/我的世界/角色复制请�
 const COPY_TOOLS = preload("res://scripts/characters/投稿角色工具.gd")
 const CLASSIFY = preload("res://classes/combat_classification.gd")
 const AUDIO = preload("res://scripts/characters/我的世界/haochen/audio.gd")
+# User-provided Minecraft skins: exact head front + hat layer, 16x nearest (no new pixels).
+const FACE_NORMAL:Texture2D = preload("res://Images/characters/我的世界/皓宸/皓宸.png")
+const FACE_LAUGH:Texture2D = preload("res://Images/characters/我的世界/皓宸/皓宸笑.png")
 enum Phase { RESTING, CHARGING, COPYING }
 @export_category("皓宸 / 可调基础参数")
 @export var energy_capacity:float = 100.0
@@ -24,6 +27,7 @@ enum Phase { RESTING, CHARGING, COPYING }
 @export var charge_phase:int = Phase.RESTING:
 	set(value):
 		charge_phase = value
+		_refresh_face()
 		queue_redraw()
 @export var leader_label:String = ""
 @export var completed_copies:int = 0
@@ -56,7 +60,18 @@ func _ready() -> void:
 	super._ready()
 	_fx_rng.seed = Game.battle_rng_seed_or("haochen_visual:"+str(name),int(get_instance_id()))
 	_previous_audio_position = global_position
+	_refresh_face()
 	queue_redraw()
+
+## Laughs for the whole time the meter is being built or cashed in. Driven by the
+## replicated charge_phase, so every peer shows the same face without extra RPCs.
+func is_laughing() -> bool:
+	return not _source_dead and health>0 and charge_phase in [Phase.CHARGING,Phase.COPYING]
+
+func _refresh_face() -> void:
+	if not is_node_ready() or not is_instance_valid(image) or not image is Sprite2D: return
+	var face:Texture2D = FACE_LAUGH if is_laughing() else FACE_NORMAL
+	if (image as Sprite2D).texture != face: (image as Sprite2D).texture = face
 
 func _process(_delta:float) -> void:
 	queue_redraw()
@@ -160,6 +175,12 @@ func _begin_copy() -> void:
 	request.remaining = request.cast_duration
 	request.visual_seed = _fx_rng.randi()
 	request.owner_ref = weakref(self)
+	# The copied character is linked to Haochen by a native particle stream.
+	var source:ball = (winner.get("source") as WeakRef).get_ref() as ball if winner.get("source") is WeakRef else null
+	request.source_ref = weakref(source) if is_instance_valid(source) else null
+	request.link_visible = is_instance_valid(source)
+	request.link_from = source.global_position if is_instance_valid(source) else global_position
+	request.link_to = global_position
 	request.set_multiplayer_authority(get_multiplayer_authority())
 	var point:Vector2 = COPY_TOOLS.safe_spawn_position(self,global_position+Vector2.RIGHT.rotated(_fx_rng.randf_range(0.0,TAU))*28.0,24.0)
 	request.position = (get_parent() as Node2D).to_local(point) if get_parent() is Node2D else point
@@ -242,6 +263,7 @@ func Die() -> void:
 	# A confirmed COPY_REQUEST owns its own lifecycle ticket and may finish;
 	# unconfirmed energy alone cannot keep a dead character alive.
 	super.Die()
+	_refresh_face()
 	if not Dead_Audio.is_empty(): Audios.play_sfx(Dead_Audio,{},true)
 	queue_redraw()
 

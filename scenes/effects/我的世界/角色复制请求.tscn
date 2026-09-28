@@ -33,6 +33,15 @@ properties/8/replication_mode = 2
 properties/9/path = NodePath(".:stat_factor")
 properties/9/spawn = true
 properties/9/replication_mode = 2
+properties/10/path = NodePath(".:link_from")
+properties/10/spawn = true
+properties/10/replication_mode = 1
+properties/11/path = NodePath(".:link_to")
+properties/11/spawn = true
+properties/11/replication_mode = 1
+properties/12/path = NodePath(".:link_visible")
+properties/12/spawn = true
+properties/12/replication_mode = 2
 
 [node name="MCCharacterCopyRequest" type="Node2D"]
 script = ExtResource("1")

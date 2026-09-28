@@ -82,6 +82,13 @@ func run() -> void:
 	check(await until(func():return guest_root.has_node(str(request.name))),"confirmed copy cast has a real replicated request node")
 	var mirrored:Node=guest_root.get_node(str(request.name))
 	check(mirrored.template_snapshot.scene==donor.scene_file_path and mirrored.owner_name==str(host.name),"copy identity and owner are data snapshots, not client-side enemy selection")
+	check(await until(func():return mirrored.link_visible and mirrored.link_from.distance_to(donor.global_position)<1.0 and mirrored.link_to.distance_to(host.global_position)<1.0),"guest receives the authoritative source-to-Haochen link points")
+	check(await until(func():return guest.image.texture==guest.FACE_LAUGH and host.image.texture==host.FACE_LAUGH),"both peers show the laughing face during the cast")
+	mirrored._emit_link_particles(4,false)
+	var guest_link:int = 0
+	for raw:Node in get_nodes_in_group("MCHaochenLinkParticle"):
+		if int(raw.get_meta("haochen_copy_request",0))==mirrored.get_instance_id(): guest_link += 1
+	check(guest_link>=4,"guest draws its own local link particles from replicated points")
 	request._physics_process(host.copy_duration)
 	check(await until(func():return copies(host_root).size()==1 and copies(guest_root).size()==1),"one authoritative cast creates exactly one original-scene copy per peer")
 	var a:Node=copies(host_root)[0];var b:Node=copies(guest_root)[0];frozen(a);frozen(b)

@@ -1,8 +1,12 @@
 {
   "character": "皓宸 / Haochen",
-  "temporary_appearance": {
-    "path": "res://Images/characters/我的世界/唤魔者/唤魔者.png",
-    "provenance": "Existing project Minecraft Evoker portrait, reused without modification as user-authorized temporary art. Not an original Haochen skin."
+  "appearance": {
+    "normal": "res://Images/characters/我的世界/皓宸/皓宸.png",
+    "laughing": "res://Images/characters/我的世界/皓宸/皓宸笑.png",
+    "source_skins": ["Images/characters/我的世界/皓宸/skins/雷古勒斯.png", "Images/characters/我的世界/皓宸/skins/雷古勒斯笑.png"],
+    "provenance": "2026-09-28: two 64x64 Minecraft skins supplied by the user (雷古勒斯 / 雷古勒斯笑). Only the complete head front is used: base face (8,8)-(16,16) alpha-composited with the hat layer (40,8)-(48,16), then an exact 16x nearest-neighbour upscale to 128x128 (no new/redrawn pixels). Laughing face is shown while charging/copying. Source skins kept unchanged in skins/ (.gdignore, not imported).",
+    "license": "User-provided project asset; no claim of free redistribution.",
+    "replaces": "Temporary Minecraft Evoker portrait (no longer referenced by Haochen)."
   },
   "charge_start": {
     "path": "res://audio/characters/我的世界/haochen/charge_start.wav",
@@ -24,9 +28,21 @@
   "minecraft_rights": "Minecraft assets belong to Mojang/Microsoft; not represented as freely redistributable.",
   "minecraft_eula": "https://www.minecraft.net/en-us/eula",
   "verified_files": {
-    "Images/characters/我的世界/唤魔者/唤魔者.png": {
-      "size": 14642,
-      "sha256": "aeffa645b50e50fe46c523db70828fadfcf5da94d8569e00906324eec022459e"
+    "Images/characters/我的世界/皓宸/皓宸.png": {
+      "size": 583,
+      "sha256": "da366bc6b06756b5110fbc5f9dda9fd679a02ad326818e92ee4e1365cc62d019"
+    },
+    "Images/characters/我的世界/皓宸/皓宸笑.png": {
+      "size": 587,
+      "sha256": "4bfeab8020eb6d1a14c3f08f78796331131418294f94851771cc23f903a49497"
+    },
+    "Images/characters/我的世界/皓宸/skins/雷古勒斯.png": {
+      "size": 4254,
+      "sha256": "30a49b1f0fd76df68a81c52078dc4c8608cb2af9f1a96f71fbabe0214e2dd52c"
+    },
+    "Images/characters/我的世界/皓宸/skins/雷古勒斯笑.png": {
+      "size": 5652,
+      "sha256": "42fad2fb8677a493b85239f99580dc87e9000cc185bc96e1d1ec058f49957649"
     },
     "audio/characters/我的世界/haochen/charge_start.wav": {
       "size": 450604,
