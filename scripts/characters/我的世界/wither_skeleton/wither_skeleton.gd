@@ -9,6 +9,9 @@ extends "res://scripts/characters/我的世界/new5/base.gd"
 ## The cooldown is frozen whenever the enemy is inside melee range (or there is no enemy).
 const SWEEP = preload("res://classes/weapon_tip_sweep.gd")
 const BOLT = preload("res://scripts/characters/我的世界/wither_skeleton/wither_bolt.gd")
+# Vanilla Wither shoot (entity.wither.shoot, Java 1.21.11 OGG already verified in wither/SOURCE_MANIFEST.json).
+const BOLT_SHOOT_SOUND:AudioStream = preload("res://audio/characters/我的世界/wither/shoot.ogg")
+const BOLT_SHOOT_GAIN_DB:float = -6.0 # Smaller mob than the Wither boss.
 const EFFECTS = preload("res://scripts/effects/我的世界/mc_status_effects.gd")
 const FRAMES:SpriteFrames = preload("res://Images/characters/我的世界/wither_skeleton/frames.tres")
 const ATTACK_PARTS:SpriteFrames = preload("res://Images/characters/我的世界/wither_skeleton/attack_parts.tres")
@@ -24,21 +27,25 @@ const COMBO_DURATION:float = 0.74
 const BAKED_CLIP_END:float = 0.98 # Original projection timestamps; do not retime either damaging slash.
 const RECOVER_END:float = 1.18 # 0.44s visual recovery, still inside the existing 1.2s attack interval.
 const ATTACK_MOVE_MULTIPLIER:float = 0.3
-const ATTACK_HAND_REACH:float = 5.0 # Extra world-space reach, shared by the arm, grip and actual sword sweep.
-const BODY_ENLARGEMENT:float = 20.0/14.0 # Match the previous sword enlargement ONCE; the sword stays at 20.
-const BODY_SCALE:float = 0.85*BODY_ENLARGEMENT # Scene body, shoulder/hand anchors and colliders share this ratio.
-const BODY_OFFSET_Y:float = -13.5*BODY_ENLARGEMENT # Feet pixel 202 lands on the enlarged collider bottom (+90).
+const SIZE_SCALE:float = 0.9 # 2026-09-28: whole character (body, colliders, sword, reach, melee range) x0.9.
+const ATTACK_HAND_REACH:float = 5.0*SIZE_SCALE # Extra world-space reach, shared by the arm, grip and actual sword sweep.
+const BODY_ENLARGEMENT:float = 20.0/14.0 # Match the previous sword enlargement ONCE (historical ratio).
+const BODY_SCALE:float = 0.85*BODY_ENLARGEMENT*SIZE_SCALE # Scene body, shoulder/hand anchors and colliders share this ratio.
+const BODY_OFFSET_Y:float = -13.5*BODY_ENLARGEMENT*SIZE_SCALE # Feet pixel 202 lands on the collider bottom (+81).
 const BASE_ATTACK_DAMAGE:float = 20.0 # Scene Damage; bolt damage scales with live Damage buffs.
 const BOLT_DAMAGE:float = 5.0
 const BOLT_COOLDOWN:float = 3.0 # Medium; only counts down while the enemy is outside melee range.
-const BOLT_SPEED:float = 200.0
+const BOLT_SPEED:float = 120.0 # Cruise speed after the arc.
+const BOLT_LAUNCH_SPEED:float = 100.0 # Initial pop backward-and-up.
+const BOLT_LAUNCH_ANGLE:float = deg_to_rad(40.0) # Off straight-back, toward the screen-up side.
+const BOLT_PULL:float = 240.0 # Constant pull along the aim: the path is a parabola until cruise.
 const BOLT_TURN_RATE:float = 1.4 # rad/s: slight homing, easy to sidestep at range.
-const BOLT_LIFE:float = 3.0
+const BOLT_LIFE:float = 4.0
 const BOLT_MUZZLE_PIXEL:Vector2 = Vector2(80.0,86.0) # Face centre in the 160x224 original frame.
 const BOLT_AIM_ASSIST:float = 160.0 # Manual: home on the enemy nearest the cursor within this radius.
-@export var blade_length:float = 20.0
-@export var blade_radius:float = 2.5
-@export var acquisition_range:float = 58.0
+@export var blade_length:float = 20.0*SIZE_SCALE
+@export var blade_radius:float = 2.5*SIZE_SCALE
+@export var acquisition_range:float = 58.0*SIZE_SCALE
 var combo_time:float = -1.0
 var combo_heading:Vector2 = Vector2.RIGHT
 var cooldown_left:float = 0.0
@@ -86,6 +93,7 @@ func _ready() -> void:
 	voice.events["swing"] = AUDIO.EVENTS["entity.player.attack.sweep"]
 	voice.events["hit"] = AUDIO.EVENTS["entity.player.hurt"]
 	voice.events["crit"] = AUDIO.EVENTS["entity.player.attack.crit"]
+	voice.events["shoot"] = [{"stream":BOLT_SHOOT_SOUND,"pitch":0.9},{"stream":BOLT_SHOOT_SOUND,"pitch":1.0},{"stream":BOLT_SHOOT_SOUND,"pitch":1.1}]
 	add_child(voice)
 	_sword = Sprite2D.new()
 	_sword.name = "StoneSword"
@@ -220,6 +228,7 @@ func fire_bolt(aim:Vector2,homing:ball) -> Node2D:
 	_bolt_serial += 1
 	var origin:Vector2 = bolt_muzzle_position()
 	var bolt:Node2D = _spawn_bolt(_bolt_serial,origin,aim.normalized(),homing,false)
+	voice.request("shoot",origin,BOLT_SHOOT_GAIN_DB)
 	if multiplayer.has_multiplayer_peer():
 		var path:NodePath = get_tree().current_scene.get_path_to(homing) if is_instance_valid(homing) else NodePath()
 		_spawn_bolt_visual.rpc(_bolt_serial,origin,aim.normalized(),path)
@@ -228,7 +237,7 @@ func fire_bolt(aim:Vector2,homing:ball) -> Node2D:
 func _spawn_bolt(id:int,origin:Vector2,heading:Vector2,homing:Node,only_visual:bool) -> Node2D:
 	var bolt:Node2D = BOLT.new()
 	bolt.name = "WitherSkeletonBolt_%d" % id
-	bolt.call("configure",self,heading,homing,BOLT_SPEED,BOLT_TURN_RATE,BOLT_LIFE,id,only_visual)
+	bolt.call("configure",self,heading,homing,BOLT_SPEED,BOLT_TURN_RATE,BOLT_LIFE,id,only_visual,BOLT_LAUNCH_SPEED,BOLT_LAUNCH_ANGLE,BOLT_PULL)
 	get_tree().current_scene.add_child(bolt,true)
 	bolt.global_position = origin
 	return bolt

@@ -1,6 +1,7 @@
 extends SceneTree
 ## 凋灵骷髅头部烟雾弹（2026-09-28）：600 血/20 近战；敌人在近战范围外才冷却（3 秒）；
 ## 弹体=凋灵头颅拖尾粒子的聚合团并留同款拖尾；小幅追踪；命中 5 伤 + 叠加凋零。
+## 修订（同日）：弹团持续旋转；先向后上方弹出再被拉回的抛物线，巡航 120；发射音效；人物整体 0.9 倍。
 var EFFECTS:Script
 var BOLT:Script
 var checks:int = 0
@@ -120,17 +121,24 @@ func run() -> void:
 	check(actor.bolts_fired == 0 and is_equal_approx(actor.bolt_cooldown_left,1.0),"not yet ready")
 	actor.step_mob(1.0)
 	check(actor.bolts_fired == 1 and is_equal_approx(actor.bolt_cooldown_left,3.0),"fires when ready and restarts the cooldown")
+	check(int(actor.voice.played.get("shoot",0)) == 1,"firing plays the shoot sound once")
+	var shoot_ok:bool = true
+	for record:Dictionary in actor.voice.events.get("shoot",[]):
+		shoot_ok = shoot_ok and (record.stream as AudioStream).resource_path == "res://audio/characters/我的世界/wither/shoot.ogg"
+	check(shoot_ok and actor.voice.events.get("shoot",[]).size() == 3,"shoot sound is the vanilla Wither shoot OGG (3 pitch variants)")
 	var list:Array[Node] = bolts()
 	check(list.size() == 1,"exactly one bolt in flight")
 	var bolt:Node2D = list[0] if list.size() > 0 else null
 	var muzzle:Vector2 = actor.bolt_muzzle_position()
 	check(bolt != null and bolt.global_position.distance_to(muzzle) < 0.01,"bolt starts at the head muzzle")
+	var fire_aim:Vector2 = bolt.aim
+	check(bolt.velocity.dot(fire_aim) < 0.0 and bolt.velocity.y < 0.0 and is_equal_approx(bolt.velocity.length(),100.0),"bolt pops out backward-and-up at 100 (" + str(bolt.velocity) + ")")
 	var muzzle_pixel:Vector2 = actor.image.global_transform.affine_inverse()*muzzle-actor.image.offset+Vector2(80.0,112.0)
 	check(muzzle_pixel.y > 56.0 and muzzle_pixel.y < 100.0 and absf(muzzle_pixel.x-80.0) < 1.0,"muzzle lies on the head of the original sprite (pixel " + str(muzzle_pixel) + ")")
 	# 弹体 = 同款拖尾粒子聚合团
 	var sprites:int = 0
 	var same_look:bool = true
-	for child:Node in bolt.get_children():
+	for child:Node in bolt._body_root.get_children():
 		if child is Sprite2D:
 			sprites += 1
 			same_look = same_look and child.texture == BOLT.SMOKE and child.self_modulate.is_equal_approx(BOLT.TINT)
@@ -140,7 +148,7 @@ func run() -> void:
 	var trail_seen:int = 0
 	var shot_taken:bool = false
 	var hit_frames:int = -1
-	for f:int in range(150):
+	for f:int in range(360):
 		await physics_frame
 		if not is_instance_valid(bolt) or bolt.finished:
 			hit_frames = f
@@ -175,44 +183,58 @@ func run() -> void:
 	actor.Damage = 20
 	actor.step_mob(0.01)
 	check(actor.bolts_fired == 2,"second bolt fired")
-	for f:int in range(150):
+	for f:int in range(360):
 		await physics_frame
 		if bolts().is_empty(): break
 	check(target.health == 9990 and EFFECTS.level_of(target,"wither") == 2,"second bolt: 5 more damage and Wither stacks to II")
 	target.free()
 	EFFECTS.clear(actor,"wither")
 
+	# --- 抛物线：无目标弹体 = 恒定拉力，二阶差分恒定；先后退再向前；巡航 120 ---
+	var free_bolt:Node2D = actor.fire_bolt(Vector2.RIGHT,null)
+	var origin:Vector2 = free_bolt.global_position
+	var track:Array[Vector2] = [origin]
+	var cruise_frame:int = -1
+	for f:int in range(90):
+		await physics_frame
+		if not is_instance_valid(free_bolt) or free_bolt.finished: break
+		track.append(free_bolt.global_position)
+		if cruise_frame < 0 and free_bolt.cruising: cruise_frame = f
+	var dt:float = 1.0/float(Engine.physics_ticks_per_second)
+	var min_along:float = INF
+	for point:Vector2 in track: min_along = minf(min_along,(point-origin).x)
+	var expected_back:float = pow(100.0*cos(deg_to_rad(40.0)),2.0)/(2.0*240.0)
+	print("WS_BOLT_METRIC arc back=",-min_along," expected~",expected_back," cruise_frame=",cruise_frame," first_steps=",track.slice(0,4))
+	check((track[1]-origin).x < 0.0 and (track[1]-origin).y < 0.0,"first motion is backward and up")
+	check(absf(-min_along-expected_back) < 2.5,"backs off about " + str(snappedf(expected_back,0.1)) + " before swinging forward (" + str(snappedf(-min_along,0.1)) + ")")
+	var parabola_ok:bool = true
+	var arc_end:int = mini(cruise_frame,track.size()-2) if cruise_frame > 2 else 0
+	for i:int in range(1,arc_end):
+		var accel:Vector2 = (track[i+1]-2.0*track[i]+track[i-1])/(dt*dt)
+		parabola_ok = parabola_ok and accel.distance_to(Vector2(240.0,0.0)) < 1.0
+	check(arc_end > 20 and parabola_ok,"arc is a true parabola: constant pull along the aim until cruise")
+	check(is_instance_valid(free_bolt) and free_bolt.cruising and is_equal_approx(free_bolt.velocity.length(),120.0) and free_bolt.velocity.x > 0.0,"then cruises forward at 120")
+	check(track[track.size()-1].x > origin.x+40.0,"ends up well in front of the head")
+	# 持续旋转
+	var r0:float = free_bolt._body_root.rotation
+	await physics_frame
+	await process_frame
+	await process_frame
+	check(not is_equal_approx(free_bolt._body_root.rotation,r0),"particle cluster spins continuously")
+	clear_bolts()
+
 	# --- 小幅追踪 ---
 	var mover:Node2D = make_target("Mover",actor.global_position+Vector2(300,0),true)
 	await physics_frame
 	var homing:Node2D = actor.fire_bolt(Vector2.RIGHT.rotated(deg_to_rad(-25.0)),mover)
-	var h0:Vector2 = homing.heading
-	homing.steer(0.1)
-	var turned:float = absf(h0.angle_to(homing.heading))
+	var h0:Vector2 = Vector2.RIGHT.rotated(deg_to_rad(-25.0))
+	var turned:float = absf(h0.angle_to(homing.turn_toward_target(h0,0.1)))
 	check(turned > 0.0 and turned <= actor.BOLT_TURN_RATE*0.1+0.0001,"homing turns toward target at most 1.4 rad/s (" + str(turned) + " rad in 0.1 s)")
-	homing.heading = h0
 	var start_health:float = mover.health
-	for f:int in range(150):
+	for f:int in range(360):
 		await physics_frame
 		if not is_instance_valid(homing) or homing.finished: break
 	check(mover.health == start_health-5.0,"slight homing corrects a 25 degree miss onto a target 300 px away")
-	# 追踪幅度小：近距离 90° 侧向目标追不上
-	actor.bolt_cooldown_left = 0.0
-	mover.global_position = actor.bolt_muzzle_position()+Vector2(0,60)
-	await physics_frame
-	EFFECTS.clear(mover,"wither") # 上一发的凋零持续伤害不能算作这一发命中
-	var wide:Node2D = actor.fire_bolt(Vector2.RIGHT,mover)
-	var before_wide:float = mover.health
-	var min_gap:float = INF
-	var wide_end:String = "life"
-	for f:int in range(200):
-		await physics_frame
-		if not is_instance_valid(wide) or wide.finished:
-			wide_end = "finished f=" + str(f)
-			break
-		min_gap = minf(min_gap,wide.global_position.distance_to(mover.global_position))
-	print("WS_BOLT_METRIC wide start_gap=60 min_gap=",min_gap," end=",wide_end," health_delta=",before_wide-mover.health)
-	check(mover.health == before_wide and min_gap > 55.0,"homing is only slight: a close target 90 degrees off is not caught")
 	clear_bolts()
 
 	# --- 暂停：弹体不动 ---
@@ -220,8 +242,10 @@ func run() -> void:
 	await physics_frame
 	var paused_at:Vector2 = paused_bolt.global_position
 	root.get_node("Game").now_stop_state = true
+	var paused_spin:float = paused_bolt._body_root.rotation
 	for f:int in range(10): await physics_frame
 	check(paused_bolt.global_position.is_equal_approx(paused_at),"bolt freezes while the battle is paused")
+	check(is_equal_approx(paused_bolt._body_root.rotation,paused_spin),"spin also freezes while paused")
 	root.get_node("Game").now_stop_state = false
 	clear_bolts()
 

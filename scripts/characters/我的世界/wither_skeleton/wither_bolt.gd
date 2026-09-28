@@ -1,6 +1,9 @@
 extends Node2D
 ## 凋灵骷髅头部远程弹：弹体本身就是凋灵头颅拖尾烟雾粒子（原版 big_smoke_0，同色同宽）的聚合团，
-## 飞行时按与凋灵头颅相同的距离采样留下同款拖尾。小幅追踪：每秒最多转 TURN_RATE 弧度。
+## 飞行时按与凋灵头颅相同的距离采样留下同款拖尾。弹团整体持续旋转。
+## 轨迹（2026-09-28）：先向后上方弹出（背离瞄准方向、偏向屏幕上方一侧），被朝瞄准方向的恒定
+## 拉力拉回形成抛物线，前向速度达到巡航速度后直线巡航。小幅追踪：瞄准方向/巡航方向每秒最多转
+## TURN_RATE 弧度朝目标当前位置。
 ## 伤害/凋零由发射者 deal_bolt_hit 结算（权威端）；联机客户端生成纯视觉副本，按同一运动学前进，
 ## 由权威端 end 同步收尾。拖尾复用已提交的原版粒子节点（末影粒子.gd）运动/淡出/清理。
 const PARTICLE = preload("res://scripts/effects/我的世界/末影粒子.gd")
@@ -16,14 +19,21 @@ const TRAIL_GROUP:StringName = &"MCWitherSkeletonBoltTrail"
 const TRAIL_CAP:int = 256
 const BODY_RADIUS:float = 6.0 # 弹团视觉半径（=凋灵头颅直径 12 的一半）
 const HIT_RADIUS:float = 5.0
+const SPIN_SPEED:float = TAU*1.25 # 弹团整体持续旋转（每秒 1.25 圈），暂停时冻结
 # 聚合团：中心 1 粒 + 内环 3 粒 + 外环 5 粒，都是拖尾同款粒子。
 const BODY_LAYOUT:Array = [[0.0,0.0,1.0],[2.6,0.0,0.9],[2.6,2.094,0.9],[2.6,4.189,0.9],
 	[4.6,0.63,0.75],[4.6,1.89,0.75],[4.6,3.14,0.75],[4.6,4.4,0.75],[4.6,5.65,0.75]]
 
 var source_ref:WeakRef
 var target_ref:WeakRef
-var heading:Vector2 = Vector2.RIGHT
-var speed:float = 200.0
+var heading:Vector2 = Vector2.RIGHT # 当前运动方向
+var aim:Vector2 = Vector2.RIGHT # 拉力方向（发射时朝目标，之后小幅追踪）
+var velocity:Vector2 = Vector2.ZERO
+var cruising:bool = false
+var launch_speed:float = 100.0
+var launch_angle:float = deg_to_rad(40.0)
+var pull:float = 240.0
+var speed:float = 120.0
 var turn_rate:float = 1.4
 var life:float = 3.0
 var serial:int = 0
@@ -33,28 +43,47 @@ var traveled:float = 0.0
 var _trail_carry:float = 0.0
 var _spin:float = 0.0
 var _body:Array[Sprite2D] = []
+var _body_root:Node2D
 
-func configure(source:Node,direction:Vector2,target:Node,bolt_speed:float,bolt_turn:float,bolt_life:float,id:int,only_visual:bool) -> void:
+func configure(source:Node,direction:Vector2,target:Node,bolt_speed:float,bolt_turn:float,bolt_life:float,id:int,only_visual:bool,
+		bolt_launch_speed:float = 100.0,bolt_launch_angle:float = deg_to_rad(40.0),bolt_pull:float = 240.0) -> void:
 	source_ref = weakref(source)
 	target_ref = weakref(target) if is_instance_valid(target) else null
-	heading = direction.normalized() if not direction.is_zero_approx() else Vector2.RIGHT
+	aim = direction.normalized() if not direction.is_zero_approx() else Vector2.RIGHT
 	speed = bolt_speed
+	launch_speed = bolt_launch_speed
+	launch_angle = bolt_launch_angle
+	pull = bolt_pull
+	velocity = launch_velocity(aim,launch_speed,launch_angle)
+	heading = velocity.normalized()
+	cruising = false
 	turn_rate = bolt_turn
 	life = bolt_life
 	serial = id
 	visual_only = only_visual
 	if not visual_only: add_to_group("AI_Hazard")
 
+## 向后上方：背离瞄准方向 launch_angle，偏向屏幕上方的那一侧（竖直发射时偏向右侧）。
+## 纯函数，权威端与客户端视觉副本得到同一初速度。
+static func launch_velocity(direction:Vector2,magnitude:float,angle:float) -> Vector2:
+	var forward:Vector2 = direction.normalized()
+	var side:Vector2 = forward.orthogonal()
+	if side.y > 0.0001 or (absf(side.y) <= 0.0001 and side.x < 0.0): side = -side
+	return (-forward*cos(angle)+side*sin(angle))*magnitude
+
 func _ready() -> void:
 	z_index = 8
 	add_to_group("BattleTransient")
 	add_to_group("MCWitherSkeletonBolt")
+	_body_root = Node2D.new()
+	_body_root.name = "SpinningCluster"
+	add_child(_body_root)
 	for i:int in range(BODY_LAYOUT.size()):
 		var sprite := Sprite2D.new()
 		sprite.texture = SMOKE
 		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		sprite.self_modulate = TINT
-		add_child(sprite)
+		_body_root.add_child(sprite)
 		_body.append(sprite)
 	_layout_body()
 
@@ -67,14 +96,26 @@ func current_target() -> ball:
 	if not is_instance_valid(node) or not node is ball or node.health <= 0: return null
 	return node
 
-## 小幅追踪：朝目标当前位置转向，但每秒最多 turn_rate 弧度；目标消失后直飞。
-func steer(delta:float) -> void:
+## 小幅追踪：把方向朝目标当前位置转，但每秒最多 turn_rate 弧度；目标消失后保持。
+func turn_toward_target(direction:Vector2,delta:float) -> Vector2:
 	var target:ball = current_target()
-	if target == null: return
+	if target == null: return direction
 	var wanted:Vector2 = global_position.direction_to(target.global_position)
-	if wanted.is_zero_approx(): return
-	var angle:float = heading.angle_to(wanted)
-	heading = heading.rotated(clampf(angle,-turn_rate*delta,turn_rate*delta)).normalized()
+	if wanted.is_zero_approx(): return direction
+	var angle:float = direction.angle_to(wanted)
+	return direction.rotated(clampf(angle,-turn_rate*delta,turn_rate*delta)).normalized()
+
+## 推进一步：抛物线阶段 = 恒定拉力积分；前向速度达到巡航速度后改为匀速巡航。
+func advance_velocity(delta:float) -> void:
+	aim = turn_toward_target(aim,delta)
+	if not cruising:
+		velocity += aim*pull*delta
+		if velocity.dot(aim) > 0.0 and velocity.length() >= speed:
+			velocity = velocity.normalized()*speed
+			cruising = true
+	else:
+		velocity = turn_toward_target(velocity.normalized(),delta)*speed
+	if not velocity.is_zero_approx(): heading = velocity.normalized()
 
 func _physics_process(delta:float) -> void:
 	if finished or delta <= 0.0: return
@@ -88,9 +129,9 @@ func _physics_process(delta:float) -> void:
 		if not visual_only: source.call("_finish_bolt",self,global_position,false)
 		dissipate(global_position)
 		return
-	steer(delta)
+	advance_velocity(delta)
 	var start:Vector2 = global_position
-	var end:Vector2 = start+heading*speed*delta
+	var end:Vector2 = start+velocity*delta
 	if not visual_only:
 		var hit:Dictionary = _trace(source,start,end)
 		if not hit.is_empty():
@@ -123,15 +164,17 @@ func _trace(source:ball,start:Vector2,end:Vector2) -> Dictionary:
 func _process(delta:float) -> void:
 	if finished: return
 	var source:ball = _source()
-	if source != null and source.is_combat_runtime_active(): _spin += delta*5.0
+	if source != null and source.is_combat_runtime_active():
+		_spin += delta
+		_body_root.rotation = fposmod(_spin*SPIN_SPEED,TAU)
 	_layout_body()
 
 func _layout_body() -> void:
-	# 粒子团缓慢旋转、轻微呼吸，读作“一团拖尾粒子”而不是实心贴图。
+	# 整团由 _body_root 持续旋转；各粒子再轻微呼吸，读作“一团拖尾粒子”而不是实心贴图。
 	for i:int in range(_body.size()):
 		var spec:Array = BODY_LAYOUT[i]
-		var radius:float = float(spec[0])*(1.0+0.12*sin(_spin*1.7+float(i)))
-		var angle:float = float(spec[1])+_spin*(1.0 if i < 4 else -0.7)
+		var radius:float = float(spec[0])*(1.0+0.12*sin(_spin*8.5+float(i)))
+		var angle:float = float(spec[1])
 		var width:float = TRAIL_WIDTH*float(spec[2])
 		_body[i].position = Vector2.RIGHT.rotated(angle)*radius
 		_body[i].scale = Vector2.ONE*(width/float(SMOKE.get_width()))
@@ -170,12 +213,12 @@ func dissipate(point:Vector2) -> void:
 	remove_from_group("AI_Hazard")
 	for i:int in range(BODY_LAYOUT.size()):
 		var spec:Array = BODY_LAYOUT[i]
-		var offset:Vector2 = Vector2.RIGHT.rotated(float(spec[1])+_spin)*maxf(float(spec[0]),1.0)
+		var offset:Vector2 = Vector2.RIGHT.rotated(float(spec[1])+(_body_root.rotation if is_instance_valid(_body_root) else 0.0))*maxf(float(spec[0]),1.0)
 		spawn_smoke(self,point+offset,offset.normalized()*10.0,TRAIL_LIFETIME*0.7,TRAIL_WIDTH*float(spec[2]))
 	queue_free()
 
 func get_ai_hazard_info(_receiver:ball = null) -> Dictionary:
 	var source:ball = _source()
 	if finished or visual_only or source == null: return {}
-	return {"shape":"circle","position":global_position,"velocity":heading*speed,"radius":HIT_RADIUS,
+	return {"shape":"circle","position":global_position,"velocity":velocity,"radius":HIT_RADIUS,
 		"damage":source.call("bolt_damage"),"source":source,"danger_duration":0.1,"kind":"wither_skeleton_bolt"}

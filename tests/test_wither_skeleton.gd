@@ -67,16 +67,16 @@ func run() -> void:
 	actor.voice.set_physics_process(false)
 	await process_frame
 	check(actor.Max_health == 600 and actor.Damage == 20 and actor.Speed == 88.0,"baseline attributes (2026-09-28: 600 HP, 20 melee)")
-	check(is_equal_approx(actor.blade_length,20.0) and is_equal_approx(actor.blade_radius,2.5) and is_equal_approx(actor.ATTACK_HAND_REACH,5.0),"approved range buff 20 length / 2.5 radius / 5 reach")
+	check(is_equal_approx(actor.blade_length,18.0) and is_equal_approx(actor.blade_radius,2.25) and is_equal_approx(actor.ATTACK_HAND_REACH,4.5) and is_equal_approx(actor.acquisition_range,52.2),"whole character x0.9: 18 length / 2.25 radius / 4.5 reach / 52.2 melee range")
 	check(actor.player_control_action_ids() == [&"controlled_attack_action",&"controlled_skill_action"],"left mouse slashes, right mouse head bolt")
 	check(not actor.Has_Collision_Damage and not actor.Can_Skill,"no hidden collision or extra skill")
 	check(actor.FRAMES.get_frame_count(&"attack") == 50,"full raised-arm downcut/upcut original-model clip")
 	check(is_equal_approx(actor.image.scale.x,actor.BODY_SCALE) and is_equal_approx(actor.image.position.y,actor.BODY_OFFSET_Y),"body and image offset use the approved enlargement")
 	var body_shape:RectangleShape2D = actor.get_node("CollisionShape2D").shape
-	check(body_shape.size.is_equal_approx(Vector2(40,126)*actor.BODY_ENLARGEMENT),"body collider matches enlarged visual")
+	check(body_shape.size.is_equal_approx(Vector2(40,126)*actor.BODY_ENLARGEMENT*actor.SIZE_SCALE),"body collider matches the x0.9 visual")
 	var hurt_shape:RectangleShape2D = actor.get_node("hurtbox/CollisionShape2D").shape
-	check(hurt_shape.size.is_equal_approx(Vector2(38,122)*actor.BODY_ENLARGEMENT),"hurt shape enlarged by the same ratio")
-	check(is_equal_approx(actor.BODY_ENLARGEMENT,20.0/14.0) and is_equal_approx(actor.image.global_scale.x,0.17*20.0/14.0),"body matches sword's previous 20/14 enlargement exactly once")
+	check(hurt_shape.size.is_equal_approx(Vector2(38,122)*actor.BODY_ENLARGEMENT*actor.SIZE_SCALE),"hurt shape scaled by the same ratio")
+	check(is_equal_approx(actor.SIZE_SCALE,0.9) and is_equal_approx(actor.image.global_scale.x,0.17*20.0/14.0*0.9),"body = previous 20/14 enlargement x0.9")
 	check(actor.global_scale.is_equal_approx(Vector2.ONE*0.2),"root scale stays fixed: sword and locomotion are not scaled again")
 	var foot_y:float = (actor.image.global_transform*Vector2(0,90)).y
 	var collider_bottom:float = actor.collision_shape_2d.global_position.y+body_shape.size.y*actor.collision_shape_2d.global_scale.y*0.5
@@ -93,7 +93,7 @@ func run() -> void:
 				var tip:Vector2 = actor._sword.global_transform*Vector2(10.5,-10.5)
 				var grip:Vector2 = actor._sword.global_position
 				var diagonal:Vector2 = (tip-grip).normalized()
-				check(is_equal_approx(absf(diagonal.x),sqrt(0.5)) and is_equal_approx(diagonal.y,-sqrt(0.5)) and is_equal_approx(grip.distance_to(tip),20.0),"idle/walking sword points diagonally 45deg up-forward, unchanged 20-unit length, both facings")
+				check(is_equal_approx(absf(diagonal.x),sqrt(0.5)) and is_equal_approx(diagonal.y,-sqrt(0.5)) and is_equal_approx(grip.distance_to(tip),18.0),"idle/walking sword points diagonally 45deg up-forward, 18-unit length (x0.9), both facings")
 				check(diagonal.x*(1.0 if actor._face_right else -1.0)>0.7 and absf(diagonal.x)>0.7,"diagonal held sword leans outward from each facing and is never vertical")
 				var xy:Array = actor.POSES.HANDS[str(actor._body_clip)][actor._body_frame]
 				var hand:Vector2 = Vector2(float(xy[0])-80.0,float(xy[1])-112.0)+actor.image.offset
@@ -341,7 +341,7 @@ func run() -> void:
 		actor.step_mob(0.01)
 		check(actor.combo_time >= 0.0 and actor.combo_heading.is_equal_approx(aim),"AI acquires enemy in each of eight directions")
 		check(actor.direction.is_equal_approx(Vector2(0.6,0.8)),"360 aiming never steers locomotion")
-		check(is_equal_approx(actor.attack_hand_extension(0.23),5.0) and is_zero_approx(actor.attack_hand_extension(0.0)) and is_zero_approx(actor.attack_hand_extension(actor.RECOVER_END)),"reach eases out from idle and resets after recovery")
+		check(is_equal_approx(actor.attack_hand_extension(0.23),4.5) and is_zero_approx(actor.attack_hand_extension(0.0)) and is_zero_approx(actor.attack_hand_extension(actor.RECOVER_END)),"reach eases out from idle and resets after recovery")
 		actor.combo_time = 0.23
 		actor.visual_mob()
 		var pivot:Vector2 = actor.shoulder_position(0.23)
@@ -352,7 +352,7 @@ func run() -> void:
 		var local_hand:Vector2 = Vector2(float(hand_pixel[0])-80.0,float(hand_pixel[1])-112.0)+actor._arm.offset
 		check((actor._arm.global_transform*local_hand).distance_to(actor._sword.global_position)<0.01,"rendered aimed arm ends at sword grip")
 		check((actor._sword.global_transform*Vector2(10.5,-10.5)).distance_to(actor.blade_segment(0.23).end)<0.01,"visible extended sword tip equals real damage geometry")
-		check(is_equal_approx(actor.blade_segment(0.23).radius,2.5),"widened threat and actual sweep share 2.5 radius")
+		check(is_equal_approx(actor.blade_segment(0.23).radius,2.25),"widened threat and actual sweep share 2.25 radius (x0.9)")
 		check(is_zero_approx(actor.image.rotation),"aim rotates arm not torso/legs")
 		check(actor._arm.global_position.distance_to(pivot)<0.01,"extra reach leaves shoulder joined to body")
 		var raw_vector:Vector2 = raw_hand-pivot
