@@ -5,6 +5,9 @@ signal copy_finished(success:bool,unit:Node)
 const TOOLS = preload("res://scripts/characters/投稿角色工具.gd")
 const PARTICLE = preload("res://scripts/effects/我的世界/末影粒子.gd")
 const AUDIO = preload("res://scripts/characters/我的世界/haochen/audio.gd")
+const PARTICLE_CAP:int = 320
+const STREAM_COLOR := Color(0.8,0.5,1.0,1.0)
+const LINK_PARTICLE_SIZE:float = 4.0
 @export var template_snapshot:Dictionary = {}
 @export var owner_name:String = ""
 @export var owner_team:String = ""
@@ -46,7 +49,7 @@ func _runtime_active() -> bool:
 func _start_visual() -> void:
 	if not is_inside_tree() or is_queued_for_deletion() or completed or not _runtime_active(): return
 	_emit_particles(10,false)
-	_emit_link_particles(10,true)
+	_emit_link_particles(16,true)
 
 func _physics_process(delta:float) -> void:
 	if not _runtime_active(): return
@@ -58,8 +61,8 @@ func _physics_process(delta:float) -> void:
 			_emit_particles(2,false)
 		_link_wait -= delta
 		if _link_wait<=0.0:
-			_link_wait = 0.04
-			_emit_link_particles(4,false)
+			_link_wait = 0.03
+			_emit_link_particles(6,false)
 	if not is_multiplayer_authority(): return
 	if completed:
 		_linger -= delta
@@ -118,21 +121,27 @@ func _refresh_link_points() -> void:
 ## Same public native portal particle, spawned along the segment and flowing
 ## from the copied character into Haochen. Visual only; each peer draws its own.
 func _emit_link_particles(count:int,source_burst:bool) -> void:
-	if not link_visible or get_parent()==null or get_parent().is_queued_for_deletion(): return
-	var span:Vector2 = link_to-link_from
-	if span.length()<4.0: return
+	if not link_visible: return
+	emit_stream(get_parent(),_rng,link_from,link_to,count,LINK_PARTICLE_SIZE,&"MCHaochenLinkParticle",&"haochen_copy_request",get_instance_id(),0.12 if source_burst else 0.9)
+
+## Shared by the copy link and Haochen's charging drain: native portal particles
+## spawned on the from->to segment (up to t_max along it) that all flow into `to`.
+static func emit_stream(parent:Node,rng:RandomNumberGenerator,from:Vector2,to:Vector2,count:int,size:float,group:StringName,meta_key:StringName,meta_id:int,t_max:float = 0.9) -> int:
+	if parent==null or not parent.is_inside_tree() or parent.is_queued_for_deletion(): return 0
+	var span:Vector2 = to-from
+	if span.length()<4.0: return 0
 	var side:Vector2 = span.normalized().orthogonal()
-	for i:int in range(count):
-		if get_tree().get_nodes_in_group("MCEnderParticle").size()>=320: break
-		var t:float = _rng.randf_range(0.0,0.12) if source_burst else _rng.randf_range(0.0,0.9)
-		var point:Vector2 = link_from.lerp(link_to,t)+side*_rng.randf_range(-5.0,5.0)
-		var motion:Vector2 = link_to-point+side*_rng.randf_range(-3.0,3.0)
+	var room:int = mini(count,PARTICLE_CAP-parent.get_tree().get_nodes_in_group("MCEnderParticle").size())
+	for i:int in range(maxi(room,0)):
+		var point:Vector2 = from.lerp(to,rng.randf_range(0.0,t_max))+side*rng.randf_range(-5.0,5.0)
+		var motion:Vector2 = to-point+side*rng.randf_range(-3.0,3.0)
 		var particle:Node2D = PARTICLE.new()
-		get_parent().add_child(particle)
-		particle.setup(point,motion,clampf(motion.length()/300.0,0.28,0.7),2.4)
-		particle.self_modulate = Color(0.78,0.52,1.0,0.92)
-		particle.add_to_group("MCHaochenLinkParticle")
-		particle.set_meta("haochen_copy_request",get_instance_id())
+		parent.add_child(particle)
+		particle.setup(point,motion,clampf(motion.length()/220.0,0.3,0.7),size)
+		particle.self_modulate = STREAM_COLOR
+		particle.add_to_group(group)
+		particle.set_meta(meta_key,meta_id)
+	return maxi(room,0)
 
 func _release_ticket() -> void:
 	if lifecycle_ticket<=0 or not is_inside_tree(): return

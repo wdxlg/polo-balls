@@ -35,8 +35,11 @@ motion_blur_enabled = false
 
 [node name="Image" parent="Graphics" index="0"]
 texture = ExtResource("3_face")
-scale = Vector2(1.25,1.25)
 texture_filter = 1
+
+[node name="CharacterAutoFit" parent="."]
+visual_size_multiplier = 0.5
+collision_min_size = Vector2(80, 80)
 
 [node name="HaochenEnergySync" type="MultiplayerSynchronizer" parent="."]
 replication_interval = 0.1

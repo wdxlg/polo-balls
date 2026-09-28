@@ -45,7 +45,8 @@ func run() -> void:
 	var donor:Node2D=load("res://scenes/characters/我的世界/苦力怕.tscn").instantiate()
 	donor.name="FaceDonor";donor.Team="Team1";donor.position=Vector2(56,86);donor.scale=Vector2.ONE*0.45
 	layer.add_child(donor);frozen(donor)
-	var head:=Rect2i(208,54,64,64)
+	# Auto-fit longest side 102.5 local (half standard) -> 41px at this 0.4 preview scale.
+	var head:=Rect2i(219,65,42,42)
 	for i:int in range(6):await process_frame
 	await RenderingServer.frame_post_draw
 	var normal:Image=viewport.get_texture().get_image()
@@ -58,8 +59,8 @@ func run() -> void:
 	laugh.save_png("user://haochen_face_laugh_gpu.png")
 	var laugh_red:int=count(laugh,head,red)
 	print("HAOCHEN_FACE head_px=",head_px," normal_red=",normal_red," laugh_red=",laugh_red)
-	check(head_px>=3600,"head front renders as a full 64px square portrait at 2x battle scale")
-	check(normal_red==0 and laugh_red>60,"charging swaps to the laughing face with its open red mouth")
+	check(head_px>=1500,"head front renders as a full square portrait at 2x battle scale")
+	check(normal_red==0 and laugh_red>20,"charging swaps to the laughing face with its open red mouth")
 	hero.charge_phase=hero.Phase.COPYING
 	var request:Node2D=load("res://scenes/effects/我的世界/角色复制请求.tscn").instantiate()
 	request.position=hero.position+Vector2(-30,0);request.remaining=10.0;request.cast_duration=10.0

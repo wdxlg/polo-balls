@@ -5,6 +5,11 @@ const COPY_REQUEST = preload("res://scenes/effects/我的世界/角色复制请�
 const COPY_TOOLS = preload("res://scripts/characters/投稿角色工具.gd")
 const CLASSIFY = preload("res://classes/combat_classification.gd")
 const AUDIO = preload("res://scripts/characters/我的世界/haochen/audio.gd")
+const STREAM = preload("res://scripts/effects/我的世界/character_copy_request.gd")
+const CHARGE_PARTICLE_SIZE:float = 3.2
+const CHARGE_STREAM_INTERVAL:float = 0.05
+const CHARGE_STREAM_PER_SOURCE:int = 3
+const CHARGE_STREAM_MAX_SOURCES:int = 4
 # User-provided Minecraft skins: exact head front + hat layer, 16x nearest (no new pixels).
 const FACE_NORMAL:Texture2D = preload("res://Images/characters/我的世界/皓宸/皓宸.png")
 const FACE_LAUGH:Texture2D = preload("res://Images/characters/我的世界/皓宸/皓宸笑.png")
@@ -46,6 +51,8 @@ var _ambient_left:float = 3.0
 var _step_left:float = 0.15
 var _previous_audio_position:Vector2
 var _audio_sample_valid:bool = false
+var _drain_left:float = 0.0
+var _drain_rng := RandomNumberGenerator.new() # visual-only; never touches battle RNG
 
 func _ready() -> void:
 	mc_audio_role = "haochen" # User-authorized temporary portrait; no borrowed gameplay/AI.
@@ -59,6 +66,7 @@ func _ready() -> void:
 	Health_Restore = 0
 	super._ready()
 	_fx_rng.seed = Game.battle_rng_seed_or("haochen_visual:"+str(name),int(get_instance_id()))
+	_drain_rng.seed = int(get_instance_id())
 	_previous_audio_position = global_position
 	_refresh_face()
 	queue_redraw()
@@ -73,8 +81,23 @@ func _refresh_face() -> void:
 	var face:Texture2D = FACE_LAUGH if is_laughing() else FACE_NORMAL
 	if (image as Sprite2D).texture != face: (image as Sprite2D).texture = face
 
-func _process(_delta:float) -> void:
+func _process(delta:float) -> void:
 	queue_redraw()
+	_step_charge_stream(delta)
+
+## Visual only, on every peer from replicated positions/phase: native portal
+## particles flow from each enemy currently feeding the meter into Haochen.
+func _step_charge_stream(delta:float) -> void:
+	if charge_phase!=Phase.CHARGING or _source_dead or health<=0 or not is_combat_runtime_active(): return
+	_drain_left -= delta
+	if _drain_left>0.0: return
+	_drain_left = CHARGE_STREAM_INTERVAL
+	var fed:int = 0
+	for raw:Variant in COPY_TOOLS.targeting_candidates(self):
+		if fed>=CHARGE_STREAM_MAX_SOURCES: break
+		if not _valid_energy_source(raw) or global_position.distance_squared_to(raw.global_position)>energy_radius*energy_radius: continue
+		fed += 1
+		STREAM.emit_stream(get_parent(),_drain_rng,raw.global_position,global_position,CHARGE_STREAM_PER_SOURCE,CHARGE_PARTICLE_SIZE,&"MCHaochenChargeParticle",&"haochen_stream_owner",get_instance_id(),0.5)
 
 func _draw() -> void:
 	if _source_dead or health<=0: return
