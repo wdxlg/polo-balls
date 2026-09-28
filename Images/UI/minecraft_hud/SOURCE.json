@@ -1,0 +1,52 @@
+{
+  "source": "Mojang official Minecraft Java Edition client JAR",
+  "version": "1.21.4",
+  "metadata_url": "https://piston-meta.mojang.com/v1/packages/d152a3712859b294a2dff641f99a7fe219cd3aec/1.21.4.json",
+  "client_url": "https://piston-data.mojang.com/v1/objects/a7e5a6024bfd3cd614625aa05629adf760020304/client.jar",
+  "client_sha1": "a7e5a6024bfd3cd614625aa05629adf760020304",
+  "verification": "Downloaded client JAR SHA-1 matched official Mojang metadata before extraction. PNG bytes are unmodified (heart sprites renamed with a heart_ prefix).",
+  "assets": [
+    {
+      "filename": "heart_full.png",
+      "jar_path": "assets/minecraft/textures/gui/sprites/hud/heart/full.png",
+      "sha256": "fbc682e09ae677d82fb9bd638eae2fef0e75d3dcb2f556ec9d693fc1ba1321c9"
+    },
+    {
+      "filename": "heart_half.png",
+      "jar_path": "assets/minecraft/textures/gui/sprites/hud/heart/half.png",
+      "sha256": "f6095a2446c8eb94e82e632a57a7376fe36cfca6fc4915445be02c2d6dec8443"
+    },
+    {
+      "filename": "heart_container.png",
+      "jar_path": "assets/minecraft/textures/gui/sprites/hud/heart/container.png",
+      "sha256": "5dad1a14187bf035d1cd56a5477f162e8f3baadeccadcc20e11f58db5a26ac0f"
+    },
+    {
+      "filename": "heart_absorbing_full.png",
+      "jar_path": "assets/minecraft/textures/gui/sprites/hud/heart/absorbing_full.png",
+      "sha256": "b052942e6992f2d5554d092245004c29c7ed81473174cc48394c0f02c3b8632b"
+    },
+    {
+      "filename": "heart_absorbing_half.png",
+      "jar_path": "assets/minecraft/textures/gui/sprites/hud/heart/absorbing_half.png",
+      "sha256": "590f3fe3d3f69bffe1feed59c37ee41d40705c735f4fab70c69177bfc0fdc800"
+    },
+    {
+      "filename": "armor_full.png",
+      "jar_path": "assets/minecraft/textures/gui/sprites/hud/armor_full.png",
+      "sha256": "780e586728abc78037331bac5ac8abeb1788c4ea3f906f0a7d45053dba6d796a"
+    },
+    {
+      "filename": "armor_half.png",
+      "jar_path": "assets/minecraft/textures/gui/sprites/hud/armor_half.png",
+      "sha256": "719e07d5016fff676a6a9bf0f874b2aec0a0a81c0af3fedce82b059daa77cd64"
+    },
+    {
+      "filename": "armor_empty.png",
+      "jar_path": "assets/minecraft/textures/gui/sprites/hud/armor_empty.png",
+      "sha256": "e143eb0329a9b31b3b51b0a86a15bf2ebd19543ac12652aa79696bf255e9835b"
+    }
+  ],
+  "rights": "Minecraft textures belong to Mojang/Microsoft. These assets are not newly authored or licensed by this project.",
+  "usage": "1v1 top HUD (scripts/ui/duel_top_hud.gd): 10-heart health row, armor row (damage reduction), gold absorbing hearts. The shield heart is a runtime palette swap of heart_full.png onto armor_full.png's three colours (fill b8b9c4 / highlight e6e7f2 / shade 696a70); no new art is drawn. Half sprites are mirrored horizontally for the right-side panel."
+}

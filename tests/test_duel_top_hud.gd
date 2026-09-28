@@ -60,6 +60,25 @@ func region_difference(a:Image,b:Image,rect:Rect2i) -> float:
 			count += 1
 	return total / maxf(float(count),1.0)
 
+## HUD 设计坐标中某个原版 9×9 图标的源像素 (sx,sy) → 截图像素颜色。
+func icon_pixel(shot:Image,side_index:int,row_top:float,index:int,sx:float,sy:float) -> Color:
+	var panel:Rect2 = hud()._panel_rects()[0 if side_index == 0 else 2]
+	var rect:Rect2 = hud()._icon_rect(panel,side_index == 1,row_top,index)
+	var local:Vector2 = rect.position + Vector2(sx + 0.5,sy + 0.5) * hud().ICON_PIXEL
+	var screen:Vector2 = hud().get_global_transform_with_canvas() * local
+	var ratio:float = float(shot.get_width()) / hud().get_viewport_rect().size.x
+	var px:Vector2i = Vector2i(screen * ratio)
+	return shot.get_pixel(clampi(px.x,0,shot.get_width() - 1),clampi(px.y,0,shot.get_height() - 1))
+
+## 视口截图读回的是线性色值：期望色按 sRGB → linear 换算；游戏全屏暗角会把屏幕边缘整体压暗
+## （实测约 0.8 倍），所以比较“同一色相 + 亮度倍率在 0.65–1.1 之间”。
+func color_near(a:Color,b:Color,tolerance:float = 0.035) -> bool:
+	var e:Color = b.srgb_to_linear()
+	var k:float = (a.r + a.g + a.b) / maxf(e.r + e.g + e.b,0.0001)
+	if k < 0.65 or k > 1.1:
+		return false
+	return absf(a.r - e.r * k) < tolerance and absf(a.g - e.g * k) < tolerance and absf(a.b - e.b * k) < tolerance
+
 func run() -> void:
 	create_timer(90.0,true,false,true).timeout.connect(func(): push_error("DUEL_HUD_TIMEOUT"); quit(2))
 	game = root.get_node("Game")
@@ -119,6 +138,50 @@ func run() -> void:
 	red.health = 37
 	await settle(2)
 	check(is_equal_approx(float(hud().sides[1].hp),37.0) and not bool(hud().sides[1].dead),"HP text/bar track damage")
+
+	# 红心 / 护盾 / 伤害吸收 / 盔甲值：换算与实时读数。
+	check(hud().half_units(430.0,430.0) == 20 and hud().half_units(215.0,430.0) == 10 and hud().half_units(1.0,430.0) == 1 and hud().half_units(0.0,430.0) == 0,"hearts use half-heart units of max HP (any HP shows at least half)")
+	check(hud().armor_half_units(0.4) == 8 and hud().armor_half_units(0.02) == 1 and hud().armor_half_units(0.0) == 0 and hud().armor_half_units(-0.5) == 0 and hud().armor_half_units(1.0) == 20,"armor icons: 10 = 100% reduction, 5% per half")
+	var status_script:GDScript = load("res://scripts/effects/我的世界/mc_status_effects.gd")
+	blue.max_block = 200
+	blue.block = 86 # 86 / 430 = 20% → 两颗盔甲色心
+	blue.Damage_reduction = 0.4 # 例：抗性提升 II
+	var absorbed:bool = status_script.apply_effect(blue,"absorption",5,30.0,null) # 100 吸收 → 2.5 颗金心
+	await settle(4)
+	var blue_side:Dictionary = hud().sides[0]
+	print("DUEL_HUD_METRIC blue block=",blue_side.block," absorption=",blue_side.absorption," reduction=",blue_side.reduction," applied=",absorbed)
+	check(is_equal_approx(float(blue_side.block),86.0),"shield value comes from the live block")
+	check(float(blue_side.absorption) > 0.0 and hud().half_units(float(blue_side.absorption),430.0) >= 4,"absorption comes from the real Minecraft absorption effect")
+	check(is_equal_approx(float(blue_side.reduction),0.4) and is_equal_approx(float(hud().sides[1].reduction),0.0),"armor value is the live damage reduction; zero on the other side")
+	var heart_shot:Image = await save_shot(root,"main_hearts.png")
+	var hud_script:GDScript = hud().get_script()
+	var red_heart:Color = Color("ff1313")
+	var shield_heart:Color = Color("b8b9c4")
+	var gold_heart:Color = Color("d4af37")
+	var empty_heart:Color = Color("282828")
+	var row:float = hud().HEART_ROW_TOP
+	var armor_row:float = hud().ARMOR_ROW_TOP
+	var c_shield:Color = icon_pixel(heart_shot,0,row,0,4,3)
+	var c_red:Color = icon_pixel(heart_shot,0,row,4,4,3)
+	var c_gold:Color = icon_pixel(heart_shot,0,row,9,4,3)
+	var c_gold_half:Color = icon_pixel(heart_shot,0,row,7,5,3)
+	var c_red_half:Color = icon_pixel(heart_shot,0,row,7,3,3)
+	print("DUEL_HUD_METRIC hearts shield=",c_shield," red=",c_red," gold=",c_gold," h7L=",c_red_half," h7R=",c_gold_half)
+	check(color_near(c_shield,shield_heart),"left: shield tints hearts from the low-HP end in the armor palette")
+	check(color_near(c_red,red_heart),"left: full HP shows vanilla red hearts")
+	check(color_near(c_gold,gold_heart),"left: absorption paints golden hearts from the high-HP end")
+	check(color_near(c_red_half,red_heart) and color_near(c_gold_half,gold_heart),"left: the partial gold heart only covers its high-HP half")
+	var c_armor_full:Color = icon_pixel(heart_shot,0,armor_row,3,4,4)
+	var c_armor_empty:Color = icon_pixel(heart_shot,0,armor_row,4,4,4)
+	check(color_near(c_armor_full,Color("b8b9c4")) and color_near(c_armor_empty,Color("3d3d3d")),"left: 40% reduction shows 4 full armor icons from the low-HP end")
+	# 右侧 37/420 → 2 个半心 = 1 颗红心，位于靠头像的右端；无盔甲则整行不画。
+	var r_first:Color = icon_pixel(heart_shot,1,row,0,4,3)
+	var r_second:Color = icon_pixel(heart_shot,1,row,1,4,3)
+	var r_armor:Color = icon_pixel(heart_shot,1,armor_row,0,4,4)
+	print("DUEL_HUD_METRIC right first=",r_first," second=",r_second," armor=",r_armor)
+	check(color_near(r_first,red_heart) and color_near(r_second,empty_heart),"right: hearts are mirrored (low-HP end next to the portrait)")
+	check(not color_near(r_armor,Color("3d3d3d")) and not color_near(r_armor,Color("b8b9c4")),"right: no damage reduction hides the armor row")
+	check(hud_script != null,"HUD script available for mirrors")
 
 	# 计时：运行中累加，时间停止时冻结。
 	var t0:float = hud().elapsed

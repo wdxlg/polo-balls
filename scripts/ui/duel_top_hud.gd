@@ -3,8 +3,15 @@ extends Control
 ##
 ## 仅当场上恰好剩两名主角色、且分属两个阵营时显示（召唤物不算；比赛延续/死亡演出桥
 ## 沿用 return_battle_sides 的同一代表规则）。左右为原版 tooltip 面板：物品展示框头像、
-## 角色名（与普通 VS 同色）、当前/最大生命及原版经验条血条；中间为原版药水效果背景，
-## 显示本局已过去的游戏时间与 VS。原有“角色名 VS 角色名”文字标题保留不动。
+## 角色名（与普通 VS 同色）、10 颗原版红心、盔甲值行（仅减伤 > 0 时）及当前/最大生命数字；
+## 中间为原版药水效果背景，显示本局已过去的游戏时间与 VS。原有文字 VS 标题保留不动。
+##
+## 红心行（2026-09-28）：10 颗心 = 最大生命，全部按实时数值、以半心为单位：
+## - 红心：当前生命，从低血量端（靠头像一侧）排起，掉血从远端往头像方向减少；
+## - 护盾（block）：从低血量端起把心染成原版盔甲图标的配色；
+## - 伤害吸收（原版吸收效果剩余量）：从高血量端（远离头像）起染成原版金色吸收心；
+## - 盔甲值 = 实时 Damage_reduction（抗性提升、铁匠头盔、各种减伤 buff 都已汇总在内），
+##   10 个原版盔甲图标 = 100% 减伤，每半个 5%，从低血量端排起；<= 0 时整行不显示。
 ##
 ## 计时按游戏时间：只在 is_combat_runtime_active() 时累加物理 delta（暂停/时间停止不走、
 ## 倍速同步），胜利铃响后冻结，重置/重打/新一局归零。决出胜负后保留最后一对的结果画面，
@@ -19,8 +26,21 @@ const TOOLTIP_BACKGROUND:Texture2D = preload("res://Images/UI/minecraft_tooltips
 const TOOLTIP_FRAME:Texture2D = preload("res://Images/UI/minecraft_tooltips/tooltip_frame.png")
 const EFFECT_BACKGROUND:Texture2D = preload("res://Images/UI/minecraft_tooltips/effect_background_large.png")
 const ITEM_FRAME:Texture2D = preload("res://Images/UI/rotation_frames/item_frame.png")
-const XP_BACKGROUND:Texture2D = preload("res://Images/UI/minecraft_xp/experience_bar_background.png")
-const XP_PROGRESS:Texture2D = preload("res://Images/UI/minecraft_xp/experience_bar_progress.png")
+# 原版 1.21.4 HUD 精灵（Images/UI/minecraft_hud/SOURCE.json）。
+const HEART_CONTAINER:Texture2D = preload("res://Images/UI/minecraft_hud/heart_container.png")
+const HEART_FULL:Texture2D = preload("res://Images/UI/minecraft_hud/heart_full.png")
+const HEART_HALF:Texture2D = preload("res://Images/UI/minecraft_hud/heart_half.png")
+const HEART_ABSORBING_FULL:Texture2D = preload("res://Images/UI/minecraft_hud/heart_absorbing_full.png")
+const HEART_ABSORBING_HALF:Texture2D = preload("res://Images/UI/minecraft_hud/heart_absorbing_half.png")
+const ARMOR_FULL:Texture2D = preload("res://Images/UI/minecraft_hud/armor_full.png")
+const ARMOR_HALF:Texture2D = preload("res://Images/UI/minecraft_hud/armor_half.png")
+const ARMOR_EMPTY:Texture2D = preload("res://Images/UI/minecraft_hud/armor_empty.png")
+# 护盾心：原版红心三色 → 原版 armor_full 三色（主色/高光/暗部）逐像素换色，不新画。
+const SHIELD_PALETTE:Dictionary = {
+	"ff1313":Color("b8b9c4"),
+	"ffc8c8":Color("e6e7f2"),
+	"bb1313":Color("696a70"),
+}
 
 # 以 1080 逻辑宽度设计；实际视口宽度不同时整体等比缩放。
 const DESIGN_WIDTH:float = 1080.0
@@ -30,8 +50,18 @@ const GAP:float = 12.0
 const SIDE_WIDTH:float = 404.0
 const PANEL_HEIGHT:float = 176.0
 const PAD:float = 20.0
-const PORTRAIT_SIZE:float = 128.0 # item_frame 32px × 4
-const BAR_HEIGHT:float = 10.0 # 经验条 182×5 × 2，宽度 364 = SIDE_WIDTH - 2 × PAD
+const PORTRAIT_SIZE:float = 96.0 # item_frame 32px × 3（与 tooltip 同为 GUI 像素 ×3）
+const PORTRAIT_TOP:float = 16.0
+# 原版心/盔甲 9×9 精灵、间距 8；×3 后一行 10 个宽 243，放进头像旁 254 宽的文字列。
+const ICON_PIXEL:float = 3.0
+const ICON_SOURCE:float = 9.0
+const ICON_STEP:float = 8.0
+const ICON_COUNT:int = 10
+const HALF_UNITS:int = 20
+const NAME_BASELINE:float = 32.0 # 相对头像顶
+const HEART_ROW_TOP:float = 42.0
+const ARMOR_ROW_TOP:float = 76.0
+const HP_BASELINE:float = 158.0 # 相对面板顶，头像下方整行
 # 与 mc_effect_tooltip.gd 相同：GUI 像素倍率 3，tooltip 背景/边框 9/10，药水框 5。
 const GUI_PIXEL:float = 3.0
 const TOOLTIP_BACKGROUND_BORDER:int = 9
@@ -81,6 +111,8 @@ var _text_layer:Control
 var _tooltip_background_box:StyleBoxTexture
 var _tooltip_frame_box:StyleBoxTexture
 var _effect_box:StyleBoxTexture
+static var _shield_full:Texture2D = null
+static var _shield_half:Texture2D = null
 
 
 func _ready() -> void:
@@ -94,6 +126,7 @@ func _ready() -> void:
 	_tooltip_background_box = _make_box(TOOLTIP_BACKGROUND,TOOLTIP_BACKGROUND_BORDER)
 	_tooltip_frame_box = _make_box(TOOLTIP_FRAME,TOOLTIP_FRAME_BORDER)
 	_effect_box = _make_box(EFFECT_BACKGROUND,EFFECT_BORDER)
+	_ensure_shield_textures()
 	_text_layer = Control.new()
 	_text_layer.name = "Text"
 	_text_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -113,6 +146,48 @@ func _make_box(texture:Texture2D,border:int) -> StyleBoxTexture:
 	box.texture_margin_right = border
 	box.texture_margin_bottom = border
 	return box
+
+
+static func _palette_swap(texture:Texture2D) -> Texture2D:
+	var image:Image = texture.get_image()
+	if image == null:
+		return texture
+	image = image.duplicate()
+	if image.is_compressed():
+		image.decompress()
+	image.convert(Image.FORMAT_RGBA8)
+	for y:int in range(image.get_height()):
+		for x:int in range(image.get_width()):
+			var c:Color = image.get_pixel(x,y)
+			if c.a <= 0.0:
+				continue
+			var key:String = c.to_html(false).to_lower()
+			if SHIELD_PALETTE.has(key):
+				var swapped:Color = SHIELD_PALETTE[key]
+				swapped.a = c.a
+				image.set_pixel(x,y,swapped)
+	return ImageTexture.create_from_image(image)
+
+
+static func _ensure_shield_textures() -> void:
+	if _shield_full == null:
+		_shield_full = _palette_swap(HEART_FULL)
+	if _shield_half == null:
+		_shield_half = _palette_swap(HEART_HALF)
+
+
+## 数值 → 半心/半图标数（0..20）。任何正值至少显示半个，与原版“有血就有半颗心”一致。
+static func half_units(amount:float,full:float) -> int:
+	if amount <= 0.0 or full <= 0.0:
+		return 0
+	return clampi(ceili(amount / full * float(HALF_UNITS) - 0.001),1,HALF_UNITS)
+
+
+## 减伤比例 → 半盔甲数：10 个 = 100%，每半个 5%，四舍五入；正值至少半个。
+static func armor_half_units(reduction:float) -> int:
+	if reduction <= 0.0:
+		return 0
+	return clampi(roundi(reduction * float(HALF_UNITS)),1,HALF_UNITS)
 
 
 ## 为录制抓帧视口生成一个只读镜像。
@@ -403,6 +478,9 @@ func _build_sides(order:Array,entries:Dictionary) -> void:
 			"nodes":(entry.nodes as Array).duplicate(),
 			"hp":0.0,
 			"max_hp":1.0,
+			"block":0.0,
+			"absorption":0.0,
+			"reduction":0.0,
 			"dead":false,
 		})
 	sides = built
@@ -421,6 +499,9 @@ func _refresh_values() -> void:
 	for side:Dictionary in sides:
 		var hp:float = 0.0
 		var max_hp:float = 0.0
+		var block:float = 0.0
+		var absorption:float = 0.0
+		var reduction:float = 0.0
 		var any_valid:bool = false
 		for raw:Variant in side.nodes:
 			if not is_instance_valid(raw) or not raw is ball:
@@ -431,10 +512,25 @@ func _refresh_values() -> void:
 			any_valid = true
 			hp += maxf(float(b.health),0.0)
 			max_hp += maxf(float(b.Max_health),1.0)
+			block += maxf(float(b.block),0.0)
+			absorption += _absorption_of(b)
+			# 合并显示的延续单位取最高减伤；负值（易伤）不显示盔甲。
+			reduction = maxf(reduction,clampf(float(b.Damage_reduction),0.0,1.0))
 		if any_valid:
 			side.max_hp = max_hp
 		side.hp = hp
+		side.block = block if any_valid and hp > 0.0 else 0.0
+		side.absorption = absorption if any_valid and hp > 0.0 else 0.0
+		side.reduction = reduction if any_valid and hp > 0.0 else 0.0
 		side.dead = hp <= 0.0
+
+
+## 原版伤害吸收效果的剩余吸收量（与 ball._consume_minecraft_absorption 读同一节点）。
+func _absorption_of(b:ball) -> float:
+	var status:Node = b.get_node_or_null("MinecraftStatus_absorption")
+	if status == null or status.is_queued_for_deletion():
+		return 0.0
+	return maxf(float(status.get("absorption_remaining")),0.0)
 
 
 #========================================================
@@ -451,7 +547,7 @@ func _panel_rects() -> Array:
 
 func _portrait_rect(panel:Rect2,mirrored:bool) -> Rect2:
 	var x:float = panel.end.x - PAD - PORTRAIT_SIZE if mirrored else panel.position.x + PAD
-	return Rect2(x,panel.position.y + 14.0,PORTRAIT_SIZE,PORTRAIT_SIZE)
+	return Rect2(x,panel.position.y + PORTRAIT_TOP,PORTRAIT_SIZE,PORTRAIT_SIZE)
 
 
 func _text_rect(panel:Rect2,mirrored:bool) -> Rect2:
@@ -461,9 +557,68 @@ func _text_rect(panel:Rect2,mirrored:bool) -> Rect2:
 	return Rect2(x,portrait.position.y,width,PORTRAIT_SIZE)
 
 
-func _bar_rect(panel:Rect2) -> Rect2:
-	var portrait:Rect2 = _portrait_rect(panel,false)
-	return Rect2(panel.position.x + PAD,portrait.end.y + 12.0,SIDE_WIDTH - PAD * 2.0,BAR_HEIGHT)
+## 第 index 个图标（0 = 低血量端，靠头像一侧）的位置。
+func _icon_rect(panel:Rect2,mirrored:bool,row_top:float,index:int) -> Rect2:
+	var area:Rect2 = _text_rect(panel,mirrored)
+	var icon_size:float = ICON_SOURCE * ICON_PIXEL
+	var step:float = ICON_STEP * ICON_PIXEL
+	var x:float = area.end.x - icon_size - step * index if mirrored else area.position.x + step * index
+	return Rect2(x,area.position.y + row_top,icon_size,icon_size)
+
+
+## flip=true 时水平翻转（右侧面板的半心/半盔甲朝向镜像）。
+func _draw_icon(texture:Texture2D,rect:Rect2,flip:bool,tint:Color) -> void:
+	if texture == null:
+		return
+	if flip:
+		draw_set_transform(Vector2(rect.end.x,rect.position.y),0.0,Vector2(-1.0,1.0))
+		draw_texture_rect(texture,Rect2(Vector2.ZERO,rect.size),false,tint)
+		draw_set_transform(Vector2.ZERO,0.0,Vector2.ONE)
+	else:
+		draw_texture_rect(texture,rect,false,tint)
+
+
+func _draw_hearts(panel:Rect2,side:Dictionary,mirrored:bool,tint:Color) -> void:
+	var max_hp:float = maxf(float(side.max_hp),1.0)
+	var hp_units:int = half_units(float(side.hp),max_hp)
+	var shield_units:int = half_units(float(side.get("block",0.0)),max_hp)
+	var absorb_units:int = half_units(float(side.get("absorption",0.0)),max_hp)
+	var absorb_start:int = HALF_UNITS - absorb_units
+	# 半心原图是左半边：左面板低端在左，直接用；右面板低端在右，翻转。
+	var low_flip:bool = mirrored
+	for i:int in range(ICON_COUNT):
+		var rect:Rect2 = _icon_rect(panel,mirrored,HEART_ROW_TOP,i)
+		var low_half:int = i * 2
+		var high_half:int = low_half + 1
+		_draw_icon(HEART_CONTAINER,rect,false,tint)
+		if hp_units > high_half:
+			_draw_icon(HEART_FULL,rect,false,tint)
+		elif hp_units > low_half:
+			_draw_icon(HEART_HALF,rect,low_flip,tint)
+		if shield_units > high_half:
+			_draw_icon(_shield_full,rect,false,tint)
+		elif shield_units > low_half:
+			_draw_icon(_shield_half,rect,low_flip,tint)
+		if absorb_units > 0:
+			if low_half >= absorb_start:
+				_draw_icon(HEART_ABSORBING_FULL,rect,false,tint)
+			elif high_half >= absorb_start:
+				# 金色从高血量端排起：只占这颗心远离头像的半边。
+				_draw_icon(HEART_ABSORBING_HALF,rect,not low_flip,tint)
+
+
+func _draw_armor(panel:Rect2,side:Dictionary,mirrored:bool,tint:Color) -> void:
+	var units:int = armor_half_units(float(side.get("reduction",0.0)))
+	if units <= 0:
+		return
+	for i:int in range(ICON_COUNT):
+		var rect:Rect2 = _icon_rect(panel,mirrored,ARMOR_ROW_TOP,i)
+		if units > i * 2 + 1:
+			_draw_icon(ARMOR_FULL,rect,false,tint)
+		elif units > i * 2:
+			_draw_icon(ARMOR_HALF,rect,mirrored,tint)
+		else:
+			_draw_icon(ARMOR_EMPTY,rect,false,tint)
 
 
 func _draw_patch(box:StyleBoxTexture,rect:Rect2,pixel:float) -> void:
@@ -498,20 +653,8 @@ func _draw_side_graphics(panel:Rect2,side:Dictionary,mirrored:bool) -> void:
 		var texture_size:Vector2 = texture.get_size()
 		var fitted:Vector2 = texture_size * minf(area.size.x / maxf(texture_size.x,1.0),area.size.y / maxf(texture_size.y,1.0))
 		draw_texture_rect(texture,Rect2(area.get_center() - fitted * 0.5,fitted),false,tint)
-	var bar:Rect2 = _bar_rect(panel)
-	draw_texture_rect(XP_BACKGROUND,bar,false)
-	var ratio:float = clampf(float(side.hp) / maxf(float(side.max_hp),1.0),0.0,1.0)
-	if ratio > 0.0:
-		var source_size:Vector2 = XP_PROGRESS.get_size()
-		var fill_width:float = bar.size.x * ratio
-		var source_width:float = source_size.x * ratio
-		# 左侧从左往右填，右侧镜像从右往左填，两边都向中间扣血。
-		if mirrored:
-			draw_texture_rect_region(XP_PROGRESS,Rect2(bar.end.x - fill_width,bar.position.y,fill_width,bar.size.y),
-				Rect2(source_size.x - source_width,0.0,source_width,source_size.y))
-		else:
-			draw_texture_rect_region(XP_PROGRESS,Rect2(bar.position,Vector2(fill_width,bar.size.y)),
-				Rect2(0.0,0.0,source_width,source_size.y))
+	_draw_hearts(panel,side,mirrored,tint)
+	_draw_armor(panel,side,mirrored,tint)
 
 
 func _display_name(raw_name:String) -> String:
@@ -563,12 +706,14 @@ func _draw_text() -> void:
 		var name_color:Color = side.color
 		if dead:
 			name_color = name_color * DEAD_TEXT_TINT
-		_outlined_text(_text_layer,Vector2(area.position.x,area.position.y + 48.0),name_text,alignment,
+		_outlined_text(_text_layer,Vector2(area.position.x,area.position.y + NAME_BASELINE),name_text,alignment,
 			area.size.x,name_size,name_color,6)
 		var hp_text:String = "%d / %d" % [ceili(float(side.hp)),roundi(float(side.max_hp))]
-		var hp_size:int = _fit_font_size(hp_text,area.size.x,HP_TEXT_SIZE,16)
-		_outlined_text(_text_layer,Vector2(area.position.x,area.position.y + 108.0),hp_text,alignment,
-			area.size.x,hp_size,HP_TEXT_COLOR * (DEAD_TEXT_TINT if dead else Color.WHITE),5)
+		var row_x:float = panel.position.x + PAD
+		var row_width:float = SIDE_WIDTH - PAD * 2.0
+		var hp_size:int = _fit_font_size(hp_text,row_width,HP_TEXT_SIZE,16)
+		_outlined_text(_text_layer,Vector2(row_x,panel.position.y + HP_BASELINE),hp_text,alignment,
+			row_width,hp_size,HP_TEXT_COLOR * (DEAD_TEXT_TINT if dead else Color.WHITE),5)
 	var center:Rect2 = rects[1]
 	var inner_x:float = center.position.x + 8.0
 	var inner_width:float = center.size.x - 16.0
