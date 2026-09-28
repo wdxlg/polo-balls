@@ -290,7 +290,8 @@ var _last_control_move_sent:Vector2 = Vector2(999,999)
 # 客户端仅在按下/松开时可靠通知服务器，持续连发由 authority 在物理帧本地重试，
 # 避免把 60Hz 长按变成 60 个 reliable RPC/秒。
 const CONTROL_ACTION_COUNT:int = 13 # 左/右/中、1～9、0
-const CONTROL_ACTION_HOLD_INITIAL_REPEAT_DELAY_MSEC:int = 45
+# 首击立即执行；留出正常单击窗口后才开始长按重试。本地与服务端共用。
+const CONTROL_ACTION_HOLD_INITIAL_REPEAT_DELAY_MSEC:int = 400
 var _local_control_action_hold_mask:int = 0
 var _local_control_action_repeat_ready_msec:Array[int] = [0,0,0,0,0,0,0,0,0,0,0,0,0]
 var _remote_control_action_hold_masks:Dictionary = {}

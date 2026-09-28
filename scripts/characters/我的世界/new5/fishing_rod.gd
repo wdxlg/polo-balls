@@ -126,6 +126,9 @@ func _segment_target(a:Vector2,b:Vector2) -> ball:
 			best=distance
 			result=other
 	return result
+func player_control_action_hold_repeat_allowed(action_index:int) -> bool:
+	# 抛线/收线是切换动作：同一次按住不能把刚抛出的线立即收回。
+	return action_index != 1 and super.player_control_action_hold_repeat_allowed(action_index)
 func step_mob(delta:float) -> void:
 	_cast_left-=delta
 	_sword_left-=delta
