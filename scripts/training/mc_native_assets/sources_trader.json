@@ -1,0 +1,108 @@
+{
+  "commit": "736072450c26a7c67f07b1661f29d9a5ebaa14b1",
+  "repository": "https://github.com/Mojang/bedrock-samples",
+  "license": "Minecraft EULA; see LICENSE.md",
+  "used_by": "bake_wandering_trader.py",
+  "files": [
+    {
+      "path": "resource_pack/animations/llama.animation.json",
+      "local": "resource_pack_trader/animations/llama.animation.json",
+      "sha256": "343b205000069f98d8542a27fa1185200d00db1011ef417d6def7636af5882a0"
+    },
+    {
+      "path": "resource_pack/animations/quadruped.animation.json",
+      "local": "resource_pack_trader/animations/quadruped.animation.json",
+      "sha256": "35c47c56eb92146526972dff707d80cad9011c6cbbb07009d0d4954b018d60c0"
+    },
+    {
+      "path": "resource_pack/animations/villager.animation.json",
+      "local": "resource_pack_trader/animations/villager.animation.json",
+      "sha256": "291ee066110528bed721208f204a184a2bc69514c7ed7c1316ba3e4d4cef34d7"
+    },
+    {
+      "path": "resource_pack/entity/llama_spit.entity.json",
+      "local": "resource_pack_trader/entity/llama_spit.entity.json",
+      "sha256": "83db6d747185446eb3deed7cd535c404ffb5895039127afb02be7216461cbb9d"
+    },
+    {
+      "path": "resource_pack/entity/trader_llama.entity.json",
+      "local": "resource_pack_trader/entity/trader_llama.entity.json",
+      "sha256": "38b2753f906c0c0f4491e31eb24d5bf483faa989c6ad0b0c5448680ae0050358"
+    },
+    {
+      "path": "resource_pack/entity/wandering_trader.entity.json",
+      "local": "resource_pack_trader/entity/wandering_trader.entity.json",
+      "sha256": "7b2d6c6ba995706a6e65d898b72ff728bf2e9438841ced3ee04a271a64898488"
+    },
+    {
+      "path": "resource_pack/models/entity/llama.geo.json",
+      "local": "resource_pack_trader/models/entity/llama.geo.json",
+      "sha256": "0e8ba9217f877f37bd6586cad15b075de39dc06ead9429755c18e9557df16d6b"
+    },
+    {
+      "path": "resource_pack/models/entity/llama_spit.json",
+      "local": "resource_pack_trader/models/entity/llama_spit.json",
+      "sha256": "654e6d4df2cf551208165327cc8ee38763e6a238898919c03e81ba60bcdddfe1"
+    },
+    {
+      "path": "resource_pack/models/entity/villager_v2.geo.json",
+      "local": "resource_pack_trader/models/entity/villager_v2.geo.json",
+      "sha256": "33271db5b87d3be5656fad93d08f4175bca9afc1692e91885445b0c856b46dcb"
+    },
+    {
+      "path": "resource_pack/render_controllers/llama.render_controllers.json",
+      "local": "resource_pack_trader/render_controllers/llama.render_controllers.json",
+      "sha256": "93c59934127fd40a1dac9dd8037cc33786b0d75bb4bdbf6a23a8da5246ffde22"
+    },
+    {
+      "path": "resource_pack/render_controllers/llama.v2.render_controllers.json",
+      "local": "resource_pack_trader/render_controllers/llama.v2.render_controllers.json",
+      "sha256": "0f4ca44dfcffe15cdceb83d56763dff220a54323242ce10d903d763deda6e46e"
+    },
+    {
+      "path": "resource_pack/render_controllers/llama_spit.render_controllers.json",
+      "local": "resource_pack_trader/render_controllers/llama_spit.render_controllers.json",
+      "sha256": "7f73843a2bf88981e28acb50f9f7479ac533575e92d32d7ce630be31628fcf70"
+    },
+    {
+      "path": "resource_pack/render_controllers/wandering_trader.render_controllers.json",
+      "local": "resource_pack_trader/render_controllers/wandering_trader.render_controllers.json",
+      "sha256": "f0fb70cf7c54df040e27f4f8bbc7f147bb629b1dcecce2b2dd629e6147a5df47"
+    },
+    {
+      "path": "resource_pack/textures/entity/lead_rope.png",
+      "local": "resource_pack_trader/textures/entity/lead_rope.png",
+      "sha256": "31ecfb262746a38da8ed27fc20e8a71badfbba875889621335c0554bdc224274"
+    },
+    {
+      "path": "resource_pack/textures/entity/llama/decor/trader_llama_decor.png",
+      "local": "resource_pack_trader/textures/entity/llama/decor/trader_llama_decor.png",
+      "sha256": "7da0b93d4ba3d6c2d845801dda01140dbf14cd7ce080625cdaf7b0a9fe7ca5ff"
+    },
+    {
+      "path": "resource_pack/textures/entity/llama/llama_brown.png",
+      "local": "resource_pack_trader/textures/entity/llama/llama_brown.png",
+      "sha256": "1e31fda6b89265347ee83c7aee8916424a57de2c2e68deb5bce708eab25ffb00"
+    },
+    {
+      "path": "resource_pack/textures/entity/llama/llama_creamy.png",
+      "local": "resource_pack_trader/textures/entity/llama/llama_creamy.png",
+      "sha256": "2dedcdd22bf8cb5a9a3929f5486d35015d65223d5c2cae877a047c9f001e810a"
+    },
+    {
+      "path": "resource_pack/textures/entity/llama/spit.png",
+      "local": "resource_pack_trader/textures/entity/llama/spit.png",
+      "sha256": "597ff911104b43392939e18d4ad8b10a446fddc38176a5385cacb46f996df87f"
+    },
+    {
+      "path": "resource_pack/textures/entity/wandering_trader.png",
+      "local": "resource_pack_trader/textures/entity/wandering_trader.png",
+      "sha256": "d2cf93c139a650055247d63360dda78ac5b80d3c62c18a90732a34868950513b"
+    },
+    {
+      "path": "resource_pack/textures/items/bucket_milk.png",
+      "local": "resource_pack_trader/textures/items/bucket_milk.png",
+      "sha256": "fafc1ad43a62d9413042a76c4417c90d0947a4444a39a5f1057e198f79afc6bb"
+    }
+  ]
+}

@@ -1,0 +1,337 @@
+{
+    "source":  "Locally installed Minecraft Java asset index 1.21.json (used by 1.21.1) and its hashed original objects under .minecraft/assets/objects; bytes copied unchanged",
+    "rights":  "Minecraft assets are copyright Mojang Studios/Microsoft. Use is subject to the Minecraft EULA; no general redistribution permission is claimed.",
+    "used_by":  "scripts/characters/我的世界/wandering_trader/audio.gd (流浪商人 / 羊驼 / 缰绳 / 墙体进出)",
+    "files":  [
+                  {
+                      "new_asset":  "trader_idle1.ogg",
+                      "original_path":  "minecraft/sounds/mob/wandering_trader/idle1.ogg",
+                      "sha1":  "ff06cb5a98deaa6f19b00776a5f329717d61304f",
+                      "event":  "entity.wandering_trader.ambient"
+                  },
+                  {
+                      "new_asset":  "trader_idle2.ogg",
+                      "original_path":  "minecraft/sounds/mob/wandering_trader/idle2.ogg",
+                      "sha1":  "86905145ccf997be44ed8a62f55a11979184c45f",
+                      "event":  "entity.wandering_trader.ambient"
+                  },
+                  {
+                      "new_asset":  "trader_idle3.ogg",
+                      "original_path":  "minecraft/sounds/mob/wandering_trader/idle3.ogg",
+                      "sha1":  "2668a9a1cca498dcd2eb51f06a3914a31777b7b2",
+                      "event":  "entity.wandering_trader.ambient"
+                  },
+                  {
+                      "new_asset":  "trader_idle4.ogg",
+                      "original_path":  "minecraft/sounds/mob/wandering_trader/idle4.ogg",
+                      "sha1":  "dc7c277dfc9da2ac61e1004f1cbcaef94b834f9d",
+                      "event":  "entity.wandering_trader.ambient"
+                  },
+                  {
+                      "new_asset":  "trader_idle5.ogg",
+                      "original_path":  "minecraft/sounds/mob/wandering_trader/idle5.ogg",
+                      "sha1":  "3faa21e24b58796bf8dbc0c5557f3f2877665316",
+                      "event":  "entity.wandering_trader.ambient"
+                  },
+                  {
+                      "new_asset":  "trader_hurt1.ogg",
+                      "original_path":  "minecraft/sounds/mob/wandering_trader/hurt1.ogg",
+                      "sha1":  "829edbab79f24656fb7d8d0d8502e5e85e90b68d",
+                      "event":  "entity.wandering_trader.hurt"
+                  },
+                  {
+                      "new_asset":  "trader_hurt2.ogg",
+                      "original_path":  "minecraft/sounds/mob/wandering_trader/hurt2.ogg",
+                      "sha1":  "cfaeadca6ef963079d47c7ac647029aafe31ee38",
+                      "event":  "entity.wandering_trader.hurt"
+                  },
+                  {
+                      "new_asset":  "trader_hurt3.ogg",
+                      "original_path":  "minecraft/sounds/mob/wandering_trader/hurt3.ogg",
+                      "sha1":  "d0a5002e4993e051c0a2621f0ef8b5d2085ecd44",
+                      "event":  "entity.wandering_trader.hurt"
+                  },
+                  {
+                      "new_asset":  "trader_hurt4.ogg",
+                      "original_path":  "minecraft/sounds/mob/wandering_trader/hurt4.ogg",
+                      "sha1":  "94b3a88973277ba1df46754cdf70e4d061e25b95",
+                      "event":  "entity.wandering_trader.hurt"
+                  },
+                  {
+                      "new_asset":  "trader_death.ogg",
+                      "original_path":  "minecraft/sounds/mob/wandering_trader/death.ogg",
+                      "sha1":  "832ebff80e7b2e835739fffb9bb4944856289221",
+                      "event":  "entity.wandering_trader.death"
+                  },
+                  {
+                      "new_asset":  "trader_disappeared1.ogg",
+                      "original_path":  "minecraft/sounds/mob/wandering_trader/disappeared1.ogg",
+                      "sha1":  "c746d34624269a4a709e7725f34f3640f6d58685",
+                      "event":  "entity.wandering_trader.disappeared"
+                  },
+                  {
+                      "new_asset":  "trader_disappeared2.ogg",
+                      "original_path":  "minecraft/sounds/mob/wandering_trader/disappeared2.ogg",
+                      "sha1":  "517d2ef3d3c8d5352a12552430603aff1addce22",
+                      "event":  "entity.wandering_trader.disappeared"
+                  },
+                  {
+                      "new_asset":  "trader_reappeared1.ogg",
+                      "original_path":  "minecraft/sounds/mob/wandering_trader/reappeared1.ogg",
+                      "sha1":  "03a24c75b99277a4856e39b0cf99006c66b0119f",
+                      "event":  "entity.wandering_trader.reappeared"
+                  },
+                  {
+                      "new_asset":  "trader_reappeared2.ogg",
+                      "original_path":  "minecraft/sounds/mob/wandering_trader/reappeared2.ogg",
+                      "sha1":  "8ac7ce18666c12896ed8fe1bd06671f2781cf782",
+                      "event":  "entity.wandering_trader.reappeared"
+                  },
+                  {
+                      "new_asset":  "trader_drink_milk1.ogg",
+                      "original_path":  "minecraft/sounds/mob/wandering_trader/drink_milk1.ogg",
+                      "sha1":  "aed47ecee3a02ab6085bd43e136be5cd2efba379",
+                      "event":  "entity.wandering_trader.drink_milk"
+                  },
+                  {
+                      "new_asset":  "trader_drink_milk2.ogg",
+                      "original_path":  "minecraft/sounds/mob/wandering_trader/drink_milk2.ogg",
+                      "sha1":  "27639caa436a2372f2a278f4166c42210ce5f025",
+                      "event":  "entity.wandering_trader.drink_milk"
+                  },
+                  {
+                      "new_asset":  "trader_drink_milk3.ogg",
+                      "original_path":  "minecraft/sounds/mob/wandering_trader/drink_milk3.ogg",
+                      "sha1":  "1b89d175802fd1a24ca927f76fe41d7e8fe882e0",
+                      "event":  "entity.wandering_trader.drink_milk"
+                  },
+                  {
+                      "new_asset":  "trader_drink_milk4.ogg",
+                      "original_path":  "minecraft/sounds/mob/wandering_trader/drink_milk4.ogg",
+                      "sha1":  "ed850d693885e848e74c4819974e0e4787e13c59",
+                      "event":  "entity.wandering_trader.drink_milk"
+                  },
+                  {
+                      "new_asset":  "trader_drink_milk5.ogg",
+                      "original_path":  "minecraft/sounds/mob/wandering_trader/drink_milk5.ogg",
+                      "sha1":  "439571a5c08fb8cf12d2001ddf4b9cfc5c0521ec",
+                      "event":  "entity.wandering_trader.drink_milk"
+                  },
+                  {
+                      "new_asset":  "trader_drink_potion.ogg",
+                      "original_path":  "minecraft/sounds/mob/wandering_trader/drink_potion.ogg",
+                      "sha1":  "f0194d3dcf61e81446cc5efd554d8811cf66faf3",
+                      "event":  "entity.wandering_trader.drink_potion"
+                  },
+                  {
+                      "new_asset":  "generic_drink.ogg",
+                      "original_path":  "minecraft/sounds/random/drink.ogg",
+                      "sha1":  "857b75738992d25e338dee640ab191323bcbf798",
+                      "event":  "entity.wandering_trader.drink_potion (second variant) / entity.generic.drink"
+                  },
+                  {
+                      "new_asset":  "llama_idle1.ogg",
+                      "original_path":  "minecraft/sounds/mob/llama/idle1.ogg",
+                      "sha1":  "add752f78fbd0398f0e9e0755e4e12dc196b821c",
+                      "event":  "entity.llama.ambient"
+                  },
+                  {
+                      "new_asset":  "llama_idle2.ogg",
+                      "original_path":  "minecraft/sounds/mob/llama/idle2.ogg",
+                      "sha1":  "c10fd6127207673fa43ef93038121f0d5aebc456",
+                      "event":  "entity.llama.ambient"
+                  },
+                  {
+                      "new_asset":  "llama_idle3.ogg",
+                      "original_path":  "minecraft/sounds/mob/llama/idle3.ogg",
+                      "sha1":  "1584417fc341cc7a34f2de0a5f6e8249684cf1f1",
+                      "event":  "entity.llama.ambient"
+                  },
+                  {
+                      "new_asset":  "llama_idle4.ogg",
+                      "original_path":  "minecraft/sounds/mob/llama/idle4.ogg",
+                      "sha1":  "a9e0a8b4237387f40008b6f0227915c5dd8281fd",
+                      "event":  "entity.llama.ambient"
+                  },
+                  {
+                      "new_asset":  "llama_idle5.ogg",
+                      "original_path":  "minecraft/sounds/mob/llama/idle5.ogg",
+                      "sha1":  "af1519b9429688e8cebc6d7edd8ac5cfc8d1a6af",
+                      "event":  "entity.llama.ambient"
+                  },
+                  {
+                      "new_asset":  "llama_hurt1.ogg",
+                      "original_path":  "minecraft/sounds/mob/llama/hurt1.ogg",
+                      "sha1":  "ec88e60f461446217590da0ca3f5b9723aea440a",
+                      "event":  "entity.llama.hurt"
+                  },
+                  {
+                      "new_asset":  "llama_hurt2.ogg",
+                      "original_path":  "minecraft/sounds/mob/llama/hurt2.ogg",
+                      "sha1":  "0eb97ddb69796a7f0cfa8c582da49b0ea3f078a1",
+                      "event":  "entity.llama.hurt"
+                  },
+                  {
+                      "new_asset":  "llama_hurt3.ogg",
+                      "original_path":  "minecraft/sounds/mob/llama/hurt3.ogg",
+                      "sha1":  "4be797a654ef7d62adbba23f531324f97b8f0da2",
+                      "event":  "entity.llama.hurt"
+                  },
+                  {
+                      "new_asset":  "llama_death1.ogg",
+                      "original_path":  "minecraft/sounds/mob/llama/death1.ogg",
+                      "sha1":  "52b923b1b552936f2ac5fbd510bfbdd4cf7b14e7",
+                      "event":  "entity.llama.death"
+                  },
+                  {
+                      "new_asset":  "llama_death2.ogg",
+                      "original_path":  "minecraft/sounds/mob/llama/death2.ogg",
+                      "sha1":  "7496b0e5fe51d486a1c18a10f354802b64c72df5",
+                      "event":  "entity.llama.death"
+                  },
+                  {
+                      "new_asset":  "llama_spit1.ogg",
+                      "original_path":  "minecraft/sounds/mob/llama/spit1.ogg",
+                      "sha1":  "361c8d76dce6157713e24e77c7feb20868ae0e38",
+                      "event":  "entity.llama.spit"
+                  },
+                  {
+                      "new_asset":  "llama_spit2.ogg",
+                      "original_path":  "minecraft/sounds/mob/llama/spit2.ogg",
+                      "sha1":  "a783e772d25d52b7e3d4d9a58458bdc23e94efdc",
+                      "event":  "entity.llama.spit"
+                  },
+                  {
+                      "new_asset":  "llama_step1.ogg",
+                      "original_path":  "minecraft/sounds/mob/llama/step1.ogg",
+                      "sha1":  "7584883d3969a771716a29f55a695acad068c9c8",
+                      "event":  "entity.llama.step"
+                  },
+                  {
+                      "new_asset":  "llama_step2.ogg",
+                      "original_path":  "minecraft/sounds/mob/llama/step2.ogg",
+                      "sha1":  "20ddc6a5fec1f7be2d92c73ffed513855fe7a906",
+                      "event":  "entity.llama.step"
+                  },
+                  {
+                      "new_asset":  "llama_step3.ogg",
+                      "original_path":  "minecraft/sounds/mob/llama/step3.ogg",
+                      "sha1":  "d380b144db2faf356520919d646ab95863cbf51e",
+                      "event":  "entity.llama.step"
+                  },
+                  {
+                      "new_asset":  "llama_step4.ogg",
+                      "original_path":  "minecraft/sounds/mob/llama/step4.ogg",
+                      "sha1":  "7c8f2ffac9470cbd75cb668797714c3602bc3ebe",
+                      "event":  "entity.llama.step"
+                  },
+                  {
+                      "new_asset":  "llama_step5.ogg",
+                      "original_path":  "minecraft/sounds/mob/llama/step5.ogg",
+                      "sha1":  "6aef9bad980e39643edb9154457da314357ed1f1",
+                      "event":  "entity.llama.step"
+                  },
+                  {
+                      "new_asset":  "llama_angry1.ogg",
+                      "original_path":  "minecraft/sounds/mob/llama/angry1.ogg",
+                      "sha1":  "3c7d131bea20c3ecf4944ea348f0b7f1ffd589b8",
+                      "event":  "entity.llama.angry"
+                  },
+                  {
+                      "new_asset":  "leash_break1.ogg",
+                      "original_path":  "minecraft/sounds/entity/leashknot/break1.ogg",
+                      "sha1":  "63c22eb984e3406f33bd3fc474b1d76f2c395f1a",
+                      "event":  "entity.leash_knot.break"
+                  },
+                  {
+                      "new_asset":  "leash_break2.ogg",
+                      "original_path":  "minecraft/sounds/entity/leashknot/break2.ogg",
+                      "sha1":  "48f9931bef7d3a07c7ea40126eb2bd9c71c4a0e7",
+                      "event":  "entity.leash_knot.break"
+                  },
+                  {
+                      "new_asset":  "leash_break3.ogg",
+                      "original_path":  "minecraft/sounds/entity/leashknot/break3.ogg",
+                      "sha1":  "1f411b36057067939b1aa1b0354ebb8eaa1e980d",
+                      "event":  "entity.leash_knot.break"
+                  },
+                  {
+                      "new_asset":  "leash_place1.ogg",
+                      "original_path":  "minecraft/sounds/entity/leashknot/place1.ogg",
+                      "sha1":  "2b048cb32391a275b07e5648ec6d474fb52f9f91",
+                      "event":  "entity.leash_knot.place"
+                  },
+                  {
+                      "new_asset":  "leash_place2.ogg",
+                      "original_path":  "minecraft/sounds/entity/leashknot/place2.ogg",
+                      "sha1":  "45d81989f156d74bd07939be66cb89aecd6f8609",
+                      "event":  "entity.leash_knot.place"
+                  },
+                  {
+                      "new_asset":  "leash_place3.ogg",
+                      "original_path":  "minecraft/sounds/entity/leashknot/place3.ogg",
+                      "sha1":  "ee39bc3030b4465309f67d897b9df23093acba06",
+                      "event":  "entity.leash_knot.place"
+                  },
+                  {
+                      "new_asset":  "stone_break1.ogg",
+                      "original_path":  "minecraft/sounds/dig/stone1.ogg",
+                      "sha1":  "4e094ed8dfa98656d8fec52a7d20c5ee6098b6ad",
+                      "event":  "block.stone.break"
+                  },
+                  {
+                      "new_asset":  "stone_break2.ogg",
+                      "original_path":  "minecraft/sounds/dig/stone2.ogg",
+                      "sha1":  "9c92f697142ae320584bf64c0d54381d59703528",
+                      "event":  "block.stone.break"
+                  },
+                  {
+                      "new_asset":  "stone_break3.ogg",
+                      "original_path":  "minecraft/sounds/dig/stone3.ogg",
+                      "sha1":  "8f23c02475d388b23e5faa680eafe6b991d7a9d4",
+                      "event":  "block.stone.break"
+                  },
+                  {
+                      "new_asset":  "stone_break4.ogg",
+                      "original_path":  "minecraft/sounds/dig/stone4.ogg",
+                      "sha1":  "363545a76277e5e47538b2dd3a0d6aa4f7a87d34",
+                      "event":  "block.stone.break"
+                  },
+                  {
+                      "new_asset":  "stone_hit1.ogg",
+                      "original_path":  "minecraft/sounds/step/stone1.ogg",
+                      "sha1":  "4a2e3795ffd4d3aab0834b7e41903af3a8f7d197",
+                      "event":  "block.stone.hit"
+                  },
+                  {
+                      "new_asset":  "stone_hit2.ogg",
+                      "original_path":  "minecraft/sounds/step/stone2.ogg",
+                      "sha1":  "22a383d9c22342305a4f16fec0bb479a885f8da2",
+                      "event":  "block.stone.hit"
+                  },
+                  {
+                      "new_asset":  "stone_hit3.ogg",
+                      "original_path":  "minecraft/sounds/step/stone3.ogg",
+                      "sha1":  "a533e7ae975e62592de868e0d0572778614bd587",
+                      "event":  "block.stone.hit"
+                  },
+                  {
+                      "new_asset":  "stone_hit4.ogg",
+                      "original_path":  "minecraft/sounds/step/stone4.ogg",
+                      "sha1":  "d5218034051a13322d7b5efc0b5a9af739615f04",
+                      "event":  "block.stone.hit"
+                  },
+                  {
+                      "new_asset":  "stone_hit5.ogg",
+                      "original_path":  "minecraft/sounds/step/stone5.ogg",
+                      "sha1":  "48dd05ab2e4626d74206c2b09a628a3d59ce15e9",
+                      "event":  "block.stone.hit"
+                  },
+                  {
+                      "new_asset":  "stone_hit6.ogg",
+                      "original_path":  "minecraft/sounds/step/stone6.ogg",
+                      "sha1":  "c4810a3de80cb57f9cdf8deaacfd36cb619cdf0b",
+                      "event":  "block.stone.hit"
+                  }
+              ]
+}

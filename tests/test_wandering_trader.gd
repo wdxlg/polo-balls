@@ -1,0 +1,224 @@
+extends "res://tests/test_sulfur_cube_balance.gd"
+## Task 13 (2026-09-28): 流浪商人 + two leashed trader llamas, in a real World.
+## Herd spawn/leash, yank-back ignoring character collision, llama-only speed damage with knockback
+## along the llama's motion, spit (medium interval, medium-fast shot), delayed retaliation spit,
+## milk only with a negative effect (copper-sword cleanse, long cooldown), Witch invisibility,
+## wall phase (leash snaps, hidden/untargetable, exits at the safest wall slot, leash reconnects),
+## killable llamas without respawn, herd retires with the trader, manual controls.
+var sounds:Dictionary = {}
+
+func hold(u:Node) -> void:
+	u.state_machine.set_physics_process(false);u.set_physics_process(false)
+	u.Has_Collision_Damage=false;u.Can_Attack=false;u.Can_Skill=false
+
+func unit(scene:String,n:String,team:String,pos:Vector2) -> Node2D:
+	var u:Node2D=load(scene).instantiate();u.name=n;u.Team=team;u.position=pos
+	if u.has_node("CharacterAutoFit"):u.get_node("CharacterAutoFit").enabled=false
+	world.add_child(u,true)
+	return u
+
+func seconds(t:float) -> void:
+	var left:float=t
+	while left>0.0:
+		await physics_frame;left-=1.0/60.0
+
+func heard(ev:String) -> int: return int(sounds.get(ev,0))
+
+func _on_node_added(n:Node) -> void:
+	if n.has_meta(&"wt_event"):
+		var ev:String=String(n.get_meta(&"wt_event"));sounds[ev]=int(sounds.get(ev,0))+1
+
+func run() -> void:
+	create_timer(150.0,true,false,true).timeout.connect(func(): print("WANDERING_TRADER_TIMEOUT"); quit(2))
+	game=root.get_node("Game")
+	var saved:bool=game.Game_Settings.Have_Team_Damage
+	game.now_stop_state=false
+	game.Game_Settings.Training_Mode=true
+	game.Game_Settings.Training_Mode_Type="manual"
+	AudioServer.set_bus_mute(0,true)
+	node_added.connect(_on_node_added)
+	world=load("res://scenes/world.tscn").instantiate()
+	world.tree_entered.connect(func():current_scene=world,CONNECT_ONE_SHOT)
+	root.add_child(world)
+	for i:int in range(20):await process_frame
+	if is_instance_valid(world._mc_prewarmer):world._mc_prewarmer.queue_free()
+	var rect:Rect2=world.return_map_world_rect(world.map_group[world.now_choose_map])
+	var center:Vector2=rect.get_center()
+	print("map ",world.now_choose_map," rect ",rect)
+	var trader:Node2D=unit("res://scenes/characters/我的世界/流浪商人.tscn","WT","Team0",center)
+	var enemy:Node2D=unit("res://scenes/ball.tscn","WTEnemy","Team1",center+Vector2(rect.size.x*0.4,0))
+	await process_frame
+	hold(enemy);enemy.Max_health=100000;enemy.health=100000
+	trader._invisibility_wait=999.0;trader._wall_wait=999.0;trader._milk_wait=999.0
+	for i:int in range(6):await process_frame
+	# --- herd ---------------------------------------------------------------------
+	var herd:Array=trader.living_llamas()
+	check(herd.size()==2,"trader brings exactly two llamas (%d)" % herd.size())
+	if herd.size()<2:
+		print("WANDERING_TRADER checks=",checks," failures=",failures);quit(1);return
+	var l0:Node2D=herd[0];var l1:Node2D=herd[1]
+	check(String(l0.name)=="WT_Llama0" and String(l1.name)=="WT_Llama1","llama names are deterministic (%s,%s)" % [l0.name,l1.name])
+	check(l0.Master==trader and l1.Master==trader and l0.Type==3 and l0.Team=="Team0","llamas are Creature summons of the trader on his team")
+	check(l0.leash_connected and l1.leash_connected and trader.wt_leash_active(),"both leashes connected at spawn")
+	check(trader.leashes.size()==2 and trader.leashes[0].is_inside_tree() and trader.leashes[0].is_connected_visual() and trader.leashes[1].is_connected_visual(),"two leash views drawn in world space")
+	check(l0.is_combat_targetable() and l1.is_combat_targetable(),"llamas are killable (targetable) summons")
+	check(not l0.get_meta(&"haochen_copy",false) and l0.get_node("Graphics/Image").texture!=null and trader.get_node("Graphics/Image").texture!=null,"baked frames applied to trader and llama")
+	for l:Node2D in [l0,l1]:l.Max_health=100000;l.health=100000
+	# --- yank back through a character (ignore character collision) ----------------
+	hold(trader)
+	var p:Vector2=center+Vector2(-rect.size.x*0.15,0)
+	trader.global_position=p
+	l0.global_position=p+Vector2(-80,0);l1.global_position=p+Vector2(0,-14)
+	var blocker:Node2D=unit("res://scenes/ball.tscn","WTBlocker","Team0",p+Vector2(-40,0))
+	await process_frame
+	hold(blocker);blocker.Max_health=100000;blocker.health=100000
+	var saw_yank:bool=false;var ghost_layers:bool=true;var closest:float=INF
+	for i:int in range(150):
+		await physics_frame
+		if l0.yanking:
+			saw_yank=true
+			if l0.collision_layer!=0 or (l0.collision_mask & 2)!=0:ghost_layers=false
+		closest=minf(closest,l0.global_position.distance_to(trader.global_position))
+		if saw_yank and not l0.yanking:break
+	check(saw_yank,"a llama beyond leash_pull_start is yanked back")
+	check(ghost_layers,"while yanked the llama ignores character collision (layer 0, no character mask)")
+	check(closest<=trader.leash_pull_end+6.0,"the yank brings it back through a same-team character (closest %.1f)" % closest)
+	check(blocker.health==100000,"the teammate on the path takes no speed damage")
+	await seconds(2.0) # still overlapping the teammate: leaves ghost mode by the 1.5 s fallback
+	check(l0.collision_layer==2 and l0.collision_mask==3,"normal collision restored after the yank (%d/%d)" % [l0.collision_layer,l0.collision_mask])
+	blocker.queue_free()
+	# --- speed damage on the yank path + knockback parallel to motion ---------------
+	var foe:Node2D=unit("res://scenes/ball.tscn","WTFoe","Team1",p+Vector2(-45,0))
+	await process_frame
+	hold(foe);foe.Max_health=100000;foe.health=100000
+	l0.global_position=p+Vector2(-90,0)
+	var hits0:int=l0.speed_hits_dealt
+	for i:int in range(90):
+		await physics_frame
+		if l0.speed_hits_dealt>hits0:break
+	check(l0.speed_hits_dealt>hits0 and foe.health<100000,"a yanked llama rams an enemy on its path (hp %d)" % foe.health)
+	check(l0.speed_damage_for(100.0)==0.0 and is_equal_approx(l0.speed_damage_for(200.0),18.0) and l0.speed_damage_for(9999.0)==l0.speed_damage_max,"speed damage scales with speed, 0 below the threshold, capped")
+	check(trader.get("speed_hits_dealt")==null and not trader.has_method(&"apply_speed_hit"),"the trader itself has no speed damage (llama body only)")
+	foe.Speed=0.0;foe.default_properties.Speed=0.0
+	var ram_from:Vector2=foe.global_position
+	foe.set_physics_process(true);foe.state_machine.set_physics_process(true)
+	await seconds(0.6)
+	var ram_moved:Vector2=foe.global_position-ram_from
+	check(ram_moved.x>2.0 and absf(ram_moved.y)<ram_moved.x*0.35,"the ram knocks the enemy along the yank direction (+x, moved %s)" % ram_moved)
+	# Measure the direct hit away from the herd: crowd separation / body contacts with the moving
+	# llamas would otherwise add their own displacement.
+	for l:Node in [l0,l1]:l.state_machine.set_physics_process(false);l.set_physics_process(false)
+	foe.global_position=Vector2(rect.end.x-40.0,rect.position.y+40.0)
+	await seconds(0.2)
+	var before:Vector2=foe.global_position;var hp:int=foe.health
+	l0._speed_hits.clear()
+	var hit:bool=l0.apply_speed_hit(foe,250.0,Vector2(0,1))
+	await seconds(0.35)
+	var moved:Vector2=foe.global_position-before
+	check(hit and foe.health<hp,"direct speed hit damages")
+	check(moved.y>2.0 and absf(moved.x)<moved.y*0.35,"knockback follows the llama's motion direction (moved %s)" % moved)
+	foe.queue_free()
+	for l:Node in [l0,l1]:l.state_machine.set_physics_process(true);l.set_physics_process(true)
+	# --- spit ---------------------------------------------------------------------------
+	enemy.global_position=l1.global_position+Vector2(90,0)
+	await physics_frame
+	var fired:int=l1.spits_fired;hp=enemy.health
+	l1.spit_at(enemy)
+	var shot:Node=world.get_node_or_null(NodePath("%s_Spit%d" % [l1.name,l1._spit_serial]))
+	check(shot!=null and is_equal_approx(shot.Speed,300.0) and shot.Damage==14 and shot.Master==l1,"spit spawned with medium-fast speed 300 and 14 damage")
+	check(l1.spits_fired==fired+1 and heard("llama_spit")>=1,"spit counted and plays llama spit sound")
+	for i:int in range(60):
+		await physics_frame
+		if enemy.health<hp:break
+	check(enemy.health<hp,"spit hits the enemy (hp %d -> %d)" % [hp,enemy.health])
+	check(is_equal_approx(l1.spit_interval,2.0) and l1.spit_range>100.0,"medium attack interval 2.0 s")
+	# --- retaliation --------------------------------------------------------------------
+	await seconds(0.4)
+	l1._spit_wait=99.0
+	var r0:int=l1.retaliations
+	l1.receive_positional_damage(5.0,l1.global_position,false,enemy)
+	await seconds(0.25)
+	check(l1.retaliations==r0,"no instant retaliation (delay)")
+	await seconds(0.45)
+	check(l1.retaliations==r0+1 and heard("llama_angry")>=1,"retaliation spit after the delay")
+	# --- milk ----------------------------------------------------------------------------
+	enemy.global_position=center+Vector2(rect.size.x*0.4,0)
+	trader.global_position=center+Vector2(-rect.size.x*0.15,0)
+	trader.set_physics_process(true);trader.state_machine.set_physics_process(true)
+	trader._milk_wait=0.0
+	var POT:Script=load("res://scripts/effects/我的世界/女巫药水效果.gd")
+	POT.apply_effect(trader,"speed",trader)
+	await seconds(0.5)
+	check(not trader.has_negative_effect() and trader.milk_drinks==0,"no milk with only a positive effect")
+	POT.apply_effect(trader,"slowness",enemy)
+	POT.apply_effect(trader,"poison",enemy)
+	check(trader.has_negative_effect(),"slowness/poison detected as negative")
+	await seconds(0.4)
+	check(trader.milk_drinks==1 and heard("drink_milk")>=1,"drinks milk once a negative effect exists")
+	await seconds(1.2)
+	check(not trader.has_negative_effect() and trader.last_cleansed>=1,"milk cleared all negative effects (removed %d)" % trader.last_cleansed)
+	var STATUS:Script=load("res://scripts/effects/我的世界/mc_status_effects.gd")
+	check(STATUS.active(trader,"speed"),"positive effect kept by the milk")
+	POT.apply_effect(trader,"slowness",enemy)
+	await seconds(1.0)
+	check(trader.milk_drinks==1 and trader._milk_wait>10.0,"long cooldown: no second milk right away")
+	trader.cleanse_negative_effects()
+	# --- invisibility ------------------------------------------------------------------------
+	trader._invisibility_wait=0.0
+	check(trader.start_drink(&"invisibility"),"invisibility drink starts")
+	await seconds(1.0)
+	check(trader.is_invisible() and STATUS.active(trader,"invisibility") and trader.potion_drinks==1 and heard("drink_potion")>=1,"Witch invisibility applied after drinking")
+	# --- wall ------------------------------------------------------------------------------------
+	enemy.global_position=trader.global_position+Vector2(50,0)
+	var invis_at_start:bool=trader.is_invisible()
+	var hp_t:int=trader.health
+	check(trader.start_wall_phase(),"wall phase starts")
+	var entry:Dictionary=trader.entry_slot
+	check(trader.wall_phase==1 and not trader.wt_leash_active() and trader.collision_layer==0,"entering: leash broken, collision off")
+	await seconds(0.1)
+	check(not trader.leashes[0].is_connected_visual() and heard("leash_break")>=1 and heard("trader_disappeared")>=1,"leash views snap with leash_break + disappeared sounds")
+	var t:float=0.0
+	while trader.wall_phase!=2 and t<1.2:
+		await physics_frame;t+=1.0/60.0
+	check(trader.wall_phase==2 and not trader.visible and not trader.is_combat_targetable(),"hidden inside the wall: invisible and untargetable")
+	check(trader.global_position.distance_to(entry.wall)<1.0 and heard("stone_break")>=1,"he went into the nearest wall tile (stone break) pos %s wall %s stone %d" % [trader.global_position,entry.wall,heard("stone_break")])
+	check(not trader.receive_positional_damage(50.0,trader.global_position,false,enemy) and trader.health==hp_t,"no damage while inside the wall")
+	check(not l1.leash_active(trader),"llamas are free (leash broken) while he hides")
+	while trader.wall_phase!=0 and t<5.0:
+		await physics_frame;t+=1.0/60.0
+	check(trader.wall_phase==0 and trader.visible and trader.is_combat_targetable(),"emerged and targetable again")
+	var WALL:Script=load("res://scripts/characters/我的世界/wandering_trader/wall_phase.gd")
+	var slots:Array[Dictionary]=WALL.wall_slots(world,trader.mc_arena_rect())
+	var threats:Array[Vector2]=trader.threat_points()
+	var best:float=0.0
+	for s:Dictionary in slots:best=maxf(best,WALL.min_threat_distance(s.floor,threats))
+	var got:float=WALL.min_threat_distance(trader.global_position,threats)
+	check(not trader.exit_slot.is_empty() and got>=best-40.0,"exit chosen at (near) the safest wall slot (%.0f of best %.0f, %d slots)" % [got,best,slots.size()])
+	check(trader.mc_body_position_clear(trader.global_position),"exit point is body-clear (not stuck in a wall)")
+	check(heard("stone_hit")>=1 and heard("trader_reappeared")>=1,"emerges with stone hit + reappeared")
+	await seconds(0.2)
+	check(trader.wt_leash_active() and trader.leashes[0].is_connected_visual() and trader.leashes[1].is_connected_visual() and heard("leash_place")>=1,"leashes reconnect when he comes out")
+	var invis_now:bool=trader.is_invisible()
+	check(((trader.collision_layer & 2)!=0)==(not invis_now) and (trader.collision_mask & 1)!=0,"collision restored consistently (invisible at start %s, now %s, %d/%d)" % [invis_at_start,invis_now,trader.collision_layer,trader.collision_mask])
+	check(not trader.has_meta(&"ignore_combat_targeting") and not trader.has_meta(&"ignore_combat_locking") or invis_now,"wall metas cleared")
+	# --- llama death: leash removed, no respawn ------------------------------------------------
+	trader._wall_wait=999.0;trader._invisibility_wait=999.0
+	l1.take_damage(1e9)
+	await seconds(0.1)
+	check(trader.living_llamas().size()==1 and not trader.leashes[1].is_connected_visual(),"a dead llama loses its leash")
+	await seconds(1.5)
+	check(trader.living_llamas().size()==1 and world.get_node_or_null("WT_Llama1")==null,"no respawn")
+	# --- controls ------------------------------------------------------------------------------------
+	var ids:Array=trader.player_control_action_ids()
+	check(ids.has(&"controlled_attack_action") and ids.has(&"controlled_skill_action") and ids.has(&"controlled_middle_action"),"manual controls: potion / wall / milk (%s)" % [ids])
+	# --- trader death retires the herd -------------------------------------------------------------
+	trader.take_damage(1e9)
+	await seconds(1.0)
+	check(not is_instance_valid(l0) or l0.health<=0,"remaining llama retires with the trader")
+	var views_ok:bool=true
+	for n:Node in world.get_children():
+		if String(n.name).begins_with("WT_Leash") and n.has_method(&"is_connected_visual") and n.is_connected_visual():views_ok=false
+	check(views_ok,"no connected leash left after the trader's death")
+	game.Game_Settings.Have_Team_Damage=saved
+	print("WANDERING_TRADER checks=",checks," failures=",failures)
+	quit(0 if failures==0 else 1)

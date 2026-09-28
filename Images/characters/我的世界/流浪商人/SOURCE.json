@@ -1,0 +1,22 @@
+{
+  "description": "流浪商人 / trader llama art for polo-balls (task 13, 2026-09-28)",
+  "upstream": "Mojang/bedrock-samples",
+  "commit": "736072450c26a7c67f07b1661f29d9a5ebaa14b1",
+  "files": {
+    "frames/*.png, frames/*.tres, frames/manifest.json": {
+      "generated_by": "scripts/training/mc_native_assets/bake_wandering_trader.py",
+      "inputs": "scripts/training/mc_native_assets/resource_pack_trader/ (see sources_trader.json)",
+      "models": [
+        "entity/wandering_trader.entity.json",
+        "entity/trader_llama.entity.json",
+        "entity/llama_spit.entity.json"
+      ]
+    },
+    "items/milk_bucket.png": {
+      "source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/items/bucket_milk.png",
+      "sha256": "fafc1ad43a62d9413042a76c4417c90d0947a4444a39a5f1057e198f79afc6bb",
+      "modified": false
+    }
+  },
+  "docs": "docs/WANDERING_TRADER.md"
+}
