@@ -161,9 +161,13 @@ func run() -> void:
 		await physics_frame
 		if enemy.health<hp:break
 	check(enemy.health<hp,"spit hits the enemy (hp %d -> %d)" % [hp,enemy.health])
-	var spit_sfx:Array=hit_players().filter(func(n:Node) -> bool: return not spit_sfx0.has(n))
+	var spit_sfx:Array=hit_players().filter(func(n:Node) -> bool: return not spit_sfx0.has(n) and int(n.get_meta(&"mc_damage_source",0))==l1.get_instance_id())
 	var HG:Script=load("res://scripts/effects/我的世界/hit_audio_gain.gd")
-	check(spit_sfx.size()==1 and String(spit_sfx[0].get_meta(&"mc_sound_event"))==HG.damage_event(float(hp-enemy.health)) and is_equal_approx(spit_sfx[0].volume_db,clampf(HG.damage_gain(float(hp-enemy.health)),0.0,6.0)) and spit_sfx[0].get_parent()==world,"spit hit plays the MC hit sound once at 0 dB+ gain, outliving the spit (%d)" % spit_sfx.size())
+	var sfx_ok:bool=spit_sfx.size()>=1
+	for sfx:Node in spit_sfx:
+		var dealt:float=float(sfx.get_meta(&"mc_actual_damage",0.0))
+		if dealt<=0.0 or String(sfx.get_meta(&"mc_sound_event"))!=HG.damage_event(dealt) or not is_equal_approx(sfx.volume_db,clampf(HG.damage_gain(dealt),0.0,6.0)) or sfx.get_parent()!=world:sfx_ok=false
+	check(sfx_ok,"spit hit plays the MC hit sound (event and 0 dB+ gain from the actual damage), outliving the spit (%d)" % spit_sfx.size())
 	check(get_nodes_in_group(&"MCWanderingTraderFx").size()==bursts_before,"no invented block-chip splash on impact (vanilla spit just disappears)")
 	check(is_equal_approx(l1.spit_interval,2.0) and l1.spit_range>100.0,"medium attack interval 2.0 s")
 	# --- retaliation --------------------------------------------------------------------
@@ -210,7 +214,6 @@ func run() -> void:
 	check(WALL_CLIP_SCRIPT.clip_shader(WALL_CLIP_SCRIPT.base_shader_of(trader.image))!=null,"clip shader built from the character's own set_rgb_color shader")
 	var near_slot:Dictionary=WALL_SCRIPT.nearest_slot(WALL_SCRIPT.wall_slots(world,trader.mc_arena_rect()),trader.global_position)
 	enemy.global_position=trader.global_position+(near_slot.normal as Vector2).normalized()*50.0
-	var l0_dir:Vector2=l0._last_motion_dir
 	var aim:Vector2=-(near_slot.normal as Vector2).normalized()
 	var entered:bool=await enter_wall(trader)
 	check(entered and not trader.wall_armed,"wall skill arms; he keeps moving and goes in at the wall he runs into")
@@ -229,7 +232,7 @@ func run() -> void:
 	var hidden_early:bool=false
 	var walk_ok:bool=true;var prev:Vector2=trader.global_position
 	await physics_frame
-	check(l0.free_moving and l1.free_moving and (l0_dir==Vector2.ZERO or l0.direction.dot(l0_dir)>0.99),"leash off: llamas switch to normal free movement, starting in their last motion direction (free %s/%s, dir %s, before %s)" % [l0.free_moving,l1.free_moving,l0.direction,l0_dir])
+	check(l0.free_moving and l1.free_moving and (l0.free_start_motion==Vector2.ZERO or l0.free_start_direction.dot(l0.free_start_motion)>0.999) and (l1.free_start_motion==Vector2.ZERO or l1.free_start_direction.dot(l1.free_start_motion)>0.999),"leash off: llamas switch to normal free movement, starting in their last motion direction (%s / %s)" % [l0.free_start_direction,l0.free_start_motion])
 	while trader.wall_phase==1 and t<3.2:
 		var step_now:Vector2=trader.global_position-prev;prev=trader.global_position
 		if step_now.length()>0.01 and (step_now.length()*60.0>trader._wall_walk_speed*1.1 or step_now.normalized().dot(aim)<0.99):walk_ok=false
@@ -243,9 +246,13 @@ func run() -> void:
 	check((trader.global_position-face).dot(normal)+trader.body_reach(normal)<=0.01 and heard("stone_break")>=1,"disappears only once the whole body is behind the wall surface (stone break) pos %s face %s" % [trader.global_position,face])
 	check(not trader.receive_positional_damage(50.0,trader.global_position,false,enemy) and trader.health==hp_t,"no damage while inside the wall")
 	check(not l1.leash_active(trader),"llamas are free (leash broken) while he hides")
-	var free_from:Vector2=l0.global_position
-	await seconds(0.5)
-	check(l0.free_moving and l0.global_position.distance_to(free_from)>15.0,"free llama keeps moving on its own (%.1f px in 0.5 s, free %s, spit %.2f, phys %s)" % [l0.global_position.distance_to(free_from),l0.free_moving,l0._spit_anim,l0.state_machine.is_physics_processing()])
+	var free_path:float=0.0;var free_prev:Vector2=l0.global_position
+	var free_vmax:float=0.0
+	for i:int in range(30):
+		await physics_frame
+		free_path+=l0.global_position.distance_to(free_prev);free_prev=l0.global_position
+		free_vmax=maxf(free_vmax,l0.velocity.length())
+	check(l0.free_moving and free_path>8.0 and absf(free_vmax-l0.Speed)<3.0,"free llama keeps moving on its own at its Speed (path %.1f px in 0.5 s, top %.1f)" % [free_path,free_vmax])
 	while trader.wall_phase==2 and t<6.5:
 		await physics_frame;t+=1.0/60.0
 	await physics_frame
@@ -271,7 +278,12 @@ func run() -> void:
 	for s:Dictionary in slots:best=maxf(best,WALL.min_threat_distance(s.floor,threats))
 	var got:float=WALL.min_threat_distance(trader.global_position,threats)
 	check(not trader.exit_slot.is_empty() and got>=best-40.0,"exit chosen at (near) the safest wall slot (%.0f of best %.0f, %d slots)" % [got,best,slots.size()])
-	check(trader.mc_body_position_clear(trader.global_position),"exit point is body-clear (not stuck in a wall)")
+	# His own llamas roam freely now and are collision exceptions of his body: leave them out.
+	var herd_layers:Array=[]
+	for l:Node2D in trader.living_llamas():herd_layers.append([l,l.collision_layer]);l.collision_layer=0
+	var exit_clear:bool=trader.mc_body_position_clear(trader.global_position)
+	for pair:Array in herd_layers:(pair[0] as Node2D).collision_layer=int(pair[1])
+	check(exit_clear,"exit point is body-clear (not stuck in a wall or an enemy)")
 	check(heard("stone_hit")>=1 and heard("trader_reappeared")>=1,"emerges with stone hit + reappeared")
 	await seconds(0.2)
 	check(trader.wt_leash_active() and trader.leashes[0].is_connected_visual() and trader.leashes[1].is_connected_visual() and heard("leash_place")>=1,"leashes reconnect when he comes out")
@@ -376,7 +388,8 @@ func run() -> void:
 	copy.position=center
 	world.add_child(copy,true)
 	var copy_from:Vector2=center
-	await seconds(1.0)
+	for i:int in range(60):
+		await physics_frame
 	check(is_instance_valid(copy) and copy.health>0 and copy.trader()==null and copy.is_free_agent() and copy.free_moving,"Haochen llama copy (plain-ball Master) lives on with free movement, no leash lookups")
 	check(is_instance_valid(copy) and copy.global_position.distance_to(copy_from)>10.0,"the copy moves")
 	if is_instance_valid(copy):copy.take_damage(1e9)

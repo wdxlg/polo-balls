@@ -69,6 +69,8 @@ var _step_wait:float = 0.3
 var _retired:bool = false
 var free_moving:bool = false
 var _last_motion_dir:Vector2 = Vector2.ZERO
+var free_start_direction:Vector2 = Vector2.ZERO # direction chosen when the leash went off
+var free_start_motion:Vector2 = Vector2.ZERO # its last motion direction at that moment
 ## Returning llama walking out of the wall next to the trader (driven here, clipped like him).
 var emerging:bool = false
 var _emerge_from:Vector2
@@ -215,6 +217,8 @@ func _think(owner_trader:Node2D,delta:float) -> void:
 		if not free_moving:
 			free_moving = true
 			direction = _last_motion_dir if _last_motion_dir != Vector2.ZERO else Vector2.RIGHT.rotated(_mc_rng.randf_range(0.0,TAU))
+			free_start_direction = direction
+			free_start_motion = _last_motion_dir
 		desired = direction
 		speed = maxf(float(default_properties.get("Speed",Speed)),1.0)
 	if yanking or connected: free_moving = false
