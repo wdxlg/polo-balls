@@ -5,6 +5,8 @@ extends "res://tests/test_sulfur_cube_balance.gd"
 ## milk only with a negative effect (copper-sword cleanse, long cooldown), Witch invisibility,
 ## wall phase (leash snaps, hidden/untargetable, exits at the safest wall slot, leash reconnects),
 ## killable llamas without respawn, herd retires with the trader, manual controls.
+const WALL_CLIP_SCRIPT = preload("res://scripts/characters/我的世界/wandering_trader/wall_clip.gd")
+const WALL_SCRIPT = preload("res://scripts/characters/我的世界/wandering_trader/wall_phase.gd")
 var sounds:Dictionary = {}
 
 func hold(u:Node) -> void:
@@ -123,14 +125,22 @@ func run() -> void:
 	enemy.global_position=l1.global_position+Vector2(90,0)
 	await physics_frame
 	var fired:int=l1.spits_fired;hp=enemy.health
+	var old_puffs:Array=get_nodes_in_group(&"MCLlamaSpitSmoke")
 	l1.spit_at(enemy)
 	var shot:Node=world.get_node_or_null(NodePath("%s_Spit%d" % [l1.name,l1._spit_serial]))
 	check(shot!=null and is_equal_approx(shot.Speed,300.0) and shot.Damage==14 and shot.Master==l1,"spit spawned with medium-fast speed 300 and 14 damage")
 	check(l1.spits_fired==fired+1 and heard("llama_spit")>=1,"spit counted and plays llama spit sound")
+	var puffs:Array=get_nodes_in_group(&"MCLlamaSpitSmoke").filter(func(n:Node) -> bool: return not old_puffs.has(n))
+	var along:int=0
+	for puff:Node in puffs:if (puff.velocity as Vector2).normalized().dot(shot.direction)>0.8:along+=1
+	check(puffs.size()==7 and along==7,"vanilla launch: 7 spit smoke puffs fly along the shot (%d, %d along)" % [puffs.size(),along])
+	check(shot!=null and absf(angle_difference(shot.image.rotation+PI,shot.direction.angle()))<0.01,"spit model turned to its flight direction")
+	var bursts_before:int=get_nodes_in_group(&"MCWanderingTraderFx").size()
 	for i:int in range(60):
 		await physics_frame
 		if enemy.health<hp:break
 	check(enemy.health<hp,"spit hits the enemy (hp %d -> %d)" % [hp,enemy.health])
+	check(get_nodes_in_group(&"MCWanderingTraderFx").size()==bursts_before,"no invented block-chip splash on impact (vanilla spit just disappears)")
 	check(is_equal_approx(l1.spit_interval,2.0) and l1.spit_range>100.0,"medium attack interval 2.0 s")
 	# --- retaliation --------------------------------------------------------------------
 	await seconds(0.4)
@@ -172,20 +182,46 @@ func run() -> void:
 	enemy.global_position=trader.global_position+Vector2(50,0)
 	var invis_at_start:bool=trader.is_invisible()
 	var hp_t:int=trader.health
+	var orig_material:Material=trader.image.material
+	check(WALL_CLIP_SCRIPT.clip_shader(WALL_CLIP_SCRIPT.base_shader_of(trader.image))!=null,"clip shader built from the character's own set_rgb_color shader")
 	check(trader.start_wall_phase(),"wall phase starts")
 	var entry:Dictionary=trader.entry_slot
 	check(trader.wall_phase==1 and not trader.wt_leash_active() and trader.collision_layer==0,"entering: leash broken, collision off")
 	await seconds(0.1)
 	check(not trader.leashes[0].is_connected_visual() and heard("leash_break")>=1 and heard("trader_disappeared")>=1,"leash views snap with leash_break + disappeared sounds")
+	var clip_material:Callable=func() -> bool: return trader.image.material is ShaderMaterial and (trader.image.material as ShaderMaterial).shader==WALL_CLIP_SCRIPT.clip_shader((orig_material as ShaderMaterial).shader)
+	var face:Vector2=trader.wall_face_point(entry)
+	var normal:Vector2=(entry.normal as Vector2).normalized()
+	check(clip_material.call() and trader.image.self_modulate.a>0.99 and trader.visible,"entering: fully opaque, body clipped on the wall surface (no fade)")
 	var t:float=0.0
-	while trader.wall_phase!=2 and t<1.2:
+	var seen_partial:bool=false
+	var hidden_early:bool=false
+	while trader.wall_phase==1 and t<1.6:
+		var front:float=(trader.global_position-face).dot(normal)-trader.body_reach(-normal)
+		if front<0.0 and trader.wall_body_visible():seen_partial=true
+		if not trader.visible:hidden_early=true
 		await physics_frame;t+=1.0/60.0
+	check(seen_partial and not hidden_early,"walks straight in: partly inside the wall while still visible, never hidden early")
 	check(trader.wall_phase==2 and not trader.visible and not trader.is_combat_targetable(),"hidden inside the wall: invisible and untargetable")
-	check(trader.global_position.distance_to(entry.wall)<1.0 and heard("stone_break")>=1,"he went into the nearest wall tile (stone break) pos %s wall %s stone %d" % [trader.global_position,entry.wall,heard("stone_break")])
+	check((trader.global_position-face).dot(normal)+trader.body_reach(normal)<=0.01 and heard("stone_break")>=1,"disappears only once the whole body is behind the wall surface (stone break) pos %s face %s" % [trader.global_position,face])
 	check(not trader.receive_positional_damage(50.0,trader.global_position,false,enemy) and trader.health==hp_t,"no damage while inside the wall")
 	check(not l1.leash_active(trader),"llamas are free (leash broken) while he hides")
-	while trader.wall_phase!=0 and t<5.0:
+	while trader.wall_phase==2 and t<5.0:
 		await physics_frame;t+=1.0/60.0
+	await physics_frame
+	var exit_face:Vector2=trader.wall_face_point(trader.exit_slot)
+	var exit_normal:Vector2=(trader.exit_slot.normal as Vector2).normalized()
+	check(trader.wall_phase==3 and trader.visible and clip_material.call() and trader.image.self_modulate.a>0.99,"emerging: opaque, clipped on the exit wall surface")
+	check((trader.global_position-exit_face).dot(exit_normal)<0.0,"emerging starts from inside the wall")
+	var dirs_ok:bool=true
+	var last:Vector2=trader.global_position
+	while trader.wall_phase==3 and t<7.0:
+		await physics_frame;t+=1.0/60.0
+		var step:Vector2=trader.global_position-last
+		if step.length()>0.01 and step.normalized().dot(exit_normal)<0.99:dirs_ok=false
+		last=trader.global_position
+	check(dirs_ok,"comes straight out of the wall along its normal")
+	check(not clip_material.call() and trader.image.material==orig_material,"original character material restored after emerging")
 	check(trader.wall_phase==0 and trader.visible and trader.is_combat_targetable(),"emerged and targetable again")
 	var WALL:Script=load("res://scripts/characters/我的世界/wandering_trader/wall_phase.gd")
 	var slots:Array[Dictionary]=WALL.wall_slots(world,trader.mc_arena_rect())
@@ -201,6 +237,7 @@ func run() -> void:
 	var invis_now:bool=trader.is_invisible()
 	check(((trader.collision_layer & 2)!=0)==(not invis_now) and (trader.collision_mask & 1)!=0,"collision restored consistently (invisible at start %s, now %s, %d/%d)" % [invis_at_start,invis_now,trader.collision_layer,trader.collision_mask])
 	check(not trader.has_meta(&"ignore_combat_targeting") and not trader.has_meta(&"ignore_combat_locking") or invis_now,"wall metas cleared")
+	check(not trader.has_meta(&"submission_allow_map_escape"),"map-escape exemption cleared after the wall phase")
 	# --- llama death: leash removed, no respawn ------------------------------------------------
 	trader._wall_wait=999.0;trader._invisibility_wait=999.0
 	l1.take_damage(1e9)

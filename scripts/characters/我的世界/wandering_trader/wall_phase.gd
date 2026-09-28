@@ -38,7 +38,9 @@ static func _is_wall_cell(layer:TileMapLayer,cell:Vector2i) -> bool:
 			return true
 	return false
 
-## Array of {wall:Vector2, floor:Vector2, normal:Vector2 (wall->floor)} in world space.
+## Array of {wall:Vector2, floor:Vector2, face:Vector2, normal:Vector2 (wall->floor)} in world space.
+## face = a point on the wall surface (the tile edge between wall and floor); the trader's sprite is
+## clipped on that line while he walks in / out.
 static func wall_slots(world:Node,fallback_rect:Rect2 = Rect2()) -> Array[Dictionary]:
 	var slots:Array[Dictionary] = []
 	for layer:TileMapLayer in map_layers(current_map(world)):
@@ -54,7 +56,7 @@ static func wall_slots(world:Node,fallback_rect:Rect2 = Rect2()) -> Array[Dictio
 				if used.has(neighbour) and not bool(used[neighbour]):
 					var wall:Vector2 = layer.to_global(layer.map_to_local(cell))
 					var floor_point:Vector2 = layer.to_global(layer.map_to_local(neighbour))
-					slots.append({"wall":wall,"floor":floor_point,"normal":wall.direction_to(floor_point)})
+					slots.append({"wall":wall,"floor":floor_point,"face":wall.lerp(floor_point,0.5),"normal":wall.direction_to(floor_point)})
 	if slots.is_empty() and fallback_rect.has_area():
 		# Tile collision disabled (e.g. Map10x10): the arena boundary is the wall. Wall points sit
 		# on the inner edge (World keeps units inside the rect), floors one step further in.
@@ -62,13 +64,13 @@ static func wall_slots(world:Node,fallback_rect:Rect2 = Rect2()) -> Array[Dictio
 		var rect:Rect2 = fallback_rect
 		var x:float = rect.position.x + step*0.5
 		while x < rect.end.x:
-			slots.append({"wall":Vector2(x,rect.position.y + 1.0),"floor":Vector2(x,rect.position.y + 12.0),"normal":Vector2.DOWN})
-			slots.append({"wall":Vector2(x,rect.end.y - 1.0),"floor":Vector2(x,rect.end.y - 12.0),"normal":Vector2.UP})
+			slots.append({"wall":Vector2(x,rect.position.y + 1.0),"floor":Vector2(x,rect.position.y + 12.0),"face":Vector2(x,rect.position.y),"normal":Vector2.DOWN})
+			slots.append({"wall":Vector2(x,rect.end.y - 1.0),"floor":Vector2(x,rect.end.y - 12.0),"face":Vector2(x,rect.end.y),"normal":Vector2.UP})
 			x += step
 		var y:float = rect.position.y + step*0.5
 		while y < rect.end.y:
-			slots.append({"wall":Vector2(rect.position.x + 1.0,y),"floor":Vector2(rect.position.x + 12.0,y),"normal":Vector2.RIGHT})
-			slots.append({"wall":Vector2(rect.end.x - 1.0,y),"floor":Vector2(rect.end.x - 12.0,y),"normal":Vector2.LEFT})
+			slots.append({"wall":Vector2(rect.position.x + 1.0,y),"floor":Vector2(rect.position.x + 12.0,y),"face":Vector2(rect.position.x,y),"normal":Vector2.RIGHT})
+			slots.append({"wall":Vector2(rect.end.x - 1.0,y),"floor":Vector2(rect.end.x - 12.0,y),"face":Vector2(rect.end.x,y),"normal":Vector2.LEFT})
 			y += step
 	return slots
 
@@ -104,3 +106,7 @@ static func min_threat_distance(point:Vector2,threats:Array[Vector2]) -> float:
 	var nearest:float = INF
 	for threat:Vector2 in threats: nearest = minf(nearest,point.distance_to(threat))
 	return nearest
+
+static func face_point(slot:Dictionary) -> Vector2:
+	if slot.has("face"): return slot.face
+	return (slot.get("wall",Vector2.ZERO) as Vector2).lerp(slot.get("floor",Vector2.ZERO),0.5)

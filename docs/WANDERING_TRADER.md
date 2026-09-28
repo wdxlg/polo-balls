@@ -20,7 +20,9 @@ User decisions:
 | `scripts/characters/我的世界/wandering_trader/llama.gd` | follow, yank, speed damage, spit, retaliation, death |
 | `scenes/shooter/我的世界/羊驼口水.tscn` + `wandering_trader/spit.gd` | spit projectile (snowball contract) |
 | `wandering_trader/leash.gd` | rope drawing: sagging catenary-like curve, taut line, snap/connect animation |
-| `wandering_trader/wall_phase.gd` | wall-slot geometry, nearest / safest slot |
+| `wandering_trader/wall_phase.gd` | wall-slot geometry (wall / floor / face / normal), nearest / safest slot |
+| `wandering_trader/wall_clip.gd` | clips the body on the wall surface while walking in / out |
+| `wandering_trader/spit_smoke.gd` | vanilla spit smoke puffs released with each shot |
 | `wandering_trader/visual.gd` | baked frame driver, held item, block-chip particles |
 | `wandering_trader/audio.gd` | vanilla sound events |
 | `Images/characters/我的世界/流浪商人/frames/` | baked Bedrock frames (trader, llama_creamy, llama_brown, llama_spit) |
@@ -48,6 +50,10 @@ User decisions:
 - Range 135, interval 2.0 s ± 0.35 (medium), projectile speed 300 (medium-fast; snowball is 260). Damage = the llama's `attack_damage()` (Damage 14). Knockback 6. Lifetime 2.2 s.
 - The llama leads the target slightly. Shots need line of sight; walls expire them.
 - Hit test: a swept circle each frame through the common hitbox path, so shields, blocks and boats are respected.
+- **Vanilla look** (fixed 2026-09-28 after user feedback "羊驼口水和原游戏不一样"):
+  - The model (geometry.llamaspit, baked facing left) is turned to the flight direction every frame, like `animation.llama_spit.setup`.
+  - The launch releases 7 spit smoke puffs (`wandering_trader/spit_smoke.gd`), as in Java `LlamaSpit.recreateFromPacket` + `SpitParticle`/`ExplodeParticle`. Puff *i* flies at shot velocity × (0.4 + 0.1·i) with a ±0.05/1.5 speed jitter and 0.9 friction per tick. Shade is 0.7–1.0 grey, size is 0.1·(r·r·6 + 1) half-width in blocks (1 block ≈ 16 px), lifetime is 16/(r·0.8 + 0.2) + 2 ticks, and frames play `generic_7 → generic_0` (the same flipbook as Bedrock `particles/llama_spit.json`). The puffs are purely visual, generated on every peer, and have no gravity on the top-down field.
+  - Impacts spawn nothing extra (vanilla only discards the entity). The old white-cyan block-chip splash was removed.
 - **Retaliation**: after taking real HP damage, the llama spits at the attacker after 0.45 s, or at the nearest enemy if the attacker cannot be resolved. Minimum 0.9 s between retaliations. Plays `entity.llama.angry`.
 
 ### Milk (long cooldown)
@@ -64,10 +70,18 @@ User decisions:
 - **AI trigger**: an enemy within 60, or hurt within 0.8 s while HP < 60 %.
 
 The phase runs in four steps:
-1. **Entering**: he slides into the nearest wall tile (0.25–0.85 s), with collision off and no AI locking. The leashes snap (`entity.leash_knot.break` + `entity.wandering_trader.disappeared`).
-2. **Hidden** (2.6 s): hidden on all peers and untargetable. Damage, hit contacts and knockback are ignored. Plays `block.stone.break` with stone chips. The llamas roam, chase and spit on their own.
-3. **Emerging**: the exit is chosen by `WALL.safest_slot`. Slots are ranked by the distance from their floor tile to the nearest enemy (plus ≤ 6 px seeded jitter), and the first slot whose floor can hold his whole body wins (stepping out along the wall normal up to 22 px). He appears inside that wall tile and steps out over 0.4 s (`block.stone.hit` + `reappeared` + chips).
-4. **Finish**: collision and metas are restored (bit 2 is re-added if invisibility expired meanwhile) and the leashes reconnect (`entity.leash_knot.place`).
+User rule (2026-09-28): "进墙就应该是直接进去，完全进去才消失。然后出来也是直接从墙钻出来". There is no fading.
+
+**Wall surface** (`wall_face_point`): a layer-1 ray from the slot's floor tile against the normal finds the physical wall (World's bounce walls). On maps whose border ring tiles are walkable (Map10x10), this is the arena edge, not the tile seam. It falls back to the tile seam (`WALL.face_point`).
+
+**Clip** (`wandering_trader/wall_clip.gd`): during entering and emerging, the Image gets a runtime copy of its own `set_rgb_color` shader with a world-space half-plane cut injected. Only the floor side of the wall surface is drawn. Instance uniforms (hit flash, facing flip, soft-body warp) keep working, and the original material is restored at the end.
+- Do **not** use `clip_children` for this. Its canvas group rewrites the back buffer that World's outside-map mask (`MapClipBackBuffer` + `screen_texture`) samples, so an unclipped copy of the body shows up beyond the arena edge.
+
+The phase runs in four steps:
+1. **Entering**: he walks straight, at constant speed and fully opaque (`wall_entry_speed` 150 px/s, 0.25–1.4 s), from where he stands to a point behind the wall surface. That point is deep enough that his whole drawn body (sprite rect × 1.12 + 2 px) is behind it. The body disappears into the wall as it crosses. Collision is off, there is no AI locking, and `submission_allow_map_escape` is set so World's squeeze rescue and out-of-bounds kill leave him alone past the arena edge. The leashes snap (`entity.leash_knot.break` + `entity.wandering_trader.disappeared`).
+2. **Hidden** (2.6 s): starts only once he is completely inside. He is hidden on all peers and untargetable. Damage, hit contacts and knockback are ignored. Plays `block.stone.break` with stone chips at the wall surface. The llamas roam, chase and spit on their own.
+3. **Emerging**: the exit is chosen by `WALL.safest_slot`. Slots are ranked by the distance from their floor tile to the nearest enemy (plus ≤ 6 px seeded jitter), and the first slot whose floor can hold his whole body wins (stepping out along the wall normal up to 22 px, then further until the whole drawn body is outside the wall, if that spot is clear). He starts fully inside the wall, straight behind the exit point, becomes visible already clipped, and walks straight out along the wall normal (same speed, minimum 0.3 s). Sounds: `block.stone.hit` + `reappeared`, with chips at the surface.
+4. **Finish**: collision, metas and the character material are restored (bit 2 is re-added if invisibility expired meanwhile), and the leashes reconnect (`entity.leash_knot.place`).
 
 If the battle stops mid-phase, `finish_wall_phase_now()` pops him out at once.
 
@@ -95,7 +109,8 @@ If the battle stops mid-phase, `finish_wall_phase_now()` pops him out at once.
 | Speed damage | from 130 px/s, ×0.09, cap 40 | |
 | Milk cooldown / drink | 20 s / 1.1 s | |
 | Invisibility cooldown / first / drink | 16 s / 5 s / 0.78 s | Witch drink 0.78 s |
-| Wall cooldown / first / hidden / emerge | 11 s / 7 s / 2.6 s / 0.4 s | |
+| Wall cooldown / first / hidden | 11 s / 7 s / 2.6 s | |
+| Wall walk-in / walk-out | 150 px/s straight, 0.25–1.4 s / 0.3–1.4 s | |
 | Leash slack / pull start / pull end | 42 / 60 / 28 world px | |
 
 ## Art and sound sources

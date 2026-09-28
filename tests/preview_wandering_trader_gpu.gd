@@ -29,7 +29,7 @@ func grab(label:String) -> Image:
 
 func run() -> void:
 	if DisplayServer.get_name()=="headless": push_error("Actual GPU renderer required"); quit(2); return
-	create_timer(120.0,true,false,true).timeout.connect(func(): print("WT_GPU_TIMEOUT"); quit(2))
+	create_timer(150.0,true,false,true).timeout.connect(func(): print("WT_GPU_TIMEOUT"); quit(2))
 	game=root.get_node("Game")
 	game.Game_Settings.Environment="none"
 	game.Game_Settings.Minecraft_Clouds=false
@@ -72,8 +72,12 @@ func run() -> void:
 	# spit in flight
 	var l0:Node2D=herd[0]
 	l0.spit_at(enemy)
+	await seconds(0.05)
+	await grab("04a_spit_launch")
 	await seconds(0.12)
 	await grab("04_spit")
+	await seconds(0.4)
+	await grab("04b_spit_smoke_after")
 	await seconds(0.6)
 	# milk
 	var POT:Script=load("res://scripts/effects/我的世界/女巫药水效果.gd")
@@ -90,19 +94,26 @@ func run() -> void:
 	await grab("07_invisible")
 	await seconds(6.0)
 	trader.start_wall_phase()
-	await seconds(0.3)
-	await grab("08_wall_entering")
+	# Close-up on the entry wall: the body is clipped on the wall surface, no fading.
+	var zoom_before:Vector2=camera.zoom
+	camera.global_position=trader.wall_face_point(trader.entry_slot);camera.zoom=zoom_before*2.2
 	var t:float=0.0
-	while trader.wall_phase!=2 and t<1.5:
+	for label:String in ["08a_wall_entering","08b_wall_entering","08c_wall_entering"]:
+		await seconds(maxf(trader._phase_duration*0.3,0.05))
+		if trader.wall_phase==1:await grab(label)
+	while trader.wall_phase!=2 and t<2.0:
 		await physics_frame;t+=1.0/60.0
 	await seconds(0.05)
 	await grab("09_hidden")
-	while trader.wall_phase!=3 and t<5.0:
+	while trader.wall_phase!=3 and t<6.0:
 		await physics_frame;t+=1.0/60.0
-	await seconds(0.12)
-	await grab("10_emerging")
-	while trader.wall_phase!=0 and t<6.0:
+	camera.global_position=trader.wall_face_point(trader.exit_slot)
+	for label:String in ["10a_emerging","10b_emerging","10c_emerging"]:
+		await seconds(maxf(trader._phase_duration*0.28,0.05))
+		if trader.wall_phase==3:await grab(label)
+	while trader.wall_phase!=0 and t<8.0:
 		await physics_frame;t+=1.0/60.0
+	camera.global_position=center;camera.zoom=zoom_before
 	await seconds(0.3)
 	await grab("11_reconnected")
 	print("WANDERING_TRADER_GPU checks=",checks," failures=",failures)

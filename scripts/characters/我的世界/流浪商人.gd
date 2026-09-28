@@ -6,12 +6,15 @@ extends "res://scripts/characters/我的世界/mc_mob_base.gd"
 ## * 牛奶: only while a negative effect is present; clears all negative effects exactly like the
 ##   copper sword (ball.cleanse_negative_effects / classes/status_cleansing.gd). Long cooldown.
 ## * 隐身药水: the Witch's own invisibility (女巫药水效果.apply_effect(self,"invisibility",self)).
-## * 入墙: walks into the nearest map wall and disappears (leashes snap), then emerges from the
-##   safest wall slot (farthest from enemies, body-clear floor) and the leashes reconnect.
+## * 入墙: walks straight into the nearest map wall; the body is clipped on the wall surface, so it
+##   vanishes only once it is completely inside (leashes snap). He then pushes straight out of the
+##   safest wall slot (farthest from enemies, body-clear floor), again clipped, and the leashes
+##   reconnect. No fading.
 const AUDIO = preload("res://scripts/characters/我的世界/wandering_trader/audio.gd")
 const VISUAL = preload("res://scripts/characters/我的世界/wandering_trader/visual.gd")
 const LEASH = preload("res://scripts/characters/我的世界/wandering_trader/leash.gd")
 const WALL = preload("res://scripts/characters/我的世界/wandering_trader/wall_phase.gd")
+const WALL_CLIP = preload("res://scripts/characters/我的世界/wandering_trader/wall_clip.gd")
 const POTION_EFFECTS = preload("res://scripts/effects/我的世界/女巫药水效果.gd")
 const TOOLS = preload("res://scripts/characters/投稿角色工具.gd")
 const STATUS_EFFECTS = preload("res://scripts/effects/我的世界/mc_status_effects.gd")
@@ -39,8 +42,8 @@ enum Phase { NONE, ENTERING, HIDDEN, EMERGING }
 @export var wall_threat_radius:float = 60.0
 @export var wall_hidden_time:float = 2.6
 @export var wall_entry_speed:float = 150.0
-@export var wall_entry_time_max:float = 0.85
-@export var wall_emerge_time:float = 0.4
+@export var wall_entry_time_max:float = 1.4
+@export var wall_emerge_time:float = 0.3 # minimum; the real time follows the walk-out distance
 @export var drink_move_ratio:float = 0.35
 
 var wall_phase:int = Phase.NONE
@@ -69,6 +72,7 @@ var _phase_to:Vector2
 var _saved_layer:int = 2
 var _saved_mask:int = 3
 var _saved_while_invisible:bool = false
+var _wall_clip:Node
 var _item_anchor:Node2D
 var _item_sprite:Sprite2D
 var _item_tween:Tween
@@ -440,8 +444,15 @@ func start_wall_phase() -> bool:
 	collision_layer = 0
 	collision_mask = 0
 	set_meta(&"ignore_combat_locking",true)
-	var travel:float = global_position.distance_to(entry_slot.wall)
-	_begin_phase(Phase.ENTERING,global_position,entry_slot.wall,clampf(travel/maxf(wall_entry_speed,1.0),0.25,wall_entry_time_max))
+	# The body really goes past the map edge; World's squeeze rescue / out-of-bounds kill skip it.
+	set_meta(&"submission_allow_map_escape",true)
+	var face:Vector2 = wall_face_point(entry_slot)
+	var normal:Vector2 = _slot_normal(entry_slot)
+	var target:Vector2 = inside_wall_point(face,normal)
+	var travel:float = global_position.distance_to(target)
+	_begin_phase(Phase.ENTERING,global_position,target,clampf(travel/maxf(wall_entry_speed,1.0),0.25,wall_entry_time_max))
+	_wall_clip_state(true,face,normal)
+	if multiplayer.has_multiplayer_peer() and not multiplayer.get_peers().is_empty(): _wall_clip_state.rpc(true,face,normal)
 	_set_leash_active(false)
 	wt_sound(&"trader_disappeared")
 	return true
@@ -462,26 +473,79 @@ func _tick_wall(delta:float) -> void:
 	if collision_layer != 0: collision_layer = 0
 	if collision_mask != 0: collision_mask = 0
 	var k:float = clampf(_phase_time/_phase_duration,0.0,1.0)
+	# Straight walk at constant speed, fully opaque: the wall clip does the hiding.
 	match wall_phase:
 		Phase.ENTERING:
-			global_position = _phase_from.lerp(_phase_to,k*k*(3.0 - 2.0*k))
-			_wall_fade(1.0 - k*0.6)
+			global_position = _phase_from.lerp(_phase_to,k)
 			if k >= 1.0: _enter_hidden()
 		Phase.HIDDEN:
 			if _phase_time >= wall_hidden_time: _begin_emerge()
 		Phase.EMERGING:
-			global_position = _phase_from.lerp(_phase_to,1.0 - pow(1.0 - k,3.0))
-			_wall_fade(0.25 + 0.75*k)
+			global_position = _phase_from.lerp(_phase_to,k)
 			if k >= 1.0: _finish_wall()
+
+## The surface he visibly walks into: the physical wall (layer 1, World's bounce walls) found by
+## a ray from the slot's floor tile against the normal. On maps whose border ring tiles are
+## walkable (e.g. Map10x10) this is the arena edge, not the tile seam. Lateral position stays on
+## the slot. Falls back to the tile seam when nothing is hit.
+func wall_face_point(slot:Dictionary) -> Vector2:
+	var normal:Vector2 = _slot_normal(slot)
+	var seam:Vector2 = WALL.face_point(slot)
+	if not is_inside_tree(): return seam
+	var from:Vector2 = slot.get("floor",seam)
+	var query := PhysicsRayQueryParameters2D.create(from,seam - normal*48.0,1,[get_rid()])
+	query.collide_with_areas = false
+	var hit:Dictionary = get_world_2d().direct_space_state.intersect_ray(query)
+	if hit.is_empty(): return seam
+	return seam + normal*((hit.position as Vector2) - seam).dot(normal)
+
+func _slot_normal(slot:Dictionary) -> Vector2:
+	var normal:Vector2 = slot.get("normal",Vector2.UP)
+	return normal.normalized() if normal.length_squared() > 0.000001 else Vector2.UP
+
+## How far the drawn body reaches from global_position along +dir (sprite rect incl. transform,
+## plus room for the shader's movement stretch).
+func body_reach(dir:Vector2) -> float:
+	if image == null or not is_instance_valid(image) or image.texture == null: return 24.0
+	var rect:Rect2 = image.get_rect()
+	var xf:Transform2D = image.get_global_transform()
+	var reach:float = 0.0
+	for corner:Vector2 in [rect.position,Vector2(rect.end.x,rect.position.y),rect.end,Vector2(rect.position.x,rect.end.y)]:
+		reach = maxf(reach,(xf*corner - global_position).dot(dir))
+	return reach*1.12 + 2.0
+
+## Point on the wall side where the whole drawn body is behind the wall surface.
+func inside_wall_point(face:Vector2,normal:Vector2) -> Vector2:
+	return face - normal*body_reach(normal)
+
+## True while any part of the drawn body is on the floor side of the active wall clip.
+func wall_body_visible() -> bool:
+	if _wall_clip == null or not is_instance_valid(_wall_clip) or not bool(_wall_clip.get(&"active")): return visible
+	if not visible: return false
+	var normal:Vector2 = _wall_clip.get(&"normal")
+	return float(_wall_clip.call(&"side_of",global_position)) + body_reach(normal) > 0.5
+
+@rpc("authority","call_remote","reliable")
+func _wall_clip_state(active:bool,face:Vector2,normal:Vector2) -> void:
+	if active:
+		if image == null or not is_instance_valid(image): return
+		if _wall_clip == null or not is_instance_valid(_wall_clip):
+			_wall_clip = WALL_CLIP.new()
+			_wall_clip.name = "WallClip"
+			add_child(_wall_clip)
+		_wall_clip.call(&"start",image,face,normal)
+	elif _wall_clip != null and is_instance_valid(_wall_clip):
+		_wall_clip.call(&"stop")
 
 func _enter_hidden() -> void:
 	_begin_phase(Phase.HIDDEN,global_position,global_position,wall_hidden_time)
 	set_meta(&"ignore_combat_targeting",true)
 	if self_hurtbox != null: self_hurtbox.set_deferred("monitorable",false)
 	if self_hitbox != null: self_hitbox.set_deferred("monitoring",false)
-	_wall_visual(false,global_position,entry_slot.get("normal",Vector2.UP))
-	if multiplayer.has_multiplayer_peer() and not multiplayer.get_peers().is_empty(): _wall_visual.rpc(false,global_position,entry_slot.get("normal",Vector2.UP))
-	wt_sound(&"stone_break")
+	var face:Vector2 = wall_face_point(entry_slot)
+	_wall_visual(false,face,_slot_normal(entry_slot),global_position)
+	if multiplayer.has_multiplayer_peer() and not multiplayer.get_peers().is_empty(): _wall_visual.rpc(false,face,_slot_normal(entry_slot),global_position)
+	wt_sound(&"stone_break",0.0,face)
 
 func choose_exit_slot() -> Dictionary:
 	var slots:Array[Dictionary] = WALL.wall_slots(get_tree().current_scene,mc_arena_rect())
@@ -489,25 +553,47 @@ func choose_exit_slot() -> Dictionary:
 
 ## Step out from the wall along its normal until the trader's whole body fits (tiles are 16 px,
 ## the body is taller), so he never emerges overlapping a wall or another character.
+## The final point also keeps the whole drawn body out of the wall when that spot is clear, so the
+## clip can be removed at the end without anything popping in.
 func resolve_exit_slot(slot:Dictionary) -> Dictionary:
-	var normal:Vector2 = slot.get("normal",Vector2.ZERO)
+	var normal:Vector2 = _slot_normal(slot)
 	var base:Vector2 = slot.get("floor",global_position)
+	var face:Vector2 = wall_face_point(slot)
+	var out_depth:float = body_reach(-normal)
 	for step:float in [0.0,4.0,8.0,12.0,16.0,22.0]:
 		var point:Vector2 = base + normal*step
 		if mc_body_position_clear(point):
 			var resolved:Dictionary = slot.duplicate()
+			var short:float = out_depth - (point - face).dot(normal)
+			if short > 0.0 and mc_body_position_clear(point + normal*short): point += normal*short
 			resolved["floor"] = point
 			return resolved
 	return {}
 
+## Start of the walk-out: straight behind the exit point, body completely inside the wall.
+func exit_start_point(slot:Dictionary) -> Vector2:
+	var normal:Vector2 = _slot_normal(slot)
+	var face:Vector2 = wall_face_point(slot)
+	var end:Vector2 = slot.get("floor",face)
+	var on_face:Vector2 = end - normal*(end - face).dot(normal)
+	return inside_wall_point(on_face,normal)
+
 func _begin_emerge() -> void:
 	exit_slot = choose_exit_slot()
 	if exit_slot.is_empty(): exit_slot = entry_slot
-	global_position = exit_slot.wall
-	_begin_phase(Phase.EMERGING,exit_slot.wall,exit_slot.floor,wall_emerge_time)
-	_wall_visual(true,exit_slot.wall,exit_slot.normal)
-	if multiplayer.has_multiplayer_peer() and not multiplayer.get_peers().is_empty(): _wall_visual.rpc(true,exit_slot.wall,exit_slot.normal)
-	wt_sound(&"stone_hit",0.0,exit_slot.wall)
+	var face:Vector2 = wall_face_point(exit_slot)
+	var normal:Vector2 = _slot_normal(exit_slot)
+	var start:Vector2 = exit_start_point(exit_slot)
+	global_position = start
+	var travel:float = start.distance_to(exit_slot.floor)
+	_begin_phase(Phase.EMERGING,start,exit_slot.floor,clampf(travel/maxf(wall_entry_speed,1.0),wall_emerge_time,wall_entry_time_max))
+	# Clip first, then show: he appears fully inside the wall and walks out through its surface.
+	_wall_clip_state(true,face,normal)
+	_wall_visual(true,face,normal,start)
+	if multiplayer.has_multiplayer_peer() and not multiplayer.get_peers().is_empty():
+		_wall_clip_state.rpc(true,face,normal)
+		_wall_visual.rpc(true,face,normal,start)
+	wt_sound(&"stone_hit",0.0,face)
 	wt_sound(&"trader_reappeared")
 
 func _finish_wall() -> void:
@@ -522,6 +608,9 @@ func _finish_wall() -> void:
 	collision_mask = mask
 	remove_meta(&"ignore_combat_targeting") if has_meta(&"ignore_combat_targeting") else null
 	remove_meta(&"ignore_combat_locking") if has_meta(&"ignore_combat_locking") else null
+	remove_meta(&"submission_allow_map_escape") if has_meta(&"submission_allow_map_escape") else null
+	_wall_clip_state(false,Vector2.ZERO,Vector2.UP)
+	if multiplayer.has_multiplayer_peer() and not multiplayer.get_peers().is_empty(): _wall_clip_state.rpc(false,Vector2.ZERO,Vector2.UP)
 	if self_hurtbox != null: self_hurtbox.set_deferred("monitorable",true)
 	if self_hitbox != null and has_collision_damage(): self_hitbox.set_deferred("monitoring",true)
 	_wall_fade(1.0)
@@ -534,8 +623,10 @@ func finish_wall_phase_now() -> void:
 	if wall_phase != Phase.EMERGING:
 		exit_slot = choose_exit_slot()
 		if exit_slot.is_empty(): exit_slot = entry_slot
-		_wall_visual(true,exit_slot.get("wall",global_position),exit_slot.get("normal",Vector2.UP))
-		if multiplayer.has_multiplayer_peer() and not multiplayer.get_peers().is_empty(): _wall_visual.rpc(true,exit_slot.get("wall",global_position),exit_slot.get("normal",Vector2.UP))
+		var face:Vector2 = wall_face_point(exit_slot) if not exit_slot.is_empty() else global_position
+		var target:Vector2 = exit_slot.get("floor",global_position)
+		_wall_visual(true,face,_slot_normal(exit_slot),target)
+		if multiplayer.has_multiplayer_peer() and not multiplayer.get_peers().is_empty(): _wall_visual.rpc(true,face,_slot_normal(exit_slot),target)
 	_finish_wall()
 
 func _wall_fade(alpha:float) -> void:
@@ -544,8 +635,11 @@ func _wall_fade(alpha:float) -> void:
 		c.a = clampf(alpha,0.0,1.0)
 		image.self_modulate = c
 
+## point = wall surface (chips), at = the trader's position at that moment (peers snap to it so
+## the clipped body never shows at a stale synced position).
 @rpc("authority","call_remote","reliable")
-func _wall_visual(show_unit:bool,point:Vector2,normal:Vector2) -> void:
+func _wall_visual(show_unit:bool,point:Vector2,normal:Vector2,at:Vector2) -> void:
+	if not is_multiplayer_authority(): global_position = at
 	visible = show_unit
 	if not show_unit: _finish_drink_visual()
 	VISUAL.burst(self,point,STONE_COLOR,18,70.0,1.6,0.6,normal if normal != Vector2.ZERO else Vector2.UP)

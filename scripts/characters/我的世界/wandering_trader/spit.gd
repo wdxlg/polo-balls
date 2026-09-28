@@ -3,8 +3,11 @@ extends ball
 ## test each frame, common hitbox damage (shields/blocks/boats respected), wall = expire,
 ## deterministic name + authority RPC spawn. Owner = the llama (Master), whose Master is the trader.
 ## Art: geometry.llamaspit + textures/entity/llama/spit.png baked by bake_wandering_trader.py.
+## Vanilla look: the model turns to its flight direction (animation.llama_spit.setup) and the
+## launch releases 7 spit smoke puffs along the shot (spit_smoke.gd). Impacts spawn nothing
+## extra, as in vanilla (LlamaSpit.onHit only discards the entity).
 const U = preload("res://scripts/characters/我的世界/new5/utils.gd")
-const VISUAL = preload("res://scripts/characters/我的世界/wandering_trader/visual.gd")
+const SMOKE = preload("res://scripts/characters/我的世界/wandering_trader/spit_smoke.gd")
 const HIT_GAIN = preload("res://scripts/effects/我的世界/hit_audio_gain.gd")
 const MC_AUDIO = preload("res://scripts/effects/我的世界/mc_native_audio.gd")
 @export var knockback:float = 6.0
@@ -37,7 +40,14 @@ func _ready() -> void:
 	self_hitbox.set_deferred("monitoring",false)
 	add_to_group(&"MCLlamaSpit")
 	add_to_group(&"BattleTransient")
-	image.rotation = 0.0
+	_face_flight()
+	if direction.is_finite() and direction.length_squared() > 0.000001:
+		SMOKE.emit_for_shot(self,global_position,direction.normalized()*maxf(Speed,0.0))
+
+## Baked frame faces LEFT; turn it so the model points along the flight direction.
+func _face_flight() -> void:
+	if image == null or not direction.is_finite() or direction.length_squared() <= 0.000001: return
+	image.rotation = direction.angle() - PI
 
 func owner_unit() -> ball:
 	return Master if is_instance_valid(Master) else self
@@ -79,6 +89,7 @@ func move(speed:float,delta:float) -> void:
 	if _spent or delta <= 0.0: return
 	var from:Vector2 = global_position
 	velocity = direction*maxf(speed,0.0) + Repel
+	_face_flight()
 	var to:Vector2 = from + velocity*delta
 	var wall:Dictionary = U.trace(self,from,to)
 	if not wall.is_empty(): to = wall.position
@@ -99,9 +110,7 @@ func move(speed:float,delta:float) -> void:
 		self_hitbox.try_hit_hurtbox(target.self_hurtbox)
 		if _spent or is_queued_for_deletion(): return
 	global_position = to
-	if not wall.is_empty():
-		_splash(global_position)
-		expire()
+	if not wall.is_empty(): expire()
 
 func _on_hitbox_on_hit(hurt:hurtbox) -> void:
 	if _spent or _resolving_hit or not is_multiplayer_authority(): return
@@ -119,7 +128,6 @@ func _on_hitbox_on_hit(hurt:hurtbox) -> void:
 	if is_instance_valid(target) and target.health > 0 and actual > 0.0:
 		target.apply_knockback(heading,knockback*target.get_negative_effect_ratio(),120.0,0.0,0.0,{"source":owner_unit(),"lock_control":false})
 	impact_sound(actual,point)
-	_splash(point)
 	expire()
 
 func impact_sound(actual:float,point:Vector2) -> void:
@@ -127,19 +135,14 @@ func impact_sound(actual:float,point:Vector2) -> void:
 	_impact_played = true
 	MC_AUDIO.play(self,HIT_GAIN.damage_event(actual),point,HIT_GAIN.damage_gain(actual))
 
-func _splash(point:Vector2) -> void:
-	# particles/llama_spit.json: small white-cyan puffs.
-	VISUAL.burst(self,point,Color(0.88,1.0,0.99),9,34.0,1.1,0.35)
-
 func can_receive_hit_contact(_incoming:hitbox,_contact:hurtbox) -> bool: return false
 func can_receive_hit_from(_incoming:hitbox) -> bool: return false
 func on_incoming_hit_rejected(_incoming:hitbox) -> void: pass
 func should_destroy_projectile_on_rejected_hit(_incoming:hitbox) -> bool: return false
 
-func on_projectile_blocked_by(target:ball,point:Vector2) -> void:
+func on_projectile_blocked_by(target:ball,_point:Vector2) -> void:
 	if _spent or not is_multiplayer_authority(): return
 	if is_instance_valid(target) and not enemy(target): return
-	_splash(point)
 	expire()
 
 func Die() -> void: expire()
