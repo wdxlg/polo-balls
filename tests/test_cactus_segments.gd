@@ -174,6 +174,21 @@ func run() -> void:
 	var aim:Vector2 = hunter.combat_target_position(cactus)
 	check(aim.distance_to(cactus.to_global(Vector2(0,-96.0*(cactus.levels-1)))) < 1.0,"attackers aim at the segment nearest to them (%s)" % aim)
 	check(hunter.Nearest_Enemy == cactus,"nearest-enemy search measures to the nearest segment (picked %s)" % (hunter.Nearest_Enemy.name if is_instance_valid(hunter.Nearest_Enemy) else "none"))
+	# retaliation: 50% per segment, full 500% at 10; every segment fires its own share
+	var lv:int = cactus.levels
+	check(is_equal_approx(cactus.retaliation_ratio(),minf(5.0,0.5*lv)) and cactus.retaliation_count(100.0) == int(floor(100.0*minf(5.0,0.5*lv)/5.0)),"retaliation ratio 50%% per segment (%d segments -> %.1f)" % [lv,cactus.retaliation_ratio()])
+	var shares:Array[int] = cactus.retaliation_shares(lv*2+3)
+	var share_sum:int = 0
+	for n:int in shares: share_sum += n
+	check(shares.size() == lv and share_sum == lv*2+3 and shares.max()-shares.min() <= 1,"thorns are split evenly over the segments %s" % [shares])
+	var old_thorns:Array = get_nodes_in_group("MCCactusThorn")
+	cactus.retaliation_pending = lv*3
+	cactus.emit_retaliation()
+	var per_seg:Array[int] = []
+	per_seg.resize(lv)
+	for t:Node in get_nodes_in_group("MCCactusThorn"):
+		if not old_thorns.has(t): per_seg[cactus.segment_at((t as Node2D).global_position)] += 1
+	check(per_seg.min() == 3 and per_seg.max() == 3,"each segment shoots its own share from its own height %s" % [per_seg])
 	var mc_utils:Variant = load("res://scripts/characters/我的世界/new5/utils.gd")
 	var mc_pick:Variant = mc_utils.nearest(hunter)
 	check(mc_pick == cactus,"MC mobs' nearest-enemy helper also measures to the nearest segment (picked %s)" % (mc_pick.name if is_instance_valid(mc_pick) else "none"))

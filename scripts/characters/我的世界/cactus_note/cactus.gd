@@ -215,7 +215,7 @@ func _death_visual() -> void:
 	_death_visual_done = true
 	ITEM_DEATH.spawn(self)
 func get_skill_description() -> String:
-	return "每8秒向上长一节，没有节数上限，直到上方被墙或地图边界挡住；每长一节血量和血上限都增加一节（300）。底部不动，碰撞箱和血条同步升高。药水、附魔等效果整株共用；每节是独立的受击目标（范围攻击盖住几节就打几次，每节有自己的受击冷却），血量共用，只有被打中的那一节闪白。只有左右两侧有接触伤害；技能先收细，再弹性胀开并从左右射出本体刺色的细条，长得越高越多，数量小幅随机，主动散射为左右向外±10°。实际掉血时先快速胀粗爆刺再弹性回缩，反伤刺向外±45°、每根基础伤害固定5；总数量向下取整(实际掉血×反伤幅度÷5)，每层幅度40%、最多200%，左右合计不翻倍。每次长高播放仙人掌放置音，成功命中播放MC受击音。刺命中一次后扎在人或墙上，3秒后消失，无持续伤害或处决。"
+	return "每8秒向上长一节，没有节数上限，直到上方被墙或地图边界挡住；每长一节血量和血上限都增加一节（300）。底部不动，碰撞箱和血条同步升高。药水、附魔等效果整株共用；每节是独立的受击目标（范围攻击盖住几节就打几次，每节有自己的受击冷却），血量共用，只有被打中的那一节闪白。只有左右两侧有接触伤害；技能先收细，再弹性胀开并从左右射出本体刺色的细条，长得越高越多，数量小幅随机，主动散射为左右向外±10°。实际掉血时先快速胀粗爆刺再弹性回缩，反伤刺向外±45°、每根基础伤害固定5；总数量向下取整(实际掉血×反伤幅度÷5)，每节幅度50%、10节满500%，每节从自己的高度射出属于自己的那份(伤害×幅度÷节数)，左右合计不翻倍。每次长高播放仙人掌放置音，成功命中播放MC受击音。刺命中一次后扎在人或墙上，3秒后消失，无持续伤害或处决。"
 
 func play_action_sound(event:String) -> void:
 	if multiplayer.has_multiplayer_peer(): _action_sound.rpc(event,global_position)
@@ -231,7 +231,21 @@ var retaliation_pending:int = 0
 var last_retaliation_count:int = 0
 var retaliation_bursts:int = 0
 var retaliation_spawned:int = 0
-func retaliation_ratio() -> float: return minf(2.0,0.4*levels)
+func retaliation_ratio() -> float: return minf(5.0,0.5*levels) # 50% per segment, full 500% at 10
+var last_retaliation_shares:Array[int] = []
+func retaliation_shares(count:int) -> Array[int]:
+	var n:int = maxi(levels,1)
+	var shares:Array[int] = []
+	shares.resize(n)
+	shares.fill(count/n)
+	var order:Array = range(n)
+	for k:int in range(n-1,0,-1):
+		var j:int = rng.randi_range(0,k)
+		var tmp:Variant = order[k]
+		order[k] = order[j]
+		order[j] = tmp
+	for k:int in range(count%n): shares[order[k]] += 1
+	return shares
 func retaliation_count(amount:float) -> int:
 	return int(floor(maxf(amount,0)*retaliation_ratio()/RETALIATION_DAMAGE+0.000001))
 func on_actual_health_damage_received(amount:float,before:float) -> void:
@@ -272,13 +286,20 @@ func emit_retaliation() -> void:
 	retaliation_spawned += count
 	var points:Array[Vector2] = []
 	var headings:Array[Vector2] = []
-	var first_side:float = -1.0 if rng.randi_range(0,1)==0 else 1.0
 	var stretch:Vector2 = presentation_scale()
-	for i:int in range(count):
-		var side:float = first_side if i%2==0 else -first_side
-		var y:float = rng.randf_range(48.0-96.0*levels+8.0,40.0)
-		points.append(to_global(Vector2(side*48.0*stretch.x,48.0+(y-48.0)*stretch.y)))
-		headings.append(Vector2(side,0).rotated(rng.randf_range(-PI/4.0,PI/4.0)))
+	# Every segment fires its own share (damage × ratio ÷ segments) from its own height; the
+	# rounding remainder goes to random segments, so the total stays floor(damage × ratio ÷ 5).
+	var shares:Array[int] = retaliation_shares(count)
+	last_retaliation_shares = shares
+	var first_side:float = -1.0 if rng.randi_range(0,1)==0 else 1.0
+	var fired:int = 0
+	for seg:int in range(shares.size()):
+		for i:int in range(shares[seg]):
+			var side:float = first_side if fired%2==0 else -first_side # left/right stay balanced overall
+			fired += 1
+			var y:float = rng.randf_range(-SEGMENT*seg-40.0,-SEGMENT*seg+40.0)
+			points.append(to_global(Vector2(side*48.0*stretch.x,48.0+(y-48.0)*stretch.y)))
+			headings.append(Vector2(side,0).rotated(rng.randf_range(-PI/4.0,PI/4.0)))
 	play_action_sound("entity.puffer_fish.sting")
 	if multiplayer.has_multiplayer_peer(): _thorn_volley.rpc(points,headings,RETALIATION_DAMAGE,true)
 	else: _thorn_volley(points,headings,RETALIATION_DAMAGE,true)
