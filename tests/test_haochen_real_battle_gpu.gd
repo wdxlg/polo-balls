@@ -101,24 +101,31 @@ func run() -> void:
 	print("HAOCHEN_REAL copying ",group_report("MCHaochenLinkParticle")," | ",group_report("MCHaochenCopyParticle"))
 	check(get_nodes_in_group("MCHaochenLinkParticle").size()>=12,"real copy cast keeps a soul link from the copied character to Haochen")
 	check(get_nodes_in_group("MCHaochenBurstParticle").size()>=10,"full meter bursts souls out of Haochen")
+	# Task 9: the copied character's pixels are assembling at the spawn point.
+	var fxs:Array[Node]=get_nodes_in_group("MCHaochenAssembleParticle")
+	check(fxs.size()==1 and fxs[0].cells.size()>=20,"real battle: the copied character's pixels assemble at the spawn point")
+	await create_timer(0.22,true,false,true).timeout
+	await shot("assembled")
 	var reqs:Array[Node]=get_nodes_in_group("MCCharacterCopyRequest")
 	if not reqs.is_empty():print("HAOCHEN_REAL request link_visible=",reqs[0].link_visible," from=",reqs[0].link_from," to=",reqs[0].link_to," runtime=",reqs[0]._runtime_active())
-	await create_timer(0.6,true,false,true).timeout
+	await create_timer(0.3,true,false,true).timeout
 	await shot("after")
 	print("HAOCHEN_REAL after copies=",hero.completed_copies)
 	print("HAOCHEN_REAL after ",group_report("MCHaochenCopyParticle"))
 	check(hero.completed_copies==1,"real battle tick completes the copy")
-	# Task 8: the chosen "soul rise" spawn effect is really on screen in the battle view.
-	var rising:int=0
-	for s:Node in get_nodes_in_group("MCHaochenSpawnRiseParticle"):
-		if s.visible:rising+=1
-	check(rising>=3,"real battle: cyan souls rise from the new copy's body (%d visible)" % rising)
+	# Task 9: half-size copy; the assembled pixels scatter when it appears.
+	var copy:Node2D=null
+	for n:Node in world.get_children():
+		if n!=donor and n.get_meta("haochen_copy",false):copy=n
+	check(is_instance_valid(copy) and copy.scale.is_equal_approx(donor.scale*0.5),"real battle: the copy is half the size of the original")
+	var fx_left:Array[Node]=get_nodes_in_group("MCHaochenAssembleParticle")
+	check(fx_left.size()==1 and fx_left[0].stage==fx_left[0].Stage.SCATTER,"real battle: the pixels scatter as the copy appears")
 	var copy_voice:bool=false
 	for node:Node in get_nodes_in_group("MCHaochenAudio"):
 		if node.get_meta("haochen_event",&"")==&"copy_complete" and str(node.stream.resource_path).get_file().begins_with("illusioner.mirror_move_"):copy_voice=true
 	check(copy_voice,"real battle: the copy appears with the illusioner mirror_move sound")
-	await create_timer(0.35,true,false,true).timeout
-	await shot("rise")
+	await create_timer(0.3,true,false,true).timeout
+	await shot("scatter")
 	print("HAOCHEN_REAL_DIR ",ProjectSettings.globalize_path("user://"))
 	world.queue_free()
 	await create_timer(0.3,true,false,true).timeout

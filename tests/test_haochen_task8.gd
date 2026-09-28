@@ -66,42 +66,8 @@ func run() -> void:
 		if node.get_meta("haochen_event",&"")==&"charge_soul":after+=1
 	check(after==0 and hero._sound_serial==serial_before,"no energy-gain sound once charging stops")
 
-	# Spawn rise particles.
-	var anchor:Node2D=load("res://scenes/ball.tscn").instantiate();anchor.name="Task8Copy";anchor.Team="Team0";anchor.position=center+Vector2(-120,0)
-	world.add_child(anchor,true)
-	await process_frame
-	anchor.state_machine.set_physics_process(false);anchor.set_physics_process(false)
-	var request:Node2D=REQUEST.instantiate();request.position=anchor.global_position;request.completed=true
-	world.add_child(request)
-	request.set_physics_process(false)
-	var emitted:int=request._emit_spawn_rise("Task8Copy")
-	var rise:Array[Node]=get_nodes_in_group("MCHaochenSpawnRiseParticle")
-	check(emitted==20 and rise.size()==20,"spawn emits 20 staggered rising souls")
-	var hidden:int=0
-	for s:Node in rise:
-		if not s.visible:hidden+=1
-	check(hidden>=18,"souls start staggered (hidden until their turn), not as one burst")
-	var brown:bool=false
-	for s:Node in rise:
-		if s.FRAMES.find(s.texture)<7:brown=true
-	check(not brown,"spawn souls only use the cyan-white wisp frames 7..10 (brown frames skipped)")
-	anchor.global_position+=Vector2(90,0) # the copy walks away right after spawning
-	await create_timer(0.7,true,false,true).timeout
-	var box:Vector2=anchor.collision_shape_2d.shape.get_rect().size*anchor.collision_shape_2d.global_scale.abs()
-	var near:int=0;var visible_now:int=0
-	for s:Node in get_nodes_in_group("MCHaochenSpawnRiseParticle"):
-		if s.visible and s._age<0.6: # started after the move (the very first soul starts at t=0)
-			visible_now+=1
-			if absf(s._start.x-anchor.global_position.x)<=0.56*box.x+1.0:near+=1
-	check(visible_now>=6,"souls keep appearing over about a second (%d visible at 0.7 s)" % visible_now)
-	check(near==visible_now and near>0,"late souls start from the copy's CURRENT body, following it as it moves")
-	var width_ok:bool=true
-	for s:Node in get_nodes_in_group("MCHaochenSpawnRiseParticle"):
-		var w:float=s.scale.x*16.0
-		width_ok=width_ok and w>=21.9 and w<=28.1
-	check(width_ok,"spawn souls are drawn at 22-28 px (clearly visible, twice the old size)")
-	await create_timer(1.7,true,false,true).timeout # last start ~1.03 s + life <= 1.1 s
-	check(get_nodes_in_group("MCHaochenSpawnRiseParticle").is_empty(),"every spawn soul frees itself after the effect")
+	# (Task 9 replaced the soul-rise spawn effect with the pixel assembly: see
+	# tests/test_haochen_task9.gd.)
 
 	world.queue_free()
 	await process_frame

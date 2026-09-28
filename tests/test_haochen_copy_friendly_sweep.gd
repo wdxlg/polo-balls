@@ -59,6 +59,7 @@ func run() -> void:
 	print("SWEEP_SCENES ",scenes.size())
 	var offenders:Array[String]=[]
 	var spawned_ok:int=0
+	var size_bad:Array[String]=[]
 	for team_damage:bool in modes:
 		game.Game_Settings.Have_Team_Damage=team_damage
 		for path:String in scenes:
@@ -84,7 +85,21 @@ func run() -> void:
 			donor.free()
 			var copy:Node=null
 			if not snap.is_empty():
-				copy=TOOLS.spawn_character_copy(hero,snap,center+Vector2(28,0),0.5,{"owner":hero,"parent":world,"full_vitals":true,"monochrome":true,"metadata":{"haochen_copy":true}})
+				copy=TOOLS.spawn_character_copy(hero,snap,center+Vector2(28,0),0.5,{"owner":hero,"parent":world,"full_vitals":true,"monochrome":true,"metadata":{"haochen_copy":true},
+					"body_scale":0.5,"prepare_instance":func(u:Node2D):u.scale*=0.5})
+				# Task 9: the copy is half size, its health bar keeps the normal size.
+				if is_instance_valid(copy):
+					var probe:Node2D=load(path).instantiate()
+					var want:Vector2=probe.scale*0.5
+					# Readable = the bar's on-screen size is not halved with the body (some
+					# characters trim their own bar in _ready, e.g. MC mobs 0.9x).
+					var bar_normal:float=absf((probe.get_node("Health_Bar") as Control).scale.x*probe.scale.x) if probe.get_node_or_null("Health_Bar") is Control else 0.0
+					probe.free()
+					var bar:Control=copy.get_node_or_null("Health_Bar") as Control
+					var bar_now:float=absf(bar.get_global_transform().get_scale().x) if bar!=null else 0.0
+					if not copy.scale.is_equal_approx(want) or (bar!=null and bar_now<0.85*bar_normal):
+						var line:String="SWEEP_SIZE scene=%s scale=%s want=%s bar=%.4f normal=%.4f" % [path,copy.scale,want,bar_now,bar_normal]
+						print(line);size_bad.append(line)
 			var spawned:bool=copy!=null
 			var lost:int=0
 			for f:int in range(180):
@@ -107,6 +122,8 @@ func run() -> void:
 				if is_instance_valid(n) and not n.is_queued_for_deletion():n.queue_free()
 			for i:int in range(3):await process_frame
 	print("SWEEP_DONE spawned=",spawned_ok," offenders=",offenders.size())
+	print("SWEEP_SIZE_DONE bad=",size_bad.size())
+	check(size_bad.is_empty(),"every copy is exactly half size with a readable health bar")
 	for l:String in offenders:print("SWEEP_SUMMARY ",l)
 	check(spawned_ok==scenes.size()*modes.size(),"every roster character produced a real Haochen copy in every team-damage mode")
 	check(offenders.is_empty(),"no copy (nor its projectiles, summons, AOE or offspring) ever damaged Haochen")

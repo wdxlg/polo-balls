@@ -82,6 +82,8 @@ func run() -> void:
 	check(await until(func():return guest_root.has_node(str(request.name))),"confirmed copy cast has a real replicated request node")
 	var mirrored:Node=guest_root.get_node(str(request.name))
 	check(mirrored.template_snapshot.scene==donor.scene_file_path and mirrored.owner_name==str(host.name),"copy identity and owner are data snapshots, not client-side enemy selection")
+	check(mirrored.source_name==str(donor.name) and is_equal_approx(mirrored.body_scale,0.5),"guest request knows the copied character by name and the half body scale")
+	check(await until(func():return mirrored._assemble!=null or mirrored._soul_gather),"guest draws its own spawn gathering locally (pixel assembly, or souls without a readable frame)")
 	check(await until(func():return mirrored.link_visible and mirrored.link_from.distance_to(donor.global_position)<1.0 and mirrored.link_to.distance_to(host.global_position)<1.0),"guest receives the authoritative source-to-Haochen link points")
 	check(await until(func():return guest.image.texture==guest.FACE_LAUGH and host.image.texture==host.FACE_LAUGH),"both peers show the laughing face during the cast")
 	mirrored._emit_link_particles(4,false)
@@ -96,6 +98,8 @@ func run() -> void:
 	check(await until(func():return a.Max_health==300 and b.Max_health==300 and b.Damage==40 and b.Speed==150.0),"spawn-profile synchronization carries half stats and unmodified speed")
 	check(a.Master==host and b.Master==guest and a.Team=="Team0" and b.Team=="Team0","subordinate ownership resolves to the corresponding peer's Haochen")
 	check(b.character_copy_profile.monochrome and b.image.get_instance_shader_parameter("character_grayscale")==1.0,"guest copy is truly grayscale without sharing the original material state")
+	check(await until(func():return a.scale.is_equal_approx(donor.scale*0.5) and b.scale.is_equal_approx(a.scale)),"the half-size copy root scale replicates to the guest")
+	check((b.get_node("Health_Bar") as Control).scale.is_equal_approx((donor.get_node("Health_Bar") as Control).scale*2.0),"guest copy health bar is counter-scaled so it stays readable")
 	check(await until(func():return guest.charge_energy==0.0 and guest.completed_copies==1),"successful cast resets the meter once and replicates its completion")
 	check(a.Attack_Cooling==1.6 and b.Attack_Cooling==1.6,"copying does not secretly halve skill/attack cooldowns")
 	game.now_stop_state=true

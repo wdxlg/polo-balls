@@ -196,12 +196,17 @@ static func build_character_copy_profile(snapshot:Dictionary,factor:float,option
 			"Damage_reduction": stats[key] = value*ratio
 			_: stats[key] = maxi(ceili(maxf(value,0.0)*ratio),1 if key=="Max_health" else 0)
 	var full:bool = bool(options.get("full_vitals",true))
-	return {"version":1,"source_scene":str(snapshot.scene),"source_label":str(snapshot.get("label","")),"stats":stats,
+	var profile:Dictionary = {"version":1,"source_scene":str(snapshot.scene),"source_label":str(snapshot.get("label","")),"stats":stats,
 		"health":int(stats.Max_health) if full else clampi(ceili(float(snapshot.get("health",1))*ratio),1,int(stats.Max_health)),
 		"block":int(stats.max_block) if full else maxi(ceili(float(snapshot.get("block",0))*ratio),0),
 		"energy":int(stats.max_energy) if full else maxi(ceili(float(snapshot.get("energy",0))*ratio),0),
 		"monochrome":bool(options.get("monochrome",false)),"master_name":str(options.get("master_name","")),
 		"team":str(options.get("team","")),"neutral_owner":str(options.get("neutral_owner",""))}
+	# Optional body scale of the copy (Haochen: 0.5). Its spawner sets the root scale;
+	# the profile carries it so every peer can keep the health bar readable.
+	var body_scale:float = float(options.get("body_scale",1.0))
+	if body_scale>0.0 and not is_equal_approx(body_scale,1.0): profile["body_scale"] = body_scale
+	return profile
 
 static func apply_character_copy_profile(unit:ball,profile:Dictionary,apply_vitals:bool = true) -> void:
 	if not is_instance_valid(unit) or profile.is_empty(): return
@@ -209,6 +214,7 @@ static func apply_character_copy_profile(unit:ball,profile:Dictionary,apply_vita
 	unit.inherit_master_attack_power = false
 	for key:String in COPY_STAT_KEYS:
 		if stats.has(key): unit.set(key,stats[key])
+	apply_character_copy_health_bar_scale(unit,profile)
 	if not apply_vitals: return
 	if unit.default_properties != null:
 		for key:String in COPY_STAT_KEYS:
@@ -237,6 +243,17 @@ static func apply_character_copy_profile(unit:ball,profile:Dictionary,apply_vita
 	unit.Team = team
 	unit.set_meta(&"forced_combat_team",team)
 	if bool(profile.get("monochrome",false)): unit._refresh_character_copy_visuals()
+
+## A scaled copy (profile.body_scale) keeps an unscaled, readable health bar. The
+## bar's scale is not replicated, so this runs on every peer; idempotent. Only after
+## the unit is ready, so a character's own _ready bar scale (MC mobs use 0.9x) is the base.
+static func apply_character_copy_health_bar_scale(unit:ball,profile:Dictionary) -> void:
+	var body_scale:float = float(profile.get("body_scale",1.0))
+	if body_scale<=0.0 or is_equal_approx(body_scale,1.0) or not unit.is_node_ready(): return
+	var bar:Control = unit.get_node_or_null("Health_Bar") as Control
+	if bar == null: return
+	if not bar.has_meta(&"character_copy_base_scale"): bar.set_meta(&"character_copy_base_scale",bar.scale)
+	bar.scale = (bar.get_meta(&"character_copy_base_scale") as Vector2)/body_scale
 
 static func spawn_character_copy(context:Node,snapshot:Dictionary,point:Vector2,factor:float = 0.5,options:Dictionary = {}) -> ball:
 	if not is_instance_valid(context) or not context.is_inside_tree() or not context.is_multiplayer_authority() or snapshot.is_empty(): return null

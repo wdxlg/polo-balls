@@ -10,18 +10,14 @@ const LINK_SOUL_WIDTH:float = 9.0
 const LINK_INTERVAL:float = 0.05
 const LINK_PER_TICK:int = 2
 const FULL_BURST_COUNT:int = 16
-# Copy spawn = "灵魂升腾" (user choice 2026-09-28, task 8): cyan-white souls (frames
-# 7..10, the brown soul-sand frames 0..6 skipped: on the grey copy they read as dark
-# blobs in the real battle view) rise from all over the new copy's body,
-# staggered over ~1 s, each starting from the copy's CURRENT body so it follows a
-# copy that already walks away. Replaces the rejected 18-soul outward ring burst.
-const SPAWN_RISE_COUNT:int = 20
-const SPAWN_RISE_SPREAD:float = 1.0
-const SPAWN_RISE_FIRST_FRAME:int = 7
-const SPAWN_RISE_WIDTH:Vector2 = Vector2(22.0,28.0)
-const SPAWN_RISE_HEIGHT:Vector2 = Vector2(50.0,72.0)
-const SPAWN_RISE_LIFE:Vector2 = Vector2(0.85,1.1)
-const SPAWN_RISE_FALLBACK_BOX:Vector2 = Vector2(40.0,40.0)
+const ASSEMBLE = preload("res://scripts/effects/我的世界/像素拼身粒子.gd")
+# Copy spawn = "像素拼身" (user choice 2026-09-28, task 9; replaces task 8's 灵魂升腾):
+# during the cast the copied character's own grayscale pixels fly in and assemble
+# into the half-size copy at the spawn point; when the copy appears they flash white
+# and burst outward. Assembly ends ASSEMBLE_HOLD before the cast completes so the
+# finished figure is visible for a moment. Peers without a readable source frame
+# fall back to the old soul gathering ring.
+const ASSEMBLE_HOLD:float = 0.15
 @export var template_snapshot:Dictionary = {}
 @export var owner_name:String = ""
 @export var owner_team:String = ""
@@ -36,6 +32,9 @@ const SPAWN_RISE_FALLBACK_BOX:Vector2 = Vector2(40.0,40.0)
 @export var link_from:Vector2 = Vector2.ZERO
 @export var link_to:Vector2 = Vector2.ZERO
 @export var link_visible:bool = false
+# Copied character (by node name, so peers find it) and the copy's body scale.
+@export var source_name:String = ""
+@export var body_scale:float = 0.5
 var owner_ref:WeakRef
 var source_ref:WeakRef
 var lifecycle_ticket:int = 0
@@ -45,6 +44,8 @@ var _linger:float = 0.75
 var _rng := RandomNumberGenerator.new()
 var _reported:bool = false
 var _finish_visual_played:bool = false
+var _assemble:WeakRef
+var _soul_gather:bool = false
 
 func _ready() -> void:
 	add_to_group("BattleTransient")
@@ -64,7 +65,7 @@ func _start_visual() -> void:
 	if not is_inside_tree() or is_queued_for_deletion() or completed or not _runtime_active(): return
 	# Full meter: souls burst out of Haochen once, then the source link starts.
 	emit_ring(get_parent(),_rng,link_to if link_visible else global_position,FULL_BURST_COUNT,6.0,10.0,false,10.0,6.0,0.8,&"MCHaochenBurstParticle",&"haochen_copy_request",get_instance_id(),26.0)
-	_emit_particles(6,false)
+	_start_assemble()
 	_emit_link_particles(8,true)
 
 func _physics_process(delta:float) -> void:
@@ -74,7 +75,7 @@ func _physics_process(delta:float) -> void:
 		_visual_wait -= delta
 		if _visual_wait<=0.0:
 			_visual_wait = 0.10
-			_emit_particles(1,false)
+			if _soul_gather: _emit_particles(1,false)
 		_link_wait -= delta
 		if _link_wait<=0.0:
 			_link_wait = LINK_INTERVAL
@@ -94,7 +95,8 @@ func _complete_copy() -> void:
 	if not is_instance_valid(owner) and not owner_name.is_empty(): owner = get_parent().get_node_or_null(NodePath(owner_name)) as ball
 	var options:Dictionary = {"owner":owner,"parent":get_parent(),"master_name":owner_name,"team":owner_team,
 		"neutral_owner":neutral_owner,"full_vitals":true,"cooldown_factor":1.0,"monochrome":true,
-		"lifecycle_ticket":lifecycle_ticket,"metadata":{"haochen_copy":true,"haochen_owner_name":owner_name}}
+		"lifecycle_ticket":lifecycle_ticket,"metadata":{"haochen_copy":true,"haochen_owner_name":owner_name},
+		"body_scale":body_scale,"prepare_instance":_prepare_copy_body}
 	var copy:ball = TOOLS.spawn_character_copy(self,template_snapshot,global_position,stat_factor,options)
 	var success:bool = is_instance_valid(copy)
 	_release_ticket()
@@ -106,37 +108,52 @@ func _complete_copy() -> void:
 		copy_finished.emit(success,copy)
 
 @rpc("authority","call_local","reliable")
-func _finish_visual(success:bool,audio_variant:int,copy_name:String = "") -> void:
+func _finish_visual(success:bool,audio_variant:int,_copy_name:String = "") -> void:
 	if not is_inside_tree() or not _runtime_active() or _finish_visual_played: return
 	_finish_visual_played = true
 	completed = true
-	if success:
-		_emit_spawn_rise(copy_name)
-		AUDIO.play(self,&"copy_complete",global_position,audio_variant)
+	if success: AUDIO.play(self,&"copy_complete",global_position,audio_variant)
+	# The assembled figure becomes the copy: white flash + shards burst outward.
+	var fx:Node2D = _assemble.get_ref() as Node2D if _assemble != null else null
+	if is_instance_valid(fx): fx.scatter(success)
+	elif success: _emit_particles(18,true)
 
 ## Gathering souls converge on the spawn point during the cast.
 func _emit_particles(count:int,outward:bool) -> void:
 	if outward: emit_ring(get_parent(),_rng,global_position,count,4.0,8.0,false,10.0,10.0,0.9,&"MCHaochenCopyParticle",&"haochen_copy_request",get_instance_id(),26.0)
 	else: emit_ring(get_parent(),_rng,global_position,count,14.0,24.0,true,7.0,0.0,0.6,&"MCHaochenCopyParticle",&"haochen_copy_request",get_instance_id())
 
-## All souls are created now (so the request may free itself) but start staggered;
-## each one looks the copy up by name when it starts, so peers work even if the copy
-## replicates a moment after this RPC. Visual only, per peer.
-func _emit_spawn_rise(copy_name:String) -> int:
+## Pixel assembly of the copied character's CURRENT frame at the spawn point, at the
+## copy's size. The source is found by replicated name so every peer draws its own.
+func _start_assemble() -> void:
+	var source:Node2D = _source_node()
+	var factor:float = body_scale
+	if is_instance_valid(source):
+		var profile:Variant = source.get("character_copy_profile")
+		if profile is Dictionary: factor /= maxf(float((profile as Dictionary).get("body_scale",1.0)),0.01)
+	var fx:Node2D = ASSEMBLE.new()
 	var parent:Node = get_parent()
-	if parent==null or not parent.is_inside_tree() or parent.is_queued_for_deletion(): return 0
-	var room:int = mini(SPAWN_RISE_COUNT,SOUL.room(get_tree()))
-	for i:int in range(room):
-		var particle:Node2D = SOUL.new()
-		parent.add_child(particle)
-		particle.setup(global_position,Vector2(_rng.randf_range(-5.0,5.0),0.0),_rng.randf_range(SPAWN_RISE_LIFE.x,SPAWN_RISE_LIFE.y),_rng.randf_range(SPAWN_RISE_WIDTH.x,SPAWN_RISE_WIDTH.y),_rng.randf_range(SPAWN_RISE_HEIGHT.x,SPAWN_RISE_HEIGHT.y))
-		particle.from_frame(SPAWN_RISE_FIRST_FRAME)
-		var unit:Vector2 = Vector2(_rng.randf_range(-0.55,0.55),_rng.randf_range(-0.45,0.5))
-		particle.delay_start(SPAWN_RISE_SPREAD*float(i)/float(maxi(room,1))+_rng.randf_range(0.0,0.03),parent,copy_name,unit,SPAWN_RISE_FALLBACK_BOX)
-		particle.add_to_group(&"MCHaochenCopyParticle")
-		particle.add_to_group(&"MCHaochenSpawnRiseParticle")
-		particle.set_meta(&"haochen_copy_request",get_instance_id())
-	return room
+	if is_instance_valid(source) and parent != null and parent.is_inside_tree():
+		parent.add_child(fx)
+		if fx.begin(source,global_position,factor,visual_seed,maxf(cast_duration-ASSEMBLE_HOLD,0.1)):
+			fx.set_meta(&"haochen_copy_request",get_instance_id())
+			_assemble = weakref(fx)
+			return
+		fx.queue_free()
+	else: fx.free()
+	_soul_gather = true
+	_emit_particles(6,false)
+
+func _source_node() -> Node2D:
+	var source:Node2D = source_ref.get_ref() as Node2D if source_ref != null else null
+	if not is_instance_valid(source) and not source_name.is_empty() and get_parent() != null: source = get_parent().get_node_or_null(NodePath(source_name)) as Node2D
+	return source if is_instance_valid(source) and source.is_inside_tree() and not source.is_queued_for_deletion() else null
+
+## Half-size copy (user request, task 9): the root scale is set once here, before the
+## copy enters the tree, and reaches peers through ball's replicated `.:scale`; the
+## shared copy profile's `body_scale` keeps its health bar readable on every peer.
+func _prepare_copy_body(unit:Node2D) -> void:
+	if body_scale>0.0 and not is_equal_approx(body_scale,1.0): unit.scale *= body_scale
 
 func _refresh_link_points() -> void:
 	var owner:Node2D = owner_ref.get_ref() as Node2D if owner_ref != null else null
@@ -201,6 +218,8 @@ func _release_ticket() -> void:
 
 func _exit_tree() -> void:
 	_release_ticket()
+	var fx:Node2D = _assemble.get_ref() as Node2D if _assemble != null else null
+	if is_instance_valid(fx): fx.scatter(false)
 	if not _reported and is_multiplayer_authority():
 		_reported = true
 		copy_finished.emit(false,null)

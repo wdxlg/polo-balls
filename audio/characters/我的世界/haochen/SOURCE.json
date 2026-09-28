@@ -59,8 +59,8 @@
     "object_url_pattern": "https://resources.download.minecraft.net/<first two hex of sha1>/<sha1>",
     "note": "Downloaded byte-for-byte from Mojang's official asset CDN; sha1 verified against asset index 29; renamed only; not re-encoded."
   },
-  "particle_implementation": "res://scripts/effects/我的世界/灵魂粒子.gd",
-  "particle_textures": "Minecraft Java native soul particle frames soul_0..soul_10 (see Images/effects/我的世界/灵魂粒子/SOURCE.json), unmodified; only engine position/scale/alpha/frame-range parameters differ. Copy spawn ('灵魂升腾') uses frames 7..10 only.",
+  "particle_implementation": "res://scripts/effects/我的世界/灵魂粒子.gd + res://scripts/effects/我的世界/像素拼身粒子.gd",
+  "particle_textures": "Minecraft Java native soul particle frames soul_0..soul_10 (see Images/effects/我的世界/灵魂粒子/SOURCE.json), unmodified; only engine position/scale/alpha/frame-range parameters differ. Copy spawn ('像素拼身', task 9) uses no new asset: it samples the copied character's own current frame at runtime (scripts/effects/我的世界/像素拼身粒子.gd).",
   "minecraft_rights": "Minecraft assets belong to Mojang/Microsoft; not represented as freely redistributable.",
   "minecraft_eula": "https://www.minecraft.net/en-us/eula",
   "verified_files": {

@@ -31,6 +31,8 @@ enum Phase { RESTING, CHARGING, COPYING }
 @export var recovery_seconds:float = 2.0
 @export var copy_duration:float = 0.65
 @export var copied_stat_factor:float = 0.5
+## Copies are drawn/collide at half size (user request 2026-09-28, task 9).
+@export var copied_body_scale:float = 0.5
 @export var scan_interval:float = 0.08
 @export var charge_energy:float = 0.0:
 	set(value):
@@ -298,6 +300,7 @@ func _begin_copy() -> void:
 	request.owner_team = Team
 	request.neutral_owner = str(character_copy_profile.get("neutral_owner",str(name)))
 	request.stat_factor = copied_stat_factor
+	request.body_scale = copied_body_scale
 	request.cast_duration = maxf(copy_duration,0.05)
 	request.remaining = request.cast_duration
 	request.visual_seed = _fx_rng.randi()
@@ -306,6 +309,7 @@ func _begin_copy() -> void:
 	var source:ball = (winner.get("source") as WeakRef).get_ref() as ball if winner.get("source") is WeakRef else null
 	request.source_ref = weakref(source) if is_instance_valid(source) else null
 	request.link_visible = is_instance_valid(source)
+	request.source_name = str(source.name) if is_instance_valid(source) else ""
 	request.link_from = source.global_position if is_instance_valid(source) else global_position
 	request.link_to = global_position
 	request.set_multiplayer_authority(get_multiplayer_authority())
@@ -323,7 +327,7 @@ func _begin_copy() -> void:
 	request.copy_finished.connect(_on_copy_finished.bind(request),CONNECT_ONE_SHOT)
 	get_parent().add_child(request,true)
 	# Original Evoker summon wind-up marks the confirmed cast once; the request
-	# still owns the Enderman-teleport completion clip and its particles.
+	# still owns the copy-appear clip (illusioner mirror_move) and the pixel assembly.
 	_emit_audio(&"copy_start")
 
 func _on_copy_finished(success:bool,_copy:Node,request:Node) -> void:

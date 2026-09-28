@@ -10,6 +10,7 @@
 - **减速/恢复**：蓄能时主动移速在 2 秒内线性降到 30% 下限（不为 0）；附近无敌人时 2 秒内恢复到 100%。只缩放自驱移动，击退/牵引/地表速度不缩放。离开范围保留已积累能量与贡献记录。
 - **满条复制**：复制“本轮”累计贡献最多的人物（例：A 提供 60、B 提供 40 → 复制 A）；平局取最早开始贡献者。施放 0.65 秒，经公共 `begin_battle_spawn / apply_battle_spawn_identity / finish_battle_spawn` 票据生成原场景的**全新实例**（不是染色假人）。成功后清零并重新计分，失败/取消不消耗满条，0.5 秒后重试；已有复制品不被替换、无隐藏数量上限。
 - **复制品**：黑白画风——真实 shader 灰度（`Set_RGB_Color.gdshader` 的 `character_grayscale` 实例参数；无材质的子节点用 `shaders/character_monochrome.gdshader`），不是灰色 modulate；原角色材质不受影响。**除移速外**公共数值减半：Max_health / Damage / Health_Restore / max_block / max_energy 向上取整×0.5，Damage_reduction×0.5，生命/护盾/能量按新上限满额；Speed 不变。攻击/技能冷却保持原值（减半冷却等于加强，不按“数值减半”处理）；技能参数不改。
+- **复制品体型减半**（2026-09-28 任务 9）：图像、碰撞体、受击/攻击判定一起缩到一半——施放方在复制品入树前把根节点 scale ×0.5（与幼年兔子同一机制，经 ball 同步的 `.:scale` 到达各端）；复制品发射的投射物/召唤物保持原大小。复制档案带 `body_scale=0.5`，各端据此把头顶血条反向放大，血条与数字保持正常可读（基准取角色自己 _ready 后的血条缩放）。
 - **附属**：Master=皓宸、同队，共用皓宸原 setup 的战斗存续身份；皓宸死亡后已确认的施放仍可完成，复制品继续继承原身份，不新增席位。
 - **血量**：皓宸 Max_health = **800**（`皓宸.tscn`，2026-09-28 任务 8）。
 - **复制品永不伤害皓宸**：`Have_Team_Damage` 默认开启且 hitbox 只查一层 Master，复制品的投射物/召唤物/分裂后代可能绕过。皓宸.gd `is_own_summon_chain()` 沿整条链（Master / Master_name / `launch_owner_id` / `_src_ref` / `_declared_launcher` / 战斗存续身份 root / `mc_bat_cohort`）判断来源是否属于自己的复制品，并在 `can_receive_hit_contact / receive_positional_damage / _receive_spatial_damage_untyped / receive_internal_status_damage` 拒收。只作用于皓宸本体，不改公共 ball/hitbox。
@@ -23,8 +24,8 @@
   - **蓄能粒子流**：每个正在供能的敌人（最多 4 个）每 0.12 秒飞出 1 个灵魂流入皓宸（宽 8），分组 `MCHaochenChargeParticle`；各端按已同步的 `charge_phase` 与位置本地判断。
   - **满条瞬间**：施放开始时从皓宸身上向外爆出一圈 16 个灵魂，分组 `MCHaochenBurstParticle`。
   - **被复制者 → 皓宸 连线**：施放期间沿两人之间的线段每 0.05 秒 2 个灵魂流入皓宸（开场在被复制者身边 8 个，宽 9），分组 `MCHaochenLinkParticle`。端点 `link_from/link_to` 由权威端每物理帧按真实位置刷新并同步，客户端只按同步点绘制；被复制者中途死亡则停在最后位置。
-  - **复制品出现（“灵魂升腾”，用户 2026-09-28 选定）**：施放期间灵魂向施放点汇聚（开场 10 颗，之后每 0.1 秒 2 颗，分组 `MCHaochenCopyParticle`）；成功瞬间起约 1 秒内错开放出 20 个青白灵魂，从复制品**整个身体范围**向上升腾（只播 soul_7..10 青白魂焰帧，跳过棕色灵魂沙帧；宽 22–28、升高 50–72、寿命 0.85–1.1 秒），每颗在自己开始时按复制品当前位置/碰撞框出生，复制品走开也跟随。分组 `MCHaochenCopyParticle` + `MCHaochenSpawnRiseParticle`。替换被否定的“18 颗向外爆散”。各端用 RPC 同步的复制品名本地找到复制品，找不到时回退 40×40 区域。
-  - 以上共用 `character_copy_request.gd::emit_stream / emit_ring` 与 `灵魂粒子.gd`（新增 `from_frame / delay_start`），不复制实现。皓宸不再使用 portal/末影粒子。
+  - **复制品出现（“像素拼身”，用户 2026-09-28 任务 9 选定，替换任务 8 的灵魂升腾）**：施放开始时各端按同步的 `source_name` 找到被复制者，把它**当前帧**切成像素格（灰度公式与复制品 `character_grayscale` 相同，屏幕上每格≥2.2px，最多 360 格，按帧缓存）。像素从复制品 1.6–3.2 倍半径外飞来（飞行中略放大、偏白，落定恢复原灰色），在施放结束前 0.15 秒拼成**半尺寸**人物；复制品出现瞬间白光一闪，碎片向外炸散、下落、0.7 秒淡出。所有距离/速度按人物大小缩放。取不到帧（被复制者已消失、无 CPU 端图像）时回退为旧的灵魂汇聚/爆散；施放被取消时碎片直接散开、不闪白。公共脚本 `scripts/effects/我的世界/像素拼身粒子.gd`（一个节点绘制全部格子，分组 `MCHaochenAssembleParticle`）。
+  - 以上共用 `character_copy_request.gd::emit_stream / emit_ring` 与 `灵魂粒子.gd`，不复制实现。皓宸不再使用 portal/末影粒子。
 - **音效**（全部走公共 `mc_native_audio.queue_stream`，权威端选择变体并可靠 RPC 同步、带序号防重播）：
   - 开始蓄能：用户提供的 `haochen/charge_start.wav`（0 dB，同一段蓄能只播一次）
   - **复制施放起手：原版 `entity.evoker.prepare_summon`（`唤魔者/evoker.prepare_summon_1.ogg`，0 dB）**——2026-09-28 新增
