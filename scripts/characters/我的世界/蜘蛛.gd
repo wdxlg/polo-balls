@@ -110,10 +110,30 @@ func move(speed:float,delta:float) -> void:
 	super.move(lunge_speed if _lunge_left>0.0 else speed,delta)
 	if override_input: player_control_direction=saved_input
 	# The primary collision may be another actor; inspect every slide for walls.
-	if mc_live() and not dizziness:
-		for i:int in range(get_slide_collision_count()):
-			var collision:KinematicCollision2D = get_slide_collision(i)
-			if _is_wall_like_collision(collision): _attach_silk(collision)
+	_weave_from_slide_collisions()
+func stand(delta:float) -> void:
+	# Stun / Stand / Die bodies still move through Repel, knockback, pulls and
+	# crowd push; ball.stand() never calls when_collide(), so weave here too.
+	super.stand(delta)
+	_weave_from_slide_collisions()
+## Weaving (wall anchors, completed strands, crossing webs) happens on EVERY
+## obstacle contact regardless of stun, knockback, airborne, damage-disable or
+## any other control. Only death, pause, replicas and inactive combat stop it.
+## Silk/web damage, slow and the lunge keep their own mc_live()/dizziness gates.
+func can_weave_silk() -> bool:
+	return is_multiplayer_authority() and health>0 and is_combat_runtime_active() and not Game.now_stop_state
+func _weave_from_slide_collisions() -> void:
+	if not can_weave_silk(): return
+	# Zero requested motion means no move_and_slide() ran this frame; the slide
+	# list still holds last frame's contacts, which are not a new wall touch.
+	if _last_requested_velocity.length_squared()<=MOTION_EPSILON_SQ: return
+	for i:int in range(get_slide_collision_count()):
+		var collision:KinematicCollision2D = get_slide_collision(i)
+		if _is_wall_like_collision(collision): _attach_silk(collision)
+## Generic hook: forced-motion effects that move the body with their own
+## move_and_collide() (physical airborne) report obstacle contacts here.
+func on_forced_motion_collision(collision:KinematicCollision2D) -> void:
+	if can_weave_silk() and _is_wall_like_collision(collision): _attach_silk(collision)
 func _attach_silk(collision:KinematicCollision2D) -> void:
 	if not is_instance_valid(silk_network): return
 	var surface:Node2D = collision.get_collider() as Node2D
@@ -121,16 +141,16 @@ func _attach_silk(collision:KinematicCollision2D) -> void:
 	var point:Vector2 = silk_network.wall_attachment_point(collision.get_position(),collision.get_normal(),surface,silk_tail_position())
 	silk_network.touch_wall(point,surface)
 func when_collide(speed:float,collision:KinematicCollision2D) -> void:
-	if mc_live() and _is_wall_like_collision(collision):
-		_attach_silk(collision)
-		if _lunge_left>0.0: _end_lunge()
+	if _is_wall_like_collision(collision):
+		if can_weave_silk(): _attach_silk(collision)
+		if mc_live() and _lunge_left>0.0: _end_lunge()
 	super.when_collide(speed,collision)
 @rpc("authority","call_remote","unreliable_ordered")
 func _sync_silk(lines:Array,webs:Array) -> void:
 	if is_instance_valid(silk_network): silk_network.receive_snapshot(lines,webs)
 
 func emit_web_birth(point:Vector2) -> void:
-	if not mc_live() or Game.now_stop_state: return
+	if not can_weave_silk(): return
 	_show_web_birth(point)
 	if multiplayer.has_multiplayer_peer(): _show_web_birth.rpc(point)
 	native_feedback.request("block.cobweb.place",point,-9.0,0.04)

@@ -109,8 +109,11 @@ func _on_wall_surface(point:Vector2,normal:Vector2,surface:Node2D) -> bool:
 	if surface==null: return true # Explicit geometric fixtures have no PhysicsBody.
 	var hit:Dictionary = GEOMETRY.wall_ray(self,point+normal*4.0,point-normal*4.0,[unit.get_rid()])
 	return not hit.is_empty() and hit.collider==surface
+func _can_weave() -> bool:
+	if unit.has_method(&"can_weave_silk"): return unit.can_weave_silk()
+	return unit.mc_live() and not Game.now_stop_state
 func touch_wall(point:Vector2,surface:Node2D = null) -> bool:
-	if not unit.mc_live() or Game.now_stop_state or _contact_left>0.0: return false
+	if not _can_weave() or _contact_left>0.0: return false
 	if _valid(anchor) and _point(anchor).distance_to(point)<unit.silk_anchor_spacing: return false
 	_contact_left = 0.18
 	var next:Dictionary = _make_anchor(point,surface)
@@ -140,7 +143,9 @@ func advance(delta:float) -> void:
 	if not unit.is_multiplayer_authority():
 		queue_redraw()
 		return
-	if not unit.mc_live(): return
+	# Weaving bookkeeping (debounce, anchors, crossings) runs under any control;
+	# only the damaging/slowing contact pass needs mc_live() (not damage-disabled).
+	if not _can_weave(): return
 	_clock += delta
 	_contact_left = maxf(_contact_left-delta,0.0)
 	for i:int in range(segments.size()-1,-1,-1):
@@ -150,7 +155,12 @@ func advance(delta:float) -> void:
 	if _sample_left<=0.0:
 		_sample_left = maxf(unit.silk_tick,0.04)
 		_update_crossings()
-		_tick_contacts()
+		if unit.mc_live(): _tick_contacts()
+		else:
+			# Damage output disabled: webs still form, but no slow/damage/pounce.
+			# Drop sweep history so re-enabling cannot sweep the whole gap at once.
+			_previous.clear()
+			_previous_lines.clear()
 	_sync_left -= delta
 	if multiplayer.has_multiplayer_peer() and _sync_left<=0.0:
 		_sync_left = 0.1

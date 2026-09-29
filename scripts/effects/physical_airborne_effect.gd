@@ -165,6 +165,7 @@ func _step_body(dt:float) -> void:
 	if reaches_ground: motion.y = maxf(_ground_y-target.global_position.y,0.0)
 	var map_block_x:bool = false
 	var map_block_y:bool = false
+	var wanted_motion:Vector2 = motion
 	if not _fits_motion(motion):
 		map_block_x = not _fits_motion(Vector2(motion.x,0.0))
 		map_block_y = not _fits_motion(Vector2(0.0,motion.y))
@@ -193,9 +194,20 @@ func _step_body(dt:float) -> void:
 		if motion.y<0.0 and normal.y>0.25: _vertical_speed = maxf(_vertical_speed,0.0)
 		if descending and motion.y>=0.0 and normal.y< -0.25: _contact_landed = true
 	if reaches_ground and target.global_position.y>=_ground_y-0.01: _contact_landed = true
+	_report_forced_collision(collision,wanted_motion,map_block_x,map_block_y)
 	target.velocity = Vector2(horizontal_speed,_vertical_speed)
 	_apply_height()
 	if _contact_landed: land()
+
+# Optional target hook (e.g. the spider weaves silk on any obstacle contact even
+# while airborne). Map-rect clamping stops short of the wall without a physics
+# collision, so probe the blocked axis test-only to find the real surface.
+func _report_forced_collision(collision:KinematicCollision2D,wanted:Vector2,block_x:bool,block_y:bool) -> void:
+	if not target.has_method(&"on_forced_motion_collision"): return
+	if collision==null and (block_x or block_y):
+		var probe := Vector2(signf(wanted.x)*4.0 if block_x else 0.0,signf(wanted.y)*4.0 if block_y else 0.0)
+		if not probe.is_zero_approx(): collision = target.move_and_collide(probe,true,0.001)
+	if collision!=null: target.call(&"on_forced_motion_collision",collision)
 
 func _apply_height() -> void:
 	# No Graphics, health bar or shadow offset: all three follow the actual body.
