@@ -1,5 +1,5 @@
 """Bounded one-shot runner for the Jujutsu Kaisen characters. Does not touch running Godot processes."""
-import argparse, subprocess, sys
+import argparse, subprocess, sys, tempfile
 from pathlib import Path
 p = argparse.ArgumentParser()
 p.add_argument('--gpu', action='store_true')
@@ -11,8 +11,7 @@ cmd = [args.engine, '--path', str(root), '--audio-driver', 'Dummy', '--script', 
 if args.gpu: cmd.extend(['--rendering-method', 'gl_compatibility', '--resolution', '800x600', '--position', '100,100'])
 else: cmd.insert(1, '--headless')
 result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=180, cwd=root)
-log = root / ('.backups/jjk_20260928/' + ('gpu' if args.gpu else 'headless') + '.log')
-log.parent.mkdir(parents=True, exist_ok=True)
+log = Path(tempfile.gettempdir()) / ('jjk_checks_' + ('gpu' if args.gpu else 'headless') + '.log')
 log.write_bytes(result.stdout)
 text = result.stdout.decode('utf-8', errors='replace')
 keys = ['SCRIPT ERROR', 'Parse Error', 'Compile Error', 'JJK_FAIL', 'JJK_RESULT', 'JJK_BATTLE', 'JJK_SHOT']

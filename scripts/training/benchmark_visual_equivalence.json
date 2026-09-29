@@ -1,7 +1,0 @@
-{
-	"failures": 0,
-	"gpu_snapshot_equal": true,
-	"pixel_checks": 3200,
-	"snapshot_property_checks": 468,
-	"streak_and_rng_checks": 2720
-}

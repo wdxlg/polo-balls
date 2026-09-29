@@ -1,9 +1,0 @@
-Godot Engine v4.7.2.stable.steam.ed1daf0bf - https://godotengine.org
-
-PASS: all sixteen original-timing celebration frames remain available
-PASS: both raised arms remain extended and inside the canvas in every celebration frame
-PASS: normal spell casting still selects its independent clip
-PASS: victory switches to corrected celebration
-PASS: celebration remains animated, not replaced by a static pose
-PASS: pause freezes the corrected animation
-BAT RESULT: 6/6 passed

@@ -1,8 +1,0 @@
---- a/scripts/characters/我的世界/铁砧.gd
-+++ b/scripts/characters/我的世界/铁砧.gd
-@@ -405,2 +405,3 @@
--	# Normal roaming rebounds from bodies too, but body contacts are never anvil clangs.
--	collision_mask = 1 if is_large_battle_performance_mode() else 3
-+	# Horizontal rebounds are gameplay, including crowd mode. Only this sweep
-+	# scans character bodies; vertical crush and jump passthrough stay unchanged.
-+	collision_mask = 3

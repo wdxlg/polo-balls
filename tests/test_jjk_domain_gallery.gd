@@ -9,7 +9,8 @@ func _initialize() -> void: call_deferred("run")
 func shot(label:String) -> void:
 	await process_frame
 	var img:Image = root.get_texture().get_image()
-	var path:String = ProjectSettings.globalize_path("res://.backups/jjk_20260928/dom_%s.png" % label)
+	var path:String = ProjectSettings.globalize_path("user://jjk_shots/dom_%s.png" % label)
+	DirAccess.make_dir_recursive_absolute(path.get_base_dir())
 	img.save_png(path)
 	print("JJK_SHOT ", path)
 

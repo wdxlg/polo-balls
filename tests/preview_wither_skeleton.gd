@@ -83,13 +83,14 @@ func run() -> void:
 	# Actual GPU time samples of the complete wind-up/cuts/recovery sequence.
 	actor.combo_heading = Vector2.RIGHT
 	actor._face_right = true
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://wither_skeleton_preview"))
 	for i:int in range(143):
 		actor.combo_time = float(i)/120.0
 		actor.visual_mob()
 		actor._fade_sprite.hide()
 		await process_frame
 		await RenderingServer.frame_post_draw
-		root.get_texture().get_image().save_png("res://.backups/wither_skeleton_grip_20260927/motion_%02d.png" % i)
+		root.get_texture().get_image().save_png("user://wither_skeleton_preview/motion_%02d.png" % i)
 	# Now use the real 60Hz state machine + up-to-144Hz render loop, not manually set poses.
 	Engine.max_fps = 144
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
@@ -119,7 +120,7 @@ func run() -> void:
 		if physical < 0.0:
 			completed = true
 			break
-	var trace_file:FileAccess = FileAccess.open("res://.backups/wither_skeleton_grip_20260927/live_render_trace.json",FileAccess.WRITE)
+	var trace_file:FileAccess = FileAccess.open("user://wither_skeleton_preview/live_render_trace.json",FileAccess.WRITE)
 	trace_file.store_string(JSON.stringify(trace))
 	trace_file.close()
 	print("WITHER_SKELETON_LIVE_RENDER samples=%d subframe_updates=%d completed=%s" % [trace.size(),subframe_updates,str(completed)])

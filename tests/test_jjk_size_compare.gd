@@ -50,5 +50,6 @@ func run() -> void:
 			var r:Rect2 = vis_rect(u)
 			print("JJK_SIZE ",u.name," w=",snappedf(r.size.x,0.1)," h=",snappedf(r.size.y,0.1)," fill=",snappedf(area_ratio(u),0.01))
 	await process_frame
-	root.get_texture().get_image().save_png(ProjectSettings.globalize_path("res://.backups/jjk_20260928/size_compare.png"))
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://jjk_shots"))
+	root.get_texture().get_image().save_png(ProjectSettings.globalize_path("user://jjk_shots/size_compare.png"))
 	quit(0)

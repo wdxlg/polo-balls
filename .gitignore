@@ -27,3 +27,19 @@ desktop.ini
 *.log
 # local engine binary (104 MB, over GitHub 100 MB limit)
 /godot.exe
+# 临时文件：用完即删，永不提交（见 MCP_CONTEXT.md 第 0 节）
+*.err
+*.stdout
+*.stderr
+*.b64
+*.bak
+*.before
+*.orig
+*.rej
+.backups/
+.arena_*/
+tools/checkpoints/
+tests/patches/
+tests/_*_userdata/
+tests/*validation*.json
+scripts/training/benchmark_*.json

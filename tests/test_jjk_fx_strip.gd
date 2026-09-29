@@ -1,6 +1,6 @@
 extends SceneTree
 ## 咒术回战特效逐帧胶片（需要 GPU）：每种特效单独播放，按特效自身时间在多个时刻截图，
-## 输出 .backups/jjk_20260928/strip/<label>_<i>.png，由 strip.py 拼成胶片。
+## 输出到用户数据目录 user://jjk_shots/strip/，看完即删。
 ## godot --path . --audio-driver Dummy --resolution 1280x720 --script res://tests/test_jjk_fx_strip.gd
 ## 环境变量 JJK_STRIP=label1,label2 只跑指定条目。
 var arena:Node2D
@@ -12,7 +12,7 @@ func _initialize() -> void: call_deferred("run")
 func shot(label:String) -> void:
 	await process_frame
 	var img:Image = root.get_texture().get_image()
-	var path:String = ProjectSettings.globalize_path("res://.backups/jjk_20260928/strip/%s.png" % label)
+	var path:String = ProjectSettings.globalize_path("user://jjk_shots/strip/%s.png" % label)
 	img.save_png(path)
 
 func _bg() -> void:
@@ -42,7 +42,7 @@ func run() -> void:
 	root.get_node("Game").now_stop_state = false
 	root.size = Vector2i(1280,720)
 	root.content_scale_mode = Window.CONTENT_SCALE_MODE_DISABLED
-	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("res://.backups/jjk_20260928/strip"))
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://jjk_shots/strip"))
 	arena = Node2D.new()
 	arena.name = "JJKFxStrip"
 	root.add_child(arena)
