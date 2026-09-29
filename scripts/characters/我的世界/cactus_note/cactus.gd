@@ -370,6 +370,16 @@ func has_room_to_grow() -> bool:
 
 func segment_count() -> int: return levels
 
+## Crowd / circle checks see the plant as thin (its width), not as a circle as tall as the
+## stack around its bottom (which let e.g. slime pulses hit it without touching).
+func get_crowd_separation_radius_world() -> float:
+	return maxf(42.0*absf(global_scale.x),6.0)
+
+## Closest point of the plant's body axis to a world point (capsule model: axis + width radius).
+func combat_body_point(from:Vector2) -> Vector2:
+	var local:Vector2 = to_local(from)
+	return to_global(Vector2(0,clampf(local.y,-SEGMENT*float(levels-1),0.0)))
+
 ## Centre of the segment nearest to a world point (other units aim at / measure to this part,
 ## via the tall-body hooks in ball.combat_target_position and World nearest-enemy search).
 func nearest_segment_point(point:Vector2) -> Vector2:
@@ -446,9 +456,9 @@ func multi_part_hurt_shapes() -> Array:
 ## address self_hurtbox directly (body contact) but hands its detection layers to the segments.
 func _sync_hurt_layers() -> void:
 	if self_hurtbox == null: return
-	if self_hurtbox.collision_layer != 0:
-		_hurt_layers = self_hurtbox.collision_layer
-		self_hurtbox.collision_layer = 0
+	# self_hurtbox stays detectable (scripts that query for "target.self_hurtbox" must find the
+	# plant, over its full height); the segment boxes mirror its layer (e.g. while invincible).
+	_hurt_layers = self_hurtbox.collision_layer
 	for box:Area2D in _segment_hurtboxes:
 		if box != null and is_instance_valid(box):
 			if box.collision_layer != _hurt_layers: box.collision_layer = _hurt_layers
@@ -461,14 +471,17 @@ func can_receive_hit_contact(hit:hitbox,hurt:hurtbox) -> bool:
 	var index:int = -1
 	if hurt != null and hurt.has_meta(&"cactus_segment"):
 		index = clampi(int(hurt.get_meta(&"cactus_segment")),0,levels-1)
+	elif hit != null:
+		index = segment_at(hit.global_position) # whole-body hurtbox: the segment at the hit
+	if hit != null and index >= 0:
+		# One hit per hitbox per segment, whether it arrived through the segment box or the
+		# whole-body box (both are detectable), within the hitbox's own repeat guard.
 		var key:String = "%d:%d" % [hit.get_instance_id(),index]
 		var now:int = Time.get_ticks_msec()
-		var guard:int = int(round(float(hit.duplicate_hit_guard_seconds)*1000.0))
-		if guard > 0 and _segment_guard.has(key) and now - int(_segment_guard[key]) < guard: return false
+		var guard:int = maxi(int(round(float(hit.duplicate_hit_guard_seconds)*1000.0)),50)
+		if _segment_guard.has(key) and now - int(_segment_guard[key]) < guard: return false
 		_segment_guard[key] = now
 		if _segment_guard.size() > 256: _segment_guard.clear()
-	elif hit != null:
-		index = segment_at(hit.global_position) # direct body contact through self_hurtbox
 	_set_hit_segment(index)
 	return true
 

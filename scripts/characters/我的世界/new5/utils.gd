@@ -17,6 +17,11 @@ static func nearest(source:ball) -> ball:
 			best=d
 			result=target
 	return result
+## Point of a target's body nearest to a world point: its position for ordinary units, the nearest
+## point of the stack for tall multi-part bodies (grown cactus). Use with radius() for circle checks.
+static func point(target:Node2D,from:Vector2) -> Vector2:
+	if is_instance_valid(target) and target.has_method(&"combat_body_point"): return target.call(&"combat_body_point",from)
+	return target.global_position if is_instance_valid(target) else from
 static func radius(target:ball) -> float:
 	return maxf(target.get_crowd_separation_radius_world(),3.0)
 static func wall_node(node:Node) -> bool:

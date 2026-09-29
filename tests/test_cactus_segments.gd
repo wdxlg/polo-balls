@@ -74,7 +74,19 @@ func run() -> void:
 	check(cactus.get_node("CollisionShape2D").shape.size.y == 96.0*7,"collision grows with every segment")
 	await process_frame
 	check(cactus._segment_sprites.size() == 7 and cactus.image.get_child_count() >= 6,"one sprite per segment (%d)" % cactus._segment_sprites.size())
-	check(cactus._segment_hurtboxes.size() == 7 and cactus.self_hurtbox.collision_layer == 0 and cactus._segment_hurtboxes[6].collision_layer != 0,"one hurtbox per segment; hitboxes see the segments")
+	check(cactus._segment_hurtboxes.size() == 7 and cactus.self_hurtbox.collision_layer != 0 and cactus._segment_hurtboxes[6].collision_layer == cactus.self_hurtbox.collision_layer,"one hurtbox per segment; the whole-body hurtbox stays detectable too")
+	var pq := PhysicsPointQueryParameters2D.new()
+	pq.position = cactus.to_global(Vector2(0,-96.0*6))
+	pq.collide_with_areas = true
+	pq.collide_with_bodies = false
+	pq.collision_mask = cactus.self_hurtbox.collision_layer
+	var found_body_box:bool = false
+	for r:Dictionary in cactus.get_world_2d().direct_space_state.intersect_point(pq,32):
+		if r.collider == cactus.self_hurtbox: found_body_box = true
+	check(found_body_box,"scripts querying for target.self_hurtbox find it at the top segment")
+	check(cactus.get_crowd_separation_radius_world() < 12.0,"circle checks see the plant as thin, not a circle as tall as the stack (%.1f)" % cactus.get_crowd_separation_radius_world())
+	var bp:Vector2 = cactus.combat_body_point(cactus.to_global(Vector2(300,-96.0*4.5)))
+	check(bp.distance_to(cactus.to_global(Vector2(0,-96.0*4.5))) < 0.5 and cactus.combat_body_point(cactus.to_global(Vector2(0,900))).distance_to(cactus.global_position) < 0.5,"body point = nearest point of the stack axis")
 	# a wall right above the top stops growth
 	var wall := StaticBody2D.new()
 	wall.collision_layer = 1
