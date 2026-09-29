@@ -494,17 +494,20 @@ func visual_particles(_dt:float) -> void:
 		var along:Vector2 = global_position + chant_dir * _vrng.randf_range(-600,600)
 		vparts.emit(along,chant_dir.orthogonal() * _vrng.randf_range(-60,60),0.35,2.0,Color(1,0.85,0.85),2,3.0)
 
-func draw_overlay(o:Node2D) -> void:
+func draw_under(o:Node2D) -> void:
 	var t:float = _view_clock
 	if chant_left >= 0.0 and chant_locked:
 		# 世界斩预兆：空间先出现一道细细的黑色裂缝。
 		var a:Vector2 = global_position - chant_dir * 2400.0
 		var b:Vector2 = global_position + chant_dir * 2400.0
 		o.draw_line(a,b,Color(0,0,0,0.55 + 0.25 * sin(t * 30.0)),2.5)
-	if domain_seal_left > 0.0:
-		o.draw_line(global_position + Vector2(-24,28),global_position + Vector2(-24 + 48 * domain_seal_left / domain_seal_seconds,28),Color(0.6,0.75,1.0,0.9),2.0)
 
-func draw_overlay_add(o:Node2D) -> void:
+func draw_overlay(o:Node2D) -> void:
+	if domain_seal_left > 0.0:
+		o.draw_line(global_position + Vector2(-12,19),global_position + Vector2(-12 + 24 * domain_seal_left / domain_seal_seconds,28),Color(0.6,0.75,1.0,0.9),1.5)
+
+## 展延光环、锁血法阵、世界斩预兆线都在角色之下；只把头顶的咒纹留在上层。
+func draw_under_add(o:Node2D) -> void:
 	var t:float = _view_clock
 	if amp_left > 0.0:
 		var p:float = 0.8 + 0.2 * sin(t * 10.0)
@@ -520,7 +523,6 @@ func draw_overlay_add(o:Node2D) -> void:
 		V.glow(o,c,38.0 + 9.0 * beat,Color(1.0,0.05,0.08,0.45 + 0.3 * beat))
 		V.sprite(o,"k_magic01",c,68.0 + 6.0 * beat,Color(1.0,0.12,0.12,0.8),t * 1.2)
 		V.sprite(o,"k_magic05",c,52.0,Color(1.0,0.3,0.25,0.6),-t * 2.0)
-		V.sprite(o,"k_symbol01",c + Vector2(0,-30),12.0 + 6.0 * beat,Color(1.0,0.15,0.15,0.6 + 0.4 * beat))
 		o.draw_arc(c,26.0,0.0,TAU,48,Color(1.0,0.15,0.15,0.9),2.0,true)
 		V.shock(o,c,26.0 + 22.0 * (1.0 - beat),6.0 * beat,Color(1.0,0.2,0.2,beat))
 	if chant_left >= 0.0:
@@ -538,6 +540,11 @@ func draw_overlay_add(o:Node2D) -> void:
 			var tip:Vector2 = global_position + chant_dir * 90.0
 			V.streak(o,global_position,tip,12.0,Color(1.0,0.2,0.2,0.6))
 			V.sparkle(o,tip,8.0,Color(1,0.6,0.6,0.9),t * 4.0)
+
+func draw_overlay_add(o:Node2D) -> void:
+	if hp_lock_left >= 0.0:
+		var beat:float = pow(0.5 + 0.5 * sin(_view_clock * 9.0),6.0)
+		V.sprite(o,"k_symbol01",global_position + Vector2(0,-24),10.0 + 5.0 * beat,Color(1.0,0.15,0.15,0.6 + 0.4 * beat))
 
 func get_armor_test_effect_summary() -> String:
 	if JJK.english():

@@ -263,7 +263,7 @@ func accept_visual(data:Dictionary) -> void:
 func draw_overlay(o:Node2D) -> void:
 	# 头顶八握之剑法阵（原作的舵轮）：每完成一次适应转 1/8 圈，转动中顺滑旋转并放大。
 	var turning:bool = not wheel_key.is_empty()
-	var c:Vector2 = global_position + Vector2(0,-36)
+	var c:Vector2 = global_position + Vector2(0,-25)
 	var angle:float = (wheel_turns + (V.in_out(wheel_progress) if turning else 0.0)) * TAU / 8.0
 	V.dharma_wheel(o,c,11.0 if turning else 9.5,angle,1.0)
 
@@ -285,7 +285,7 @@ func _swing_arc(o:Node2D,r:float,w:float,col:Color) -> void:
 
 func draw_overlay_add(o:Node2D) -> void:
 	var t:float = _view_clock
-	var c:Vector2 = global_position + Vector2(0,-36)
+	var c:Vector2 = global_position + Vector2(0,-25)
 	var turning:bool = not wheel_key.is_empty()
 	var angle:float = (wheel_turns + (V.in_out(wheel_progress) if turning else 0.0)) * TAU / 8.0
 	V.dharma_wheel_glow(o,c,11.0 if turning else 9.5,angle,(0.9 if turning else 0.35) * (1.0 + 0.1 * sin(t * 6.0)))

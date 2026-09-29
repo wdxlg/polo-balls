@@ -46,6 +46,9 @@ static func spawn(parent:Node,fx_kind:String,fx_data:Dictionary,duration:float) 
 	return fx
 
 ## 纯视觉的最短演出时长（不影响任何判定）。
+## 持续性部分沉到角色之下（z -1）的时刻（占 life 的比例）：爆发瞬间在上层，余烬/烟/裂缝/法阵不再挡住角色。
+const SINK_AT:Dictionary = {"fuga_burst":0.22,"red_burst":0.25,"web":0.2,"world_slash":0.18,"wheel_turn":0.0,"heal":0.0,"shockwave":0.3,"thunder":0.35,"black_flash":0.4,"purple_beam":0.5,"cleave":0.55,"teleport":0.3,"ripple":0.0}
+var _sunk:bool = false
 const MIN_LIFE:Dictionary = {"red_burst":0.75,"cleave":0.8,"web":0.9,"fuga_burst":1.4,"world_slash":1.4,"black_flash":0.8,"thunder":0.8,"ripple":0.45,"teleport":0.55,"wheel_turn":0.9,"purple_beam":1.0,"slash":0.42,"shockwave":0.55}
 
 func _ready() -> void:
@@ -66,6 +69,9 @@ func _ready() -> void:
 		return
 	_init_kind()
 	_juice()
+	if float(SINK_AT.get(kind,1.0)) <= 0.0:
+		_sunk = true
+		z_index = -1
 	_update_quads()
 
 func _process(delta:float) -> void:
@@ -74,6 +80,9 @@ func _process(delta:float) -> void:
 	if t >= life + _linger():
 		queue_free()
 		return
+	if not _sunk and SINK_AT.has(kind) and _k() >= float(SINK_AT[kind]):
+		_sunk = true
+		z_index = -1
 	_tick_kind(delta)
 	_parts.step(delta)
 	_update_quads()

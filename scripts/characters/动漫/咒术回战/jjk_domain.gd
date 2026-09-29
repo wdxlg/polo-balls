@@ -276,7 +276,7 @@ func _update_quads() -> void:
 			if shrunk and is_instance_valid(caster):
 				_qhide("pool")
 				var cp:Vector2 = caster.global_position
-				_qd("storm",V.Q.STORM,1,2,cp,Vector2.ONE * 600.0,{"alpha":fade2,"c0":Color(1,0.97,0.97),"c1":Color(1.0,0.22,0.25),"c2":Color(1.0,0.25,0.3),"c3":Color(0,0,0),"p0":Vector4(80.0,18.0,0.3,2.0),"p1":Vector4(0.35,0.8,1.0,0)})
+				_qd("storm",V.Q.STORM,0,2,cp,Vector2.ONE * 600.0,{"alpha":fade2,"c0":Color(1,0.97,0.97),"c1":Color(1.0,0.22,0.25),"c2":Color(1.0,0.25,0.3),"c3":Color(0,0,0),"p0":Vector4(80.0,18.0,0.3,2.0),"p1":Vector4(0.35,0.8,1.0,0)})
 				_qd("edge",V.Q.RING,1,2,cp,Vector2.ONE * 640.0,V.pal("red",{"alpha":0.9 * fade2,"p0":Vector4(0.935,0.03,0.25,0.0),"p1":Vector4(0.006,0.0,0.5,0.0)}))
 				return
 			_qhide("edge")
@@ -284,7 +284,7 @@ func _update_quads() -> void:
 			_qd("pool",V.Q.POOL,0,1,rect.get_center(),rect.size,{"alpha":fade2,"c1":Color(0.95,0.2,0.22),"c2":Color(0.55,0.03,0.06),"c3":Color(0.2,0.0,0.02),"p0":Vector4(0.55,0.35,0.22,0.08)})
 			# 满图「解」「捌」：着色器里按格子随机落刀，白/红斩痕 + 黑缝
 			var area:Rect2 = _shrine_area()
-			_qd("storm",V.Q.STORM,1,2,area.get_center(),area.size,{"alpha":fade2,"c0":Color(1,0.97,0.97),"c1":Color(1.0,0.22,0.25),"c2":Color(1.0,0.25,0.3),"c3":Color(0,0,0),"p0":Vector4(110.0,18.0,0.18,2.2),"p1":Vector4(0.3,0.8,0.0,0)})
+			_qd("storm",V.Q.STORM,0,2,area.get_center(),area.size,{"alpha":fade2,"c0":Color(1,0.97,0.97),"c1":Color(1.0,0.22,0.25),"c2":Color(1.0,0.25,0.3),"c3":Color(0,0,0),"p0":Vector4(110.0,18.0,0.18,2.2),"p1":Vector4(0.3,0.8,0.0,0)})
 
 func _uv_r() -> float:
 	# 瞳孔般张开：先快后慢，末端轻微回弹。

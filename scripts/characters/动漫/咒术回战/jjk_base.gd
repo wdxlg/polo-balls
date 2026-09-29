@@ -33,6 +33,8 @@ var _projectiles:Dictionary = {}
 var _domains:Dictionary = {}
 var _overlay:Node2D
 var _overlay_add:Node2D
+var _under:Node2D
+var _under_add:Node2D
 var _ovq:Dictionary = {}
 var _ovq_used:Dictionary = {}
 ## 纯视觉粒子（世界坐标），只在绘制层使用，不参与任何判定。
@@ -56,6 +58,15 @@ func _ready() -> void:
 	add_child(_overlay)
 	_overlay.draw.connect(_on_overlay_draw)
 	_overlay_add = V.make_add_layer(_overlay,_on_overlay_add_draw)
+	# 角色之下的常驻层：光环、法阵、预警圈、透镜等持续性视觉都画在这里，不遮挡任何角色。
+	_under = Node2D.new()
+	_under.name = "JJKUnder"
+	_under.top_level = true
+	_under.z_as_relative = false
+	_under.z_index = -1
+	add_child(_under)
+	_under.draw.connect(_on_under_draw)
+	_under_add = V.make_add_layer(_under,_on_under_add_draw)
 
 # ---------------------------------------------------------------- 每帧
 func step_mob(delta:float) -> void:
@@ -96,17 +107,21 @@ func on_domain_closed(_kind:String,_broken:bool) -> void: pass
 func draw_overlay(_o:Node2D) -> void: pass
 ## 叠加混合（发光）层的绘制钩子；o 为叠加层节点，坐标为世界坐标。
 func draw_overlay_add(_o:Node2D) -> void: pass
+## 角色之下（普通 / 叠加）。持续性视觉请画在这里。
+func draw_under(_o:Node2D) -> void: pass
+func draw_under_add(_o:Node2D) -> void: pass
 ## 每个画面帧调用一次，用于发射纯视觉粒子（vdelta 为画面时间步长）。
 func visual_particles(_dt:float) -> void: pass
 ## 子类在这里调用 ovq() 布置着色器面片（每帧；未调用的面片自动隐藏）。
 func visual_quads() -> void: pass
 
-## 覆盖层着色器面片（按名字复用）。layer: 1 = 覆盖层最底，2 = 最上。
+## 着色器面片（按名字复用）。layer: 0 = 角色之下，1 = 覆盖层最底，2 = 覆盖层最上。
 func ovq(qname:String,mode:int,layer:int,pos:Vector2,size:Vector2,rot:float,params:Dictionary) -> void:
 	if not is_instance_valid(_overlay) or DisplayServer.get_name() == "headless": return
 	var sp:Sprite2D = _ovq.get(qname)
 	if sp == null:
-		sp = V.quad(_overlay,mode,layer)
+		# layer 0 = 角色之下的常驻层
+		sp = V.quad(_under,mode,2) if layer == 0 else V.quad(_overlay,mode,layer)
 		_ovq[qname] = sp
 	if not params.has("time"): params["time"] = _view_clock
 	if not params.has("seed"): params["seed"] = float(get_instance_id() % 97) * 0.53
@@ -319,6 +334,11 @@ func visual_mob() -> void:
 	if not is_instance_valid(_overlay): return
 	_overlay.global_position = Vector2.ZERO
 	_overlay.visible = health > 0
+	if is_instance_valid(_under):
+		_under.global_position = Vector2.ZERO
+		_under.visible = health > 0
+		_under.queue_redraw()
+		if is_instance_valid(_under_add): _under_add.queue_redraw()
 	if _vclock_last < 0.0: _vclock_last = _view_clock
 	vdelta = clampf(_view_clock - _vclock_last,0.0,0.1)
 	_vclock_last = _view_clock
@@ -335,13 +355,14 @@ func visual_mob() -> void:
 func _on_overlay_draw() -> void:
 	if health <= 0: return
 	var o:Node2D = _overlay
-	var base:Vector2 = global_position + Vector2(-24,20)
-	o.draw_rect(Rect2(base,Vector2(48,5)),Color(0,0,0,0.6))
+	# 咒力条：与角色同宽的细条（原来 48px 宽，比角色本身还大）
+	var base:Vector2 = global_position + Vector2(-12,14)
+	o.draw_rect(Rect2(base,Vector2(24,3)),Color(0,0,0,0.6))
 	var ratio:float = clampf(cursed_energy / maxf(cursed_energy_max,1.0),0.0,1.0)
 	var col:Color = Color(0.55,0.4,1.0) if burnout_left <= 0.0 else Color(0.5,0.5,0.5)
-	o.draw_rect(Rect2(base + Vector2(1,1),Vector2(46 * ratio,3)),col)
+	o.draw_rect(Rect2(base + Vector2(0.5,0.5),Vector2(23 * ratio,2)),col)
 	if burnout_left > 0.0:
-		o.draw_line(base + Vector2(0,7),base + Vector2(48 * clampf(burnout_left / maxf(burnout_seconds + 2.0,0.1),0,1),7),Color(1.0,0.4,0.3,0.9),2.0)
+		o.draw_line(base + Vector2(0,4.5),base + Vector2(24 * clampf(burnout_left / maxf(burnout_seconds + 2.0,0.1),0,1),4.5),Color(1.0,0.4,0.3,0.9),1.5)
 	if black_flash_zone_left > 0.0:
 		# 黑闪状态（the zone）：黑红两色的火花电弧绕身闪烁。
 		_vrng.seed = int(_view_clock * 22.0) + get_instance_id()
@@ -352,11 +373,18 @@ func _on_overlay_draw() -> void:
 	draw_overlay(o)
 	vparts.draw_normal(o)
 
+func _on_under_draw() -> void:
+	if health <= 0: return
+	draw_under(_under)
+
+func _on_under_add_draw() -> void:
+	if health <= 0: return
+	draw_under_add(_under_add)
+
 func _on_overlay_add_draw() -> void:
 	if health <= 0: return
 	var o:Node2D = _overlay_add
 	if black_flash_zone_left > 0.0:
-		V.glow(o,global_position,40.0,Color(0.9,0.05,0.1,0.35 + 0.15 * sin(_view_clock * 12.0)))
 		_vrng.seed = int(_view_clock * 22.0) + get_instance_id() + 7
 		for i:int in 3:
 			var a:float = _vrng.randf() * TAU

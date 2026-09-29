@@ -558,8 +558,8 @@ func visual_quads() -> void:
 	if blue_active:
 		var r:float = blue_max_radius if blue_max else blue_radius
 		var s:float = 1.25 if blue_max else 1.0
-		ovq("blue",V.Q.ORB,2,blue_pos,Vector2.ONE * 64.0 * s,0.0,V.pal("blue",{"alpha":1.3,"p0":Vector4(0.42,-2.6,0.45,1.0),"p1":Vector4(-6.0,0.16,1.0,0.9),"p2":Vector4(0.0,2.6,0,0)}))
-		ovq("blens",V.Q.RING,1,blue_pos,Vector2.ONE * r * 2.1,0.0,V.pal("blue",{"alpha":0.5,"p0":Vector4(0.9 + 0.03 * sin(t * 5.0),0.05,0.35,0.0),"p1":Vector4(0.0,0.0,0.6,0.0)}))
+		ovq("blue",V.Q.ORB,2,blue_pos,Vector2.ONE * 40.0 * s,0.0,V.pal("blue",{"alpha":1.3,"p0":Vector4(0.42,-2.6,0.45,1.0),"p1":Vector4(-6.0,0.16,1.0,0.9),"p2":Vector4(0.0,2.6,0,0)}))
+		ovq("blens",V.Q.RING,0,blue_pos,Vector2.ONE * r * 2.1,0.0,V.pal("blue",{"alpha":0.5,"p0":Vector4(0.9 + 0.03 * sin(t * 5.0),0.05,0.35,0.0),"p1":Vector4(0.0,0.0,0.6,0.0)}))
 	if red_charge >= 0.0:
 		var k:float = clampf(red_charge / 0.7,0.0,1.0)
 		var pulse:float = 0.92 + 0.08 * sin(t * (18.0 + 20.0 * k))
@@ -576,22 +576,23 @@ func visual_quads() -> void:
 		if m > 0.0:
 			ovq("pp",V.Q.ORB,1,c,Vector2.ONE * (24.0 + 70.0 * m) * (1.0 + 0.05 * sin(t * 25.0)),0.0,V.pal("purple",{"alpha":1.3 * m,"p0":Vector4(0.44,1.2,0.5 * m,1.0),"p1":Vector4(5.0,0.14,1.0,0.92),"p2":Vector4(0.0,2.2,0,0)}))
 
-func draw_overlay(o:Node2D) -> void:
+func draw_under(o:Node2D) -> void:
 	if blue_active:
-		# 苍：空间被吸向中心的黑洞感（普通层先压暗中心）。
+		# 苍：空间被吸向中心的黑洞感（角色之下先压暗中心）。
 		var r:float = blue_max_radius if blue_max else blue_radius
 		V.ring(o,blue_pos,0.0,r * 0.5,Color(0.0,0.02,0.1,0.45),Color(0.0,0.02,0.1,0.0),40)
 
-func draw_overlay_add(o:Node2D) -> void:
+## 无下限与苍的持续视觉都在角色之下：被吸过来的敌人始终看得见。
+func draw_under_add(o:Node2D) -> void:
 	var t:float = _view_clock
 	if infinity_active():
 		# 无下限：极淡的蓝色空间折射，偶尔闪过一圈。
 		var sh:float = 0.5 + 0.5 * sin(t * 3.0)
-		V.ring(o,global_position,14.0,20.0,Color(0.5,0.85,1.0,0.0),Color(0.5,0.85,1.0,0.12 + 0.08 * sh),40)
-		V.sprite(o,"k_circle05",global_position,44.0,Color(0.55,0.9,1.0,0.18 + 0.1 * sh),t * 0.5)
+		V.ring(o,global_position,11.0,16.0,Color(0.5,0.85,1.0,0.0),Color(0.5,0.85,1.0,0.12 + 0.08 * sh),40)
+		V.sprite(o,"k_circle05",global_position,34.0,Color(0.55,0.9,1.0,0.18 + 0.1 * sh),t * 0.5)
 		for i:int in 3:
 			var a:float = t * (1.2 + 0.4 * i) + i * 2.1
-			o.draw_arc(global_position,19.0 + i,a,a + 0.5,10,Color(0.7,0.95,1.0,0.35),1.0,true)
+			o.draw_arc(global_position,15.0 + i,a,a + 0.5,10,Color(0.7,0.95,1.0,0.35),1.0,true)
 	if blue_active:
 		var r:float = blue_max_radius if blue_max else blue_radius
 		var s:float = 1.25 if blue_max else 1.0
@@ -608,6 +609,9 @@ func draw_overlay_add(o:Node2D) -> void:
 		# 核心
 		V.glow(o,blue_pos,34.0 * s,Color(0.25,0.5,1.0,0.6))
 		o.draw_arc(blue_pos,18.0 * s,-t * 9.0,-t * 9.0 + 4.0,20,Color(0.7,0.9,1.0,0.8),1.5,true)
+
+func draw_overlay_add(o:Node2D) -> void:
+	var t:float = _view_clock
 	if red_charge >= 0.0:
 		var k:float = clampf(red_charge / 0.7,0.0,1.0)
 		var p:Vector2 = _red_charge_pos()

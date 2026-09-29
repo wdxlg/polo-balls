@@ -23,6 +23,6 @@ texture_filter = 1
 texture = ExtResource("3_face")
 
 [node name="CharacterAutoFit" parent="." index="2"]
-visual_size_multiplier = 0.68
+visual_size_multiplier = 0.5
 
 [editable path="Health_Bar"]

@@ -157,10 +157,11 @@ func draw_overlay(o:Node2D) -> void:
 				var root:Vector2 = c + d * x + n * sgn * (gap + 4.0)
 				o.draw_colored_polygon(PackedVector2Array([root - d * 3.0,root + d * 3.0,c + d * x + n * sgn * gap * 0.2]),Color(0.95,0.92,0.85,k))
 
-func draw_overlay_add(o:Node2D) -> void:
+## 光环与落雷预警在角色之下。
+func draw_under_add(o:Node2D) -> void:
 	var t:float = _view_clock
-	V.sprite(o,"k_light03",global_position,aura_radius * 2.1,Color(0.35,1.0,0.5,0.1 + 0.04 * sin(t * 2.0)),t * 0.1)
-	V.sprite(o,"k_magic04",global_position,aura_radius * 2.0,Color(0.4,1.0,0.55,0.08),-t * 0.2)
+	V.sprite(o,"k_light03",global_position,aura_radius * 2.1,Color(0.35,1.0,0.5,0.035 + 0.015 * sin(t * 2.0)),t * 0.1)
+	V.sprite(o,"k_magic04",global_position,aura_radius * 2.0,Color(0.4,1.0,0.55,0.04),-t * 0.2)
 	V.ring(o,global_position,aura_radius - 30.0,aura_radius,Color(0.4,1.0,0.55,0.0),Color(0.4,1.0,0.55,0.07 + 0.03 * sin(t * 2.0)),64)
 	o.draw_arc(global_position,aura_radius,t * 0.6,t * 0.6 + 1.2,24,Color(0.6,1.0,0.7,0.3),1.5,true)
 	o.draw_arc(global_position,aura_radius,t * 0.6 + PI,t * 0.6 + PI + 1.2,24,Color(0.6,1.0,0.7,0.3),1.5,true)
@@ -177,6 +178,8 @@ func draw_overlay_add(o:Node2D) -> void:
 			var a:float = _vrng.randf() * TAU
 			var pts:PackedVector2Array = V.bolt(_vrng,_thunder_at + Vector2.from_angle(a) * thunder_radius * 0.2,_thunder_at + Vector2.from_angle(a + 0.5) * thunder_radius,10.0,3)
 			V.draw_bolt(o,pts,1.0,Color(0.6,0.8,1.0,0.6 * k),Color(1,1,1,0.8 * k))
+
+func draw_overlay_add(o:Node2D) -> void:
 	if _bite_visual > 0.0:
 		var d:Vector2 = direction.normalized() if direction.length_squared() > 0.01 else Vector2.RIGHT
 		V.glow(o,global_position + d * 30.0,24.0,Color(1.0,0.15,0.15,clampf(_bite_visual * 4.0,0.0,1.0) * 0.6))
