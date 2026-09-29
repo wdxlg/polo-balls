@@ -66,7 +66,7 @@ func run() -> void:
 	actor.set_process(false)
 	actor.voice.set_physics_process(false)
 	await process_frame
-	check(actor.Max_health == 600 and actor.Damage == 20 and actor.Speed == 88.0,"baseline attributes (2026-09-28: 600 HP, 20 melee)")
+	check(actor.Max_health == 700 and actor.Damage == 20 and actor.Speed == 88.0,"baseline attributes (2026-09-29: 700 HP, 20 melee)")
 	check(is_equal_approx(actor.blade_length,18.0) and is_equal_approx(actor.blade_radius,2.25) and is_equal_approx(actor.ATTACK_HAND_REACH,4.5) and is_equal_approx(actor.acquisition_range,52.2),"whole character x0.9: 18 length / 2.25 radius / 4.5 reach / 52.2 melee range")
 	check(actor.player_control_action_ids() == [&"controlled_attack_action",&"controlled_skill_action"],"left mouse slashes, right mouse head bolt")
 	check(not actor.Has_Collision_Damage and not actor.Can_Skill,"no hidden collision or extra skill")

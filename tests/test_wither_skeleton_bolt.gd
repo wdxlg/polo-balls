@@ -80,7 +80,7 @@ func run() -> void:
 	actor.health = actor.Max_health
 
 	# --- 属性 ---
-	check(actor.Max_health == 600 and actor.health == 600,"health is 600")
+	check(actor.Max_health == 700 and actor.health == 700,"health is 700 (2026-09-29)")
 	check(actor.Damage == 20 and is_equal_approx(actor.attack_damage(1.0),20.0),"melee damage is 20")
 	check(is_equal_approx(actor.bolt_damage(),5.0),"bolt damage is 5 at base stats")
 	check(is_equal_approx(actor.BOLT_COOLDOWN,3.0) and is_equal_approx(actor.bolt_cooldown_left,3.0),"medium 3 s cooldown, starts un-ready")

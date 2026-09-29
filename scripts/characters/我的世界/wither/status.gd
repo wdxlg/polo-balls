@@ -55,7 +55,10 @@ func _choose_application() -> void:
 	source_ref = best.source_ref as WeakRef
 	var caster:Variant = source_ref.get_ref() if source_ref != null else null
 	source = caster as Node if is_instance_valid(caster) and caster is Node else null
-	if level != previous: tick_left = float(EFFECTS.properties(effect_type,level).period_ticks)/20.0
+	# A level change keeps the running 1 s damage clock (only clamped to the new period).
+	# Restarting it let any source re-upgrading faster than one period (Wither Skeleton
+	# slashes 0.97 s apart, stacking Witch bottles) postpone every pulse until contact ended.
+	if level != previous: tick_left = minf(tick_left,float(EFFECTS.properties(effect_type,level).period_ticks)/20.0)
 
 func _physics_process(delta:float) -> void:
 	if not is_instance_valid(target) or target.health <= 0:
