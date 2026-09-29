@@ -14,6 +14,7 @@ var _rng:RandomNumberGenerator = RandomNumberGenerator.new()
 var _drng:RandomNumberGenerator = RandomNumberGenerator.new()
 var _parts:V.Parts = V.Parts.new()
 var _add:Node2D
+var _top:Node2D
 var _emit_acc:float = 0.0
 var _cache:Array = []
 
@@ -40,12 +41,17 @@ static func spawn(parent:Node,fx_kind:String,fx_data:Dictionary,duration:float) 
 	return fx
 
 ## 纯视觉的最短演出时长（不影响任何判定）。
-const MIN_LIFE:Dictionary = {"red_burst":0.7,"cleave":0.55,"web":0.85,"fuga_burst":1.2,"world_slash":1.3,"black_flash":0.65,"thunder":0.65,"ripple":0.4,"teleport":0.45,"wheel_turn":0.9,"purple_beam":0.9}
+const MIN_LIFE:Dictionary = {"red_burst":0.7,"cleave":0.8,"web":0.85,"fuga_burst":1.2,"world_slash":1.3,"black_flash":0.8,"thunder":0.65,"ripple":0.45,"teleport":0.55,"wheel_turn":0.9,"purple_beam":0.9,"slash":0.4,"shockwave":0.5}
 
 func _ready() -> void:
 	life = maxf(life,float(MIN_LIFE.get(kind,0.0)))
 	_rng.seed = _seed
 	_add = V.make_add_layer(self,_draw_add)
+	# 普通混合的顶层：画在叠加光之上，黑色部分不会被红光冲淡。
+	_top = Node2D.new()
+	_top.name = "TopLayer"
+	add_child(_top)
+	_top.draw.connect(_draw_top)
 	if kind == "cutin":
 		var face_path:String = str(data.get("face",""))
 		V.cutin(self,load(face_path) if ResourceLoader.exists(face_path) else null,str(data.get("title","")),str(data.get("sub","")),_c("color",Color(0.5,0.7,1.0)),bool(data.get("right",false)),life)
@@ -64,6 +70,7 @@ func _process(delta:float) -> void:
 	_parts.step(delta)
 	queue_redraw()
 	_add.queue_redraw()
+	_top.queue_redraw()
 
 ## 效果结束后让粒子自然消散的额外时间。
 func _linger() -> float:
@@ -114,12 +121,17 @@ func _init_kind() -> void:
 			for i2:int in 6:
 				_parts.emit(mid + (b2 - a2) * _rng.randf_range(-0.3,0.3),n * _rng.randf_range(-160,160) + (b2 - a2).normalized() * _rng.randf_range(60,220),0.35,2.5,_c("color",Color.WHITE),2,5.0)
 		"cleave":
+			# 捌：按对象强度“切块”——两组交叉的平行斩线依次落下，最后整块碎开。
 			var p3:Vector2 = _v("pos")
 			var r3:float = _f("radius",34.0)
-			for i3:int in 6:
-				_cache.append([_rng.randf() * PI,_rng.randf_range(0.8,1.3),i3 * 0.035 + _rng.randf() * 0.02,_rng.randf_range(-6,6)])
-			_burst(p3,22,120.0,380.0,0.45,3.0,Color(1.0,0.3,0.35),2,5.0)
-			_burst(p3,10,40.0,140.0,0.7,r3 * 0.12,Color(0.5,0.0,0.05,0.7),1,3.0,120.0)
+			var base_ang:float = _rng.randf() * PI
+			for i3:int in 10:
+				var grp:int = i3 % 2
+				var ang3:float = base_ang + (PI * 0.5 + _rng.randf_range(-0.18,0.18)) * grp + _rng.randf_range(-0.08,0.08)
+				var lane:float = (float(i3 >> 1) - 2.0) * r3 * 0.42 + _rng.randf_range(-3,3)
+				_cache.append([ang3,_rng.randf_range(1.1,1.5),i3 * 0.028 + _rng.randf() * 0.012,lane])
+			_burst(p3,30,140.0,460.0,0.5,3.0,Color(1.0,0.3,0.35),2,5.0)
+			_burst(p3,14,40.0,160.0,0.8,r3 * 0.14,Color(0.45,0.0,0.04,0.75),1,3.0,140.0)
 		"web":
 			var p4:Vector2 = _v("pos")
 			var r4:float = _f("radius",150.0)
@@ -150,8 +162,11 @@ func _init_kind() -> void:
 		"black_flash":
 			var p8:Vector2 = _v("pos")
 			var r8:float = _f("radius",70.0)
-			_burst(p8,20,r8 * 2.0,r8 * 6.0,0.45,3.0,Color(1.0,0.1,0.15),2,5.0)
-			_burst(p8,16,r8 * 1.5,r8 * 4.0,0.5,r8 * 0.07,Color(0.02,0.0,0.0,0.9),1,5.0)
+			_burst(p8,26,r8 * 2.0,r8 * 7.0,0.45,3.0,Color(1.0,0.1,0.15),2,5.0)
+			_burst(p8,22,r8 * 1.5,r8 * 5.0,0.6,r8 * 0.08,Color(0.02,0.0,0.0,0.95),1,5.0)
+			# 冲击帧的放射速度线（角度、长度、宽度）
+			for i8:int in 22:
+				_cache.append([_rng.randf() * TAU,_rng.randf_range(1.6,3.4),_rng.randf_range(2.0,6.0)])
 		"heal":
 			pass
 		"thunder":
@@ -161,6 +176,8 @@ func _init_kind() -> void:
 		"teleport":
 			var a10:Vector2 = _v("a")
 			var b10:Vector2 = _v("b")
+			for i10b:int in 14:
+				_cache.append([_rng.randf() * TAU,_rng.randf_range(30,70),_rng.randf_range(0.6,1.0)])
 			for i10:int in 16:
 				_parts.emit(a10.lerp(b10,_rng.randf()),Vector2.from_angle(_rng.randf() * TAU) * _rng.randf_range(10,50),0.45,3.0,Color(0.6,0.95,1.0),0,2.0)
 			_burst(b10,14,120.0,260.0,0.35,2.5,Color(0.7,0.95,1.0),2,6.0)
@@ -172,6 +189,9 @@ func _init_kind() -> void:
 			var r12:float = _f("radius",200.0)
 			var c12:Color = _c("color",Color(0.6,0.9,1.0))
 			_burst(p12,int(clampf(r12 / 6.0,8,40)),r12 * 1.2,r12 * 2.4,life * 0.9,3.0,c12.lightened(0.3),2,3.0)
+			# 贴地扬尘：沿环外缘甩出的烟团
+			if r12 >= 60.0:
+				_burst(p12,int(clampf(r12 / 10.0,8,28)),r12 * 1.4,r12 * 2.2,life * 1.2,r12 * 0.09,Color(c12.darkened(0.55),0.45),1,4.0)
 		"text":
 			pass
 
@@ -266,12 +286,15 @@ func _draw() -> void:
 			var hit:float = 1.0 - V.seg(k,0.0,0.35)
 			if hit > 0.0:
 				draw_circle(p3,r3 * 0.5 * V.out_expo(k / 0.1),Color(0,0,0,0.85 * hit))
-			_drng.seed = _seed + int(t / 0.045) * 7
-			var alpha:float = 1.0 - V.seg(k,0.35,1.0)
-			for i3:int in 7:
-				var ang:float = TAU * i3 / 7.0 + _drng.randf_range(-0.4,0.4)
-				var pts3:PackedVector2Array = V.bolt(_drng,p3,p3 + Vector2.from_angle(ang) * r3 * _drng.randf_range(0.8,1.6) * V.out_cubic(k / 0.15),r3 * 0.18,4)
-				draw_polyline(pts3,Color(0.0,0.0,0.0,alpha),5.0,true)
+		"slash":
+			# 解：斩击处空间被切开一道细缝（黑色虚空 + 白边），随后合拢。
+			var sa_:Vector2 = _v("a")
+			var sb_:Vector2 = _v("b")
+			var gap_s:float = V.out_expo(k / 0.18) * (1.0 - V.in_cubic(V.seg(k,0.3,0.85)))
+			if gap_s > 0.0:
+				var bulge_s:float = float(_cache[0]) if not _cache.is_empty() else 0.0
+				var ws:float = _f("width",3.0) * 1.6 + 2.0
+				V.crescent(self,sa_,sb_,ws * gap_s + 1.5,bulge_s,Color(0,0,0,0.9 * gap_s),1.0,0.0)
 		"web":
 			var p4:Vector2 = _v("pos")
 			var r4:float = _f("radius",150.0)
@@ -312,6 +335,56 @@ func _draw() -> void:
 				V.shock(self,pw,rw * 0.6 * V.out_cubic(k),maxf(4.0,rw * 0.2) * (1.0 - k),Color(0.4,0.1,0.6,0.7 * (1.0 - k)))
 		"text":
 			_draw_text(self,false)
+
+# ================================================================= 顶层（普通混合，在叠加光之上）
+func _draw_top() -> void:
+	var ci:CanvasItem = _top
+	var k:float = _k()
+	match kind:
+		"black_flash":
+			# 黑闪：黑色闪电 + 红色描边（原作配色），分叉，每 45ms 重抖一次。
+			var p:Vector2 = _v("pos")
+			var r:float = _f("radius",70.0)
+			var alpha:float = 1.0 - V.seg(k,0.4,1.0)
+			var grow:float = V.out_expo(k / 0.12)
+			_drng.seed = _seed + int(t / 0.045) * 7
+			for i:int in 9:
+				var ang:float = TAU * i / 9.0 + _drng.randf_range(-0.3,0.3)
+				var length:float = r * _drng.randf_range(1.0,2.5) * grow
+				var pts:PackedVector2Array = V.bolt(_drng,p + Vector2.from_angle(ang) * r * 0.15,p + Vector2.from_angle(ang) * length,r * 0.22,4)
+				ci.draw_polyline(pts,Color(0.95,0.05,0.12,alpha),7.0,true)
+				ci.draw_polyline(pts,Color(0,0,0,alpha),3.0,true)
+				if pts.size() > 8:
+					var j:int = _drng.randi_range(int(pts.size() / 3.0),int(pts.size() * 2.0 / 3.0))
+					var bp:PackedVector2Array = V.bolt(_drng,pts[j],pts[j] + Vector2.from_angle(ang + _drng.randf_range(-0.9,0.9)) * length * 0.45,r * 0.12,3)
+					ci.draw_polyline(bp,Color(0.95,0.05,0.12,alpha),4.5,true)
+					ci.draw_polyline(bp,Color(0,0,0,alpha),1.8,true)
+			var core_a:float = 1.0 - V.seg(k,0.05,0.4)
+			if core_a > 0.0:
+				ci.draw_circle(p,r * 0.34 * grow,Color(0.95,0.05,0.12,core_a))
+				ci.draw_circle(p,r * 0.26 * grow,Color(0,0,0,core_a))
+		"cleave":
+			# 切块落下后，目标位置的“碎块”向外错开一瞬。
+			var p2:Vector2 = _v("pos")
+			var r2:float = _f("radius",34.0)
+			var sp:float = V.seg(k,0.35,0.6) * (1.0 - V.seg(k,0.6,1.0))
+			if sp > 0.0:
+				_drng.seed = _seed * 3
+				for c:int in 6:
+					var a:float = TAU * c / 6.0 + _drng.randf_range(-0.3,0.3)
+					var q:Vector2 = p2 + Vector2.from_angle(a) * r2 * (0.35 + 0.5 * sp)
+					var s:float = r2 * _drng.randf_range(0.18,0.3)
+					var pts2:PackedVector2Array = [q + Vector2(-s,-s * 0.6).rotated(a),q + Vector2(s,-s * 0.4).rotated(a),q + Vector2(s * 0.7,s * 0.6).rotated(a),q + Vector2(-s * 0.8,s * 0.5).rotated(a)]
+					ci.draw_colored_polygon(pts2,Color(0.12,0.0,0.02,0.7 * sp))
+					ci.draw_polyline(pts2 + PackedVector2Array([pts2[0]]),Color(1,0.4,0.45,0.9 * sp),1.2,true)
+		"teleport":
+			# 出发点：空间向内折叠成一个黑点（蓝色边）。
+			var a3:Vector2 = _v("a")
+			var pinch:float = 1.0 - V.seg(k,0.0,0.5)
+			if pinch > 0.0:
+				var rr:float = lerpf(26.0,2.0,V.out_cubic(k / 0.5))
+				ci.draw_circle(a3,rr + 3.0,Color(0.5,0.9,1.0,0.8 * pinch))
+				ci.draw_circle(a3,rr,Color(0,0.02,0.05,0.95 * pinch))
 
 # ================================================================= 叠加层（光）
 func _draw_add() -> void:
@@ -362,6 +435,14 @@ func _draw_add() -> void:
 			V.crescent(ci,a4,b4,w4 * 0.35,bulge,Color(1,1,1,1),reveal,erase)
 			var tip:Vector2 = a4.lerp(b4,reveal)
 			if k < 0.4: V.sparkle(ci,tip,w4 * 1.2 * (1.0 - k / 0.4),Color(1,1,1,1.0 - k / 0.4),t * 10.0)
+			# 回声斩：两道细斩线稍晚落在两侧（解 是看不见的连续斩击）
+			var n4:Vector2 = (b4 - a4).orthogonal().normalized()
+			for e4:int in 2:
+				var sgn:float = -1.0 if e4 == 0 else 1.0
+				var kd:float = V.seg(k,0.08 + e4 * 0.06,0.75)
+				if kd <= 0.0 or kd >= 1.0: continue
+				var off4:Vector2 = n4 * sgn * (w4 * 0.9 + 4.0) + (b4 - a4) * 0.06 * sgn
+				V.crescent(ci,a4 + off4,b4 + off4,w4 * 0.3,bulge * 0.8,Color(col,0.75 * (1.0 - kd)),V.out_expo(kd / 0.3),V.in_cubic(V.seg(kd,0.3,1.0)))
 		"cleave":
 			var p5:Vector2 = _v("pos")
 			var r5:float = _f("radius",34.0) * 1.6
@@ -370,15 +451,15 @@ func _draw_add() -> void:
 				var scale5:float = float(cut[1])
 				var delay:float = float(cut[2])
 				var off:float = float(cut[3])
-				var kk5:float = V.seg(t,delay,delay + 0.3)
+				var kk5:float = V.seg(t,delay,delay + 0.42)
 				if kk5 <= 0.0 or kk5 >= 1.0: continue
 				var dir:Vector2 = Vector2.from_angle(ang) * r5 * scale5
 				var shift:Vector2 = dir.orthogonal().normalized() * off
-				var rev:float = V.out_expo(kk5 / 0.35)
-				var era:float = V.in_cubic(V.seg(kk5,0.4,1.0))
-				V.crescent(ci,p5 - dir + shift,p5 + dir + shift,14.0,6.0,Color(1.0,0.15,0.25,0.5),rev,era)
-				V.crescent(ci,p5 - dir + shift,p5 + dir + shift,5.0,6.0,Color(1,1,1,1),rev,era)
-			V.glow(ci,p5,r5 * 1.3,Color(1.0,0.1,0.2,0.5 * (1.0 - k)))
+				var rev:float = V.out_expo(kk5 / 0.25)
+				var era:float = V.in_cubic(V.seg(kk5,0.45,1.0))
+				V.crescent(ci,p5 - dir + shift,p5 + dir + shift,16.0,2.0,Color(1.0,0.12,0.22,0.55),rev,era)
+				V.crescent(ci,p5 - dir + shift,p5 + dir + shift,4.0,2.0,Color(1,1,1,1),rev,era)
+			V.glow(ci,p5,r5 * 1.5,Color(1.0,0.1,0.2,0.5 * (1.0 - k)))
 			if k < 0.25: V.sparkle(ci,p5,r5 * (1.0 - k * 4.0),Color(1,0.9,0.9,1.0 - k * 4.0),0.4)
 		"web":
 			var p6:Vector2 = _v("pos")
@@ -415,13 +496,16 @@ func _draw_add() -> void:
 			var flash8:float = 1.0 - V.seg(k,0.0,0.12)
 			if flash8 > 0.0:
 				ci.draw_rect(V.screen_rect(self),Color(0.5,0.0,0.05,0.25 * flash8))
-			V.glow(ci,p8,r8 * 2.0,Color(1.0,0.05,0.1,0.8 * alpha8))
-			_drng.seed = _seed + int(t / 0.045) * 7
-			for i8:int in 7:
-				var ang8:float = TAU * i8 / 7.0 + _drng.randf_range(-0.4,0.4)
-				var pts8:PackedVector2Array = V.bolt(_drng,p8,p8 + Vector2.from_angle(ang8) * r8 * _drng.randf_range(0.8,1.6) * V.out_cubic(k / 0.15),r8 * 0.18,4)
-				ci.draw_polyline(pts8,Color(1.0,0.05,0.12,alpha8),9.0,true)
-			V.shock(ci,p8,r8 * 2.2 * V.out_expo(k / 0.4),18.0 * (1.0 - k),Color(1.0,0.2,0.25,alpha8))
+			V.glow(ci,p8,r8 * 1.1,Color(1.0,0.05,0.1,0.55 * alpha8))
+			# 冲击帧：白色放射速度线一闪
+			var frame8:float = 1.0 - V.seg(k,0.0,0.22)
+			if frame8 > 0.0:
+				for ln:Variant in _cache:
+					var d8:Vector2 = Vector2.from_angle(float(ln[0]))
+					var l8:float = r8 * float(ln[1])
+					ci.draw_line(p8 + d8 * r8 * 0.6,p8 + d8 * l8 * (0.7 + 0.3 * V.out_expo(k / 0.08)),Color(1,0.85,0.85,0.8 * frame8),float(ln[2]) * frame8 + 0.5,true)
+			V.shock(ci,p8,r8 * 2.4 * V.out_expo(k / 0.4),16.0 * (1.0 - k),Color(1.0,0.15,0.2,0.8 * alpha8))
+			V.shock(ci,p8,r8 * 1.4 * V.out_expo(k / 0.25),8.0 * (1.0 - k),Color(1.0,0.8,0.8,0.7 * alpha8))
 		"heal":
 			var p9:Vector2 = _v("pos")
 			var r9:float = _f("radius",30.0)
@@ -460,7 +544,13 @@ func _draw_add() -> void:
 			# 出发点：空间向内塌缩；落点：向外展开。
 			V.shock(ci,a11,lerpf(46.0,4.0,V.out_cubic(k)),8.0,Color(c11,0.9 * (1.0 - k)))
 			V.glow(ci,a11,30.0 * (1.0 - k),Color(c11,0.6 * (1.0 - k)))
-			V.shock(ci,b11,lerpf(6.0,56.0,V.out_expo(k)),10.0 * (1.0 - k),Color(c11,0.9 * (1.0 - k)))
+			V.shock(ci,b11,lerpf(6.0,80.0,V.out_expo(k)),12.0 * (1.0 - k),Color(c11,0.95 * (1.0 - k)))
+			# 落点：空间被“压回”原状的放射速度线
+			var sp11:float = 1.0 - V.seg(k,0.0,0.45)
+			for ln11:Variant in _cache:
+				var d11:Vector2 = Vector2.from_angle(float(ln11[0]))
+				var r0:float = lerpf(18.0,60.0,V.out_expo(k / 0.45))
+				ci.draw_line(b11 + d11 * r0,b11 + d11 * (r0 + float(ln11[1]) * sp11),Color(0.75,0.97,1.0,float(ln11[2]) * sp11),2.0,true)
 			V.core(ci,b11,22.0 * (1.0 - V.seg(k,0.0,0.3)),Color(1,1,1,1.0 - V.seg(k,0.0,0.3)))
 			V.streak(ci,a11,b11,16.0 * (1.0 - k),Color(c11,0.5 * (1.0 - k)))
 		"wheel_turn":
@@ -471,8 +561,10 @@ func _draw_add() -> void:
 			var c13:Color = _c("color",Color(0.6,0.9,1.0))
 			if c13.get_luminance() < 0.3: c13 = Color(0.55,0.3,0.9,0.5)
 			var e13:float = V.out_expo(k)
-			V.glow(ci,p13,r13 * 0.8 * e13,Color(c13,0.35 * (1.0 - k)))
-			V.shock(ci,p13,r13 * e13,maxf(4.0,r13 * 0.18) * (1.0 - k),Color(c13,0.95 * (1.0 - k)))
+			var f13:float = 1.0 - V.in_cubic(k)
+			V.glow(ci,p13,r13 * 0.8 * e13,Color(c13,0.4 * f13))
+			V.shock(ci,p13,r13 * e13,maxf(6.0,r13 * 0.24) * f13,Color(c13,f13))
+			V.shock(ci,p13,r13 * e13,maxf(2.0,r13 * 0.035),Color(1,1,1,0.8 * f13))
 			V.shock(ci,p13,r13 * 0.7 * V.out_cubic(k),maxf(3.0,r13 * 0.08) * (1.0 - k),Color(c13.lightened(0.4),0.6 * (1.0 - k)))
 		"text":
 			_draw_text(ci,true)
@@ -785,7 +877,7 @@ func _sprites_add(ci:CanvasItem,k:float) -> void:
 			V.sprite(ci,"k_star08",a3.lerp(b3,rev),l3 * 0.35 * fade3,Color(1,1,1,fade3),t * 8.0)
 		"cleave":
 			var p4:Vector2 = _v("pos")
-			var r4:float = _f("radius",34.0) * 1.6
+			var r4:float = _f("radius",34.0) * 1.6 * 0.8
 			for cut:Variant in _cache:
 				var ang:float = float(cut[0])
 				var delay:float = float(cut[2])
@@ -825,14 +917,10 @@ func _sprites_add(ci:CanvasItem,k:float) -> void:
 			var p8:Vector2 = _v("pos")
 			var r8:float = _f("radius",70.0)
 			var a8:float = 1.0 - V.seg(k,0.25,1.0)
-			V.sprite(ci,"k_scorch03",p8,r8 * 3.4 * V.out_expo(k / 0.12),Color(0.9,0.08,0.12,0.8 * a8),-t * 3.0)
+			V.sprite(ci,"k_scorch03",p8,r8 * 3.4 * V.out_expo(k / 0.12),Color(0.9,0.08,0.12,0.45 * a8),-t * 3.0)
 			V.sprite(ci,"k_light01",p8,r8 * 3.0,Color(0.8,0.02,0.08,0.45 * a8))
 			V.sprite(ci,"k_star08",p8,r8 * 2.2 * (1.0 - k),Color(1.0,0.85,0.85,1.0 - k),t * 4.0)
 			V.sprite(ci,"k_light02",p8,r8 * 0.9,Color(1,0.9,0.9,a8))
-			_drng.seed = _seed + int(t / 0.05)
-			for i8:int in 4:
-				var ang8:float = _drng.randf() * TAU
-				V.sprite(ci,"k_spark06",p8 + Vector2.from_angle(ang8) * r8 * 0.7,r8 * 1.6,Color(1.0,0.15,0.2,a8),ang8 + PI * 0.5,Vector2(0.6,1.0))
 		"heal":
 			var p9:Vector2 = _v("pos")
 			var r9:float = _f("radius",30.0)

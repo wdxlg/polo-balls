@@ -7,6 +7,7 @@ const CTX:String = "_jjk_ctx"
 
 const SOUNDS:Dictionary = {
 	"black_flash": preload("res://audio/characters/咒术回战/black_flash.ogg"),
+	"black_flash_hit": preload("res://audio/characters/咒术回战/black_flash_hit.ogg"),
 	"gojo_intro": preload("res://audio/characters/咒术回战/gojo_intro.ogg"),
 	"gojo_blue": preload("res://audio/characters/咒术回战/gojo_blue.ogg"),
 	"gojo_red": preload("res://audio/characters/咒术回战/gojo_red.ogg"),
@@ -16,10 +17,13 @@ const SOUNDS:Dictionary = {
 	"gojo_domain": preload("res://audio/characters/咒术回战/gojo_domain.ogg"),
 	"gojo_teleport": preload("res://audio/characters/咒术回战/gojo_teleport.ogg"),
 	"sukuna_intro": preload("res://audio/characters/咒术回战/sukuna_intro.ogg"),
+	"sukuna_kai": preload("res://audio/characters/咒术回战/sukuna_kai.ogg"),
 	"sukuna_dismantle": preload("res://audio/characters/咒术回战/sukuna_dismantle.ogg"),
 	"sukuna_cleave": preload("res://audio/characters/咒术回战/sukuna_cleave.ogg"),
 	"sukuna_fuga": preload("res://audio/characters/咒术回战/sukuna_fuga.ogg"),
+	"sukuna_fuga_boom": preload("res://audio/characters/咒术回战/sukuna_fuga_boom.ogg"),
 	"sukuna_domain": preload("res://audio/characters/咒术回战/sukuna_domain.ogg"),
+	"sukuna_world_slash_charge": preload("res://audio/characters/咒术回战/sukuna_world_slash_charge.ogg"),
 	"sukuna_world_slash": preload("res://audio/characters/咒术回战/sukuna_world_slash.ogg"),
 	"mahoraga_wheel": preload("res://audio/characters/咒术回战/mahoraga_wheel.ogg"),
 	"mahoraga_summon": preload("res://audio/characters/咒术回战/mahoraga_summon.ogg"),

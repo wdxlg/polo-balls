@@ -130,6 +130,7 @@ func roll_black_flash(point:Vector2) -> float:
 	cursed_energy = minf(cursed_energy_max,cursed_energy + cursed_energy_max * 0.15)
 	burnout_left = maxf(0.0,burnout_left - 2.0)
 	sfx("black_flash",0.0)
+	sfx("black_flash_hit",-2.0)
 	fx("black_flash",{"pos":point,"radius":70.0},0.45)
 	fx("text",{"pos":point + Vector2(0,-40),"text":"Black Flash" if JJK.english() else "黑闪","size":26,"color":Color(1.0,0.2,0.25),"world":true},0.9)
 	return 2.5

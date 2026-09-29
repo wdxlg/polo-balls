@@ -228,6 +228,7 @@ func cast_web(at:Vector2) -> bool:
 		JJK.hit(self,t,attack_damage(web_damage_multiplier),t.global_position,&"ordinary",{"phenomenon":"sukuna_dismantle"})
 		JJK.stun(self,t,0.5,{"phenomenon":"sukuna_dismantle"})
 	fx("web",{"pos":p,"radius":web_radius,"world":true},0.6)
+	sfx("sukuna_kai",-1.0)
 	sfx("sukuna_dismantle",-3.0)
 	return true
 
@@ -267,6 +268,7 @@ func on_projectile_impact(kind:String,_target:ball,point:Vector2) -> void:
 		JJK.hit(self,t,attack_damage(fuga_damage_multiplier * (1.5 if boosted else 1.0)),t.global_position,&"fire",{"phenomenon":"sukuna_fuga"})
 		JJK.knock(self,t,t.global_position - point,160.0,800.0,0.0,{"phenomenon":"sukuna_fuga"})
 	fx("fuga_burst",{"pos":point,"radius":r,"world":true},0.8)
+	sfx("sukuna_fuga_boom",0.0)
 
 func punch_toward(at:Vector2) -> bool:
 	if not can_act() or punch_cd > 0.0: return false
@@ -313,7 +315,7 @@ func begin_world_slash(dir:Vector2,empowered:bool) -> bool:
 	chant_locked = false
 	casting = true
 	_chant_step = 0
-	sfx("sukuna_world_slash",0.0)
+	sfx("sukuna_world_slash_charge",-2.0)
 	cutin("世界斩","World-Cutting Slash","龙鳞 反发 双子流星","Dragon Scale, Recoil, Twin Meteors",Color(0.9,0.9,0.95),true)
 	return true
 
@@ -343,6 +345,7 @@ func _fire_world_slash() -> void:
 		if bool(d.call("barrier_intact")) and JJK.U.enemy(self,d.caster) and U2.segment_distance(d.center,a,b) < d.radius:
 			d.call("damage_barrier",1000.0)
 	fx("world_slash",{"a":a,"b":b,"width":width,"world":true},0.9)
+	sfx("sukuna_world_slash",1.0)
 	if chant_empowered:
 		world_slash_learned = true
 		world_slash_cd = maxf(world_slash_cd,world_slash_cooldown)

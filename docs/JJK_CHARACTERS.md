@@ -1,7 +1,7 @@
 # 咒术回战角色（动漫分区）
 
 四个可选角色（机制超模，数值已压到接近同分区普通角色；体型与普通角色一致：`CharacterAutoFit.visual_size_multiplier = 0.68`），外观统一使用网上找到的 Minecraft 皮肤脸部（8×8 脸 + 帽子层，放大到 128px）。
-音效全部来自网络（myinstants.com），来源、sha256 与版权说明见 `audio/characters/咒术回战/SOURCE.json`、`Images/characters/动漫/咒术回战/SOURCE.json`；原始文件在 `sources/jjk/`（带 `.gdignore`）。
+音效全部来自网络，语音全部为日语原声：动画片段（YouTube）、myinstants.com 的日语台词、Mixkit 免费音效（Mixkit Free License）；由 `tools/build_jjk_audio.py` 裁剪/叠混/响度标准化生成（原始文件在 `sources/jjk/audio_r3/`，带 `.gdignore`），来源 URL、裁剪参数、sha256、语言与版权说明见 `audio/characters/咒术回战/SOURCE.json`；皮肤见 `Images/characters/动漫/咒术回战/SOURCE.json`。「龍鱗・反発・番いの流星」咏唱没有任何官方日语配音（未动画化），世界斩改为咏唱期蓄力音 + 发动时官方「解」+ 断空斩击音。
 
 | 角色 | 场景 | 脚本 | 生命/攻击/速度 |
 |---|---|---|---|

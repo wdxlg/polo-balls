@@ -40,6 +40,11 @@ FALLBACK_SKIN_B64 = {
 
 MI = "https://www.myinstants.com/media/sounds/"
 # out name: (source file, start s, duration s or None, fade-out s, note)
+# 2026-09-29 第三轮：英语配音与不合适的音效已由 tools/build_jjk_audio.py（日语原声 + 动画/Mixkit 音效）替换，
+# 这里只保留仍在使用的原始片段（全部为日语或无人声）；本脚本末尾会调用 build_jjk_audio 生成其余音效。
+SOUNDS_R3_REPLACED = ("black_flash", "gojo_blue", "gojo_purple_sfx", "gojo_teleport", "sukuna_intro", "sukuna_dismantle",
+                      "sukuna_cleave", "sukuna_fuga", "sukuna_world_slash", "mahoraga_summon", "mahoraga_roar",
+                      "agito_roar", "agito_thunder")
 SOUNDS = {
     "black_flash": ("black-flash-sfx.mp3", 0.0, None, 0.3, "黑闪命中"),
     "gojo_intro": ("throughout-heaven-and-earth-i-alone-am-honored.mp3", 0.0, None, 0.3, "五条悟开场：天上天下唯我独尊"),
@@ -62,6 +67,7 @@ SOUNDS = {
     "agito_roar": ("big-monster-roar.mp3", 0.0, 2.5, 0.5, "嵌合暗兽咆哮"),
     "agito_thunder": ("electric-shock.mp3", 0.0, 1.6, 0.3, "鵺雷击"),
 }
+for _k in SOUNDS_R3_REPLACED: SOUNDS.pop(_k)
 
 
 def fetch(url):
@@ -143,6 +149,9 @@ def main():
         print("sound", key, round(length, 2), "s")
     for d in (IMG_DIR, SND_DIR):
         json.dump(record, open(os.path.join(d, "SOURCE.json"), "w", encoding="utf8"), ensure_ascii=False, indent=1)
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import build_jjk_audio
+    build_jjk_audio.main(["--ffmpeg", a.ffmpeg, "--fetch"])
     print("OK", len(record["skins"]), "skins", len(record["sounds"]), "sounds")
 
 

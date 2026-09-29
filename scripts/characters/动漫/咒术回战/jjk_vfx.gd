@@ -157,7 +157,7 @@ static func draw_bolt(ci:CanvasItem,pts:PackedVector2Array,width:float,glow_colo
 
 ## 四角星闪光。
 static func sparkle(ci:CanvasItem,pos:Vector2,size:float,color:Color,rot:float = 0.0) -> void:
-	if size <= 0.3 or color.a <= 0.003: return
+	if size <= 1.5 or color.a <= 0.003: return
 	var pts:PackedVector2Array = []
 	for i:int in 8:
 		var r:float = size if i % 2 == 0 else size * 0.18
