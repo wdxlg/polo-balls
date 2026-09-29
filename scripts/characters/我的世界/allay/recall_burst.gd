@@ -16,7 +16,7 @@ func available() -> Array[Node]:
 	for shot:Node in unit.get_tree().get_nodes_in_group("AllayFlyingNote"):
 		if not is_instance_valid(shot) or shot.is_queued_for_deletion() or shot._spent or shot.health<=0: continue
 		if shot.Master==unit and shot._recall_state==0: result.append(shot)
-	result.sort_custom(func(a:Node,b:Node)->bool: return a.global_position.distance_squared_to(unit.global_position)<b.global_position.distance_squared_to(unit.global_position))
+	result.sort_custom(func(a:Node,b:Node)->bool: return ball.body_point(a,unit.global_position).distance_squared_to(unit.global_position)<ball.body_point(b,unit.global_position).distance_squared_to(unit.global_position))
 	return result
 func live(arrived_only:bool=false) -> Array[Node]:
 	var result:Array[Node]=[]
@@ -27,15 +27,18 @@ func live(arrived_only:bool=false) -> Array[Node]:
 		if arrived_only and shot._recall_state!=2: continue
 		result.append(shot)
 	return result
-func try_start() -> bool:
+func try_start(aimed_enemy:ball=null) -> bool:
 	if busy() or cooldown>0.0 or not unit.active() or unit.dizziness or unit.is_damage_output_disabled(): return false
 	var enemy:ball=null
-	for target:Node in unit.get_tree().get_nodes_in_group("Ball"):
-		if not U.enemy(unit,target) or not target.is_combat_lockable(): continue
-		if not unit.Team.is_empty() and target.Team==unit.Team: continue
-		if unit.global_position.distance_to(target.global_position)<=unit.recall_trigger and U.line_clear(unit,unit.global_position,target.global_position):
-			enemy=target
-			break
+	if aimed_enemy!=null:
+		if U.enemy(unit,aimed_enemy) and aimed_enemy.is_combat_lockable() and (unit.Team.is_empty() or aimed_enemy.Team!=unit.Team) and unit.global_position.distance_to(ball.body_point(aimed_enemy,unit.global_position))<=unit.recall_trigger and U.line_clear(unit,unit.global_position,ball.body_point(aimed_enemy,unit.global_position)): enemy=aimed_enemy
+	else:
+		for target:Node in unit.get_tree().get_nodes_in_group("Ball"):
+			if not U.enemy(unit,target) or not target.is_combat_lockable(): continue
+			if not unit.Team.is_empty() and target.Team==unit.Team: continue
+			if unit.global_position.distance_to(ball.body_point(target,unit.global_position))<=unit.recall_trigger and U.line_clear(unit,unit.global_position,ball.body_point(target,unit.global_position)):
+				enemy=target
+				break
 	if enemy==null: return false
 	var flying:Array[Node]=available()
 	if unit.notes+flying.size()<5: return false
@@ -94,14 +97,14 @@ func spin_contact(shot:Node,from:Vector2,to:Vector2) -> void:
 	for target:Node in unit.get_tree().get_nodes_in_group("Ball"):
 		if not U.enemy(unit,target) or target.is_queued_for_deletion(): continue
 		if not unit.Team.is_empty() and target.Team==unit.Team: continue
-		if U.segment_distance(target.global_position,from,to)>U.radius(target)+6.0: continue
+		if U.segment_distance(ball.body_point_seg(target,from,to),from,to)>U.radius(target)+6.0: continue
 		var id:int=target.get_instance_id()
 		if unit.clock<float(spin_hits.get(id,-1000.0)): continue
-		if not U.line_clear(unit,to,target.global_position): continue
+		if not U.line_clear(unit,to,ball.body_point(target,to)): continue
 		spin_hits[id]=unit.clock+0.2
 		var amount:float=unit.effective_outgoing_damage(shot._recall_damage*0.15)
 		if amount>0.0 and target.receive_positional_damage(amount,to,false,unit):
-			var axis:Vector2=unit.global_position.direction_to(target.global_position)
+			var axis:Vector2=unit.global_position.direction_to(ball.body_point(target,unit.global_position))
 			target.apply_knockback(axis if axis!=Vector2.ZERO else Vector2.RIGHT,8.0,120.0,0.0,0.0,{"source":unit,"stop_on_character":true})
 func finish() -> void:
 	last_consumed=0; last_damage=0.0

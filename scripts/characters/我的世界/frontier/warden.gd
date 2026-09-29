@@ -1,6 +1,6 @@
 extends "res://scripts/characters/我的世界/frontier/base.gd"
 ## Sound positions, not enemy references, drive decisions. Hits are always actual area/path contacts.
-const SHRIEKER:Texture2D = preload("res://Images/characters/我的世界/frontier/shrieker_block.png")
+const SHRIEKER:Texture2D = preload("res://Images/characters/我的世界/frontier/shrieker_block_complete.png")
 const WARDEN:SpriteFrames = preload("res://Images/characters/我的世界/frontier/warden_frames.tres")
 const NOISE = preload("res://scripts/characters/我的世界/frontier/battle_noise.gd")
 const WAVE = preload("res://scripts/characters/我的世界/frontier/warden_wave.gd")
@@ -22,6 +22,7 @@ enum Form { DORMANT, EMERGING, AWAKE, BURROWING }
 @export var rage_noise_threshold:float = 82.0
 @export var rage_speed_multiplier:float = 1.6
 @export var sleep_delay:float = 8.0
+@export var awakened_visual_scale:float = 1.4
 var form:int = Form.DORMANT
 var alert_level:float = 0.0
 var signals_received:int = 0
@@ -58,6 +59,9 @@ var probe_casts:int = 0
 var _sonic_pending:bool = false
 var _melee_pending:bool = false
 var _collider_awake:bool = false
+var _attack_facing_flipped_h:bool = false
+var _replica_attack_turn_locked:bool = false
+var _accepting_attack_pose:bool = false
 var _wave_serial:int = 0
 var _last_wave_event:int = 0
 var waves:Array = []
@@ -104,6 +108,27 @@ func can_act() -> bool:
 			if child._stage==1: return false
 			motion_locks+=1
 	return motion_locks==locks
+func _attack_turn_pose_active() -> bool:
+	# Released waves travel independently; the body unlocks when its recovery ends.
+	return _melee_pending or melee_left>0.0 or melee_visual_left>0.0 or _sonic_pending or sonic_left>0.0 or sonic_recover>0.0
+func is_direction_change_locked() -> bool:
+	if _accepting_attack_pose or not is_node_ready() or health<=0 or form!=Form.AWAKE: return false
+	return _attack_turn_pose_active() if is_multiplayer_authority() else _replica_attack_turn_locked or _attack_turn_pose_active()
+func _capture_attack_facing(heading:Vector2) -> void:
+	# Align once with this committed attack, before activating the turn lock.
+	super.face_horizontal(heading,true)
+	_attack_facing_flipped_h = is_character_visual_flipped_h()
+func set_character_visual_flip_h(flipped:bool) -> void:
+	super.set_character_visual_flip_h(_attack_facing_flipped_h if is_direction_change_locked() else flipped)
+func face_horizontal(hint:Vector2,native_faces_left:bool=true) -> void:
+	if is_direction_change_locked():
+		_face_right = _attack_facing_flipped_h
+		super.face_horizontal(Vector2.ZERO,native_faces_left)
+	else:
+		super.face_horizontal(hint,native_faces_left)
+func set_player_control_direction(input_direction:Vector2) -> void:
+	if is_direction_change_locked() and not input_direction.is_zero_approx(): return
+	super.set_player_control_direction(input_direction)
 func sonic_attack_busy() -> bool:
 	if _sonic_pending or sonic_left>0.0 or sonic_recover>0.0: return true
 	for wave:Variant in waves:
@@ -120,7 +145,7 @@ func damage_with_sound(target:ball,amount:float,point:Vector2,ignore_block:bool=
 	if not is_multiplayer_authority() or not U.enemy(self,target) or amount<=0 or is_damage_output_disabled(): return false
 	var reference_health:float=target.get_impact_reference_health()
 	var before:float=maxf(target.health,0.0)
-	var hit_point:Vector2=target.global_position
+	var hit_point:Vector2=ball.body_point(target,global_position)
 	var accepted:bool=target.receive_positional_damage(amount,point,ignore_block,self)
 	var remaining:float=maxf(target.health,0.0) if is_instance_valid(target) else 0.0
 	var actual:float=maxf(before-remaining,0.0)
@@ -154,16 +179,18 @@ func hear_noise(source:Node,point:Vector2,kind:String,power:float) -> bool:
 	if perceived>=hearing_fx_threshold and form in [Form.DORMANT,Form.AWAKE]: emit_effect("heard_noise",point)
 	if is_instance_valid(voice_controller): voice_controller.heard()
 	quiet_time = 0.0
-	var key:String = str(source.get_instance_id())+":"+kind
-	# Copy the sound's world position. Never retain a target or track its later position silently.
-	sounds[key] = {"point":point,"power":power,"age":0.0,"kind":kind}
-	var axis:Vector2 = global_position.direction_to(point)
-	if not axis.is_zero_approx(): listen_heading = axis
+	# Hearing effects/rage still work, but an ignored turn must not become a
+	# stored sound-position turn immediately after recovery.
+	if not is_direction_change_locked():
+		var key:String = str(source.get_instance_id())+":"+kind
+		sounds[key] = {"point":point,"power":power,"age":0.0,"kind":kind}
+		var axis:Vector2 = global_position.direction_to(point)
+		if not axis.is_zero_approx() and not is_player_controlled(): listen_heading = axis
 	if form==Form.DORMANT:
 		# Hearing steers the probe, never the shrieker locomotion.
 		if probe_left<=0.0:
 			alert_level = minf(alert_max,alert_level+perceived*0.25)
-			if alert_level>=alert_max: begin_probe()
+			if alert_level>=alert_max and not is_player_controlled(): begin_probe()
 	elif form==Form.AWAKE and perceived>=rage_noise_threshold:
 		if rage_left<=0.0 and is_instance_valid(voice_controller): voice_controller.roar()
 		rage_left = 2.8
@@ -180,19 +207,21 @@ func _best_sound() -> Dictionary:
 			best = {"point":record.point,"volume":value}
 	return best
 func begin_probe() -> bool:
-	if not can_act() or form!=Form.DORMANT or probe_left>0.0 or alert_level<alert_max: return false
+	if not can_act() or form!=Form.DORMANT or probe_left>0.0 or (not is_player_controlled() and alert_level<alert_max): return false
+	if is_player_controlled() and not has_player_control_aim(): return false
 	probes_remaining = maxi(1,probe_count)
 	probe_left = probes_remaining*probe_interval
 	_probe_wait = 0.0
 	alert_level = 0.0
-	var first:Dictionary = _best_sound()
+	var first:Dictionary = {"point":player_control_aim_world_position()} if is_player_controlled() else _best_sound()
+	if is_player_controlled(): listen_heading=player_control_aim_direction(listen_heading)
 	_aim("probe",first.point if not first.is_empty() else global_position+listen_heading*probe_range*0.5,probe_interval)
 	cue("shrieker",-3.0)
 	return true
 func emit_probe() -> bool:
 	if not can_act() or form!=Form.DORMANT or probe_left<=0.0 or probes_remaining<=0: return false
-	# Re-aim from the current muzzle to a recorded sound position, not a live target.
-	var sound:Dictionary = _best_sound()
+	# AI follows recorded sound; a manual probe instead follows the current cursor.
+	var sound:Dictionary = {"point":player_control_aim_world_position()} if is_player_controlled() and has_player_control_aim() else _best_sound()
 	if not sound.is_empty():
 		var axis:Vector2 = global_position.direction_to(sound.point)
 		if not axis.is_zero_approx(): listen_heading = axis
@@ -289,6 +318,7 @@ func _finish_burrow() -> void:
 	_form_stats(false)
 	update_form_collider(false)
 func _cancel_attacks(clear_waves:bool = false) -> void:
+	_replica_attack_turn_locked = false
 	_sonic_pending = false
 	_melee_pending = false
 	melee_left = 0.0
@@ -305,6 +335,7 @@ func _cancel_attacks(clear_waves:bool = false) -> void:
 		waves.clear()
 func step_mob(delta:float) -> void:
 	if not is_combat_runtime_active() or Game.now_stop_state or get_tree().paused: return
+	var turn_locked_at_start:bool = is_direction_change_locked()
 	if not can_act() and sonic_can_continue():
 		sonic_recover=maxf(0.0,sonic_recover-delta)
 		# Keep only committed sonic attacks alive; stun still prevents new attacks and normal movement.
@@ -340,7 +371,7 @@ func step_mob(delta:float) -> void:
 	heard_strength = float(sound.get("volume",0.0))
 	if not sound.is_empty():
 		heard_position = sound.point
-		if form==Form.AWAKE and _turn_wait<=0.0 and _bounce_hold<=0.0 and not is_player_controlled():
+		if form==Form.AWAKE and not turn_locked_at_start and not is_direction_change_locked() and _turn_wait<=0.0 and _bounce_hold<=0.0 and not is_player_controlled():
 			var axis:Vector2 = global_position.direction_to(heard_position)
 			if not axis.is_zero_approx(): direction = axis
 			_turn_wait = 0.15
@@ -372,18 +403,20 @@ func step_mob(delta:float) -> void:
 		melee_left = maxf(0.0,melee_left-delta)
 		if melee_left<=0.0: release_melee()
 		return
-	if quiet_time>=sleep_delay:
+	if quiet_time>=sleep_delay and not is_player_controlled():
 		begin_burrow()
 		return
 	if not sound.is_empty() and not is_player_controlled():
 		if global_position.distance_to(sound.point)<=melee_range: begin_melee()
 		elif heard_strength>=sonic_noise_threshold: begin_sonic()
 func begin_melee() -> bool:
-	if not can_act() or form!=Form.AWAKE or melee_left>0.0 or sonic_attack_busy() or _attack_cooldown>0.0: return false
-	var sound:Dictionary = _best_sound()
+	if not can_act() or form!=Form.AWAKE or is_direction_change_locked() or melee_left>0.0 or sonic_attack_busy() or _attack_cooldown>0.0: return false
+	if is_player_controlled() and not has_player_control_aim(): return false
+	var sound:Dictionary = {"point":player_control_aim_world_position()} if is_player_controlled() else _best_sound()
 	if sound.is_empty() or global_position.distance_to(sound.point)>melee_range: return false
 	_melee_heading = global_position.direction_to(sound.point)
 	if _melee_heading.is_zero_approx(): _melee_heading = listen_heading
+	_capture_attack_facing(_melee_heading)
 	_melee_pending = true
 	melee_left = 0.2
 	melee_visual_left = 0.4
@@ -398,21 +431,23 @@ func release_melee() -> void:
 	_melee_pending = false
 	_clear_aim()
 	for target:ball in foes(global_position,melee_range+100.0):
-		var offset:Vector2 = target.global_position-global_position
+		var offset:Vector2 = ball.body_point(target,global_position)-global_position
 		if offset.length()>melee_range+U.radius(target) or (not offset.is_zero_approx() and offset.normalized().dot(_melee_heading)<0.45): continue
-		if U.line_clear(self,global_position,target.global_position) and damage_with_sound(target,attack_damage(2.0),target.global_position):
+		if U.line_clear(self,global_position,ball.body_point(target,global_position)) and damage_with_sound(target,attack_damage(2.0),target.global_position):
 			if target.health>0 and target.can_receive_negative_effects(): target.apply_knockback(_melee_heading,75.0,430.0,0.0,0.0,{"lock_control":false,"source":self,"stop_on_character":false,"collision_damage":0.0})
 			emit_effect("hit",target.global_position)
 	cue("warden_hit",-3.0)
 func begin_sonic() -> bool:
-	if not can_act() or form!=Form.AWAKE or _sonic_cooldown>0.0 or sonic_attack_busy() or melee_left>0.0 or _melee_pending: return false
-	var sound:Dictionary = _best_sound()
+	if not can_act() or form!=Form.AWAKE or is_direction_change_locked() or _sonic_cooldown>0.0 or sonic_attack_busy() or melee_left>0.0 or _melee_pending: return false
+	if is_player_controlled() and not has_player_control_aim(): return false
+	var sound:Dictionary = {"point":player_control_aim_world_position(),"volume":sonic_noise_threshold} if is_player_controlled() else _best_sound()
 	if sound.is_empty() or float(sound.volume)<sonic_noise_threshold or global_position.distance_to(sound.point)<=melee_range: return false
 	_sonic_heading = global_position.direction_to(sound.point)
 	if _sonic_heading.is_zero_approx(): return false
 	sonic_origin = global_position
 	sonic_end = sonic_origin+_sonic_heading*sonic_range
 	_melee_pending=false; melee_left=0.0; melee_visual_left=0.0
+	_capture_attack_facing(_sonic_heading)
 	_sonic_pending = true
 	sonic_left = sonic_windup
 	_sonic_cooldown = 6.0
@@ -447,19 +482,28 @@ func move(speed_value:float,delta:float) -> void:
 	super.move(speed_value*factor,delta)
 func when_collide(speed_value:float,collision:KinematicCollision2D) -> void:
 	super.when_collide(speed_value,collision)
-	_bounce_hold = 0.35
+	if not is_direction_change_locked(): _bounce_hold = 0.35
 func Attack() -> void:
 	Attacking = false
 	begin_melee()
 func Skill() -> void:
 	Using_Skill = false
 	begin_sonic()
+func player_control_extra_actions() -> Array[StringName]:
+	return [&"begin_probe",&"begin_burrow"]
 func player_control_action(action_index:int) -> void:
+	if not is_player_controlled() or not is_multiplayer_authority(): return
 	if action_index==0: begin_melee()
 	elif action_index==1: begin_sonic()
+	elif action_index==2: begin_probe()
+	elif action_index==3: begin_burrow()
 func visual_mob() -> void:
 	if not is_instance_valid(image): return
 	update_form_collider(form in [Form.AWAKE,Form.BURROWING])
+	# Keep the Shrieker and collision geometry at their original scale. All
+	# Warden artwork, including emerge and dig, uses one consistent 1.4x scale.
+	# Never scale the root: that enlarged the Shrieker, hitboxes and status FX.
+	if health > 0: image.scale = Vector2.ONE * (awakened_visual_scale if form!=Form.DORMANT else 1.0)
 	if form==Form.DORMANT: image.texture = SHRIEKER
 	else:
 		var clip:StringName = &"idle"
@@ -480,8 +524,10 @@ func visual_mob() -> void:
 		_status_text=""
 		side_status_remove_permanent("left","mc_frontier")
 func visual_state() -> Dictionary:
-	return {"time":clock,"form":form,"alert":alert_level,"signals":signals_received,"probe":probe_left,"probe_count":probes_remaining,"rage":rage_left,"epoch":ritual_epoch,"strength":heard_strength,"listen":listen_heading,"form_left":form_left,"sonic":sonic_left,"sonic_a":sonic_origin,"sonic_b":sonic_end,"recover":sonic_recover,"melee":melee_visual_left,"direction":direction,"aim":aim_point,"aim_left":aim_left,"aim_total":aim_total,"aim_kind":aim_kind}
+	return {"time":clock,"form":form,"alert":alert_level,"signals":signals_received,"probe":probe_left,"probe_count":probes_remaining,"rage":rage_left,"epoch":ritual_epoch,"strength":heard_strength,"listen":listen_heading,"form_left":form_left,"sonic":sonic_left,"sonic_a":sonic_origin,"sonic_b":sonic_end,"recover":sonic_recover,"melee":melee_visual_left,"direction":direction,"aim":aim_point,"aim_left":aim_left,"aim_total":aim_total,"aim_kind":aim_kind,"turn_lock":is_direction_change_locked(),"attack_flip":_attack_facing_flipped_h}
 func accept_visual(data:Dictionary) -> void:
+	# Authoritative snapshots bypass local turn filtering, including late joins.
+	_accepting_attack_pose = true
 	super.accept_visual(data)
 	form = clampi(int(data.get("form",0)),0,3)
 	alert_level = clampf(float(data.get("alert",0)),0,alert_max)
@@ -503,6 +549,12 @@ func accept_visual(data:Dictionary) -> void:
 	aim_left = maxf(0.0,float(data.get("aim_left",0)))
 	aim_total = maxf(0.0,float(data.get("aim_total",0)))
 	aim_kind = str(data.get("aim_kind",""))
+	_attack_facing_flipped_h = bool(data.get("attack_flip",_face_right))
+	_replica_attack_turn_locked = bool(data.get("turn_lock",_attack_turn_pose_active()))
+	_accepting_attack_pose = false
+	if is_direction_change_locked():
+		_face_right = _attack_facing_flipped_h
+		super.set_character_visual_flip_h(_attack_facing_flipped_h)
 func client_visual_step(delta:float) -> void:
 	if not is_combat_runtime_active(): return
 	form_left=maxf(0,form_left-delta); sonic_left=maxf(0,sonic_left-delta)
@@ -518,9 +570,7 @@ func get_debug_attack_regions() -> Array:
 		return [{"shape":"rect","position":global_position+axis*reach*0.5,"half_extents":Vector2(reach*0.5,11.0*WAVE.SONIC_SCALE if sonic_left>0.0 else 11.0),"rotation":axis.angle(),"damage":attack_damage(3.0 if sonic_left>0.0 else 0.35),"kind":"warden_sonic"}]
 	return []
 func get_armor_test_effect_summary() -> String:
-	if english():
-		return "Start as a shrieker listening for enemy movement, collisions and attacks; distant sounds are weaker. Full alert fires probes at recorded sound positions. Hits damage and push enemies; enough returning echoes awaken the Warden.\nAwakening raises maximum health while preserving its percentage. Follow the strongest sound location rather than tracking a target. Nearby noise triggers melee; distant loud noise triggers a slowed charge and a terrain- and shield-piercing sonic knockback attack. Stun does not cancel committed sonic charges. Very loud noise grants a running burst; prolonged silence causes burrowing and resets alert and echoes."
-	return "开局为尖啸体，监听敌人的移动、碰撞和攻击，声音随距离衰减；警戒充满后向记录的声源连发探测波，命中伤害并击退，回响返回并积累足够后唤醒监守者。\n苏醒后提高生命上限并保留血量比例，依靠最响的声源位置行动，而非持续锁定敌人；近处挥击，远处响声触发蓄力声波，穿墙穿盾并强力击退，已开始的声波蓄力不会被眩晕打断。\n巨响会使其短暂加速奔跑；持续安静后潜地，重新开始警戒与回响积累。"
+	return Game.t("MC_ARMOR_INTRO_WARDEN")
 
 func Die() -> void:
 	if _death_sound_done: return

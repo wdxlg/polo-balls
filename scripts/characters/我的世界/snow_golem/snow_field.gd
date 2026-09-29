@@ -1,26 +1,40 @@
 extends Node2D
 ## A single battle-scoped sparse grid: no Area2D or timer per snow tile.
-const CELL:float = 24.0
+const CELL:float = 16.0 # Fallback only; live snow follows the actual map block size/origin.
+const LEGACY_ENV_CELL:float = 24.0
 const GEOMETRY = preload("res://classes/map_tile_geometry.gd")
-# Combat seconds: full snow first melts to harmless mini snow, then disappears.
+# Melt seconds: retain one full block, then briefly fade at the same footprint.
 @export_range(0.1,120.0,0.1) var full_snow_lifetime:float = 8.0
-@export_range(0.1,120.0,0.1) var half_snow_lifetime:float = 4.0
-const SNOW:Texture2D = preload("res://Images/characters/我的世界/snow_golem/snow.png")
+@export_range(0.01,5.0,0.01) var snow_fade_duration:float = 0.30
+const SNOW:Texture2D = preload("res://Images/effects/我的世界/雪环境/snow.png")
 const COLD = preload("res://scripts/characters/我的世界/snow_golem/cold.gd")
 const RULES = preload("res://scripts/characters/我的世界/snow_golem/rules.gd")
 const U = preload("res://scripts/characters/我的世界/new5/utils.gd")
 const AUDIO = preload("res://scripts/characters/我的世界/snow_golem/audio.gd")
-const HEADS_VIEW = preload("res://scripts/characters/我的世界/snow_golem/heads_view.gd")
-var patches:Dictionary = {} # Vector2i -> level 1 (half size, harmless) / 2 (full tile)
+var patches:Dictionary = {} # Map-block key -> one full footprint, owner and fade deadline.
 # Independent ownership/lifetime: removing weather never erases a golem's trail.
 # Ground weather uses the same contact, damage, cold, audio and cooldown below.
 var environment_patches:Dictionary = {}
+# Both layers use the same block geometry and lifetime. Exact rectangles remain
+# authoritative across development movement and local visual-theme changes.
+var _environment_ground_index:Dictionary = {}
+var _trail_ground_index:Dictionary = {}
+var _indices_dirty:bool = true
+var grid_size:Vector2 = Vector2.ONE*CELL
+var grid_origin:Vector2 = Vector2.ZERO
+var grid_revision:int = 0
+var _grid_base:Vector2i = Vector2i.ZERO
+var _grid_ground:Array[Rect2] = []
+var _grid_refresh_left:float = 0.0
+var _melt_clock:float = 0.0
+var _melt_rate:float = 1.0
+var _dirty_environment:Dictionary = {}
+var _environment_bucket_size:float = CELL
+var _environment_path_step:float = CELL*0.4
 var environment_source:Node
 var wall_view:Node2D
 var _development_environment_starts:Dictionary = {}
 var _development_environment_offsets:Dictionary = {}
-var heads:Dictionary = {} # int -> falling pumpkin and 0/1/2 snow blocks
-var _serial:int = 0
 var _clock:float = 0.0
 var _next_melt:float = INF
 var _ground_left:float = 0.0
@@ -28,10 +42,7 @@ var _sync_left:float = 0.0
 var _damage_until:Dictionary = {}
 var _positions:Dictionary = {}
 var _dirty_cells:Dictionary = {}
-var _heads_dirty:bool = false
-var _head_view:Node2D
 var _development_patch_lanes:Dictionary = {}
-var _development_head_starts:Dictionary = {}
 var _development_start_offsets:Dictionary = {}
 var _development_current_offsets:Dictionary = {}
 var _development_draw_offsets:Dictionary = {}
@@ -44,22 +55,18 @@ func _development_lane(entry:Dictionary,point:Vector2,lane_at:Callable,prefer_so
 	return str(lane_at.call(point))
 
 func development_begin_merge(lane_at:Callable,start_offsets:Dictionary,prefer_source:bool = true) -> void:
-	# One shared manager holds both teams' snow. Bind each tile/head to its
-	# original lane BEFORE the two maps overlap; moving this Node2D is wrong.
+	# One shared manager holds both teams' snow. Bind each tile to its original
+	# lane BEFORE the two maps overlap; moving this Node2D is wrong.
 	_development_start_offsets = start_offsets.duplicate(true)
 	_development_current_offsets = start_offsets.duplicate(true)
 	_development_patch_lanes.clear()
-	_development_head_starts.clear()
 	_development_draw_offsets.clear()
 	_development_environment_starts.clear()
 	_development_environment_offsets.clear()
 	for cell:Vector2i in environment_patches:
-		_development_environment_starts[cell] = {"lane":str(lane_at.call(point_at(cell))),"record":environment_patches[cell].duplicate(true)}
+		_development_environment_starts[cell] = {"lane":str(lane_at.call(environment_tile(environment_patches[cell]).get_center())),"record":environment_patches[cell].duplicate(true)}
 	for cell:Vector2i in patches:
-		_development_patch_lanes[cell] = _development_lane(patches[cell],point_at(cell),lane_at,prefer_source)
-	for id:Variant in heads:
-		var head:Dictionary = heads[id]
-		_development_head_starts[id] = {"lane":_development_lane(head,head.point,lane_at,prefer_source),"cell":head.cell,"point":head.point,"start":head.start}
+		_development_patch_lanes[cell] = _development_lane(patches[cell],patch_tile(patches[cell],cell).get_center(),lane_at,prefer_source)
 
 func _development_change(lane:String) -> Vector2:
 	return (_development_current_offsets.get(lane,Vector2.ZERO) as Vector2)-(_development_start_offsets.get(lane,Vector2.ZERO) as Vector2)
@@ -72,23 +79,21 @@ func development_preview_merge(_start_offsets:Dictionary,lanes:Dictionary) -> vo
 		_development_draw_offsets[cell] = _development_change(str(_development_patch_lanes[cell]))
 	for cell:Vector2i in _development_environment_starts:
 		_development_environment_offsets[cell] = _development_change(str(_development_environment_starts[cell].lane))
-	for id:Variant in _development_head_starts:
-		if not heads.has(id): continue
-		var original:Dictionary = _development_head_starts[id]
-		var change:Vector2 = _development_change(str(original.lane))
-		heads[id].point = (original.point as Vector2)+change
-		heads[id].start = (original.start as Vector2)+change
 	queue_redraw()
 	if is_instance_valid(wall_view): wall_view.request_update()
-	if is_instance_valid(_head_view): _head_view.queue_redraw()
 
 func development_finish_merge() -> void:
 	if _development_start_offsets.is_empty(): return
 	var translated:Dictionary = {}
 	for cell:Vector2i in patches:
 		var change:Vector2 = _development_change(str(_development_patch_lanes.get(cell,"")))
-		var destination:Vector2i = cell_at(point_at(cell)+change)
 		var patch:Dictionary = patches[cell]
+		var tile:Rect2 = patch_tile(patch,cell)
+		tile.position += change
+		var destination:=Vector2i((tile.get_center()/tile.size).floor())
+		patch.cell = destination
+		patch.tile = tile
+		patch.rects = [tile]
 		var existing:Dictionary = translated.get(destination,{})
 		# Identical locations from two teams coalesce into one canonical tile;
 		# a full or longer-lived patch wins, never a duplicate grid key.
@@ -99,38 +104,31 @@ func development_finish_merge() -> void:
 	for cell:Vector2i in environment_patches:
 		var change:Vector2 = _development_environment_offsets.get(cell,Vector2.ZERO)
 		var record:Dictionary = environment_patches[cell].duplicate(true)
-		var destination:Vector2i = cell_at(point_at(cell)+change)
+		var tile:Rect2 = environment_tile(record)
+		tile.position += change
+		var destination:=Vector2i((tile.get_center()/tile.size).floor())
 		record.cell = destination
-		if bool(record.decorative):
-			for index:int in range(record.rects.size()): record.rects[index] = Rect2(record.rects[index].position+change,record.rects[index].size)
-		else: record.rects = [Rect2(point_at(destination)-Vector2.ONE*CELL*0.5,Vector2.ONE*CELL)]
-		if not weather.has(destination) or not bool(record.decorative): weather[destination] = record
+		record.tile = tile
+		for index:int in range(record.rects.size()): record.rects[index] = Rect2(record.rects[index].position+change,record.rects[index].size)
+		var existing:Dictionary = weather.get(destination,{})
+		if existing.is_empty() or (bool(existing.decorative) and not bool(record.decorative)) or (bool(existing.decorative)==bool(record.decorative) and float(record.get("expires_at",0))>float(existing.get("expires_at",0))): weather[destination] = record
 	environment_patches = weather
+	_rebuild_environment_index()
 	_development_environment_starts.clear()
 	_development_environment_offsets.clear()
-	for id:Variant in _development_head_starts:
-		if not heads.has(id): continue
-		var original:Dictionary = _development_head_starts[id]
-		var change:Vector2 = _development_change(str(original.lane))
-		heads[id].cell = cell_at(point_at(original.cell)+change)
-		heads[id].point = point_at(heads[id].cell)
-		heads[id].start = (original.start as Vector2)+change
 	# Position history from the separated maps must not sweep across the arena.
 	_positions.clear()
 	_dirty_cells.clear()
-	_next_melt = INF
-	for patch:Dictionary in patches.values(): _next_melt = minf(_next_melt,float(patch.get("expires_at",INF)))
+	_reschedule_melt()
 	_development_start_offsets.clear()
 	_development_current_offsets.clear()
 	_development_patch_lanes.clear()
-	_development_head_starts.clear()
 	_development_draw_offsets.clear()
 	queue_redraw()
 	if is_instance_valid(wall_view): wall_view.request_update()
-	if is_instance_valid(_head_view): _head_view.queue_redraw()
 	if is_multiplayer_authority() and multiplayer.has_multiplayer_peer():
-		_field_state.rpc(_cell_snapshot(patches.keys()),_head_snapshot(),true)
-		_environment_state.rpc(environment_patches.values(),true)
+		_field_state.rpc(_cell_snapshot(patches.keys()),[],true)
+		_environment_state.rpc(_environment_payload(environment_patches.values()),true)
 
 static func ensure(context:Node,world_override:Node = null) -> Node2D:
 	var world:Node = world_override
@@ -150,8 +148,137 @@ static func ensure(context:Node,world_override:Node = null) -> Node2D:
 	world.add_child(field)
 	return field
 
-static func cell_at(point:Vector2) -> Vector2i: return Vector2i((point/CELL).round())
-static func point_at(cell:Vector2i) -> Vector2: return Vector2(cell)*CELL
+static func cell_at(point:Vector2) -> Vector2i: return Vector2i((point/CELL).floor())
+static func point_at(cell:Vector2i) -> Vector2: return (Vector2(cell)+Vector2.ONE*0.5)*CELL
+
+func refresh_grid(force:bool = false) -> void:
+	if not _development_start_offsets.is_empty(): return
+	if not force and _grid_refresh_left>0.0: return
+	_grid_refresh_left = 0.25
+	var world:Node = get_parent()
+	var size:Vector2 = Vector2.ONE*CELL
+	var ground:Array[Rect2] = []
+	if world.has_method("_current_map_node"):
+		var map:Node = world._current_map_node()
+		if is_instance_valid(map):
+			if world.has_method("map_visual_cell_size"): size = world.map_visual_cell_size(map)
+			if world.has_method("map_island_rects"): ground.assign(world.map_island_rects(map))
+			elif world.has_method("return_map_world_rect"): ground.append(world.return_map_world_rect(map))
+	size = size.max(Vector2(0.01,0.01))
+	var origin:Vector2 = ground[0].position if not ground.is_empty() else Vector2.ZERO
+	if size==grid_size and origin==grid_origin and ground==_grid_ground: return
+	grid_size = size
+	grid_origin = origin
+	_grid_base = Vector2i(((origin+size*0.5)/size).floor())
+	_grid_ground = ground
+	grid_revision += 1
+	_indices_dirty = true
+	# No stale trail remains over a removed island; development movement owns its
+	# own translation and deliberately bypasses this refresh until merge completes.
+	if is_multiplayer_authority() and not ground.is_empty():
+		for key:Vector2i in patches.keys():
+			var area:Array[Rect2] = [patch_tile(patches[key],key)]
+			if not GEOMETRY.subtract(area,ground).is_empty():
+				patches.erase(key)
+				_dirty_cells[key] = true
+	queue_redraw()
+
+func snow_cell_at(point:Vector2) -> Vector2i:
+	refresh_grid()
+	return Vector2i(((point-grid_origin)/grid_size).floor())+_grid_base
+
+func snow_point_at(cell:Vector2i) -> Vector2:
+	refresh_grid()
+	return grid_origin+(Vector2(cell-_grid_base)+Vector2.ONE*0.5)*grid_size
+
+func snow_tile_at(cell:Vector2i) -> Rect2:
+	return Rect2(snow_point_at(cell)-grid_size*0.5,grid_size)
+
+static func patch_tile(record:Dictionary,cell:Vector2i) -> Rect2:
+	var value:Variant = record.get("tile")
+	if value is Rect2 and value.has_area(): return value
+	return Rect2(point_at(cell)-Vector2.ONE*CELL*0.5,Vector2.ONE*CELL)
+
+func snow_alpha(record:Dictionary) -> float:
+	var left:float = float(record.get("expires_at",_melt_clock+full_snow_lifetime))-_melt_clock
+	return clampf(1.0+minf(left,0.0)/maxf(float(record.get("fade_duration",snow_fade_duration)),0.01),0.0,1.0)
+
+func _snow_damaging(record:Dictionary) -> bool:
+	return float(record.get("expires_at",INF))>_melt_clock
+
+func _remaining_damage_time(record:Dictionary) -> float:
+	return maxf(0.0,float(record.get("expires_at",_melt_clock+full_snow_lifetime))-_melt_clock)/maxf(_melt_rate,0.001)
+
+func _refresh_melt_rate() -> void:
+	if not is_multiplayer_authority(): return
+	var rate:float = 0.5 if str(Game.Game_Settings.get("Environment","none"))=="snow" else 1.0
+	if is_equal_approx(rate,_melt_rate): return
+	_melt_rate = rate
+	if multiplayer.has_multiplayer_peer(): _melt_rate_state.rpc(_melt_rate)
+
+@rpc("authority","call_remote","reliable")
+func _melt_rate_state(rate:float) -> void:
+	_melt_rate = 0.5 if rate<0.75 else 1.0
+
+func _on_snow_setting_changed(key:String,_value:Variant) -> void:
+	if key=="Environment": _refresh_melt_rate()
+
+static func environment_tile(record:Dictionary) -> Rect2:
+	var value:Variant = record.get("tile")
+	if value is Rect2 and value.has_area() and value.position.is_finite() and value.size.is_finite(): return value
+	# Legacy snapshots/test fixtures retain their original 24-unit geometry.
+	return Rect2(Vector2(record.get("cell",Vector2i.ZERO))*LEGACY_ENV_CELL-Vector2.ONE*LEGACY_ENV_CELL*0.5,Vector2.ONE*LEGACY_ENV_CELL)
+
+func _environment_bucket(point:Vector2) -> Vector2i:
+	return Vector2i((point/_environment_bucket_size).floor())
+
+func _rebuild_environment_index() -> void:
+	_environment_ground_index.clear()
+	_trail_ground_index.clear()
+	_environment_bucket_size = CELL
+	_environment_path_step = CELL*0.4
+	for layer:Dictionary in [patches,environment_patches]:
+		for cell:Vector2i in layer:
+			var record:Dictionary = layer[cell]
+			if bool(record.get("decorative",false)): continue
+			for rect:Rect2 in _ground_rects(record,cell):
+				_environment_bucket_size = maxf(_environment_bucket_size,maxf(rect.size.x,rect.size.y))
+				_environment_path_step = minf(_environment_path_step,minf(rect.size.x,rect.size.y)*0.4)
+	_environment_path_step = maxf(0.1,_environment_path_step)
+	for layer_index:int in range(2):
+		var layer:Dictionary = patches if layer_index==0 else environment_patches
+		var index:Dictionary = _trail_ground_index if layer_index==0 else _environment_ground_index
+		for cell:Vector2i in layer:
+			var record:Dictionary = layer[cell]
+			if bool(record.get("decorative",false)): continue
+			for rect:Rect2 in _ground_rects(record,cell):
+				var low:Vector2i = _environment_bucket(rect.position)
+				var high:Vector2i = _environment_bucket(rect.end)
+				for y:int in range(low.y,high.y+1):
+					for x:int in range(low.x,high.x+1):
+						var bucket:=Vector2i(x,y)
+						if not index.has(bucket): index[bucket] = []
+						if not cell in index[bucket]: index[bucket].append(cell)
+	_indices_dirty = false
+
+func _ground_rects(record:Dictionary,cell:Vector2i) -> Array[Rect2]:
+	var result:Array[Rect2] = []
+	for value:Variant in record.get("rects",[patch_tile(record,cell)]):
+		if value is Rect2 and value.has_area(): result.append(value)
+	return result
+
+func _ground_at(point:Vector2,layer:Dictionary,index:Dictionary) -> Dictionary:
+	if _indices_dirty: _rebuild_environment_index()
+	for cell:Vector2i in index.get(_environment_bucket(point),[]):
+		if not layer.has(cell): continue
+		var record:Dictionary = layer[cell]
+		if not _snow_damaging(record): continue
+		for rect:Rect2 in _ground_rects(record,cell):
+			if rect.has_point(point): return record
+	return {}
+
+func _environment_at(point:Vector2) -> Dictionary:
+	return _ground_at(point,environment_patches,_environment_ground_index)
 
 func _ready() -> void:
 	add_to_group("BattleTransient")
@@ -164,9 +291,9 @@ func _ready() -> void:
 	wall_view = load("res://scripts/training/snow_wall_view.gd").new()
 	wall_view.field = self
 	add_child(wall_view)
-	_head_view = HEADS_VIEW.new()
-	_head_view.field = self
-	add_child(_head_view)
+	refresh_grid(true)
+	_refresh_melt_rate()
+	Game.game_setting_changed.connect(_on_snow_setting_changed)
 	if not is_multiplayer_authority(): call_deferred("_request_state")
 
 func runtime_active() -> bool:
@@ -175,15 +302,19 @@ func runtime_active() -> bool:
 	return bool(world.call("is_combat_runtime_active")) if world.has_method("is_combat_runtime_active") else true
 
 func can_place(source:Node2D,cell:Vector2i,check_outer_bounds:bool = true) -> bool:
-	var point:Vector2 = point_at(cell)
-	var world:Node = get_parent()
-	if check_outer_bounds and world.has_method("_current_map_node") and world.has_method("return_map_world_rect"):
-		var map:Node = world.call("_current_map_node")
-		if is_instance_valid(map):
-			var bounds:Rect2 = world.call("return_map_world_rect",map)
-			if not bounds.grow(-CELL*0.49).has_point(point): return false
+	var tile:Rect2 = snow_tile_at(cell)
+	if check_outer_bounds and not _grid_ground.is_empty():
+		var area:Array[Rect2] = [tile]
+		if not GEOMETRY.subtract(area,_grid_ground).is_empty(): return false
+	return _can_place_rect(source,tile)
+
+func can_place_environment(record:Dictionary) -> bool:
+	return _can_place_rect(null,environment_tile(record))
+
+func _can_place_rect(source:Node2D,rect:Rect2) -> bool:
+	var point:Vector2 = rect.get_center()
 	var shape := RectangleShape2D.new()
-	shape.size = Vector2.ONE*(CELL-1.0)
+	shape.size = (rect.size-Vector2.ONE).max(Vector2(0.01,0.01))
 	var query := PhysicsShapeQueryParameters2D.new()
 	query.shape = shape
 	query.transform = Transform2D(0.0,point)
@@ -197,7 +328,7 @@ func add_environment_patch(source:Node,record:Dictionary) -> bool:
 	if not record.get("cell") is Vector2i or environment_patches.size()>=1024: return false
 	environment_source = source
 	_environment_state([record],false)
-	if multiplayer.has_multiplayer_peer(): _environment_state.rpc([record],false)
+	if multiplayer.has_multiplayer_peer(): _environment_state.rpc(_environment_payload([environment_patches[record.cell]]),false)
 	return true
 
 func clear_environment() -> void:
@@ -210,18 +341,21 @@ func reconcile_environment(ground:Array[Rect2],walls:Array[Rect2]) -> void:
 	var changes:Array[Dictionary] = []
 	for cell:Vector2i in environment_patches:
 		var record:Dictionary = environment_patches[cell]
-		var footprint:=Rect2(point_at(cell)-Vector2.ONE*CELL*0.5,Vector2.ONE*CELL)
+		var footprint:Rect2 = environment_tile(record)
 		if bool(record.decorative):
 			var pieces:Array[Rect2] = []
 			for wall:Rect2 in walls:
 				var piece:Rect2 = footprint.intersection(wall)
 				if piece.size.x>=1.0 and piece.size.y>=1.0: pieces.append(piece)
 			if pieces.is_empty(): changes.append({"cell":cell,"removed":true})
-			elif pieces!=record.rects: changes.append({"cell":cell,"decorative":true,"rects":pieces})
+			elif pieces!=record.rects:
+				var update:Dictionary = record.duplicate()
+				update.rects = pieces
+				changes.append(update)
 		elif not GEOMETRY.subtract([footprint],ground).is_empty(): changes.append({"cell":cell,"removed":true})
 	if not changes.is_empty():
 		_environment_state(changes,false)
-		if multiplayer.has_multiplayer_peer(): _environment_state.rpc(changes,false)
+		if multiplayer.has_multiplayer_peer(): _environment_state.rpc(_environment_payload(changes),false)
 
 func _remove_environment_cell(cell:Vector2i) -> void:
 	if not environment_patches.has(cell): return
@@ -247,191 +381,109 @@ func _environment_state(records:Array,full:bool) -> void:
 		for rect:Variant in item.get("rects",[]):
 			if rect is Rect2 and rect.has_area(): rects.append(rect)
 		if rects.is_empty(): continue
-		environment_patches[cell] = {"cell":cell,"decorative":bool(item.get("decorative",false)),"rects":rects}
+		var expiry:float = float(item.get("expires_at",_melt_clock+full_snow_lifetime))
+		if item.has("remaining"): expiry = _melt_clock+float(item.remaining)
+		environment_patches[cell] = {"cell":cell,"decorative":bool(item.get("decorative",false)),"tile":environment_tile(item),"rects":rects,"expires_at":expiry,"fade_duration":maxf(float(item.get("fade_duration",snow_fade_duration)),0.01)}
+	_indices_dirty = true
+	_reschedule_melt()
 	queue_redraw()
 	if is_instance_valid(wall_view): wall_view.request_update()
+
+func _environment_payload(records:Array) -> Array:
+	var result:Array = []
+	for item:Dictionary in records:
+		var data:Dictionary = item.duplicate(true)
+		if not bool(data.get("removed",false)):
+			data["remaining"] = float(data.get("expires_at",_melt_clock+full_snow_lifetime))-_melt_clock
+			data["fade_duration"] = float(data.get("fade_duration",snow_fade_duration))
+			data.erase("expires_at")
+		result.append(data)
+	return result
 
 func _same_side(source:ball,entry:Dictionary) -> bool:
 	return str(entry.family) == str(source.get_meta("mc_snow_family","")) or (not source.Team.is_empty() and source.Team == str(entry.team))
 
-func deposit(source:ball,cell:Vector2i,half_size:bool = false) -> bool:
-	if not is_multiplayer_authority() or not runtime_active() or not is_instance_valid(source) or source.health <= 0: return false
+func deposit(source:ball,cell:Vector2i,_retired_half_size:bool = false) -> bool:
+	if not is_multiplayer_authority() or not runtime_active() or not is_instance_valid(source) or source.health<=0: return false
 	if source.dizziness or source.is_damage_output_disabled() or not can_place(source,cell): return false
-	# A settled pumpkin consumes this pass instead of also leaving a damaging tile.
-	for head:Dictionary in heads.values():
-		if head.cell != cell or not bool(head.landed) or not _same_side(source,head): continue
-		if bool(head.pending): return false
-		head.blocks = mini(2,int(head.blocks)+1)
-		_heads_dirty = true
-		emit_sound("block.snow.place",point_at(cell),-8.0)
-		if int(head.blocks) >= 2: _queue_birth(int(head.id),source)
-		_head_view.queue_redraw()
-		return true
-	var level:int = 1 if half_size else 2
+	var tile:Rect2 = snow_tile_at(cell)
 	if patches.has(cell):
 		var old:Dictionary = patches[cell]
 		if not _same_side(source,old): return false
-		if int(old.level) >= 2:
-			# Only an actual new visit reaches deposit(); standing never refreshes it.
-			_stamp_lifetime(old)
-			_dirty_cells[cell] = true
-			return true
-		# A second distinct pass by a little snowman completes its half-sized patch.
-		level = 2
-	patches[cell] = {"level":level,"source":weakref(source),"family":str(source.get_meta("mc_snow_family","")),"team":source.Team}
-	_stamp_lifetime(patches[cell])
+		# Actual revisits refresh; stationary actors still deposit only once.
+		old.level = 2
+		old.cell = cell
+		old.tile = tile
+		old.rects = [tile]
+		_stamp_lifetime(old)
+	else:
+		patches[cell] = {"cell":cell,"tile":tile,"rects":[tile],"level":2,"source":weakref(source),"family":str(source.get_meta("mc_snow_family","")),"team":source.Team}
+		_stamp_lifetime(patches[cell])
 	_dirty_cells[cell] = true
+	_indices_dirty = true
 	queue_redraw()
 	return true
 
 func _stamp_lifetime(patch:Dictionary) -> void:
-	var lifetime:float = full_snow_lifetime if int(patch.level) >= 2 else half_snow_lifetime
-	patch["expires_at"] = _clock+maxf(lifetime,0.1)
-	patch["half_lifetime"] = maxf(half_snow_lifetime,0.1)
+	patch["expires_at"] = _melt_clock+maxf(full_snow_lifetime,0.1)
+	patch["fade_duration"] = maxf(snow_fade_duration,0.01)
 	_next_melt = minf(_next_melt,float(patch.expires_at))
 
-func _snow_present_at(patch:Dictionary,at_time:float) -> bool:
-	var until:float = float(patch.get("expires_at",INF))
-	if int(patch.level) >= 2: until += float(patch.get("half_lifetime",half_snow_lifetime))
-	return at_time < until
+func _reschedule_melt() -> void:
+	_next_melt = INF
+	for layer:Dictionary in [patches,environment_patches]:
+		for patch:Dictionary in layer.values(): _next_melt = minf(_next_melt,float(patch.get("expires_at",_melt_clock)))
 
 func _melt_patches() -> void:
-	if _clock < _next_melt: return
+	if _melt_clock<_next_melt: return
 	_next_melt = INF
 	var changed:bool = false
-	for cell:Vector2i in patches.keys():
-		var patch:Dictionary = patches[cell]
-		if not patch.has("expires_at"): _stamp_lifetime(patch)
-		if _clock >= float(patch.expires_at):
-			if int(patch.level) >= 2:
-				# A melted tile becomes EXACTLY the mini's harmless 12x12 snow.
-				# Preserve overshoot so a long frame cannot extend its lifetime.
-				patch.level = 1
-				patch.expires_at = float(patch.expires_at)+float(patch.get("half_lifetime",half_snow_lifetime))
-			if _clock >= float(patch.expires_at): patches.erase(cell)
-			if is_multiplayer_authority(): _dirty_cells[cell] = true
-			changed = true
-		if patches.has(cell): _next_melt = minf(_next_melt,float(patch.expires_at))
+	var wall_changed:bool = false
+	for layer_index:int in range(2):
+		var layer:Dictionary = patches if layer_index==0 else environment_patches
+		for cell:Vector2i in layer.keys():
+			var patch:Dictionary = layer[cell]
+			if not patch.has("expires_at"): _stamp_lifetime(patch)
+			var deadline:float = float(patch.expires_at)
+			if _melt_clock>=deadline:
+				changed = true
+				wall_changed = wall_changed or bool(patch.get("decorative",false))
+				if _melt_clock>=deadline+float(patch.get("fade_duration",snow_fade_duration)):
+					layer.erase(cell)
+					_indices_dirty = true
+					if is_multiplayer_authority():
+						if layer_index==0: _dirty_cells[cell] = true
+						else: _dirty_environment[cell] = true
+			if layer.has(cell): _next_melt = minf(_next_melt,deadline)
 	if changed: queue_redraw()
-
-func choose_drop_cell(source:ball) -> Vector2i:
-	var heading:Vector2 = source.direction.normalized()
-	if heading == Vector2.ZERO: heading = Vector2.RIGHT
-	var preferred:Vector2i = cell_at(source.global_position-heading*CELL)
-	var candidates:Array[Vector2i] = [preferred,cell_at(source.global_position)]
-	for offset:Vector2i in [Vector2i.LEFT,Vector2i.RIGHT,Vector2i.UP,Vector2i.DOWN,Vector2i(-1,-1),Vector2i(1,-1),Vector2i(-1,1),Vector2i(1,1)]:
-		candidates.append(cell_at(source.global_position)+offset)
-	for cell:Vector2i in candidates:
-		if not can_place(source,cell): continue
-		var occupied:bool = false
-		for head:Dictionary in heads.values():
-			if head.cell == cell: occupied = true
-		if not occupied: return cell
-	return cell_at(source.global_position)
-
-func drop_head(source:ball) -> int:
-	if not is_multiplayer_authority() or not is_instance_valid(source): return -1
-	_serial += 1
-	var cell:Vector2i = choose_drop_cell(source)
-	var visual_scale:float = clampf(absf(source.image.global_scale.x)/0.2,0.25,4.0)
-	var head_center:Vector2 = source.image.to_global(source.image.offset+Vector2(0,-32))
-	heads[_serial] = {"id":_serial,"cell":cell,"point":point_at(cell),"start":head_center,"visual_scale":visual_scale,"face_right":source.is_character_visual_flipped_h(),"elapsed":0.0,"duration":0.32,"landed":false,"blocks":0,"pending":false,"family":str(source.get_meta("mc_snow_family","")),"team":source.Team,"source":weakref(source)}
-	_heads_dirty = true
-	emit_sound("entity.snow_golem.shear",source.global_position,-4.0)
-	return _serial
-
-func _land_head(head:Dictionary,landed_at:float = -1.0) -> void:
-	if bool(head.landed): return
-	head.landed = true
-	head.elapsed = head.duration
-	var landing_time:float = _clock if landed_at < 0.0 else landed_at
-	if patches.has(head.cell) and _snow_present_at(patches[head.cell],landing_time):
-		# Resolve against the actual landing time, even if this tick skips a melt.
-		# Either full or half snow at the landing cell becomes the first block.
-		patches.erase(head.cell)
-		_dirty_cells[head.cell] = true
-		head.blocks = 1
-	elif environment_patches.has(head.cell) and not bool(environment_patches[head.cell].decorative):
-		_remove_environment_cell(head.cell) # Consumed by construction, not melted by a timer.
-		head.blocks = 1
-	_heads_dirty = true
-	emit_sound("block.snow.place",head.point,-8.0)
-	queue_redraw()
+	if wall_changed and is_instance_valid(wall_view): wall_view.request_update()
 
 func _source(entry:Dictionary) -> ball:
 	var ref:WeakRef = entry.get("source")
 	var unit:Variant = ref.get_ref() if ref != null else null
 	if is_instance_valid(unit) and not unit.is_queued_for_deletion() and unit.health > 0: return unit as ball
-	# Existing snow can be maintained by a surviving mini from the same family.
+	# Replicas resolve the actual living owner from its family ID; this is no
+	# longer a descendant-maintenance path and never crosses physics worlds.
 	for candidate:Node in get_tree().get_nodes_in_group("MCSnowGolem"):
-		if not candidate.is_queued_for_deletion() and candidate.health > 0 and str(candidate.get_meta("mc_snow_family","")) == str(entry.family): return candidate as ball
+		if not candidate.is_queued_for_deletion() and candidate.health>0 and candidate.get_world_2d()==get_world_2d() and str(candidate.get_meta("mc_snow_family",""))==str(entry.family): return candidate as ball
 	return null
 
-func _queue_birth(id:int,source:ball) -> void:
-	if not heads.has(id) or bool(heads[id].pending): return
-	heads[id].pending = true
-	_birth.call_deferred(id,weakref(source))
-
-func _birth(id:int,source_ref:WeakRef) -> void:
-	if not is_inside_tree() or not heads.has(id): return
-	var head:Dictionary = heads[id]
-	var source:Variant = _source(head)
-	if not is_instance_valid(source): source = source_ref.get_ref()
-	if not is_instance_valid(source) or source.health <= 0 or not runtime_active() or not can_place(null,head.cell):
-		head.pending = false
-		return
-	var settings:Dictionary = source.mini_spawn_settings()
-	settings["family"] = head.family
-	settings["team"] = head.team
-	var child_name:String = "MCSnowMini_"+str(Time.get_ticks_usec())+"_"+str(id)
-	_spawn_mini(child_name,head.point,settings)
-	if multiplayer.has_multiplayer_peer(): _spawn_mini.rpc(child_name,head.point,settings)
-	heads.erase(id)
-	_heads_dirty = true
-	_head_view.queue_redraw()
-	emit_phase("mini_birth",head.point)
-
-@rpc("authority","call_remote","reliable")
-func _spawn_mini(child_name:String,point:Vector2,settings:Dictionary) -> void:
-	var world:Node = get_parent()
-	if world.has_node(NodePath(child_name)): return
-	var child:ball = load("res://scenes/creatures/我的世界/小雪人.tscn").instantiate()
-	child.name = child_name
-	child.Team = str(settings.team)
-	child.family = str(settings.family)
-	child.set_meta("mc_snow_family",child.family)
-	child.set_multiplayer_authority(get_multiplayer_authority())
-	for key:String in ["victory","presentation","setup"]:
-		if not settings.has(key): continue
-		if key == "victory":
-			child.set_meta("battle_continuation_victory_side_key",settings[key])
-			child.set_meta("victory_side_key",settings[key])
-		elif key == "presentation": child.set_meta("battle_continuation_presentation_side_key",settings[key])
-		else: child.set_meta("battle_setup_id",settings[key])
-	var base_combat:Dictionary = settings.get("base_combat",{})
-	for key:String in ["Damage","Speed","max_block","max_energy","Attack_Cooling","Skill_Cooling","Health_Restore","Damage_reduction"]:
-		if base_combat.has(key): child.set(key,base_combat[key])
-	for key:String in ["snowball_speed","shot_cold","snow_cold","freeze_duration","snow_tick_interval","snow_damage_multiplier","snowball_knockback","attack_range","aim_hold_duration"]:
-		if settings.has(key): child.set(key,settings[key])
-	child.position = world.to_local(point) if world is Node2D else point
-	child.direction = settings.get("direction",Vector2.RIGHT).rotated(0.8)
-	child.add_to_group("BattleTransient")
-	world.add_child(child,true)
-	# No Master lifetime dependency: this is an autonomous small snow golem.
-
 func _patch_on_path(source_position:Vector2,target:ball) -> Dictionary:
-	var destination:Vector2 = target.global_position
-	var distance:float = source_position.distance_to(destination)
-	if distance > CELL*8.0: source_position = destination # Teleports must not sweep an entire arena.
-	var steps:int = clampi(int(ceil(source_position.distance_to(destination)/(CELL*0.4))),1,32)
+	var destination:Vector2 = ball.body_point(target,global_position)
+	if source_position.distance_to(destination)>LEGACY_ENV_CELL*8.0: source_position = destination
+	if _indices_dirty: _rebuild_environment_index()
+	var steps:int = clampi(int(ceil(source_position.distance_to(destination)/_environment_path_step)),1,128)
 	for index:int in range(steps+1):
-		var cell:Vector2i = cell_at(source_position.lerp(destination,float(index)/float(steps)))
-		if patches.has(cell) and int(patches[cell].level)>=2:
-			var owner_unit:ball = _source(patches[cell])
-			if RULES.enemy(owner_unit,target) and U.line_clear(self,point_at(cell),destination): return {"source":owner_unit,"point":point_at(cell)}
-		if environment_patches.has(cell) and not bool(environment_patches[cell].decorative):
-			if is_instance_valid(environment_source) and U.line_clear(self,point_at(cell),destination):
-				return {"source":environment_source,"point":point_at(cell)}
+		var sample:Vector2 = source_position.lerp(destination,float(index)/float(steps))
+		var trail:Dictionary = _ground_at(sample,patches,_trail_ground_index)
+		if not trail.is_empty():
+			var owner_unit:ball = _source(trail)
+			var point:Vector2 = patch_tile(trail,trail.get("cell",snow_cell_at(sample))).get_center()
+			if RULES.enemy(owner_unit,target) and U.line_clear(self,point,destination): return {"source":owner_unit,"point":point}
+		var weather:Dictionary = _environment_at(sample)
+		if not weather.is_empty() and is_instance_valid(environment_source):
+			var point:Vector2 = environment_tile(weather).get_center()
+			if U.line_clear(self,point,destination): return {"source":environment_source,"point":point}
 	return {}
 
 func check_ground() -> void:
@@ -456,7 +508,7 @@ func check_ground() -> void:
 		var outgoing:float = source.attack_damage(source.snow_damage_multiplier)
 		var damage:float = maxf(1.0,roundf(outgoing)) if outgoing > 0.0 else 0.0
 		var before:float = maxf(float(target.health),0.0)
-		var point:Vector2 = target.global_position
+		var point:Vector2 = ball.body_point(target,global_position)
 		var accepted:bool = target.receive_cold_positional_damage(damage,contact.point,false,source)
 		var remaining:float = maxf(float(target.health),0.0) if is_instance_valid(target) else 0.0
 		var actual:float = maxf(before-remaining,0.0)
@@ -469,19 +521,13 @@ func check_ground() -> void:
 			_damage_until.erase(id)
 
 func advance(delta:float) -> void:
-	if not runtime_active() or not is_multiplayer_authority(): return
+	if not runtime_active() or not is_finite(delta) or delta<=0.0: return
 	_clock += delta
-	for head:Dictionary in heads.values():
-		if not bool(head.landed):
-			var elapsed:float = float(head.elapsed)+delta
-			head.elapsed = minf(float(head.duration),elapsed)
-			if elapsed >= float(head.duration): _land_head(head,_clock-(elapsed-float(head.duration)))
-		elif int(head.blocks) >= 2 and not bool(head.pending):
-			var source:ball = _source(head)
-			if is_instance_valid(source): _queue_birth(int(head.id),source)
-	if not heads.is_empty(): _head_view.queue_redraw()
-	# Melt before collision damage: level-1 snow is immediately harmless.
+	_refresh_melt_rate()
+	_melt_clock += delta*_melt_rate
+	# Fading snow is visual only; damage cadence stays on the unscaled combat clock.
 	_melt_patches()
+	if not is_multiplayer_authority(): return
 	_ground_left -= delta
 	if _ground_left <= 0.0:
 		_ground_left = 0.1
@@ -492,27 +538,27 @@ func advance(delta:float) -> void:
 		_send_changes()
 
 func _physics_process(delta:float) -> void:
-	if is_multiplayer_authority(): advance(delta)
-	elif runtime_active():
-		_clock += delta
-		_melt_patches()
-		for head:Dictionary in heads.values(): head.elapsed = minf(float(head.duration),float(head.elapsed)+delta)
-		if not heads.is_empty(): _head_view.queue_redraw()
+	advance(delta)
 
-func _process(_delta:float) -> void:
+func _process(delta:float) -> void:
+	_grid_refresh_left -= delta
+	refresh_grid()
 	var paused:bool = not runtime_active()
 	for player:Node in get_tree().get_nodes_in_group("MCSnowSound"):
 		if is_instance_valid(player): player.stream_paused = paused
 
 func _draw() -> void:
 	for cell:Vector2i in environment_patches:
-		if bool(environment_patches[cell].decorative): continue
+		var record:Dictionary = environment_patches[cell]
+		if bool(record.decorative): continue
 		var offset:Vector2 = _development_environment_offsets.get(cell,Vector2.ZERO)
-		for rect:Rect2 in environment_patches[cell].rects:
-			draw_texture_rect(SNOW,Rect2(rect.position+offset,rect.size),false)
+		for rect:Rect2 in record.rects:
+			draw_texture_rect(SNOW,Rect2(rect.position+offset,rect.size),false,Color(1,1,1,snow_alpha(record)))
 	for cell:Vector2i in patches:
-		var size:Vector2 = Vector2.ONE*CELL*(0.5 if int(patches[cell].level) == 1 else 1.0)
-		draw_texture_rect(SNOW,Rect2(point_at(cell)+(_development_draw_offsets.get(cell,Vector2.ZERO) as Vector2)-size*0.5,size),false)
+		var patch:Dictionary = patches[cell]
+		var tile:Rect2 = patch_tile(patch,cell)
+		tile.position += _development_draw_offsets.get(cell,Vector2.ZERO) as Vector2
+		draw_texture_rect(SNOW,tile,false,Color(1,1,1,snow_alpha(patch)))
 
 func emit_sound(event:String,point:Vector2,volume:float) -> void:
 	if multiplayer.has_multiplayer_peer(): _sound.rpc(event,point,volume)
@@ -543,82 +589,95 @@ func _cold_state(path:NodePath,value:float,frozen:float,total:float = 0.0) -> vo
 	var target:Node = get_parent().get_node_or_null(path)
 	if target is ball and target.health > 0: COLD.ensure(target).accept_state(value,frozen,total)
 
-func _head_snapshot() -> Array:
-	var result:Array = []
-	for head:Dictionary in heads.values():
-		var item:Dictionary = head.duplicate()
-		item.erase("source")
-		result.append(item)
-	return result
 func _cell_snapshot(cells:Array) -> Array:
 	var result:Array = []
 	for cell:Vector2i in cells:
 		if patches.has(cell):
 			var patch:Dictionary = patches[cell]
-			var fallback:float = full_snow_lifetime if int(patch.level) >= 2 else half_snow_lifetime
-			result.append({"cell":cell,"level":patch.level,"family":patch.family,"team":patch.team,"remaining":maxf(0.0,float(patch.get("expires_at",_clock+fallback))-_clock),"half_lifetime":float(patch.get("half_lifetime",half_snow_lifetime))})
+			result.append({"cell":cell,"tile":patch_tile(patch,cell),"level":2,"family":patch.family,"team":patch.team,"remaining":float(patch.get("expires_at",_melt_clock+full_snow_lifetime))-_melt_clock,"fade_duration":float(patch.get("fade_duration",snow_fade_duration))})
 		else: result.append({"cell":cell,"level":0})
 	return result
+
 func _send_changes() -> void:
-	if not multiplayer.has_multiplayer_peer():
-		_dirty_cells.clear()
-		_heads_dirty = false
-		return
-	if not _dirty_cells.is_empty() or _heads_dirty:
-		_field_state.rpc(_cell_snapshot(_dirty_cells.keys()),_head_snapshot(),false)
+	if multiplayer.has_multiplayer_peer():
+		if not _dirty_cells.is_empty(): _field_state.rpc(_cell_snapshot(_dirty_cells.keys()),[],false)
+		if not _dirty_environment.is_empty():
+			var updates:Array = []
+			for cell:Vector2i in _dirty_environment:
+				updates.append(environment_patches[cell] if environment_patches.has(cell) else {"cell":cell,"removed":true})
+			_environment_state.rpc(_environment_payload(updates),false)
 	_dirty_cells.clear()
-	_heads_dirty = false
+	_dirty_environment.clear()
+
 @rpc("authority","call_remote","reliable")
-func _field_state(cells:Array,head_records:Array,full:bool) -> void:
-	if full:
-		patches.clear()
-		_next_melt = INF
+func _field_state(cells:Array,_retired_heads:Array,full:bool) -> void:
+	if full: patches.clear()
 	for item:Dictionary in cells:
-		if int(item.level) <= 0: patches.erase(item.cell)
+		if int(item.level)<=0: patches.erase(item.cell)
 		else:
 			var patch:Dictionary = item.duplicate()
-			var fallback:float = full_snow_lifetime if int(item.level) >= 2 else half_snow_lifetime
-			# Send remaining time, never the host's absolute battle clock.
-			patch["expires_at"] = _clock+maxf(0.0,float(item.get("remaining",fallback)))
-			patch["half_lifetime"] = maxf(0.1,float(item.get("half_lifetime",half_snow_lifetime)))
+			patch["level"] = 2
+			patch["tile"] = patch_tile(item,item.cell)
+			patch["rects"] = [patch.tile]
+			# Signed remaining melt time retains a partly completed fade on late join.
+			patch["expires_at"] = _melt_clock+float(item.get("remaining",full_snow_lifetime))
+			patch["fade_duration"] = maxf(float(item.get("fade_duration",snow_fade_duration)),0.01)
 			patches[item.cell] = patch
-			_next_melt = minf(_next_melt,float(patch.expires_at))
-	heads.clear()
-	for head:Dictionary in head_records: heads[int(head.id)] = head
+	_indices_dirty = true
+	_reschedule_melt()
 	queue_redraw()
-	_head_view.queue_redraw()
+
 func _request_state() -> void:
 	if multiplayer.has_multiplayer_peer(): _request_field.rpc_id(get_multiplayer_authority())
 @rpc("any_peer","call_remote","reliable")
 func _request_field() -> void:
 	if not is_multiplayer_authority(): return
 	var peer:int = multiplayer.get_remote_sender_id()
-	_field_state.rpc_id(peer,_cell_snapshot(patches.keys()),_head_snapshot(),true)
-	_environment_state.rpc_id(peer,environment_patches.values(),true)
+	_refresh_melt_rate()
+	_melt_rate_state.rpc_id(peer,_melt_rate)
+	_field_state.rpc_id(peer,_cell_snapshot(patches.keys()),[],true)
+	_environment_state.rpc_id(peer,_environment_payload(environment_patches.values()),true)
 	for cold:Node in get_tree().get_nodes_in_group("MCSnowCold"):
 		if is_instance_valid(cold.target) and get_parent().is_ancestor_of(cold.target): _cold_state.rpc_id(peer,get_parent().get_path_to(cold.target),cold.amount,cold.frozen_left,cold.freeze_total)
+
+func _hazard_rect(source:Node,rect:Rect2,receiver:ball,duration:float = 1.0) -> Dictionary:
+	if not is_instance_valid(source) or source.is_damage_output_disabled() or not source.is_combat_runtime_active() or duration<=0.0: return {}
+	var damage:float = float(source.attack_damage(source.snow_damage_multiplier))
+	if damage<=0.0: return {}
+	damage = maxf(1.0,roundf(damage))
+	if is_instance_valid(receiver): damage *= receiver.get_cold_effect_ratio()
+	return {"shape":"rect","position":rect.get_center(),"half_extents":rect.size*0.5,"rotation":0.0,"damage":damage,"danger_in":0.0,"danger_duration":duration,"control":float(source.snow_cold)/COLD.LIMIT,"kind":"cold_snow","source":source}
 
 func get_ai_hazard_info(receiver:ball = null) -> Dictionary:
 	if not runtime_active(): return {}
 	if is_instance_valid(receiver) and (receiver.is_cold_immune() or receiver.get_world_2d()!=get_world_2d()): return {}
 	var parts:Array[Dictionary] = []
-	var cells:Dictionary = environment_patches.duplicate()
-	for cell:Vector2i in patches: cells[cell] = patches[cell]
-	for cell:Vector2i in cells:
-		var source:Node
-		var duration:float = 1.0
-		if patches.has(cell) and int(patches[cell].level)>=2:
-			var golem:ball = _source(patches[cell])
-			if is_instance_valid(golem) and (receiver==null or RULES.enemy(golem,receiver)):
-				source = golem
-				duration = maxf(0.0,float(patches[cell].get("expires_at",_clock+1.0))-_clock)
-		if not is_instance_valid(source) and environment_patches.has(cell) and not bool(environment_patches[cell].decorative): source = environment_source
-		if not is_instance_valid(source) or source.is_damage_output_disabled() or not source.is_combat_runtime_active() or duration<=0.0: continue
-		var damage:float = float(source.attack_damage(source.snow_damage_multiplier))
-		if damage<=0.0: continue
-		damage = maxf(1.0,roundf(damage))
-		if is_instance_valid(receiver): damage *= receiver.get_cold_effect_ratio()
-		parts.append({"shape":"rect","position":point_at(cell),"half_extents":Vector2.ONE*CELL*0.5,"rotation":0.0,"damage":damage,"danger_in":0.0,"danger_duration":duration,"control":float(source.snow_cold)/COLD.LIMIT,"kind":"cold_snow","source":source})
+	var ordinary:Dictionary = {}
+	if _indices_dirty: _rebuild_environment_index()
+	for cell:Vector2i in patches:
+		if not _snow_damaging(patches[cell]): continue
+		var golem:ball = _source(patches[cell])
+		if not is_instance_valid(golem) or (receiver!=null and not RULES.enemy(golem,receiver)): continue
+		var rect:Rect2 = patch_tile(patches[cell],cell)
+		# Match contact priority even when the eligible trail source currently cannot damage.
+		ordinary[cell] = rect
+		var part:Dictionary = _hazard_rect(golem,rect,receiver,_remaining_damage_time(patches[cell]))
+		if not part.is_empty(): parts.append(part)
+	for record:Dictionary in environment_patches.values():
+		if bool(record.decorative) or not _snow_damaging(record): continue
+		for rect:Rect2 in record.rects:
+			# One shared contact cooldown: don't draw overlapping hazards as two hits.
+			var cuts:Array[Rect2] = []
+			var low:Vector2i = _environment_bucket(rect.position)
+			var high:Vector2i = _environment_bucket(rect.end)
+			for y:int in range(low.y,high.y+1):
+				for x:int in range(low.x,high.x+1):
+					for key:Vector2i in _trail_ground_index.get(Vector2i(x,y),[]):
+						if ordinary.has(key) and not ordinary[key] in cuts: cuts.append(ordinary[key])
+			var area:Array[Rect2] = [rect]
+			for piece:Rect2 in GEOMETRY.subtract(area,cuts):
+				var part:Dictionary = _hazard_rect(environment_source,piece,receiver,_remaining_damage_time(record))
+				if not part.is_empty(): parts.append(part)
 	return {} if parts.is_empty() else {"shape":"compound","parts":parts,"damage":1.0,"source":self}
 
 func get_debug_hazard_info() -> Dictionary:

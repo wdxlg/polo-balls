@@ -55,6 +55,7 @@ func setup(start:Vector2,target:Vector2,new_effect_type:String,new_source:Varian
 
 
 func _ready() -> void:
+	add_to_group("AllayExtendedProjectile")
 	z_as_relative = false
 	z_index = 95
 	_ensure_sprite()
@@ -81,6 +82,7 @@ func _physics_process(delta:float) -> void:
 	var previous:Vector2 = global_position
 	var base:Vector2 = start_position.lerp(target_position,t)
 	var lift:float = -4.0 * arc_height * t * (1.0 - t)
+	if get_tree().has_group("MinecraftAllay") and load("res://scripts/characters/我的世界/allay/capture.gd").sweep(self,previous,base+Vector2(0.0,lift)): return
 	global_position = base + Vector2(0.0,lift)
 	rotation += spin_speed * delta
 
@@ -93,7 +95,7 @@ func _physics_process(delta:float) -> void:
 		var bottle_damage_applied:bool = false
 		if is_instance_valid(hit_target) and not hit_target.is_queued_for_deletion() and hit_target.health > 0:
 			bottle_damage_applied = hit_target.receive_positional_damage(get_projectile_damage(),global_position,false,active_source)
-		if bottle_damage_applied:
+		if bottle_damage_applied and not preload("res://scripts/effects/我的世界/mc_hit_feedback.gd").manages(active_source):
 			DAMAGE_SFX.play(hit_target,global_position)
 		_explode(global_position)
 		return
@@ -131,7 +133,7 @@ func _find_segment_hit(a:Vector2,b:Vector2) -> ball:
 		if candidate.health <= 0 or candidate.is_queued_for_deletion():
 			continue
 		var hit_radius:float = bottle_hit_radius + _estimate_target_radius(candidate)
-		if _distance_to_segment(candidate.global_position,a,b) <= hit_radius:
+		if _distance_to_segment(ball.body_point_seg(candidate,a,b),a,b) <= hit_radius:
 			# 先给支持完全投射物闪避的目标一次机会。成功时，这个瓶子
 			# 继续当前抛物线路径，不触发药效、撞击伤害、碎裂或范围区。
 			if candidate.has_method("try_full_projectile_dodge") and bool(candidate.call("try_full_projectile_dodge",self)):

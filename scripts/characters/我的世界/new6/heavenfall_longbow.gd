@@ -3,14 +3,14 @@ extends "res://scripts/characters/我的世界/new5/base.gd"
 # 中速拉弓，箭体中等伤害并轻微追踪、可穿过1次障碍物；命中或消失时落箭雨（低伤害），
 # 并沿射击方向撕开空间裂隙；完全展开后、闭合前本体受击会闪避到最近可用的成熟裂隙并反打。
 const BOLT: PackedScene = preload("res://scenes/shooter/我的世界/天陨箭矢.tscn")
-const COMBAT_FX = preload("res://scripts/effects/我的世界/mc_combat_abilities.gd")
-# Same native longbow/rift teal, pale cyan and silver palette; no new texture art.
-const SHOT_RING_PALETTE:Array[Color] = [Color("14534f"),Color("83dbd6"),Color("c8c8c8")]
 const FALL: PackedScene = preload("res://scenes/shooter/我的世界/天陨箭.tscn")
 const RIFT: PackedScene = preload("res://scenes/shooter/我的世界/天陨裂隙.tscn")
 const TRANSIT = preload("res://scripts/characters/我的世界/new6/heavenfall_transit.gd")
 const ARRIVAL_RING = preload("res://scripts/characters/我的世界/new6/heavenfall_ring.gd")
 const WAVE_AUDIO = preload("res://scripts/characters/我的世界/new6/heavenfall_wave_audio.gd")
+const COMBAT_FX = preload("res://scripts/effects/我的世界/mc_combat_abilities.gd")
+# Same native longbow/rift teal, pale cyan and silver palette; no new texture art.
+const SHOT_RING_PALETTE:Array[Color] = [Color("14534f"),Color("83dbd6"),Color("c8c8c8")]
 const STRIP_IDLE: Texture2D = preload("res://Images/characters/我的世界/new6/av_bow_idle.png")
 const STRIP_PULL0: Texture2D = preload("res://Images/characters/我的世界/new6/av_bow_pull0.png")
 const STRIP_PULL1: Texture2D = preload("res://Images/characters/我的世界/new6/av_bow_pull1.png")
@@ -81,6 +81,7 @@ var _last_shot_charge: float = 0.0
 var _visual_synced: bool = false
 var _rest_image_position: Vector2
 var _rest_image_cached: bool = false
+var _manual_fire_held: bool = false
 
 
 func _ready() -> void:
@@ -103,6 +104,21 @@ func _strip_frames(strip: Texture2D) -> Array[AtlasTexture]:
 		out.append(at)
 	return out
 
+func controlled_attack_action() -> void:
+	if is_player_controlled() and is_multiplayer_authority(): _manual_fire_held = true
+
+func player_control_action_released(index:int) -> void:
+	if index == 0: _manual_fire_held = false
+
+func player_control_action_cancelled(index:int) -> void:
+	if index == 0:
+		_manual_fire_held = false
+		drawing = 0.0
+
+func set_player_control_peer(peer_id:int) -> void:
+	if peer_id != player_control_peer_id: player_control_action_cancelled(0)
+	super.set_player_control_peer(peer_id)
+
 
 func step_mob(delta: float) -> void:
 	_cool -= delta
@@ -112,14 +128,14 @@ func step_mob(delta: float) -> void:
 		drawing = 0.0
 		return
 	var want_fire: bool = false
-	if is_player_controlled() and has_player_control_aim():
-		facing = player_control_aim_direction(facing)
-		want_fire = true
+	if is_player_controlled():
+		if has_player_control_aim(): facing = player_control_aim_direction(facing)
+		want_fire = _manual_fire_held
 	else:
 		var target: ball = U.nearest(self)
 		# 索敌不受地形遮挡；实际穿墙次数仍由箭矢自己的碰撞逻辑限制。
-		if target != null and global_position.distance_to(target.global_position) <= shoot_range + U.radius(target):
-			facing = (target.global_position - global_position).normalized()
+		if target != null and global_position.distance_to(ball.body_point(target,global_position)) <= shoot_range + U.radius(target):
+			facing = (ball.body_point(target,global_position) - global_position).normalized()
 			want_fire = true
 	if want_fire and can_act() and _cool <= 0.0:
 		drawing += delta
@@ -129,18 +145,6 @@ func step_mob(delta: float) -> void:
 			_fire()
 	else:
 		drawing = maxf(0.0, drawing - delta * 4.0)
-
-
-@rpc("authority", "call_remote", "reliable")
-func _spawn_shot_ring(point:Vector2,shot_direction:Vector2) -> void:
-	var world:Node = get_tree().current_scene
-	if world == null: return
-	# Freeze the authoritative launch point, not the moving/recoiling bow sprite.
-	var ring:Node2D = COMBAT_FX.expanding_ring(world,point,8.0,
-		{"name":"HeavenfallShotRing","palette":SHOT_RING_PALETTE,"end_scale":3.0,"lifetime":0.38,
-		 "direction":shot_direction,"depth_ratio":0.35})
-	ring.add_to_group("HeavenfallShotRing")
-
 
 
 func _fire() -> void:
@@ -160,6 +164,17 @@ func _fire() -> void:
 	_start_recoil(1.0, facing, clock)
 	play_sound("entity.heavenfall.shoot", -4.0)
 	FX.burst(world, "magic", global_position + facing * (muzzle_offset + 4.0), facing, 5, 80.0, 0.35, 7.0)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _spawn_shot_ring(point:Vector2,shot_direction:Vector2) -> void:
+	var world:Node = get_tree().current_scene
+	if world == null: return
+	# Freeze the authoritative launch point, not the moving/recoiling bow sprite.
+	var ring:Node2D = COMBAT_FX.expanding_ring(world,point,8.0,
+		{"name":"HeavenfallShotRing","palette":SHOT_RING_PALETTE,"end_scale":3.0,"lifetime":0.38,
+		 "direction":shot_direction,"depth_ratio":0.35})
+	ring.add_to_group("HeavenfallShotRing")
 
 
 func _start_recoil(power: float, aim: Vector2, at: float) -> void:
@@ -639,10 +654,10 @@ func _rift_blast_damage(center: Vector2, radius: float = -1.0) -> void:
 		if not U.enemy(self, other):
 			continue
 		var victim: ball = other as ball
-		if victim.global_position.distance_to(center) > reach + U.radius(victim):
+		if ball.body_point(victim,center).distance_to(center) > reach + U.radius(victim):
 			continue
 		if U.damage(self, victim, dmg, center):
-			var push: Vector2 = victim.global_position - center
+			var push: Vector2 = ball.body_point(victim,center) - center
 			if push.length_squared() < 0.001:
 				push = Vector2.RIGHT
 			victim.apply_knockback(push.normalized(), rift_blast_knockback, rift_blast_knockback_speed, 0, 0, {"source": self, "stop_on_character": true})

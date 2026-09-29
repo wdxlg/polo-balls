@@ -541,7 +541,7 @@ func _deal_sword_damage(attack_dir:Vector2) -> void:
 			continue
 		# Aiming may substitute the mouse point; hit geometry must use each
 		# victim's real position, otherwise manual control hits the entire circle.
-		var offset:Vector2 = target.global_position - global_position
+		var offset:Vector2 = ball.body_point(target,global_position) - global_position
 		if offset.length_squared() > 0.000001:
 			var direction_to_target:Vector2 = offset.normalized()
 			if absf(attack_dir.angle_to(direction_to_target)) > half_angle:
@@ -563,18 +563,19 @@ func _deal_sword_damage(attack_dir:Vector2) -> void:
 			continue
 		if enemy_team and health_before > 0.0 and target.health <= 0:
 			killed_enemy = true
+		if preload("res://scripts/effects/我的世界/mc_hit_feedback.gd").manages(self): continue # Victim already selected feedback.
 		if _is_critical_sword_hit(dealt_damage):
-			# 命中反馈沿用既有的 >=100 暴击判定；与 >100 的挥舞音效判定无关。
-			_broadcast_critical_hit_sfx(target.global_position,dealt_damage)
+			# 命中反馈严格 >50；与 >100 的挥舞音效判定无关。
+			_broadcast_critical_hit_sfx(ball.body_point(target,global_position),dealt_damage)
 		else:
-			_broadcast_mc_damage_sfx(target.global_position,dealt_damage)
+			_broadcast_mc_damage_sfx(ball.body_point(target,global_position),dealt_damage)
 	# A multi-kill in one sweep celebrates once, after the damaging swing finishes.
 	if killed_enemy:
 		_broadcast_kill_spin(attack_dir)
 
 
 func _is_critical_sword_hit(dealt_damage:float) -> bool:
-	return is_finite(dealt_damage) and dealt_damage >= 100.0
+	return is_finite(dealt_damage) and dealt_damage > 50.0
 
 
 func _sword_threat_available() -> bool:

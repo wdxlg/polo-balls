@@ -99,7 +99,7 @@ func _enemy(target:Variant) -> bool: return U.enemy(self,target) and target.heal
 func _aim_point() -> Vector2:
 	if is_player_controlled() and has_player_control_aim(): return player_control_aim_world_position()
 	var target:ball = U.nearest(self)
-	if _enemy(target): return target.global_position
+	if _enemy(target): return ball.body_point(target,global_position)
 	var axis:Vector2 = direction.normalized() if direction.length_squared() > 0.001 else Vector2.RIGHT
 	return global_position+axis*280.0
 func _cardinal(heading:Vector2) -> Vector2:
@@ -332,12 +332,12 @@ func _cart_impact_sound(event:String,point:Vector2,volume:float) -> void:
 func hit_enemy(target:Variant,point:Vector2) -> bool:
 	if not has_momentum_attack() or not _enemy(target): return false
 	var id:int = target.get_instance_id()
-	if _hit_until.has(id) or not U.line_clear(self,point,target.global_position): return false
+	if _hit_until.has(id) or not U.line_clear(self,point,ball.body_point(target,point)): return false
 	_hit_until[id] = clock+1.0
 	var ratio:float = clampf(drive_speed/maxf(rush_speed,1.0),0,1)
 	var victim_ref:WeakRef = weakref(target)
 	var health_before:float = maxf(float(target.health),0.0)
-	var sound_point:Vector2 = target.global_position
+	var sound_point:Vector2 = ball.body_point(target,global_position)
 	if not target.receive_positional_damage(rush_attack_damage(),point,false,self): return false
 	# This revision keeps gaining speed through hits; the per-victim cooldown prevents overlap spam.
 	var victim:Variant = victim_ref.get_ref()
@@ -581,9 +581,7 @@ func get_debug_attack_regions() -> Array:
 	if not has_momentum_attack(): return []
 	return [{"shape":"rect","position":collision_shape_2d.global_position,"half_extents":collision_shape_2d.shape.size*collision_shape_2d.global_scale.abs()*0.5,"rotation":global_rotation,"damage":rush_attack_damage(),"kind":"minecart_rail_speed"}]
 func get_armor_test_effect_summary() -> String:
-	if str(Game.current_locale).begins_with("en"):
-		return "Plan rails, then accelerate along them without a speed cap; powered rails accelerate faster and higher speed means more collision damage. Rails support bends, junctions and loops. New rail replaces the direction in a cell without removing its powered property.\nLeaving the rails preserves momentum and collision damage while slowing down; reentry inherits remaining speed. Loops eventually eject the cart, and an exit must be cleared before reentry. Rails persist for the battle even when control effects stop the cart. In manual control, Skill adds a bend while planning and brakes while driving."
-	return "蓄势后铺轨并沿轨加速，动力轨加速更强，车速没有上限；速度越高，撞击伤害越高。轨道可转弯、交汇和闭环，同格新轨替换旧方向，但保留动力属性。\n离轨后保留速度并逐渐减速，仍可撞伤敌人；重新入轨继承余速，闭环行驶一段后会向外离轨，刚离轨不能立即原路折返。\n铁轨在本局持续保留，受控停车不会删轨。手动操控时，蓄势中用技能追加转弯，行车中用技能制动。"
+	return Game.t("MC_ARMOR_INTRO_MINECART")
 
 func Die() -> void:
 	if _death_sound_done: return

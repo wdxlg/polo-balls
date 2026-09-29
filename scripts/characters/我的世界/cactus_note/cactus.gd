@@ -41,7 +41,7 @@ func play_contact_hit(point:Vector2) -> void:
 @rpc("authority","call_local","reliable")
 func _contact_hit_sound(point:Vector2) -> void:
 	hit_sounds += 1
-	HIT_SFX.play(self,point)
+	# Contact damage feedback is emitted once by the victim.
 func volley_scale() -> Vector2:
 	if volley_phase == 1:
 		return Vector2.ONE.lerp(Vector2(0.70,1.06),smoothstep(0.0,1.0,volley_age/0.26))
@@ -190,7 +190,8 @@ func Skill() -> void:
 	Using_Skill = false
 	fire_thorns()
 func player_control_action(index:int) -> void:
-	if index == 1: fire_thorns()
+	# The thorn volley is this actor's only active ability: it belongs on left click.
+	if index == 0 and is_player_controlled() and is_multiplayer_authority(): fire_thorns()
 func visual_mob() -> void:
 	apply_height()
 	image.rotation = 0
@@ -374,6 +375,11 @@ func segment_count() -> int: return levels
 ## stack around its bottom (which let e.g. slime pulses hit it without touching).
 func get_crowd_separation_radius_world() -> float:
 	return maxf(42.0*absf(global_scale.x),6.0)
+
+## Closest point of the plant's body axis to a segment (sweeps, beams, projectile steps).
+func combat_body_point_to_segment(a:Vector2,b:Vector2) -> Vector2:
+	var top:Vector2 = to_global(Vector2(0,-SEGMENT*float(levels-1)))
+	return Geometry2D.get_closest_points_between_segments(global_position,top,a,b)[0]
 
 ## Closest point of the plant's body axis to a world point (capsule model: axis + width radius).
 func combat_body_point(from:Vector2) -> Vector2:

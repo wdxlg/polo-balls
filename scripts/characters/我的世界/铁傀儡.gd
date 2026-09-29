@@ -144,9 +144,9 @@ func current_arm_scale() -> float:
 
 func target_in_front(target:ball,heading:Vector2,arm_size:float = 1.0) -> bool:
 	if not mc_enemy(target): return false
-	var offset:Vector2 = target.global_position-global_position
+	var offset:Vector2 = ball.body_point(target,global_position)-global_position
 	if offset.dot(heading)<=0.001 or offset.length()>melee_reach*arm_size+12.0: return false
-	return overlaps_target(target,global_position+heading*20.0*arm_size,22.0*arm_size) and mc_line_clear(global_position,target.global_position)
+	return overlaps_target(target,global_position+heading*20.0*arm_size,22.0*arm_size) and mc_line_clear(global_position,ball.body_point(target,global_position))
 
 func nearest_front_enemy() -> ball:
 	var nearest:ball = null
@@ -155,7 +155,7 @@ func nearest_front_enemy() -> ball:
 	for node:Node in SubmissionCharacterTools.targeting_candidates(self):
 		var target:ball = node as ball
 		if not mc_enemy(target) or not target.is_combat_lockable(): continue
-		var distance:float = global_position.distance_squared_to(target.global_position)
+		var distance:float = global_position.distance_squared_to(ball.body_point(target,global_position))
 		if distance<=best and target_in_front(target,heading):
 			best = distance
 			nearest = target
@@ -173,7 +173,7 @@ func cancel_swing() -> void:
 func should_release_charge(target:Variant,delta:float) -> bool:
 	if _charge_elapsed>=windup_duration: return true
 	if not mc_enemy(target): return true
-	var offset:Vector2 = target.global_position-global_position
+	var offset:Vector2 = ball.body_point(target,global_position)-global_position
 	var relative_velocity:Vector2 = target.velocity-velocity
 	if _charge_sample_valid and delta>0.00001:
 		relative_velocity = (offset-_last_charge_offset)/delta
@@ -183,7 +183,7 @@ func should_release_charge(target:Variant,delta:float) -> bool:
 	var predicted:Vector2 = offset+relative_velocity*IMPACT_TIME
 	# Wall/body collision cannot turn this attack. Only actual target escape,
 	# range, occlusion or full charge may release it; no deferred bounce trigger.
-	return offset.dot(heading)<=0.0 or not mc_line_clear(global_position,target.global_position) or offset.length()>=melee_reach-4.0 or predicted.length()>=melee_reach-4.0 or predicted.dot(heading)<=2.0
+	return offset.dot(heading)<=0.0 or not mc_line_clear(global_position,ball.body_point(target,global_position)) or offset.length()>=melee_reach-4.0 or predicted.length()>=melee_reach-4.0 or predicted.dot(heading)<=2.0
 
 
 func release_swing() -> void:
@@ -226,7 +226,7 @@ func step_attack(delta:float) -> void:
 
 func begin_swing(target:ball) -> bool:
 	if not mc_live() or dizziness or not Can_Attack or _phase!=0 or _attack_wait>0.0 or not mc_enemy(target): return false
-	if global_position.distance_to(target.global_position)>melee_reach or not target_in_front(target,current_attack_heading()): return false
+	if global_position.distance_to(ball.body_point(target,global_position))>melee_reach or not target_in_front(target,current_attack_heading()): return false
 	attack_facing_flipped_h = is_character_visual_flipped_h()
 	_phase = 1
 	_phase_time = 0.0
@@ -234,7 +234,7 @@ func begin_swing(target:ball) -> bool:
 	_released_charge = 0.0
 	_swing_hit = false
 	_charge_target = weakref(target)
-	_last_charge_offset = target.global_position-global_position
+	_last_charge_offset = ball.body_point(target,global_position)-global_position
 	_charge_sample_valid = false
 	_attack_wait = attack_interval*(rage_interval_multiplier if enraged else 1.0)
 	set_pair_clip("charge")
@@ -252,7 +252,7 @@ func resolve_upswing() -> int:
 	for node:Node in SubmissionCharacterTools.targeting_candidates(self):
 		var target:ball = node as ball
 		if not target_in_front(target,heading,size): continue
-		var offset:Vector2 = target.global_position-global_position
+		var offset:Vector2 = ball.body_point(target,global_position)-global_position
 		set_meta("blood_attack_velocity",Vector2.UP*speed)
 		if mc_damage_with_impact(target,attack_damage(damage_scale),target.global_position):
 			count += 1

@@ -1,4 +1,6 @@
 extends ball
+const SHARED_BAR = preload("res://scripts/characters/我的世界/frontier/creeper_style_bar.gd")
+const U=preload("res://scripts/characters/我的世界/new5/utils.gd")
 
 const NATIVE_MODEL_ANIMATION = preload("res://scripts/effects/我的世界/mc_native_batch2.gd")
 var _native_mob_animation:Node
@@ -7,7 +9,7 @@ const NORMAL_TEXTURE:Texture2D = preload("res://Images/characters/我的世界/�
 const CHARGED_TEXTURE:Texture2D = preload("res://Images/characters/我的世界/苦力怕/闪电苦力怕.webp")
 const LIGHTNING_SCENE:PackedScene = preload("res://scenes/effects/我的世界/雷电.tscn")
 const MC_ABILITIES = preload("res://scripts/effects/我的世界/mc_combat_abilities.gd")
-const EXPLOSION_EFFECT_SCENE:PackedScene = preload("res://scenes/effects/魔角猎人_爆炸特效.tscn")
+const EXPLOSION_EFFECT_SCENE:PackedScene = preload("res://scenes/effects/我的世界/MC爆炸.tscn")
 const CREEPER_HEAD_SCENE:PackedScene = preload("res://scenes/creatures/我的世界/苦力怕头.tscn")
 const DEATH_SMOKE_FRAMES:SpriteFrames = preload("res://scenes/effects/我的世界/蠹虫死亡烟雾.tres")
 
@@ -34,17 +36,17 @@ const DEATH_BRIDGE_DISPLAY_META:StringName = &"battle_death_bridge_display_name"
 const FUSE_BAR_RECT:Rect2 = Rect2(-55.0,92.0,110.0,16.0)
 const FUSE_BAR_OUTER_PAD:float = 4.0
 const FUSE_BAR_BORDER_WIDTH:float = 2.5
-const FUSE_BAR_OUTER_COLOR:Color = Color(0.02,0.02,0.025,0.92)
-const FUSE_BAR_BACKGROUND_COLOR:Color = Color(0.12,0.12,0.14,1.0)
-const FUSE_BAR_BORDER_COLOR:Color = Color(0.78,0.82,0.88,0.86)
-const FUSE_BAR_START_COLOR:Color = Color(1.0,1.0,1.0,1.0)
-const FUSE_BAR_END_COLOR:Color = Color(1.0,0.08,0.04,1.0)
+const FUSE_BAR_OUTER_COLOR:Color = SHARED_BAR.OUTER_COLOR
+const FUSE_BAR_BACKGROUND_COLOR:Color = SHARED_BAR.BACKGROUND_COLOR
+const FUSE_BAR_BORDER_COLOR:Color = SHARED_BAR.BORDER_COLOR
+const FUSE_BAR_START_COLOR:Color = SHARED_BAR.START_COLOR
+const FUSE_BAR_END_COLOR:Color = SHARED_BAR.END_COLOR
 
 @export_category("苦力怕 / 引信")
 @export_range(16.0,180.0,1.0) var fuse_start_radius:float = 50.0
 @export_range(20.0,220.0,1.0) var fuse_cancel_radius:float = 50.0
-@export_range(0.6,5.0,0.05) var fuse_duration:float = 2.80
-@export_range(0.30,1.0,0.01) var charged_fuse_duration_ratio:float = 0.84
+@export_range(0.6,5.0,0.05) var fuse_duration:float = 2.50
+@export_range(0.30,1.0,0.01) var charged_fuse_duration_ratio:float = 0.78
 @export_range(0.0,2.0,0.05) var fuse_decay_delay:float = 0.55
 @export_range(0.05,3.0,0.05) var fuse_decay_acceleration:float = 0.55
 @export_range(0.10,4.0,0.05) var fuse_decay_max_speed:float = 1.60
@@ -89,7 +91,7 @@ var _fuse_advancing:bool = false
 var _fuse_elapsed:float = 0.0
 var _fuse_decay_elapsed:float = 0.0
 var _fuse_visual_clock:float = 0.0
-var _current_fuse_duration:float = 2.8
+var _current_fuse_duration:float = 2.5
 var _fuse_target_id:int = 0
 var _targeting_slow_active:bool = false
 var _lightning_left:float = 0.0
@@ -150,7 +152,8 @@ func tick_physics(state:State,delta:float) -> void:
 		_update_fuse_logic(delta)
 		return
 
-	_update_lightning_timer(delta)
+	if is_player_controlled(): _lightning_left=maxf(0.0,_lightning_left-delta)
+	else: _update_lightning_timer(delta)
 	_update_fuse_logic(delta)
 
 
@@ -171,21 +174,21 @@ func move(speed:float,delta:float) -> void:
 
 
 func _update_fuse_logic(_delta:float) -> void:
-	var nearest:ball = _nearest_enemy()
+	var nearest:ball = null if is_player_controlled() else _nearest_enemy()
 	_targeting_slow_active = (
 		nearest != null
-		and global_position.distance_to(nearest.global_position) <= fuse_cancel_radius
+		and global_position.distance_to(ball.body_point(nearest,global_position)) <= fuse_cancel_radius
 	)
 	if not _fusing:
-		if nearest != null and global_position.distance_to(nearest.global_position) <= fuse_start_radius:
+		if nearest != null and global_position.distance_to(ball.body_point(nearest,global_position)) <= fuse_start_radius:
 			_begin_fuse(nearest)
 		return
 
 	var tracked:ball = _resolve_fuse_target()
 	var active_target:ball = null
-	if tracked != null and global_position.distance_to(tracked.global_position) <= fuse_cancel_radius:
+	if tracked != null and global_position.distance_to(ball.body_point(tracked,global_position)) <= fuse_cancel_radius:
 		active_target = tracked
-	elif nearest != null and global_position.distance_to(nearest.global_position) <= fuse_cancel_radius:
+	elif nearest != null and global_position.distance_to(ball.body_point(nearest,global_position)) <= fuse_cancel_radius:
 		active_target = nearest
 
 	if active_target != null:
@@ -197,6 +200,24 @@ func _update_fuse_logic(_delta:float) -> void:
 		_explode()
 	elif not _fuse_advancing and _fuse_elapsed <= 0.0:
 		_cancel_fuse()
+
+func controlled_attack_action() -> void:
+	if not is_player_controlled() or not is_multiplayer_authority() or _fusing or _exploded or health<=0 or not is_combat_runtime_active() or not has_player_control_aim(): return
+	var point:Vector2=player_control_aim_world_position()
+	var chosen:ball=null
+	var nearest:float=INF
+	for raw:Node in get_tree().get_nodes_in_group("Ball"):
+		if not (raw is ball) or not _is_enemy(raw as ball): continue
+		var distance:float=ball.body_point(raw,point).distance_to(point)
+		if distance<=U.radius(raw)+6.0 and distance<nearest:
+			chosen=raw as ball
+			nearest=distance
+	if chosen!=null and global_position.distance_to(ball.body_point(chosen,global_position))<=fuse_start_radius:
+		_begin_fuse(chosen)
+func controlled_skill_action() -> void:
+	if not is_player_controlled() or not is_multiplayer_authority() or health<=0 or _exploded or _lightning_left>0.0 or not is_combat_runtime_active(): return
+	_summon_self_lightning()
+	_schedule_next_lightning()
 
 
 func _begin_fuse(target:ball) -> void:
@@ -353,24 +374,8 @@ func _draw() -> void:
 
 
 func _draw_fuse_progress_bar() -> void:
-	# 与锻刀师 _draw_progress_bar() 使用同一组结构/颜色：外层近黑底、
-	# 深灰槽、灰白描边。唯一差异是苦力怕的内部颜色按引信进度白 -> 红。
 	var ratio:float = clampf(_fuse_elapsed / maxf(_current_fuse_duration,0.05),0.0,1.0)
-	var pad_vec:= Vector2(FUSE_BAR_OUTER_PAD,FUSE_BAR_OUTER_PAD)
-	draw_rect(
-		Rect2(FUSE_BAR_RECT.position - pad_vec,FUSE_BAR_RECT.size + pad_vec * 2.0),
-		FUSE_BAR_OUTER_COLOR,
-		true
-	)
-	draw_rect(FUSE_BAR_RECT,FUSE_BAR_BACKGROUND_COLOR,true)
-	if ratio > 0.0:
-		var fill_color:Color = FUSE_BAR_START_COLOR.lerp(FUSE_BAR_END_COLOR,ratio)
-		draw_rect(
-			Rect2(FUSE_BAR_RECT.position,Vector2(FUSE_BAR_RECT.size.x * ratio,FUSE_BAR_RECT.size.y)),
-			fill_color,
-			true
-		)
-	draw_rect(FUSE_BAR_RECT,FUSE_BAR_BORDER_COLOR,false,FUSE_BAR_BORDER_WIDTH)
+	SHARED_BAR.paint(self,FUSE_BAR_RECT,ratio,ratio)
 
 
 func _capture_fuse_visual_base() -> void:
@@ -520,9 +525,11 @@ func _apply_lightning_area(point:Vector2) -> void:
 		if not raw is ball:
 			continue
 		var target:ball = raw as ball
-		if not _is_enemy(target):
+		if ball.body_point(target,point).distance_to(point) > lightning_radius:
 			continue
-		if target.global_position.distance_to(point) > lightning_radius:
+		if target.has_method("on_mc_lightning_struck"):
+			target.call("on_mc_lightning_struck")
+		if not _is_enemy(target):
 			continue
 		var accepted:bool = target.receive_spatial_damage(
 			effective_outgoing_damage(lightning_damage),
@@ -555,7 +562,7 @@ func _explode() -> void:
 		var target:ball = raw as ball
 		if not _is_enemy(target):
 			continue
-		if target.global_position.distance_to(point) > radius:
+		if ball.body_point(target,point).distance_to(point) > radius:
 			continue
 		var accepted:bool = target.receive_spatial_damage(
 			damage_value,
@@ -565,7 +572,7 @@ func _explode() -> void:
 		)
 		if not accepted:
 			continue
-		var push:Vector2 = target.global_position - point
+		var push:Vector2 = ball.body_point(target,point) - point
 		if push.length_squared() <= 0.000001:
 			push = Vector2.RIGHT.rotated(_rng.randf_range(0.0,TAU))
 		target.apply_knockback(
@@ -593,7 +600,7 @@ func _explode() -> void:
 
 
 @rpc("authority","call_local","reliable")
-func _rpc_explosion_visual(point:Vector2,variant:int,visual_diameter:float) -> void:
+func _rpc_explosion_visual(point:Vector2,_variant:int,visual_diameter:float) -> void:
 	_exploded = true
 	_fusing = false
 	_fuse_advancing = false
@@ -625,21 +632,17 @@ func _rpc_explosion_visual(point:Vector2,variant:int,visual_diameter:float) -> v
 	var effect:Node2D = EXPLOSION_EFFECT_SCENE.instantiate() as Node2D
 	if effect == null:
 		return
-	effect.set("variant",clampi(variant,1,3))
-	effect.set("visual_diameter",maxf(visual_diameter,16.0))
+	effect.set("radius",maxf(visual_diameter*0.5,8.0))
 	# V38：恢复爆炸存在感；闪电苦力怕在普通爆炸音量上再额外提高。
 	var explosion_db:float = explosion_volume_db
 	if _charged:
 		explosion_db += maxf(charged_explosion_volume_bonus_db,0.0)
 	effect.set("volume_db",explosion_db)
-	# World 根节点是 MultiplayerSpawner.spawn_path。这个爆炸已经由 RPC 在
-	# 每个 peer 本地创建，不能再直接加到 World 根，否则 Spawner 会尝试
-	# 自动复制 @Node2D@ 保留名并报错/重复生成。挂到角色下且 top_level 后
-	# 仍保持世界坐标，不继承角色变换。
+	# Local RPC visuals live outside the dying actor and outside the spawner root.
+	# Small ejected smoke must finish even after the creeper is removed.
 	effect.name = "CreeperExplosionVisual"
-	effect.top_level = true
 	effect.position = point
-	add_child(effect,true)
+	load("res://scripts/effects/我的世界/mc_explosion.gd").runtime_container(self).add_child(effect,true)
 	effect.global_position = point
 
 
@@ -728,7 +731,7 @@ func _nearest_enemy() -> ball:
 		var candidate:ball = raw as ball
 		if not _is_enemy(candidate):
 			continue
-		var d:float = global_position.distance_squared_to(candidate.global_position)
+		var d:float = global_position.distance_squared_to(ball.body_point(candidate,global_position))
 		if d < nearest_distance_sq:
 			nearest_distance_sq = d
 			nearest = candidate

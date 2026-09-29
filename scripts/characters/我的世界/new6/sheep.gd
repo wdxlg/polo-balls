@@ -224,16 +224,16 @@ func step_mob(delta:float) -> void:
 			for node:Node in get_tree().get_nodes_in_group("Ball"):
 				if not U.enemy(self,node): continue
 				var victim:ball = node as ball
-				var offset:Vector2 = victim.global_position-global_position
+				var offset:Vector2 = ball.body_point(victim,global_position)-global_position
 				if offset.dot(facing) < 0.0 or offset.length() > _body_radius(self)+_body_radius(victim)+10.0: continue
-				if not U.line_clear(self,global_position,victim.global_position): continue
+				if not U.line_clear(self,global_position,ball.body_point(victim,global_position)): continue
 				if U.damage(self,victim,attack_damage(1.4),global_position):
 					_ram_left = ram_cooldown
-					play_sound("entity.sheep.hit",-2.0)
+					pass # Final HP loss emits the shared 0dB-baseline MC feedback.
 					break
 		return
-	var target:ball = U.nearest(self)
-	var distance:float = global_position.distance_to(target.global_position) if target != null else INF
+	var target:ball = null if is_player_controlled() else U.nearest(self)
+	var distance:float = global_position.distance_to(ball.body_point(target,global_position)) if target != null else INF
 	if not can_act():
 		if ram_state in [RamState.WINDUP,RamState.CHARGE]: _finish_charge(false)
 		return
@@ -246,8 +246,25 @@ func step_mob(delta:float) -> void:
 		RamState.RECOVER:
 			if _phase_left <= 0.0: ram_state = RamState.ROAM
 		_:
-			if distance <= ram_trigger_range and _ram_left <= 0.0 and U.line_clear(self,global_position,target.global_position):
-				_begin_charge(target.global_position,target)
+			if not is_player_controlled() and distance <= ram_trigger_range and _ram_left <= 0.0 and U.line_clear(self,global_position,ball.body_point(target,global_position)):
+				_begin_charge(ball.body_point(target,global_position),target)
+
+func controlled_attack_action() -> void:
+	if not is_player_controlled() or not is_multiplayer_authority() or not can_act(): return
+	if is_transport_mounted() or ram_state != RamState.ROAM or _ram_left > 0.0: return
+	var point:Vector2 = player_control_aim_world_position(global_position)
+	var best:float = INF
+	var chosen:ball
+	for raw:Node in get_tree().get_nodes_in_group("Ball"):
+		if not (raw is ball) or not U.enemy(self,raw): continue
+		var target:ball = raw as ball
+		if global_position.distance_to(ball.body_point(target,global_position)) > ram_trigger_range or not U.line_clear(self,global_position,ball.body_point(target,global_position)): continue
+		var tolerance:float = U.radius(target)+16.0
+		var squared:float = point.distance_squared_to(ball.body_point(target,point))
+		if squared <= tolerance*tolerance and squared < best:
+			best = squared
+			chosen = target
+	if chosen != null: _begin_charge(ball.body_point(chosen,global_position),chosen)
 
 func _begin_charge(point:Vector2,target:ball = null) -> void:
 	_clear_ram_knockback()
@@ -339,7 +356,7 @@ func _refresh_charge_contacts() -> void:
 	# 只屏蔽当前重叠；离开扫掠半径后恢复碰撞，允许同一趟追上再次撞击。
 	for id in _charge_contacts.keys():
 		var victim = _charge_contacts[id].get_ref()
-		if is_instance_valid(victim) and global_position.distance_to(victim.global_position) <= _body_radius(self)+_body_radius(victim)+5.0:
+		if is_instance_valid(victim) and global_position.distance_to(ball.body_point(victim,global_position)) <= _body_radius(self)+_body_radius(victim)+5.0:
 			continue
 		_charge_contacts.erase(id)
 		for ref:WeakRef in _charge_exceptions.duplicate():
@@ -362,7 +379,7 @@ func _charge_touch(victim:ball,point:Vector2) -> bool:
 	var impact:Dictionary = impact_profile(_charge_speed)
 	if U.enemy(self,victim) and can_act() and U.damage(self,victim,impact.damage,point):
 		victim.apply_knockback(_charge_dir,impact.distance,impact.speed,0.65,0,{"source":self,"max_wall_bounces":1,"collision_damage":impact.wall_damage,"collision_damage_wall_only":true,"redirect_blend_time":0.0})
-		play_sound("entity.sheep.hit",-2.0)
+		pass # Final HP loss emits the shared 0dB-baseline MC feedback.
 	# 撞单位消耗动量但不结束冲锋；持续接触只处理一次，分离后再次碰撞可再次受击。
 	_charge_speed = maxf(_charge_speed*charge_contact_speed_ratio,minf(_charge_speed,30.0))
 	velocity = _charge_dir*_charge_speed
@@ -374,11 +391,11 @@ func _hit_charge_path(from:Vector2,to:Vector2) -> bool:
 		if not node is ball or node == self or not node.is_combat_targetable() or _charge_obstacle(node): continue
 		var victim:ball = node as ball
 		if _charge_contacts.has(victim.get_instance_id()): continue
-		if (victim.global_position-from).dot(_charge_dir) < -_body_radius(victim): continue
-		if U.segment_distance(victim.global_position,from,to) > _body_radius(self)+_body_radius(victim)+3.0: continue
-		if not U.line_clear(self,from,victim.global_position): continue
+		if (ball.body_point(victim,from)-from).dot(_charge_dir) < -_body_radius(victim): continue
+		if U.segment_distance(ball.body_point_seg(victim,from,to),from,to) > _body_radius(self)+_body_radius(victim)+3.0: continue
+		if not U.line_clear(self,from,ball.body_point(victim,from)): continue
 		contacts.append(victim)
-	contacts.sort_custom(func(a:ball,b:ball): return (a.global_position-from).dot(_charge_dir) < (b.global_position-from).dot(_charge_dir))
+	contacts.sort_custom(func(a:ball,b:ball): return (ball.body_point(a,from)-from).dot(_charge_dir) < (ball.body_point(b,from)-from).dot(_charge_dir))
 	for victim:ball in contacts: _charge_touch(victim,to)
 	return not contacts.is_empty()
 
@@ -471,7 +488,7 @@ func _begin_wool() -> bool:
 
 func catch_wool_projectile(shot:Node2D) -> bool:
 	if not active() or not WOOL_PROJECTILE.is_projectile(shot): return false
-	if global_position.distance_to(shot.global_position) > wool_projectile_radius+0.05: return false
+	if global_position.distance_to(ball.body_point(shot,global_position)) > wool_projectile_radius+0.05: return false
 	if shot is ball:
 		var effective_team:String = shot.Team
 		if (effective_team.is_empty() or effective_team == "Ball") and is_instance_valid(shot.Master): effective_team = shot.Master.Team
@@ -523,12 +540,12 @@ func _step_wool(delta:float) -> void:
 		if node == self or not node is Node2D: continue
 		if WOOL_PROJECTILE.is_projectile(node):
 			var flight:Vector2 = WOOL_PROJECTILE.motion(node)
-			var offset:Vector2 = global_position-node.global_position
+			var offset:Vector2 = global_position-ball.body_point(node,global_position)
 			if flight.dot(offset) <= 0: continue
-			if global_position.distance_to(node.global_position) > wool_projectile_radius: continue
-			if U.line_clear(self,global_position,node.global_position): catch_wool_projectile(node)
-		elif not _attacking() and U.enemy(self,node) and global_position.distance_to(node.global_position) <= wool_trigger_radius:
-			if U.line_clear(self,global_position,node.global_position): _begin_wool()
+			if global_position.distance_to(ball.body_point(node,global_position)) > wool_projectile_radius: continue
+			if U.line_clear(self,global_position,ball.body_point(node,global_position)): catch_wool_projectile(node)
+		elif not _attacking() and U.enemy(self,node) and global_position.distance_to(ball.body_point(node,global_position)) <= wool_trigger_radius:
+			if U.line_clear(self,global_position,ball.body_point(node,global_position)): _begin_wool()
 
 @rpc("authority","call_remote","reliable")
 func _receive_wool_break(serial:int) -> void:
@@ -551,8 +568,8 @@ func _wool_burst() -> void:
 	_caught_projectiles.clear()
 	for node:Node in get_tree().get_nodes_in_group("Ball"):
 		if not U.enemy(self,node) or WOOL_PROJECTILE.is_projectile(node): continue
-		if global_position.distance_to(node.global_position) > wool_burst_radius or not U.line_clear(self,global_position,node.global_position): continue
-		var dir:Vector2 = global_position.direction_to(node.global_position)
+		if global_position.distance_to(ball.body_point(node,global_position)) > wool_burst_radius or not U.line_clear(self,global_position,ball.body_point(node,global_position)): continue
+		var dir:Vector2 = global_position.direction_to(ball.body_point(node,global_position))
 		if dir.length_squared() < 0.01: dir = facing
 		node.apply_knockback(dir,85.0,520.0,0.25,0.0,{"source":self})
 	play_sound("block.wool.place",-3.0)

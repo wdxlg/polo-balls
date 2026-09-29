@@ -33,16 +33,20 @@ const SPRITES:Array[Texture2D] = [
 const MODE_HITS:Array[StringName] = [
 	&"", &"ice_hit", &"magma_hit", &"honey_hit", &"iron_hit", &"tnt_hit", &"amethyst_hit"
 ]
-const TNT_RADIUS:float = 80.0
+const TNT_RADIUS:float = 40.0
 const TNT_FUSE_SECONDS:float = 2.4
-const TNT_DAMAGE:float = 150.0
+const TNT_DAMAGE:float = 200.0
 const TNT_SELF_DAMAGE:float = 60.0
 const CONTACT_INTERVAL:float = 0.62
 const HOT_INTERVAL:float = 0.16
-const IRON_IMPACT_MULT:float = 1.61 # Previous 2.3 * 0.70
-const IRON_CRUSH_MULT:float = 0.24 # Small sustained ticks, not repeated full slams.
-const IRON_CRUSH_INTERVAL:float = 0.25
-const AMETHYST_CONTACT_MULT:float = 1.4 # Previous 2.0 * 0.70
+const IRON_IMPACT_MULT:float = 1.2075 # 2026-09-27: current downward impact damage * 3.
+const IRON_REFERENCE_DOWN_SPEED:float = 170.0
+const AMETHYST_CONTACT_MULT:float = 0.35 # 2026-09-27: halve current attached-crystal damage again (0.7 * 0.5).
+const ICE_STEERING_ACCELERATION:float = 420.0 # Previous 210 * 2; unchanged target speed.
+const HONEY_GRAB_DURATION:float = 1.0 # One second per fresh contact, not indefinitely refreshed.
+const HONEY_PULL_SPEED:float = 170.0 # Bounded additive world velocity; faster targets can escape.
+const ICE_CONTACT_MULT:float = 0.625 # 30 at attack 48 and actual incoming speed 170.
+const ICE_REFERENCE_IMPACT_SPEED:float = 170.0
 const CRYSTAL_RADIUS:float = 3.0
 const CRYSTAL_VOLLEY_TIME:float = 2.4
 const CRYSTAL_REGROW_TIME:float = 0.8
@@ -91,6 +95,10 @@ var block_mode:int = Block.EMPTY:
 		if is_node_ready(): _sync_honey_collision_pairs()
 @export var first_block_delay:float = 0.65
 var _honey_contacts:Dictionary = {} # relative target path -> WeakRef
+var _honey_grab_remaining:Dictionary = {} # Authority-only remaining combat seconds.
+var _honey_waiting_exit:Dictionary = {} # Expired targets must separate before a new grab.
+var _honey_wall_threats:Array = []
+var _honey_wall_frame:int = -1
 var _crystal_hits:Dictionary = {} # crystal index -> target ID -> WeakRef, once per growth
 
 
@@ -105,7 +113,7 @@ var _opening:float = 0.0
 var _scan_left:float = 0.0
 var _next_hit_at:Dictionary = {} # instance ID -> next time; cleared at each change
 var _slide_velocity:Vector2 = Vector2.ZERO
-var _actual_speed:float = 0.0
+@export var _actual_speed:float = 0.0 # Authority motion sample also drives remote ice threats.
 var _ice_reference_speed:float = 78.0
 var _last_move_direction:Vector2 = Vector2.ZERO
 var _recoil_velocity:Vector2 = Vector2.ZERO
@@ -116,16 +124,19 @@ var _slam_start:Vector2
 var _slam_end:Vector2
 var _slam_target_ref:WeakRef
 var _slam_saved_mask:int = 0
-var _slam_hits:Dictionary = {}
+var _slam_hits:Dictionary = {} # Hit victims in the current continuous underside contact.
+@export var _iron_down_speed:float = 0.0 # Authority motion sample; same value drives remote threats.
 var _crystal_timer:float = CRYSTAL_VOLLEY_TIME
 var _random := RandomNumberGenerator.new()
+const IRON_EXIT_MIN_ANGLE:float = PI/6.0 # 30 degrees above the prior horizontal side.
+const IRON_EXIT_MAX_ANGLE:float = PI/3.0 # 60 degrees, never another flat left/right path.
+var _iron_exit_random := RandomNumberGenerator.new()
+var _iron_exit_pending:bool = false
 var _surge_left:float = 0.0
 var _hop_timer:float = 0.18
 var _landing_wait:float = -1.0
 var _sound_time:Dictionary = {}
-var _sound_duration_ms:Dictionary = {}
-var _motion_audio_until_ms:int = 0
-var _motion_audio_player:AudioStreamPlayer2D
+var _motion_audio_ticket:Dictionary = {}
 var _previous_motion_position:Vector2
 var _motion_sample_valid:bool = false
 var _sulfur_died:bool = false
@@ -148,6 +159,7 @@ func _ready() -> void:
 	motion_blur_enabled = false
 	AfterImage_Speed = 0.0
 	_random.seed = Game.battle_rng_seed_or("sulfur_cube:"+str(name),int(get_instance_id()))
+	_iron_exit_random.seed = Game.battle_rng_seed_or("sulfur_iron_exit:"+str(name),int(get_instance_id()))
 	super._ready()
 	if self_hitbox != null: self_hitbox.set_deferred("monitoring",false)
 	_create_live_model()
@@ -364,6 +376,7 @@ func _change_blocks(slots:PackedInt32Array) -> bool:
 			_emit_sound(&"amethyst_break")
 		_crystal_hits.clear()
 	if previous.has(Block.IRON) and not slots.has(Block.IRON):
+		_iron_down_speed = 0.0
 		configure_external_directional_gravity_locomotion(_iron_previous_gravity_mode)
 		clear_external_directional_gravity_velocity()
 		_restore_slam_collision()
@@ -395,10 +408,44 @@ func _change_blocks(slots:PackedInt32Array) -> bool:
 			_emit_sound(&"eject")
 			break
 	block_slots = slots
+	if has_block(Block.IRON): _iron_exit_pending = false
+	elif previous.has(Block.IRON):
+		_iron_exit_pending = true
+		_try_finish_iron_exit()
 	_scan_left = 0.0
 	if not slots.is_empty(): _emit_sound(&"absorb")
+	for mode:int in slots:
+		if not previous.has(mode):
+			var forms:Array[StringName] = [&"",&"ice_form",&"magma_form",&"honey_form",&"iron_form",&"tnt_form",&"amethyst_grow"]
+			_emit_sound(forms[mode])
 	if slots.has(Block.TNT) and not previous.has(Block.TNT): _emit_sound(&"fuse")
 	return true
+
+func _try_finish_iron_exit() -> void:
+	if not _iron_exit_pending: return
+	if has_block(Block.IRON) or health <= 0 or _sulfur_died or is_queued_for_deletion():
+		_iron_exit_pending = false
+		return
+	# An inventory transition must not hijack direct control or bypass pause,
+	# stun, authority or the shared direction-change permission.
+	if is_player_controlled():
+		_iron_exit_pending = false
+		return
+	if not mc_live() or dizziness or is_direction_change_locked(): return
+	_iron_exit_pending = false
+	var side:float = signf(direction.x)
+	if is_zero_approx(side): side = signf(_last_move_direction.x)
+	if is_zero_approx(side): side = -1.0 if _iron_exit_random.randi_range(0,1)==0 else 1.0
+	var angle:float = _iron_exit_random.randf_range(IRON_EXIT_MIN_ANGLE,IRON_EXIT_MAX_ANGLE)
+	var heading:Vector2 = Vector2(side*cos(angle),-sin(angle))
+	direction = heading
+	if has_block(Block.ICE):
+		# Keep the accumulated drive/boost magnitude, but remove the obsolete
+		# iron-only horizontal heading and any old horizontal bounce hold.
+		_slide_velocity = heading*_slide_velocity.length()
+		_ice_bounce_hold = 0.0
+		var surface:Node = get_node_or_null("SurfaceAcceleration")
+		if surface != null: surface.steer_momentum(heading,true)
 
 func get_fire_effect_ratio() -> float:
 	# Uses the common ball fire protocol; status nodes also remove themselves
@@ -407,13 +454,19 @@ func get_fire_effect_ratio() -> float:
 
 func tick_physics(state:State,delta:float) -> void:
 	var can_tick:bool = mc_live()
+	if can_tick:
+		_try_finish_iron_exit()
+		_iron_down_speed = 0.0
 	# Check the ACTUAL previous-tick displacement, not the desired velocity.
 	# Discard an initial spawn/teleport jump so a stationary cube never steps.
 	var displacement:float = global_position.distance_to(_previous_motion_position)
 	var previous_position:Vector2 = _previous_motion_position
 	_previous_motion_position = global_position
-	var moved:bool = _motion_sample_valid and displacement > 0.20 and displacement < maxf(36.0,Speed*delta*4.5)
-	_actual_speed = displacement/maxf(delta,0.001) if moved else 0.0
+	# Unlimited ice can legitimately travel farther than the old Speed-based
+	# spawn/teleport cutoff. Include the actual prior physical drive.
+	var sample_speed:float = maxf(Speed,_last_requested_velocity.length()) if has_block(Block.ICE) else Speed
+	var moved:bool = _motion_sample_valid and displacement > 0.20 and displacement < maxf(36.0,sample_speed*delta*4.5)
+	if is_multiplayer_authority(): _actual_speed = displacement/maxf(delta,0.001) if moved else 0.0
 	if moved:
 		_last_move_direction = (global_position-previous_position).normalized()
 	_motion_sample_valid = true
@@ -427,29 +480,30 @@ func tick_physics(state:State,delta:float) -> void:
 				if crystals_out:
 					_roll_crystal_layout()
 					crystals_out = false
+					_emit_sound(&"amethyst_grow")
 					_crystal_timer = CRYSTAL_VOLLEY_TIME
 				elif not is_player_controlled():
 					_release_crystals()
-		if block_mode != Block.EMPTY:
-			if _landing_wait > 0.0:
-				_landing_wait -= delta
-				if _landing_wait <= 0.0:
-					if moved and not is_instance_valid(_emit_sound(&"squish")):
-						# A jump variant can last 0.8–0.9 s, longer than the
-						# visual 0.43 s landing. Wait until it actually ends.
-						_landing_wait = 0.05
-					else:
-						_landing_wait = -1.0
-			if moved:
-				_hop_timer -= delta
-				if _hop_timer <= 0.0 and _landing_wait < 0.0:
-					if is_instance_valid(_emit_sound(&"jump")):
-						_hop_timer = 1.9 if is_large_battle_performance_mode() else 0.9
-						_landing_wait = 0.43
-					else:
-						_hop_timer = 0.05
-			else:
-				_landing_wait = -1.0
+		# Native movement only, including the empty shell; no breathing loop.
+		if _landing_wait > 0.0:
+			_landing_wait -= delta
+			if _landing_wait <= 0.0:
+				if moved and _emit_sound(&"squish").is_empty():
+					# A jump variant can last 0.8–0.9 s, longer than the
+					# visual 0.43 s landing. Wait until it actually ends.
+					_landing_wait = 0.05
+				else:
+					_landing_wait = -1.0
+		if moved:
+			_hop_timer -= delta
+			if _hop_timer <= 0.0 and _landing_wait < 0.0:
+				if not _emit_sound(&"jump").is_empty():
+					_hop_timer = 1.9 if is_large_battle_performance_mode() else 0.9
+					_landing_wait = 0.43
+				else:
+					_hop_timer = 0.05
+		else:
+			_landing_wait = -1.0
 		if block_mode == Block.EMPTY:
 			_opening += delta
 			if _opening >= first_block_delay: acquire_block(next_block())
@@ -470,6 +524,7 @@ func tick_physics(state:State,delta:float) -> void:
 		_pulse_contact()
 
 func move(speed:float,delta:float) -> void:
+	var iron_before:Vector2 = global_position
 	if has_block(Block.IRON) and _slam_time >= 0.0:
 		if is_multiplayer_authority(): _step_single_slam(delta)
 		return
@@ -481,11 +536,23 @@ func move(speed:float,delta:float) -> void:
 		if has_block(Block.IRON):
 			steering = Vector2(clampf(steering.x,-1.0,1.0),0.0)
 			_slide_velocity.y = 0.0
-		_slide_velocity = _slide_velocity.move_toward(steering*speed*_movement_multiplier(),210.0*delta)
-		var heading:Vector2 = _slide_velocity.normalized() if _slide_velocity.length_squared() > 0.01 else Vector2.ZERO
+		# Turn the heading independently from speed. Vector move_toward used to
+		# cancel accumulated speed when the desired direction changed/reversed.
+		var old_speed:float = _slide_velocity.length()
+		var next_speed:float = move_toward(old_speed,steering.length()*speed*_movement_multiplier(),ICE_STEERING_ACCELERATION*delta)
+		var heading:Vector2 = steering.normalized() if not steering.is_zero_approx() else _slide_velocity.normalized()
+		if old_speed > 0.01 and not steering.is_zero_approx() and not has_block(Block.IRON):
+			heading = Vector2.from_angle(rotate_toward(_slide_velocity.angle(),steering.angle(),ICE_STEERING_ACCELERATION*delta/old_speed))
+		_slide_velocity = heading*next_speed
+		if next_speed <= 0.01: heading = Vector2.ZERO
+		var surface:Node = get_node_or_null("SurfaceAcceleration")
+		# Redirect existing boost with this body's turn; integration still comes
+		# solely from real traveled distance in the shared surface controller.
+		if surface != null: surface.steer_momentum(heading)
 		if player: player_control_direction = heading
 		else: direction = heading
 		super.move(_slide_velocity.length(),delta)
+		_finish_iron_motion(iron_before,_last_requested_velocity.y)
 		# The base class reflects direction, not our persistent ice momentum.
 		# Reflect EVERY inward contact normal (corners too), then retain the
 		# outgoing momentum instead of restoring the old into-wall heading.
@@ -494,6 +561,7 @@ func move(speed:float,delta:float) -> void:
 			var normal:Vector2 = get_slide_collision(i).get_normal().normalized()
 			if _slide_velocity.dot(normal) < -0.01:
 				_slide_velocity = _slide_velocity.bounce(normal)
+				if surface != null: surface.reflect_momentum(normal)
 				bounced = true
 		if bounced: _ice_bounce_hold = 0.18
 		if player: player_control_direction = intended
@@ -509,9 +577,15 @@ func move(speed:float,delta:float) -> void:
 		# Shared ball gravity owns v += g*dt, support and side-wall contacts.
 		# W/S cannot generate an upward drive or a phantom horizontal input.
 		super.move(speed*_movement_multiplier()*absf(horizontal),delta)
+		_finish_iron_motion(iron_before,_last_requested_velocity.y)
 		if player: player_control_direction = intended
 		return
 	super.move(speed*_movement_multiplier(),delta)
+
+func get_surface_acceleration_speed_limit(default_limit:float) -> float:
+	# Recipient-side shared-surface policy. Retained ICE counts too; other
+	# actors and this cube without ICE retain the surface's ordinary cap.
+	return INF if has_block(Block.ICE) else default_limit
 
 func _movement_multiplier() -> float:
 	var multiplier:float = 1.42 if _surge_left > 0.0 else 1.0
@@ -526,6 +600,7 @@ func get_external_directional_gravity() -> Vector2:
 	return super.get_external_directional_gravity()
 
 func stand(delta:float) -> void:
+	var iron_before:Vector2 = global_position
 	if has_block(Block.IRON) and _slam_time >= 0.0:
 		if dizziness:
 			_slam_time = -1.0
@@ -534,6 +609,7 @@ func stand(delta:float) -> void:
 			_step_single_slam(delta)
 			return
 	super.stand(delta) # Gravity still falls while idle/stunned; never hover.
+	_finish_iron_motion(iron_before,_last_requested_velocity.y)
 	if has_block(Block.IRON): Repel = Vector2.ZERO
 
 func take_damage(damage:float,ignore_block:bool = false) -> void:
@@ -545,18 +621,55 @@ func _on_hitbox_on_hit(_hurt:hurtbox) -> void:
 	# Do not double-hit via the inherited generic body hitbox.
 	pass
 
+func _process_physical_contact_hits() -> void:
+	# Extend the shared Move/Stand contact hook, before its bounce response.
+	# Polling every 0.08s alone misses bodies that collide and separate at once.
+	super._process_physical_contact_hits()
+	if not has_block(Block.ICE) or not is_multiplayer_authority(): return
+	# A truncated collision step must use its incoming velocity, not distance/dt
+	# or the post-collision zero. A genuinely blocked/stopped body has no speed.
+	_actual_speed = _last_requested_velocity.length() if get_real_velocity().length_squared() > 0.000001 else 0.0
+	for i:int in range(get_slide_collision_count()):
+		var other:Variant = get_slide_collision(i).get_collider()
+		if mc_enemy(other): _try_ice_contact(other,_actual_speed)
+
+func _ice_damage_at_speed(incoming_speed:float) -> float:
+	return attack_damage(ICE_CONTACT_MULT*maxf(incoming_speed,0.0)/ICE_REFERENCE_IMPACT_SPEED)
+
+func _try_ice_contact(target:ball,incoming_speed:float) -> void:
+	if not mc_live() or not has_block(Block.ICE) or dizziness or not Can_Attack or not mc_enemy(target): return
+	var amount:float = _ice_damage_at_speed(incoming_speed)
+	if amount <= 0.0: return
+	var hit_key:String = "%d:%d" % [Block.ICE,target.get_instance_id()]
+	if _clock < float(_next_hit_at.get(hit_key,0.0)): return
+	_next_hit_at[hit_key] = _clock+CONTACT_INTERVAL
+	if _damage_with_impact(target,amount,global_position): _emit_sound(&"ice_hit",target.global_position)
+
+func _trigger_collision_feedback(impact_dir:Vector2,power:float,collision:KinematicCollision2D = null,suppress_audio:bool = false) -> void:
+	# A real iron landing also used the base class's default footstep bank.
+	# Reuse its shared suppression/RPC parameter, preserving bounce and visuals.
+	var quiet_ground:bool = has_block(Block.IRON) and collision != null and not (collision.get_collider() is ball) and collision.get_normal().y < -0.5
+	super._trigger_collision_feedback(impact_dir,power,collision,suppress_audio or quiet_ground)
+
 func when_collide(speed:float,collision:KinematicCollision2D) -> void:
 	super.when_collide(speed,collision)
-	if has_block(Block.ICE) and is_multiplayer_authority() and is_combat_runtime_active() and speed >= 40.0:
-		_emit_sound(&"bounce",global_position)
+	if not is_multiplayer_authority() or not is_combat_runtime_active() or speed < 40.0: return
+	# Material collision cues are not damage: TNT contact still cannot hurt.
+	if has_block(Block.TNT): _emit_sound(&"tnt_hit",global_position)
+	if collision.get_collider() is ball: return
+	# User removed iron landing/ground-impact audio, not iron hit/startup cues.
+	if has_block(Block.IRON) and collision.get_normal().y < -0.5: return
+	if has_block(Block.ICE): _emit_sound(&"bounce",global_position)
 
 func _pulse_contact() -> void:
 	if not mc_live() or dizziness or not Can_Attack: return
-	if has_block(Block.IRON): _iron_bottom_contacts()
 	for mode:int in [Block.ICE,Block.MAGMA,Block.AMETHYST]:
 		if has_block(mode): _pulse_block_contact(mode)
 
 func _pulse_block_contact(mode:int) -> void:
+	# Only ice/magma are body hits; amethyst below is a separate tip-only path.
+	if mode not in [Block.ICE,Block.MAGMA,Block.AMETHYST] or not has_block(mode): return
+	if not mc_live() or dizziness or not Can_Attack: return
 	# While inserting, the spikes are still buried; the plain shell is harmless.
 	if mode == Block.AMETHYST and is_instance_valid(_native_model) and not _native_model.crystals_ready(): return
 	var radius:float = get_crowd_separation_radius_world()
@@ -568,56 +681,83 @@ func _pulse_block_contact(mode:int) -> void:
 		var id:int = target.get_instance_id()
 		var hit_key:String = "%d:%d" % [mode,id]
 		var reach:float = radius+_target_radius(target)
-		var distance:float = global_position.distance_to(target.global_position)
+		var distance:float = global_position.distance_to(ball.body_point(target,global_position))
 		if mode == Block.AMETHYST:
 			if crystals_out: continue
 			for i:int in range(crystal_points.size()):
 				if not mc_enemy(target): break
 				if _crystal_has_hit(i,target): continue
 				var center:Vector2 = crystal_points[i]
-				if center.distance_to(target.global_position) <= CRYSTAL_RADIUS+_target_radius(target):
+				if center.distance_to(ball.body_point(target,center)) <= CRYSTAL_RADIUS+_target_radius(target):
 					# Mark this crystal before callbacks. Other crystals remain independent;
 					# lingering/re-entering cannot re-hit until a NEW growth is generated.
 					if not _crystal_hits.has(i): _crystal_hits[i] = {}
 					_crystal_hits[i][id] = weakref(target)
-					_damage_with_impact(target,attack_damage(AMETHYST_CONTACT_MULT),center)
+					if _damage_with_impact(target,attack_damage(AMETHYST_CONTACT_MULT),center): _emit_sound(&"amethyst_hit",center)
 			continue
+		# CharacterBody2D resolves physical touch just outside exact overlap.
+		if mode == Block.ICE: reach += safe_margin+target.safe_margin
 		if distance > reach: continue
+		if mode == Block.ICE:
+			_try_ice_contact(target,_actual_speed)
+			continue
 		if mode == Block.MAGMA:
 			# The TOP contact is a real strip, not an all-direction fire aura.
-			var top_strip := Rect2(global_position+Vector2(-radius,-radius-2.5),Vector2(radius*2.0,5.0))
-			var upper:bool = top_strip.grow(_target_radius(target)).has_point(target.global_position)
+			var top_strip:Rect2 = _magma_top_rect()
+			var nearest:Vector2 = target.global_position.clamp(top_strip.position,top_strip.end)
+			var upper:bool = target.global_position.y < global_position.y and nearest.distance_to(ball.body_point(target,nearest)) <= _target_radius(target)
 			if upper and _clock >= float(_top_hit_at.get(id,0.0)):
 				_top_hit_at[id] = _clock+HOT_INTERVAL
-				_damage_with_impact(target,attack_damage(0.17),global_position+Vector2.UP*radius,true)
+				if _damage_with_impact(target,attack_damage(0.17),global_position+Vector2.UP*radius,true): _emit_sound(&"magma_sizzle",target.global_position)
 		if _clock >= float(_next_hit_at.get(hit_key,0.0)):
 			_next_hit_at[hit_key] = _clock+CONTACT_INTERVAL
 			if mode == Block.MAGMA:
 				if _damage_with_impact(target,attack_damage(0.80),global_position,true):
 					BURN.apply(self,target,2.4,0.21)
 					_emit_sound(&"magma_hit",target.global_position)
-			else:
-				var amount:float = _mode_damage(Block.ICE)
-				if _damage_with_impact(target,amount,global_position): _emit_sound(&"ice_hit",target.global_position)
+
+func _magma_top_rect() -> Rect2:
+	var radius:float = get_crowd_separation_radius_world()
+	return Rect2(global_position+Vector2(-radius,-radius-2.5),Vector2(radius*2.0,5.0))
 
 func _target_radius(target:ball) -> float:
 	return maxf(target.get_crowd_separation_radius_world(),3.0)
 
-func _pull_touching_enemies(_delta:float) -> void:
+func _honey_in_contact(target:ball) -> bool:
+	var reach:float = get_crowd_separation_radius_world()+_target_radius(target)+0.5
+	return global_position.distance_to(ball.body_point(target,global_position)) <= reach
+
+func _pull_touching_enemies(delta:float) -> void:
 	if not mc_live() or not has_block(Block.HONEY): return
-	var touching:PackedStringArray = PackedStringArray()
+	var touching:Dictionary = {}
 	for raw:Variant in get_tree().get_nodes_in_group("Ball"):
 		if not mc_enemy(raw): continue
 		var target:ball = raw as ball
-		# Include the physics safe margin so touching bodies can enter adhesion.
-		var reach:float = get_crowd_separation_radius_world()+_target_radius(target)+0.5
-		if global_position.distance_to(target.global_position) > reach: continue
-		touching.append(str(get_path_to(target)))
-		var toward:Vector2 = target.global_position.direction_to(global_position)
-		# Bounded pull, not a forced lock: a fast outward target can still escape.
-		target.Repel += toward*170.0
-	touching.sort()
-	if honey_target_paths != touching: honey_target_paths = touching
+		if _honey_in_contact(target):
+			touching[str(get_path_to(target))] = target
+	for path:String in _honey_grab_remaining.keys():
+		if not touching.has(path): _honey_grab_remaining.erase(path)
+	for path:String in _honey_waiting_exit.keys():
+		if not touching.has(path): _honey_waiting_exit.erase(path)
+	var active:PackedStringArray = PackedStringArray()
+	for path:String in touching:
+		if _honey_waiting_exit.has(path): continue
+		var remaining:float = HONEY_GRAB_DURATION
+		if _honey_grab_remaining.has(path): remaining = float(_honey_grab_remaining[path])-maxf(delta,0.0)
+		if remaining <= 0.000001:
+			_honey_grab_remaining.erase(path)
+			_honey_waiting_exit[path] = true
+			continue
+		var target:ball = touching[path]
+		var pull:Vector2 = ball.body_point(target,global_position).direction_to(global_position)*HONEY_PULL_SPEED
+		if not KNOCKBACK_EFFECT_SCRIPT.set_pull(target,self,pull):
+			_honey_grab_remaining.erase(path)
+			continue
+		if not _honey_grab_remaining.has(path): _emit_sound(&"honey_grab",target.global_position)
+		_honey_grab_remaining[path] = remaining
+		active.append(path)
+	active.sort()
+	if honey_target_paths != active: honey_target_paths = active
 	else: _sync_honey_collision_pairs()
 
 func _sync_honey_collision_pairs() -> void:
@@ -631,19 +771,84 @@ func _sync_honey_collision_pairs() -> void:
 	for path:String in _honey_contacts.keys():
 		var previous:Variant = (_honey_contacts[path] as WeakRef).get_ref()
 		if not wanted.has(path) or previous != wanted[path]:
-			if is_instance_valid(previous): BODY_PAIRS.release(self,previous,self)
+			if is_instance_valid(previous):
+				if mc_live() and not is_queued_for_deletion() and previous.health > 0: _emit_sound(&"honey_release",previous.global_position)
+				BODY_PAIRS.release(self,previous,self)
+				KNOCKBACK_EFFECT_SCRIPT.release_pull(previous,self)
+				var callback:Callable = _on_honey_wall_impact.bind(previous)
+				if previous.wall_contact_impact.is_connected(callback): previous.wall_contact_impact.disconnect(callback)
+				var cleanse_callback:Callable = _on_honey_cleansed.bind(previous)
+				if previous.negative_effects_cleansed.is_connected(cleanse_callback): previous.negative_effects_cleansed.disconnect(cleanse_callback)
 			_honey_contacts.erase(path)
+			_honey_grab_remaining.erase(path)
 	for path:String in wanted:
 		if not _honey_contacts.has(path) or not BODY_PAIRS.are_excluded(self,wanted[path]):
 			var target:ball = wanted[path] as ball
 			BODY_PAIRS.acquire(self,target,self)
 			_honey_contacts[path] = weakref(target)
+		var callback:Callable = _on_honey_wall_impact.bind(wanted[path])
+		if not wanted[path].wall_contact_impact.is_connected(callback): wanted[path].wall_contact_impact.connect(callback)
+		var cleanse_callback:Callable = _on_honey_cleansed.bind(wanted[path])
+		if not wanted[path].negative_effects_cleansed.is_connected(cleanse_callback): wanted[path].negative_effects_cleansed.connect(cleanse_callback)
+	# Only authority may prune exported membership. Replicas retain unresolved
+	# paths so a target arriving after the spawn snapshot can still be resolved.
+	if is_multiplayer_authority():
+		var valid_paths:PackedStringArray = PackedStringArray(wanted.keys())
+		valid_paths.sort()
+		if honey_target_paths != valid_paths: honey_target_paths = valid_paths
+
+func _on_honey_cleansed(target:ball) -> void:
+	if not is_instance_valid(target) or not target.is_inside_tree(): return
+	var path:String = str(get_path_to(target))
+	if not honey_target_paths.has(path): return
+	_honey_grab_remaining.erase(path)
+	_honey_waiting_exit[path] = true # Finish this grab; require a fresh contact.
+	var active:PackedStringArray = honey_target_paths.duplicate()
+	active.remove_at(active.find(path))
+	honey_target_paths = active # Existing owner cleanup releases pairs/wall callbacks.
+
+func _on_honey_wall_impact(normal_speed:float,point:Vector2,target:ball) -> void:
+	if not mc_live() or not has_block(Block.HONEY) or dizziness or not Can_Attack or not mc_enemy(target) or normal_speed <= 1.0: return
+	var path:String = str(get_path_to(target))
+	if not honey_target_paths.has(path) or not BODY_PAIRS.are_excluded(self,target): return
+	# A fast victim can cross the separation boundary and hit a wall in its own
+	# Move/Stand, before the caster's next tick. Do not settle that stale grab.
+	if not _honey_in_contact(target):
+		_honey_grab_remaining.erase(path)
+		var active:PackedStringArray = honey_target_paths.duplicate()
+		active.remove_at(active.find(path))
+		honey_target_paths = active
+		return
+	if not _honey_grab_remaining.has(str(get_path_to(target))): return
+	# Honey itself is harmless. Only a retained iron/ice trait supplies wall damage.
+	var amount:float = 0.0
+	if has_block(Block.IRON): amount += _iron_damage_at_speed(normal_speed)
+	if has_block(Block.ICE): amount += _ice_damage_at_speed(normal_speed)
+	if amount <= 0.0: return
+	# Ordinary physical impact, not fire. Shared receive path applies the victim's defenses.
+	if _damage_with_impact(target,amount,point): _emit_sound(&"iron_hit" if has_block(Block.IRON) else &"ice_hit",point)
+	var frame:int = Engine.get_physics_frames()
+	if _honey_wall_frame != frame: _honey_wall_threats.clear()
+	_honey_wall_frame = frame
+	_honey_wall_threats.append({"shape":"circle","position":target.global_position,
+		"radius":_target_radius(target),"damage":amount,"danger_duration":get_physics_process_delta_time(),
+		"kind":"sulfur_honey_wall_impact","source":self})
 
 func _clear_honey_contacts() -> void:
 	for ref:WeakRef in _honey_contacts.values():
 		var target:Variant = ref.get_ref()
-		if is_instance_valid(target): BODY_PAIRS.release(self,target,self)
+		if is_instance_valid(target):
+			if mc_live() and not is_queued_for_deletion() and target.health > 0: _emit_sound(&"honey_release",target.global_position)
+			BODY_PAIRS.release(self,target,self)
+			KNOCKBACK_EFFECT_SCRIPT.release_pull(target,self)
+			var callback:Callable = _on_honey_wall_impact.bind(target)
+			if target.wall_contact_impact.is_connected(callback): target.wall_contact_impact.disconnect(callback)
+			var cleanse_callback:Callable = _on_honey_cleansed.bind(target)
+			if target.negative_effects_cleansed.is_connected(cleanse_callback): target.negative_effects_cleansed.disconnect(cleanse_callback)
 	_honey_contacts.clear()
+	_honey_grab_remaining.clear()
+	_honey_waiting_exit.clear()
+	_honey_wall_threats.clear()
 
 func _exit_tree() -> void:
 	_clear_honey_contacts()
@@ -676,6 +881,7 @@ func _start_single_slam() -> void:
 	_slam_end = player_control_aim_position if is_player_controlled() and has_player_control_aim() else target.global_position if is_instance_valid(target) else global_position+_last_move_direction*30.0
 	_slam_end = _slam_end.clamp(mc_arena_rect().position+Vector2.ONE*12.0,mc_arena_rect().end-Vector2.ONE*12.0)
 	_slam_time = 0.0
+	_emit_sound(&"iron_form")
 	clear_external_directional_gravity_velocity()
 	_slam_hits.clear()
 	# Like the anvil's arc, fly past character bodies while still colliding
@@ -689,7 +895,6 @@ func _restore_slam_collision() -> void:
 		_slam_saved_mask = 0
 
 func _step_single_slam(delta:float) -> void:
-	var last:float = _slam_time
 	_slam_time += delta
 	var t:float = clampf(_slam_time/0.82,0.0,1.0)
 	var target:Variant = _slam_target_ref.get_ref() if _slam_target_ref != null else null
@@ -699,50 +904,62 @@ func _step_single_slam(delta:float) -> void:
 	var bounds:Rect2 = mc_arena_rect().grow(-get_crowd_separation_radius_world())
 	if bounds.has_area(): desired = desired.clamp(bounds.position,bounds.end)
 	# Physical sweep uses the body collision shape; cannot pass walls or void.
+	var iron_before:Vector2 = global_position
 	var motion:Vector2 = desired-global_position
 	if motion.length_squared() > 0.0001: move_and_collide(motion)
-	if t >= 0.46 and _slam_time > last: _iron_bottom_contacts()
+	_finish_iron_motion(iron_before,motion.y/maxf(delta,0.001))
 	if t >= 1.0:
 		_slam_time = -1.0 # Never queue a hit-confirmed follow-up.
 		_restore_slam_collision()
 
+func _finish_iron_motion(previous:Vector2,incoming_down_speed:float) -> void:
+	if not has_block(Block.IRON) or not is_multiplayer_authority(): return
+	# Use pre-impact velocity, not the stopped velocity after collision; require
+	# real downward travel so stationary support/sideways sliding is harmless.
+	_iron_down_speed = maxf(incoming_down_speed,0.0) if global_position.y > previous.y+0.001 else 0.0
+	_iron_bottom_contacts()
+
 func _iron_bottom_active() -> bool:
-	# Gravity contact keeps pressing even without an active jump. Rising is harmless.
-	return has_block(Block.IRON) and health > 0 and is_combat_runtime_active() and not is_damage_output_disabled() and not dizziness and Can_Attack and (_slam_time < 0.0 or _slam_time >= 0.38)
+	return has_block(Block.IRON) and health > 0 and is_combat_runtime_active() and not is_damage_output_disabled() and not dizziness and Can_Attack and _iron_down_speed > 1.0
 
 func _iron_bottom_rect() -> Rect2:
 	var radius:float = get_crowd_separation_radius_world()
 	return Rect2(global_position+Vector2(-radius,radius-3.0),Vector2(radius*2.0,5.0))
 
-func _iron_damage_multiplier(target:ball = null) -> float:
-	return IRON_CRUSH_MULT if is_instance_valid(target) and _slam_hits.has(target.get_instance_id()) else IRON_IMPACT_MULT
+func _iron_damage_multiplier(target:ball = null,incoming_speed:float = -1.0) -> float:
+	if is_instance_valid(target) and _slam_hits.has(target.get_instance_id()): return 0.0
+	var sampled_speed:float = _iron_down_speed if incoming_speed < 0.0 else incoming_speed
+	return IRON_IMPACT_MULT*maxf(sampled_speed,0.0)/IRON_REFERENCE_DOWN_SPEED
+
+func _iron_damage_at_speed(incoming_speed:float) -> float:
+	return floorf(attack_damage(_iron_damage_multiplier(null,incoming_speed)))
 
 func _iron_bottom_contacts() -> void:
-	if not is_multiplayer_authority() or not _iron_bottom_active(): return
+	if not is_multiplayer_authority() or not has_block(Block.IRON): return
 	var bottom:Rect2 = _iron_bottom_rect()
+	var contacts:Dictionary = {}
 	for raw:Variant in get_tree().get_nodes_in_group("Ball"):
 		if not mc_enemy(raw): continue
 		var target:ball = raw as ball
-		var id:int = target.get_instance_id()
-		# Only the underside presses: never the top, rear or a fully engulfed body.
-		if target.global_position.y < bottom.position.y or not bottom.grow(_target_radius(target)).has_point(target.global_position): continue
-		if not mc_line_clear(global_position,target.global_position): continue
-		var first:bool = not _slam_hits.has(id)
-		var press:Dictionary = _slam_hits.get(id,{"next":0.0,"remainder":0.0})
-		if _clock+0.000001 < float(press.next): continue
-		var amount:float = attack_damage(IRON_IMPACT_MULT if first else IRON_CRUSH_MULT)
-		# Carry fractional HP rather than rounding every tiny contact update up.
-		press.remainder = float(press.remainder)+amount
-		var settled:float = floorf(float(press.remainder))
-		press.remainder -= settled
-		press.next = _clock+IRON_CRUSH_INTERVAL
-		_slam_hits[id] = press # Same-frame sweep/contact calls cannot double-settle.
-		if not _damage_with_impact(target,settled,bottom.get_center()): continue
+		# Underside only, with exact circle/strip overlap rather than a grown box.
+		var nearest:Vector2 = target.global_position.clamp(bottom.position,bottom.end)
+		if target.global_position.y < bottom.position.y or nearest.distance_to(ball.body_point(target,nearest)) > _target_radius(target): continue
+		if not mc_line_clear(global_position,ball.body_point(target,global_position)): continue
+		contacts[target.get_instance_id()] = target
+	for id:int in _slam_hits.keys():
+		if not contacts.has(id): _slam_hits.erase(id)
+	if not _iron_bottom_active(): return
+	for id:int in contacts:
+		if _slam_hits.has(id): continue
+		var target:ball = contacts[id]
+		var amount:float = _iron_damage_at_speed(_iron_down_speed)
+		_slam_hits[id] = true # One impact per contact, never stationary pressure ticks.
+		if not _damage_with_impact(target,amount,bottom.get_center()): continue
 		_emit_sound(&"iron_hit",target.global_position)
 		var heading:Vector2 = Vector2.DOWN
 		if not mc_position_clear(target.global_position+Vector2.DOWN*6.0,_target_radius(target)):
 			heading = Vector2.LEFT if target.global_position.x < global_position.x else Vector2.RIGHT
-		target.apply_knockback(heading,24.0 if first else 6.0,230.0 if first else 120.0,0.0,0.0,
+		target.apply_knockback(heading,24.0,230.0,0.0,0.0,
 			{"source":self,"lock_control":false,"stop_on_character":true,"max_wall_bounces":0,"collision_damage":0.0,"control_recovery_time":0.0})
 
 func _leave_ice(from:Vector2,to:Vector2) -> void:
@@ -790,7 +1007,7 @@ func _fire_all_crystals() -> void:
 		appearance["canvas_transform"] = image.global_transform
 		if multiplayer.has_multiplayer_peer(): _spawn_crystal_shard.rpc(point,axis,appearance)
 		_spawn_crystal_shard(point,axis,appearance)
-	_emit_sound(&"amethyst_break")
+	_emit_sound(&"amethyst_launch")
 
 @rpc("authority","call_remote","reliable")
 func _spawn_crystal_shard(point:Vector2,axis:Vector2,appearance:Dictionary = {}) -> void:
@@ -826,30 +1043,27 @@ static func sulfur_impact_gain(actual:float) -> float:
 func _damage_with_impact(target:ball,amount:float,point:Vector2,fire:bool = false) -> bool:
 	if not is_multiplayer_authority() or not is_combat_runtime_active() or is_damage_output_disabled() or not mc_enemy(target) or amount <= 0.0: return false
 	var before:float = maxf(target.health,0.0)
-	var hit_point:Vector2 = target.global_position
+	var hit_point:Vector2 = ball.body_point(target,global_position)
 	var applied:bool = target.receive_fire_positional_damage(amount,point,false,self) if fire else target.receive_positional_damage(amount,point,false,self)
 	var remaining:float = maxf(target.health,0.0) if is_instance_valid(target) else 0.0
 	var actual:float = maxf(before-remaining,0.0)
 	if actual > 0.0:
 		var event:StringName = sulfur_impact_event(actual)
 		var gain:float = sulfur_impact_gain(actual)
-		if multiplayer.has_multiplayer_peer(): _sulfur_impact.rpc(event,hit_point,gain)
-		_sulfur_impact(event,hit_point,gain)
+		var variant:int = AUDIO.choose_variant(event)
+		if multiplayer.has_multiplayer_peer(): _sulfur_impact.rpc(event,hit_point,gain,variant)
+		_sulfur_impact(event,hit_point,gain,variant)
 	return applied
 
 @rpc("authority","call_remote","reliable")
-func _sulfur_impact(event:StringName,point:Vector2,volume:float) -> void:
-	var player:AudioStreamPlayer2D = AUDIO.play(self,event,point,volume)
-	if is_instance_valid(player):
-		player.set_meta("mc_sound_event",event)
-		player.set_meta("mc_damage_source",get_instance_id())
+func _sulfur_impact(event:StringName,point:Vector2,volume:float,variant:int = -1) -> void:
+	AUDIO.play(self,event,point,volume,variant,{"mc_damage_source":get_instance_id()})
 
 func _mode_damage(mode:int = -1) -> float:
 	if mode < 0: mode = block_mode
 	match mode:
-		Block.ICE: return attack_damage(0.34+1.52*clampf((_actual_speed-_ice_reference_speed)/maxf(_ice_reference_speed*0.9,1.0),0.0,1.0))
+		Block.ICE: return _ice_damage_at_speed(_actual_speed)
 		Block.MAGMA: return attack_damage(0.80)
-		Block.AMETHYST: return attack_damage(AMETHYST_CONTACT_MULT) if not crystals_out else 0.0
 	return 0.0
 
 func _detonate() -> void:
@@ -866,9 +1080,9 @@ func _detonate() -> void:
 		var target:ball = node as ball
 		if not mc_enemy(target): continue
 		var reach:float = TNT_RADIUS + _target_radius(target)
-		if point.distance_squared_to(target.global_position) > reach*reach: continue
+		if point.distance_squared_to(ball.body_point(target,point)) > reach*reach: continue
 		if _damage_with_impact(target,attack_damage(TNT_DAMAGE/48.0),point):
-			var away:Vector2 = (target.global_position-point).normalized()
+			var away:Vector2 = (ball.body_point(target,point)-point).normalized()
 			if away.is_zero_approx(): away = Vector2.RIGHT
 			target.apply_knockback(away,32.0,235.0,0.0,0.0,{"source":self})
 	# Explosion recoil keeps the pre-blast travel direction and decays quickly.
@@ -892,55 +1106,51 @@ func _spawn_blast_visual(point:Vector2) -> void:
 	# is emitted separately, so the shared effect must not play it twice.
 	ABILITIES.explosion(self,point,TNT_RADIUS,{"sound":false})
 
-func _emit_sound(event:StringName,point:Vector2 = Vector2.INF) -> AudioStreamPlayer2D:
-	if not is_multiplayer_authority(): return null
+func _emit_sound(event:StringName,point:Vector2 = Vector2.INF,volume:float = INF) -> Dictionary:
+	if not is_multiplayer_authority(): return {}
 	var location:Vector2 = global_position if point == Vector2.INF else point
-	var player:AudioStreamPlayer2D = _sulfur_sound(event,location,-2.0)
-	if is_instance_valid(player) and multiplayer.has_multiplayer_peer(): _sulfur_sound.rpc(event,location,-2.0)
-	return player
+	var gain:float = AUDIO.default_gain(event) if volume == INF else volume
+	var variant:int = AUDIO.choose_variant(event)
+	var ticket:Dictionary = _sulfur_sound(event,location,gain,variant)
+	if not ticket.is_empty() and multiplayer.has_multiplayer_peer(): _sulfur_sound.rpc(event,location,gain,variant)
+	return ticket
 
 @rpc("authority","call_remote","reliable")
-func _sulfur_sound(event:StringName,point:Vector2,volume:float) -> AudioStreamPlayer2D:
-	# Sound starts are separated by the LAST actually selected Ogg variant's
-	# length / pitch, never just by a fixed interval. Jump and landing squish
-	# share one non-overlapping movement channel on each network peer.
+func _sulfur_sound(event:StringName,point:Vector2,volume:float,variant:int = -1) -> Dictionary:
 	var now:int = Time.get_ticks_msec()
 	var movement_sound:bool = event in [&"jump",&"squish"]
-	if movement_sound and (now < _motion_audio_until_ms or (is_instance_valid(_motion_audio_player) and _motion_audio_player.playing)): return null
-	if now - int(_sound_time.get(event,-100000)) < maxi(90,int(_sound_duration_ms.get(event,0))): return null
-	var player:AudioStreamPlayer2D = AUDIO.play(self,event,point,volume)
-	if not is_instance_valid(player): return null
+	if movement_sound and AUDIO.moving_channel_busy(_motion_audio_ticket): return {}
+	if now-int(_sound_time.get(event,-100000)) < AUDIO.interval_ms(event): return {}
+	var ticket:Dictionary = AUDIO.play(self,event,point,volume,variant)
+	if ticket.is_empty(): return {}
 	_sound_time[event] = now
-	if movement_sound:
-		var playback_rate:float = maxf(player.pitch_scale*AudioServer.playback_speed_scale,0.01)
-		var length_ms:int = maxi(1,ceili(player.stream.get_length()*1000.0/playback_rate))
-		_sound_duration_ms[event] = length_ms
-		_motion_audio_until_ms = now+length_ms
-		_motion_audio_player = player
-	return player
+	if movement_sound: _motion_audio_ticket = ticket
+	return ticket
+
+func mc_ambient_event() -> String: return "" # User explicitly excludes breathing/ambient.
+func mc_ambient_allowed() -> bool: return false
 
 func mc_play(event:String,volume:float = -4.0) -> AudioStreamPlayer2D:
-	# Inherited hurt/death callbacks route through THIS cube's original voices,
-	# rather than a Slime or a generic creature sample.
-	if not is_multiplayer_authority(): return null
-	var name_key:StringName = StringName(event)
-	if multiplayer.has_multiplayer_peer(): _sulfur_sound.rpc(name_key,global_position,volume)
-	return _sulfur_sound(name_key,global_position,volume)
+	# Inherited actual-hurt probability and death callbacks use native voices;
+	# these are safely queued, so no immediate player is promised to callers.
+	_emit_sound(StringName(event),global_position,volume)
+	return null
 
 func get_ai_attack_threats(_receiver:ball) -> Array:
 	if health <= 0 or not is_combat_runtime_active() or is_damage_output_disabled(): return []
 	var threats:Array = []
+	if has_block(Block.HONEY) and _honey_wall_frame == Engine.get_physics_frames(): threats.append_array(_honey_wall_threats)
 	if has_block(Block.TNT) and fuse_left > 0.0:
 		threats.append({"shape":"circle","position":global_position,"radius":TNT_RADIUS,
 			"damage":attack_damage(TNT_DAMAGE/48.0),"danger_in":fuse_left,
 			"danger_duration":0.12,"kind":"sulfur_cube_tnt","source":self})
 	if dizziness or not Can_Attack: return threats
 	var radius:float = get_crowd_separation_radius_world()
-	if _iron_bottom_active():
+	if _iron_bottom_active() and _iron_damage_multiplier(_receiver) > 0.0:
 		var bottom:Rect2 = _iron_bottom_rect()
 		threats.append({"shape":"rect","position":bottom.get_center(),
-			"half_extents":bottom.size*0.5,"damage":attack_damage(_iron_damage_multiplier(_receiver)),
-			"danger_duration":IRON_CRUSH_INTERVAL,"kind":"sulfur_iron_bottom","source":self})
+			"half_extents":bottom.size*0.5,"damage":_iron_damage_at_speed(_iron_down_speed),
+			"danger_duration":get_physics_process_delta_time(),"kind":"sulfur_iron_bottom","source":self})
 	if has_block(Block.AMETHYST) and not crystals_out and (not is_instance_valid(_native_model) or _native_model.crystals_ready()):
 		var tips:Array[Vector2] = _crystal_tip_points()
 		for i:int in range(tips.size()):
@@ -951,8 +1161,8 @@ func get_ai_attack_threats(_receiver:ball) -> Array:
 	if has_block(Block.MAGMA):
 		threats.append({"shape":"circle","position":global_position,"radius":radius,
 			"damage":_mode_damage(Block.MAGMA),"danger_duration":CONTACT_INTERVAL,"kind":"sulfur_magma_touch","source":self})
-		threats.append({"shape":"rect","position":global_position+Vector2.UP*radius,
-			"half_extents":Vector2(radius,2.5),"damage":attack_damage(0.17),
+		threats.append({"shape":"rect","position":_magma_top_rect().get_center(),
+			"half_extents":_magma_top_rect().size*0.5,"damage":attack_damage(0.17),
 			"danger_duration":HOT_INTERVAL,"kind":"sulfur_magma_top","source":self})
 	if has_block(Block.ICE):
 		threats.append({"shape":"circle","position":global_position,"radius":radius,
@@ -966,6 +1176,7 @@ func get_debug_attack_regions() -> Array:
 func Die() -> void:
 	if _sulfur_died: return
 	_sulfur_died = true
+	_iron_exit_pending = false
 	honey_target_paths = PackedStringArray()
 	_clear_honey_contacts()
 	_clear_charge_circle()

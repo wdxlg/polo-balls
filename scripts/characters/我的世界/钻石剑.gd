@@ -1,9 +1,8 @@
-extends ball
+extends "res://scripts/characters/我的世界/mc_item_base.gd"
 
 const DIAMOND_TEXTURE:Texture2D = preload("res://Images/characters/我的世界/钻石剑/钻石剑.png")
 const NETHERITE_TEXTURE:Texture2D = preload("res://Images/characters/我的世界/钻石剑/下界合金剑.png")
-const HAMMER_TEXTURE:Texture2D = preload("res://Images/characters/我的世界/重锤/重锤.png")
-const HAMMER_REFERENCE_SPRITE_SCALE:float = 0.095
+const WEAPON_VISUAL_SIZE = preload("res://scripts/characters/我的世界/weapon_visual_size.gd")
 const ARENA_MANAGER_SCRIPT:Script = preload("res://scripts/effects/我的世界/下界合金竞技场.gd")
 const SWEEP_EFFECT_SCRIPT:Script = preload("res://scripts/effects/我的世界/钻石剑横扫.gd")
 
@@ -37,7 +36,7 @@ const SMITHING_SFX = [
 @export_range(0.20,2.00,0.05) var smithing_wait_duration:float = 0.70
 
 @export_category("钻石剑 / 视觉")
-@export_range(0.60,1.10,0.01) var visual_size_vs_hammer:float = 0.95
+@export_range(0.60,1.10,0.01) var visual_size_vs_wooden_sword:float = 1.0
 
 @export_category("钻石剑 / 横扫攻击")
 @export_range(0.2,2.0,0.01) var sword_attack_interval:float = 0.88
@@ -77,7 +76,7 @@ func _ready() -> void:
 	Can_Skill = false
 	Health_Restore = 0
 	Attack_Cooling = maxf(sword_attack_interval,0.05)
-	_fit_visual_to_hammer_size()
+	_fit_visual_to_wooden_sword()
 	super._ready()
 	add_to_group("MinecraftDiamondSword")
 	if image != null:
@@ -88,22 +87,9 @@ func _ready() -> void:
 	call_deferred("_ensure_arena_manager")
 
 
-func _fit_visual_to_hammer_size() -> void:
-	if not image is Sprite2D or HAMMER_TEXTURE == null:
-		return
-	var sprite:Sprite2D = image as Sprite2D
-	if sprite.texture == null:
-		return
-	var tex_size:Vector2 = sprite.texture.get_size()
-	var own_long_edge:float = maxf(tex_size.x,tex_size.y)
-	var hammer_size:Vector2 = HAMMER_TEXTURE.get_size()
-	var hammer_long_edge:float = maxf(hammer_size.x,hammer_size.y) * HAMMER_REFERENCE_SPRITE_SCALE
-	if own_long_edge <= 0.0 or hammer_long_edge <= 0.0:
-		return
-	# 钻石剑与重锤都继承 ball.tscn 的同一根节点缩放，所以直接对齐两者局部视觉长边。
-	# 稍微取 0.95，避免细长剑形在同长边下视觉上仍显得比重锤更大。
-	var target_long_edge:float = hammer_long_edge * clampf(visual_size_vs_hammer,0.01,2.0)
-	sprite.scale = Vector2.ONE * (target_long_edge / own_long_edge)
+func _fit_visual_to_wooden_sword() -> void:
+	if image is Sprite2D:
+		WEAPON_VISUAL_SIZE.fit_to_wooden_sword(image,visual_size_vs_wooden_sword)
 
 
 func tick_physics(state:State,delta:float) -> void:
@@ -206,7 +192,7 @@ func _is_touching_smithing_table(table:Node2D) -> bool:
 			return true
 
 	# 仅给 safe_margin / 缩放差异留很小的接触容差，不再使用旧版大半径“远距离升级”。
-	return global_position.distance_to(table.global_position) <= maxf(8.0,maxf(smithing_contact_radius,1.0) * 0.35)
+	return global_position.distance_to(ball.body_point(table,global_position)) <= maxf(8.0,maxf(smithing_contact_radius,1.0) * 0.35)
 
 
 func Attack() -> void:
@@ -334,7 +320,7 @@ func _deal_direct_swing_damage(attack_dir:Vector2) -> void:
 			false,
 			self
 		)
-		_broadcast_mc_damage_sfx(target.global_position)
+		_broadcast_mc_damage_sfx(ball.body_point(target,global_position))
 
 
 func _deal_sweep_visual_damage(area_center:Vector2,area_size:Vector2,area_rotation:float) -> void:
@@ -373,7 +359,7 @@ func _deal_sweep_visual_damage(area_center:Vector2,area_size:Vector2,area_rotati
 			false,
 			self
 		)
-		_broadcast_mc_damage_sfx(target.global_position)
+		_broadcast_mc_damage_sfx(ball.body_point(target,global_position))
 
 
 func _sweep_visual_max_reach() -> float:
@@ -409,7 +395,7 @@ func _targets_in_forward_arc(attack_dir:Vector2,range_value:float,half_angle:flo
 		var target_id:int = target.get_instance_id()
 		if seen.has(target_id):
 			continue
-		var offset:Vector2 = target.global_position - global_position
+		var offset:Vector2 = ball.body_point(target,global_position) - global_position
 		var distance:float = offset.length()
 		if distance > range_value + 0.001:
 			continue
@@ -586,6 +572,7 @@ func _play_sweep_sfx_local() -> void:
 
 
 func _broadcast_mc_damage_sfx(world_position:Vector2) -> void:
+	if preload("res://scripts/effects/我的世界/mc_hit_feedback.gd").manages(self): return
 	if MC_DAMAGE_SFX.is_empty():
 		return
 	var index:int = randi_range(0,MC_DAMAGE_SFX.size() - 1)
@@ -687,7 +674,7 @@ func _upgrade_to_netherite() -> void:
 
 	if image is Sprite2D:
 		(image as Sprite2D).texture = NETHERITE_TEXTURE
-		_fit_visual_to_hammer_size()
+		_fit_visual_to_wooden_sword()
 	_upgrade_flash_left = 0.75
 	_broadcast_smithing_sfx()
 

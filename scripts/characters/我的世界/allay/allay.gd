@@ -113,11 +113,47 @@ func step_mob(delta:float) -> void:
 		notes = mini(notes+1,current_note_capacity())
 	_note_left -= delta
 	_return_left -= delta
+	if is_player_controlled(): return # Keep stock, capture, and already-started actions; stop AI starts.
 	if not _recall.busy(): _recall.try_start()
 	if not _recall.busy(): _auto_fire_note()
-	var target:ball = U.nearest(self)
-	if target == null: return
-	if not U.line_clear(self,global_position,target.global_position): return
+	_begin_cargo_throw(U.nearest(self))
+func _aimed_enemy() -> ball:
+	if not has_player_control_aim(): return null
+	var point:Vector2=player_control_aim_world_position()
+	var chosen:ball=null
+	var nearest:float=INF
+	for raw:Node in get_tree().get_nodes_in_group("Ball"):
+		if not U.enemy(self,raw) or not raw.is_combat_lockable(): continue
+		var distance:float=ball.body_point(raw,point).distance_to(point)
+		if distance<=U.radius(raw)+6.0 and distance<nearest:
+			chosen=raw as ball
+			nearest=distance
+	return chosen
+func controlled_attack_action() -> void:
+	if not is_player_controlled() or not active() or dizziness or is_damage_output_disabled() or _recall.busy() or notes<=0 or _note_left>0.0: return
+	var target:ball=_aimed_enemy()
+	if target==null: return
+	_note_cloud.resize(notes,global_position)
+	var idx:int=-1
+	var best:float=note_range*note_range
+	for i:int in mini(notes,_note_cloud.positions.size()):
+		var distance:float=_note_cloud.positions[i].distance_squared_to(target.global_position)
+		if distance<=best:
+			idx=i
+			best=distance
+	if idx<0: return
+	fire_note(target,idx)
+	notes-=1
+	_note_left=maxf(note_fire_interval,0.05)
+func controlled_skill_action() -> void:
+	if is_player_controlled() and active() and _recall!=null:
+		var target:ball=_aimed_enemy()
+		if target!=null: _recall.try_start(target)
+func controlled_middle_action() -> void:
+	if is_player_controlled() and active() and not dizziness and not is_damage_output_disabled(): _begin_cargo_throw(_aimed_enemy())
+func _begin_cargo_throw(target:ball) -> void:
+	if target==null: return
+	if not U.line_clear(self,global_position,ball.body_point(target,global_position)): return
 	if cargo.is_empty() or _return_left>0 or not _windup.is_empty(): return
 	# Each cube guards itself: whichever is closest to the enemy strikes.
 	var idx:int = -1
@@ -130,7 +166,7 @@ func step_mob(delta:float) -> void:
 			idx = i
 	if idx<0: return
 	var start:Vector2 = _cube_cloud.positions[idx]
-	var aim:Vector2 = start.direction_to(target.global_position)
+	var aim:Vector2 = start.direction_to(ball.body_point(target,start))
 	_windup = {"dir":aim.normalized() if aim!=Vector2.ZERO else Vector2.RIGHT,"target":weakref(target),"t":0.0,"idx":idx}
 
 func spawn_recall_wave(point:Vector2,damage:float,authoritative:bool) -> Node2D:
@@ -177,7 +213,7 @@ func fire_note(target:ball,note_index:int=0) -> ball:
 	shot.life = note_lifetime
 	shot.turn_rate = note_turn_rate
 	shot.position = _note_cloud.take_at(note_index,global_position)
-	shot.direction = shot.position.direction_to(target.global_position)
+	shot.direction = shot.position.direction_to(ball.body_point(target,shot.position))
 	shot.name = Game.return_random_name(shot)
 	get_tree().current_scene.add_child(shot,true)
 	shot.add_to_group("BattleTransient")
@@ -218,7 +254,7 @@ func _wind_step(delta:float) -> void:
 		if widx<cargo.size(): cargo.pop_at(widx)
 		_cube_cloud.take_at(widx,global_position)
 		if _voice_rng.randf()<joy_chance: play_sound("entity.allay.item_thrown",-5.0)
-		var aim:Vector2 = point.direction_to(target.global_position) if is_instance_valid(target) else Vector2(_windup["dir"])
+		var aim:Vector2 = point.direction_to(ball.body_point(target,point)) if is_instance_valid(target) else Vector2(_windup["dir"])
 		_spawn_burst(point,aim)
 		if multiplayer.has_multiplayer_peer(): _allay_burst.rpc(point,aim)
 		_flash = 1.0
@@ -245,6 +281,7 @@ func _allay_absorb(point:Vector2) -> void:
 
 func collect_projectile(shot:Node,point:Vector2,orbit_index:int=-1,flying_note:Node=null) -> bool:
 	if not active() or not is_instance_valid(shot): return false
+	if not is_multiplayer_authority() or not shot.is_inside_tree() or not shot.is_multiplayer_authority(): return false
 	if bool(shot.get_meta("allay_captured",false)): return false
 	if flying_note != null:
 		if not is_instance_valid(flying_note) or flying_note.is_queued_for_deletion() or flying_note._spent or flying_note.Master != self: return false

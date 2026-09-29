@@ -57,7 +57,7 @@ func _return_move(delta:float) -> void:
 	for target:Node in get_tree().get_nodes_in_group("Ball"):
 		if not geometry.enemy(unit,target) or target.is_queued_for_deletion(): continue
 		if not unit.Team.is_empty() and target.Team==unit.Team: continue
-		var t:float=capture.contact_t(from,to,target.global_position,geometry.radius(target)+4.0)
+		var t:float=capture.contact_t(from,to,ball.body_point_seg(target,from,to),geometry.radius(target)+4.0)
 		if t>=0.0: hits.append({"target":target,"t":t})
 	hits.sort_custom(func(a:Dictionary,b:Dictionary)->bool: return a.t<b.t)
 	for hit:Dictionary in hits:
@@ -109,7 +109,7 @@ func tick_physics(state:State,delta:float) -> void:
 	_ensure_path()
 	var target:Variant = target_ref.get_ref() if target_ref != null else null
 	if is_instance_valid(target) and target.health>0 and target.is_combat_lockable():
-		var aim:Vector2 = _spine.direction_to(target.global_position)
+		var aim:Vector2 = _spine.direction_to(ball.body_point(target,_spine))
 		direction = Vector2.RIGHT.rotated(rotate_toward(direction.angle(),aim.angle(),maxf(turn_rate,0)*delta))
 	super.tick_physics(state,delta)
 func _ensure_path() -> void:
@@ -119,7 +119,7 @@ func _ensure_path() -> void:
 	_path_axis = direction.normalized() if direction != Vector2.ZERO else Vector2.RIGHT
 	_curve_side = -1.0 if get_instance_id()%2==0 else 1.0
 	var target:Variant = target_ref.get_ref() if target_ref != null else null
-	_path_length = maxf(global_position.distance_to(target.global_position),16.0) if is_instance_valid(target) else maxf(Speed,16.0)
+	_path_length = maxf(global_position.distance_to(ball.body_point(target,global_position)),16.0) if is_instance_valid(target) else maxf(Speed,16.0)
 
 func curve_offset(progress:float) -> Vector2:
 	var u:float = clampf(progress,0.0,1.0)

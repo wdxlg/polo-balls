@@ -1,4 +1,5 @@
 extends "res://scripts/characters/我的世界/mc_mob_base.gd"
+const PROJECTILE_API = preload("res://classes/projectile_interactions.gd")
 const VISUAL = preload("res://Images/characters/我的世界/末影人/末影人.png")
 const PARTICLE = preload("res://scripts/effects/我的世界/末影粒子.gd")
 @export_range(0,1,0.01) var chance_dodge:float = 0.25
@@ -67,7 +68,7 @@ func _scan_gazes() -> void:
 	for node:Node in get_tree().get_nodes_in_group("Ball"):
 		if not node is ball or not mc_enemy(node): continue
 		if node.Type != Ball_Type.Ball: continue
-		var relative:Vector2 = global_position - node.global_position
+		var relative:Vector2 = global_position - ball.body_point(node,global_position)
 		if relative.length_squared() > gaze_range*gaze_range or relative.length_squared() < 1.0: continue
 		var to_me:Vector2 = relative.normalized()
 		if _facing(node).dot(to_me) < gaze_facing_threshold: continue
@@ -96,15 +97,38 @@ func update_rage(delta:float,mutual:bool,watched:bool) -> void:
 		_stop_stare()
 func move(speed:float,delta:float) -> void:
 	if _rush_left > 0.0: direction = _rush_direction
+	var manual_input:Vector2 = player_control_direction
+	if _rush_left > 0.0 and is_player_controlled():
+		# 愤怒背刺的短暂冲撞锁方向，不被 WASD 覆盖；结束后还给玩家移动。
+		player_control_direction = _rush_direction
 	super.move(speed * (rage_speed_ratio if rage_remaining > 0.0 else 1.0) * (2.4 if _rush_left > 0.0 else 1.0),delta)
+	if is_player_controlled():
+		player_control_direction = manual_input
+
+func controlled_attack_action() -> void:
+	# 左键：只在已有的愤怒期、传送间隔与闪避缓冲结束后主动绕后。
+	if not is_player_controlled() or not is_multiplayer_authority() or not mc_live() or not has_player_control_aim():
+		return
+	if rage_remaining <= 0.0 or _rage_teleport_wait > 0.0 or _dodge_grace > 0.0 or _rush_left > 0.0:
+		return
+	var target:ball = null
+	var best_distance:float = INF
+	var aim:Vector2 = player_control_aim_world_position()
+	for raw:Node in get_tree().get_nodes_in_group("Ball"):
+		if not raw is ball or not mc_enemy(raw):
+			continue
+		var candidate:ball = raw as ball
+		var distance:float = aim.distance_squared_to(ball.body_point(candidate,aim))
+		if distance < best_distance:
+			best_distance = distance
+			target = candidate
+	_rage_teleport_wait = maxf(rage_teleport_interval,0.3) if _try_rage_backstab(target) else 0.25
 func when_collide(speed:float,collision:KinematicCollision2D) -> void:
 	if _rush_left > 0.0: _rush_left = 0.0
 	super.when_collide(speed,collision)
 func _ranged_source(source:Node) -> bool:
-	if not is_instance_valid(source): return false
-	if source is ball and source.Type in [Ball_Type.Shooter,Ball_Type.Shooter_with_Health]: return true
-	var path:String = source.get_script().resource_path if source.get_script() != null else ""
-	return source.is_in_group("shooter") or source.is_in_group("Projectile") or path.begins_with("res://scripts/shooter/") or path.ends_with("骷髅箭.gd") or path.ends_with("烈焰弹.gd") or path.ends_with("女巫药水.gd")
+	return PROJECTILE_API.is_projectile(source)
+
 func _attempt_dodge(source:Node = null,force_projectile:bool = false) -> bool:
 	if not mc_live(): return false
 	if _dodge_grace > 0.0: return true
@@ -173,6 +197,7 @@ func _tick_rage_teleport(delta:float) -> void:
 		return
 	if not mc_live(): return
 	_rage_teleport_wait = maxf(_rage_teleport_wait-delta,0.0)
+	if is_player_controlled(): return
 	var target:ball = mc_nearest(delta)
 	if _rage_teleport_wait > 0.0 or _dodge_grace > 0.0 or _rush_left > 0.0: return
 	# 不依赖受击触发，也不经过闪避涨怒/分身入口；没有安全背位时短暂等候再检查。
@@ -181,7 +206,7 @@ func _try_rage_backstab(target:Variant) -> bool:
 	if rage_remaining <= 0.0 or not mc_enemy(target): return false
 	var behind:Vector2 = target.global_position - _facing(target) * (get_crowd_separation_radius_world() + target.get_crowd_separation_radius_world() + 10.0)
 	if not mc_arena_rect().grow(-18.0).has_point(behind) or not mc_body_position_clear(behind): return false
-	_rush_direction = behind.direction_to(target.global_position)
+	_rush_direction = behind.direction_to(ball.body_point(target,behind))
 	_rush_left = 0.32
 	direction = _rush_direction
 	_teleport_to(behind)
@@ -200,13 +225,9 @@ func _stop_stare() -> void:
 		_stare_player.queue_free()
 	_stare_player = null
 func _update_anger_status() -> void:
-	var text_value:String = ""
-	if rage_remaining > 0.0: text_value = "狂暴 %ds" % int(ceil(rage_remaining))
-	elif gaze_charge > 0.01: text_value = "愤怒 %d%%" % int(round(gaze_charge*100.0))
-	if text_value == _anger_text: return
-	_anger_text = text_value
-	if text_value.is_empty(): side_status_remove_permanent("right","mc_anger")
-	else: side_status_set_permanent("right","mc_anger",text_value,Color(1.0,0.18,0.22))
+	# Rage remains visible through body tint, not extra overhead status text.
+	_anger_text = ""
+	side_status_remove_permanent("right","mc_anger")
 func Die() -> void:
 	_stop_stare()
 	super.Die()

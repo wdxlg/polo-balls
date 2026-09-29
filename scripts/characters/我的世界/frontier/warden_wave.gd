@@ -106,7 +106,7 @@ func _sweep(from:Vector2,to:Vector2) -> void:
 		var id:int = target.get_instance_id()
 		if hit_ids.has(id): continue
 		hit_ids[id] = true
-		var point:Vector2 = target.global_position
+		var point:Vector2 = ball.body_point(target,global_position)
 		var accepted:bool = actor.damage_with_sound(target,damage,Geometry2D.get_closest_point_to_segment(point,from,to),true)
 		# A real enemy contact produces an echo even when armor absorbs all damage.
 		if kind=="probe": actor.probe_contact(epoch,str(wave_id)+":"+str(id),point)

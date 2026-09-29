@@ -83,7 +83,7 @@ func move(speed:float,delta:float) -> void:
 	for candidate:Node in get_tree().get_nodes_in_group("Ball"):
 		if not RULES.enemy(owner_unit,candidate) or candidate == self: continue
 		var target:ball = candidate as ball
-		var t:float = contact_t(from,to,target.global_position,U.radius(target)+3.0)
+		var t:float = contact_t(from,to,ball.body_point_seg(target,from,to),U.radius(target)+3.0)
 		if t >= 0.0: hits.append({"target":target,"t":t})
 	hits.sort_custom(func(a:Dictionary,b:Dictionary) -> bool: return float(a.t) < float(b.t))
 	for hit:Dictionary in hits:
@@ -101,7 +101,7 @@ func _on_hitbox_on_hit(hurt:hurtbox) -> void:
 	var owner_unit:ball = Master if is_instance_valid(Master) else self
 	if not RULES.enemy(owner_unit,target): return
 	var before:float = maxf(float(target.health),0.0)
-	var point:Vector2 = target.global_position
+	var point:Vector2 = ball.body_point(target,global_position)
 	var impact_heading:Vector2 = direction
 	_resolving_hit = true
 	super._on_hitbox_on_hit(hurt)
@@ -119,7 +119,7 @@ func _on_hitbox_on_hit(hurt:hurtbox) -> void:
 func impact_sound(actual:float,point:Vector2) -> void:
 	if _impact_played: return
 	_impact_played = true
-	var field:Node = get_tree().current_scene.get_node_or_null("MCSnowField")
+	var field:Node = get_parent().get_node_or_null("MCSnowField")
 	if is_instance_valid(field) and not field.is_queued_for_deletion(): field.emit_impact(actual,point,true)
 	else: AUDIO.play_impact(self,actual,point,true)
 

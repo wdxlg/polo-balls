@@ -34,10 +34,10 @@ func _physics_process(delta:float) -> void:
 			if not source.Team.is_empty() and target.Team==source.Team: continue
 			var id:int=target.get_instance_id()
 			if hit_ids.has(id): continue
-			var offset:Vector2=target.global_position-global_position
+			var offset:Vector2=ball.body_point(target,global_position)-global_position
 			var body_radius:float=U.radius(target)
 			if offset.length()-body_radius>initial_radius: continue
-			if not U.line_clear(self,global_position,target.global_position): continue
+			if not U.line_clear(self,global_position,ball.body_point(target,global_position)): continue
 			hit_ids[id]=true
 			var before:float=target.health
 			var amount:float=source.effective_outgoing_damage(damage)
@@ -46,7 +46,7 @@ func _physics_process(delta:float) -> void:
 				target.apply_knockback(offset.normalized() if offset.length_squared()>0.001 else Vector2.RIGHT,knockback,240.0,0.0,0.0,{"source":source,"stop_on_character":true})
 	if peak_dealt>0.0 and not sound_played:
 		sound_played=true
-		source.notify_allay_hit(peak_dealt,global_position)
+		# Per-victim actual feedback already emitted; never replace it with an AOE maximum.
 	queue_redraw()
 	if age>=duration: queue_free()
 func _draw() -> void:

@@ -49,6 +49,9 @@ var _body_scale:Vector2
 var _image_base:Vector2
 const STAGE_FACTOR:Array[float]=[1.0,0.68,0.43]
 func _ready() -> void:
+	# Split slimes navigate independently; their jump/impact is the existing
+	# locomotion and landing effect, not a second invented attack button.
+	if slime_stage>0: manual_controllable_subentity=true
 	if slime_family.is_empty(): slime_family=str(get_instance_id())
 	motion_blur_enabled=false
 	AfterImage_Speed=-1.0
@@ -112,11 +115,12 @@ func plan_jump(heading:Vector2) -> void:
 	var own_radius:float=U.radius(self)
 	for target:Node in get_tree().get_nodes_in_group("Ball"):
 		if not slime_enemy(target): continue
-		var offset:Vector2=target.global_position-global_position
+		var body:Vector2=U.point(target,global_position) # tall bodies: their nearest part
+		var offset:Vector2=body-global_position
 		var along:float=offset.dot(jump_direction)
 		var lateral:float=absf(offset.cross(jump_direction))
 		if along<0.0 or along>jump_max_distance*3.0 or lateral>U.radius(target)+own_radius*0.7: continue
-		if along>=nearest_along or not U.line_clear(self,global_position,target.global_position): continue
+		if along>=nearest_along or not U.line_clear(self,global_position,body): continue
 		nearest_along=along
 		desired=along-own_radius-U.radius(target)-2.0
 	jump_distance=clampf(desired,jump_min_distance,jump_max_distance)
@@ -224,7 +228,7 @@ func pulse_radius(landing:bool) -> float:
 func pulse_contains(target:ball,landing:bool) -> bool:
 	return _pulse_contains_from(target,landing,global_position)
 func _pulse_contains_from(target:ball,landing:bool,center:Vector2) -> bool:
-	var distance:float=center.distance_to(target.global_position)
+	var distance:float=center.distance_to(U.point(target,center))
 	var in_circle:bool=distance<=pulse_radius(landing)+U.radius(target)
 	var touching_at_takeoff:bool=not landing and distance<=U.radius(self)+U.radius(target)+0.5
 	return in_circle or touching_at_takeoff
@@ -246,20 +250,17 @@ func _pulse(landing:bool,death:bool=false) -> void:
 	var hit_point:Vector2=center
 	for target:Node in get_tree().get_nodes_in_group("Ball"):
 		if not slime_enemy(target) or not _pulse_contains_from(target,landing,center): continue
-		if not U.line_clear(self,center,target.global_position): continue
+		if not U.line_clear(self,center,U.point(target,center)): continue
 		if not U.damage(self,target,attack_damage((landing_damage if landing else jump_damage)/maxf(float(default_properties.get("Damage",Damage)),0.01)),center): continue
-		if not hit: hit_point=target.global_position
+		if not hit: hit_point=U.point(target,center)
 		hit=true
 		if death:
-			var outward:Vector2=target.global_position-center
+			var outward:Vector2=ball.body_point(target,center)-center
 			if outward.length_squared()<0.0001: outward=Vector2.RIGHT
 			target.apply_knockback(outward.normalized(),death_knockback_distance,160.0,0,0,{"source":self,"lock_control":false})
 		elif landing: U.slow(self,target,landing_slow_ratio,landing_slow_duration,"史莱姆落地")
-		else: target.apply_knockback((target.global_position-global_position).normalized(),[9.0,6.0,3.0][slime_stage],110.0,0,0,{"source":self,"lock_control":false})
-	# One native impact cue per successful pulse; use existing replicated audio.
-	if hit:
-		if multiplayer.has_multiplayer_peer(): _receive_sound.rpc("entity.player.hurt",hit_point,-4.0)
-		_receive_sound("entity.player.hurt",hit_point,-4.0)
+		else: target.apply_knockback((ball.body_point(target,global_position)-global_position).normalized(),[9.0,6.0,3.0][slime_stage],110.0,0,0,{"source":self,"lock_control":false})
+	# Each victim now reports its own final HP damage through ball.
 func _process(delta:float) -> void:
 	prepare_split_child()
 	if health<=0 or _death_visual_done:

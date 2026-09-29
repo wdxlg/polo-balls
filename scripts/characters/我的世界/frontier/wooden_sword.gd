@@ -132,7 +132,7 @@ func has_reachable_swing_target() -> bool:
 			var collider:Node = contact.collider
 			var node:Node = collider
 			while is_instance_valid(node) and not node is ball: node = node.get_parent()
-			if node is ball and collider == node.self_hurtbox and U.enemy(self,node) and not same_family(node) and U.line_clear(self,global_position,node.global_position):
+			if node is ball and collider == node.self_hurtbox and U.enemy(self,node) and not same_family(node) and U.line_clear(self,global_position,ball.body_point(node,global_position)):
 				found = true
 				break
 		if found: break
@@ -181,7 +181,7 @@ func step_mob(delta:float) -> void:
 		player_control_action_cancelled(0)
 	sword_charge = minf(1.0,sword_charge+delta/maxf(charge_duration,0.1))
 	var target:ball = nearest_foe()
-	if is_instance_valid(target) and global_position.distance_to(target.global_position) <= attack_trigger_reach()+U.radius(target) and has_reachable_swing_target():
+	if is_instance_valid(target) and global_position.distance_to(ball.body_point(target,global_position)) <= attack_trigger_reach()+U.radius(target) and has_reachable_swing_target():
 		begin_swing()
 func begin_swing() -> bool:
 	if not is_broken() and sword_charge+0.00001 < minimum_charge_time/maxf(charge_duration,0.1): return false
@@ -314,11 +314,11 @@ func query_weapon_pose(pose:Transform2D) -> int:
 		if collider != target.self_hurtbox or not U.enemy(self,target) or same_family(target): continue
 		var id:int = target.get_instance_id()
 		if _swing_hit_ids.has(id): continue
-		if not U.line_clear(self,global_position,target.global_position): continue
+		if not U.line_clear(self,global_position,ball.body_point(target,global_position)): continue
 		var multiplier:float = swing_damage_multiplier()
 		if part_kind == 0 and _swing_hit_ids.size()>0: multiplier *= 0.35
 		_swing_hit_ids[id] = true
-		var hit_point:Vector2 = target.global_position
+		var hit_point:Vector2 = ball.body_point(target,global_position)
 		if damage_with_impact_sound(target,attack_damage(multiplier),hit_point):
 			hits += 1
 			var push:float = hilt_knockback if part_kind == 1 else 0.0 if part_kind == 2 else sword_knockback*lerpf(charge_min_push,charge_max_push,clampf(_swing_charge,0,1))
@@ -404,7 +404,7 @@ func nearest_foe() -> ball:
 	var distance:float = INF
 	for target:Node in get_tree().get_nodes_in_group("Ball"):
 		if not U.enemy(self,target) or same_family(target) or not target.is_combat_lockable(): continue
-		var d:float = global_position.distance_squared_to(target.global_position)
+		var d:float = global_position.distance_squared_to(ball.body_point(target,global_position))
 		if d < distance:
 			distance = d
 			best = target
@@ -478,6 +478,8 @@ func split_sword() -> void:
 	blade.position = get_parent().to_local(repair_anchor)
 	blade.name = Game.return_random_name(blade)
 	blade.set_multiplayer_authority(get_multiplayer_authority())
+	# Fragments are independent bodies, but still one original roster entry.
+	get_tree().current_scene.bind_battle_lifecycle(blade,self)
 	get_parent().add_child(blade,true)
 	blade.set_migrated_health(maxi(1,int(floor(prior_health*0.5))),blade.Max_health)
 	blade.apply_part_geometry()
@@ -504,7 +506,7 @@ func step_part(delta:float) -> void:
 	advance_attack(delta)
 	if is_player_controlled() or dock_delay > 0.0 or _part_recovery_left > 0.0: return
 	var target:ball = nearest_foe()
-	if is_instance_valid(target) and global_position.distance_to(target.global_position) <= attack_trigger_reach()+U.radius(target): begin_swing()
+	if is_instance_valid(target) and global_position.distance_to(ball.body_point(target,global_position)) <= attack_trigger_reach()+U.radius(target): begin_swing()
 func start_repair() -> bool:
 	# Kept as a player-action query; only the bench can advance the two-piece timer.
 	return touching_workbench() and workbench.is_materialized()
@@ -517,7 +519,7 @@ func finish_repair() -> void:
 func reform_with(other:ball) -> void:
 	if part_kind != 1 or not is_instance_valid(other) or health <= 0 or other.health <= 0: return
 	var combined:int = mini(full_max_health,int(health)+int(other.health))
-	var point:Vector2 = workbench.global_position
+	var point:Vector2 = ball.body_point(workbench,global_position)
 	part_kind = 0
 	durability = MAX_DURABILITY
 	set_migrated_health(combined,full_max_health)
@@ -546,10 +548,13 @@ func Attack() -> void:
 	if is_broken(): begin_swing()
 func Skill() -> void:
 	Using_Skill = false
+func player_control_action_ids() -> Array[StringName]:
+	# This Skill() is a state-machine placeholder, not a second weapon action.
+	return [&"Attack"]
 func player_control_action_hold_repeat_allowed(action_index:int) -> bool:
 	return is_broken() and action_index == 0
 func player_control_action(action_index:int) -> void:
-	if action_index != 0: return
+	if action_index != 0 or not is_player_controlled() or not is_multiplayer_authority(): return
 	if is_broken():
 		if can_act(): begin_swing()
 	elif (can_act() or can_keep_charging_through_knockback()) and not _swing_pending:
@@ -644,9 +649,7 @@ func client_visual_step(delta:float) -> void:
 	swing_visual_left = maxf(0.0,swing_visual_left-delta)
 	if repairing: repair_left = maxf(0,repair_left-delta)
 func get_armor_test_effect_summary() -> String:
-	if english():
-		return "Longer charges swing faster and hit harder with stronger knockback. Ordinary knockback does not interrupt charging.\nSwinging and taking damage consume durability. When it runs out, the hilt and blade fight separately: the hilt pushes harder and the blade deals more damage.\nFragments touching their workbench heal and take less damage. Keep them all there to rebuild, combine health and restore durability. Leaving resets crafting progress; losing a fragment or the workbench prevents rebuilding."
-	return "蓄力越久，挥剑越快，伤害和击退越强；普通击退不会打断蓄力。\n挥剑与受伤消耗耐久，耗尽后分成剑柄和剑刃继续战斗：剑柄擅长击退，剑刃伤害更高。\n碎片接触工作台时回血并减伤，全部到齐并停留后重制，合并生命并恢复耐久；离开会重置合成进度，碎片死亡或工作台被毁后无法重制。"
+	return Game.t("MC_ARMOR_INTRO_WOODEN_SWORD")
 
 func lose_workbench() -> void:
 	if multiplayer.has_multiplayer_peer(): _bench_lost.rpc(sword_family)

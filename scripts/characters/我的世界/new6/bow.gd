@@ -62,6 +62,7 @@ var _recoil_start: float = -RECOIL_LIFETIME
 var _shot_seq: int = 0
 var _last_shot_charge: float = 0.0
 var _visual_synced: bool = false
+var _manual_fire_held: bool = false
 
 
 func _ready() -> void:
@@ -87,26 +88,50 @@ func hold_ratio() -> float:
 		return 1.0 if drawing >= draw_time else 0.0
 	return clampf((drawing - draw_time) / full_hold_time, 0.0, 1.0)
 
+func controlled_attack_action() -> void:
+	if is_player_controlled() and is_multiplayer_authority():
+		_manual_fire_held = true
+
+func player_control_action_released(index:int) -> void:
+	if index != 0 or not _manual_fire_held or not is_multiplayer_authority(): return
+	_manual_fire_held = false
+	if drawing >= 0.15 and can_act() and _cool <= 0.0:
+		if has_player_control_aim(): facing = player_control_aim_direction(facing)
+		_fire(charge_ratio(),drawing >= draw_time)
+	else:
+		drawing = 0.0
+		_set_draw_audio_stage(0)
+
+func player_control_action_cancelled(index:int) -> void:
+	if index != 0: return
+	_manual_fire_held = false
+	drawing = 0.0
+	_set_draw_audio_stage(0)
+
+func set_player_control_peer(peer_id:int) -> void:
+	if peer_id != player_control_peer_id: player_control_action_cancelled(0)
+	super.set_player_control_peer(peer_id)
+
 
 func step_mob(delta: float) -> void:
 	_cool -= delta
 	var want_fire: bool = false
-	if is_player_controlled() and has_player_control_aim():
-		facing = player_control_aim_direction(facing)
-		want_fire = true
+	if is_player_controlled():
+		if has_player_control_aim(): facing = player_control_aim_direction(facing)
+		want_fire = _manual_fire_held
 	else:
 		var target: ball = U.nearest(self)
-		if target != null and global_position.distance_to(target.global_position) <= shoot_range + U.radius(target) and U.line_clear(self, global_position, target.global_position):
-			facing = (target.global_position - global_position).normalized()
+		if target != null and global_position.distance_to(ball.body_point(target,global_position)) <= shoot_range + U.radius(target) and U.line_clear(self, global_position,ball.body_point(target,global_position)):
+			facing = (ball.body_point(target,global_position) - global_position).normalized()
 			want_fire = true
 	if want_fire and can_act() and _cool <= 0.0:
 		drawing += delta
 		_set_draw_audio_stage(1 if drawing < draw_time * 0.5 else 2)
 		if drawing >= total_draw_time():
 			_fire(1.0, true)
-		elif drawing >= 0.15:
+		elif drawing >= 0.15 and not is_player_controlled():
 			var near: ball = U.nearest(self)
-			if near != null and global_position.distance_to(near.global_position) <= close_range:
+			if near != null and global_position.distance_to(ball.body_point(near,global_position)) <= close_range:
 				# 弓弦已拉满（正在最后蓄力）时被迫松弦仍算蓄满一箭。
 				var ratio: float = charge_ratio()
 				_fire(ratio, ratio >= 1.0)
@@ -217,7 +242,6 @@ func _fire(ratio: float, full: bool) -> void:
 	arrow.set("_new6_max_dist", arrow_max_dist)
 	play_sound("entity.arrow.shoot", -4.0)
 	if full:
-		play_sound("entity.player.attack.crit", -2.0)
 		FX.burst(world, "crit", muzzle, facing, 6, 90.0, 0.35, 7.0)
 
 

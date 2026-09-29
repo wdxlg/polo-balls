@@ -1,4 +1,5 @@
 extends "res://scripts/characters/我的世界/mc_mob_base.gd"
+const U=preload("res://scripts/characters/我的世界/new5/utils.gd")
 
 const FANG = preload("res://scripts/effects/我的世界/唤魔尖牙.gd")
 const VISUAL = preload("res://Images/characters/我的世界/唤魔者/唤魔者.png")
@@ -50,6 +51,10 @@ func _show_totem_visual() -> void:
 func tick_physics(state:State,delta:float) -> void:
 	super.tick_physics(state,delta)
 	if not mc_live() or dizziness: return
+	if is_player_controlled():
+		_fang_wait=maxf(0.0,_fang_wait-delta)
+		_summon_wait=maxf(0.0,_summon_wait-delta)
+		return
 	var target:ball = mc_nearest(delta)
 	if target == null: return
 	_fang_wait -= delta
@@ -61,13 +66,32 @@ func tick_physics(state:State,delta:float) -> void:
 		_summon_wait = maxf(summon_interval,4.0)
 		summon_vex()
 
+func controlled_attack_action() -> void:
+	if not is_player_controlled() or not mc_live() or dizziness or _fang_wait>0.0 or not has_player_control_aim(): return
+	var point:Vector2=player_control_aim_world_position()
+	var chosen:ball=null
+	var nearest:float=INF
+	for raw:Node in get_tree().get_nodes_in_group("Ball"):
+		if not mc_enemy(raw) or not raw.is_combat_lockable(): continue
+		var distance:float=ball.body_point(raw,point).distance_to(point)
+		if distance<=U.radius(raw)+6.0 and distance<nearest:
+			chosen=raw as ball
+			nearest=distance
+	if chosen==null: return
+	_fang_wait=maxf(fang_interval,0.5)
+	cast_fangs(chosen)
+func controlled_skill_action() -> void:
+	if not is_player_controlled() or not mc_live() or dizziness or _summon_wait>0.0: return
+	_summon_wait=maxf(summon_interval,4.0)
+	summon_vex()
+
 func cast_fangs(target:ball) -> void:
 	if not mc_live() or not mc_enemy(target): return
 	mc_cast_animation(0.85)
 	mc_play("prepare_attack",-4.0)
 	var shared_hits:Dictionary = {}
-	var axis:Vector2 = global_position.direction_to(target.global_position)
-	if global_position.distance_to(target.global_position) < 65.0:
+	var axis:Vector2 = global_position.direction_to(ball.body_point(target,global_position))
+	if global_position.distance_to(ball.body_point(target,global_position)) < 65.0:
 		for ring:int in range(3):
 			var ring_hits:Dictionary = {} # 同圈只命中一次；被推向外圈可以再次被波及。
 			var count:int = 12+ring*4

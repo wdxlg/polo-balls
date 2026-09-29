@@ -120,7 +120,7 @@ func move(speed:float,delta:float):
 	var ratio:float = 0.65
 	if phase==Phase.RAGE:
 		ratio = 4.8 if rush==Rush.MIST else 2.8 if rush==Rush.RETREAT else 2.6
-		if lightning_wait or rush==Rush.RECOVER: ratio = 0.0
+		if lightning_wait or (rush==Rush.RECOVER and not is_player_controlled()): ratio = 0.0
 	super.move(speed*ratio,delta)
 func stand(delta:float):
 	if phase==Phase.VANISHED:
@@ -155,6 +155,9 @@ func step_mob(delta:float) -> void:
 			grace_left = 0.6
 			rage_wait = rage_cooldown
 			return
+		if is_player_controlled():
+			manual_rush_step(delta)
+			return
 		var target:ball = valid_target()
 		if not is_instance_valid(target): target = U.nearest(self)
 		if is_instance_valid(target):
@@ -170,6 +173,18 @@ func step_mob(delta:float) -> void:
 			disappear()
 			return
 	else: exposure_left = 0.0
+	if is_player_controlled():
+		var aimed:ball = manual_fog_target()
+		if is_instance_valid(aimed) and rage_wait<=0.0 and behind(aimed):
+			if _behind_target_id!=aimed.get_instance_id():
+				_behind_target_id = aimed.get_instance_id()
+				rear_hold = 0.0
+			_target_ref = weakref(aimed)
+			rear_hold += delta
+		else:
+			rear_hold = 0.0
+		_tick_whisper(delta)
+		return
 	var target:ball = valid_target()
 	if not is_instance_valid(target):
 		target = U.nearest(self)
@@ -189,6 +204,9 @@ func step_mob(delta:float) -> void:
 	if _nav_left<=0.0:
 		_nav_left = 0.12
 		choose_stalk_direction(target)
+	_tick_whisper(delta)
+
+func _tick_whisper(delta:float) -> void:
 	_ambient_wait -= delta
 	if _ambient_wait<=0.0:
 		_ambient_wait = rng.randf_range(8.0,14.0)
@@ -196,12 +214,61 @@ func step_mob(delta:float) -> void:
 		if fog.elapsed-last>=6.0:
 			fog.set_meta("last_whisper",fog.elapsed)
 			emit_event("whisper",global_position)
+func manual_fog_target() -> ball:
+	if not has_player_control_aim(): return null
+	var best:ball = null
+	var best_distance:float = INF
+	for candidate:Node in get_tree().get_nodes_in_group("Ball"):
+		if not U.enemy(self,candidate) or not candidate.is_combat_lockable(): continue
+		var radius:float = maxf(42.0,U.radius(candidate)+20.0)
+		var distance:float = ball.body_point(candidate,player_control_aim_position).distance_squared_to(player_control_aim_position)
+		if distance<=radius*radius and distance<best_distance:
+			best = candidate as ball
+			best_distance = distance
+	return best
+
+func controlled_attack_action() -> void:
+	if not is_player_controlled() or not can_act(): return
+	var target:ball = manual_fog_target()
+	if not is_instance_valid(target): return
+	if phase==Phase.STALK:
+		_target_ref = weakref(target)
+		begin_rage() # 仍需绕后持续 behind_hold 秒且狂暴冷却结束。
+	elif phase==Phase.RAGE and not lightning_wait and rush==Rush.RECOVER and rush_left<=0.0:
+		start_rush_attack(target,0)
+
+func controlled_skill_action() -> void:
+	if not is_player_controlled() or not can_act() or phase!=Phase.RAGE or lightning_wait: return
+	if rush!=Rush.RECOVER or rush_left>0.0: return
+	var target:ball = manual_fog_target()
+	if is_instance_valid(target): start_rush_attack(target,1)
+
+func manual_rush_step(delta:float) -> void:
+	# 保留当前招式的位移、命中和收招，但不由 AI 接续下一招或擅自退开。
+	if rush==Rush.RECOVER:
+		rush_left = maxf(rush_left-delta,0.0)
+		return
+	var target:ball = valid_target()
+	rush_left -= delta
+	match rush:
+		Rush.MIST:
+			if dash_remaining<=0.0 or rush_left<=0.0:
+				set_rush(Rush.RECOVER,maxf(attack_interval,0.1))
+		Rush.FACE_VANISH:
+			if rush_left<=0.0 and (not is_instance_valid(target) or not manifest_face(target)):
+				set_rush(Rush.RECOVER,maxf(attack_interval,0.1))
+		Rush.FACE_SHOW:
+			if rush_left<=0.0:
+				set_rush(Rush.RECOVER,maxf(attack_interval,0.1))
+		_:
+			set_rush(Rush.RECOVER,0.0)
+
 func valid_target() -> ball:
 	var target:Variant = _target_ref.get_ref() if _target_ref!=null else null
 	return target as ball if U.enemy(self,target) and target.is_combat_lockable() else null
 func behind(target:ball) -> bool:
-	var away:Vector2 = target.global_position.direction_to(global_position)
-	var distance:float = global_position.distance_to(target.global_position)
+	var away:Vector2 = ball.body_point(target,global_position).direction_to(global_position)
+	var distance:float = global_position.distance_to(ball.body_point(target,global_position))
 	return distance>=20.0 and distance<=behind_range and away.dot(fog.heading_for(target)) < -0.65 and fog.line_visible(target.global_position,global_position,target)
 func body_clear(point:Vector2) -> bool:
 	var rect:Rect2 = fog.arena_rect().grow(-18.0)
@@ -214,7 +281,7 @@ func body_clear(point:Vector2) -> bool:
 	query.exclude = [get_rid()]
 	return get_world_2d().direct_space_state.intersect_shape(query,1).is_empty()
 func choose_stalk_direction(target:ball) -> void:
-	var goal:Vector2 = target.global_position-fog.heading_for(target)*70.0
+	var goal:Vector2 = ball.body_point(target,global_position)-fog.heading_for(target)*70.0
 	var best:Vector2 = Vector2.ZERO
 	var best_cost:float = global_position.distance_to(goal)+fog.risk(self,global_position)*700.0+10.0
 	for i:int in range(16):
@@ -293,13 +360,13 @@ func deal_rush_damage(target:ball,point:Vector2) -> bool:
 	var remaining:float = maxf(float(after.health),0.0) if is_instance_valid(after) else 0.0
 	if accepted and before>remaining:
 		rush_hits += 1
-		emit_event("hit",point,before-remaining)
+		pass # Actual HP feedback is now emitted by the victim.
 	return accepted
 func sweep_mist_damage(from:Vector2,to:Vector2) -> void:
 	if not is_rush_mist() or not can_act() or from.distance_squared_to(to)<0.0001: return
 	for candidate:Node in get_tree().get_nodes_in_group("Ball"):
 		if not U.enemy(self,candidate) or dash_hit_ids.has(candidate.get_instance_id()): continue
-		if U.segment_distance(candidate.global_position,from,to)>16.0+U.radius(candidate): continue
+		if U.segment_distance(ball.body_point_seg(candidate,from,to),from,to)>16.0+U.radius(candidate): continue
 		if not fog.line_visible(from,candidate.global_position,self): continue
 		dash_hit_ids[candidate.get_instance_id()] = true
 		deal_rush_damage(candidate,from)
@@ -435,7 +502,7 @@ func _exit_tree() -> void:
 		if is_instance_valid(player): player.stop(); player.queue_free()
 	super._exit_tree()
 func get_armor_test_effect_summary() -> String:
-	return "用迷雾遮蔽全场，角色附近与面朝方向能看清，墙体阻断视野；潜行时无法被自动锁定，但范围攻击仍可命中。\n身体持续暴露会损失生命并消散，随后尽量在视野外重现；成功绕后会预警落雷并进入狂暴，落雷时驱散附近迷雾。\n狂暴期间交替退开并随机发动化雾穿身或现身范围突袭；化雾时仍能被攻击，但不扣暴露消散的生命，狂暴结束后进入冷却。"
+	return Game.t("MC_ARMOR_INTRO_FOG_MAN")
 
 func _self_foot_world_position() -> Vector2:
 	return image.global_transform*(image.offset+Vector2(0,92)) if is_instance_valid(image) else global_position
@@ -446,7 +513,9 @@ func _on_lightning_impact(point:Vector2) -> void:
 	rage_left = rage_duration
 	var target:ball = valid_target()
 	if not is_instance_valid(target): target = U.nearest(self)
-	if is_multiplayer_authority() and is_instance_valid(target): start_rush_attack(target)
+	if is_multiplayer_authority():
+		if is_player_controlled(): set_rush(Rush.RECOVER,0.0)
+		elif is_instance_valid(target): start_rush_attack(target)
 	fog.thunder_clear(self)
 	if is_multiplayer_authority():
 		emit_event("rage",point)
@@ -474,9 +543,9 @@ func start_rush_attack(target:ball,kind:int = -1) -> void:
 	face_fired = false
 	if attack_kind==0:
 		mist_casts += 1
-		dash_direction = global_position.direction_to(target.global_position)
+		dash_direction = global_position.direction_to(ball.body_point(target,global_position))
 		if dash_direction==Vector2.ZERO: dash_direction = Vector2.RIGHT
-		dash_remaining = minf(global_position.distance_to(target.global_position)+100.0,500.0)
+		dash_remaining = minf(global_position.distance_to(ball.body_point(target,global_position))+100.0,500.0)
 		set_rush(Rush.MIST,1.6)
 	else:
 		face_casts += 1
@@ -508,11 +577,11 @@ func rush_step(target:ball,delta:float) -> void:
 			if rush_left<=0.0: start_rush_attack(target)
 func manifest_face(target:ball) -> bool:
 	if not can_act() or phase!=Phase.RAGE or rush!=Rush.FACE_VANISH or face_fired or not U.enemy(self,target): return false
-	var away:Vector2 = target.global_position.direction_to(global_position)
+	var away:Vector2 = ball.body_point(target,global_position).direction_to(global_position)
 	if away==Vector2.ZERO: away = Vector2.LEFT
 	var chosen:Vector2 = Vector2.INF
 	for i:int in range(12):
-		var point:Vector2 = target.global_position+away.rotated(TAU*i/12.0)*64.0
+		var point:Vector2 = ball.body_point(target,global_position)+away.rotated(TAU*i/12.0)*64.0
 		if body_clear(point) and fog.line_visible(point,target.global_position,self) and fog.line_visible(global_position,point,self):
 			chosen = point
 			break
@@ -525,12 +594,12 @@ func manifest_face(target:ball) -> bool:
 	# Snapshot candidates before damage callbacks can delete targets.
 	for candidate:Node in get_tree().get_nodes_in_group("Ball"):
 		if not U.enemy(self,candidate): continue
-		if candidate.global_position.distance_to(face_point)>face_radius: continue
+		if ball.body_point(candidate,face_point).distance_to(face_point)>face_radius: continue
 		if not fog.line_visible(face_point,candidate.global_position,self): continue
 		deal_rush_damage(candidate,face_point)
 	return true
 func choose_retreat(target:ball) -> Vector2:
-	var away:Vector2 = target.global_position.direction_to(global_position)
+	var away:Vector2 = ball.body_point(target,global_position).direction_to(global_position)
 	if away==Vector2.ZERO: away = Vector2.LEFT
 	for angle:float in [0.0,0.55,-0.55,1.1,-1.1,1.57,-1.57]:
 		var candidate:Vector2 = away.rotated(angle)

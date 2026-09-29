@@ -19,7 +19,7 @@ func _ready() -> void:
 func foes(point:Vector2,reach:float) -> Array[ball]:
 	var result:Array[ball] = []
 	for node:Node in get_tree().get_nodes_in_group("Ball"):
-		if U.enemy(self,node) and point.distance_squared_to(node.global_position) <= reach*reach:
+		if U.enemy(self,node) and point.distance_squared_to(ball.body_point(node,point)) <= reach*reach:
 			result.append(node as ball)
 	return result
 func floor_clear(point:Vector2,radius_value:float = 8.0) -> bool:

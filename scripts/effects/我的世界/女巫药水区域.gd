@@ -58,7 +58,7 @@ func _apply_to_units_in_radius() -> void:
 			continue
 		if target.health <= 0 or target.is_queued_for_deletion():
 			continue
-		if target.global_position.distance_squared_to(global_position) > radius_sq:
+		if ball.body_point(target,global_position).distance_squared_to(global_position) > radius_sq:
 			continue
 		POTION_EFFECTS.apply_stacking_effect(target,effect_type,_valid_source_node(source_witch))
 

@@ -1,4 +1,5 @@
 extends Area2D
+const PROJECTILE_API = preload("res://classes/projectile_interactions.gd")
 # 天陨落箭（纯白发光剪影）：按计划陆续从画面上缘之外坠入，形成持续一段时间的箭雨；
 # 下落是真实的速度积分（重力加速），不是按时间参数化的位移动画，
 # 且仍按 delay 精确落地（快于纯重力用时给初速度，慢则先在屏幕外悬停）。
@@ -41,6 +42,9 @@ var _vy: float = 0.0
 var _falling: bool = false
 var _landed: bool = false
 var _burrow_t: float = 0.0
+var _redirected: bool = false
+var _redirect_velocity: Vector2 = Vector2.ZERO
+var _redirect_left: float = 2.0
 
 
 func _ready() -> void:
@@ -102,6 +106,9 @@ func _physics_process(delta: float) -> void:
 	if _landed:
 		_burrow(delta)
 		return
+	if _redirected:
+		_advance_redirected(delta)
+		return
 	if not _falling:
 		_hold -= maxf(delta, 0.0)
 		if _hold > 0.0:
@@ -152,7 +159,7 @@ func _land() -> void:
 					continue
 				var victim: ball = other as ball
 				# Fixed 24px body allowance: U.radius() collapses outside crowded combat.
-				if victim.global_position.distance_to(_point) > _radius + 24.0:
+				if ball.body_point(victim,_point).distance_to(_point) > _radius + 24.0:
 					continue
 				if U.damage(src, victim, _damage, _point):
 					U.slow(src, victim, _slow_ratio, _slow_duration, "天陨减速")
@@ -177,3 +184,42 @@ func sprite_material() -> ShaderMaterial:
 func glow_material() -> ShaderMaterial:
 	var glow: Sprite2D = get_node_or_null("Glow") as Sprite2D
 	return glow.material as ShaderMaterial if glow != null else null
+
+# Explicit motion capability: a falling arrow is not a direction/speed field guess.
+func get_projectile_velocity() -> Vector2:
+	if _landed: return Vector2.ZERO
+	if _redirected: return _redirect_velocity
+	return Vector2.DOWN*_vy if _falling else Vector2.ZERO
+
+func set_projectile_velocity(motion:Vector2) -> void:
+	_redirected = true
+	_redirect_velocity = motion
+	_falling = true
+	_hold = 0.0
+	visible = true
+	if not motion.is_zero_approx(): rotation = motion.angle()
+
+func relaunch_projectile(point:Vector2,target:ball) -> void:
+	global_position = point
+	_redirect_left = 2.0
+	set_projectile_velocity(point.direction_to(ball.body_point(target,point))*maxf(_vy,300.0))
+
+func _advance_redirected(delta:float) -> void:
+	if not is_multiplayer_authority(): return
+	var start:Vector2 = global_position
+	var finish:Vector2 = start+_redirect_velocity*maxf(delta,0.0)
+	if get_tree().has_group("MinecraftWoolSheep") and load("res://scripts/characters/我的世界/new6/wool_projectile.gd").sweep(self,start,finish): return
+	var src:ball = _src_ref.get_ref() if _src_ref != null else null
+	var hit:Dictionary = load("res://scripts/characters/我的世界/new6/heavenfall_collision.gd").projectile(self,src,start,finish)
+	var victim:ball = hit.get("victim") as ball
+	if is_instance_valid(victim):
+		var response:String = PROJECTILE_API.defense(self,victim,hit.get("position",finish))
+		if response == "dodge":
+			global_position = finish
+			return
+		if not response.is_empty(): return
+	global_position = hit.get("position",finish)
+	_redirect_left -= maxf(delta,0.0)
+	if not hit.is_empty() or _redirect_left <= 0.0:
+		_point = global_position
+		_land()

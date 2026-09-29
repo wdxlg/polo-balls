@@ -63,7 +63,7 @@ func damage_landing(center:Vector2) -> int:
 		if applied:
 			hits += 1
 			if is_instance_valid(candidate) and candidate.health>0:
-				var push:Vector2 = center.direction_to(candidate.global_position)
+				var push:Vector2 = center.direction_to(ball.body_point(candidate,center))
 				if push.is_zero_approx(): push = Vector2.RIGHT
 				candidate.apply_knockback(push,landing_push(),120.0,0.0,0.0,{"source":source if is_instance_valid(source) else null,"stop_on_character":true})
 	# The launched victim takes one direct fall hit, separately from the AOE.

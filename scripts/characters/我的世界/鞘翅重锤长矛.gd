@@ -8,6 +8,7 @@ const HIT_GAIN:Script = preload("res://scripts/effects/我的世界/hit_audio_ga
 # User-supplied picture: mace head at upper right, handle at lower left.
 # The actual striking tip is on the head, never on the opposite end of the shaft.
 const COMBO_TIP_PIXEL:Vector2 = Vector2(121,5)
+var _dash_combo_pending:bool = false
 
 func _ready() -> void:
 	super._ready()
@@ -50,7 +51,7 @@ func _sweep_spear_contacts(start:Vector2,finish:Vector2,tip_start:Vector2,tip_fi
 		for node:Node in candidates:
 			var target:ball = node as ball
 			if not _is_enemy(target) or _spear_contacts.has(target.get_instance_id()): continue
-			if (target.global_position-body).dot(heading) < -radius: continue
+			if (ball.body_point(target,body)-body).dot(heading) < -radius: continue
 			if not _target_combat_shapes_overlap_circle(target,tip,radius): continue
 			_spear_contacts[target.get_instance_id()] = weakref(target)
 			if not _apply_spear_contact(target,tip,heading,speed_value,penetrating): continue
@@ -62,13 +63,18 @@ func _sweep_spear_contacts(start:Vector2,finish:Vector2,tip_start:Vector2,tip_fi
 
 func _apply_spear_contact(target:ball,point:Vector2,heading:Vector2,speed_value:float,penetrating:bool) -> bool:
 	var before:float = maxf(float(target.health),0.0) if is_instance_valid(target) else 0.0
-	var sound_point:Vector2 = target.global_position if is_instance_valid(target) else point
+	var sound_point:Vector2 = ball.body_point(target,global_position) if is_instance_valid(target) else point
 	# Parent settles the spear hit, one-contact speed bonus and poke knockback.
 	if not super._apply_spear_contact(target,point,heading,speed_value,penetrating): return false
 	if is_instance_valid(target): _emit_mc_hit(maxf(before-maxf(float(target.health),0.0),0.0),sound_point)
 	var radius:float = maxf(base_landing_radius,0.0)
 	_damage_spear_mace_area(target,point,radius,heading)
 	_show_impact_to_peers(point,radius,maxf(base_flight_height,speed_value*0.2),true)
+	if _pierce_dashing:
+		# The user chose pass-through FIRST. Keep each real hit's propulsion and
+		# tip impact, but queue only one ordinary mace chain after clearing the pass.
+		_dash_combo_pending = true
+		return true
 	# Preserve the low-speed spear's retreat direction before the mace's leap.
 	if not penetrating and is_instance_valid(target) and target.health > 0:
 		_glide_velocity = -heading*_glide_velocity.length()
@@ -76,6 +82,12 @@ func _apply_spear_contact(target:ball,point:Vector2,heading:Vector2,speed_value:
 		_poke_retreat_left = poke_retreat_duration
 	_begin_flight(1)
 	return true
+
+func _on_pierce_dash_finished(completed:bool) -> void:
+	var pending:bool = _dash_combo_pending
+	_dash_combo_pending = false
+	if completed and pending and health>0 and Can_Attack and not dizziness and not is_damage_output_disabled() and is_combat_runtime_active():
+		_begin_flight(1)
 
 func _damage_spear_mace_area(primary:ball,point:Vector2,radius:float,heading:Vector2) -> void:
 	# The direct victim already took the spear blow; the opening mace ring hits
@@ -88,7 +100,7 @@ func _damage_spear_mace_area(primary:ball,point:Vector2,radius:float,heading:Vec
 	for other:ball in targets:
 		if not is_instance_valid(other): continue
 		var before:float = maxf(float(other.health),0.0)
-		var sound_point:Vector2 = other.global_position
+		var sound_point:Vector2 = ball.body_point(other,global_position)
 		set_meta("blood_damage_kind","mace")
 		set_meta("blood_attack_velocity",(sound_point-point).normalized()*landing_knockback_speed)
 		if not other.receive_positional_damage(attack_damage(base_landing_damage_multiplier),point,false,self): continue
@@ -99,7 +111,7 @@ func _damage_spear_mace_area(primary:ball,point:Vector2,radius:float,heading:Vec
 
 func _knockback_spear_mace_target(target:ball,point:Vector2,heading:Vector2,distance:float,speed_value:float) -> void:
 	if not is_instance_valid(target) or target.health <= 0 or distance <= 0.0: return
-	var away:Vector2 = (target.global_position-point).normalized()
+	var away:Vector2 = (ball.body_point(target,point)-point).normalized()
 	if away.is_zero_approx(): away = heading
 	target.apply_knockback(away,distance,speed_value,0.0,0.0,{"source":self,"stop_on_character":true})
 
@@ -184,7 +196,7 @@ func _damage_area(center:Vector2,radius:float,damage_value:float,knock_distance:
 		if not is_instance_valid(target): continue
 		var in_retrigger_range:bool = retrigger_radius>0.0 and _target_overlaps_damage_circle(target,center,retrigger_radius)
 		var before:float = maxf(float(target.health),0.0)
-		var sound_point:Vector2 = target.global_position
+		var sound_point:Vector2 = ball.body_point(target,global_position)
 		set_meta("blood_damage_kind","mace")
 		set_meta("blood_attack_velocity",(sound_point-center).normalized()*knock_speed)
 		var applied:bool = target.receive_positional_damage(damage_value,center,false,self)
@@ -239,4 +251,4 @@ func get_debug_attack_regions() -> Array:
 	return get_ai_attack_threats(null)
 
 func get_debug_detection_regions() -> Array[Dictionary]:
-	return []
+	return super.get_debug_detection_regions()

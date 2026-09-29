@@ -8,6 +8,7 @@ const EMITTER=preload("res://scripts/characters/我的世界/wither/beacon_emitt
 const GLOW=preload("res://scripts/characters/我的世界/wither/beacon_glow.gd")
 const RING_VISUAL = preload("res://scripts/characters/我的世界/wither/beacon_ring.gd")
 const PROFILE = preload("res://scripts/characters/我的世界/wither/beacon_profile.gd")
+const SUMMON_FX = preload("res://scripts/characters/我的世界/wither/beacon_summon_fx.gd")
 const GRAVITY:float = 1200.0
 const TERMINAL_SPEED:float = 1100.0
 const EPSILON:float = 0.0000001
@@ -37,7 +38,17 @@ var beam_end:Vector2
 var beam_direction:Vector2 = Vector2.UP
 var beams_fired:int = 0
 var last_buff:String = ""
+var _summon_fx:Node2D
+var _summon_origin:Vector2
+var _summon_target:Vector2
+var _summon_flight:float = 0.80
+var _summon_elapsed:float = 0.0
+var _summon_landed_at:float = -1.0
+var _summon_morph_at:float = -1.0
+var _summon_initialized:bool = false
+var _beacon_hum:AudioStreamPlayer2D
 func _ready() -> void:
+	manual_controllable_subentity=true
 	Has_Collision_Damage=false
 	Can_Attack=false
 	Can_Skill=false
@@ -46,9 +57,26 @@ func _ready() -> void:
 	if image is Sprite2D:
 		image.texture=BEACON_TEXTURE
 		image.visible=false
+	if is_instance_valid(health_bar):
+		health_bar.visible=false
 	texture_filter=CanvasItem.TEXTURE_FILTER_NEAREST
 	_body=get_node("CollisionShape2D")
 	if is_instance_valid(Master) and Master is PhysicsBody2D: add_collision_exception_with(Master)
+	_summon_origin=Master.global_position if is_instance_valid(Master) else global_position
+	_summon_target=_summon_origin
+	_summon_fx=SUMMON_FX.new()
+	_summon_fx.name="NetherStarSummon"
+	add_child(_summon_fx)
+	_summon_fx.call("setup",image,body_width())
+	_beacon_hum=AudioStreamPlayer2D.new()
+	_beacon_hum.name="BeaconBeamHum"
+	var hum_stream:AudioStreamOggVorbis=VANILLA_SOUND.STREAMS["beacon_ambient"].duplicate() as AudioStreamOggVorbis
+	hum_stream.loop=true
+	_beacon_hum.stream=hum_stream
+	_beacon_hum.volume_db=-4.0
+	_beacon_hum.max_distance=1800.0
+	add_child(_beacon_hum)
+	call_deferred("_initialize_summon")
 	_ring_back=RING_VISUAL.new()
 	_ring_back.name="BeaconTopRingBack"
 	_ring_back.top_level=true
@@ -70,6 +98,45 @@ func _ready() -> void:
 	add_child(_ring_front)
 	add_to_group("AI_Hazard")
 	add_to_group("WitherBeacon")
+func _initialize_summon() -> void:
+	if _summon_initialized: return
+	_summon_origin=Master.global_position if is_instance_valid(Master) else global_position
+	_summon_target=_first_support_below(_summon_origin)
+	_summon_flight=SUMMON_FX.flight_duration(_summon_origin.distance_to(_summon_target))
+	_summon_initialized=true
+func _first_support_below(from:Vector2) -> Vector2:
+	# The same first physical floor that catches the falling body, including
+	# intervening platforms; never teleport the character through a wall.
+	var half_height:float=_body.shape.get_rect().size.y*absf(_body.global_scale.y)*0.5
+	var arena:Rect2=Master.call("mc_arena_rect") if is_instance_valid(Master) else Rect2()
+	var bottom:float=maxf(from.y+64.0,arena.end.y+64.0) if arena.has_area() else from.y+4096.0
+	var exclude:Array[RID]=[get_rid()]
+	if Master is PhysicsBody2D: exclude.append((Master as PhysicsBody2D).get_rid())
+	var ray:=PhysicsRayQueryParameters2D.create(from,Vector2(from.x,bottom),1,exclude)
+	var hit:Dictionary=get_world_2d().direct_space_state.intersect_ray(ray)
+	if not hit.is_empty() and Vector2(hit.normal).y < -0.5:
+		return Vector2(from.x,float(hit.position.y)-half_height-0.01)
+	return Vector2(from.x,(arena.end.y if arena.has_area() else from.y+150.0)-half_height)
+func _advance_summon(dt:float) -> void:
+	_summon_elapsed+=dt
+	if _summon_morph_at>=0.0: return
+	if not landed:
+		if _summon_landed_at>=0.0: _summon_landed_at=-1.0
+		return
+	if _summon_landed_at<0.0: _summon_landed_at=_summon_elapsed
+	if _summon_elapsed <= _summon_flight:
+		_summon_target=global_position
+	if _summon_elapsed >= maxf(_summon_flight,_summon_landed_at)+SUMMON_FX.SHAKE_DURATION:
+		_summon_target=global_position
+		_summon_morph_at=_summon_elapsed
+		if multiplayer.has_multiplayer_peer(): _remote_summon_morph.rpc(_summon_morph_at,_summon_target)
+		if image is Sprite2D: image.visible=true
+		if is_instance_valid(health_bar): health_bar.visible=true
+		_emit_sound("beacon_morph")
+func _start_beacon_hum() -> void:
+	if is_instance_valid(_beacon_hum) and not _beacon_hum.playing: _beacon_hum.play()
+func _stop_beacon_hum() -> void:
+	if is_instance_valid(_beacon_hum) and _beacon_hum.playing: _beacon_hum.stop()
 func get_preview_texture() -> Texture2D: return BEACON_TEXTURE
 func voice_role() -> String: return ""
 func move(_speed:float,_delta:float) -> void: pass
@@ -80,17 +147,27 @@ func body_width() -> float:
 func emitter_width() -> float: return EMITTER.core_width(body_width())
 func beam_width() -> float: return PROFILE.width(emitter_width(),warning_left,firing_left)
 func beam_opacity() -> float: return PROFILE.opacity(warning_left,firing_left)
+func controlled_attack_action() -> void:
+	if not is_player_controlled() or not is_multiplayer_authority() or not active() or _summon_morph_at<0.0 or not has_player_control_aim(): return
+	if warning_left>EPSILON or firing_left>EPSILON or beam_timer>EPSILON: return
+	var point:Vector2=player_control_aim_world_position()
+	for raw:Node in get_tree().get_nodes_in_group("Ball"):
+		if not (raw is ball) or not U.enemy(self,raw): continue
+		if ball.body_point(raw,point).distance_to(point)<=U.radius(raw)+6.0:
+			warning_left=PROFILE.WARNING # Existing vertical beam, now intentionally fired.
+			return
 func step_mob(delta:float) -> void:
 	if not active(): return
 	var master:ball=Master as ball if is_instance_valid(Master) and Master is ball else null
 	if master==null or master.health<=0: queue_free(); return
 	if health<=0 or _death_sound_done: return
-	var target:ball=U.nearest(self)
+	if not _summon_initialized: _initialize_summon()
+	var target:ball=null if is_player_controlled() else U.nearest(self)
 	var remaining:float=maxf(delta,0.0)
 	# Split at physics steps AND phase/pulse boundaries. Even a slow frame samples
 	# a moving ray at each scheduled hit, not all accumulated hits at its final location.
 	while remaining>EPSILON:
-		if _activated and warning_left<=EPSILON and firing_left<=EPSILON and beam_timer<=EPSILON and is_instance_valid(target):
+		if _summon_morph_at>=0.0 and warning_left<=EPSILON and firing_left<=EPSILON and beam_timer<=EPSILON and is_instance_valid(target) and not is_player_controlled():
 			warning_left=PROFILE.WARNING
 			continue
 		var dt:float=minf(remaining,1.0/120.0)
@@ -105,13 +182,15 @@ func step_mob(delta:float) -> void:
 			elif beam_timer>EPSILON: dt=minf(dt,beam_timer)
 		_rebound_left=maxf(_rebound_left-dt,0.0)
 		var horizontal:float=0.0
-		if _activated and not dizziness and bool(Game.Game_Settings.get("Ball_Can_Move",true)):
+		if _summon_morph_at>=0.0 and not dizziness and bool(Game.Game_Settings.get("Ball_Can_Move",true)):
 			var speed:float=maxf(Speed,0.0)*movement_multiplier()
 			if _rebound_left>0:
 				horizontal=_rebound_heading*speed
+			elif is_player_controlled(): horizontal=player_control_direction.x*speed
 			elif is_instance_valid(target):
 				horizontal=clampf((target.global_position.x-global_position.x)/dt,-speed,speed)
 		_gravity_step(dt,horizontal)
+		_advance_summon(dt)
 		beam_direction=Vector2.UP
 		beam_end=_clipped_beam()
 		remaining-=dt
@@ -129,7 +208,9 @@ func step_mob(delta:float) -> void:
 					# later when it fades. The warning itself grants nothing.
 					last_buff=BUFFS[rng.randi_range(0,BUFFS.size()-1)]
 					master.call("apply_beacon_buff",last_buff)
+					_emit_sound("beacon_activate")
 					_emit_sound("beacon_power")
+					_start_beacon_hum()
 			2:
 				firing_left=maxf(firing_left-dt,0.0)
 				tick_left-=dt
@@ -140,6 +221,7 @@ func step_mob(delta:float) -> void:
 					tick_left+=PROFILE.INTERVAL
 				if firing_left<=EPSILON:
 					firing_left=0.0
+					_stop_beacon_hum()
 					_emit_sound("beacon_deactivate")
 					beams_fired+=1
 					beam_timer=10.0
@@ -189,7 +271,11 @@ func _gravity_step(dt:float,horizontal:float) -> void:
 				velocity.x=absf(motion_x)*_rebound_heading
 				_last_requested_velocity=Vector2(motion_x,0.0)
 				when_collide(absf(motion_x),side)
-	fall_speed=minf(fall_speed+GRAVITY*dt,TERMINAL_SPEED)
+	# Keep physical gravity/landing. While held, vertical WASD can lift or
+	# descend the activated beacon; letting go returns to the original gravity.
+	if is_player_controlled() and _activated and not dizziness and bool(Game.Game_Settings.get("Ball_Can_Move",true)) and absf(player_control_direction.y)>0.01:
+		fall_speed=player_control_direction.y*maxf(Speed,0.0)*movement_multiplier()
+	else: fall_speed=minf(fall_speed+GRAVITY*dt,TERMINAL_SPEED)
 	velocity.y=fall_speed
 	var down:KinematicCollision2D=move_and_collide(Vector2(0.0,fall_speed*dt),false,0.001,false)
 	landed=down!=null and down.get_normal().y < -0.5
@@ -198,8 +284,6 @@ func _gravity_step(dt:float,horizontal:float) -> void:
 		velocity.y=0.0
 	if landed and not _activated:
 		_activated=true
-		if image is Sprite2D: image.visible=true
-		_emit_sound("beacon_activate")
 func beam_origin() -> Vector2:
 	return global_position+EMITTER.beam_tip(body_width())
 func ring_origin() -> Vector2:
@@ -230,8 +314,12 @@ func get_debug_detection_regions() -> Array[Dictionary]:
 	var rect:Rect2=beam_rect()
 	return [{"shape":"rect","position":rect.get_center(),"half_extents":rect.size*0.5,"rotation":0.0}]
 func Die() -> void:
+	var active_beam:bool=firing_left>EPSILON
+	_stop_beacon_hum()
+	if active_beam and is_multiplayer_authority(): _emit_sound("beacon_deactivate")
 	warning_left=0.0
 	firing_left=0.0
+	if is_instance_valid(_summon_fx): _summon_fx.call("render",_summon_elapsed,_summon_origin,_summon_target,_summon_flight,-1.0,false)
 	if is_instance_valid(_beam_visual): _beam_visual.hide()
 	if is_instance_valid(_core_glow): _core_glow.hide()
 	if is_instance_valid(_ring_back): _ring_back.hide()
@@ -239,6 +327,9 @@ func Die() -> void:
 	if is_instance_valid(Master) and Master.has_method("apply_beacon_buff"): Master.call("apply_beacon_buff","")
 	super.Die()
 func visual_mob() -> void:
+	if is_instance_valid(_summon_fx):
+		var morph_age:float=_summon_elapsed-_summon_morph_at if _summon_morph_at>=0.0 else -1.0
+		_summon_fx.call("render",_summon_elapsed,_summon_origin,_summon_target,_summon_flight,morph_age,health>0 and not _death_sound_done)
 	if image is Sprite2D:
 		var strength:float=PROFILE.shake(warning_left)
 		# Cosmetic only: neither the physics body nor the upward ray shakes/rotates.
@@ -250,27 +341,53 @@ func _emit_sound(event:String) -> void:
 @rpc("authority","call_remote","reliable")
 func _remote_sound(event:String,point:Vector2) -> void: VANILLA_SOUND.play(self,event,point)
 func visual_state() -> Dictionary:
-	return {"time":clock,"activated":_activated,"landed":landed,"warning":warning_left,"firing":firing_left,"beam_end":beam_end}
+	return {"time":clock,"activated":_activated,"landed":landed,"warning":warning_left,"firing":firing_left,"beam_end":beam_end,
+		"summon_origin":_summon_origin,"summon_target":_summon_target,"summon_flight":_summon_flight,
+		"summon_elapsed":_summon_elapsed,"summon_morph_at":_summon_morph_at}
 func accept_visual(data:Dictionary) -> void:
 	super.accept_visual(data)
+	_summon_origin=data.get("summon_origin",_summon_origin)
+	_summon_target=data.get("summon_target",_summon_target)
+	_summon_flight=float(data.get("summon_flight",_summon_flight))
+	_summon_elapsed=float(data.get("summon_elapsed",_summon_elapsed))
+	_summon_morph_at=float(data.get("summon_morph_at",_summon_morph_at))
+	_summon_initialized=true
 	_activated=bool(data.get("activated",_activated))
 	landed=bool(data.get("landed",landed))
 	warning_left=float(data.get("warning",0.0))
 	firing_left=float(data.get("firing",0.0))
 	beam_end=data.get("beam_end",beam_end)
-	if image is Sprite2D: image.visible=_activated
+	if image is Sprite2D: image.visible=_summon_morph_at>=0.0
+	if is_instance_valid(health_bar): health_bar.visible=_summon_morph_at>=0.0
+@rpc("authority","call_remote","reliable")
+func _remote_summon_morph(at:float,at_position:Vector2) -> void:
+	_summon_elapsed=maxf(_summon_elapsed,at)
+	_summon_target=at_position
+	_summon_morph_at=at
+	_summon_initialized=true
+	if is_instance_valid(health_bar): health_bar.visible=true
+	_emit_sound("beacon_morph")
 func client_visual_step(delta:float) -> void:
 	# Interpolate the supplied phase locally instead of visibly stepping at RPC rate.
 	if not is_combat_runtime_active(): return
+	if health>0: _summon_elapsed+=maxf(delta,0.0)
 	if warning_left>0:
 		var over:float=maxf(delta-warning_left,0.0)
 		warning_left=maxf(warning_left-delta,0.0)
 		if warning_left==0: firing_left=maxf(PROFILE.FIRING-over,0.0)
 	elif firing_left>0: firing_left=maxf(firing_left-delta,0.0)
-func _draw() -> void:
-	if not _activated: draw_texture_rect(HEART_TEXTURE,Rect2(-16,-16,32,32),false)
 func _process(delta:float) -> void:
 	super._process(delta)
+	if is_instance_valid(_beacon_hum):
+		if firing_left>EPSILON and health>0 and not _death_sound_done:
+			if is_combat_runtime_active(): _start_beacon_hum()
+		else: _stop_beacon_hum()
+		# Set pause *after* play: AudioStreamPlayer2D.play() clears stream_paused.
+		var suspended:bool=not is_combat_runtime_active()
+		_beacon_hum.stream_paused=suspended
+		# The headless/null audio driver ignores stream_paused; keep pause silent
+		# on all audio backends without restarting the ambient loop on unpause.
+		_beacon_hum.volume_db=-80.0 if suspended else -4.0
 	if is_instance_valid(_beam_visual):
 		_beam_visual.global_transform=Transform2D(0.0,beam_origin())
 		_beam_visual.call("update_beam",maxf(beam_origin().y-beam_end.y,0.0),_view_clock,beam_width(),beam_opacity(),warning_left>0 and health>0,firing_left>0 and health>0,emitter_width())
@@ -283,3 +400,8 @@ func _process(delta:float) -> void:
 			ring.global_transform=Transform2D(0.0,ring_origin())
 			ring.call("update_ring",ring_age,body_width(),health>0 and not _death_sound_done)
 	queue_redraw()
+func _exit_tree() -> void:
+	if firing_left>EPSILON and is_multiplayer_authority() and get_tree().current_scene!=null:
+		_emit_sound("beacon_deactivate")
+	_stop_beacon_hum()
+	super._exit_tree()

@@ -236,7 +236,7 @@ func _fly_out(delta:float) -> void:
 	var candidates:Array[Dictionary]=[]
 	for raw:Node in get_tree().get_nodes_in_group("Ball"):
 		if not GEOMETRY.enemy(unit,raw): continue
-		var t:float = GEOMETRY.sweep_circle(from,to,raw.global_position,GEOMETRY.radius(raw)+3.0)
+		var t:float = GEOMETRY.sweep_circle(from,to,ball.body_point_seg(raw,from,to),GEOMETRY.radius(raw)+3.0)
 		if t<best: candidates.append({"target":raw,"t":t})
 	candidates.sort_custom(func(a:Dictionary,b:Dictionary)->bool: return a.t<b.t)
 	for contact:Dictionary in candidates:

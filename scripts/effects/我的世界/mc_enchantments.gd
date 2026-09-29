@@ -101,7 +101,7 @@ static func apply_hit_effects(actor:ball,source:ball,target:ball,mode:String,tag
 	var dist:float = float(proc.get("knockback_distance",0.0))
 	if dist > 0.0:
 		var origin:Vector2 = source.global_position if is_instance_valid(source) else actor.global_position
-		var direction:Vector2 = (target.global_position-origin).normalized()
+		var direction:Vector2 = (ball.body_point(target,origin)-origin).normalized()
 		if direction != Vector2.ZERO: target.apply_knockback(direction,dist,420.0,0.0,0.0,{"source":actor})
 	var burn:float = float(proc.get("burn_seconds",0.0))
 	if burn > 0.0 and target.can_receive_fire_status():

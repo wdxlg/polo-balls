@@ -1,7 +1,8 @@
 extends ball
+const U=preload("res://scripts/characters/我的世界/new5/utils.gd")
 
 const HEAD_TEXTURE:Texture2D = preload("res://Images/characters/我的世界/苦力怕/苦力怕头.png")
-const EXPLOSION_EFFECT_SCENE:PackedScene = preload("res://scenes/effects/魔角猎人_爆炸特效.tscn")
+const EXPLOSION_EFFECT_SCENE:PackedScene = preload("res://scenes/effects/我的世界/MC爆炸.tscn")
 const DEATH_SMOKE_FRAMES:SpriteFrames = preload("res://scenes/effects/我的世界/蠹虫死亡烟雾.tres")
 const FUSE_SOUND:AudioStream = preload("res://audio/characters/我的世界/苦力怕/爆炸准备.ogg")
 const DEATH_SOUND:AudioStream = preload("res://audio/characters/我的世界/苦力怕/死亡.ogg")
@@ -93,6 +94,7 @@ var _rotation_recovery_from:float = 0.0
 
 
 func _ready() -> void:
+	manual_controllable_subentity = true
 	Has_Collision_Damage = false
 	Can_Attack = false
 	Can_Skill = false
@@ -145,7 +147,7 @@ func tick_physics(state:State,delta:float) -> void:
 	if _post_launch_normal_move and Speed > 0.0 and not dizziness:
 		# V88：飞行结束后就是普通移动阶段。若方向被其它公共逻辑清空，
 		# 在允许角色移动时立刻补一个方向，避免二阶段头再次永久停住。
-		if direction.length_squared() <= 0.000001 and Game.Game_Settings.Ball_Can_Move:
+		if direction.length_squared() <= 0.000001 and Game.Game_Settings.Ball_Can_Move and not is_player_controlled():
 			direction = Vector2.RIGHT.rotated(_rng.randf_range(0.0,TAU))
 		effective_state = State.Move
 	super.tick_physics(effective_state,delta)
@@ -367,17 +369,17 @@ func stand(delta:float) -> void:
 
 
 func _update_fuse_logic(_delta:float) -> void:
-	var nearest:ball = _nearest_enemy()
+	var nearest:ball = null if is_player_controlled() else _nearest_enemy()
 	if not _fusing:
-		if nearest != null and global_position.distance_to(nearest.global_position) <= fuse_start_radius:
+		if nearest != null and global_position.distance_to(ball.body_point(nearest,global_position)) <= fuse_start_radius:
 			_begin_fuse(nearest)
 		return
 
 	var tracked:ball = _resolve_fuse_target()
 	var active_target:ball = null
-	if tracked != null and global_position.distance_to(tracked.global_position) <= fuse_cancel_radius:
+	if tracked != null and global_position.distance_to(ball.body_point(tracked,global_position)) <= fuse_cancel_radius:
 		active_target = tracked
-	elif nearest != null and global_position.distance_to(nearest.global_position) <= fuse_cancel_radius:
+	elif nearest != null and global_position.distance_to(ball.body_point(nearest,global_position)) <= fuse_cancel_radius:
 		active_target = nearest
 
 	if active_target != null:
@@ -389,6 +391,21 @@ func _update_fuse_logic(_delta:float) -> void:
 		_explode()
 	elif not _fuse_advancing and _fuse_elapsed <= 0.0:
 		_cancel_fuse()
+
+func controlled_attack_action() -> void:
+	if not is_player_controlled() or not is_multiplayer_authority() or _launch_active or _fusing or _exploded or _death_sequence_started or not has_player_control_aim(): return
+	if not is_combat_runtime_active() or is_damage_output_disabled(): return
+	var point:Vector2=player_control_aim_world_position()
+	var chosen:ball=null
+	var nearest:float=INF
+	for raw:Node in get_tree().get_nodes_in_group("Ball"):
+		if not (raw is ball) or not _is_enemy(raw as ball): continue
+		var distance:float=ball.body_point(raw,point).distance_to(point)
+		if distance<=U.radius(raw)+6.0 and distance<nearest:
+			chosen=raw as ball
+			nearest=distance
+	if chosen!=null and global_position.distance_to(ball.body_point(chosen,global_position))<=fuse_start_radius:
+		_begin_fuse(chosen)
 
 
 func _begin_fuse(target:ball) -> void:
@@ -613,7 +630,7 @@ func _explode() -> void:
 		var target:ball = raw as ball
 		if not _is_enemy(target):
 			continue
-		if target.global_position.distance_to(point) > explosion_radius:
+		if ball.body_point(target,point).distance_to(point) > explosion_radius:
 			continue
 		var accepted:bool = target.receive_spatial_damage(
 			effective_outgoing_damage(explosion_damage),
@@ -623,7 +640,7 @@ func _explode() -> void:
 		)
 		if not accepted:
 			continue
-		var push:Vector2 = target.global_position - point
+		var push:Vector2 = ball.body_point(target,point) - point
 		if push.length_squared() <= 0.000001:
 			push = Vector2.RIGHT.rotated(_rng.randf_range(0.0,TAU))
 		target.apply_knockback(push.normalized(),knockback_distance,knockback_speed,0.0,0.0,{"source":self,"max_wall_bounces":0,"stop_on_character":true})
@@ -639,7 +656,7 @@ func _explode() -> void:
 
 
 @rpc("authority","call_local","reliable")
-func _rpc_explosion_visual(point:Vector2,variant:int,diameter:float) -> void:
+func _rpc_explosion_visual(point:Vector2,_variant:int,diameter:float) -> void:
 	_exploded = true
 	_fusing = false
 	_fuse_advancing = false
@@ -661,14 +678,13 @@ func _rpc_explosion_visual(point:Vector2,variant:int,diameter:float) -> void:
 	var effect:Node2D = EXPLOSION_EFFECT_SCENE.instantiate() as Node2D
 	if effect == null:
 		return
-	effect.set("variant",clampi(variant,1,3))
-	effect.set("visual_diameter",maxf(diameter,16.0))
+	effect.set("radius",maxf(diameter*0.5,8.0))
 	effect.set("volume_db",-7.0)
 	# 和本体一样：这是 RPC 本地视觉，避开 World 根节点的 MultiplayerSpawner。
 	effect.name = "CreeperHeadExplosionVisual"
 	effect.top_level = true
 	effect.position = point
-	add_child(effect,true)
+	load("res://scripts/effects/我的世界/mc_explosion.gd").runtime_container(self).add_child(effect,true)
 	effect.global_position = point
 
 
@@ -681,7 +697,7 @@ func _nearest_enemy() -> ball:
 		var candidate:ball = raw as ball
 		if not _is_enemy(candidate):
 			continue
-		var d:float = global_position.distance_squared_to(candidate.global_position)
+		var d:float = global_position.distance_squared_to(ball.body_point(candidate,global_position))
 		if d < nearest_distance_sq:
 			nearest_distance_sq = d
 			nearest = candidate

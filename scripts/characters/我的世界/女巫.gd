@@ -1,4 +1,5 @@
 extends ball
+const U=preload("res://scripts/characters/我的世界/new5/utils.gd")
 
 const NATIVE_MODEL_ANIMATION = preload("res://scripts/effects/我的世界/mc_native_batch2.gd")
 var _native_mob_animation:Node
@@ -100,10 +101,10 @@ func tick_physics(state:State,delta:float) -> void:
 		return
 
 	if _decision_pending:
-		_decision_left -= delta
 		_update_ready_potion_visual()
-		if _decision_left <= 0.0:
-			_execute_brew_decision()
+		if not is_player_controlled():
+			_decision_left -= delta
+			if _decision_left <= 0.0: _execute_brew_decision()
 		return
 
 	if _brewing:
@@ -114,8 +115,28 @@ func tick_physics(state:State,delta:float) -> void:
 		return
 
 	_brew_left -= delta
-	if _brew_left <= 0.0:
+	if not is_player_controlled() and _brew_left <= 0.0:
 		_begin_brew()
+
+func controlled_attack_action() -> void:
+	if not is_player_controlled() or not is_multiplayer_authority() or not is_combat_runtime_active() or _action_busy or _brewing: return
+	if not _decision_pending:
+		if _brew_left<=0.0: _begin_brew()
+		return
+	if _find_nearest_enemy_for_potion()==null: return
+	var effect:String=_pending_effect
+	_pending_effect=""
+	_decision_pending=false
+	_throw_potion(effect)
+func controlled_skill_action() -> void:
+	if not is_player_controlled() or not is_multiplayer_authority() or not is_combat_runtime_active() or _action_busy or _brewing: return
+	if not _decision_pending:
+		if _brew_left<=0.0: _begin_brew()
+		return
+	var effect:String=_pending_effect
+	_pending_effect=""
+	_decision_pending=false
+	_drink_potion(effect)
 
 
 func _update_hurt_audio(delta:float) -> void:
@@ -293,12 +314,24 @@ func _throw_potion(effect:String) -> void:
 		start = _brew_visual.global_position
 	_hide_brew_visual()
 	# 抛出时锁定敌人的这一刻位置；后续不追踪，保证是真正的抛物线。
-	var target_point:Vector2 = target.global_position
+	var target_point:Vector2 = ball.body_point(target,global_position)
 	projectile.call("setup",start,target_point,effect,self,held_visual_transform)
 	_schedule_next_brew()
 
 
 func _find_nearest_enemy_for_potion() -> ball:
+	if is_player_controlled():
+		if not has_player_control_aim(): return null
+		var point:Vector2=player_control_aim_world_position()
+		var aimed:ball=null
+		var closest:float=INF
+		for raw:Node in get_tree().get_nodes_in_group("Ball"):
+			if not (raw is ball) or not _is_valid_potion_enemy(raw as ball): continue
+			var distance:float=ball.body_point(raw,point).distance_to(point)
+			if distance<=U.radius(raw)+6.0 and distance<closest:
+				aimed=raw as ball
+				closest=distance
+		return aimed
 	if is_instance_valid(Nearest_Enemy) and Nearest_Enemy is ball:
 		var nearest:ball = Nearest_Enemy as ball
 		if _is_valid_potion_enemy(nearest):
@@ -311,7 +344,7 @@ func _find_nearest_enemy_for_potion() -> ball:
 		var candidate:ball = node as ball
 		if not _is_valid_potion_enemy(candidate):
 			continue
-		var d:float = global_position.distance_squared_to(candidate.global_position)
+		var d:float = global_position.distance_squared_to(ball.body_point(candidate,global_position))
 		if d < best_distance_sq:
 			best_distance_sq = d
 			best = candidate

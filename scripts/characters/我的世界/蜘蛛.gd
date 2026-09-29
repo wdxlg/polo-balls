@@ -55,20 +55,35 @@ func tick_physics(state:State,delta:float) -> void:
 		if not GEOMETRY.enemy(self,target):
 			_end_lunge()
 			return
-		_lunge_direction = global_position.direction_to(target.global_position)
+		_lunge_direction = global_position.direction_to(ball.body_point(target,global_position))
 		_try_lunge_hit(target)
 		if _lunge_left<=0.0 and not _lunge_hit: _end_lunge()
-func hunt_web_target(target:Variant) -> bool:
+func hunt_web_target(target:Variant,manual:bool=false) -> bool:
+	# A web contact can still slow/damage passively, but cannot start an AI
+	# lunge while this spider is selected. The left-click uses this same lunge.
+	if is_player_controlled() and not manual: return false
 	if not mc_live() or Game.now_stop_state or dizziness or _lunge_wait>0.0 or _lunge_left>0.0: return false
 	if not GEOMETRY.enemy(self,target): return false
 	_lunge_target = weakref(target)
 	_lunge_wait = maxf(lunge_interval,0.1)
-	_lunge_direction = global_position.direction_to(target.global_position)
-	_lunge_left = clampf(global_position.distance_to(target.global_position)/maxf(lunge_speed*0.6,1.0)+0.3,0.15,3.0)
+	_lunge_direction = global_position.direction_to(ball.body_point(target,global_position))
+	_lunge_left = clampf(global_position.distance_to(ball.body_point(target,global_position))/maxf(lunge_speed*0.6,1.0)+0.3,0.15,3.0)
 	_lunge_hit = false
 	_lunge_elapsed = 0.0
 	_last_lunge_position = global_position
 	return true
+func controlled_attack_action() -> void:
+	if not is_player_controlled() or not is_multiplayer_authority() or not has_player_control_aim(): return
+	var point:Vector2=player_control_aim_world_position()
+	var chosen:ball=null
+	var nearest:float=INF
+	for raw:Node in get_tree().get_nodes_in_group("Ball"):
+		if not GEOMETRY.enemy(self,raw) or not raw.is_combat_lockable(): continue
+		var distance:float=ball.body_point(raw,point).distance_to(point)
+		if distance<=GEOMETRY.radius(raw)+6.0 and distance<nearest:
+			chosen=raw as ball
+			nearest=distance
+	if chosen!=null: hunt_web_target(chosen,true)
 func _try_lunge_hit(target:ball) -> void:
 	if _lunge_hit: return
 	var reach:float = GEOMETRY.radius(self)+GEOMETRY.radius(target)+5.0
@@ -76,10 +91,10 @@ func _try_lunge_hit(target:ball) -> void:
 		_last_lunge_position = global_position
 		return
 	# Walls between the spider and its prey still block the attack.
-	if not mc_line_clear(global_position,target.global_position): return
+	if not mc_line_clear(global_position,ball.body_point(target,global_position)): return
 	_lunge_hit = true
 	_lunge_left = 0.0
-	var hit_point:Vector2 = target.global_position # Damage may immediately remove the victim.
+	var hit_point:Vector2 = ball.body_point(target,global_position) # Damage may immediately remove the victim.
 	var dealt:bool = mc_damage_with_impact(target,attack_damage()*lunge_damage_ratio,hit_point)
 	if dealt and is_instance_valid(mc_native_animation):
 		mc_native_animation.trigger_spider_impact(hit_point)
@@ -89,7 +104,11 @@ func _end_lunge() -> void:
 	if is_instance_valid(mc_native_animation): mc_native_animation.trigger_action(&"land",0.18)
 func move(speed:float,delta:float) -> void:
 	if _lunge_left>0.0: direction = _lunge_direction
+	var override_input:bool=is_player_controlled() and _lunge_left>0.0
+	var saved_input:Vector2=player_control_direction
+	if override_input: player_control_direction=_lunge_direction
 	super.move(lunge_speed if _lunge_left>0.0 else speed,delta)
+	if override_input: player_control_direction=saved_input
 	# The primary collision may be another actor; inspect every slide for walls.
 	if mc_live() and not dizziness:
 		for i:int in range(get_slide_collision_count()):

@@ -39,14 +39,21 @@ func step_mob(delta:float) -> void:
 	if is_player_controlled(): desired=player_control_direction*float_speed
 	drift=drift.lerp(desired,1.0-exp(-delta*1.8))
 	direction=drift.normalized()
-	if can_act() and target!=null and global_position.distance_to(target.global_position)<=shot_range and _shot_left>0 and _shot_left<=0.55 and not _warned:
+	if not is_player_controlled() and can_act() and target!=null and global_position.distance_to(ball.body_point(target,global_position))<=shot_range and _shot_left>0 and _shot_left<=0.55 and not _warned:
 		_warned=true
 		_shoot_pose=0.55
 		play_sound("entity.ghast.warn",-9.0)
-	if can_act() and _shot_left<=0 and target!=null and global_position.distance_to(target.global_position)<=shot_range:
-		fire_at(target.global_position)
+	if not is_player_controlled() and can_act() and _shot_left<=0 and target!=null and global_position.distance_to(ball.body_point(target,global_position))<=shot_range:
+		fire_at(ball.body_point(target,global_position))
 		_shot_left=shot_interval
 		_warned=false
+
+func controlled_attack_action() -> void:
+	if not is_player_controlled() or not is_multiplayer_authority() or not can_act() or _shot_left>0: return
+	fire_at(player_control_aim_world_position(global_position+direction*shot_range))
+	_shot_left=shot_interval
+	_warned=false
+
 @export var fireball_damage_multiplier:float=2.0
 func fire_at(point:Vector2) -> Node2D:
 	play_sound("entity.ghast.shoot",-5.0)

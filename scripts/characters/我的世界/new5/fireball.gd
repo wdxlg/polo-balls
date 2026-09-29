@@ -111,8 +111,8 @@ func step_mob(delta:float) -> void:
 		if not U.enemy(self,target,true): continue
 		if target.has_method("is_builder_wall") and target.is_builder_wall():
 			if reflected: continue
-		var closest:Vector2=Geometry2D.get_closest_point_to_segment(target.global_position,start,end)
-		if closest.distance_to(target.global_position)>U.radius(target)+5.0: continue
+		var closest:Vector2=Geometry2D.get_closest_point_to_segment(ball.body_point_seg(target,start,end),start,end)
+		if closest.distance_to(ball.body_point(target,closest))>U.radius(target)+5.0: continue
 		var d:float=start.distance_to(closest)
 		if d<best:
 			if target.has_method("try_full_projectile_dodge") and bool(target.call("try_full_projectile_dodge",self)): continue
@@ -128,7 +128,7 @@ func explode() -> void:
 	exploded=true
 	for target:Node in get_tree().get_nodes_in_group("Ball"):
 		if not U.enemy(self,target,true): continue
-		var offset:Vector2=target.global_position-global_position
+		var offset:Vector2=ball.body_point(target,global_position)-global_position
 		if offset.length()>blast_radius+U.radius(target): continue
 		if not U.trace(self,global_position,target.global_position,true,reflected).is_empty(): continue
 		# Neutral from launch: the caster and teammates can always take blast damage.

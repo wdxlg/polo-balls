@@ -660,35 +660,12 @@ func _path_clear(start:Vector2,end:Vector2,axis:Vector2) -> bool:
 
 func damage_segment(start:Vector2,end:Vector2,width:float,multiplier:float,hits:Dictionary,knockback:float,source_anchor:Vector2=Vector2.INF,accent:bool=false) -> void:
 	if not _live() or dizziness or is_damage_output_disabled(): return
-	var shape := CapsuleShape2D.new()
-	shape.radius = maxf(width,0.2)
-	shape.height = start.distance_to(end)+shape.radius*2.0
-	var pose := Transform2D((end-start).angle()-PI*0.5,(start+end)*0.5)
-	for raw:Node in TOOLS.targeting_candidates(self):
-		if not _enemy(raw) or hits.has(raw.get_instance_id()): continue
-		var area:Area2D = raw.self_hurtbox
-		if area == null: continue
-		var touches:bool = false
-		for child:Node in area.get_children():
-			if child is CollisionShape2D and not child.disabled and child.shape!=null:
-				if shape.collide(pose,child.shape,child.global_transform):
-					touches = true
-					break
-		if not touches: continue
-		var point:Vector2 = Geometry2D.get_closest_point_to_segment(combat_target_position(raw),start,end)
-		# A returning long echo tip must not hit behind a wall just because its
-		# previous endpoint was on the far side. Keep its fixed-origin visibility.
-		if source_anchor.is_finite():
-			var origin_ray := PhysicsRayQueryParameters2D.create(source_anchor,point,1,[get_rid()])
-			if not get_world_2d().direct_space_state.intersect_ray(origin_ray).is_empty(): continue
-		# Reject through-wall damage, including stationary echoes spawned beside walls.
-		var reach_ray := PhysicsRayQueryParameters2D.create(start,point,1,[get_rid()])
-		if not get_world_2d().direct_space_state.intersect_ray(reach_ray).is_empty(): continue
-		var ray := PhysicsRayQueryParameters2D.create(point,combat_target_position(raw),1,[get_rid()])
-		if not get_world_2d().direct_space_state.intersect_ray(ray).is_empty(): continue
+	for contact:Dictionary in preload("res://classes/weapon_tip_sweep.gd").contacts(self,start,end,width,hits,source_anchor):
+		var raw:ball = contact.target
+		var point:Vector2 = contact.point
 		hits[raw.get_instance_id()] = true
 		var health_before:float = maxf(float(raw.health),0.0)
-		var sound_point:Vector2 = raw.global_position
+		var sound_point:Vector2 = ball.body_point(raw,global_position)
 		var accepted:bool = raw.receive_spatial_damage(attack_damage(multiplier),{"point":point,"source":self})
 		var health_after:float = maxf(float(raw.health),0.0) if is_instance_valid(raw) else 0.0
 		var actual:float = maxf(health_before-health_after,0.0)
@@ -704,7 +681,7 @@ func damage_segment(start:Vector2,end:Vector2,width:float,multiplier:float,hits:
 			_play_damage_impact(sound_point,actual)
 			if multiplayer.has_multiplayer_peer(): _play_damage_impact.rpc(sound_point,actual)
 		if accepted and knockback>0.0 and is_instance_valid(raw) and raw.health>0:
-			var push:Vector2 = (raw.global_position-global_position).normalized()
+			var push:Vector2 = (ball.body_point(raw,global_position)-global_position).normalized()
 			raw.apply_knockback(push,knockback,380.0,0.0,0.0,{"source":self})
 
 func _target_extent(target:ball,axis:Vector2) -> float:

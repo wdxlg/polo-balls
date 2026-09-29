@@ -156,7 +156,7 @@ func _facing_toward(target:ball,fallback:bool) -> bool:
 
 func _aim_angle(target:ball = null) -> float:
 	var aim:Vector2 = Vector2.RIGHT if _face_right else Vector2.LEFT
-	if is_instance_valid(target): aim = target.global_position-global_position
+	if is_instance_valid(target): aim = ball.body_point(target,global_position)-global_position
 	elif has_player_control_aim(): aim = player_control_aim_direction(aim)
 	if aim.length_squared()<0.0001: aim = Vector2.RIGHT if _face_right else Vector2.LEFT
 	return graphics.global_transform.basis_xform_inv(aim).angle()
@@ -374,9 +374,9 @@ func _select_swing_target() -> ball:
 	for raw:Node in SubmissionCharacterTools.targeting_candidates(self):
 		if not mc_enemy(raw) or not raw.is_combat_lockable(): continue
 		var candidate:ball = raw as ball
-		var distance:float = global_position.distance_squared_to(candidate.global_position)
+		var distance:float = global_position.distance_squared_to(ball.body_point(candidate,global_position))
 		if distance>=closest or distance>pow(reach+U.radius(candidate),2.0): continue
-		if not U.line_clear(self,global_position,candidate.global_position): continue
+		if not U.line_clear(self,global_position,ball.body_point(candidate,global_position)): continue
 		_face_right = saved_facing if keep_parity else _facing_toward(candidate,saved_facing)
 		_swing_aim_to = _aim_angle(candidate)
 		_swing_aim_from = saved_to if _holding_pose else _swing_aim_to
@@ -408,7 +408,7 @@ func _contacts_at(pose:Transform2D) -> Array[ball]:
 		var raw:Node = collider
 		while is_instance_valid(raw) and not raw is ball: raw = raw.get_parent()
 		if not raw is ball or collider!=raw.self_hurtbox or not mc_enemy(raw): continue
-		if not U.line_clear(self,global_position,raw.global_position): continue
+		if not U.line_clear(self,global_position,ball.body_point(raw,global_position)): continue
 		if raw not in result: result.append(raw as ball)
 	return result
 
@@ -430,7 +430,7 @@ func _sample_swing(next_phase:float) -> void:
 			var id:int = target.get_instance_id()
 			if _swing_hits.has(id): continue
 			_swing_hits[id] = true
-			var point:Vector2 = target.global_position
+			var point:Vector2 = ball.body_point(target,global_position)
 			if _damage_with_feedback(target,attack_damage(),point):
 				_swing_connected = true
 				_combo_left = combo_reset_delay
@@ -485,6 +485,7 @@ func _on_lightning_impact(point:Vector2,cleansing:bool) -> void:
 		if not _cleanse_pending: return
 		_cleanse_pending = false
 		if not Can_Skill or is_damage_output_disabled(): return
+		cleanse_negative_effects() # Only the completed natural rust-cycle bolt, never hit lightning.
 		rust = 0.0
 		charged_left = maxf(charged_duration,0.0)
 		cleanse_count += 1
@@ -495,12 +496,15 @@ func _on_lightning_impact(point:Vector2,cleansing:bool) -> void:
 	var stun_time:float = lightning_stun if cleansing else hit_lightning_stun
 	for raw:Node in get_tree().get_nodes_in_group("Ball"):
 		if not GEOMETRY.enemy(self,raw): continue
-		if point.distance_to(raw.global_position)>lightning_radius+GEOMETRY.radius(raw): continue
+		if point.distance_to(ball.body_point(raw,point))>lightning_radius+GEOMETRY.radius(raw): continue
 		# Deliberately does not use the melee callback: lightning cannot proc itself.
 		if _damage_with_feedback(raw,attack_damage()*ratio,point) and is_instance_valid(raw) and raw.health>0:
 			raw.apply_stun(stun_time)
 	visual_mob()
 
+func player_control_action_ids() -> Array[StringName]:
+	# Oxidation/lightning reaction is passive; Skill() only clears the state flag.
+	return [&"controlled_attack_action"]
 func player_control_action(action_index:int) -> void:
 	# Do not let mouse/target aim overwrite locomotion. The held input connects cuts.
 	if not is_player_controlled() or not is_multiplayer_authority(): return
@@ -618,9 +622,7 @@ func get_debug_attack_regions() -> Array[Dictionary]:
 	for point:Vector2 in _weapon_shapes[_face_right].points: points.append(pose*point)
 	return [{"shape":"polygon","points":points,"damage":attack_damage(),"kind":"copper_sword_blade"}]
 func get_armor_test_effect_summary() -> String:
-	if str(Game.current_locale).begins_with("en"):
-		return "Faces left/right while idle; attacks aim in any direction. Each cut starts slow and finishes fast, flowing directly into the opposite cut without a neutral reset. Stops return quickly to idle. Movement is slightly slower during attacks; fast swings leave fading sword afterimages. Consecutive hits speed up the actual swing up to %.1fx; a miss, interruption or %.2fs without a hit resets the combo.\nOxidizes over %.1fs. At full oxidation, the drowned trident's lightning strikes the sword, clears rust and charges it for %.1fs. Lightning damages and stuns enemies; charged melee hits also call lightning." % [maximum_attack_speed,combo_reset_delay,rust_duration,charged_duration]
-	return "平时随移动朝左/右，攻击按敌人位置任意方向瞄准。每刀先慢后快，上下连续往返，中间不归位；停攻后快速收回，不改变移动方向。攻击时略微减速，高速挥剑产生短暂剑身残影。连续命中加快实际挥剑速度，最高%.1f倍；挥空、被打断或%.2f秒未续上命中重置。\n持续生锈，%.1f秒后完全生锈并引来溺尸三叉戟的雷电劈中自身，清锈并附电%.1f秒。雷击伤害并眩晕敌人，附电期间挥剑命中也会引雷。" % [maximum_attack_speed,combo_reset_delay,rust_duration,charged_duration]
+	return Game.t("MC_ARMOR_INTRO_COPPER_SWORD")
 
 @rpc("authority","call_local","reliable")
 func _death_visual() -> void:

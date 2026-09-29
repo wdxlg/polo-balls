@@ -28,7 +28,7 @@ func _physics_process(delta:float) -> void:
 	if age >= life: queue_free(); return
 	if age < 0.5 or not source.is_multiplayer_authority(): return
 	for node:Node in SubmissionCharacterTools.targeting_candidates(source):
-		if node is ball and source.mc_enemy(node) and node.global_position.distance_to(global_position) <= TOUCH_RADIUS+(node as ball).get_crowd_separation_radius_world():
+		if node is ball and source.mc_enemy(node) and ball.body_point(node,global_position).distance_to(global_position) <= TOUCH_RADIUS+(node as ball).get_crowd_separation_radius_world():
 			# Either flower is a single-use trap. Only an explosion-converted
 			# Wither rose adds the Wither status to its four-point contact hit.
 			consumed = true

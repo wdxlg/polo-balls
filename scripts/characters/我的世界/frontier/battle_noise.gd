@@ -35,9 +35,10 @@ func publish(source:Node,kind:String,point:Vector2 = Vector2.INF) -> bool:
 	var key:String = str(source.get_instance_id())+":"+kind
 	if float(_next_event.get(key,-1.0))>clock: return false
 	_next_event[key] = clock+(0.25 if kind=="attack" else 0.20 if kind=="collision" else 0.14)
-	var origin:Vector2 = source.global_position if not point.is_finite() else point
 	for listener:Node in get_tree().get_nodes_in_group("MCWardenListener"):
 		if is_instance_valid(listener) and not listener.is_queued_for_deletion():
+			# A tall body (grown cactus) is heard from its part nearest to each listener.
+			var origin:Vector2 = point if point.is_finite() else ball.body_point(source,listener.global_position)
 			listener.hear_noise(source,origin,kind,float(POWER[kind]))
 	return true
 func sample_actions() -> void:

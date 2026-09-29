@@ -144,7 +144,7 @@ func _nearest_enemy() -> ball:
 	var distance:float = INF
 	for raw:Node in SubmissionCharacterTools.targeting_candidates(self):
 		if not mc_enemy(raw) or not raw.is_combat_lockable(): continue
-		var d:float = global_position.distance_squared_to(raw.global_position)
+		var d:float = global_position.distance_squared_to(ball.body_point(raw,global_position))
 		if d<distance:
 			distance = d
 			result = raw as ball
@@ -567,7 +567,7 @@ func _contacts_at(point:Vector2) -> Array[ball]:
 		# Once the bottom has passed the victim's center it is no longer pressing
 		# from above. Side/rear/deeply overlapped bodies cannot take crush ticks.
 		if target.self_hurtbox.global_position.y<strip.position.y: continue
-		if not U.line_clear(self,point,target.global_position): continue
+		if not U.line_clear(self,point,ball.body_point(target,point)): continue
 		if target not in result: result.append(target as ball)
 	return result
 func _land(collision:KinematicCollision2D = null) -> void:
@@ -715,8 +715,11 @@ func Skill() -> void:
 	if not begin_slam(): Using_Skill = _active_slam
 func Attack() -> void: Attacking = false
 func controlled_skill_action() -> void: Skill()
+func player_control_action_ids() -> Array[StringName]:
+	# Attack() is inert; slam is the only active action and therefore uses left click.
+	return [&"controlled_skill_action"]
 func player_control_action(index:int) -> void:
-	if is_player_controlled() and index==1: Skill()
+	if index==0 and is_player_controlled() and is_multiplayer_authority(): Skill()
 func visual_mob() -> void:
 	if not is_instance_valid(image): return
 	set_character_visual_flip_h(false)
@@ -804,9 +807,8 @@ func _client_drop_step(dt:float) -> void:
 		_fall_track_valid = false
 		slam_phase = SlamPhase.GROUND # Wait for the authority to confirm landing/repeat.
 func get_armor_test_effect_summary() -> String:
-	if str(Game.current_locale).begins_with("en"):
-		return "Roams left/right and rebounds from walls while obeying gravity. Only downward landings on terrain/obstacles play the anvil clang; horizontal rebounds use normal collision sound and effects, not the anvil clang. Skill follows a collision-aware parabola kept entirely inside the current map/island. Hitting terrain during the jump immediately starts a slam from that contact point; otherwise the vertical arc flows directly into the drop without hovering or resetting horizontal/downward speed. The jump arc ignores character bodies in both directions while terrain collision and its vulnerable hurtbox remain active; normal body collision returns when the arc ends. Takeoff applies half the former horizontal impulse from target X displacement divided by jump duration; the pursuit speed budget is also halved (80 to 40 base units/s). Vertical jump/fall and ordinary cruising are unchanged. Jump and fall continuously pursue the target using one shared velocity and limited acceleration: opposite steering must brake existing momentum before reversing. No predicted endpoint, late aim lock or horizontal position snap. Side walls stop blocked momentum without suspending gravity. Downward impact speed scales damage and a bounded downward knockback. After the first impact, enemies still touching the underside take continuous time-scaled crush damage during falling (one speed-scaled damage budget per 0.20s). Leaving contact or landing immediately ends it; side/top contact does not count. Victims blocked below are pushed sideways toward available space, not deeper into walls. Enemy hits do not interrupt the fall: the anvil continues through them to solid terrain. A damaging hit enables the next slam after landing with no combo-count limit; a miss ends the chain and starts the 2.8-second cooldown. First impact knockback is unchanged; sustained pressure pushes at 25% distance without locking voluntary movement. Actual damage above 50 uses the vanilla critical-hit cue, otherwise vanilla hurt; loudness grows from the original 0dB baseline."
-	return "平时受重力影响并左右移动，撞墙或角色后横向反弹；铁砧叮声只在向下砸到地面/障碍物时播放，横向反弹保留正常碰撞音效和效果，不播铁砧叮声，砸中敌人播放受击/暴击并向下击退。起跳时按敌人当时横向位置与跳跃时长计算横向冲量并乘50%，追踪速度预算同步减半（基础80降为有效40），普通巡游和竖向跳落不变，不加预判前置量；上升和下落共用同一个横向速度，持续用有限加速度追踪，反向前必须先抵消当前速度，弧顶按地图空间限制，跳跃弧线期间双向忽略角色身体碰撞，仍受地形阻挡且保留受击框、可以被攻击，结束跳跃后恢复正常角色身体碰撞；跳跃途中碰到障碍物立即从接触处下砸，不穿墙、不飞出当前地图或岛屿，也不再跳到原定终点。无障碍时到位立即衔接下砸，保留向下速度、不悬停、不清零重启，横向位置按速度积分，不再强制套固定弧线或末段锁定目标；到顶转下落保留横向速度，侧墙/边界截停横向冲量但不会让下落悬停。首次砸击后，仅下砸期间对底部仍压住的敌人按接触时间持续结算伤害（每0.20秒对应一份当前落速伤害），不是等待0.20秒才能再扣血；脱离或落地即停，侧面和上方接触不算压伤；敌人下方受阻时改向有空间的一侧推开，双方均堵死则不强推。砸击伤害随实际下落速度增加，砸中敌人不会中断下落，继续砸到底；本次命中后，落到实体地形才自动再砸，命中即可无限续砸，不再限制3砸；落空才进入2.8秒冷却；首次击退保持原强度，后续持续压伤击退距离仅为25%，不锁住敌人自主移动。实际伤害超过50播放原版暴击，否则播放原版受击；以0dB原音量为基准，伤害越高越响。"
+	return Game.t("MC_ARMOR_INTRO_ANVIL")
+
 @rpc("authority","call_local","reliable")
 func _death_visual() -> void:
 	if _death_visual_done: return

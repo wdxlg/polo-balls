@@ -1019,7 +1019,7 @@ func use_held_item(manual:bool = false) -> bool:
 		CATALOG.SLIME_BALL:
 			var target:ball = slime_target(false)
 			if manual and has_player_control_aim(): data["aim"] = global_position + player_control_aim_direction(direction)*minf(slime_range,120.0)
-			elif target != null: data["aim"] = target.global_position
+			elif target != null: data["aim"] = ball.body_point(target,global_position)
 			else: return false
 		CATALOG.HAY:
 			if hay_target() == null:
@@ -1210,8 +1210,8 @@ func slime_target(strict:bool) -> ball:
 		if raw == self or not (raw is ball) or not wt_enemy(raw) or not (raw as ball).is_combat_lockable(): continue
 		var unit:ball = raw as ball
 		if unit.Type not in [Ball_Type.Ball,Ball_Type.Creature]: continue
-		var d:float = global_position.distance_to(unit.global_position)
-		if strict and (d > slime_range or not mc_line_clear(global_position,unit.global_position)): continue
+		var d:float = global_position.distance_to(ball.body_point(unit,global_position))
+		if strict and (d > slime_range or not mc_line_clear(global_position,ball.body_point(unit,global_position))): continue
 		if d < distance:
 			distance = d
 			best = unit
@@ -1224,8 +1224,8 @@ func throw_slime(manual:bool) -> bool:
 		aim = global_position + player_control_aim_direction(direction)*minf(slime_range,120.0)
 		target = null
 	elif target != null:
-		var flight_guess:float = clampf(global_position.distance_to(target.global_position)/220.0,0.35,0.75)
-		aim = target.global_position + target.velocity*flight_guess*0.8
+		var flight_guess:float = clampf(global_position.distance_to(ball.body_point(target,global_position))/220.0,0.35,0.75)
+		aim = ball.body_point(target,global_position) + target.velocity*flight_guess*0.8
 	else:
 		return false
 	var flight:float = clampf(global_position.distance_to(aim)/220.0,0.35,0.75)

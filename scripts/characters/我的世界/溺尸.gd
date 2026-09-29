@@ -110,7 +110,7 @@ func tick_physics(state:State,delta:float) -> void:
 		_refill_left -= delta
 		if _refill_left<=0.0: _new_trident()
 	_advance_trident_throw(delta)
-	if not dizziness and has_trident and _throw_left<0.0:
+	if not is_player_controlled() and not dizziness and has_trident and _throw_left<0.0:
 		var target:ball = mc_nearest(delta)
 		if GEOMETRY.enemy(self,target): throw_trident(target)
 	_sync_left -= delta
@@ -120,6 +120,18 @@ func tick_physics(state:State,delta:float) -> void:
 		for spear:Node in _tridents.values():
 			if is_instance_valid(spear) and not spear.is_queued_for_deletion(): data.append(spear.snapshot())
 		_sync_tridents.rpc(data,_refill_left,_refill_show_left,_catch_left)
+func controlled_attack_action() -> void:
+	if not is_player_controlled() or not is_multiplayer_authority() or not has_player_control_aim(): return
+	var point:Vector2=player_control_aim_world_position()
+	var chosen:ball=null
+	var nearest:float=INF
+	for raw:Node in get_tree().get_nodes_in_group("Ball"):
+		if not GEOMETRY.enemy(self,raw) or not raw.is_combat_lockable(): continue
+		var distance:float=ball.body_point(raw,point).distance_to(point)
+		if distance<=GEOMETRY.radius(raw)+6.0 and distance<nearest:
+			chosen=raw as ball
+			nearest=distance
+	if chosen!=null: throw_trident(chosen)
 func throw_trident(target:Variant) -> bool:
 	if not mc_live() or Game.now_stop_state or dizziness or not has_trident or not is_instance_valid(_trident) or _refill_show_left>0.0 or _throw_left>=0.0: return false
 	if not GEOMETRY.enemy(self,target): return false
@@ -143,7 +155,7 @@ func _advance_trident_throw(delta:float) -> void:
 	_throw_left=-1.0; _throw_target=null
 	# 出手当帧才读取敌人“当前坐标”：不用蓄力开始时的旧位置，也不做提前量预判。
 	var origin:Vector2 = trident_hand_position()
-	var aim:Vector2 = target.global_position
+	var aim:Vector2 = ball.body_point(target,global_position)
 	var axis:Vector2 = origin.direction_to(aim)
 	if axis.length_squared()<0.0001: axis = Vector2.RIGHT
 	_throw_aim = aim
@@ -204,7 +216,7 @@ func _strike_area(point:Vector2,contact_hit:bool = false) -> void:
 	var stun:float = impact_lightning_stun if contact_hit else lightning_stun
 	for raw:Node in get_tree().get_nodes_in_group("Ball"):
 		if not GEOMETRY.enemy(self,raw): continue
-		if raw.global_position.distance_to(point)>lightning_radius+GEOMETRY.radius(raw): continue
+		if ball.body_point(raw,point).distance_to(point)>lightning_radius+GEOMETRY.radius(raw): continue
 		if mc_damage_with_impact(raw,attack_damage()*ratio,point) and is_instance_valid(raw) and raw.health>0:
 			raw.apply_stun(stun)
 func emit_trident_arc(a:Node,b:Node) -> void:

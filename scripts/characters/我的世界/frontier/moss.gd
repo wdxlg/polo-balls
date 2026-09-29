@@ -115,7 +115,7 @@ static func impact_volume(actual_damage:float) -> float:
 func damage_with_moss_sound(target:ball,amount:float,point:Vector2,per_victim:bool = false) -> bool:
 	if not is_instance_valid(target): return false
 	var before:float = maxf(float(target.health),0.0)
-	var sound_point:Vector2 = target.global_position
+	var sound_point:Vector2 = ball.body_point(target,global_position)
 	var victim_ref:WeakRef = weakref(target)
 	var accepted:bool = U.damage(self,target,amount,point)
 	var victim:Variant = victim_ref.get_ref()
@@ -318,14 +318,14 @@ func begin_burrow() -> bool:
 		if not U.enemy(self,node) or not node.is_combat_lockable(): continue
 		var touched:Array[Vector2i] = touching_moss_cells(node as ball,connected)
 		if touched.is_empty(): continue
-		var distance:float = global_position.distance_squared_to(node.global_position)
+		var distance:float = global_position.distance_squared_to(ball.body_point(node,global_position))
 		if distance < best:
 			chosen = node as ball
 			best = distance
 			var exit_distance:float = INF
 			for cell:Vector2i in touched:
 				var entry:Dictionary = field[cell]
-				var d:float = node.global_position.distance_squared_to(entry.patch.point)
+				var d:float = ball.body_point(node,entry.patch.point).distance_squared_to(entry.patch.point)
 				if d < exit_distance:
 					exit_distance = d
 					exit_entry = entry
@@ -376,9 +376,9 @@ func finish_burrow() -> bool:
 	apply_burrow_pose()
 	emit_effect("moss_emerge",global_position)
 	for target:ball in foes(global_position,burrow_radius):
-		if not U.line_clear(self,global_position,target.global_position): continue
+		if not U.line_clear(self,global_position,ball.body_point(target,global_position)): continue
 		if damage_with_moss_sound(target,attack_damage(burrow_damage_multiplier),global_position) and is_instance_valid(target) and target.can_receive_negative_effects():
-			var away:Vector2 = global_position.direction_to(target.global_position)
+			var away:Vector2 = global_position.direction_to(ball.body_point(target,global_position))
 			if away.is_zero_approx(): away = burrow_origin.direction_to(burrow_destination)
 			if away.is_zero_approx(): away = Vector2.RIGHT
 			target.apply_knockback(away,burrow_knockback,burrow_knockback_speed)
@@ -444,7 +444,7 @@ func step_mob(delta:float) -> void:
 	growth_left = maxf(0.0,growth_left-delta)
 	if _growth_winding: finish_cultivation()
 	if placement_active(): return
-	if growth_left <= 0.0: cultivate()
+	if growth_left <= 0.0 and not is_player_controlled(): cultivate()
 	# Keep ball's ordinary direction/bounce movement; target selection is skill-only.
 	if not is_player_controlled(): begin_burrow()
 func move(speed:float,delta:float):
@@ -565,9 +565,7 @@ func get_debug_attack_regions() -> Array:
 		result.append({"shape":"rect","position":patch.point,"half_extents":Vector2.ONE*CELL*0.5,"rotation":0.0,"damage":attack_damage(float(patch.layers)*moss_damage_multiplier),"kind":"stacked_moss"})
 	return result
 func get_armor_test_effect_summary() -> String:
-	if english():
-		return "Periodically spread persistent moss nearby, stacking to a limit. Body contact counts as stepping on moss; every touched cell deals damage on its own cooldown. Deeper moss deals more damage; the strongest touched layer determines slowing. Touching moss heals the owner. Trampling does not consume it.\nBurrow through connected moss to the enemy position recorded on entry, then emerge with damage and knockback. Consume nearby moss layers to heal; destroyed or blocked exits cancel the ambush. Moss does not block movement and can be destroyed by ghast blasts."
-	return "定期在周围随机铺设苔藓，可叠层但有上限；身体接触即算踩入，同时踩到多格会分别造成伤害并独立冷却，减速取所踩格中最强的一档。层数越高伤害越高，自身接触苔藓即可回血，踩踏不消耗苔藓。\n与敌人处于同片横纵相连的苔藓时，可钻地突袭敌人入地时的位置，造成伤害并击退；出土消耗附近苔藓，消耗越多，回血越多。\n苔藓不阻挡移动，也不会自然消失，但可被恶魂爆炸破坏；出口被毁或受阻会取消突袭。"
+	return Game.t("MC_ARMOR_INTRO_MOSS_BLOCK")
 
 func Die() -> void:
 	if _death_sound_done: return

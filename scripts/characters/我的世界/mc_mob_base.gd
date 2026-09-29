@@ -11,6 +11,8 @@ var _mc_death_visual_done:bool = false
 @export_range(0.0,1.0,0.05) var hurt_voice_chance:float = 0.45
 @export var ambient_gap_min:float = 3.0
 @export var ambient_gap_max:float = 7.0
+@export var footstep_gap_min:float = 0.15
+@export var footstep_gap_max:float = 0.45
 var _mc_voice_rng := RandomNumberGenerator.new()
 var _mc_ambient_wait:float = 0.0
 var _mc_ambient_key:String = ""
@@ -22,7 +24,7 @@ var _mc_target_wait:float = 0.0
 
 func _ready() -> void:
 	if mc_audio_role.is_empty():
-		mc_audio_role = {"唤魔者":"evoker","潜影贝":"shulker","末影人":"enderman","潜影弹":"shulker_bullet","唤魔恼鬼":"vex","mc_short_lived_mob":"enderman"}.get(get_script().resource_path.get_file().get_basename(),"")
+		mc_audio_role = {"唤魔者":"evoker","潜影贝":"shulker","末影人":"enderman","潜影弹":"shulker_bullet","唤魔恼鬼":"vex","蜘蛛":"spider","溺尸":"drowned","mc_short_lived_mob":"enderman"}.get(get_script().resource_path.get_file().get_basename(),"")
 	_mc_rng.seed = Game.battle_rng_seed_or("mc_mob:" + str(name),int(get_instance_id()))
 	super._ready()
 	_mc_voice_rng.randomize()
@@ -62,14 +64,19 @@ func mc_enemy(target:Variant) -> bool:
 func mc_nearest(delta:float = 0.0) -> ball:
 	_mc_target_wait -= delta
 	var cached:Variant = _mc_target_ref.get_ref() if _mc_target_ref != null else null
-	if _mc_target_wait > 0.0 and mc_enemy(cached): return cached
+	if _mc_target_wait > 0.0 and mc_enemy(cached) and cached.is_combat_lockable(): return cached
 	_mc_target_wait = 0.18
 	_mc_target_ref = null
 	var nearest:ball = null
 	var best:float = INF
-	for node:Node in SubmissionCharacterTools.targeting_candidates(self):
-		if node is ball and mc_enemy(node):
-			var distance:float = global_position.distance_squared_to(node.global_position)
+	# World refreshes the 30 Hz snapshot separately from deaths. A freed
+	# candidate cannot be assigned to a typed Node loop variable at all:
+	# check the raw Variant before casting or touching any of its properties.
+	for raw:Variant in SubmissionCharacterTools.targeting_candidates(self):
+		if not is_instance_valid(raw) or not (raw is ball): continue
+		var node:ball = raw as ball
+		if mc_enemy(node) and node.is_combat_lockable():
+			var distance:float = global_position.distance_squared_to(ball.body_point(node,global_position))
 			if distance < best:
 				best = distance
 				nearest = node
@@ -130,13 +137,42 @@ func mc_spawn_creature(path:String,point:Vector2,multiplier:float = 0.5) -> ball
 	unit.add_to_group("BattleTransient")
 	return unit
 
+# Actual outgoing health damage, shared by evoker fangs and vex dash contacts.
+static func mc_impact_event(actual:float) -> String:
+	return "entity.player.attack.crit" if actual>50.0 else "entity.player.hurt"
+static func mc_impact_volume(actual:float) -> float:
+	return preload("res://scripts/effects/我的世界/hit_audio_gain.gd").damage_gain(actual)
+func mc_outgoing_impact_volume(actual:float) -> float:
+	return mc_impact_volume(actual)
+func mc_damage_with_impact(target:ball,amount:float,point:Vector2) -> bool:
+	if not is_multiplayer_authority() or not is_combat_runtime_active() or is_damage_output_disabled() or not mc_enemy(target) or amount<=0.0: return false
+	var before:float=maxf(target.health,0.0)
+	var hit_point:Vector2=ball.body_point(target,global_position)
+	var applied:bool=target.receive_positional_damage(amount,point,false,self)
+	var remaining:float=maxf(target.health,0.0) if is_instance_valid(target) else 0.0
+	var actual:float=maxf(before-remaining,0.0)
+	if actual>0.0:
+		var event:String=mc_impact_event(actual)
+		var volume:float=mc_outgoing_impact_volume(actual)
+		if multiplayer.has_multiplayer_peer(): _mc_outgoing_impact.rpc(event,hit_point,volume)
+		_mc_outgoing_impact(event,hit_point,volume)
+	return applied
+@rpc("authority","call_remote","reliable")
+func _mc_outgoing_impact(event:String,point:Vector2,volume:float) -> void:
+	# Independent hits must not swallow each other through the shared audio debounce.
+	var player:AudioStreamPlayer2D=preload("res://scripts/characters/我的世界/new5/audio.gd").play(self,event,point,volume,false,true,true,true)
+	if is_instance_valid(player): player.set_meta("mc_damage_source",get_instance_id())
+
 func mc_play(event:String,volume:float = -4.0) -> AudioStreamPlayer2D:
 	if mc_audio_role.is_empty(): return null
+	if mc_audio_role in ["spider","drowned"] and event in ["ambient","hurt","death"]:
+		var feedback:Node = get_node_or_null("MinecraftFeedback")
+		if feedback!=null: return feedback.voice(event,volume)
 	return MC_AUDIO.play(self,"entity."+mc_audio_role+"."+event,global_position,volume)
 func mc_hurt_event() -> String: return "hurt"
 func on_actual_health_damage_received(actual_health_damage:float,health_before:float) -> void:
 	super.on_actual_health_damage_received(actual_health_damage,health_before)
-	if is_multiplayer_authority() and health > 0 and _mc_voice_rng.randf() < hurt_voice_chance:
+	if actual_health_damage>0.0 and is_multiplayer_authority() and health > 0 and _mc_voice_rng.randf() < hurt_voice_chance:
 		mc_play(mc_hurt_event(),-5.0)
 func Die() -> void:
 	if mc_audio_role.is_empty(): super.Die()
@@ -149,6 +185,7 @@ func mc_ambient_event() -> String:
 func mc_ambient_allowed() -> bool: return true
 func mc_ambient_gap() -> Vector2: return Vector2(ambient_gap_min,ambient_gap_max)
 func mc_tick_ambient(delta:float) -> void:
+	if mc_audio_role in ["spider","drowned"] and not is_multiplayer_authority(): return
 	var allowed:bool = health > 0 and is_combat_runtime_active() and mc_ambient_allowed() and not Game.now_stop_state
 	if is_instance_valid(_mc_ambient_player):
 		_mc_ambient_player.global_position = global_position
@@ -172,6 +209,7 @@ func mc_tick_ambient(delta:float) -> void:
 		return
 	var duration:float = _mc_ambient_player.stream.get_length()/maxf(_mc_ambient_player.pitch_scale,0.01)
 	var gap:Vector2 = mc_ambient_gap()
+	if mc_audio_role in ["spider","drowned"]: gap = Vector2(maxf(gap.x,0.05),maxf(gap.y,maxf(gap.x,0.05)))
 	# 从播放开始计时：至少完整音频时长，再加随机空白；闭壳时播放进度和计时一起暂停。
 	_mc_ambient_wait = duration+_mc_voice_rng.randf_range(maxf(gap.x,0.0),maxf(gap.y,gap.x))
 func mc_stop_ambient() -> void:

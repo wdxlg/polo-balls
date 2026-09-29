@@ -66,7 +66,7 @@ func explode() -> void:
 			var actual:float = CATALOG.hurt(owner_trader,unit,DAMAGE,global_position,true)
 			if actual > 0.0 and owner_trader != null: owner_trader.set(&"gunpowder_hits",int(owner_trader.get(&"gunpowder_hits")) + 1)
 			if is_instance_valid(unit) and unit.health > 0 and unit.can_receive_negative_effects():
-				var away:Vector2 = unit.global_position - global_position
+				var away:Vector2 = ball.body_point(unit,global_position) - global_position
 				if away.length_squared() < 0.01: away = Vector2.UP
 				unit.apply_knockback(away.normalized(),KNOCKBACK*unit.get_negative_effect_ratio(),360.0,0.0,0.0,{"source":owner_trader,"lock_control":true})
 	expire()

@@ -106,9 +106,9 @@ func _boarding_candidates() -> Array[ball]:
 	for node:Node in get_tree().get_nodes_in_group("Ball"):
 		if not node is ball or not _valid_board_target(node as ball): continue
 		var target:ball = node as ball
-		if global_position.distance_to(target.global_position) <= board_range and U.line_clear(self,global_position,target.global_position):
+		if global_position.distance_to(ball.body_point(target,global_position)) <= board_range and U.line_clear(self,global_position,ball.body_point(target,global_position)):
 			result.append(target)
-	result.sort_custom(func(a:ball,b:ball): return global_position.distance_squared_to(a.global_position) < global_position.distance_squared_to(b.global_position))
+	result.sort_custom(func(a:ball,b:ball): return global_position.distance_squared_to(ball.body_point(a,global_position)) < global_position.distance_squared_to(ball.body_point(b,global_position)))
 	return result
 
 func Skill() -> void:
@@ -127,7 +127,7 @@ func Skill() -> void:
 
 func board_unit(target:ball) -> bool:
 	if not is_multiplayer_authority() or passengers.size() >= 2 or not _valid_board_target(target): return false
-	if global_position.distance_to(target.global_position) > board_range or not U.line_clear(self,global_position,target.global_position): return false
+	if global_position.distance_to(ball.body_point(target,global_position)) > board_range or not U.line_clear(self,global_position,ball.body_point(target,global_position)): return false
 	_attach_passenger(target,passengers.size())
 	_broadcast_passengers()
 	return true
@@ -148,7 +148,7 @@ func seat_position(index:int) -> Vector2:
 	return global_position+anchors[clampi(index,0,1)]
 
 func disembark_position(target:ball,index:int) -> Vector2:
-	if not is_inside_tree() or get_world_2d() == null: return target.global_position
+	if not is_inside_tree() or get_world_2d() == null: return ball.body_point(target,global_position)
 	var space:PhysicsDirectSpaceState2D = get_world_2d().direct_space_state
 	var circle:CircleShape2D = CircleShape2D.new()
 	circle.radius = _body_radius(target)+2.0
@@ -266,7 +266,7 @@ func source_is_onboard(source:Node) -> bool:
 		else: node = node.get_parent()
 	return false
 
-func share_external_damage(receiver:ball,damage:float,point:Vector2,ignore_block:bool,source:Node,raw_health:bool = false) -> bool:
+func share_external_damage(receiver:ball,damage:float,point:Vector2,ignore_block:bool,source:Node,raw_health:bool = false,damage_kind:String = "") -> bool:
 	if _sharing_damage or source_is_onboard(source) or damage <= 0: return false
 	_prune_passengers()
 	if passengers.is_empty(): return false
@@ -274,7 +274,7 @@ func share_external_damage(receiver:ball,damage:float,point:Vector2,ignore_block
 	if frame_id != _share_frame: _shared_hits.clear(); _share_frame = frame_id
 	# 一次外部范围命中覆盖船与多个座位时，只分摊一份，不乘以乘员数。
 	if is_instance_valid(source):
-		var key:int = source.get_instance_id()
+		var key:String = "%d:%s" % [source.get_instance_id(),damage_kind]
 		var seen:Dictionary = _shared_hits.get(key,{})
 		if not seen.is_empty() and not seen.has(receiver.get_instance_id()):
 			seen[receiver.get_instance_id()] = true
@@ -294,7 +294,10 @@ func share_external_damage(receiver:ball,damage:float,point:Vector2,ignore_block
 		var part:int = each+(1 if i<remainder else 0)
 		if part <= 0: continue
 		member.set_meta("boat_damage_share_guard",true)
-		if raw_health: member.receive_spatial_damage(part,{"point":point,"source":source},true,true)
+		if not damage_kind.is_empty():
+			if raw_health: member.receive_classified_spatial_damage(part,{"point":point,"source":source},StringName(damage_kind),true,true)
+			else: member.receive_classified_positional_damage(part,point,StringName(damage_kind),ignore_block,source)
+		elif raw_health: member.receive_spatial_damage(part,{"point":point,"source":source},true,true)
 		else: member.receive_positional_damage(part,point,ignore_block,source)
 		if is_instance_valid(member): member.remove_meta("boat_damage_share_guard")
 	_sharing_damage = false
@@ -319,10 +322,10 @@ func _ram_path(start:Vector2,finish:Vector2,impact_speed:float) -> void:
 		if not U.enemy(self,node) or passengers.has(node) or node.is_transport_mounted(): continue
 		var victim:ball = node as ball
 		if _ram_cd.has(victim.get_instance_id()): _dbg_ram = "cd"; continue
-		var offset:Vector2 = victim.global_position-start
+		var offset:Vector2 = ball.body_point(victim,start)-start
 		if offset.normalized().dot(facing) < 0.65: _dbg_ram = "cone"; continue
-		if U.segment_distance(victim.global_position,start+bow_offset,finish+bow_offset) > _body_radius(victim)+6.0:
-			_dbg_ram = "seg|"+str(int(U.segment_distance(victim.global_position,start+bow_offset,finish+bow_offset)))+"|"+str(int(_body_radius(victim)))
+		if U.segment_distance(ball.body_point_seg(victim,start+bow_offset,finish+bow_offset),start+bow_offset,finish+bow_offset) > _body_radius(victim)+6.0:
+			_dbg_ram = "seg|"+str(int(U.segment_distance(ball.body_point_seg(victim,start+bow_offset,finish+bow_offset),start+bow_offset,finish+bow_offset)))+"|"+str(int(_body_radius(victim)))
 			continue
 		# 视线终点允许就是受害者本体。命中窗口(≈14+R_vic+6，视觉贴合)比
 		# 羊头槌射程(~55px)更近：靠 committed 冲锋的免晕免推豁免，
@@ -357,13 +360,13 @@ func _paddle_attack(start:Vector2,old_facing:Vector2,angular:float) -> void:
 		if not U.enemy(self,node) or passengers.has(node) or node.is_transport_mounted(): continue
 		var victim:ball = node as ball
 		if _paddle_hits.has(victim.get_instance_id()): continue
-		var offset:Vector2 = victim.global_position-global_position
+		var offset:Vector2 = ball.body_point(victim,global_position)-global_position
 		if absf(offset.normalized().dot(facing))>0.65: continue
 		for side:float in [-1.0,1.0]:
 			var a:Vector2 = start+old_facing.orthogonal()*reach*side
 			var b:Vector2 = global_position+facing.orthogonal()*reach*side
-			if U.segment_distance(victim.global_position,a,b)>_body_radius(victim)+4.0: continue
-			if not U.line_clear(self,global_position,victim.global_position): continue
+			if U.segment_distance(ball.body_point_seg(victim,a,b),a,b)>_body_radius(victim)+4.0: continue
+			if not U.line_clear(self,global_position,ball.body_point(victim,global_position)): continue
 			var amount:float = attack_damage(0.25+0.85*ratio)
 			if U.damage(self,victim,amount,b):
 				_paddle_hits[victim.get_instance_id()] = 0.45
@@ -384,7 +387,7 @@ func _nearest_outside_enemy() -> ball:
 	var best:float = INF
 	for node:Node in get_tree().get_nodes_in_group("Ball"):
 		if not U.enemy(self,node) or passengers.has(node) or node.is_transport_mounted() or U.wall_node(node): continue
-		var dist:float = global_position.distance_squared_to(node.global_position)
+		var dist:float = global_position.distance_squared_to(ball.body_point(node,global_position))
 		if dist<best: best = dist; nearest = node as ball
 	return nearest
 
@@ -450,7 +453,7 @@ func _drive_input(delta:float) -> Vector2:
 		if tid != _engage_target_id:
 			_engage_target_id = tid
 			_engage_time = 0.0
-		var to_eng:Vector2 = target.global_position-global_position
+		var to_eng:Vector2 = ball.body_point(target,global_position)-global_position
 		var dist_eng:float = to_eng.length()
 		var closing:float = (velocity.dot(to_eng/dist_eng)) if dist_eng > 1.0 else 0.0
 		# committed 冲锋：末段接近（速度快 + 船头大致对准）给短暂免晕免推，
@@ -481,14 +484,14 @@ func _drive_input(delta:float) -> Vector2:
 	if _back_off_left > 0.0:
 		if target == null:
 			_back_off_left = 0.0
-		elif global_position.distance_to(target.global_position) >= _back_off_dist:
+		elif global_position.distance_to(ball.body_point(target,global_position)) >= _back_off_dist:
 			_back_off_left = 0.0
 			_charge_grace = 2.5
 			_engage_time = 0.0
 		elif _wall_clear_distance(-facing,_body_radius(self)+80.0) < _body_radius(self)+35.0:
 			_back_off_left = 0.0
 			_detour_left = 1.4
-			var to_t:Vector2 = global_position.direction_to(target.global_position)
+			var to_t:Vector2 = global_position.direction_to(ball.body_point(target,global_position))
 			var perp:Vector2 = to_t.orthogonal()
 			if _wall_clear_distance(perp,300.0) < _wall_clear_distance(-perp,300.0): perp = -perp
 			_detour_point = global_position+perp*300.0
@@ -498,15 +501,15 @@ func _drive_input(delta:float) -> Vector2:
 			Repel = Vector2.ZERO
 			_steer_boost = 0.6
 			_dbg_branch = &"backoff"
-			_dbg_desired = global_position.direction_to(target.global_position)
+			_dbg_desired = global_position.direction_to(ball.body_point(target,global_position))
 			return Vector2(-1,clampf(facing.angle_to(_dbg_desired)/0.55,-1,1))
 	if target != null and _swing_left > 0.0:
 		# 撞击后甩尾脱离：先向空旷侧满舵甩头（回转半径≈45px）直到船尾对着目标，
 		# 再全速驶离到 RUNUP_DIST 助跑距离，随即掉头冲锋。全程保持油门，不倒车；
 		# 驶离路线仍走扫掠避墙，被墙困住时 3s 超时兜底回到追击。
 		# 不清 Repel：对方的击退正好把船带离贴身区，顺势脱离。
-		var to_sw:Vector2 = global_position.direction_to(target.global_position)
-		var dist_sw:float = global_position.distance_to(target.global_position)
+		var to_sw:Vector2 = global_position.direction_to(ball.body_point(target,global_position))
+		var dist_sw:float = global_position.distance_to(ball.body_point(target,global_position))
 		if dist_sw >= RUNUP_DIST:
 			_swing_left = 0.0
 			desired = to_sw
@@ -523,7 +526,7 @@ func _drive_input(delta:float) -> Vector2:
 			_detour_left = 0.0
 			# 拦截解算：瞄"会在哪"而不是"现在在哪"。对横向逃逸目标切弦拦截；
 			# 纯追尾会陷入平行飞行(closing≈0)→被误判无效纠缠→反复倒开永远撞不上。
-			var to_int:Vector2 = target.global_position-global_position
+			var to_int:Vector2 = ball.body_point(target,global_position)-global_position
 			var rv:Vector2 = target.velocity
 			var s_int:float = maxf(absf(_forward_speed),120.0)
 			var qa:float = rv.dot(rv)-s_int*s_int
@@ -600,8 +603,8 @@ func _drive_input(delta:float) -> Vector2:
 	var ahead:float = _wall_clear_distance(facing,_body_radius(self)+120.0)
 	var hunting:bool = false
 	if target != null:
-		var to_target:Vector2 = global_position.direction_to(target.global_position)
-		var target_dist:float = global_position.distance_to(target.global_position)
+		var to_target:Vector2 = global_position.direction_to(ball.body_point(target,global_position))
+		var target_dist:float = global_position.distance_to(ball.body_point(target,global_position))
 		var aim_err:float = absf(facing.angle_to(to_target))
 		hunting = target_dist < _body_radius(self)+_body_radius(target)+34.0 and aim_err < 1.0
 		# 目标就在船头前方、而且比前方的墙更近（墙在目标身后）：这是正常冲撞航线，
@@ -684,8 +687,8 @@ func _avoid_direction(desired:Vector2,target:ball = null) -> Vector2:
 	var probe:float = _body_radius(self)+10.0+clampf(absf(_forward_speed)*1.2,150.0,420.0)
 	# 目标比探测距离更近时，探测截到目标处：目标身后的墙不是障碍，
 	# 不该为它绕路（旧逻辑会为 400px 外、目标背后的墙放弃直冲，绕一大圈）。
-	if target != null and is_instance_valid(target) and global_position.direction_to(target.global_position).dot(desired) > 0.7:
-		var to_target:float = global_position.distance_to(target.global_position)
+	if target != null and is_instance_valid(target) and global_position.direction_to(ball.body_point(target,global_position)).dot(desired) > 0.7:
+		var to_target:float = global_position.distance_to(ball.body_point(target,global_position))
 		probe = clampf(to_target-_body_radius(target)*0.5,_body_radius(self)+40.0,probe)
 	if _wall_clear_distance(desired,probe) >= probe: return desired
 	var best_dir:Vector2 = desired

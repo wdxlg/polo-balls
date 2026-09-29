@@ -1,4 +1,5 @@
 extends "res://scripts/characters/我的世界/mc_mob_base.gd"
+const U=preload("res://scripts/characters/我的世界/new5/utils.gd")
 ## Five independent combatants share a cohort, not a mortal master.
 ## Morphs conserve integer HP/capacity, including fair remainder allocation.
 const BAT_TEXTURE = preload("res://Images/characters/我的世界/蝙蝠/fly_00.png")
@@ -96,6 +97,7 @@ func living_members() -> Array:
 
 func _spawn_member(hp:int,capacity:int,index:int,count:int) -> ball:
 	var unit:ball = (load(SCENE_PATH) as PackedScene).instantiate() as ball
+	unit.manual_controllable_subentity=true # Split members keep independent movement and bite.
 	unit.set("cohort",cohort)
 	for key:String in ["initial_bat_health","initial_count","bat_damage","vampire_damage","vampire_health_per_damage","feeding_damage_reduction","bat_speed","vampire_speed","bat_duration","vampire_duration","detection_range","bite_cooldown","attach_duration","drain_interval","shield_attack_interval","gather_speed","gather_arrival_radius","gather_min_duration"]:
 		unit.set(key,get(key))
@@ -205,29 +207,42 @@ func tick_physics(state:State,delta:float) -> void:
 			if is_instance_valid(host): _last_host_position = host.global_position
 	elif _attached_ref != null:
 		detach()
-	if _attached_ref == null and not dizziness:
+	if _attached_ref == null and not dizziness and not is_player_controlled():
 		var target:ball = mc_nearest(delta)
 		if target != null and _bite_ready(target):
 			var point:Vector2 = target_surface(target)
 			var distance:float = global_position.distance_to(point)
-			if global_position.distance_to(target.global_position) <= detection_range and mc_line_clear(global_position,target.global_position):
+			if global_position.distance_to(ball.body_point(target,global_position)) <= detection_range and mc_line_clear(global_position,ball.body_point(target,global_position)):
 				if distance <= (10.0 if vampire else 8.0): begin_bite(target)
 				else:
 					_approaching = true
-					direction = global_position.direction_to(target.global_position)
+					direction = global_position.direction_to(ball.body_point(target,global_position))
 	super.tick_physics(state,delta)
+
+func controlled_attack_action() -> void:
+	if not is_player_controlled() or not mc_live() or dizziness or _retired or not has_player_control_aim() or bool(cohort.get("gathering",false)): return
+	var point:Vector2=player_control_aim_world_position()
+	var chosen:ball=null
+	var nearest:float=INF
+	for raw:Node in get_tree().get_nodes_in_group("Ball"):
+		if not mc_enemy(raw) or not raw.is_combat_lockable(): continue
+		var distance:float=ball.body_point(raw,point).distance_to(point)
+		if distance<=U.radius(raw)+6.0 and distance<nearest:
+			chosen=raw as ball
+			nearest=distance
+	if chosen!=null: begin_bite(chosen)
 
 
 func target_surface(target:ball) -> Vector2:
 	var collision:CollisionShape2D = target.collision_shape_2d
-	if collision == null or collision.shape == null: return target.global_position
+	if collision == null or collision.shape == null: return ball.body_point(target,global_position)
 	var local:Vector2 = collision.to_local(global_position)
 	if collision.shape is RectangleShape2D:
 		var half:Vector2 = (collision.shape as RectangleShape2D).size*0.5
 		return collision.to_global(local.clamp(-half,half))
 	if collision.shape is CircleShape2D:
 		return collision.to_global(local.limit_length((collision.shape as CircleShape2D).radius))
-	return target.global_position
+	return ball.body_point(target,global_position)
 
 func attached_target() -> Variant:
 	var target:Variant = _attached_ref.get_ref() if _attached_ref != null else null
@@ -250,8 +265,8 @@ func begin_bite(target:Variant) -> void:
 	if _attached_ref != null or bool(cohort.get("gathering",false)): return
 	if not mc_live() or dizziness or not mc_enemy(target) or not _bite_ready(target): return
 	if global_position.distance_to(target_surface(target)) > (10.0 if vampire else 8.0): return
-	if global_position.distance_to(target.global_position) > detection_range: return
-	if not mc_line_clear(global_position,target.global_position): return
+	if global_position.distance_to(ball.body_point(target,global_position)) > detection_range: return
+	if not mc_line_clear(global_position,ball.body_point(target,global_position)): return
 	# Failed shield bites do not latch or grant feeding protection/growth.
 	_cooldown = maxf(bite_cooldown,0.0)
 	_shield_bite_wait = _shield_interval()

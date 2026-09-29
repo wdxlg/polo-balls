@@ -1,4 +1,5 @@
 extends "res://scripts/characters/我的世界/mc_mob_base.gd"
+const U=preload("res://scripts/characters/我的世界/new5/utils.gd")
 const CLOSED = preload("res://Images/characters/我的世界/潜影贝/关壳.png")
 const OPEN = preload("res://Images/characters/我的世界/潜影贝/开壳.png")
 @export_range(0.0,1.0,0.05) var hurt_teleport_chance:float = 0.10
@@ -37,7 +38,7 @@ func tick_physics(state:State,delta:float) -> void:
 	if is_multiplayer_authority() and health > 0 and is_combat_runtime_active():
 		_combat_elapsed += maxf(delta,0.0)
 	if mc_live():
-		var target:ball = mc_nearest(delta)
+		var target:ball = null if is_player_controlled() else mc_nearest(delta)
 		_turn_wait = maxf(0.0,_turn_wait - delta)
 		_shell_left -= delta
 		_shot_wait -= delta
@@ -49,7 +50,7 @@ func tick_physics(state:State,delta:float) -> void:
 			_shot_wait = 0.15
 			_update_shell_visual()
 			mc_play("open" if shell_open else "close",-4.0)
-		if shell_open and _shots_left > 0 and _shot_wait <= 0.0 and target != null and not dizziness:
+		if not is_player_controlled() and shell_open and _shots_left > 0 and _shot_wait <= 0.0 and target != null and not dizziness:
 			if fire_bullet(target):
 				_shots_left -= 1
 				_shot_wait = _mc_rng.randf_range(0.22,0.38)
@@ -57,6 +58,20 @@ func tick_physics(state:State,delta:float) -> void:
 				_shot_wait = 0.10 # 全局弹体预算满时等空位，不把尚未发出的子弹算作已发。
 	super.tick_physics(state,delta)
 	if graphics != null: graphics.rotation = gravity_direction.angle() - Vector2.DOWN.angle()
+func controlled_attack_action() -> void:
+	if not is_player_controlled() or not mc_live() or dizziness or not shell_open or _shots_left<=0 or _shot_wait>0.0 or not has_player_control_aim(): return
+	var point:Vector2=player_control_aim_world_position()
+	var chosen:ball=null
+	var nearest:float=INF
+	for raw:Node in get_tree().get_nodes_in_group("Ball"):
+		if not mc_enemy(raw) or not raw.is_combat_lockable(): continue
+		var distance:float=ball.body_point(raw,point).distance_to(point)
+		if distance<=U.radius(raw)+6.0 and distance<nearest:
+			chosen=raw as ball
+			nearest=distance
+	if chosen!=null and fire_bullet(chosen):
+		_shots_left-=1
+		_shot_wait=_mc_rng.randf_range(0.22,0.38)
 func move(speed:float,delta:float) -> void:
 	# 公共 Sans 定向重力负责下落；自主移动永远只有贴墙切线分量。
 	var tangent:Vector2 = gravity_direction.orthogonal()

@@ -1,14 +1,19 @@
 class_name ball
 extends CharacterBody2D
 
+## Actual new wall contact from the shared Move/Stand physics chain (not visual RPCs).
+signal wall_contact_impact(normal_speed:float,point:Vector2)
+
 const VISUAL_PIXEL_SAMPLER_SCRIPT = preload("res://classes/visual_pixel_sampler.gd")
 
 const WILD_DOG_OLD_AGE_AUDIO_PLAYED_META:StringName = &"wild_dog_milk_old_age_death_audio_played"
+const COMBAT_CLASSIFICATION = preload("res://classes/combat_classification.gd")
 const DAMAGE_ELEMENT_FIRE:StringName = &"fire"
 const DAMAGE_ELEMENT_COLD:StringName = &"cold"
 
 const KNOCKBACK_EFFECT_SCRIPT = preload("res://scripts/effects/knockback_effect.gd")
 const HIT_BURST_EFFECT_SCRIPT = preload("res://scripts/effects/hit_burst_effect.gd")
+const HURT_SHAKE_SCRIPT = preload("res://scripts/effects/character_hurt_shake.gd")
 const WALL_HIT_BURST_SCRIPT = preload("res://scripts/effects/wall_hit_burst.gd")
 const STUN_VISUAL_SCENE = preload("res://scenes/effects/stun_visual.tscn")
 const AFTER_IMAGE_MATERIAL = preload("res://shaders/after_image_material.tres")
@@ -53,12 +58,15 @@ const CHARACTER_GROUND_SHADOW_INNER_ALPHA:float = 0.18
 const SPECIAL_CHARACTER_THREAT_OVERLAY_NAMES = ["伞夫","堇紫泪滴"]
 
 #引用
-@onready var animation_player: AnimationPlayer = $AnimationPlayer
-@onready var health_bar: Health_bar = $Health_Bar
+# V430 性能：投射物（小刀等）在运行时会被 runtime_knife_scene 精简掉 Health_Bar /
+# AnimationPlayer / Status_Image / 计时器 / 同步器等对投射物无意义的节点，
+# 因此这些引用允许为 null，使用处均需空判断。
+@onready var animation_player: AnimationPlayer = get_node_or_null("AnimationPlayer") as AnimationPlayer
+@onready var health_bar: Health_bar = get_node_or_null("Health_Bar") as Health_bar
 @onready var state_machine: Node = $state_machine
-@onready var health_restore_timer: Timer = $Health_Restore_Timer
-@onready var status_image: Sprite2D = $Status_Image
-@onready var hurting_timer: Timer = $Hurting_Timer
+@onready var health_restore_timer: Timer = get_node_or_null("Health_Restore_Timer") as Timer
+@onready var status_image: Sprite2D = get_node_or_null("Status_Image") as Sprite2D
+@onready var hurting_timer: Timer = get_node_or_null("Hurting_Timer") as Timer
 @onready var collision_shape_2d: CollisionShape2D = $CollisionShape2D
 @onready var graphics: Node2D = $Graphics
 
@@ -81,10 +89,10 @@ var _poison_visual_initialized:bool = false
 
 func set_image_node_type() -> void:
 	if not image:
-		var sprite2d:Sprite2D = graphics.get_node("Image")
-		var animatedspried2d:AnimatedSprite2D = graphics.get_node("AnimatedSprite2D")
+		var sprite2d:Sprite2D = graphics.get_node_or_null("Image") as Sprite2D
+		var animatedspried2d:AnimatedSprite2D = graphics.get_node_or_null("AnimatedSprite2D") as AnimatedSprite2D
 		
-		if sprite2d.texture != null:
+		if sprite2d != null and (sprite2d.texture != null or animatedspried2d == null):
 			image = sprite2d
 		else :
 			image = animatedspried2d
@@ -378,7 +386,54 @@ func _remote_say_dialogue_animated(
 func has_collision_damage() -> bool:
 	return Type != Ball_Type.Ball or Has_Collision_Damage
 
-@export var direction:Vector2 = Vector2.ZERO
+# Optional fresh-copy data. Empty for all ordinary characters. The base scene
+# replicates this before ready so derived visuals and stats agree on every peer.
+@export var character_copy_profile:Dictionary = {}:
+	set(value):
+		character_copy_profile = value.duplicate(true)
+		if character_copy_profile.is_empty(): return
+		if is_node_ready(): _apply_character_copy_profile()
+		elif not ready.is_connected(_apply_character_copy_profile): ready.connect(_apply_character_copy_profile,CONNECT_ONE_SHOT)
+var _copy_monochrome_inherited:bool = false
+
+func _apply_character_copy_profile() -> void:
+	if character_copy_profile.is_empty(): return
+	load("res://scripts/characters/投稿角色工具.gd").apply_character_copy_profile(self,character_copy_profile,true)
+
+func _refresh_character_copy_visuals() -> void:
+	if not is_inside_tree(): return
+	if not bool(character_copy_profile.get("monochrome",false)) and not _copy_monochrome_inherited: return
+	_apply_character_copy_visual_subtree(self)
+
+func _apply_character_copy_visual_subtree(node:Node) -> void:
+	if node is Control or node is Viewport or node is Area2D or node is CollisionShape2D or node is CollisionPolygon2D: return # UI/physics diagnostics keep their semantics; 3D is tinted at its output sprite.
+	if node is CanvasItem:
+		var canvas:CanvasItem = node as CanvasItem
+		var material:ShaderMaterial = canvas.material as ShaderMaterial
+		if material != null and material.shader != null and material.shader.code.contains("character_grayscale"):
+			canvas.set_instance_shader_parameter("character_grayscale",1.0)
+		elif canvas.material == null:
+			var monochrome := ShaderMaterial.new()
+			monochrome.shader = load("res://shaders/character_monochrome.gdshader")
+			canvas.material = monochrome
+	if not node.child_entered_tree.is_connected(_on_character_copy_visual_added): node.child_entered_tree.connect(_on_character_copy_visual_added)
+	for child:Node in node.get_children(): _apply_character_copy_visual_subtree(child)
+
+func _on_character_copy_visual_added(node:Node) -> void:
+	_refresh_character_copy_visual_branch.call_deferred(weakref(node))
+
+func _refresh_character_copy_visual_branch(reference:WeakRef) -> void:
+	var node:Node = reference.get_ref() as Node
+	if is_instance_valid(node) and node.is_inside_tree() and (bool(character_copy_profile.get("monochrome",false)) or _copy_monochrome_inherited): _apply_character_copy_visual_subtree(node)
+
+@export var direction:Vector2 = Vector2.ZERO:
+	set(value):
+		# Reject the request at its source; never store a turn to replay later.
+		if is_direction_change_locked(): return
+		direction = value
+
+func is_direction_change_locked() -> bool:
+	return false
 
 @onready var Repel:Vector2 = Vector2.ZERO
 #属性
@@ -472,6 +527,13 @@ func current_health_damage_request_amount() -> int:
 
 @onready var health = Max_health:
 	set(v):
+		# State migration is neither damage nor healing; no camera, passives or death hooks.
+		if has_meta("death_return_restore"):
+			health = clampi(int(v),0,maxi(Max_health,0))
+			if health_bar:
+				health_bar._kill_bar_tween(health_bar.health_bar)
+				health_bar.health_changed.emit(health,health,Max_health,false)
+			return
 		# 训练模式 V2 不再改生命规则：原上限、原伤害、原死亡流程全部保留。
 		var old_health:int = int(health)
 		var requested_health:int = int(v)
@@ -510,6 +572,10 @@ func current_health_damage_request_amount() -> int:
 		# 这样即使 UI 跳字/动画脚本出现问题，
 		# 也不会阻止角色本身回血。
 		health = new_health
+		if prevented_lethal_loss:
+			# The character is now alive again; applying timed statuses before this
+			# assignment would be rejected by the shared potion catalog.
+			on_lethal_health_loss_prevented()
 		# V420 性能：生命跨越 0 时立即打脏 World 的“是否还有存活主战角色”同帧缓存。
 		if (old_health > 0) != (new_health > 0) and _cached_world != null and is_instance_valid(_cached_world):
 			_cached_world.notify_primary_battle_character_alive_changed()
@@ -528,10 +594,6 @@ func current_health_damage_request_amount() -> int:
 
 		# 所有扣血路径最终都会经过 health setter。月计理智等角色机制只需覆写
 		# on_actual_health_damage_received()，即可覆盖碰撞、技能、流血和直接扣血。
-		if prevented_lethal_loss:
-			# The character is now alive again; applying timed statuses before this
-			# assignment would be rejected by the shared potion catalog.
-			on_lethal_health_loss_prevented()
 		var actual_health_loss:float = maxf(float(old_health - health), 0.0)
 		if actual_health_loss > 0.0:
 			# 先清空旧归因；真正带 source 的伤害会在伤害结算返回后重新 record。
@@ -542,7 +604,13 @@ func current_health_damage_request_amount() -> int:
 			_last_combat_damage_health_before = float(old_health)
 			on_actual_health_damage_received(actual_health_loss, float(old_health))
 			# 无敌/防御姿态可能在上面的角色钩子中恢复生命，必须在其后重新取实际损失。
-			_notify_damage_camera_feedback(maxf(float(old_health) - float(health),0.0))
+			var confirmed_loss:float = maxf(float(old_health) - float(health),0.0)
+			var focus_damage:float = confirmed_loss
+			# 已确认的致命一击可能被 0 HP 下限截断（100 打 20 只掉 20）；
+			# 镜头按减伤/护盾后的真实请求伤害判断，获救/免疫时仍按净损失。
+			if new_health == 0 and health == 0 and requested_health_damage > old_health:
+				focus_damage = float(requested_health_damage)
+			_notify_damage_camera_feedback(focus_damage)
 		_current_health_damage_request_amount = 0
 
 		# 兜底：有些伤害来源会在状态机本帧更新之后才把生命写成 0。
@@ -582,6 +650,9 @@ func _remote_damage_camera_feedback(actual_damage:float,blocked:bool = false) ->
 func _play_damage_camera_feedback_local(actual_damage:float,blocked:bool = false) -> void:
 	if not is_inside_tree():
 		return
+	# Reuse the existing authority-confirmed feedback RPC, not health replication.
+	# This render-only offset is independent of camera shake and impact-FX budgets.
+	if not blocked: _play_body_hurt_shake(actual_damage)
 	var world:Node = get_tree().current_scene
 	# 独立训练场/非战斗场景可以没有相机接口，不再直接写未知属性。
 	if is_instance_valid(world) and world.has_method("add_damage_camera_shake"):
@@ -597,6 +668,20 @@ func _play_damage_camera_feedback_local(actual_damage:float,blocked:bool = false
 	if accepted and not blocked:
 		_play_confirmed_damage_flash(actual_damage)
 
+
+func _play_body_hurt_shake(actual_damage:float) -> void:
+	if not hurt_shake_enabled or Type not in [Ball_Type.Ball,Ball_Type.Creature]: return
+	if actual_damage<=0.0 or not is_finite(actual_damage) or health<=0: return
+	if not is_instance_valid(graphics) or not is_combat_runtime_active(): return
+	if not is_instance_valid(_hurt_shake_effect):
+		_hurt_shake_effect = HURT_SHAKE_SCRIPT.new()
+		_hurt_shake_effect.name = "CharacterHurtShake"
+		_hurt_shake_effect.actor = self
+		_hurt_shake_effect.graphics = graphics
+		_hurt_shake_effect.extra_graphics = _hurt_shake_render_parts
+		_hurt_shake_effect.extra_parts_provider = _get_hurt_shake_visual_parts
+		add_child(_hurt_shake_effect)
+	_hurt_shake_effect.kick(actual_damage)
 
 func _play_confirmed_damage_flash(actual_damage:float) -> void:
 	if image == null or not is_instance_valid(image) or Type == Ball_Type.Creature:
@@ -791,12 +876,21 @@ func apply_knockback(
 	stun_duration:float = 0.0,
 	options:Dictionary = {}
 ) -> Node:
+	var control_source:Node = options.get("source",null)
+	if control_source == null and int(get_meta("boat_source_frame",-1)) == Engine.get_physics_frames():
+		var ref:WeakRef = get_meta("boat_recent_source",null) as WeakRef
+		control_source = ref.get_ref() if ref != null else null
+	if not can_receive_control_from(control_source): return null
 	if health <= 0:
 		return null
 	if state_machine and state_machine.current_state == State.Die:
 		return null
 	if knockback_distance <= 0.0 and stun_duration <= 0.0:
 		return null
+	# 保留旧调用推断出的来源，便于控制器在施术者上船后重新检查。
+	if control_source != null and options.get("source",null) == null:
+		options = options.duplicate()
+		options["source"] = control_source
 
 	# V10.1：同一个角色同时只保留一个通用击退控制器。
 	# 以前多人/多技能同帧命中会生成多个 KnockbackEffect，
@@ -838,6 +932,7 @@ func apply_knockback(
 	effect.stun_duration = maxf(stun_duration,0.0)
 	effect.stun_only_on_collision = bool(options.get("stun_only_on_collision",false))
 	effect.collision_damage = maxf(float(options.get("collision_damage",0.0)),0.0)
+	effect.collision_damage_wall_only = bool(options.get("collision_damage_wall_only",false))
 	effect.collision_damage_ignore_block = bool(options.get("collision_damage_ignore_block",false))
 	effect.use_speed_falloff = bool(options.get("use_speed_falloff",false))
 	effect.end_speed_ratio = clampf(float(options.get("end_speed_ratio",0.35)),0.0,1.0)
@@ -859,7 +954,7 @@ func apply_knockback(
 	return effect
 
 # 纯眩晕也复用同一个控制锁系统，避免多个技能互相提前解除 dizziness。
-func apply_stun(duration:float) -> Node:
+func apply_stun(duration:float,source:Node = null) -> Node:
 	if duration <= 0.0:
 		return null
 
@@ -870,6 +965,7 @@ func apply_stun(duration:float) -> Node:
 		0.0,
 		duration,
 		{
+			"source": source,
 			"lock_control": true,
 			"stun_only_on_collision": false,
 		}
@@ -1449,21 +1545,12 @@ func _process_external_directional_gravity_locomotion_collisions() -> void:
 				_schedule_external_directional_gravity_hop()
 
 
+func get_combat_classification() -> Dictionary:
+	return COMBAT_CLASSIFICATION.profile_of(self)
+
 func _is_projectile_motion_object() -> bool:
-	if _projectile_motion_object_cache_valid:
-		return _projectile_motion_object_cache
-	var result:bool = Type == Ball_Type.Shooter or Type == Ball_Type.Shooter_with_Health
-	if not result:
-		var script_value:Variant = get_script()
-		if script_value is Script:
-			var script_path:String = (script_value as Script).resource_path
-			result = (
-				script_path.begins_with("res://scripts/shooter/")
-				or script_path == "res://scripts/training/speedster_training_projectile.gd"
-			)
-	_projectile_motion_object_cache = result
-	_projectile_motion_object_cache_valid = true
-	return result
+	# Do not cache stage-sensitive identity (e.g. a rock landing).
+	return COMBAT_CLASSIFICATION.is_projectile(self)
 
 
 func _compose_external_directional_gravity_locomotion(
@@ -1638,6 +1725,20 @@ func wait_for_combat_time(duration:float) -> bool:
 @onready var dizziness:bool = false
 var Status_image_tween:Tween
 
+@export_category("受伤特效")
+@export var hurt_shake_enabled:bool = true
+var _hurt_shake_effect:Node
+var _hurt_shake_render_parts:Array[Node2D] = []
+
+func _get_hurt_shake_visual_parts() -> Array[Node2D]:
+	return _hurt_shake_render_parts
+
+func register_hurt_shake_visual(part:Node2D) -> void:
+	# Detached presentation-only artwork must follow the body, not its hit boxes.
+	if not is_instance_valid(part) or part==graphics: return
+	if graphics.is_ancestor_of(part) and not part.is_set_as_top_level(): return
+	if not _hurt_shake_render_parts.has(part): _hurt_shake_render_parts.append(part)
+
 #========================================================
 # 可复用眩晕视觉
 #
@@ -1700,7 +1801,8 @@ func _remove_stun_visual() -> void:
 	_stun_visual_instance = null
 
 	if visual != null and is_instance_valid(visual):
-		visual.queue_free()
+		if visual.has_method("begin_fade_out"): visual.begin_fade_out()
+		else: visual.queue_free()
 
 
 # 功能：开始真正眩晕阶段的角色视觉抖动；记录当前 Graphics 位置，避免覆盖角色自身动画偏移。
@@ -1951,6 +2053,7 @@ func _resolve_master_identity_from_name() -> void:
 		if Master_name.is_empty():
 			Master_name = str(Master.name)
 		Team = Master.Team
+		if is_instance_valid(_cached_world): _cached_world.bind_battle_lifecycle(self)
 		if Target_Enemy == null and Master.Target_Enemy != null and is_instance_valid(Master.Target_Enemy):
 			Target_Enemy = Master.Target_Enemy
 
@@ -2432,6 +2535,12 @@ func _validate_combat_areas() -> void:
 
 
 func _ready() -> void:
+	if not character_copy_profile.is_empty():
+		load("res://scripts/characters/投稿角色工具.gd").apply_character_copy_profile(self,character_copy_profile,true)
+	if is_instance_valid(Master):
+		_copy_monochrome_inherited = bool(Master.character_copy_profile.get("monochrome",false)) or Master._copy_monochrome_inherited
+	if _copy_monochrome_inherited: _refresh_character_copy_visuals.call_deferred()
+	load("res://classes/projectile_interactions.gd").ensure(get_tree())
 	# 大规模战斗切换前先记住场景原本的 collision_mask / max_slides，退出模式时原样恢复。
 	_large_battle_original_collision_mask = collision_mask
 	_large_battle_original_max_slides = max_slides
@@ -2495,11 +2604,12 @@ func _ready() -> void:
 		_motion_visual_initialized = true
 		_set_motion_shader_values(Vector2.RIGHT,0.0)
 	
-	health_restore_timer.timeout.connect(func():
-		# 训练模式 V2 不改变角色自己的回血规则。
-		if can_restore_health and not state_machine.current_state == State.Die:
-			health += Health_Restore
-	)
+	if health_restore_timer != null:
+		health_restore_timer.timeout.connect(func():
+			# 训练模式 V2 不改变角色自己的回血规则。
+			if can_restore_health and not state_machine.current_state == State.Die:
+				health += Health_Restore
+		)
 
 	# 训练场会在角色生成前打开 Game.Training_Mode；V2 只登记训练状态，
 	# 不再修改 Max_health / health，人物仍按原规则受伤与死亡。
@@ -2644,6 +2754,18 @@ func get_combat_lock_velocity() -> Vector2:
 	if direction.length_squared() > 0.000001:
 		return direction.normalized() * maxf(Speed,0.0)
 	return Vector2.ZERO
+
+
+## Tall / multi-part bodies (e.g. a grown cactus) answer distance / aim / touch queries with their
+## part nearest to the asker; every other node is simply its position. Use these instead of
+## other.global_position when measuring to, aiming at or touch-testing another unit.
+static func body_point(target,from:Vector2) -> Vector2:
+	if target is Object and (target as Object).has_method(&"combat_body_point"): return target.call(&"combat_body_point",from)
+	return target.global_position
+
+static func body_point_seg(target,a:Vector2,b:Vector2) -> Vector2:
+	if target is Object and (target as Object).has_method(&"combat_body_point_to_segment"): return target.call(&"combat_body_point_to_segment",a,b)
+	return target.global_position
 
 
 func combat_target_position(target:Node) -> Vector2:
@@ -2872,17 +2994,27 @@ func set_image_color() -> void:
 	image.set_instance_shader_parameter("default_color",image_color)
 	image.set_instance_shader_parameter("defualt_color_mix",image_color_mix)
 #状态相关
+func notify_ai_noise(kind:String,point:Vector2 = Vector2.INF) -> void:
+	# No observer exists unless this battle contains a sound-driven Warden.
+	if not is_multiplayer_authority() or health<=0 or not is_combat_runtime_active(): return
+	var scene:Node = get_tree().current_scene
+	if not is_instance_valid(scene): return
+	var observer:Node = scene.get_node_or_null("MCBattleNoise")
+	if is_instance_valid(observer): observer.publish(self,kind,point)
+
 func transition_state(from:State,to:State) -> void:
 	if not is_multiplayer_authority():return
 	if from == to:return
-	if to != State.Hurt:hurting_timer.stop()
+	if to != State.Hurt and hurting_timer != null:hurting_timer.stop()
 	state_machine.last_state_dis[State.keys()[to]] = 0
 	
 	match to:
 		State.Attack:
+			notify_ai_noise("attack")
 			play_unique_audio(Character_Audio_Slot.Attack)
 			Attack()
 		State.Skill:
+			notify_ai_noise("attack")
 			play_unique_audio(Character_Audio_Slot.Skill)
 			Skill()
 		State.Die:
@@ -2999,7 +3131,7 @@ func get_next_state(state:State) -> int:
 				return State.Stand
 			else: return -1
 		State.Hurt:
-			if hurting_timer.is_stopped():return State.Stand
+			if hurting_timer == null or hurting_timer.is_stopped():return State.Stand
 		State.Skill:
 			if not Using_Skill:
 				return State.Stand
@@ -3013,6 +3145,9 @@ func tick_physics(state:State,delta:float) -> void:
 	# V105：单位很多时把纯视觉 Shader/颜色维护错峰到约 20Hz（默认 divisor=3）。
 	# 玩法状态机、移动、攻击、伤害与 Area2D 仍保持 60Hz，不牺牲命中判定。
 	var visual_divisor:int = maxi(large_battle_visual_tick_divisor,1) if _large_battle_performance_mode else 1
+	# V430：物理 tick 已被大规模战斗降到 30Hz 时，重视觉 tick 的分频按比例减半，保持约 15~20Hz。
+	if visual_divisor > 1 and Engine.physics_ticks_per_second <= 30:
+		visual_divisor = maxi(int(ceil(float(visual_divisor) * 0.5)),1)
 	var run_heavy_visual_tick:bool = (
 		visual_divisor <= 1
 		or ((Engine.get_physics_frames() + get_instance_id()) % visual_divisor) == 0
@@ -3208,7 +3343,7 @@ func _limit_projectile_after_image_transform(transform_value:Transform2D,texture
 
 func _process_auto_after_image(delta:float) -> void:
 	if (
-		AfterImage_Speed <= 0.0
+		AfterImage_Speed <= 0.0 or (Type == Ball_Type.Ball and not allows_character_motion_effects())
 		or image == null
 		or not is_instance_valid(image)
 		or not image.visible
@@ -3966,7 +4101,7 @@ func _update_after_image_stretch(
 	world_trail_dir:Vector2,
 	valid_visual:bool
 ) -> void:
-	var wants_stretch:bool = valid_visual and _after_image_stretch_enabled() and AfterImage_Speed > 0.0
+	var wants_stretch:bool = valid_visual and (Type != Ball_Type.Ball or allows_character_motion_effects()) and _after_image_stretch_enabled() and AfterImage_Speed > 0.0
 	var target:float = 0.0
 	if wants_stretch and visual_speed >= AfterImage_Speed:
 		var denom:float = maxf(AfterImage_Stretch_Full_Speed - AfterImage_Speed,1.0)
@@ -4084,7 +4219,7 @@ func _update_after_image_stretch(
 @export_range(0.05,0.40,0.01) var ranged_hit_duration:float = 0.13
 
 @export_category("移动软体惯性")
-@export var motion_stretch_enabled:bool = true
+@export var motion_stretch_enabled:bool = false
 # 到达该速度时使用完整移动拉伸；更快只封顶，不会无限变形。
 @export_range(50.0,1200.0,10.0) var motion_stretch_full_speed:float = 300.0
 # 沿移动方向拉长，例如向右时 X 增大。
@@ -4102,7 +4237,7 @@ func _update_after_image_stretch(
 @export_category("运动模糊")
 # V114：速度驱动“方向性运动模糊”，不是历史位置残影。
 # 所有关键参数都直接导出到 Inspector；带 or_greater 的项目可以手动输入超过滑条上限的值。
-@export var motion_blur_enabled:bool = true
+@export var motion_blur_enabled:bool = false
 # 总体效果倍率。1.0=标准；>1 会更早达到强模糊，0=关闭速度强度（仍可用下方强制预览）。
 @export_range(0.0,4.0,0.05,"or_greater") var motion_blur_effect_strength:float = 1.80
 # 普通移动开始出现模糊的真实世界速度。
@@ -4203,7 +4338,13 @@ func _refresh_visual_shader_capability_cache() -> void:
 	_visual_supports_flip_shader_cache = code.find("sprite_flip_h") >= 0
 
 
+func allows_character_motion_effects() -> bool:
+	# Explicit opt-in characters only. Projectiles retain their ordinary attack trails.
+	if scene_file_path=="res://scenes/characters/动物/牛.tscn": return true
+	return get_script()!=null and get_script().resource_path=="res://scripts/characters/我的世界/木矛.gd"
+
 func _setup_motion_blur_ghost() -> void:
+	if not allows_character_motion_effects(): return
 	if _motion_blur_ghost != null and is_instance_valid(_motion_blur_ghost):
 		return
 	if Type != Ball_Type.Ball or image == null or not is_instance_valid(image):
@@ -4304,7 +4445,7 @@ func _sync_motion_blur_source() -> void:
 
 func _set_motion_blur_values(direction_value:Vector2,speed_value:float,delta:float) -> void:
 	if (
-		not motion_blur_enabled
+		not motion_blur_enabled or not allows_character_motion_effects()
 		or _large_battle_performance_mode
 		or Type != Ball_Type.Ball
 		or image == null
@@ -4480,7 +4621,7 @@ func _update_motion_inertia_visual(state:State,delta:float) -> void:
 	_set_motion_blur_values(_motion_visual_direction,speed_value,delta)
 
 	var target_strength:float = 0.0
-	if motion_stretch_enabled and speed_value > 0.5:
+	if motion_stretch_enabled and allows_character_motion_effects() and speed_value > 0.5:
 		target_strength = clampf(speed_value / maxf(motion_stretch_full_speed,1.0),0.0,1.0)
 	var strength_blend:float = 1.0 - exp(-maxf(motion_stretch_response,0.01) * maxf(delta,0.0))
 	_motion_visual_strength = lerpf(_motion_visual_strength,target_strength,strength_blend)
@@ -4614,6 +4755,17 @@ func is_large_battle_performance_mode() -> bool:
 	return _large_battle_performance_mode
 
 
+# V430 性能：大规模战斗视觉密度系数（1.0 = 全特效）。由 World 按存活人数计算，人数回落自动恢复。
+func get_large_battle_visual_density() -> float:
+	var w:Node = _cached_world if (_cached_world != null and is_instance_valid(_cached_world)) else null
+	if w == null:
+		var tree:SceneTree = get_tree()
+		w = tree.current_scene if tree != null else null
+	if w != null and w.has_method("get_large_battle_visual_density"):
+		return clampf(float(w.call("get_large_battle_visual_density")),0.15,1.0)
+	return 1.0
+
+
 # 功能：接收 World 空间网格计算出的角色分离速度，避免关闭身体互撞后所有单位完全叠成一点。
 func set_crowd_separation_velocity(value:Vector2) -> void:
 	_crowd_separation_velocity = value if _large_battle_performance_mode else Vector2.ZERO
@@ -4699,11 +4851,45 @@ func _setup_special_character_threat_overlay() -> void:
 # V64：普通 CharacterBody2D 移动保持统一逻辑。
 # 不再为伞夫/堇紫泪滴在共享 ball.move() 中增加“预判停下/切线绕行”等角色特判。
 # 特殊角色与其他角色一样依靠 direction、move_and_slide() 和 when_collide() 的公共移动/碰撞链路。
+func _boat_damage_carrier() -> Node:
+	if is_in_group("MinecraftBoardingBoat"): return self
+	var rider:Node = get_transport_rider()
+	return rider.boat if rider != null and is_instance_valid(rider.boat) else null
+
+func can_receive_control_from(source:Node) -> bool:
+	# 船体和同船乘客均免疫船内来源的控制，不影响伤害和船外控制。
+	var carrier:Node = _boat_damage_carrier()
+	return carrier == null or not carrier.source_is_onboard(source)
+
+func _route_boat_damage(damage:float,point:Vector2,ignore_block:bool,source:Node,raw_health:bool = false,damage_kind:String = "") -> bool:
+	if has_meta("boat_damage_share_guard"): return false
+	var carrier:Node = _boat_damage_carrier()
+	if carrier == null: return false
+	if is_instance_valid(source):
+		set_meta("boat_recent_source",weakref(source))
+		set_meta("boat_source_frame",Engine.get_physics_frames())
+	return carrier.share_external_damage(self,damage,point,ignore_block,source,raw_health,damage_kind)
+
+func get_transport_rider() -> Node:
+	if not has_meta("mc_boat_rider"): return null
+	var ref:WeakRef = get_meta("mc_boat_rider") as WeakRef
+	var rider:Node = ref.get_ref() as Node if ref != null else null
+	if not is_instance_valid(rider) or rider.is_queued_for_deletion(): return null
+	return rider
+
+func is_transport_mounted() -> bool:
+	return get_transport_rider() != null
+
+func apply_transport_pose() -> bool:
+	var rider:Node = get_transport_rider()
+	return bool(rider.apply_pose()) if rider != null else false
+
 # Shared terrain motion is additive world velocity, not Speed/Repel or a control lock.
 # Controllers clear their contribution on exit; ordinary physics still handles walls.
 var surface_motion_velocity:Vector2 = Vector2.ZERO
 
 func move(speed:float,delta:float):
+	if apply_transport_pose(): return
 
 	var effective_direction:Vector2 = player_control_direction if is_player_controlled() else direction
 	if effective_direction != Vector2.ZERO and Type == Ball_Type.Ball:
@@ -4726,7 +4912,7 @@ func move(speed:float,delta:float):
 		move_speed,
 		Repel
 	)
-	velocity += surface_motion_velocity
+	velocity += surface_motion_velocity + KNOCKBACK_EFFECT_SCRIPT.pull_velocity(self)
 	_last_requested_velocity = velocity
 
 	# move_and_slide() 即使 velocity == 0，也会执行 safe_margin 的碰撞恢复。
@@ -4736,6 +4922,10 @@ func move(speed:float,delta:float):
 		return
 
 	# 先移动，再读取本次 move_and_slide() 产生的碰撞。
+	if Type in [Ball_Type.Shooter,Ball_Type.Shooter_with_Health] and get_tree().has_group("MinecraftWoolSheep"):
+		if load("res://scripts/characters/我的世界/new6/wool_projectile.gd").sweep(self,global_position,global_position+velocity*delta): return
+	if Type in [Ball_Type.Shooter,Ball_Type.Shooter_with_Health] and get_tree().has_group("MinecraftAllay"):
+		if load("res://scripts/characters/我的世界/allay/capture.gd").sweep(self,global_position,global_position+velocity*delta): return
 	move_and_slide()
 	_process_external_directional_gravity_locomotion_collisions()
 
@@ -4802,9 +4992,10 @@ func _process_physical_contact_hits() -> void:
 	_physical_contact_ids = current_contacts
 
 func stand(delta:float):
+	if apply_transport_pose(): return
 	# Stand 状态只有显式 Repel 才允许发生位移。
 	# hitbox/hurtbox 是 Area2D，不调用 move_and_slide() 也仍可正常攻击/受伤。
-	velocity = Repel + _crowd_separation_velocity + surface_motion_velocity
+	velocity = Repel + _crowd_separation_velocity + surface_motion_velocity + KNOCKBACK_EFFECT_SCRIPT.pull_velocity(self)
 	_last_requested_velocity = velocity
 	if velocity.length_squared() <= MOTION_EPSILON_SQ:
 		velocity = Vector2.ZERO
@@ -4924,6 +5115,7 @@ func _get_after_image_snapshot_colors(_ghost_transform:Transform2D) -> Dictionar
 
 
 func _spawn_after_image_at_transform(ghost_transform:Transform2D,world_trail_dir:Vector2) -> void:
+	if Type == Ball_Type.Ball and not allows_character_motion_effects(): return
 	if image == null or not is_instance_valid(image) or not image.visible:
 		return
 	var world = get_tree().current_scene
@@ -5190,6 +5382,10 @@ func _process_wall_hit_bursts_from_slide_collisions(fallback_speed:float) -> voi
 		return
 
 	_try_wall_hit_burst_from_collision(best_collision,best_power)
+	if is_multiplayer_authority() and health > 0 and is_combat_runtime_active():
+		var relative_velocity:Vector2 = _last_requested_velocity-best_collision.get_collider_velocity()
+		var normal_speed:float = maxf(-relative_velocity.dot(best_collision.get_normal().normalized()),0.0)
+		if normal_speed > 1.0: wall_contact_impact.emit(normal_speed,best_collision.get_position())
 
 
 func _finite_wall_surface_projection(collision:KinematicCollision2D,surface_normal:Vector2) -> Dictionary:
@@ -5592,6 +5788,7 @@ func _trigger_collision_feedback(
 	if physics_frame == _last_collision_feedback_physics_frame:
 		return
 	_last_collision_feedback_physics_frame = physics_frame
+	notify_ai_noise("collision",collision.get_position() if collision!=null else global_position)
 
 	var visual_power:float = maxf(power,collide_visual_min_power)
 	_play_collision_feedback_local(impact_dir,visual_power,"",suppress_audio)
@@ -5760,7 +5957,7 @@ func Figure_collide_transform(Dir:Vector2,Power:float) -> void:
 func _is_ranged_hit_source(source:ball) -> bool:
 	if source == null or not is_instance_valid(source):
 		return false
-	return source.Type == Ball_Type.Shooter or source.Type == Ball_Type.Shooter_with_Health
+	return COMBAT_CLASSIFICATION.is_projectile(source)
 
 
 func _play_ranged_hit_feedback_local(impact_dir:Vector2,strength:float) -> void:
@@ -6081,7 +6278,9 @@ func _play_hit_burst_feedback_local(
 	# 100 人互砍时场上常驻 80~100 个特效、每帧数百个 Line2D 更新 points/width/color。
 	# 大规模模式把单次数量减半（最少 3 条），视觉语言不变，只是更稀疏。
 	if _large_battle_performance_mode:
-		count = maxi(int(ceil(float(count) * 0.5)),3)
+		# V430：按 World 的视觉密度系数缩减（40 人时 ≈ 原来的一半，200 人时更稀，人数回落自动恢复）。
+		var density:float = get_large_battle_visual_density()
+		count = maxi(int(ceil(float(count) * minf(0.5,density))),2)
 
 	var streaks:Array = []
 	# V420 性能：像素采样器只依赖当前贴图/翻转/调色，整次受击里不变；只建一次而不是每条线一次。
@@ -6229,7 +6428,12 @@ func _random_hit_effect_visual_sample(
 		var rect_end:Vector2 = visual_rect.end
 		var noise_max:float = maxf(character_radius * 0.18,1.5)
 
-		for _attempt:int in range(44):
+		# V430 性能：大规模战斗按视觉密度减少逐像素采样次数（44 -> 最少 12 次），
+		# 依旧只从角色真实像素上取色，人数回落自动恢复 44 次。
+		var attempts:int = 44
+		if _large_battle_performance_mode:
+			attempts = clampi(int(ceil(44.0 * get_large_battle_visual_density())),12,44)
+		for _attempt:int in range(attempts):
 			var local_point := Vector2(
 				rng.randf_range(visual_rect.position.x,rect_end.x),
 				rng.randf_range(visual_rect.position.y,rect_end.y)
@@ -6725,6 +6929,31 @@ func get_positive_effect_ratio() -> float:
 	return maxf(positive_effect_ratio,0.0)
 
 
+# Shared cleansing API. Natural lightning is one consumer, not the owner of a
+# character-specific list. External status holders may register a weak reference.
+signal negative_effects_cleansed
+var _status_effect_registrations:Dictionary = {}
+var _negative_cleanse_revision:int = 0
+
+func register_status_effect(effect:Node) -> void:
+	if is_instance_valid(effect) and effect!=self:
+		_status_effect_registrations[effect.get_instance_id()] = weakref(effect)
+
+func cleanse_negative_effects() -> int:
+	if not is_inside_tree() or not is_multiplayer_authority() or health<=0 or is_queued_for_deletion(): return 0
+	_negative_cleanse_revision += 1
+	var removed:int = (load("res://classes/status_cleansing.gd") as GDScript).clear_local(self)
+	negative_effects_cleansed.emit()
+	if multiplayer.has_multiplayer_peer(): _receive_negative_cleanse.rpc(_negative_cleanse_revision)
+	return removed
+
+@rpc("authority","call_remote","reliable")
+func _receive_negative_cleanse(revision:int) -> void:
+	if revision<=_negative_cleanse_revision: return
+	_negative_cleanse_revision = revision
+	(load("res://classes/status_cleansing.gd") as GDScript).clear_local(self)
+	negative_effects_cleansed.emit()
+
 func get_negative_effect_ratio() -> float:
 	return maxf(negative_effect_ratio,0.0)
 
@@ -6785,6 +7014,80 @@ func _consume_minecraft_absorption(damage:float,already_blocked:bool = false) ->
 	return remainder
 
 
+func receive_classified_positional_damage(damage:float,point:Vector2,kind:StringName,ignore_block:bool = false,source:Node = null) -> bool:
+	return _receive_classified_damage(damage,point,kind,ignore_block,false,source,false)
+
+func receive_classified_spatial_damage(damage:float,space:Variant,kind:StringName,ignore_block:bool = false,raw_health:bool = false) -> bool:
+	return _receive_classified_damage(damage,space,kind,ignore_block,raw_health,null,true)
+
+func _receive_classified_damage(damage:float,space:Variant,requested_kind:StringName,ignore_block:bool,raw_health:bool,source:Node,spatial:bool,spatial_already_dispatched:bool = false) -> bool:
+	var kind:String = COMBAT_CLASSIFICATION.canonical_damage_kind(requested_kind)
+	if kind.is_empty() or not is_multiplayer_authority() or not is_finite(damage) or damage <= 0.0: return false
+	var point:Vector2 = space if space is Vector2 else global_position
+	if space is Dictionary:
+		if space.get("point") is Vector2: point = space["point"]
+		if space.get("source") is Node: source = space["source"]
+	# Split UNSCALED damage before each passenger applies its own resistance.
+	if _route_boat_damage(damage,point,ignore_block,source,raw_health,kind): return true
+	var ratio:float = 1.0
+	if kind == "fire": ratio = get_fire_effect_ratio()
+	elif kind == "cold": ratio = get_cold_effect_ratio()
+	elif is_element_immune(StringName(kind)): ratio = 0.0
+	if kind == "drowning" and (has_minecraft_status("water_breathing") or has_minecraft_status("conduit_power")): ratio = 0.0
+	var scaled:float = damage*ratio
+	if not is_finite(scaled) or scaled <= 0.0: return false
+	var envelope:Dictionary = space.duplicate() if space is Dictionary else {"point":point}
+	envelope["damage_kind"] = kind
+	if is_instance_valid(source): envelope["source"] = source
+	var element:String = COMBAT_CLASSIFICATION.legacy_element(kind)
+	# Legacy enchantment shape tags stay intact; they are not new elements.
+	if kind == "ordinary" and str(envelope.get("element","")) in ["explosion","projectile","fall"]:
+		element = str(envelope["element"])
+	envelope["element"] = element
+	var saved:Dictionary = {}
+	var keys:Array[String] = ["_blood_damage_element","_combat_damage_kind","_classified_damage_space"]
+	for key:String in keys:
+		if has_meta(key): saved[key] = get_meta(key)
+	set_meta("_blood_damage_element",element)
+	set_meta("_combat_damage_kind",kind)
+	set_meta("_classified_damage_space",envelope)
+	var accepted:bool
+	if spatial:
+		accepted = _receive_spatial_damage_untyped(scaled,envelope,ignore_block,raw_health) if spatial_already_dispatched else receive_spatial_damage(scaled,envelope,ignore_block,raw_health)
+	else:
+		accepted = receive_positional_damage(scaled,point,ignore_block,source)
+	for key:String in keys:
+		if saved.has(key): set_meta(key,saved[key])
+		elif has_meta(key): remove_meta(key)
+	return accepted
+
+## 复制品友伤守卫（皓宸任务10）：皓宸的复制品及其投射物/召唤物/AOE/后代永不伤害皓宸一方
+## （皓宸、其复制品、同阵营队友及其召唤物），与全局 Have_Team_Damage 无关。hitbox 接触与
+## 下面三个受伤入口共用；场上没有守卫成员时只做一次 has_group 判断。规则见
+## res://scripts/characters/我的世界/haochen/copy_friendly_guard.gd。
+static var _copy_friendly_guard:Script = null
+func is_guarded_from_friendly_copy(source:Variant) -> bool:
+	if not is_instance_valid(source) or not is_inside_tree() or not get_tree().has_group(&"character_copy_friendly_guard"): return false
+	if _copy_friendly_guard == null: _copy_friendly_guard = load("res://scripts/characters/我的世界/haochen/copy_friendly_guard.gd")
+	return _copy_friendly_guard != null and bool(_copy_friendly_guard.blocks(self,source))
+
+func receive_internal_status_damage(damage:float,kind:StringName,source:Node = null) -> float:
+	# Explicit legacy internal-bleed policy: bypass block, reduction, absorption
+	# and positional flashes; retain health setter/death hooks and caller audio.
+	# Never use this as an alternative fire/cold/ordinary entry point.
+	if kind != &"bleed" or not is_multiplayer_authority() or not is_finite(damage) or damage <= 0.0 or health <= 0: return 0.0
+	if is_guarded_from_friendly_copy(source): return 0.0
+	if is_element_immune(kind): return 0.0
+	var had:bool = has_meta("_blood_damage_element")
+	var previous:Variant = get_meta("_blood_damage_element") if had else ""
+	set_meta("_blood_damage_element",String(kind))
+	if is_instance_valid(source): record_combat_damage_source(source,float(health))
+	var before:float = float(health)
+	health -= damage
+	if had: set_meta("_blood_damage_element",previous)
+	else: remove_meta("_blood_damage_element")
+	return maxf(before-float(health),0.0)
+
 func get_cold_effect_ratio() -> float:
 	if is_element_immune(DAMAGE_ELEMENT_COLD): return 0.0
 	return maxf(cold_effect_ratio,0.0) if is_finite(cold_effect_ratio) else 0.0
@@ -6796,24 +7099,11 @@ func can_receive_cold_status() -> bool:
 	return not is_cold_immune() and can_receive_negative_effects()
 
 func receive_cold_positional_damage(damage:float,impact_position:Vector2,ignore_block:bool = false,source:Node = null) -> bool:
-	var scaled_damage:float = damage*get_cold_effect_ratio()
-	if not is_finite(scaled_damage) or scaled_damage <= 0.0: return false
-	var prior_element:Variant = get_meta("_blood_damage_element","")
-	set_meta("_blood_damage_element","cold")
-	var accepted:bool = receive_positional_damage(scaled_damage,impact_position,ignore_block,source)
-	if prior_element == "": remove_meta("_blood_damage_element")
-	else: set_meta("_blood_damage_element",prior_element)
-	return accepted
+	return receive_classified_positional_damage(damage,impact_position,&"cold",ignore_block,source)
+
 
 func receive_cold_spatial_damage(damage:float,damage_space:Variant,ignore_block:bool = false,raw_health:bool = false) -> bool:
-	var scaled_damage:float = damage*get_cold_effect_ratio()
-	if not is_finite(scaled_damage) or scaled_damage <= 0.0: return false
-	var prior_element:Variant = get_meta("_blood_damage_element","")
-	set_meta("_blood_damage_element","cold")
-	var accepted:bool = receive_spatial_damage(scaled_damage,damage_space,ignore_block,raw_health)
-	if prior_element == "": remove_meta("_blood_damage_element")
-	else: set_meta("_blood_damage_element",prior_element)
-	return accepted
+	return receive_classified_spatial_damage(damage,damage_space,&"cold",ignore_block,raw_health)
 
 
 func get_fire_effect_ratio() -> float:
@@ -6830,48 +7120,32 @@ func can_receive_fire_status() -> bool:
 	return not is_fire_immune()
 
 
-func receive_fire_positional_damage(
-	damage:float,
-	impact_position:Vector2,
-	ignore_block:bool = false,
-	source:Node = null
-) -> bool:
-	var scaled_damage:float = damage * get_fire_effect_ratio()
-	if scaled_damage <= 0.0:
-		return false
-	var prior_element:Variant = get_meta("_blood_damage_element","")
-	set_meta("_blood_damage_element","fire")
-	var accepted:bool = receive_positional_damage(scaled_damage,impact_position,ignore_block,source)
-	if prior_element == "": remove_meta("_blood_damage_element")
-	else: set_meta("_blood_damage_element",prior_element)
-	return accepted
+func receive_fire_positional_damage(damage:float,impact_position:Vector2,ignore_block:bool = false,source:Node = null) -> bool:
+	return receive_classified_positional_damage(damage,impact_position,&"fire",ignore_block,source)
 
 
-func receive_fire_spatial_damage(
-	damage:float,
-	damage_space:Variant,
-	ignore_block:bool = false,
-	raw_health:bool = false
-) -> bool:
-	var scaled_damage:float = damage * get_fire_effect_ratio()
-	if scaled_damage <= 0.0:
-		return false
-	var prior_element:Variant = get_meta("_blood_damage_element","")
-	set_meta("_blood_damage_element","fire")
-	var accepted:bool = receive_spatial_damage(scaled_damage,damage_space,ignore_block,raw_health)
-	if prior_element == "": remove_meta("_blood_damage_element")
-	else: set_meta("_blood_damage_element",prior_element)
-	return accepted
+func receive_fire_spatial_damage(damage:float,damage_space:Variant,ignore_block:bool = false,raw_health:bool = false) -> bool:
+	return receive_classified_spatial_damage(damage,damage_space,&"fire",ignore_block,raw_health)
 
 
-# v4 兼容入口。对普通角色，空间上下文不改变原有伤害语义；
-# 新版决斗者使用 receive_positional_damage() 做严格破绽位置判定。
 func receive_spatial_damage(
 	damage:float,
 	damage_space:Variant,
 	ignore_block:bool = false,
 	raw_health:bool = false
 ) -> bool:
+	if damage_space is Dictionary:
+		var internal:bool = has_meta("_classified_damage_space") and is_same(damage_space,get_meta("_classified_damage_space"))
+		if not internal:
+			var kind:String = COMBAT_CLASSIFICATION.context_kind(damage_space)
+			if damage_space.has("damage_kind") and kind.is_empty(): return false
+			if not kind.is_empty():
+				return _receive_classified_damage(damage,damage_space,StringName(kind),ignore_block,raw_health,null,true,true)
+
+	return _receive_spatial_damage_untyped(damage,damage_space,ignore_block,raw_health)
+
+
+func _receive_spatial_damage_untyped(damage:float,damage_space:Variant,ignore_block:bool,raw_health:bool) -> bool:
 	if damage <= 0.0:
 		return false
 	# Minecraft water breathing/conduit power prevent ONLY drowning, not
@@ -6890,7 +7164,9 @@ func receive_spatial_damage(
 			impact_position = context["point"] as Vector2
 		if context.get("source",null) is Node:
 			source = context.get("source",null) as Node
+	if is_guarded_from_friendly_copy(source): return false
 	if raw_health:
+		if _route_boat_damage(damage,impact_position,true,source,true): return true
 		var before_health:float = float(health)
 		var before_block:float = float(block)
 		hit_white(true)
@@ -6970,7 +7246,7 @@ func _on_hitbox_on_hit(hurt: hurtbox) -> void:
 		if float(info.get("armor_penetration",0.0)) > 0.0: target.set_meta("_mc_enchant_armor_penetration",float(info.armor_penetration))
 		if float(info.get("shield_bypass",0.0)) > 0.0: target.set_meta("_mc_enchant_shield_bypass",float(info.shield_bypass))
 
-	if outgoing_damage > 0.0 and (target.block < outgoing_damage or ignore_block):
+	if outgoing_damage > 0.0 and (target.block < outgoing_damage or ignore_block) and not preload("res://scripts/effects/我的世界/mc_hit_feedback.gd").manages(self):
 		if Unique_Hit_Audio != null:
 			play_unique_audio(Character_Audio_Slot.Hit,true)
 		elif Hit_Audio != "":
@@ -7000,6 +7276,7 @@ func _on_hitbox_on_hit(hurt: hurtbox) -> void:
 		target.remove_meta("_mc_enchant_armor_penetration")
 		target.remove_meta("_mc_enchant_shield_bypass")
 
+	preload("res://scripts/effects/我的世界/mc_hit_feedback.gd").settled(self,target,before_health,target.global_position)
 	var health_loss:float = maxf(before_health - float(target.health),0.0)
 	var block_loss:float = maxf(before_block - float(target.block),0.0)
 	# Contact effects once per accepted hit; thorns uses this hit's actual
@@ -7009,6 +7286,10 @@ func _on_hitbox_on_hit(hurt: hurtbox) -> void:
 	if health_loss + block_loss > 0.0 and (target.has_meta("mc_enchant_components") or target.has_node("MinecraftEnchantments")):
 		if enchant_script == null: enchant_script = load("res://scripts/effects/我的世界/mc_enchantments.gd")
 		enchant_script.apply_retaliation(target,enchant_caster,health_loss + block_loss)
+	# Allay-owned projectiles report real dealt damage for vanilla hit/crit feedback.
+	var allay_master:Node = Master if is_instance_valid(Master) else null
+	if health_loss>0.0 and allay_master != null and allay_master.is_in_group("MinecraftAllay") and not preload("res://scripts/effects/我的世界/mc_hit_feedback.gd").manages(self):
+		allay_master.notify_allay_hit(health_loss,target.global_position)
 	var hit_effect_seed:int = (
 		int(Time.get_ticks_usec())
 		^ int(get_instance_id())
@@ -7086,6 +7367,7 @@ func _emit_positional_damage_feedback(
 	before_block:float,
 	ignore_block:bool
 ) -> void:
+	preload("res://scripts/effects/我的世界/mc_hit_feedback.gd").settled(source,self,before_health,global_position)
 	if _source_handles_positional_hit_feedback(source):
 		return
 	var health_loss:float = maxf(before_health - float(health),0.0)
@@ -7132,6 +7414,8 @@ func receive_positional_damage(
 ) -> bool:
 	if damage <= 0.0:
 		return false
+	if _route_boat_damage(damage,impact_position,ignore_block,source): return true
+	if is_guarded_from_friendly_copy(source): return false
 	var before_health:float = float(health)
 	var before_block:float = float(block)
 	var absorption_status:Node = get_node_or_null("MinecraftStatus_absorption")
@@ -7226,3 +7510,32 @@ func Attack() -> void:
 func continue_attack() -> void:
 	
 	if state_machine.current_state == State.Die:return
+
+
+# Victim-authority reliable feedback: stable ball paths outlive one-frame projectiles.
+var _mc_damage_audio_serial:int = 0
+var _mc_damage_audio_received:int = 0
+var mc_damage_audio_count:int = 0
+var mc_damage_audio_last:Dictionary = {}
+
+func request_mc_damage_audio(actual:float,point:Vector2) -> void:
+	if not is_multiplayer_authority() or not is_inside_tree() or not is_finite(actual) or actual<=0.0: return
+	if not is_combat_runtime_active() or get_tree().paused or Game.now_stop_state: return
+	var feedback:Script = load("res://scripts/effects/我的世界/mc_hit_feedback.gd")
+	var event:String = feedback.GAIN.damage_event(actual)
+	_mc_damage_audio_serial += 1
+	var index:int = feedback.variant(event)
+	_receive_mc_damage_audio(_mc_damage_audio_serial,actual,point,index)
+	if multiplayer.has_multiplayer_peer(): _receive_mc_damage_audio.rpc(_mc_damage_audio_serial,actual,point,index)
+
+@rpc("authority","call_remote","reliable")
+func _receive_mc_damage_audio(serial:int,actual:float,point:Vector2,index:int) -> void:
+	if serial<=_mc_damage_audio_received or not is_finite(actual) or actual<=0.0: return
+	if not is_inside_tree() or not is_combat_runtime_active() or get_tree().paused or Game.now_stop_state: return
+	var feedback:Script = load("res://scripts/effects/我的世界/mc_hit_feedback.gd")
+	var event:String = feedback.GAIN.damage_event(actual)
+	if index<0 or index>=feedback.AUDIO.EVENTS[event].size(): return
+	_mc_damage_audio_received = serial
+	mc_damage_audio_count += 1
+	mc_damage_audio_last = {"event":event,"actual":actual,"gain":feedback.GAIN.damage_gain(actual),"variant":index,"serial":serial}
+	feedback.play(self,actual,point,index,serial)

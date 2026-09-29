@@ -99,9 +99,7 @@ func _hook_damage(target:ball,multiplier:float) -> bool:
 		target.Unique_Hurt_Audio=old_hurt
 		if prior: target.set_meta("mc_hook_hurt_only",true)
 		else: target.remove_meta("mc_hook_hurt_only")
-	if accepted:
-		if multiplayer.has_multiplayer_peer(): _receive_sound.rpc("entity.player.hurt",hook_point,-4.0)
-		_receive_sound("entity.player.hurt",hook_point,-4.0)
+	# Settled victim emits one MC hit; keep hurt-voice suppression scoped above.
 	return accepted
 func _return_hit(target:ball) -> void:
 	var id:int=target.get_instance_id()
@@ -109,7 +107,7 @@ func _return_hit(target:ball) -> void:
 	_return_hits[id]=true
 	if not _hook_damage(target,0.5): return
 	U.slow(self,target,0.12,0.65,"钓竿猛拉")
-	var offset:Vector2=global_position-target.global_position
+	var offset:Vector2=global_position-ball.body_point(target,global_position)
 	# Existing collision-aware knockback handles walls and control immunity.
 	target.apply_knockback(offset.normalized(),maxf(offset.length()-36.0,0.0),420,0,0,{"source":self})
 	if not _reel_slash_started and U.enemy(self,target):
@@ -120,12 +118,23 @@ func _segment_target(a:Vector2,b:Vector2) -> ball:
 	var result:ball
 	var best:float=INF
 	for other:Node in get_tree().get_nodes_in_group("Ball"):
-		if not U.enemy(self,other) or U.segment_distance(other.global_position,a,b)>U.radius(other)+3: continue
-		var distance:float=a.distance_squared_to(other.global_position)
+		if not U.enemy(self,other) or U.segment_distance(ball.body_point_seg(other,a,b),a,b)>U.radius(other)+3: continue
+		var distance:float=a.distance_squared_to(ball.body_point(other,a))
 		if distance<best:
 			best=distance
 			result=other
 	return result
+func controlled_attack_action() -> void:
+	# Existing sword slash. Reel-in follow-up remains part of the hook action.
+	if not is_player_controlled() or not is_multiplayer_authority() or not can_act(): return
+	try_start_sword(player_control_aim_direction(facing),false)
+func controlled_skill_action() -> void:
+	# The same button casts an idle hook or retrieves an already committed cast.
+	if not is_player_controlled() or not is_multiplayer_authority() or not can_act(): return
+	if hook_mode>0 and hook_mode<4:
+		pull_hook()
+	elif hook_mode==0 and _cast_left<=0.0 and _retreat_left<=0.0 and not _pull_slash_active:
+		cast_at(player_control_aim_world_position(global_position+facing*cast_range))
 func player_control_action_hold_repeat_allowed(action_index:int) -> bool:
 	# 抛线/收线是切换动作：同一次按住不能把刚抛出的线立即收回。
 	return action_index != 1 and super.player_control_action_hold_repeat_allowed(action_index)
@@ -141,13 +150,14 @@ func step_mob(delta:float) -> void:
 		return
 	advance_sword(delta)
 	step_pull_slash(delta)
-	var nearest:ball=U.nearest(self)
+	if is_player_controlled(): facing=player_control_aim_direction(facing)
+	var nearest:ball=null if is_player_controlled() else U.nearest(self)
 	if nearest!=null:
-		if not _pull_slash_active: facing=(nearest.global_position-global_position).normalized()
-		if global_position.distance_to(nearest.global_position)<=sword_range+U.radius(nearest) and _sword_left<=0 and sword_pose<=0.0 and not _pull_slash_active and not is_instance_valid(_pull_slash_target) and _retreat_left<=0.0:
+		if not _pull_slash_active: facing=(ball.body_point(nearest,global_position)-global_position).normalized()
+		if global_position.distance_to(ball.body_point(nearest,global_position))<=sword_range+U.radius(nearest) and _sword_left<=0 and sword_pose<=0.0 and not _pull_slash_active and not is_instance_valid(_pull_slash_target) and _retreat_left<=0.0:
 			try_start_sword(facing,false)
 	if hook_mode==0:
-		if nearest!=null and not _pull_slash_active and not is_instance_valid(_pull_slash_target) and _retreat_left<=0.0 and _cast_left<=0 and global_position.distance_to(nearest.global_position)<=cast_range and global_position.distance_to(nearest.global_position)>sword_range: cast_at(nearest.global_position)
+		if nearest!=null and not _pull_slash_active and not is_instance_valid(_pull_slash_target) and _retreat_left<=0.0 and _cast_left<=0 and global_position.distance_to(ball.body_point(nearest,global_position))<=cast_range and global_position.distance_to(ball.body_point(nearest,global_position))>sword_range: cast_at(ball.body_point(nearest,global_position))
 		return
 	if hook_mode==1:
 		# Substeps trace the actual parabola, including long physics frames.
@@ -158,7 +168,7 @@ func step_mob(delta:float) -> void:
 			var obstruction:Dictionary=U.trace(self,hook_point,next)
 			var stop:Vector2=obstruction.get("position",next)
 			var target:ball=_segment_target(hook_point,stop)
-			if target!=null and U.line_clear(self,hook_point,target.global_position) and _hook_damage(target,1.0):
+			if target!=null and U.line_clear(self,hook_point,ball.body_point(target,hook_point)) and _hook_damage(target,1.0):
 				U.slow(self,target,0.60,1.0,"钓钩减速")
 				hooked=target
 				hook_mode=2
@@ -180,7 +190,7 @@ func step_mob(delta:float) -> void:
 		if global_position.distance_to(hook_point)>break_distance or _attached_time>=0.65: pull_hook()
 	elif hook_mode==3:
 		var touched:ball=_segment_target(hook_point,hook_point)
-		if touched!=null and U.line_clear(self,hook_point,touched.global_position):
+		if touched!=null and U.line_clear(self,hook_point,ball.body_point(touched,hook_point)):
 			hooked=touched
 			hook_mode=2
 			_attached_time=0.0
@@ -195,8 +205,8 @@ func step_mob(delta:float) -> void:
 		var obstruction:Dictionary=U.trace(self,hook_point,next)
 		var stop:Vector2=obstruction.get("position",next)
 		for other:Node in get_tree().get_nodes_in_group("Ball"):
-			if not U.enemy(self,other) or U.segment_distance(other.global_position,hook_point,stop)>U.radius(other)+3: continue
-			if U.line_clear(self,hook_point,other.global_position) and U.line_clear(self,global_position,other.global_position): _return_hit(other)
+			if not U.enemy(self,other) or U.segment_distance(ball.body_point_seg(other,hook_point,stop),hook_point,stop)>U.radius(other)+3: continue
+			if U.line_clear(self,hook_point,ball.body_point(other,hook_point)) and U.line_clear(self,global_position,ball.body_point(other,global_position)): _return_hit(other)
 		hook_point=stop
 		if not obstruction.is_empty() or hook_point.distance_to(global_position)<8 or _return_left<=0:
 			break_line()
@@ -259,12 +269,12 @@ func advance_sword(delta:float) -> void:
 		var tip:Vector2=obstruction.get("position",segment[1])
 		for other:Node in get_tree().get_nodes_in_group("Ball"):
 			if not U.enemy(self,other) or _sword_hits.has(other.get_instance_id()): continue
-			if U.segment_distance(other.global_position,segment[0],tip)>U.radius(other)+1.5: continue
-			if not U.line_clear(self,sword_hilt(),other.global_position): continue
+			if U.segment_distance(ball.body_point_seg(other,segment[0],tip),segment[0],tip)>U.radius(other)+1.5: continue
+			if not U.line_clear(self,sword_hilt(),ball.body_point(other,sword_hilt())): continue
 			_sword_hits[other.get_instance_id()]=true
 			if U.damage(self,other,attack_damage(sword_damage_multiplier),sword_hilt()):
-				play_sound("entity.player.hurt",-4.0)
-				other.apply_knockback((other.global_position-_sword_origin).normalized(),28,250,0,0,{"source":self})
+				# Generic hit/crit was already emitted by the damage sink.
+				other.apply_knockback((ball.body_point(other,_sword_origin)-_sword_origin).normalized(),28,250,0,0,{"source":self})
 	if _pull_slash_active and sword_pose<=0.0: finish_pull_slash()
 func client_visual_step(delta:float) -> void:
 	if is_combat_runtime_active(): sword_pose=maxf(0.0,sword_pose-delta)
@@ -273,7 +283,7 @@ func step_pull_slash(_delta:float) -> void:
 	if not is_instance_valid(_pull_slash_target) or not U.enemy(self,_pull_slash_target):
 		_pull_slash_target=null
 		return
-	var offset:Vector2=_pull_slash_target.global_position-global_position
+	var offset:Vector2=ball.body_point(_pull_slash_target,global_position)-global_position
 	var heading:Vector2=offset.normalized() if offset.length_squared()>0.001 else facing
 	_pull_slash_target=null
 	# Retrieval and retreat still happen during cooldown, but cannot insert,

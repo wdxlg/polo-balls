@@ -100,7 +100,7 @@ func move(speed:float,delta:float) -> void:
 	for candidate:Node in get_tree().get_nodes_in_group("Ball"):
 		if not enemy(candidate): continue
 		var target:ball = candidate as ball
-		var t:float = contact_t(from,to,target.global_position,U.radius(target) + 2.0)
+		var t:float = contact_t(from,to,ball.body_point_seg(target,from,to),U.radius(target) + 2.0)
 		if t >= 0.0: candidates.append({"target":target,"t":t})
 	candidates.sort_custom(func(a:Dictionary,b:Dictionary) -> bool: return float(a.t) < float(b.t))
 	for hit:Dictionary in candidates:
@@ -117,7 +117,7 @@ func _on_hitbox_on_hit(hurt:hurtbox) -> void:
 	var target:ball = _hurtbox_target_ball(hurt)
 	if not enemy(target): return
 	var before:float = maxf(float(target.health),0.0)
-	var point:Vector2 = target.global_position
+	var point:Vector2 = ball.body_point(target,global_position)
 	var heading:Vector2 = direction
 	_resolving_hit = true
 	super._on_hitbox_on_hit(hurt)

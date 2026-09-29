@@ -46,11 +46,11 @@ func _physics_process(delta:float) -> void:
 			caster.mc_play("cast_spell",-7.0)
 		for target:Node in get_tree().get_nodes_in_group("Ball"):
 			if target is ball and caster.mc_enemy(target) and not _hits.has(target.get_instance_id()):
-				if global_position.distance_to(target.global_position) <= 5.5 + target.get_crowd_separation_radius_world() and caster.mc_line_clear(global_position,target.global_position):
+				if global_position.distance_to(ball.body_point(target,global_position)) <= 5.5 + target.get_crowd_separation_radius_world() and caster.mc_line_clear(global_position,ball.body_point(target,global_position)):
 					_hits[target.get_instance_id()] = true
-					var applied:bool = target.receive_positional_damage(_damage,global_position,false,caster)
+					var applied:bool = caster.mc_damage_with_impact(target,_damage,global_position)
 					if applied and _push_back and target.health > 0:
-						target.apply_knockback(caster.global_position.direction_to(target.global_position),_push_distance,_push_speed,0.0,0.0,{"source":caster,"stop_on_character":true})
+						target.apply_knockback(caster.global_position.direction_to(ball.body_point(target,caster.global_position)),_push_distance,_push_speed,0.0,0.0,{"source":caster,"stop_on_character":true})
 	if _age > _delay + 0.34: queue_free()
 	queue_redraw()
 func native_animation_progress() -> float:

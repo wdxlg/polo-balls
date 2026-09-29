@@ -219,7 +219,7 @@ func _tick_puffer(delta:float) -> void:
 		if unit == self or not fish_enemy(unit): continue
 		var rect:Rect2 = CATALOG.body_rect(unit)
 		if rect.intersects(mine): _touch(unit)
-		if unit.global_position.distance_to(global_position) <= puff_radius: near = true
+		if ball.body_point(unit,global_position).distance_to(global_position) <= puff_radius: near = true
 	if near:
 		_puff_hold = 1.5
 		if not puffed: _set_puffed(true)
@@ -262,7 +262,7 @@ func _ram(unit:ball) -> void:
 	rams += 1
 	if actual > 0.0 and boss != null and boss.has_method(&"wt_hit_sound"): boss.call(&"wt_hit_sound",actual,unit.global_position)
 	if is_instance_valid(unit) and unit.health > 0 and unit.can_receive_negative_effects():
-		var push:Vector2 = fall_velocity.normalized() if speed > 0.01 else global_position.direction_to(unit.global_position)
+		var push:Vector2 = fall_velocity.normalized() if speed > 0.01 else global_position.direction_to(ball.body_point(unit,global_position))
 		unit.apply_knockback(push,speed*ram_knockback*unit.get_negative_effect_ratio(),260.0,0.0,0.0,{"source":self,"lock_control":false})
 
 func _touch(unit:ball) -> void:

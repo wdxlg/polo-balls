@@ -129,7 +129,7 @@ func controlled_skill_action() -> void:
 	var best:float = BOLT_AIM_ASSIST*BOLT_AIM_ASSIST
 	for node:Node in get_tree().get_nodes_in_group("Ball"):
 		if node is ball and node.health > 0 and U.enemy(self,node) and node.is_combat_lockable():
-			var d:float = (node as Node2D).global_position.distance_squared_to(aim_point)
+			var d:float = ball.body_point((node as Node2D),aim_point).distance_squared_to(aim_point)
 			if d < best:
 				best = d
 				homing = node
@@ -168,16 +168,17 @@ func step_mob(delta:float) -> void:
 func _try_start_ai_combo() -> void:
 	if is_player_controlled() or not can_act() or combo_time >= 0.0 or cooldown_left > 0.0: return
 	var target:ball = U.nearest(self)
-	if can_reach_target(target): begin_combo(global_position.direction_to(target.global_position))
+	if can_reach_target(target): begin_combo(global_position.direction_to(target_point(target)))
 
 func can_reach_target(target:ball) -> bool:
 	# Discovery radius is NOT a damage radius. Preview only the actual two sword
 	# windows against current hurt shapes and walls, via the shared contact service.
 	# Optional aim is pure geometry: no turn, cooldown, audio, RNG, damage or RPC.
 	if not is_instance_valid(target) or target.health <= 0 or not U.enemy(self,target): return false
-	if global_position.distance_squared_to(target.global_position) > acquisition_range*acquisition_range: return false
-	var aim:Vector2 = global_position.direction_to(target.global_position)
-	if aim.is_zero_approx() or not U.line_clear(self,global_position,target.global_position): return false
+	var point:Vector2 = target_point(target)
+	if global_position.distance_squared_to(point) > acquisition_range*acquisition_range: return false
+	var aim:Vector2 = global_position.direction_to(point)
+	if aim.is_zero_approx() or not U.line_clear(self,global_position,point): return false
 	var area:Area2D = target.self_hurtbox
 	if area == null: return false
 	var bounds:Rect2
@@ -202,7 +203,12 @@ func can_reach_target(target:ball) -> bool:
 ## Melee range = the sword acquisition radius (the same radius that gates both slashes).
 func enemy_outside_melee(target:ball) -> bool:
 	if not is_instance_valid(target) or target.health <= 0 or not U.enemy(self,target): return false
-	return global_position.distance_squared_to(target.global_position) > acquisition_range*acquisition_range
+	return global_position.distance_squared_to(target_point(target)) > acquisition_range*acquisition_range
+
+## Aim / range point: tall multi-part bodies (grown cactus) offer their part nearest to us.
+func target_point(target:ball) -> Vector2:
+	if target.has_method(&"combat_distance_point_for"): return target.call(&"combat_distance_point_for",self)
+	return ball.body_point(target,global_position)
 
 func _tick_bolt(delta:float) -> void:
 	var target:ball = U.nearest(self)
@@ -210,8 +216,9 @@ func _tick_bolt(delta:float) -> void:
 	bolt_cooldown_left = maxf(0.0,bolt_cooldown_left-delta)
 	if bolt_cooldown_left > 0.0 or is_player_controlled() or combo_time >= 0.0: return
 	var muzzle:Vector2 = bolt_muzzle_position()
-	if not U.line_clear(self,muzzle,target.global_position): return # Hold a ready shot until the line opens.
-	fire_bolt(target.global_position-muzzle,target)
+	var point:Vector2 = target_point(target)
+	if not U.line_clear(self,muzzle,point): return # Hold a ready shot until the line opens.
+	fire_bolt(point-muzzle,target)
 
 func bolt_muzzle_position() -> Vector2:
 	var pixel:Vector2 = BOLT_MUZZLE_PIXEL-Vector2(80.0,112.0)+image.offset
@@ -633,6 +640,5 @@ func _death_visual() -> void:
 	image.texture = FRAMES.get_frame_texture(_body_clip,_body_frame)
 	DEATH_FX.death_pose(self,image,_face_right)
 func get_armor_test_effect_summary() -> String:
-	if str(Game.current_locale).begins_with("en"):
-		return "Strike twice with a stone sword; each slash can hit each enemy once.\nWhile the enemy is outside melee range, a 3-second cooldown counts down (it pauses whenever the enemy is in melee range); when ready, the head fires a slightly homing bolt of Wither smoke for 5 damage.\nEvery damaging slash or bolt inflicts Wither I for 3 seconds. If Wither is already active, raise its current level by one and refresh this source to 3 seconds (maximum 255). Existing sources keep their own remaining time.\nControl with C: WASD moves, the mouse aims, left click starts the two-slash combination and right click fires the head bolt. Stun, death or disabled attacks cancel unfinished slashes."
-	return "手持石剑连续砍两下，每刀对同一敌人最多命中一次。\n敌人在近战范围外时冷却3秒（敌人进入近战范围时冷却暂停），就绪后头部射出一团凋零烟雾弹，带小幅追踪，伤害5。\n每次砍击或烟雾弹实际造成伤害后施加3秒凋零；没有凋零时为I级，已有凋零则在当前等级上提升一级，并刷新本来源为3秒（公共上限255级）。其他来源保留自己的剩余时间。\nC键手控：WASD移动、鼠标瞄准、左键两连砍、右键头部烟雾弹。眩晕、死亡或禁攻会取消尚未完成的砍击。"
+	return Game.t("MC_ARMOR_INTRO_WITHER_SKELETON")
+

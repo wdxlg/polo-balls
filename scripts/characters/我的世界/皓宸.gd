@@ -188,7 +188,7 @@ func _step_charge_stream(delta:float) -> void:
 	var fed:int = 0
 	for raw:Variant in COPY_TOOLS.targeting_candidates(self):
 		if fed>=CHARGE_STREAM_MAX_SOURCES: break
-		if not _valid_energy_source(raw) or global_position.distance_squared_to(raw.global_position)>energy_radius*energy_radius: continue
+		if not _valid_energy_source(raw) or global_position.distance_squared_to(ball.body_point(raw,global_position))>energy_radius*energy_radius: continue
 		fed += 1
 		STREAM.emit_stream(get_parent(),_drain_rng,raw.global_position,global_position,CHARGE_STREAM_PER_SOURCE,CHARGE_SOUL_WIDTH,&"MCHaochenChargeParticle",&"haochen_stream_owner",get_instance_id(),0.3,self)
 	if fed>0 and _charge_sound_left<=0.0:
@@ -235,7 +235,7 @@ func _valid_energy_source(raw:Variant) -> bool:
 func _scan_enemies() -> void:
 	_nearby.clear()
 	for raw:Variant in COPY_TOOLS.targeting_candidates(self):
-		if _valid_energy_source(raw) and global_position.distance_squared_to(raw.global_position)<=energy_radius*energy_radius:
+		if _valid_energy_source(raw) and global_position.distance_squared_to(ball.body_point(raw,global_position))<=energy_radius*energy_radius:
 			_nearby.append(weakref(raw))
 
 func _step_energy(delta:float) -> void:
@@ -249,7 +249,7 @@ func _step_energy(delta:float) -> void:
 	if charge_phase!=Phase.COPYING and not dizziness and not is_damage_output_disabled() and _retry_left<=0.0:
 		for reference:WeakRef in _nearby:
 			var raw:Variant = reference.get_ref()
-			if _valid_energy_source(raw) and global_position.distance_squared_to(raw.global_position)<=energy_radius*energy_radius:
+			if _valid_energy_source(raw) and global_position.distance_squared_to(ball.body_point(raw,global_position))<=energy_radius*energy_radius:
 				donors.append(raw as ball)
 	var charging:bool = not donors.is_empty() and charge_phase!=Phase.COPYING
 	if charge_phase!=Phase.COPYING:
@@ -400,6 +400,5 @@ func Die() -> void:
 	queue_redraw()
 
 func get_armor_test_effect_summary() -> String:
-	if Game.current_locale.begins_with("en"):
-		return "Nearby enemies supply energy while Haochen gradually slows. With none nearby, movement recovers and stored energy is retained.\nA full meter copies this cycle's greatest contributor as a monochrome subordinate. Combat stats are halved except movement speed; skill parameters remain.\nEach successful copy starts a new contribution cycle. Existing copies remain and share Haochen's battle family."
-	return "附近敌人持续提供能量，蓄能时逐渐减速；无人时恢复移速，已经积累的能量与贡献保留。\n满条复制本轮贡献最高的人物，成为黑白附属；除移速外公共战斗属性减半，技能参数保持。\n复制成功后重新计分，旧复制品继续留场，并与皓宸共用原角色的存续归属。"
+	return Game.t("MC_ARMOR_INTRO_HAOCHEN")
+

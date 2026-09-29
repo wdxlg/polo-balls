@@ -1,5 +1,6 @@
 extends "res://scripts/characters/我的世界/mc_mob_base.gd"
-## 直接旋转3秒 -> 骷髅/玫瑰/冲撞 -> 半血信标。所有伤害由权威端结算。
+const PROJECTILE_API = preload("res://classes/projectile_interactions.gd")
+## 直接旋转3秒 -> 骷髅/冲撞 -> 半血信标。所有伤害由权威端结算。
 const PREVIEW = preload("res://Images/characters/我的世界/wither/bedrock/wither_preview.png")
 const BODY = preload("res://Images/characters/我的世界/wither/wither_front.png")
 const LIVE_RIG = preload("res://scripts/characters/我的世界/wither/bedrock_rig.gd")
@@ -7,7 +8,6 @@ const MC_EXPLOSION_SCENE:PackedScene = preload("res://scenes/effects/我的世�
 const MC_EXPLOSION = preload("res://scripts/effects/我的世界/mc_explosion.gd")
 const VANILLA_SOUND = preload("res://scripts/characters/我的世界/wither/audio.gd")
 const SKULL = preload("res://scripts/characters/我的世界/wither/skull.gd")
-const ROSE = preload("res://scripts/characters/我的世界/wither/rose.gd")
 const BEACON = preload("res://scenes/creatures/我的世界/凋零信标.tscn")
 const AUDIO = preload("res://scripts/characters/我的世界/new5/audio.gd")
 const HIT_GAIN = preload("res://scripts/effects/我的世界/hit_audio_gain.gd")
@@ -15,7 +15,10 @@ const ACTIVE_TOOLTIP = preload("res://scripts/ui/mc_active_effect_tooltip.gd")
 const EFFECTS = preload("res://scripts/effects/我的世界/mc_status_effects.gd")
 const OBSTACLES = preload("res://scripts/effects/我的世界/ghast_obstacle_damage.gd")
 const CHARGE_RESET = preload("res://scripts/characters/我的世界/wither/charge_reset.gd")
-const CHARGE_SPEED:float = 500.0
+const CHARGE_DAMAGE:float = 100.0
+const CHARGE_SPEED:float = 325.0 # 65% of the previous speed; preserve the deceleration curve.
+const CHARGE_VISUALS = preload("res://scripts/effects/我的世界/mc_visual_effects.gd")
+const CHARGE_SMOKE = preload("res://Images/characters/我的世界/wither/big_smoke_0.png")
 const AWAKENING_BLAST_RADIUS:float = 72.0
 const BASE_ATTACK_DAMAGE:float = 75.0 # The unbuffed Damage in 凋灵.tscn; attack weights are relative to it.
 const SKULL_WINDUP:float = 0.30
@@ -24,7 +27,6 @@ const SHOT_HEAD_ORDER = [0,2,1] # Center, screen-left, screen-right.
 @export var summon_duration:float = 3.0
 @export var skull_interval:float = 3.0 # Each head has its own cooldown.
 @export var skull_global_cooldown:float = 0.45 # Shared gap after every shot.
-@export var rose_interval:float = 4.0
 @export var charge_interval:float = 12.0
 var summon_time:float = 0.0
 var summoned:bool = false
@@ -32,13 +34,16 @@ var heart_dropped:bool = false
 var beacon:ball
 var _head_shot_left:Array[float] = [1.0,1.0,1.0]
 var _global_shot_left:float = 0.0
-var _rose_left:float = 4.0
 var _charge_left:float = 12.0
 var _windup:float = 0.0
 var _windup_head:int = -1 # Slot in SHOT_HEAD_ORDER, not a bone index.
+var _manual_skull_windup:bool = false
+var _manual_skull_point:Vector2 = Vector2.ZERO
 var _charge_windup:float = 0.0
 var _charge_dir:Vector2 = Vector2.RIGHT
 var _charge_remaining:float = 0.0
+var _charge_total_dist:float = 0.0
+var _charge_smoke_distance:float = 0.0
 var _charge_hits:Dictionary = {}
 var _charge_broken:Dictionary = {}
 var _sync_left:float = 0.0
@@ -116,38 +121,24 @@ func take_damage(amount:float,ignore_block:bool = false) -> void:
 	super.take_damage(amount,ignore_block)
 func can_receive_hit_from(incoming_hit) -> bool:
 	if summoned or not is_multiplayer_authority() or incoming_hit == null: return true
-	var projectile:Node = incoming_hit.get_parent()
-	if not (projectile is ball) and incoming_hit.owner is ball: projectile = incoming_hit.owner
-	if projectile is ball:
-		var shot:ball = projectile as ball
-		if shot.Type in [Ball_Type.Shooter,Ball_Type.Shooter_with_Health]:
-			if not shot.has_meta(&"wither_reflected"):
-				shot.set_meta(&"wither_reflected",true)
-				call_deferred("_reflect_shot",shot)
-			return false
-	return false # 旋转唤醒期间近战/其他投射物仍不能造成伤害。
-func should_destroy_projectile_on_rejected_hit(incoming_hit:hitbox) -> bool:
-	if not summoned and incoming_hit != null and incoming_hit.get_parent() is ball:
-		var shot:ball = incoming_hit.get_parent()
-		if shot.Type in [Ball_Type.Shooter,Ball_Type.Shooter_with_Health]: return false
-	return true
-func _reflect_shot(shot:ball) -> void:
-	if not is_instance_valid(shot) or not is_multiplayer_authority(): return
-	var previous:ball = shot.Master if shot.Master is ball else null
-	var heading:Vector2 = -shot.direction
-	if heading.length_squared() < 0.001: heading = (shot.global_position-global_position).normalized()
-	if heading.length_squared() < 0.001: heading = Vector2.RIGHT
-	shot.Master = self
-	shot.Master_name = name
-	shot.Team = Team
-	shot.Ignore_Team_Damage_Setting = Ignore_Team_Damage_Setting
-	shot.Target_Enemy = previous if is_instance_valid(previous) else null
-	shot.direction = heading.normalized()
-	shot.global_position = global_position + shot.direction*76.0
-	shot.velocity = Vector2.ZERO
-	shot.Repel = Vector2.ZERO
-	shot.global_rotation = shot.Default_Rotation + shot.direction.angle()
+	var shot:Node = incoming_hit.get_parent()
+	if not PROJECTILE_API.is_projectile(shot): shot = incoming_hit.owner
+	try_reflect_projectile(shot)
+	return false
+
+func try_reflect_projectile(shot:Node) -> bool:
+	if summoned or health <= 0 or not is_multiplayer_authority() or not shot is Node2D: return false
+	if not PROJECTILE_API.reflect(shot,self,76.0): return false
 	reflected_count += 1
+	return true
+
+func should_destroy_projectile_on_rejected_hit(incoming_hit:hitbox) -> bool:
+	if incoming_hit == null: return true
+	var shot:Node = incoming_hit.get_parent()
+	return not (PROJECTILE_API.is_projectile(shot) and int(shot.get_meta("projectile_reflected_frame",-1)) == Engine.get_physics_frames())
+
+func _reflect_shot(shot:Node) -> void:
+	try_reflect_projectile(shot)
 
 func on_actual_health_damage_received(actual:float,before:float) -> void:
 	super.on_actual_health_damage_received(actual,before)
@@ -197,21 +188,24 @@ func tick_physics(state:State,delta:float) -> void:
 		_buff = ""
 	for i:int in range(3): _head_shot_left[i] = maxf(_head_shot_left[i]-delta,0.0)
 	_global_shot_left = maxf(_global_shot_left-delta,0.0)
-	_rose_left -= delta
 	_charge_left -= delta
 	var target:ball = mc_nearest(delta)
 	if _windup_head >= 0:
-		if target == null or target.health <= 0 or dizziness or is_damage_output_disabled():
+		if (not _manual_skull_windup and (target == null or target.health <= 0)) or dizziness or is_damage_output_disabled():
 			# A cancelled windup must not consume this head's cooldown or the shared gap.
 			_windup = 0.0
 			_windup_head = -1
+			_manual_skull_windup = false
 		else:
 			_windup = maxf(_windup-delta,0.0)
 			if _windup <= 0.0:
 				var firing_head:int = _windup_head
 				_windup_head = -1
-				_fire_skull(player_control_aim_world_position(target.global_position) if has_player_control_aim() else target.global_position,firing_head)
-	elif _global_shot_left <= 0.0 and target != null and not dizziness and not is_damage_output_disabled():
+				var point:Vector2 = _manual_skull_point if _manual_skull_windup else ball.body_point(target,global_position)
+				if has_player_control_aim(): point=player_control_aim_world_position()
+				_manual_skull_windup = false
+				_fire_skull(point,firing_head)
+	elif not is_player_controlled() and _global_shot_left <= 0.0 and target != null and not dizziness and not is_damage_output_disabled():
 		# Round-robin through READY heads; a cooling head cannot block the others.
 		for offset:int in range(3):
 			var head_slot:int = (_next_shoot_head+offset)%3
@@ -219,54 +213,109 @@ func tick_physics(state:State,delta:float) -> void:
 				_windup_head = head_slot
 				_windup = SKULL_WINDUP
 				break
-	if _rose_left <= 0:
-		_rose_left = rose_interval
-		var own_roses:int = 0
-		for rose:Node in get_tree().get_nodes_in_group("WitherFlower"):
-			if is_instance_valid(rose) and not rose.is_queued_for_deletion() and rose.get("source_ref") is WeakRef and rose.get("source_ref").get_ref() == self: own_roses += 1
-		if own_roses < 3: _grow_rose()
 	if _charge_windup > 0:
 		_charge_windup -= delta
+		velocity = Vector2.ZERO
 		if _charge_windup <= 0:
 			_charge_remaining = _charge_wall_distance(global_position,_charge_dir)
+			_charge_total_dist = _charge_remaining
+			_charge_smoke_distance = 0.0
 			if _charge_remaining > 0.0: _break_charge_obstacles(global_position,global_position)
 	elif _charge_remaining > 0:
-		var travel:float = minf(CHARGE_SPEED*delta,_charge_remaining)
+		var dist_frac:float = clampf(_charge_remaining/maxf(_charge_total_dist,1.0),0.0,1.0)
+		var current_speed:float = lerpf(CHARGE_SPEED*0.45,CHARGE_SPEED*1.55,dist_frac)
+		var travel:float = minf(current_speed*delta,_charge_remaining)
 		var old:Vector2 = global_position
 		var next:Vector2 = old+_charge_dir*travel
+		# Check map boundary / obstacle wall intersection
+		var max_avail:float = _charge_wall_distance(old,_charge_dir)
+		if travel >= max_avail:
+			travel = max_avail
+			next = old+_charge_dir*travel
+			_charge_remaining = 0.0
+		else:
+			_charge_remaining = maxf(_charge_remaining-travel,0.0)
 		# The charge is a swept pass-through, not CharacterBody sliding. Break
 		# obstacles BEFORE moving so neither props nor other bodies can stop it.
 		_break_charge_obstacles(old,next)
 		global_position = next
-		velocity = _charge_dir*CHARGE_SPEED
-		_charge_remaining = maxf(_charge_remaining-travel,0.0)
+		velocity = _charge_dir*current_speed
 		if travel > 0.0:
+			_emit_charge_smoke(old,next)
 			for node:Node in SubmissionCharacterTools.targeting_candidates(self):
 				if node is ball and mc_enemy(node) and not _charge_hits.has(node.get_instance_id()):
 					var enemy:ball = node as ball
 					if enemy.is_in_group("BuilderWall") or (enemy.has_method("is_builder_wall") and enemy.is_builder_wall()): continue
-					if Geometry2D.get_closest_point_to_segment(enemy.global_position,old,next).distance_to(enemy.global_position) <= enemy.get_crowd_separation_radius_world()+42.0:
+					if Geometry2D.get_closest_point_to_segment(ball.body_point_seg(enemy,old,next),old,next).distance_to(ball.body_point(enemy,Geometry2D.get_closest_point_to_segment(ball.body_point_seg(enemy,old,next),old,next))) <= enemy.get_crowd_separation_radius_world()+42.0:
 						_charge_hits[enemy.get_instance_id()] = true
-						impact(enemy,32.0,enemy.global_position,true)
+						impact(enemy,CHARGE_DAMAGE,enemy.global_position,true)
 						enemy.Repel += _charge_dir*60.0
 			# Builder walls inherit ball and cannot be mined by the static-body
-			# manager. They are obstacles, not another 32-damage combat target.
+			# manager. They are obstacles, not another charge-damage combat target.
 			_break_charge_builder_walls(old,next)
-		if _charge_remaining <= 0.0: velocity = Vector2.ZERO
-	elif _charge_left <= 0 and target != null and global_position.distance_to(target.global_position) < 175.0 and _windup <= 0:
-		_charge_dir = (target.global_position-global_position).normalized()
-		_charge_windup = 0.45
-		_charge_left = charge_interval
-		_charge_hits.clear()
-		_charge_broken.clear()
-		Repel = Vector2.ZERO
-		_emit_sound("shoot",global_position)
+		if _charge_remaining <= 0.0:
+			velocity = Vector2.ZERO
+			_charge_total_dist = 0.0
+	elif not is_player_controlled() and target != null: _begin_charge_at(ball.body_point(target,global_position))
 	_sync_left -= delta
 	if _sync_left <= 0:
 		_sync_left = 0.15
 		if multiplayer.has_multiplayer_peer():
 			var body_heading:Vector2 = _visual_body_heading()
 			_sync_appearance.rpc(summon_time,summoned,heart_dropped,_buff,_buff_left,body_heading,_visual_look_point(body_heading))
+
+func _emit_charge_smoke(from:Vector2,to:Vector2) -> void:
+	var length:float = from.distance_to(to)
+	if length <= 0.0: return
+	var heading:Vector2 = from.direction_to(to)
+	var sample:Dictionary = CHARGE_VISUALS.sample_smoke_trail(from,to,12.0,30.0,_charge_smoke_distance)
+	var points:PackedVector2Array = sample.points
+	_charge_smoke_distance = float(sample.distance)
+	if points.is_empty(): return
+	_show_charge_smoke(points,heading)
+	if multiplayer.has_multiplayer_peer(): _show_charge_smoke.rpc(points,heading)
+
+@rpc("authority","call_remote","unreliable")
+func _show_charge_smoke(points:PackedVector2Array,heading:Vector2) -> void:
+	if health <= 0 or not is_combat_runtime_active(): return
+	var side:Vector2 = heading.orthogonal()
+	for point:Vector2 in points:
+		for sign_value:float in [-1.0,1.0]:
+			CHARGE_VISUALS.smoke_particle(self,point+side*sign_value*8.0,CHARGE_SMOKE,
+				-heading*18.0+side*sign_value*12.0,0.65,12.0,Color(0.22,0.22,0.22,0.85))
+
+@rpc("authority","call_remote","unreliable")
+func _show_skull_trail(points:PackedVector2Array,heading:Vector2) -> void:
+	# Skull nodes only simulate on the authority. Replicate visuals on the stable Wither path.
+	if health <= 0 or not is_combat_runtime_active(): return
+	for index:int in range(mini(points.size(),48)):
+		CHARGE_VISUALS.smoke_particle(self,points[index],CHARGE_SMOKE,
+			-heading*12.0,0.5,8.0,Color(0.22,0.22,0.22,0.85))
+
+func controlled_attack_action() -> void:
+	if not is_player_controlled() or not mc_live() or not summoned or dizziness or not has_player_control_aim() or _windup_head>=0 or _global_shot_left>0.0: return
+	for offset:int in range(3):
+		var slot:int=(_next_shoot_head+offset)%3
+		if _head_shot_left[slot]<=0.0:
+			_windup_head=slot
+			_windup=SKULL_WINDUP
+			_manual_skull_windup=true
+			_manual_skull_point=player_control_aim_world_position()
+			break
+func controlled_skill_action() -> void:
+	# With flowers removed, charge is the second action (right mouse); no empty middle slot.
+	if is_player_controlled() and mc_live() and summoned and not dizziness and has_player_control_aim(): _begin_charge_at(player_control_aim_world_position())
+func _begin_charge_at(point:Vector2) -> void:
+	if _charge_left>0.0 or _windup_head>=0 or _charge_windup>0.0 or _charge_remaining>0.0 or dizziness or is_damage_output_disabled(): return
+	var offset:Vector2=point-global_position
+	if offset.length_squared()<0.0001 or offset.length()>=175.0: return
+	_charge_dir=offset.normalized()
+	_charge_windup=0.45
+	_charge_left=charge_interval
+	_charge_hits.clear()
+	_charge_broken.clear()
+	Repel=Vector2.ZERO
+	_emit_sound("charge",global_position)
 
 func _charge_half_size() -> Vector2:
 	if collision_shape_2d != null and collision_shape_2d.shape != null:
@@ -424,20 +473,6 @@ func _fire_skull(point:Vector2,head_slot:int = -1) -> void:
 	skull.add_to_group("BattleTransient")
 	if _bedrock_model != null: _bedrock_model.call("recoil_head",head_index)
 	_emit_sound("shoot",origin)
-func _grow_rose() -> void:
-	var rect:Rect2 = mc_arena_rect().grow(-30.0)
-	var where:Vector2 = global_position
-	for i:int in range(14):
-		var point:Vector2 = Vector2(_mc_rng.randf_range(rect.position.x,rect.end.x),_mc_rng.randf_range(rect.position.y,rect.end.y))
-		if mc_position_clear(point,14.0):
-			where = point
-			break
-	var rose:Node2D = ROSE.new()
-	get_tree().current_scene.add_child(rose,true)
-	rose.global_position = where
-	rose.call("configure",self)
-	rose.add_to_group("BattleTransient")
-	_emit_sound("rose",where)
 func own_attack_damage(base_amount:float) -> float:
 	# Only attacks emitted by the Wither itself read its live Damage attribute.
 	# Strength/Weakness and other Damage buffs are already folded into Damage by
@@ -447,7 +482,7 @@ func impact(target:ball,amount:float,point:Vector2,from_wither_body:bool = false
 	if not is_multiplayer_authority() or not mc_enemy(target) or is_damage_output_disabled(): return 0.0
 	var before:float = maxf(target.health,0.0)
 	# Charge, head-skull (direct/splash) and awakening explosion belong to the
-	# body. Beacon beam and flowers are independent attacks and keep their own
+	# body. Beacon beams are independent attacks and keep their own
 	# authored damage; the Wither status ticks off the victim's maximum health.
 	var adjusted:float = own_attack_damage(amount) if from_wither_body else maxf(amount,0.0)
 	target.receive_positional_damage(adjusted,point,false,self)
@@ -462,20 +497,12 @@ func _hit_sound(point:Vector2,actual:float) -> void:
 func apply_wither(target:ball) -> void:
 	if mc_enemy(target): EFFECTS.apply_effect(target,"wither",1,3.0,self)
 func _blast(center:Vector2,radius:float,damage:float,direct:ball,apply_effect:bool) -> void:
-	# Only skull blasts convert nearby ordinary poppies; the awakening blast
-	# must not turn every flower into a Wither rose.
-	if apply_effect:
-		for rose:Node in get_tree().get_nodes_in_group("WitherFlower"):
-			if is_instance_valid(rose) and not rose.is_queued_for_deletion() and rose is Node2D:
-				var flower:Node2D = rose as Node2D
-				if flower.global_position.distance_to(center) <= radius and mc_line_clear(center,flower.global_position):
-					flower.call("become_wither")
 	for node:Node in SubmissionCharacterTools.targeting_candidates(self):
 		if node is ball and mc_enemy(node):
 			var target:ball = node as ball
-			if target.global_position.distance_to(center) > radius+target.get_crowd_separation_radius_world(): continue
-			if not mc_line_clear(center,target.global_position): continue
-			if impact(target,75.0 if target == direct else damage,center,true) > 0 and apply_effect: apply_wither(target)
+			if ball.body_point(target,center).distance_to(center) > radius+target.get_crowd_separation_radius_world(): continue
+			if not mc_line_clear(center,ball.body_point(target,center)): continue
+			if impact(target,SKULL.DIRECT_DAMAGE if target == direct else damage,center,true) > 0 and apply_effect: apply_wither(target)
 func apply_beacon_buff(kind:String) -> void:
 	if not _buff.is_empty() and _buff != kind: EFFECTS.clear(self,_buff,self)
 	_buff = kind
@@ -503,15 +530,16 @@ func _emit_sound(event:String,point:Vector2) -> void:
 	VANILLA_SOUND.play(self,event,point)
 	if multiplayer.has_multiplayer_peer(): _sync_event.rpc(event,point)
 func _visual_body_heading() -> Vector2:
-	# Lean only while actually moving; target position / mouse aim must not
-	# turn or tip the torso. Charges use their actual path velocity.
+	# Turn whole body towards charge direction during windup and active charge
+	if _charge_windup > 0.0 or _charge_remaining > 0.0: return _charge_dir
 	if not summoned or velocity.length_squared() <= 36.0: return Vector2.ZERO
 	return velocity.normalized()
 func _visual_look_point(_body_heading:Vector2) -> Vector2:
+	if _charge_windup > 0.0 or _charge_remaining > 0.0: return global_position + _charge_dir * 300.0
 	if is_player_controlled() and has_player_control_aim(): return player_control_aim_world_position(global_position+Vector2.UP*250.0)
 	var target:ball = mc_nearest(0.0) if is_multiplayer_authority() else null
 	if target == null and is_instance_valid(Target_Enemy) and Target_Enemy is ball: target = Target_Enemy as ball
-	if target != null and target.health > 0: return target.global_position
+	if target != null and target.health > 0: return ball.body_point(target,global_position)
 	return global_position+Vector2.UP*250.0
 func _update_live_pose(delta:float) -> void:
 	if _bedrock_model == null: return
@@ -539,7 +567,7 @@ func get_ai_attack_threats(_receiver:ball) -> Array:
 	if _charge_windup > 0 or _charge_remaining > 0:
 		var distance:float = _charge_wall_distance(global_position,_charge_dir) if _charge_windup>0 else _charge_remaining
 		if distance > 0.0:
-			return [{"shape":"segment","start":global_position,"end":global_position+_charge_dir*distance,"radius":42.0,"damage":own_attack_damage(32.0),"danger_in":maxf(_charge_windup,0.0),"danger_duration":distance/CHARGE_SPEED,"source":self}]
+			return [{"shape":"segment","start":global_position,"end":global_position+_charge_dir*distance,"radius":42.0,"damage":own_attack_damage(CHARGE_DAMAGE),"danger_in":maxf(_charge_windup,0.0),"danger_duration":distance/CHARGE_SPEED,"source":self}]
 	return []
 func get_debug_attack_regions() -> Array: return get_ai_attack_threats(null)
 @rpc("authority","call_remote","unreliable_ordered")
@@ -577,3 +605,7 @@ func Die() -> void:
 	if not _buff.is_empty(): EFFECTS.clear(self,_buff,self)
 	_buff = ""
 	super.Die()
+
+func get_armor_test_effect_summary() -> String:
+	return Game.t("MC_ARMOR_INTRO_WITHER")
+

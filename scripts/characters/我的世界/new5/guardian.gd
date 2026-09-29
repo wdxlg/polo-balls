@@ -52,6 +52,8 @@ const BEAM_SHADER=preload("res://scripts/characters/我的世界/new5/guardian_b
 var beam:Line2D
 var beam_active:bool=false
 var beam_end:Vector2
+var _manual_beam_held:bool=false
+var _manual_spike_requested:bool=false
 func _ready() -> void:
 	super._ready()
 	_body_base_scale=image.scale
@@ -78,6 +80,37 @@ static func cardinal(offset:Vector2) -> Vector2:
 func in_sector(offset:Vector2) -> bool:
 	# Legacy method name retained; acquisition and lock retention are now 360 degrees.
 	return offset.length_squared()>0.001 and offset.length_squared()<=laser_range*laser_range
+func controlled_attack_action() -> void:
+	if is_player_controlled() and is_multiplayer_authority() and can_act(): _manual_beam_held=true
+func controlled_skill_action() -> void:
+	if not is_player_controlled() or not is_multiplayer_authority() or not can_act() or _spike_left>0.0: return
+	if not spike_targets().is_empty(): _manual_spike_requested=true
+func player_control_action_released(index:int) -> void:
+	if index==0: _manual_beam_held=false
+func player_control_action_cancelled(index:int) -> void:
+	if index==0: _manual_beam_held=false
+	elif index==1: _manual_spike_requested=false
+func set_player_control_peer(peer_id:int) -> void:
+	if peer_id != player_control_peer_id:
+		_manual_beam_held=false
+		_manual_spike_requested=false
+	super.set_player_control_peer(peer_id)
+func _manual_beam_target() -> ball:
+	if not has_player_control_aim(): return null
+	var point:Vector2=player_control_aim_world_position()
+	var best:float=INF
+	var chosen:ball
+	for raw:Node in get_tree().get_nodes_in_group("Ball"):
+		if not (raw is ball) or not U.enemy(self,raw) or not raw.is_combat_lockable(): continue
+		var target:ball=raw as ball
+		var offset:Vector2=ball.body_point(target,global_position)-global_position
+		if not in_sector(offset) or not U.line_clear(self,global_position,ball.body_point(target,global_position)): continue
+		var tolerance:float=U.radius(target)+16.0
+		var squared:float=point.distance_squared_to(ball.body_point(target,point))
+		if squared<=tolerance*tolerance and squared<best:
+			best=squared
+			chosen=target
+	return chosen
 func step_mob(delta:float) -> void:
 	_spike_left-=delta
 	_spike_burst_age+=delta
@@ -89,17 +122,27 @@ func step_mob(delta:float) -> void:
 		if spike_phase==SpikePhase.CHARGING: spike_phase=SpikePhase.RETRACTED
 		break_lock()
 		return
+	if is_player_controlled() and _manual_beam_held:
+		var aimed:ball=_manual_beam_target()
+		if aimed!=locked:
+			break_lock()
+			if aimed!=null:
+				locked=aimed
+				_tick_left=laser_tick
+				start_charge_sound()
+	elif is_player_controlled() and not beam_active:
+		break_lock()
 	# A closer enemy cannot steal a valid charge already in progress.
 	if is_instance_valid(locked):
-		var offset:Vector2=locked.global_position-global_position
-		if not U.enemy(self,locked) or not locked.is_combat_lockable() or not in_sector(offset) or not U.line_clear(self,global_position,locked.global_position): break_lock()
-	if not is_instance_valid(locked):
+		var offset:Vector2=ball.body_point(locked,global_position)-global_position
+		if not U.enemy(self,locked) or not locked.is_combat_lockable() or not in_sector(offset) or not U.line_clear(self,global_position,ball.body_point(locked,global_position)): break_lock()
+	if not is_instance_valid(locked) and not is_player_controlled():
 		locked=null
 		var best:float=INF
 		for candidate:Node in get_tree().get_nodes_in_group("Ball"):
 			if not U.enemy(self,candidate) or not candidate.is_combat_lockable(): continue
-			var offset:Vector2=candidate.global_position-global_position
-			if offset.length_squared()<best and in_sector(offset) and U.line_clear(self,global_position,candidate.global_position):
+			var offset:Vector2=ball.body_point(candidate,global_position)-global_position
+			if offset.length_squared()<best and in_sector(offset) and U.line_clear(self,global_position,ball.body_point(candidate,global_position)):
 				locked=candidate
 				best=offset.length_squared()
 		if locked!=null:
@@ -108,7 +151,7 @@ func step_mob(delta:float) -> void:
 			_laser_delay_left=0.0
 			start_charge_sound()
 	if is_instance_valid(locked):
-		var offset:Vector2=locked.global_position-global_position
+		var offset:Vector2=ball.body_point(locked,global_position)-global_position
 		facing=offset.normalized()
 		gaze=offset.normalized()
 		beam_active=true
@@ -120,13 +163,13 @@ func step_mob(delta:float) -> void:
 			_tick_left+=laser_tick
 			_laser_delay_total=0.0
 			_laser_hit()
-			if is_instance_valid(locked) and U.enemy(self,locked): start_charge_sound()
+			if is_instance_valid(locked) and U.enemy(self,locked) and (not is_player_controlled() or _manual_beam_held): start_charge_sound()
 			else: break_lock()
 	step_spikes(delta)
 func spike_targets() -> Array[ball]:
 	var targets:Array[ball]=[]
 	for target:Node in get_tree().get_nodes_in_group("Ball"):
-		if U.enemy(self,target) and global_position.distance_to(target.global_position)<=spike_radius+U.radius(target) and U.line_clear(self,global_position,target.global_position):
+		if U.enemy(self,target) and global_position.distance_to(ball.body_point(target,global_position))<=spike_radius+U.radius(target) and U.line_clear(self,global_position,ball.body_point(target,global_position)):
 			targets.append(target)
 	return targets
 func step_spikes(delta:float) -> void:
@@ -134,8 +177,11 @@ func step_spikes(delta:float) -> void:
 		scan_spike_contacts()
 		return
 	if spike_phase==SpikePhase.RETRACTING or _spike_left>0: return
+	# An already charging spike finishes; only new attacks require a manual click.
+	if is_player_controlled() and not spike_charging and not _manual_spike_requested: return
 	var targets:Array[ball]=spike_targets()
 	if targets.is_empty():
+		_manual_spike_requested=false
 		spike_phase=SpikePhase.RETRACTED
 		spike_charging=false
 		_spike_charge=0.0
@@ -154,11 +200,12 @@ func step_spikes(delta:float) -> void:
 	_spike_left=0.0
 	_spike_burst_age=0.0
 	spike_phase=SpikePhase.EXTENDED
+	_manual_spike_requested=false
 	_contact_hits.clear()
 	for target:ball in targets:
 		if damage_with_sound(target,attack_damage(spike_damage/maxf(float(default_properties.get("Damage",Damage)),0.01))):
 			_contact_hits[target.get_instance_id()]=_contact_clock
-			target.apply_knockback((target.global_position-global_position).normalized(),22,190,0,0,{"source":self})
+			target.apply_knockback((ball.body_point(target,global_position)-global_position).normalized(),22,190,0,0,{"source":self})
 	if multiplayer.has_multiplayer_peer(): _spike_burst.rpc(global_position)
 	_spike_burst(global_position)
 @rpc("authority","call_remote","reliable")
@@ -206,13 +253,13 @@ func scan_spike_contacts() -> void:
 		try_spike_contact(hit.get("collider"))
 func try_spike_contact(target:Variant) -> bool:
 	if spike_phase!=SpikePhase.EXTENDED or not can_act() or not U.enemy(self,target): return false
-	if global_position.distance_to(target.global_position)>U.radius(self)+U.radius(target)+1.1: return false
+	if global_position.distance_to(ball.body_point(target,global_position))>U.radius(self)+U.radius(target)+1.1: return false
 	var id:int=target.get_instance_id()
 	if _contact_clock-float(_contact_hits.get(id,-1000.0))<spike_contact_interval: return false
-	if not U.line_clear(self,global_position,target.global_position): return false
+	if not U.line_clear(self,global_position,ball.body_point(target,global_position)): return false
 	_contact_hits[id]=_contact_clock
 	if not damage_with_sound(target,attack_damage(spike_contact_damage/maxf(float(default_properties.get("Damage",Damage)),0.01))): return false
-	target.apply_knockback((target.global_position-global_position).normalized(),4.0,70.0,0,0,{"source":self,"lock_control":false})
+	target.apply_knockback((ball.body_point(target,global_position)-global_position).normalized(),4.0,70.0,0,0,{"source":self,"lock_control":false})
 	return true
 func when_collide(speed:float,collision:KinematicCollision2D) -> void:
 	super.when_collide(speed,collision)
@@ -256,12 +303,12 @@ func _laser_hit() -> void:
 	var ray:Vector2=(beam_end-global_position).normalized()
 	for other:Node in get_tree().get_nodes_in_group("Ball"):
 		if other==locked or not U.enemy(self,other): continue
-		var projection:float=(other.global_position-global_position).dot(ray)
+		var projection:float=(ball.body_point(other,global_position)-global_position).dot(ray)
 		if projection<=0 or projection>global_position.distance_to(beam_end): continue
-		if U.segment_distance(other.global_position,global_position,beam_end)>U.radius(other)+3: continue
+		if U.segment_distance(ball.body_point_seg(other,global_position,beam_end),global_position,beam_end)>U.radius(other)+3: continue
 		if damage_with_sound(other,attack_damage(crossing_damage/maxf(float(default_properties.get("Damage",Damage)),0.01))):
 			var side:Vector2=ray.orthogonal()
-			if side.dot(other.global_position-global_position)<0: side=-side
+			if side.dot(ball.body_point(other,global_position)-global_position)<0: side=-side
 			other.apply_knockback(side,24,180,0,0,{"source":self})
 func visual_mob() -> void:
 	if is_instance_valid(_laser_player):
@@ -366,12 +413,12 @@ static func impact_volume(actual_damage:float) -> float:
 func damage_with_sound(target:ball,amount:float,critical:bool=false) -> bool:
 	if not is_instance_valid(target): return false
 	var before:float=maxf(target.health,0.0)
-	var point:Vector2=target.global_position
+	var point:Vector2=ball.body_point(target,global_position)
 	var accepted:bool=U.damage(self,target,amount,global_position)
 	var remaining:float=maxf(target.health,0.0) if is_instance_valid(target) else 0.0
 	var actual:float=maxf(before-remaining,0.0)
 	if accepted and actual>0.0:
-		emit_guardian_sound("entity.player.attack.crit" if critical else "entity.player.hurt",point,impact_volume(actual),critical)
+		pass # The victim selected hurt/crit from actual HP loss, not the laser flag.
 	return accepted
 func emit_guardian_sound(event:String,point:Vector2,volume:float,priority:bool=false) -> void:
 	if not is_multiplayer_authority(): return

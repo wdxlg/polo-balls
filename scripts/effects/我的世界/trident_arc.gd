@@ -51,7 +51,7 @@ func advance(delta:float) -> void:
 		for raw:Node in get_tree().get_nodes_in_group("Ball"):
 			if not GEOMETRY.enemy(caster,raw) or _hit.has(raw.get_instance_id()): continue
 			var id:int = raw.get_instance_id()
-			var point:Vector2 = raw.global_position
+			var point:Vector2 = ball.body_point(raw,global_position)
 			var previous:Vector2 = _previous.get(id,point)
 			_previous[id] = point
 			var touched:bool = GEOMETRY.touching(start,end,point,previous,GEOMETRY.radius(raw)+caster.network_width)

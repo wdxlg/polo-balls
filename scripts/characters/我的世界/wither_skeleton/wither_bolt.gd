@@ -98,7 +98,7 @@ func current_target() -> ball:
 func turn_toward_target(direction:Vector2,delta:float) -> Vector2:
 	var target:ball = current_target()
 	if target == null: return direction
-	var wanted:Vector2 = global_position.direction_to(target.global_position)
+	var wanted:Vector2 = global_position.direction_to(ball.body_point(target,global_position))
 	if wanted.is_zero_approx(): return direction
 	var angle:float = direction.angle_to(wanted)
 	return direction.rotated(clampf(angle,-turn_rate*delta,turn_rate*delta)).normalized()

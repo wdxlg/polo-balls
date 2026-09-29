@@ -15,6 +15,13 @@ enum FlightMode { GLIDE, CLIMB, DIVE, REBOUND }
 @export var launch_speed:float = 280.0
 @export var maximum_flight_speed:float = 900.0
 @export var dive_setup_height:float = 85.0
+@export_category("鞘翅 / 地图外软回航")
+@export var arena_return_distance:float = 96.0
+@export var arena_return_lookahead:float = 0.25
+@export var arena_return_inset:float = 24.0
+@export var arena_return_turn_rate:float = 8.0
+var _flight_arena_rects:Array[Rect2] = []
+var _returning_to_map:bool = false
 enum FlightTactic { INTERCEPT, LOFT, FLANK, EXTEND }
 var _flight_tactic:FlightTactic = FlightTactic.INTERCEPT
 var _tactical_aim:Vector2 = Vector2.RIGHT
@@ -62,11 +69,13 @@ func _ready() -> void:
 	visual_scale_gain_per_world_height = 0.0
 	swing_peak_scale_multiplier = 1.0
 	_layout_equipment()
+	_configure_flight_replication()
 
 func tick_physics(state:State,delta:float) -> void:
 	# 其他系统（大规模战斗/门/击退）可能恢复身体碰撞，持续保持飞行契约。
 	collision_mask = 0
 	collision_layer = 0
+	if not is_multiplayer_authority(): velocity = _glide_velocity
 	super.tick_physics(state,delta)
 	if is_combat_runtime_active():
 		_rocket_display_left = maxf(_rocket_display_left - delta,0.0)
@@ -97,7 +106,7 @@ func _show_firework() -> void:
 	_rocket_display_left = maxf(firework_duration,0.5)
 	if not is_instance_valid(_firework_trail) or _firework_trail.is_queued_for_deletion():
 		_firework_trail = ROCKET_TRAIL.new()
-		get_tree().current_scene.add_child(_firework_trail)
+		get_parent().add_child(_firework_trail) # Keep native trails in this actor's World2D/replica.
 	_firework_trail.begin(self,1.0)
 	if _launch_audio != null:
 		_launch_audio.play()
@@ -119,7 +128,7 @@ func _nearest_flight_enemy() -> ball:
 	var distance:float = INF
 	for node:Node in get_tree().get_nodes_in_group("Ball"):
 		if node is ball and _is_enemy(node as ball):
-			var d:float = global_position.distance_squared_to((node as ball).global_position)
+			var d:float = global_position.distance_squared_to(ball.body_point((node as ball),global_position))
 			if d < distance:
 				distance = d
 				nearest = node as ball
@@ -130,18 +139,89 @@ func _flight_target() -> ball:
 		_pvp_target = _nearest_flight_enemy()
 	return _pvp_target
 
-func _patrol_aim(delta:float) -> Vector2:
+func _flight_replication_properties() -> Array[StringName]:
+	return [&"_glide_velocity",&"_returning_to_map",&"_airborne",&"_chain_level",&"_chain_damage_multiplier",&"_flight_elapsed",&"_flight_height",&"_flight_mode"]
+
+func _configure_flight_replication() -> void:
+	var sync:MultiplayerSynchronizer = get_node_or_null("MultiplayerSynchronizer")
+	if sync==null or sync.replication_config==null: return
+	# Preserve all base pose/health/team properties; never mutate the shared scene resource.
+	var configuration:SceneReplicationConfig = sync.replication_config.duplicate()
+	for property:StringName in _flight_replication_properties():
+		var path:=NodePath(".:"+String(property))
+		if not configuration.has_property(path): configuration.add_property(path)
+		configuration.property_set_spawn(path,true)
+		configuration.property_set_replication_mode(path,SceneReplicationConfig.REPLICATION_MODE_ALWAYS)
+	sync.replication_config = configuration
+
+func _is_enemy(target:ball) -> bool:
+	return super._is_enemy(target) and not target.is_queued_for_deletion() and target.get_world_2d()==get_world_2d()
+
+func _refresh_flight_arena(delta:float) -> void:
 	_patrol_rect_refresh -= delta
-	var scene:Node = get_tree().current_scene
-	if _patrol_rect_refresh <= 0.0:
-		_patrol_rect_refresh = 0.5
-		_patrol_rect = Rect2()
-		if scene != null and scene.has_method("current_map_island_rects"):
-			var rects:Array = scene.call("current_map_island_rects")
-			for raw:Variant in rects:
-				var rect:Rect2 = raw
-				if rect.size.x > 0.0 and rect.size.y > 0.0:
-					_patrol_rect = rect if _patrol_rect.size == Vector2.ZERO else _patrol_rect.merge(rect)
+	if _patrol_rect_refresh>0.0: return
+	_patrol_rect_refresh = 0.25
+	_patrol_rect = Rect2()
+	_flight_arena_rects.clear()
+	# Ancestor-scoped lookup also works for ENet sub-worlds and development lanes.
+	var scene:Node = get_parent()
+	while scene!=null:
+		if scene.has_method("current_map_island_rects") and scene is Node2D and scene.get_world_2d()==get_world_2d(): break
+		scene = scene.get_parent()
+	if scene==null: return # No real map provider: do not invent a world-origin boundary.
+	for raw:Variant in scene.call("current_map_island_rects"):
+		if not raw is Rect2 or not raw.has_area(): continue
+		var rect:Rect2 = raw
+		_flight_arena_rects.append(rect)
+		_patrol_rect = rect if not _patrol_rect.has_area() else _patrol_rect.merge(rect)
+
+func _outside_flight_distance(point:Vector2) -> float:
+	if not _patrol_rect.has_area(): return 0.0
+	return point.distance_to(point.clamp(_patrol_rect.position,_patrol_rect.end))
+
+func _map_return_aim(delta:float) -> Vector2:
+	_refresh_flight_arena(delta)
+	if is_player_controlled() or not _patrol_rect.has_area():
+		_returning_to_map = false
+		return Vector2.ZERO
+	var margin:float = maxf(arena_return_distance,16.0)
+	var future:Vector2 = global_position+_glide_velocity*maxf(arena_return_lookahead,delta)
+	if not _returning_to_map and maxf(_outside_flight_distance(global_position),_outside_flight_distance(future))>=margin:
+		_returning_to_map = true
+		_on_map_return_started()
+	if not _returning_to_map: return Vector2.ZERO
+	var nearest:Rect2
+	var best:float = INF
+	var entered:bool = false
+	for rect:Rect2 in _flight_arena_rects:
+		var inset:float = minf(maxf(arena_return_inset,1.0),minf(rect.size.x,rect.size.y)*0.2)
+		var inner:Rect2 = rect.grow(-inset)
+		if inner.has_point(global_position) and _patrol_rect.has_point(future): entered = true
+		var gap:float = global_position.distance_squared_to(global_position.clamp(inner.position,inner.end))
+		if gap<best:
+			nearest = rect
+			best = gap
+	if entered:
+		_returning_to_map = false
+		_tactic_hold = 0.0
+		return Vector2.ZERO
+	var inset:float = minf(maxf(arena_return_inset*2.0,32.0),minf(nearest.size.x,nearest.size.y)*0.25)
+	var safe:Rect2 = nearest.grow(-inset)
+	var destination:Vector2 = global_position.clamp(safe.position,safe.end)
+	if destination.distance_squared_to(global_position)<4.0: destination = safe.get_center()
+	_flight_mode = FlightMode.GLIDE
+	_patrol_recovering = false
+	return global_position.direction_to(destination)
+
+func _on_map_return_started() -> void:
+	_rocket_remaining = 0.0 # Do not keep burning an outward rocket while turning home.
+	_tactic_hold = 0.0
+
+func _committed_glide_heading() -> Vector2:
+	return Vector2.ZERO
+
+func _patrol_aim(_delta:float) -> Vector2:
+	if _patrol_rect_refresh<=0.0: _refresh_flight_arena(0.0)
 	if _patrol_rect.size == Vector2.ZERO:
 		return _glide_velocity.normalized()
 	_flight_mode = FlightMode.GLIDE
@@ -173,7 +253,7 @@ func _choose_flight_tactic(target:ball,delta:float) -> Vector2:
 			return player_control_direction.normalized() if player_control_direction.length_squared() > 0.001 else _glide_velocity.normalized()
 		return _patrol_aim(delta)
 	_patrol_recovering = false
-	var offset:Vector2 = target.global_position-global_position
+	var offset:Vector2 = ball.body_point(target,global_position)-global_position
 	var distance:float = offset.length()
 	var speed:float = maxf(_glide_velocity.length(),1.0)
 	var prediction:float = clampf(distance/speed,0.04,0.4)
@@ -219,15 +299,18 @@ func _choose_flight_tactic(target:ball,delta:float) -> Vector2:
 	return aim.normalized() if aim.length_squared() > 0.001 else _glide_velocity.normalized()
 
 func _wants_tactical_firework(target:ball,aim:Vector2) -> bool:
+	if is_player_controlled(): return false # 玩家点键，不由战术 AI 代点火。
 	if _rocket_cooldown > 0.0 or _rocket_remaining > 0.0 or Attacking or dizziness:
 		return false
 	var speed:float = _glide_velocity.length()
+	if _returning_to_map:
+		return speed<launch_speed and _glide_velocity.normalized().dot(aim)>0.65
 	if target == null:
 		if not is_player_controlled() and _patrol_rect.size != Vector2.ZERO:
 			# 低空等路线转入爬升段再加速，避免下行段点火把自己推出轨道。
 			return aim.y < -0.10 and (_patrol_recovering or speed < 250.0)
 		return speed < launch_speed*0.75 and aim.length_squared() > 0.001
-	var offset:Vector2 = target.global_position-global_position
+	var offset:Vector2 = ball.body_point(target,global_position)-global_position
 	var distance:float = offset.length()
 	# 已有高速命中线就不浪费烟花；需要追击、抬高、脱离或补速时才用。
 	if _flight_mode == FlightMode.DIVE and distance < 70.0 and speed > 260.0:
@@ -236,11 +319,21 @@ func _wants_tactical_firework(target:ball,aim:Vector2) -> bool:
 		return speed < 580.0 or offset.y < 25.0
 	return speed < 310.0 or (distance > 200.0 and speed < 620.0) or (_flight_mode == FlightMode.DIVE and distance > 90.0 and speed < 500.0)
 
+func controlled_skill_action() -> void:
+	if not is_player_controlled() or not is_multiplayer_authority() or health <= 0 or not is_combat_runtime_active() or is_damage_output_disabled() or dizziness or _rocket_cooldown > 0.0 or _rocket_remaining > 0.0:
+		return
+	var aim:Vector2 = player_control_aim_direction(_glide_velocity.normalized()) if has_player_control_aim() else player_control_direction.normalized()
+	if aim.length_squared() <= 0.001: return
+	_use_firework(aim)
+
 func _step_glide(delta:float) -> void:
+	if not is_multiplayer_authority() or health<=0 or not is_combat_runtime_active() or delta<=0.0: return
 	_rocket_cooldown -= delta
 	_mode_elapsed += delta
 	var target:ball = null if is_player_controlled() else _flight_target()
-	var aim:Vector2 = _choose_flight_tactic(target,delta) if not dizziness else _glide_velocity.normalized()
+	var home:Vector2 = _map_return_aim(delta)
+	var aim:Vector2 = home if not home.is_zero_approx() else _choose_flight_tactic(target,delta)
+	if dizziness: aim = _glide_velocity.normalized()
 	_tactical_aim = aim
 	if _wants_tactical_firework(target,aim):
 		_use_firework(aim)
@@ -251,11 +344,12 @@ func _step_glide(delta:float) -> void:
 		var turn_rate:float = 5.5 if _flight_mode == FlightMode.DIVE else 3.8
 		if target != null and _flight_tactic == FlightTactic.INTERCEPT:
 			# 高速近身时缩小转弯半径，不靠刹车，也不让目标永远落在转弯圆内。
-			var range_to_target:float = global_position.distance_to(target.global_position)
+			var range_to_target:float = global_position.distance_to(ball.body_point(target,global_position))
 			turn_rate = maxf(turn_rate,clampf(_glide_velocity.length()/maxf(range_to_target*0.65,65.0),3.8,9.0))
 		if target == null and not is_player_controlled() and _patrol_rect.size != Vector2.ZERO:
 			var orbit_radius:float = maxf(minf(_patrol_rect.size.x*0.55,_patrol_rect.size.y*0.52),80.0)
 			turn_rate = clampf(_glide_velocity.length()/orbit_radius*2.2,3.8,9.0)
+		if _returning_to_map: turn_rate = maxf(turn_rate,arena_return_turn_rate)
 		var heading:float = rotate_toward(_glide_velocity.angle(),aim.angle(),turn_rate*delta)
 		_glide_velocity = Vector2.from_angle(heading)*_glide_velocity.length()
 	if _rocket_remaining > 0.0:
@@ -268,6 +362,8 @@ func _step_glide(delta:float) -> void:
 	if target == null and not is_player_controlled() and _patrol_rect.size != Vector2.ZERO and _glide_velocity.length() > 380.0:
 		var cruise_speed:float = lerpf(_glide_velocity.length(),380.0,1.0-exp(-3.0*delta))
 		_glide_velocity = _glide_velocity.normalized()*cruise_speed
+	var committed:Vector2 = _committed_glide_heading()
+	if not committed.is_zero_approx() and not dizziness: _glide_velocity = committed*_glide_velocity.length()
 	_glide_velocity = _glide_velocity.limit_length(maximum_flight_speed)
 	velocity = _glide_velocity+Repel
 	var start:Vector2 = global_position
@@ -341,8 +437,10 @@ func _end_missed_rebound() -> void:
 	_recover_from_landing_pose()
 
 func _update_flight(delta:float) -> void:
-	if not is_combat_runtime_active():
-		return
+	if not is_multiplayer_authority() or health<=0 or not is_combat_runtime_active() or delta<=0.0: return
+	# Soft return is steering inside the current smash, not a missed landing.
+	# Keep accepted-hit stacks and the real rebound sweep; only failed attempts reset them.
+	var home:Vector2 = _map_return_aim(delta)
 	_rocket_cooldown -= delta
 	if is_damage_output_disabled():
 		_end_missed_rebound()
@@ -355,11 +453,13 @@ func _update_flight(delta:float) -> void:
 		_flight_elapsed += dt
 		var aim:Vector2 = _glide_velocity.normalized()
 		var distance:float = 0.0
-		if is_player_controlled() and player_control_direction.length_squared() > 0.001:
+		if not home.is_zero_approx():
+			aim = home
+		elif is_player_controlled() and player_control_direction.length_squared() > 0.001:
 			aim = player_control_direction.normalized()
 			_rebound_diving = aim.y > 0.1
 		elif target != null and is_instance_valid(target):
-			distance = global_position.distance_to(target.global_position)
+			distance = global_position.distance_to(ball.body_point(target,global_position))
 			var prediction:float = clampf(distance/maxf(_glide_velocity.length(),100.0),0.05,0.35)
 			var predicted:Vector2 = target.global_position+target.velocity*prediction
 			var clearance:float = target.global_position.y-global_position.y
@@ -378,6 +478,7 @@ func _update_flight(delta:float) -> void:
 		_glide_velocity.y += smash_gravity*0.40*dt
 		if aim.length_squared() > 0.001 and not dizziness:
 			var turn:float = clampf(_glide_velocity.length()/maxf(distance*0.55,45.0),5.5,10.0) if _rebound_diving else 3.2
+			if not home.is_zero_approx(): turn = maxf(turn,arena_return_turn_rate)
 			var heading:float = rotate_toward(_glide_velocity.angle(),aim.angle(),turn*dt)
 			_glide_velocity = Vector2.from_angle(heading)*_glide_velocity.length()
 		if _rocket_remaining > 0.0:

@@ -23,6 +23,7 @@ var _received_facing:bool=false
 var facing:Vector2=Vector2.RIGHT
 var charge:float=0.0
 var extending:bool=false
+var _manual_extend_held:bool=false
 var phase:float=0.0
 var extension:float=REST_EXTENSION
 var _hit_ids:Dictionary={}
@@ -53,19 +54,28 @@ func _part(asset:String,size:Vector2) -> Sprite2D:
 	return sprite
 func sticky_anchor(victim:ball) -> Vector2:
 	return global_position+facing*(extension+U.radius(victim)+4.0)
+func controlled_attack_action() -> void:
+	if is_player_controlled() and is_multiplayer_authority(): _manual_extend_held=true
+func player_control_action_released(index:int) -> void:
+	if index==0: _manual_extend_held=false
+func player_control_action_cancelled(index:int) -> void:
+	if index==0: _manual_extend_held=false
+func set_player_control_peer(peer_id:int) -> void:
+	if peer_id != player_control_peer_id: _manual_extend_held=false
+	super.set_player_control_peer(peer_id)
 func step_mob(delta:float) -> void:
 	var desired:Vector2=direction
 	if is_player_controlled() and has_player_control_aim(): desired=player_control_aim_direction(facing)
 	request_turn(desired)
 	advance_turn(delta)
 	extending=false
-	if can_act():
+	if can_act() and (not is_player_controlled() or _manual_extend_held):
 		for other:Node in get_tree().get_nodes_in_group("Ball"):
 			if not U.enemy(self,other): continue
-			var p:float=(other.global_position-global_position).dot(facing)
+			var p:float=(ball.body_point(other,global_position)-global_position).dot(facing)
 			if p<5.6 or p>max_extension+candle_length+U.radius(other): continue
-			if U.segment_distance(other.global_position,global_position+facing*REST_EXTENSION,global_position+facing*(max_extension+candle_length))>U.radius(other)+3.2: continue
-			if U.line_clear(self,global_position,other.global_position): extending=true; break
+			if U.segment_distance(ball.body_point_seg(other,global_position+facing*REST_EXTENSION,global_position+facing*(max_extension+candle_length)),global_position+facing*REST_EXTENSION,global_position+facing*(max_extension+candle_length))>U.radius(other)+3.2: continue
+			if U.line_clear(self,global_position,ball.body_point(other,global_position)): extending=true; break
 	charge=clampf(charge+delta if extending else charge-delta*7.0,0,6)
 	if not extending:
 		if extension>REST_EXTENSION+0.4 and not _sound_retract:
@@ -90,9 +100,9 @@ func step_mob(delta:float) -> void:
 	if extension<=previous: return
 	var head_point:Vector2=global_position+facing*extension
 	for other:Node in get_tree().get_nodes_in_group("Ball"):
-		if not U.enemy(self,other) or not U.line_clear(self,global_position,other.global_position): continue
+		if not U.enemy(self,other) or not U.line_clear(self,global_position,ball.body_point(other,global_position)): continue
 		var id:int=other.get_instance_id()
-		if not _hold_ids.has(id) and not other.has_meta("mc_sticky_hold") and U.segment_distance(other.global_position,global_position+facing*previous,head_point)<U.radius(other)+3.2:
+		if not _hold_ids.has(id) and not other.has_meta("mc_sticky_hold") and U.segment_distance(ball.body_point_seg(other,global_position+facing*previous,head_point),global_position+facing*previous,head_point)<U.radius(other)+3.2:
 			_hold_ids[id]=true
 			if other.can_receive_negative_effects() and other.can_receive_control_from(self):
 				# A captured victim follows the head, not an older displacement controller.
@@ -106,10 +116,10 @@ func step_mob(delta:float) -> void:
 				other.add_child(hold)
 				play_sound("block.slime_block.place",-7.0)
 		if _hit_ids.has(id): continue
-		if U.segment_distance(other.global_position,global_position+facing*(previous+4.0),head_point+facing*candle_length)>U.radius(other)+2.4: continue
+		if U.segment_distance(ball.body_point_seg(other,global_position+facing*(previous+4.0),head_point+facing*candle_length),global_position+facing*(previous+4.0),head_point+facing*candle_length)>U.radius(other)+2.4: continue
 		_hit_ids[id]=true
 		var dealt:bool=U.damage(self,other,attack_damage(thrust_damage/maxf(float(default_properties.get("Damage",Damage)),0.01)),global_position)
-		if dealt: play_sound("entity.player.hurt",-4.0)
+		# Generic feedback belongs to the settled victim, not the nominal thrust.
 		if dealt and other.has_meta("mc_sticky_hold"):
 			play_sound("block.slime_block.step",-7.0)
 			var fx_seed:int=rng.randi()

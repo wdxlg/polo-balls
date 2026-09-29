@@ -93,7 +93,7 @@ func scan_arc(previous:float,current:float,source:Node2D) -> void:
 				while is_instance_valid(target) and not target is ball: target = target.get_parent()
 				if not target is ball or area != target.self_hurtbox or not U.enemy(source,target): continue
 				var id:int = target.get_instance_id()
-				if hit_ids.has(id) or not U.line_clear(self,global_position,target.global_position): continue
+				if hit_ids.has(id) or not U.line_clear(self,global_position,ball.body_point(target,global_position)): continue
 				hit_ids[id] = true
 				var health_before:float = float(target.health)
 				var hit_point:Vector2 = area.global_position
@@ -202,7 +202,7 @@ func apply_music_profile(profile:Array) -> void:
 func apply_music_impact(target:Node2D,source:Node2D) -> void:
 	if kick_strength<0.55 or beat_strength<0.45 or not is_instance_valid(target): return
 	# Light radial kick, no stun; same per-wave/per-target hit dedup as damage.
-	var outward:Vector2 = global_position.direction_to(target.global_position)
+	var outward:Vector2 = global_position.direction_to(ball.body_point(target,global_position))
 	if outward.length_squared()<0.001: outward = heading
 	target.apply_knockback(outward,lerpf(4,10,kick_strength)*beat_strength,90.0,0.0,0.0,{"source":source,"stop_on_character":true,"lock_control":false,"control_recovery_time":0.0})
 	music_knockbacks += 1

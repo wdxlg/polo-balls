@@ -1,4 +1,5 @@
 extends Area2D
+const PROJECTILE_API = preload("res://classes/projectile_interactions.gd")
 const PROJECTILE_CONTACT = preload("res://scripts/projectile_contact.gd")
 # 天堂箭矢：普通箭外观，飞行中轻微追踪；
 # 第一次撞到障碍物不再反弹，而是穿过去一次：穿越途中按真实路径边穿边留下快速闭合的
@@ -32,6 +33,7 @@ var _rain_damage: float = 4.0
 var _rain_aoe: float = 22.0
 var _rain_delay: float = 0.38
 var _dead: bool = false
+var _interaction_stopped: bool = false
 var _pierce_used: bool = false
 var _pierce_active: bool = false
 var _pierce_rid: RID = RID()
@@ -100,6 +102,7 @@ func _physics_process(delta: float) -> void:
 		return
 	if not is_multiplayer_authority():
 		return
+	_interaction_stopped = false
 	var src: ball = _src_ref.get_ref() if _src_ref != null else null
 	var step: float = _speed * maxf(delta, 0.0)
 	if _leave_offscreen:
@@ -109,7 +112,7 @@ func _physics_process(delta: float) -> void:
 	if not _pierce_active and is_instance_valid(src) and _homing_range > 0.0 and _homing_turn > 0.0:
 		var tgt: ball = _homing_target(src)
 		if tgt != null:
-			var want: Vector2 = (tgt.global_position - global_position).normalized()
+			var want: Vector2 = (ball.body_point(tgt,global_position) - global_position).normalized()
 			_dir = Vector2.RIGHT.rotated(rotate_toward(_dir.angle(), want.angle(), deg_to_rad(_homing_turn) * maxf(delta, 0.0)))
 	rotation = _dir.angle()
 	var start: Vector2 = global_position
@@ -120,6 +123,7 @@ func _physics_process(delta: float) -> void:
 	if is_instance_valid(src) and is_instance_valid(contacted):
 		global_position = hit.get("position", finish)
 		_travelled += (global_position - start).length()
+		if not PROJECTILE_API.defense(self,contacted,global_position).is_empty(): return
 		_hit_character(src, contacted)
 		_expire()
 		return
@@ -129,6 +133,7 @@ func _physics_process(delta: float) -> void:
 		_travelled += step
 		_expire()
 		return
+	if _interaction_stopped: return
 	if _pierce_active:
 		# 已经钻出障碍物就收口；裂隙只覆盖真正穿过的那段路径。
 		if not _inside_pierced_body():
@@ -307,7 +312,7 @@ func _homing_target(src: ball) -> ball:
 	for other: Node in get_tree().get_nodes_in_group("Ball"):
 		if not U.enemy(src, other) or PROJECTILE_CONTACT.ignores(other):
 			continue
-		var to: Vector2 = (other as ball).global_position - global_position
+		var to: Vector2 = ball.body_point((other as ball),global_position) - global_position
 		if to.length() > _homing_range:
 			continue
 		var ang: float = absf(_dir.angle_to(to))
@@ -323,15 +328,20 @@ func _scan_hit(src: ball, a: Vector2, b: Vector2) -> bool:
 			continue
 		var victim: ball = other as ball
 		# Fixed body allowance: U.radius() collapses to 3px outside crowded combat.
-		if U.segment_distance(victim.global_position, a, b) > 26.0:
+		if U.segment_distance(ball.body_point_seg(victim,a,b), a, b) > 26.0:
 			continue
+		var response:String = PROJECTILE_API.defense(self,victim,a)
+		if response == "dodge": continue
+		if not response.is_empty():
+			_interaction_stopped = true
+			return false
 		_hit_character(src, victim)
 		return true
 	return false
 
 
 func _hit_character(src: ball, victim: ball) -> void:
-	if U.damage(src, victim, _damage, global_position):
+	if not src.is_damage_output_disabled() and victim.receive_positional_damage(_damage,global_position,false,self):
 		AUDIO.play(self, "entity.arrow.hit", global_position, -4.0)
 		FX.hit_sfx(src, victim.global_position, _damage)
 
@@ -346,7 +356,7 @@ func _vanish() -> void:
 
 
 func _expire() -> void:
-	if _dead:
+	if _dead or is_queued_for_deletion():
 		return
 	_dead = true
 	_finish_pierce()
@@ -376,3 +386,14 @@ func _spawn_local(src: ball, pts: PackedVector2Array) -> void:
 		var arrow: Area2D = FALL.instantiate() as Area2D
 		world.add_child(arrow, true)
 		arrow.call("configure", src, _team, pts[i], _rain_delay, _rain_damage, _rain_aoe, i, pts.size())
+
+# Native relaunch hook: clear collision handles, keep captured damage/rain/pierce budget.
+func relaunch_projectile(point:Vector2,_target:ball) -> void:
+	global_position = point
+	_pierce_active = false
+	_pierce_rid = RID()
+	_pierce_body = null
+	_tear_ref = null
+	_leave_offscreen = false
+	_travelled = 0.0
+	_interaction_stopped = false

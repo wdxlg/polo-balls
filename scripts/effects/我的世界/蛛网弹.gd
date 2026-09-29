@@ -56,7 +56,7 @@ func _try_hit(caster:ball) -> void:
 	for target:Node in get_tree().get_nodes_in_group("Ball"):
 		if not target is ball or not caster.mc_enemy(target): continue
 		var candidate:ball = target
-		if global_position.distance_to(candidate.global_position) > 14.0 + candidate.get_crowd_separation_radius_world() * 0.5: continue
+		if global_position.distance_to(ball.body_point(candidate,global_position)) > 14.0 + candidate.get_crowd_separation_radius_world() * 0.5: continue
 		if candidate.has_method("try_full_projectile_dodge") and bool(candidate.call("try_full_projectile_dodge",self)): continue
 		_hit = true
 		var bonus:float = 1.0

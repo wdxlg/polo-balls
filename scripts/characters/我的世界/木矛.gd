@@ -1,4 +1,4 @@
-extends ball
+extends "res://scripts/characters/我的世界/mc_item_base.gd"
 # 当前规则：起手前原移动路径可命中的是顺向被动穿刺，否则是转向主动穿刺。
 # 两者触发时获得短暂可超上限的爆发，被动更强且2倍伤害。
 # 穿出后平滑扣除爆发前蓄速的50%/75%，不继续归零到基础速度。
@@ -274,8 +274,9 @@ func _ready() -> void:
 	_position_initialized = true
 	_was_dizzy = dizziness
 
-	# 删除持续高速拖尾/动态模糊；只保留“刺前转向快照”和“真实穿越快照”两种短寿命残影。
+	# 关闭动态模糊；保留现有运动拉伸及短寿命刺前/穿越快照。
 	motion_blur_enabled = false
+	motion_stretch_enabled = true
 	AfterImage_Speed = -1.0
 	_clear_after_image_path()
 	_ensure_attack_range_debug_circle()
@@ -1327,7 +1328,7 @@ func _self_speed_damage_multiplier() -> float:
 func _enemy_velocity_damage_multiplier(target:ball) -> float:
 	if target == null or not is_instance_valid(target):
 		return 1.0
-	var enemy_to_self:Vector2 = global_position - target.global_position
+	var enemy_to_self:Vector2 = global_position - ball.body_point(target,global_position)
 	if enemy_to_self.length_squared() <= 0.000001:
 		return 1.0
 	var approach_speed:float = target.velocity.dot(enemy_to_self.normalized())

@@ -167,12 +167,14 @@ func _physics_process(delta:float) -> void:
 
 
 func _on_health_changed(before:int,after:int,_max_health:int,_tween:bool) -> void:
+	if _cleaned or is_queued_for_deletion(): return
 	if after >= before or not is_instance_valid(target) or not target.is_multiplayer_authority(): return
 	if effect_type == "infested" and randf() < float(EFFECTS.properties(effect_type,level).on_hurt_chance):
 		_spawn_mobs("res://scenes/characters/我的世界/蠹虫.tscn",randi_range(1,2))
 	if after <= 0 and effect_type in ["oozing","weaving","wind_charged"]: _on_owner_death()
 
 func _on_owner_death() -> void:
+	if _cleaned or is_queued_for_deletion(): return
 	if _death_triggered or not is_instance_valid(target) or not target.is_multiplayer_authority(): return
 	_death_triggered = true
 	var world:Node = target.get_tree().current_scene if target.get_tree() != null else null
@@ -193,8 +195,8 @@ func _on_owner_death() -> void:
 			for node:Node in target.get_tree().get_nodes_in_group("Ball"):
 				if not node is ball or node == target: continue
 				var other:ball = node as ball
-				if other.health <= 0 or other.global_position.distance_to(target.global_position) > 80.0: continue
-				var heading:Vector2 = target.global_position.direction_to(other.global_position)
+				if other.health <= 0 or other.global_position.distance_to(ball.body_point(target,other.global_position)) > 80.0: continue
+				var heading:Vector2 = target.global_position.direction_to(ball.body_point(other,target.global_position))
 				if heading == Vector2.ZERO: heading = Vector2.UP
 				other.apply_knockback(heading,72.0,450.0,0.0,0.0,{"source":source})
 
@@ -211,6 +213,9 @@ func _spawn_mobs(scene_path:String,count:int) -> void:
 		var caster:ball = source as ball if is_instance_valid(source) and source is ball else null
 		mob.Team = caster.Team if caster != null else target.Team
 		mob.Master = caster
+		# Match the existing Team policy even when the caster has already gone.
+		# Death-spawned bodies must not become anonymous extra roster entries.
+		world.bind_battle_lifecycle(mob,caster if caster != null else target)
 		world.add_child(mob,true)
 		mob.global_position = target.global_position + Vector2(randf_range(-12.0,12.0),randf_range(-12.0,12.0))
 		mob.add_to_group("BattleTransient")
@@ -296,12 +301,14 @@ func _apply_periodic_raw_damage(amount:float,leave_one_hp:bool) -> void:
 	var context:Dictionary = {
 		"point": target.global_position,
 		"shape": "all",
+		"damage_kind": "poison" if effect_type == "poison" else "magic",
+		"carrier": "status_tick",
 	}
 	if is_instance_valid(source):
 		context["source"] = source
-	var damage_applied:bool = target.receive_spatial_raw_health_damage(damage,context)
-	if damage_applied:
-		DAMAGE_SFX.play(target,target.global_position)
+	var before:float = maxf(float(target.health),0.0)
+	target.receive_spatial_raw_health_damage(damage,context)
+	preload("res://scripts/effects/我的世界/mc_hit_feedback.gd").finish(source if is_instance_valid(source) else null,target,before,target.global_position)
 
 
 func _potion_effect_ratio(positive:bool) -> float:
@@ -457,8 +464,7 @@ func _damage_invisibility_contact_enemies() -> void:
 		)
 		var health_loss:float = maxf(before_health - float(enemy.health),0.0)
 		var block_loss:float = maxf(before_block - float(enemy.block),0.0)
-		if health_loss > 0.0 or block_loss > 0.0:
-			DAMAGE_SFX.play(enemy,enemy.global_position)
+		preload("res://scripts/effects/我的世界/mc_hit_feedback.gd").finish(target,enemy,before_health,enemy.global_position)
 
 
 func _is_invisibility_contact_enemy(candidate:ball) -> bool:
@@ -510,6 +516,10 @@ func _cleanup() -> void:
 	if _cleaned:
 		return
 	_cleaned = true
+	remaining = 0.0
+	applications.clear()
+	if is_instance_valid(target) and target.health_bar!=null and target.health_bar.health_changed.is_connected(_on_health_changed):
+		target.health_bar.health_changed.disconnect(_on_health_changed)
 	if effect_type == "absorption" and is_instance_valid(target) and target.health_bar != null:
 		target.health_bar.clear_absorption_visual(get_instance_id())
 	if _invisibility_contact_area != null and is_instance_valid(_invisibility_contact_area):
@@ -545,3 +555,6 @@ func _cleanup() -> void:
 
 func _exit_tree() -> void:
 	_cleanup()
+
+func get_status_effect_polarity() -> int:
+	return 1 if EFFECTS.positive(effect_type) else -1

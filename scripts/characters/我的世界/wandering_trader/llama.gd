@@ -187,11 +187,11 @@ func _think(owner_trader:Node2D,delta:float) -> void:
 	elif yanking and (not connected or distance <= pull_end): _set_yanking(false)
 	_update_ghost(delta)
 	var target:ball = mc_nearest(delta)
-	var target_distance:float = INF if target == null else global_position.distance_to(target.global_position)
+	var target_distance:float = INF if target == null else global_position.distance_to(ball.body_point(target,global_position))
 	if _retaliate_wait >= 0.0:
 		_retaliate_wait -= delta
 		if _retaliate_wait < 0.0: _do_retaliate()
-	if not yanking and _spit_anim <= 0.0 and _spit_wait <= 0.0 and target != null and target_distance <= spit_range and mc_live() and mc_line_clear(global_position,target.global_position):
+	if not yanking and _spit_anim <= 0.0 and _spit_wait <= 0.0 and target != null and target_distance <= spit_range and mc_live() and mc_line_clear(global_position,ball.body_point(target,global_position)):
 		spit_at(target)
 		_spit_wait = spit_interval + _mc_rng.randf_range(-spit_interval_jitter,spit_interval_jitter)
 	var desired:Vector2 = Vector2.ZERO
@@ -204,7 +204,7 @@ func _think(owner_trader:Node2D,delta:float) -> void:
 			desired = to_owner/maxf(distance,0.001)
 			speed = follow_speed*clampf((distance - slack*0.5)/(slack*0.5),0.4,1.3)
 		elif target != null and target_distance > spit_range*0.85 and distance < slack*0.6:
-			desired = global_position.direction_to(target.global_position)
+			desired = global_position.direction_to(ball.body_point(target,global_position))
 			speed = chase_speed*0.6
 		else:
 			var point:Vector2 = owner_trader.global_position + Vector2(-18.0 if slot_index % 2 == 0 else 18.0,6.0)
@@ -223,7 +223,7 @@ func _think(owner_trader:Node2D,delta:float) -> void:
 		speed = maxf(float(default_properties.get("Speed",Speed)),1.0)
 	if yanking or connected: free_moving = false
 	if _spit_anim > 0.0: speed *= 0.2
-	if target != null and _spit_anim > 0.0: _face((target.global_position - global_position).x)
+	if target != null and _spit_anim > 0.0: _face((ball.body_point(target,global_position) - global_position).x)
 	_desired_direction = desired
 	_desired_speed = speed
 
@@ -371,7 +371,7 @@ func wt_damage(target:ball,amount:float,point:Vector2) -> bool:
 	if has_method(&"mc_damage_with_impact"): return bool(call(&"mc_damage_with_impact",target,amount,point))
 	if not is_multiplayer_authority() or not wt_enemy(target) or amount <= 0.0 or is_damage_output_disabled(): return false
 	var before:float = maxf(float(target.health),0.0)
-	var hit_point:Vector2 = target.global_position
+	var hit_point:Vector2 = ball.body_point(target,global_position)
 	var applied:bool = target.receive_positional_damage(amount,point,false,self)
 	var actual:float = before - (maxf(float(target.health),0.0) if is_instance_valid(target) else 0.0)
 	if actual > 0.0: wt_hit_sound(actual,hit_point)
@@ -400,8 +400,8 @@ func _wt_hit_sound_local(actual:float,point:Vector2) -> AudioStreamPlayer2D:
 func spit_at(target:ball) -> void:
 	if not is_instance_valid(target) or not is_multiplayer_authority(): return
 	var mouth:Vector2 = wt_neck_point() + Vector2(facing_sign()*1.6,-2.4)
-	var travel:float = mouth.distance_to(target.global_position)/maxf(spit_speed,1.0)
-	var aim:Vector2 = target.global_position + target.velocity*clampf(travel,0.0,0.6)*0.5
+	var travel:float = mouth.distance_to(ball.body_point(target,mouth))/maxf(spit_speed,1.0)
+	var aim:Vector2 = ball.body_point(target,global_position) + target.velocity*clampf(travel,0.0,0.6)*0.5
 	var heading:Vector2 = mouth.direction_to(aim)
 	if heading == Vector2.ZERO: heading = Vector2(facing_sign(),0.0)
 	_face(heading.x)
@@ -471,7 +471,7 @@ func _do_retaliate() -> void:
 	_retaliate_ref = null
 	if not mc_live() or not wt_enemy(target): return
 	var unit:ball = target as ball
-	if global_position.distance_to(unit.global_position) > spit_range*2.0 or not mc_line_clear(global_position,unit.global_position): return
+	if global_position.distance_to(ball.body_point(unit,global_position)) > spit_range*2.0 or not mc_line_clear(global_position,ball.body_point(unit,global_position)): return
 	_last_retaliate_msec = Time.get_ticks_msec()
 	retaliations += 1
 	wt_sound(&"llama_angry",-2.0)

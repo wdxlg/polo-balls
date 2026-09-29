@@ -1,4 +1,6 @@
-extends ball
+extends "res://scripts/characters/我的世界/mc_item_base.gd"
+
+const WEAPON_VISUAL_SIZE = preload("res://scripts/characters/我的世界/weapon_visual_size.gd")
 
 const MACE_TEXTURE:Texture2D = preload("res://Images/characters/我的世界/重锤/重锤.png")
 const IMPACT_EFFECT_SCRIPT:Script = preload("res://scripts/effects/我的世界/重锤落地冲击.gd")
@@ -94,6 +96,8 @@ func _ready() -> void:
 	Can_Skill = false
 	Health_Restore = 0
 	super._ready()
+	if image is Sprite2D:
+		WEAPON_VISUAL_SIZE.fit_to_wooden_sword(image)
 	add_to_group("MinecraftMace")
 	_resolve_opening_swing_sfx()
 	if graphics != null:
@@ -346,9 +350,9 @@ func _damage_opening_swing_segment(from_position:Vector2,to_position:Vector2,hit
 				continue
 			hit_ids[target_id] = true
 			newly_hit.append(target)
-			MC_DAMAGE_SFX.play(target,sample_position,MACE_HIT_GAIN_DB)
+			if not preload("res://scripts/effects/我的世界/mc_hit_feedback.gd").manages(self): MC_DAMAGE_SFX.play(target,sample_position,MACE_HIT_GAIN_DB)
 			if swing_knockback_distance > 0.0 and target.health > 0:
-				var knock_dir:Vector2 = target.global_position - global_position
+				var knock_dir:Vector2 = ball.body_point(target,global_position) - global_position
 				if knock_dir.length_squared() <= 0.000001:
 					knock_dir = (to_position - from_position).normalized() if to_position.distance_squared_to(from_position) > 0.000001 else Vector2.RIGHT
 				target.apply_knockback(
@@ -414,11 +418,21 @@ func get_projectile_embed_local_transform(world_pose:Transform2D) -> Transform2D
 	local_pose.origin = rest_global.affine_inverse()*world_pose.origin
 	return local_pose
 
+func rider_graphics_freedom() -> bool:
+	# 上船时座位组件对该乘客改用增量合成：砸地腾空每帧写入的
+	# graphics 位置(升空高度)/旋转(空翻)偏移不再被硬覆盖吞掉。
+	return true
+
 func _begin_flight(level:int) -> void:
 	# 新的一整段连砸从基础倍率开始；后续成功续跳时，倍率由 _finish_landing()
 	# 在进入下一跳前直接乘 landing_damage_jump_multiplier。这样即使高度/范围等级
 	# 已经达到 max_chain_level，伤害仍然会“每成功续跳一次继续翻倍”。
 	var starting_new_chain:bool = not _airborne
+	if starting_new_chain and graphics != null:
+		# 以当前姿态重捕获视觉基线：被船搭载时 graphics 停在座位姿态(含脚底抬高)，
+		# 沿用 ready 时的旧基线会让整段飞行/落地都悬在错误的高度上。
+		_visual_base_position = graphics.position
+		_visual_base_rotation = graphics.rotation
 	_chain_level = clampi(level,1,maxi(max_chain_level,1))
 	if starting_new_chain or _chain_damage_multiplier <= 0.0:
 		_chain_damage_multiplier = maxf(base_landing_damage_multiplier,0.0)
@@ -619,11 +633,11 @@ func _damage_area(
 			hit_count += 1
 			if was_in_retrigger_range:
 				retrigger_hit_count += 1
-			MC_DAMAGE_SFX.play(target,center,MACE_HIT_GAIN_DB)
+			if not preload("res://scripts/effects/我的世界/mc_hit_feedback.gd").manages(self): MC_DAMAGE_SFX.play(target,center,MACE_HIT_GAIN_DB)
 		# 已经被这一锤打到 0HP 的目标不再做击退计算。死亡目标下一物理帧会进入
 		# Die；继续写 Repel/速度既没有可见收益，又会让批量击杀多做一套碰撞运动状态。
 		if knock_distance > 0.0 and is_instance_valid(target) and target.health > 0:
-			var knock_dir:Vector2 = target.global_position - center
+			var knock_dir:Vector2 = ball.body_point(target,center) - center
 			if knock_dir.length_squared() <= 0.000001:
 				knock_dir = Vector2.RIGHT
 			target.apply_knockback(knock_dir.normalized(),knock_distance,knock_speed,0.0,0.0,{"source":self,"stop_on_character":true})
@@ -651,7 +665,7 @@ func _target_overlaps_damage_circle(target:ball,center:Vector2,radius:float) -> 
 	var radius_sq:float = safe_radius * safe_radius
 
 	# 第一层：角色根节点是项目最稳定的战斗坐标。
-	if target.global_position.distance_squared_to(center) <= radius_sq:
+	if ball.body_point(target,center).distance_squared_to(center) <= radius_sq:
 		return true
 
 	# 第二层：直接检查目标的真实角色碰撞体 / Hurtbox。

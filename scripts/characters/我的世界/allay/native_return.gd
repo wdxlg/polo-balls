@@ -1,4 +1,5 @@
 extends RefCounted
+const PROJECTILE_API = preload("res://classes/projectile_interactions.gd")
 ## Native projectile snapshots. Only called after capture.gd has approved an adapter.
 ## No original owner/node callbacks are retained: a frozen, non-combat context provides
 ## the original script's hit/status methods without its AI, movement, attacks or skills.
@@ -8,6 +9,7 @@ static var context_scripts:Dictionary = {}
 const SKIP = ["script","health","block","Max_health","Master_name","Team","name","owner","position","global_position","transform","global_transform","rotation","global_rotation","scale","global_scale","process_mode","visible","velocity","Repel","Target_Enemy","default_properties","_damage_output_disabled_until_msec"]
 
 static func safe_value(value:Variant) -> bool:
+	if typeof(value)==TYPE_RID: return false
 	if typeof(value)==TYPE_OBJECT and not is_instance_valid(value): return false
 	if value is Object: return value is Resource and not value is Script and not value is PackedScene
 	if value is Array:
@@ -71,15 +73,7 @@ static func tick_context(context:ball,delta:float) -> void:
 	if left<=0.0: context.queue_free()
 
 static func source_of(shot:Node) -> Node:
-	var c:Dictionary=EXT.config(shot)
-	if not c.is_empty():
-		if c.get("neutral",false):
-			var id:Variant=shot.get("launch_owner_id")
-			return instance_from_id(int(id)) if id!=null and int(id)>0 else null
-		return EXT.source(shot,c)
-	if shot is ball: return shot.Master if is_instance_valid(shot.Master) else null
-	if shot.has_method("_source_ball"): return shot._source_ball()
-	return null
+	return PROJECTILE_API.source_of(shot)
 
 static func snapshot(shot:Node,data:Dictionary) -> Dictionary:
 	var result:Dictionary=data.duplicate(true)
@@ -89,6 +83,11 @@ static func snapshot(shot:Node,data:Dictionary) -> Dictionary:
 	result["native_scale"]=shot.scale
 	result["visuals"]=visuals(shot,shot)
 	result["kind"]="native"
+	result["damage_kind"]=PROJECTILE_API.damage_kind_of(shot)
+	var protocol_metadata:Dictionary={}
+	for key:String in ["combat_classification","projectile_capabilities","projectile_damage_kind"]:
+		if shot.has_meta(key): protocol_metadata[key]=copy_value(shot.get_meta(key))
+	result["protocol_metadata"]=protocol_metadata
 	result["sound"]=AUDIO.describe(shot,source_of(shot))
 	var source:Node=source_of(shot)
 	if is_instance_valid(source) and source is ball:
@@ -148,6 +147,7 @@ static func context_for(owner_ball:ball,data:Dictionary) -> ball:
 	context.process_mode=Node.PROCESS_MODE_DISABLED
 	context.visible=false
 	context.name="AllayReturnContext_"+str(context.get_instance_id())
+	disable_body(context)
 	owner_ball.add_child(context,true)
 	restore(context,state.properties)
 	context.Master=owner_ball; context.Team=owner_ball.Team
@@ -163,10 +163,11 @@ static func context_for(owner_ball:ball,data:Dictionary) -> ball:
 	return context
 
 static func bind_owner(shot:Node,source:ball,owner_ball:ball,target:ball) -> void:
+	PROJECTILE_API.bind_owner(shot,source,owner_ball.Team,target)
 	var c:Dictionary=EXT.config(shot)
 	if c.has("owner"):
 		var key:String=str(c.owner)
-		shot.set(key,weakref(source) if key in ["_caster","owner_ref"] else source)
+		shot.set(key,weakref(source) if key in ["_caster","owner_ref","_src_ref","_source_ref"] else source)
 	if c.has("team"): shot.set(c.team,owner_ball.Team)
 	if c.has("owner_method"): shot.set("Master_name",str(owner_ball.get_tree().current_scene.get_path_to(source)))
 	if shot is ball:
@@ -180,7 +181,7 @@ static func bind_owner(shot:Node,source:ball,owner_ball:ball,target:ball) -> voi
 		shot.set("_source_team",owner_ball.Team)
 
 static func redirect(shot:Node,point:Vector2,target:ball) -> void:
-	var aim:Vector2=point.direction_to(target.global_position)
+	var aim:Vector2=point.direction_to(ball.body_point(target,point))
 	if aim.length_squared()<0.000001: aim=Vector2.RIGHT
 	var fields:Dictionary={}
 	for info:Dictionary in shot.get_property_list(): fields[str(info.name)]=true
@@ -201,6 +202,8 @@ static func redirect(shot:Node,point:Vector2,target:ball) -> void:
 	if fields.has("flight_velocity"): shot.set("flight_velocity",aim*shot.flight_velocity.length())
 	if fields.has("returning"): shot.set("returning",false)
 	shot.global_position=point
+	PROJECTILE_API.set_velocity(shot,aim*maxf(PROJECTILE_API.speed_of(shot),1.0))
+	if shot.has_method("relaunch_projectile"): shot.call("relaunch_projectile",point,target)
 	shot.rotation=aim.angle()
 
 static func launch(owner_ball:ball,data:Dictionary,target:ball,point:Vector2) -> Node2D:
@@ -210,6 +213,8 @@ static func launch(owner_ball:ball,data:Dictionary,target:ball,point:Vector2) ->
 	var scene_path:String=str(data.get("scene",""))
 	var shot:Node2D=load(scene_path).instantiate() if not scene_path.is_empty() else load(str(data.native_script)).new()
 	restore(shot,data.native_properties)
+	for key:String in data.get("protocol_metadata",{}): shot.set_meta(key,copy_value(data.protocol_metadata[key]))
+	shot.set_meta("projectile_damage_kind",str(data.get("damage_kind","ordinary")))
 	bind_owner(shot,source,owner_ball,target)
 	shot.position=point
 	shot.scale=data.native_scale
@@ -227,9 +232,9 @@ static func launch(owner_ball:ball,data:Dictionary,target:ball,point:Vector2) ->
 	if path.ends_with("女巫药水.gd"):
 		shot.setup(point,target.global_position,shot.effect_type,source)
 	elif path.ends_with("收债人_钱.gd"):
-		shot.setup(source,point,point.direction_to(target.global_position),shot.projectile_speed,shot.max_lifetime,owner_ball.Team,true)
+		shot.setup(source,point,point.direction_to(ball.body_point(target,point)),shot.projectile_speed,shot.max_lifetime,owner_ball.Team,true)
 	elif path.ends_with("数学老师公式弹.gd"):
-		shot.configure(source,{"origin":point,"forward":point.direction_to(target.global_position),"speed":shot.travel_speed,"lifetime":shot.max_lifetime,"damage":shot.damage_amount,"team":owner_ball.Team,"span":shot.curve_span,"amplitude":shot.curve_amplitude,"curve_kind":shot.curve_kind},true)
+		shot.configure(source,{"origin":point,"forward":point.direction_to(ball.body_point(target,point)),"speed":shot.travel_speed,"lifetime":shot.max_lifetime,"damage":shot.damage_amount,"team":owner_ball.Team,"span":shot.curve_span,"amplitude":shot.curve_amplitude,"curve_kind":shot.curve_kind},true)
 	elif path.ends_with("薇欧拉_文字弹.gd"):
 		shot.rotation=0.0
 		shot._apply_readable_text_rotation()
