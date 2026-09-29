@@ -14,11 +14,12 @@ var authority:bool = false
 var age:float = 0.0
 var _ended:bool = false
 # ---- 纯视觉
-var _trail:PackedVector2Array = []
 var _parts:V.Parts = V.Parts.new()
 var _add:Node2D
 var _vt:float = 0.0
 var _vrng:RandomNumberGenerator = RandomNumberGenerator.new()
+var _q_orb:Sprite2D
+var _q_beam:Sprite2D
 
 func _ready() -> void:
 	top_level = true
@@ -26,6 +27,10 @@ func _ready() -> void:
 	z_index = 86
 	_vrng.seed = id * 31 + 7
 	_add = V.make_add_layer(self,_draw_add)
+	if DisplayServer.get_name() != "headless":
+		# 先建球再建拖尾：两者都放到最底层，后建的在更下面 → 拖尾在球下、箭头(_add)在最上。
+		_q_orb = V.quad(self,V.Q.ORB,1)
+		_q_beam = V.quad(self,V.Q.BEAM,1)
 
 func _physics_process(delta:float) -> void:
 	if _ended or Game.now_stop_state: return
@@ -70,8 +75,6 @@ func end_remote() -> void:
 func _process(delta:float) -> void:
 	if _ended or Game.now_stop_state: return
 	_vt += delta
-	_trail.append(global_position)
-	if _trail.size() > 14: _trail.remove_at(0)
 	var dir:Vector2 = velocity.normalized() if velocity.length_squared() > 0.01 else Vector2.RIGHT
 	match kind:
 		"red","red_max":
@@ -84,8 +87,30 @@ func _process(delta:float) -> void:
 				_parts.emit(global_position - dir * radius * 1.5 + side,-velocity * 0.15 + Vector2(0,-_vrng.randf_range(20,60)),0.5,radius * _vrng.randf_range(0.35,0.6),Color(1.0,_vrng.randf_range(0.35,0.7),0.1,0.85),0,2.0,-60.0)
 			if _vrng.randf() < 0.3: _parts.emit(global_position - dir * radius * 2.0,-velocity * 0.05 + Vector2(0,-30),0.8,radius * 0.6,Color(0.12,0.08,0.06,0.4),1,1.0,-20.0)
 	_parts.step(delta)
+	_update_quads(dir)
 	queue_redraw()
 	_add.queue_redraw()
+
+## 着色器面片：赫 = 旋转的红色能量球 + 红色拖尾；开 = 火焰拖尾 + 火球头。
+func _update_quads(dir:Vector2) -> void:
+	if _q_orb == null: return
+	var spd:float = velocity.length()
+	var seedv:float = float(id % 97) * 0.71
+	match kind:
+		"red","red_max":
+			var r:float = radius * (1.25 if kind == "red_max" else 1.0)
+			var pulse:float = 1.0 + 0.06 * sin(_vt * 30.0)
+			V.qset(_q_orb,global_position,Vector2.ONE * r * 5.0 * pulse,0.0,V.pal("red",{"time":_vt,"seed":seedv,"alpha":1.3,"p0":Vector4(0.36,1.6,0.6,1.0),"p1":Vector4(7.0,0.2,1.0,0.9),"p2":Vector4(0.0,2.6,0,0)}))
+			var L:float = minf(age * spd,r * 9.0)
+			if L > r:
+				V.qset(_q_beam,global_position - dir * L * 0.5,Vector2(L,r * 2.4),dir.angle(),V.pal("red",{"time":_vt,"seed":seedv,"alpha":1.0,"p0":Vector4(0.34,14.0,0.45,1.0),"p1":Vector4(0.0,0.95,0.7,0.3),"p2":Vector4(0.0,0.0,0,0)}))
+			else: _q_beam.visible = false
+		"fuga":
+			V.qset(_q_orb,global_position - dir * radius * 0.3,Vector2.ONE * radius * 4.6,0.0,V.pal("fire",{"time":_vt,"seed":seedv,"alpha":1.25,"p0":Vector4(0.4,0.8,0.9,1.0),"p1":Vector4(3.0,0.3,0.9,0.9),"p2":Vector4(0.0,2.4,0,0)}))
+			var L2:float = minf(age * spd,radius * 13.0)
+			if L2 > radius:
+				V.qset(_q_beam,global_position - dir * L2 * 0.5,Vector2(L2,radius * 3.2),dir.angle(),V.pal("fire",{"time":_vt,"seed":seedv,"alpha":1.1,"p0":Vector4(0.32,12.0,0.6,1.0),"p1":Vector4(0.0,0.95,0.8,0.6),"p2":Vector4(0.0,0.0,0,0)}))
+			else: _q_beam.visible = false
 
 func _draw() -> void:
 	draw_set_transform(-global_position,0.0,Vector2.ONE)
@@ -96,42 +121,21 @@ func _draw_add() -> void:
 	var ci:CanvasItem = _add
 	var t:float = _vt
 	var dir:Vector2 = velocity.normalized() if velocity.length_squared() > 0.01 else Vector2.RIGHT
-	# 拖尾（世界坐标 → 本地）
-	var n:int = _trail.size()
-	for i:int in range(1,n):
-		var a:Vector2 = _trail[i - 1] - global_position
-		var b:Vector2 = _trail[i] - global_position
-		var u:float = float(i) / n
-		match kind:
-			"red","red_max": V.streak(ci,a,b,radius * 1.6 * u,Color(1.0,0.2,0.1,0.5 * u))
-			"fuga":
-				V.streak(ci,a,b,radius * 2.4 * u,Color(1.0,0.35,0.05,0.55 * u))
-				V.streak(ci,a,b,radius * 1.0 * u,Color(1.0,0.8,0.3,0.7 * u))
 	match kind:
 		"red","red_max":
 			var r:float = radius * (1.25 if kind == "red_max" else 1.0)
-			var pulse:float = 1.0 + 0.1 * sin(t * 30.0)
-			V.glow(ci,Vector2.ZERO,r * 3.2 * pulse,Color(1.0,0.12,0.05,0.8))
-			V.sprite(ci,"k_flare01",Vector2.ZERO,r * 9.0,Color(1.0,0.3,0.2,0.7),dir.angle(),Vector2(1.0,0.3))
-			V.sprite(ci,"k_twirl01",Vector2.ZERO,r * 3.6 * pulse,Color(1.0,0.35,0.25,0.9),t * 16.0)
-			V.anim(ci,"a_pfx_fireburst",Vector2.ZERO,r * 4.0,t * 2.0,Color(1.0,0.5,0.4,0.7),0.0,true)
-			V.flame_blob(ci,Vector2.ZERO,r * 1.05 * pulse,0.2,t * 2.0,Color(1.0,0.2,0.08,0.9),3.0)
-			V.core(ci,Vector2.ZERO,r * 0.6,Color(1.0,0.9,0.85,1.0))
-			for i2:int in 4:
-				var a2:float = t * 12.0 + TAU * i2 / 4.0
-				ci.draw_arc(Vector2.ZERO,r * 1.5,a2,a2 + 0.9,10,Color(1.0,0.5,0.4,0.8),2.0,true)
-			V.shock(ci,Vector2.ZERO,r * (1.6 + fmod(t * 4.0,1.0) * 1.2),4.0,Color(1.0,0.4,0.3,0.6 * (1.0 - fmod(t * 4.0,1.0))))
+			V.glow(ci,Vector2.ZERO,r * 3.4,Color(1.0,0.12,0.05,0.45))
+			V.sprite(ci,"k_flare01",Vector2.ZERO,r * 8.0,Color(1.0,0.3,0.2,0.5),dir.angle(),Vector2(1.0,0.25))
+			var ph:float = fmod(t * 4.0,1.0)
+			V.shock(ci,Vector2.ZERO,r * (1.8 + ph * 1.2),3.0,Color(1.0,0.4,0.3,0.5 * (1.0 - ph)))
 		"fuga":
 			var n2:Vector2 = dir.orthogonal()
-			V.glow(ci,Vector2.ZERO,radius * 4.0,Color(1.0,0.4,0.05,0.7))
-			V.anim(ci,"a_fire",-dir * radius * 1.8,radius * 3.2,t * 2.0,Color(1,0.9,0.8,0.95),dir.angle() - PI * 0.5,true,Vector2(1.0,1.6))
-			V.sprite(ci,"k_muzzle02",-dir * radius * 1.2,radius * 4.0,Color(1.0,0.6,0.25,0.9),dir.angle() - PI * 0.5,Vector2(0.7,1.4))
-			V.sprite(ci,"k_flare01",Vector2.ZERO,radius * 10.0,Color(1.0,0.55,0.2,0.6),dir.angle(),Vector2(1.0,0.25))
-			V.flame_blob(ci,-dir * radius * 0.8,radius * 1.2,0.25,t * 2.5,Color(1.0,0.45,0.08,0.8),1.0)
-			# 箭头
-			var tip:PackedVector2Array = [dir * radius * 2.2,-dir * radius * 0.2 + n2 * radius * 0.8,-dir * radius * 0.6,-dir * radius * 0.2 - n2 * radius * 0.8]
-			ci.draw_colored_polygon(tip,Color(1.0,0.9,0.55,1.0))
-			V.core(ci,dir * radius * 0.6,radius * 0.7,Color(1,1,0.9,1))
+			V.glow(ci,Vector2.ZERO,radius * 4.0,Color(1.0,0.4,0.05,0.45))
+			# 火焰箭头（原作：宿傩拉弓射出的火矢）
+			var tip:PackedVector2Array = [dir * radius * 2.6,-dir * radius * 0.1 + n2 * radius * 0.9,dir * radius * 0.4,-dir * radius * 0.1 - n2 * radius * 0.9]
+			ci.draw_colored_polygon(tip,Color(1.0,0.85,0.45,1.0))
+			var tip2:PackedVector2Array = [dir * radius * 2.1,n2 * radius * 0.45,dir * radius * 0.7,-n2 * radius * 0.45]
+			ci.draw_colored_polygon(tip2,Color(1.0,1.0,0.9,1.0))
 	draw_parts_world(ci)
 
 func draw_parts_world(ci:CanvasItem) -> void:

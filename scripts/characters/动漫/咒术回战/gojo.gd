@@ -552,6 +552,30 @@ func visual_particles(_dt:float) -> void:
 		var from3:Vector2 = c + Vector2.from_angle(a3) * _vrng.randf_range(30,60)
 		vparts.emit(from3,(c - from3) * 2.5,0.4,2.0,Color(0.75,0.5,1.0),2,0.0)
 
+## 着色器面片：苍 = 向内吸的蓝色漩涡球 + 引力透镜环；赫蓄力 = 逐渐膨胀的红球；茈蓄力 = 公转的苍与赫合为紫球。
+func visual_quads() -> void:
+	var t:float = _view_clock
+	if blue_active:
+		var r:float = blue_max_radius if blue_max else blue_radius
+		var s:float = 1.25 if blue_max else 1.0
+		ovq("blue",V.Q.ORB,2,blue_pos,Vector2.ONE * 64.0 * s,0.0,V.pal("blue",{"alpha":1.3,"p0":Vector4(0.42,-2.6,0.45,1.0),"p1":Vector4(-6.0,0.16,1.0,0.9),"p2":Vector4(0.0,2.6,0,0)}))
+		ovq("blens",V.Q.RING,1,blue_pos,Vector2.ONE * r * 2.1,0.0,V.pal("blue",{"alpha":0.5,"p0":Vector4(0.9 + 0.03 * sin(t * 5.0),0.05,0.35,0.0),"p1":Vector4(0.0,0.0,0.6,0.0)}))
+	if red_charge >= 0.0:
+		var k:float = clampf(red_charge / 0.7,0.0,1.0)
+		var pulse:float = 0.92 + 0.08 * sin(t * (18.0 + 20.0 * k))
+		ovq("redc",V.Q.ORB,2,_red_charge_pos(),Vector2.ONE * (30.0 + 46.0 * k) * pulse,0.0,V.pal("red",{"alpha":1.3,"p0":Vector4(0.4,1.8,0.4 + 0.5 * k,1.0),"p1":Vector4(8.0,0.2,1.0,0.9),"p2":Vector4(0.0,2.6,0,0)}))
+	if purple_charge >= 0.0:
+		var k2:float = clampf(purple_charge / purple_200_hold,0.0,1.0)
+		var c:Vector2 = _purple_center()
+		var orbit:float = 22.0 * (1.0 - V.in_out(k2))
+		var ang2:float = t * (4.0 + 14.0 * k2)
+		var sep:float = 1.0 - V.seg(k2,0.75,1.0)
+		ovq("pb",V.Q.ORB,2,c + Vector2.from_angle(ang2) * orbit,Vector2.ONE * 34.0,0.0,V.pal("blue",{"alpha":1.3 * sep,"p0":Vector4(0.42,-2.2,0.4,1.0),"p1":Vector4(-7.0,0.16,0.9,0.9)}))
+		ovq("pr",V.Q.ORB,2,c - Vector2.from_angle(ang2) * orbit,Vector2.ONE * 34.0,0.0,V.pal("red",{"alpha":1.3 * sep,"p0":Vector4(0.42,2.2,0.4,1.0),"p1":Vector4(7.0,0.16,0.9,0.9)}))
+		var m:float = V.seg(k2,0.45,1.0)
+		if m > 0.0:
+			ovq("pp",V.Q.ORB,1,c,Vector2.ONE * (24.0 + 70.0 * m) * (1.0 + 0.05 * sin(t * 25.0)),0.0,V.pal("purple",{"alpha":1.3 * m,"p0":Vector4(0.44,1.2,0.5 * m,1.0),"p1":Vector4(5.0,0.14,1.0,0.92),"p2":Vector4(0.0,2.2,0,0)}))
+
 func draw_overlay(o:Node2D) -> void:
 	if blue_active:
 		# 苍：空间被吸向中心的黑洞感（普通层先压暗中心）。
@@ -573,11 +597,6 @@ func draw_overlay_add(o:Node2D) -> void:
 		var s:float = 1.25 if blue_max else 1.0
 		V.glow(o,blue_pos,r * 0.9,Color(0.15,0.3,1.0,0.35))
 		V.sprite(o,"k_light03",blue_pos,r * 2.0,Color(0.2,0.4,1.0,0.4),t * 0.4)
-		V.sprite(o,"k_twirl02",blue_pos,r * 1.7,Color(0.35,0.6,1.0,0.7),-t * 6.0)
-		V.sprite(o,"k_twirl01",blue_pos,r * 0.9,Color(0.6,0.85,1.0,0.8),-t * 9.0 + 1.0)
-		V.anim(o,"a_pfx_cyan",blue_pos,r * 1.1,t * 0.8,Color(0.8,0.9,1.0,0.8),0.0,true)
-		# 引力透镜环
-		V.shock(o,blue_pos,r * (0.92 + 0.04 * sin(t * 5.0)),14.0,Color(0.35,0.6,1.0,0.45))
 		# 螺旋吸入臂
 		for arm:int in 4:
 			var pts:PackedVector2Array = []
@@ -587,20 +606,15 @@ func draw_overlay_add(o:Node2D) -> void:
 				pts.append(blue_pos + Vector2.from_angle(ang) * r * (0.12 + 0.8 * u))
 			o.draw_polyline(pts,Color(0.4,0.65,1.0,0.5),2.0 * s,true)
 		# 核心
-		V.glow(o,blue_pos,34.0 * s,Color(0.25,0.5,1.0,0.95))
-		V.flame_blob(o,blue_pos,13.0 * s,0.18,t * 1.5,Color(0.3,0.55,1.0,0.8),1.0)
-		V.core(o,blue_pos,8.0 * s,Color(0.9,0.97,1.0,1.0))
+		V.glow(o,blue_pos,34.0 * s,Color(0.25,0.5,1.0,0.6))
 		o.draw_arc(blue_pos,18.0 * s,-t * 9.0,-t * 9.0 + 4.0,20,Color(0.7,0.9,1.0,0.8),1.5,true)
 	if red_charge >= 0.0:
 		var k:float = clampf(red_charge / 0.7,0.0,1.0)
 		var p:Vector2 = _red_charge_pos()
 		var pulse:float = 0.85 + 0.15 * sin(t * (18.0 + 20.0 * k))
 		V.glow(o,p,(26.0 + 30.0 * k) * pulse,Color(1.0,0.12,0.06,0.8))
-		V.sprite(o,"k_twirl01",p,(30.0 + 40.0 * k) * pulse,Color(1.0,0.3,0.2,0.8),t * 12.0)
 		V.sprite(o,"k_flare01",p,(60.0 + 120.0 * k),Color(1.0,0.35,0.25,0.5 + 0.4 * k),0.0,Vector2(1.0,0.25))
 		V.anim(o,"a_pfx_fireburst",p,40.0 + 30.0 * k,t * 1.5,Color(1,0.6,0.5,0.6 * k),0.0,true)
-		V.flame_blob(o,p,(6.0 + 8.0 * k) * pulse,0.22,t * 2.0,Color(1.0,0.2,0.1,0.9),2.0)
-		V.core(o,p,4.0 + 5.0 * k,Color(1,0.9,0.85,1))
 		for i2:int in 6:
 			var a2:float = t * 10.0 + TAU * i2 / 6.0
 			var l:float = (12.0 + 12.0 * k) * (0.8 + 0.2 * sin(t * 30.0 + i2))
@@ -620,19 +634,13 @@ func draw_overlay_add(o:Node2D) -> void:
 			V.core(o,c + Vector2.from_angle(back) * orbit,6.0,Color(0.25,0.45,1.0,fa))
 			V.core(o,c - Vector2.from_angle(back) * orbit,6.0,Color(1.0,0.2,0.12,fa))
 		V.glow(o,pb,22.0,Color(0.2,0.4,1.0,0.9))
-		V.core(o,pb,6.0,Color(0.85,0.92,1.0))
 		V.glow(o,pr,22.0,Color(1.0,0.15,0.08,0.9))
-		V.core(o,pr,6.0,Color(1.0,0.9,0.85))
 		V.glow(o,c,40.0 + 50.0 * k2,Color(0.6,0.25,1.0,0.25 + 0.5 * k2))
-		V.sprite(o,"k_twirl02",pb,34.0,Color(0.35,0.55,1.0,0.8),-t * 10.0)
-		V.sprite(o,"k_twirl02",pr,34.0,Color(1.0,0.3,0.2,0.8),t * 10.0)
 		V.sprite(o,"k_magic03",c,(70.0 + 40.0 * k2),Color(0.75,0.5,1.0,0.3 + 0.5 * k2),t * (1.0 + 3.0 * k2))
 		if k2 > 0.5: V.anim(o,"a_pfx_purple",c,60.0 + 60.0 * k2,t * 1.2,Color(1,1,1,V.seg(k2,0.5,1.0)),0.0,true)
 		if k2 >= 1.0: V.sprite(o,"k_flare01",c,220.0,Color(0.85,0.6,1.0,0.7 + 0.3 * sin(t * 20.0)),0.0,Vector2(1.0,0.2))
 		if k2 > 0.7:
 			var m:float = V.seg(k2,0.7,1.0)
-			V.flame_blob(o,c,(8.0 + 8.0 * m) * (1.0 + 0.1 * sin(t * 25.0)),0.2,t * 2.0,Color(0.75,0.45,1.0,0.9 * m),4.0)
-			V.core(o,c,7.0 * m,Color(1,0.95,1,m))
 			_vrng.seed = int(t * 25.0) + 91
 			for b:int in 3:
 				var ba:float = _vrng.randf() * TAU

@@ -261,21 +261,11 @@ func accept_visual(data:Dictionary) -> void:
 	_swing_dir = data.get("sd",_swing_dir)
 
 func draw_overlay(o:Node2D) -> void:
-	# 头顶八握法阵：每完成一次适应转 1/8 圈；转动中逐渐旋转。
-	var c:Vector2 = global_position + Vector2(0,-34)
-	var angle:float = (wheel_turns + (wheel_progress if not wheel_key.is_empty() else 0.0)) * TAU / 8.0
-	var gold:Color = Color(0.95,0.78,0.3,0.95)
-	var dark:Color = Color(0.35,0.25,0.05,0.9)
-	o.draw_arc(c,15.0,0.0,TAU,32,dark,4.0,true)
-	o.draw_arc(c,15.0,0.0,TAU,32,gold,2.0,true)
-	o.draw_arc(c,6.0,0.0,TAU,16,gold,1.5,true)
-	for i:int in 8:
-		var a:float = angle + TAU * i / 8.0
-		var dir:Vector2 = Vector2.from_angle(a)
-		o.draw_line(c + dir * 6.0,c + dir * 21.0,dark,4.0,true)
-		o.draw_line(c + dir * 6.0,c + dir * 21.0,gold,2.0,true)
-		var knob:PackedVector2Array = [c + dir * 25.0,c + dir * 21.0 + dir.orthogonal() * 3.0,c + dir * 18.5,c + dir * 21.0 - dir.orthogonal() * 3.0]
-		o.draw_colored_polygon(knob,gold)
+	# 头顶八握之剑法阵（原作的舵轮）：每完成一次适应转 1/8 圈，转动中顺滑旋转并放大。
+	var turning:bool = not wheel_key.is_empty()
+	var c:Vector2 = global_position + Vector2(0,-36)
+	var angle:float = (wheel_turns + (V.in_out(wheel_progress) if turning else 0.0)) * TAU / 8.0
+	V.dharma_wheel(o,c,11.0 if turning else 9.5,angle,1.0)
 
 func _swing_arc(o:Node2D,r:float,w:float,col:Color) -> void:
 	if w < 1.5: return
@@ -295,18 +285,13 @@ func _swing_arc(o:Node2D,r:float,w:float,col:Color) -> void:
 
 func draw_overlay_add(o:Node2D) -> void:
 	var t:float = _view_clock
-	var c:Vector2 = global_position + Vector2(0,-34)
+	var c:Vector2 = global_position + Vector2(0,-36)
 	var turning:bool = not wheel_key.is_empty()
-	V.glow(o,c,(34.0 if turning else 24.0) * (1.0 + 0.08 * sin(t * 6.0)),Color(1.0,0.8,0.35,0.55 if turning else 0.3))
-	V.sprite(o,"k_magic02",c,(52.0 if turning else 40.0),Color(1.0,0.82,0.4,0.5 if turning else 0.25),(wheel_turns + wheel_progress) * TAU / 8.0 + t * 0.2)
-	if turning: V.anim(o,"a_pfx_goldring",c,64.0,t * 0.8,Color(1,1,1,0.7),0.0,true)
+	var angle:float = (wheel_turns + (V.in_out(wheel_progress) if turning else 0.0)) * TAU / 8.0
+	V.dharma_wheel_glow(o,c,11.0 if turning else 9.5,angle,(0.9 if turning else 0.35) * (1.0 + 0.1 * sin(t * 6.0)))
 	if turning:
-		o.draw_arc(c,28.0,-PI / 2.0,-PI / 2.0 + TAU * wheel_progress,32,Color(1,0.95,0.6,0.95),2.5,true)
-		var tip:Vector2 = c + Vector2.from_angle(-PI / 2.0 + TAU * wheel_progress) * 28.0
-		V.glow(o,tip,10.0,Color(1,0.95,0.7,1))
-		for i:int in 8:
-			var a:float = t * 0.8 + TAU * i / 8.0
-			V.streak(o,c,c + Vector2.from_angle(a) * 40.0,4.0,Color(1.0,0.85,0.45,0.3))
+		o.draw_arc(c,20.0,-PI / 2.0,-PI / 2.0 + TAU * wheel_progress,32,Color(1,0.95,0.6,0.95),2.0,true)
+		V.glow(o,c + Vector2.from_angle(-PI / 2.0 + TAU * wheel_progress) * 20.0,8.0,Color(1,0.95,0.7,1))
 	if _swing_visual > 0.0:
 		var k:float = clampf(_swing_visual / 0.25,0.0,1.0)
 		_swing_arc(o,sword_range * 0.9,26.0 * k,Color(1.0,0.9,0.6,0.45 * k))

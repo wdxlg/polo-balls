@@ -258,6 +258,117 @@ static func anim(ci:CanvasItem,name:String,pos:Vector2,size:float,k:float,color:
 	ci.draw_texture_rect_region(t,Rect2(Vector2(-size * 0.5,-hh * 0.5),Vector2(size,hh)),src,color)
 	ci.draw_set_transform(Vector2.ZERO,0.0,Vector2.ONE)
 
+# ---------------------------------------------------------------- 魔虚罗·八握法阵（舵轮形：外圈 + 8 根辐条 + 末端把手）
+static func _spoke(ci:CanvasItem,p:Vector2,d:Vector2,r0:float,r1:float,w:float,col:Color) -> void:
+	var n:Vector2 = d.orthogonal() * w * 0.5
+	ci.draw_colored_polygon(PackedVector2Array([p + d * r0 + n,p + d * r1 + n * 0.7,p + d * r1 - n * 0.7,p + d * r0 - n]),col)
+
+## 实体层（普通混合）：深色描边 + 金色主体 + 高光，赛璐璐风格。
+static func dharma_wheel(ci:CanvasItem,p:Vector2,R:float,rot:float,alpha:float) -> void:
+	if R < 2.0 or alpha <= 0.01: return
+	var dark:Color = Color(0.2,0.1,0.01,0.95 * alpha)
+	var gold:Color = Color(0.96,0.76,0.28,alpha)
+	var shade:Color = Color(0.72,0.47,0.12,alpha)
+	var hi:Color = Color(1.0,0.96,0.72,alpha)
+	var ow:float = maxf(1.2,R * 0.05)
+	# 辐条与把手（先画描边，再画主体）
+	for pass_i:int in 2:
+		for i:int in 8:
+			var d:Vector2 = Vector2.from_angle(rot + TAU * i / 8.0)
+			if pass_i == 0:
+				_spoke(ci,p,d,R * 0.16,R * 1.1,R * 0.13 + ow * 2.0,dark)
+				ci.draw_circle(p + d * R * 1.2,R * 0.11 + ow,dark)
+			else:
+				_spoke(ci,p,d,R * 0.16,R * 1.1,R * 0.13,shade)
+				_spoke(ci,p,d,R * 0.16,R * 1.1,R * 0.05,gold)
+				ci.draw_circle(p + d * R * 1.2,R * 0.11,gold)
+				ci.draw_circle(p + d * R * 1.2 + Vector2(-0.3,-0.4) * R * 0.04,R * 0.045,hi)
+		if pass_i == 0:
+			ring(ci,p,R * 0.68 - ow,R * 0.94 + ow,dark,dark,56)
+			ci.draw_circle(p,R * 0.26 + ow,dark)
+		else:
+			ring(ci,p,R * 0.68,R * 0.94,shade,shade,56)
+			ring(ci,p,R * 0.72,R * 0.86,gold,gold,56)
+			ring(ci,p,R * 0.76,R * 0.8,hi,hi,56)
+			ci.draw_circle(p,R * 0.26,gold)
+			ci.draw_circle(p,R * 0.13,dark)
+			ci.draw_circle(p,R * 0.07,hi)
+
+## 发光层（叠加）：法阵背后的金光与辐条尖端的闪光。
+static func dharma_wheel_glow(ci:CanvasItem,p:Vector2,R:float,rot:float,alpha:float) -> void:
+	if R < 2.0 or alpha <= 0.01: return
+	glow(ci,p,R * 2.2,Color(1.0,0.72,0.25,0.45 * alpha))
+	for i:int in 8:
+		var d:Vector2 = Vector2.from_angle(rot + TAU * i / 8.0)
+		glow(ci,p + d * R * 1.2,R * 0.35,Color(1.0,0.85,0.45,0.5 * alpha))
+
+# ---------------------------------------------------------------- 程序化着色器面片（jjk_fxshader）
+const FXSHADER = preload("res://scripts/characters/动漫/咒术回战/jjk_fxshader.gdshader")
+enum Q { ORB, BEAM, RING, FIRE, CUT, VOID, POOL, FOCUS, SMOKE, STORM }
+static var _white:Texture2D
+
+static func white_tex() -> Texture2D:
+	if _white == null:
+		var img:Image = Image.create(8,8,false,Image.FORMAT_RGBA8)
+		img.fill(Color.WHITE)
+		_white = ImageTexture.create_from_image(img)
+	return _white
+
+## 建立一张着色器面片。layer: 0 在父节点之下，1 在父节点普通绘制之后、叠加层之前，2 最上层。
+static func quad(parent:Node,mode:int,layer:int = 2) -> Sprite2D:
+	var s:Sprite2D = Sprite2D.new()
+	s.texture = white_tex()
+	s.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	var m:ShaderMaterial = ShaderMaterial.new()
+	m.shader = FXSHADER
+	m.set_shader_parameter("mode",mode)
+	s.material = m
+	s.visible = false
+	s.name = "Q%d" % mode
+	parent.add_child(s)
+	if layer == 0:
+		s.z_as_relative = true
+		s.z_index = -1
+	elif layer == 1:
+		parent.move_child(s,0)
+	return s
+
+## 放置面片：中心 pos、像素尺寸 size、旋转 rot；params 直接写入着色器参数（c0..c3 / p0..p2 / alpha / time / seed）。
+static func qset(s:Sprite2D,pos:Vector2,size:Vector2,rot:float,params:Dictionary) -> void:
+	if s == null: return
+	var a:float = float(params.get("alpha",1.0))
+	if a <= 0.002 or size.x < 1.0 or size.y < 1.0:
+		s.visible = false
+		return
+	s.visible = true
+	s.global_position = pos
+	s.global_rotation = rot
+	s.global_scale = size / 8.0
+	var m:ShaderMaterial = s.material
+	m.set_shader_parameter("px",size)
+	for key:Variant in params.keys():
+		m.set_shader_parameter(str(key),params[key])
+
+## 常用配色（c0 最亮 → c3 最暗/描边）。
+const PAL:Dictionary = {
+	"blue":[Color(0.95,1.0,1.0),Color(0.45,0.85,1.0),Color(0.1,0.35,1.0),Color(0.0,0.02,0.12)],
+	"red":[Color(1.0,0.97,0.92),Color(1.0,0.45,0.35),Color(0.95,0.08,0.06),Color(0.12,0.0,0.02)],
+	"purple":[Color(1.0,0.95,1.0),Color(0.85,0.55,1.0),Color(0.5,0.12,1.0),Color(0.06,0.0,0.12)],
+	"fire":[Color(1.0,0.97,0.75),Color(1.0,0.72,0.2),Color(0.95,0.28,0.04),Color(0.18,0.03,0.02)],
+	"blood":[Color(1.0,0.92,0.92),Color(1.0,0.2,0.25),Color(0.7,0.0,0.06),Color(0.0,0.0,0.0)],
+	"white":[Color(1,1,1),Color(0.85,0.9,1.0),Color(0.5,0.6,0.9),Color(0.0,0.0,0.0)],
+	"gold":[Color(1.0,0.98,0.85),Color(1.0,0.82,0.35),Color(0.85,0.5,0.1),Color(0.15,0.08,0.0)],
+	"cyan":[Color(0.95,1.0,1.0),Color(0.6,0.95,1.0),Color(0.2,0.6,1.0),Color(0.0,0.04,0.1)],
+	"green":[Color(0.95,1.0,0.95),Color(0.55,1.0,0.65),Color(0.15,0.75,0.35),Color(0.0,0.08,0.02)],
+	"black":[Color(1.0,0.9,0.9),Color(1.0,0.15,0.2),Color(0.6,0.0,0.05),Color(0.0,0.0,0.0)],
+}
+
+static func pal(name:String,params:Dictionary = {}) -> Dictionary:
+	var p:Array = PAL.get(name,PAL["white"])
+	var d:Dictionary = {"c0":p[0],"c1":p[1],"c2":p[2],"c3":p[3]}
+	d.merge(params,true)
+	return d
+
 # ---------------------------------------------------------------- 演出（屏幕 / 镜头），全部纯视觉
 static func _world(node:Node) -> Node:
 	if node == null or not node.is_inside_tree(): return null

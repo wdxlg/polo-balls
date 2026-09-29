@@ -33,6 +33,8 @@ var _projectiles:Dictionary = {}
 var _domains:Dictionary = {}
 var _overlay:Node2D
 var _overlay_add:Node2D
+var _ovq:Dictionary = {}
+var _ovq_used:Dictionary = {}
 ## 纯视觉粒子（世界坐标），只在绘制层使用，不参与任何判定。
 var vparts:V.Parts = V.Parts.new()
 var _vclock_last:float = -1.0
@@ -96,6 +98,20 @@ func draw_overlay(_o:Node2D) -> void: pass
 func draw_overlay_add(_o:Node2D) -> void: pass
 ## 每个画面帧调用一次，用于发射纯视觉粒子（vdelta 为画面时间步长）。
 func visual_particles(_dt:float) -> void: pass
+## 子类在这里调用 ovq() 布置着色器面片（每帧；未调用的面片自动隐藏）。
+func visual_quads() -> void: pass
+
+## 覆盖层着色器面片（按名字复用）。layer: 1 = 覆盖层最底，2 = 最上。
+func ovq(qname:String,mode:int,layer:int,pos:Vector2,size:Vector2,rot:float,params:Dictionary) -> void:
+	if not is_instance_valid(_overlay) or DisplayServer.get_name() == "headless": return
+	var sp:Sprite2D = _ovq.get(qname)
+	if sp == null:
+		sp = V.quad(_overlay,mode,layer)
+		_ovq[qname] = sp
+	if not params.has("time"): params["time"] = _view_clock
+	if not params.has("seed"): params["seed"] = float(get_instance_id() % 97) * 0.53
+	V.qset(sp,pos,size,rot,params)
+	_ovq_used[qname] = true
 
 # ---------------------------------------------------------------- 资源
 func spend(amount:float) -> bool:
@@ -309,6 +325,10 @@ func visual_mob() -> void:
 	if vdelta > 0.0 and health > 0:
 		visual_particles(vdelta)
 		vparts.step(vdelta)
+	_ovq_used.clear()
+	if health > 0: visual_quads()
+	for qn:Variant in _ovq.keys():
+		if not _ovq_used.has(qn): (_ovq[qn] as Sprite2D).visible = false
 	_overlay.queue_redraw()
 	if is_instance_valid(_overlay_add): _overlay_add.queue_redraw()
 
