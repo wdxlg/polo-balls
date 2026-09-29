@@ -1,0 +1,48 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/shooter/蜘蛛地网.gd" id="2_script"]
+
+[sub_resource type="RectangleShape2D" id="shape_body"]
+resource_local_to_scene = true
+size = Vector2(100, 72)
+
+[sub_resource type="RectangleShape2D" id="shape_hit"]
+resource_local_to_scene = true
+size = Vector2(100, 72)
+
+[sub_resource type="RectangleShape2D" id="shape_hurt"]
+resource_local_to_scene = true
+size = Vector2(100, 72)
+
+[node name="蜘蛛地网" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+Type_Tags = PackedStringArray("我的世界", "特殊")
+Max_health = 2
+Damage = 10
+Speed = 0.0
+Health_Restore = 0
+Has_Collision_Damage = false
+Can_Attack = false
+Can_Skill = false
+Type = 2
+
+[node name="Image" parent="Graphics" index="0"]
+visible = false
+
+[node name="CollisionShape2D" parent="." index="1"]
+shape = SubResource("shape_body")
+metadata/_character_auto_fit_v3_manual = true
+
+[node name="CharacterAutoFit" parent="." index="2"]
+enabled = false
+
+[node name="CollisionShape2D" parent="hitbox" index="0"]
+shape = SubResource("shape_hit")
+metadata/_character_auto_fit_v3_manual = true
+
+[node name="CollisionShape2D" parent="hurtbox" index="0"]
+shape = SubResource("shape_hurt")
+metadata/_character_auto_fit_v3_manual = true
+
+[editable path="Health_Bar"]

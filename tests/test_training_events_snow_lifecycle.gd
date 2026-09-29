@@ -70,7 +70,7 @@ func run() -> void:
 	var inside:bool = not field.environment_patches.is_empty()
 	for record:Dictionary in field.environment_patches.values():
 		if record.decorative: continue
-		var rectangle:Array[Rect2] = [Rect2(FIELD.point_at(record.cell)-Vector2.ONE*12,Vector2.ONE*24)]
+		var rectangle:Array[Rect2] = [field.environment_tile(record)]
 		inside = inside and conditions.GEOMETRY.subtract(rectangle,conditions._ground).is_empty()
 	check(inside,"new map snow stays on actual floor regions instead of the old map or holes")
 	map_actor.queue_free()
@@ -85,19 +85,19 @@ func run() -> void:
 	conditions.refresh_layout(true)
 	check(conditions.field.environment_patches.is_empty(),"new replay baseline begins bare")
 	accumulate()
-	var replay:Dictionary = conditions.field.environment_patches.duplicate(true)
+	var replay:Array = conditions.field._environment_payload(conditions.field.environment_patches.values())
 	var old_field:WeakRef = weakref(conditions.field)
 	await world.rematch_last_battle(true)
 	check(await until(func():return not is_instance_valid(old_field.get_ref()) and snow_ready()),"normal exact rematch retires the previous transient field and recreates weather")
 	check(conditions.field.environment_patches.is_empty(),"exact rematch recreates zero accumulation, not the prior twelve seconds")
 	accumulate()
-	check(game.current_battle_random_seed()==original_seed and conditions.field.environment_patches==replay,"exact replay reproduces the actual snow layout, not just a matching RNG seed")
+	check(game.current_battle_random_seed()==original_seed and conditions.field._environment_payload(conditions.field.environment_patches.values())==replay,"exact replay reproduces the actual snow layout, not just a matching RNG seed")
 	old_field = weakref(conditions.field)
 	await world.rematch_last_battle(false)
 	check(await until(func():return not is_instance_valid(old_field.get_ref()) and snow_ready()),"fresh-random rematch also creates a new authoritative snow field")
 	check(conditions.field.environment_patches.is_empty(),"fresh-random rematch also starts bare")
 	accumulate()
-	check(game.current_battle_random_seed()!=original_seed and conditions.field.environment_patches!=replay,"fresh-random replay changes snow while retaining the chosen environment")
+	check(game.current_battle_random_seed()!=original_seed and conditions.field._environment_payload(conditions.field.environment_patches.values())!=replay,"fresh-random replay changes snow while retaining the chosen environment")
 	var victim:Node2D = dummy(center+Vector2(72,0))
 	game.now_stop_state = false
 	var status:Node = COLD.ensure(victim)
@@ -116,10 +116,10 @@ func run() -> void:
 	var center_cell:Vector2i = FIELD.cell_at(center)
 	for dx:int in [-2,2]:
 		var cell:Vector2i = center_cell+Vector2i(dx,0)
-		field.add_environment_patch(conditions,{"cell":cell,"decorative":false,"rects":[Rect2(FIELD.point_at(cell)-Vector2.ONE*12,Vector2.ONE*24)]})
-	field.development_begin_merge(func(point:Vector2):return "left" if point.x<center.x else "right",{"left":Vector2(-48,0),"right":Vector2(48,0)})
+		field.add_environment_patch(conditions,{"cell":cell,"decorative":false,"tile":Rect2(FIELD.point_at(cell)-Vector2.ONE*8,Vector2.ONE*16),"rects":[Rect2(FIELD.point_at(cell)-Vector2.ONE*8,Vector2.ONE*16)]})
+	field.development_begin_merge(func(point:Vector2):return "left" if point.x<center.x else "right",{"left":Vector2(-32,0),"right":Vector2(32,0)})
 	field.development_preview_merge({}, {"left":{"offset":Vector2.ZERO},"right":{"offset":Vector2.ZERO}})
-	check(field._development_environment_offsets.values().has(Vector2(48,0)) and field._development_environment_offsets.values().has(Vector2(-48,0)),"existing development-map movement previews carry permanent snow with each lane")
+	check(field._development_environment_offsets.values().has(Vector2(32,0)) and field._development_environment_offsets.values().has(Vector2(-32,0)),"existing development-map movement previews carry permanent snow with each lane")
 	field.development_finish_merge()
 	check(field.environment_patches.size()==1 and field.environment_patches.has(center_cell),"development merge coalesces overlapping permanent tiles without duplicate damage")
 	setting("Environment","none")

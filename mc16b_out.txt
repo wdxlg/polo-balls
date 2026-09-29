@@ -1,0 +1,43 @@
+Godot Engine v4.7.2.stable.steam.ed1daf0bf - https://godotengine.org
+
+PASS: world desc registered for spider
+PASS: world desc registered for drowned
+PASS: catalog zh/en registered for spider
+PASS: catalog zh/en registered for drowned
+PASS: native audio event present: entity.spider.ambient
+PASS: native audio event present: entity.spider.hurt
+PASS: native audio event present: entity.spider.death
+PASS: native audio event present: entity.spider.lunge
+PASS: native audio event present: entity.spider_web.cast
+PASS: native audio event present: entity.spider_web.hit
+PASS: native audio event present: entity.spider_web.patch
+PASS: native audio event present: entity.drowned.ambient
+PASS: native audio event present: entity.drowned.hurt
+PASS: native audio event present: entity.drowned.death
+PASS: native audio event present: entity.drowned.splash
+PASS: native audio event present: entity.drowned.throw
+PASS: native audio event present: entity.drowned.riptide
+PASS: spider survived observation window
+PASS: drowned survived observation window
+PASS: spider fired web pellets during combat
+PASS: spider placed a ground web patch during combat
+PASS: web patch per-spider cap held (peak 2)
+PASS: drowned threw tridents during combat
+PASS: dummy carried spider web slow buff at some point
+PASS: dummy carried drowned wet buff at some point
+PASS: dummy took real combat damage
+PASS: webbed-prey detection positive case
+PASS: webbed-prey bonus is +30%
+PASS: webbed-prey detection negative case
+PASS: no bonus without web buff
+PASS: wet detection positive case
+PASS: wet detection negative case
+PASS: heart of the sea refuses heal at close range
+PASS: heart of the sea heals 48 at long range
+PASS: lunge locks direction toward target
+PASS: ground web patch starts with durability 2
+PASS: ground web patch survives one hit (durability counts hits, not damage)
+PASS: ground web patch destroyed after two hits
+PASS: spider never applies its own web to itself
+MC16 checks=39 failures=0
+MC16_EXIT=0

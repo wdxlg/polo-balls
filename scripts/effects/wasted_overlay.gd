@@ -5,6 +5,9 @@ const TEXT:String = "WASTED"
 const BAND_ALPHA:float = 0.92
 const FONT_SIZE:int = 10
 var _label:Label
+# 红字的水平中心（overlay 局部坐标）。横带可能因为最小宽度/贴边裁剪而不对称，
+# 但红字必须始终压在名字文字正中间，否则会看起来"偏了"。
+var _text_center_x:float = -1.0
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -14,19 +17,37 @@ func _ready() -> void:
 	_label.text = TEXT
 	_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_label.set_anchors_preset(Control.PRESET_FULL_RECT)
 	var base:Font = get_theme_default_font()
 	var bold := FontVariation.new()
 	bold.base_font = base
 	bold.variation_embolden = 0.9 # 粗体
-	bold.spacing_glyph = -1 # 字距收紧，显得紧凑
+	bold.spacing_glyph = 0 # 略微放开字距，粗体描边下不再互相粘连
 	_label.add_theme_font_override("font",bold)
 	_label.add_theme_font_size_override("font_size",FONT_SIZE)
 	_label.add_theme_color_override("font_color",Color(0.93,0.08,0.08,1.0))
 	_label.add_theme_color_override("font_outline_color",Color.BLACK)
 	_label.add_theme_constant_override("outline_size",2)
 	add_child(_label)
-	resized.connect(queue_redraw)
+	resized.connect(_on_resized)
+	_layout_text()
+
+func _on_resized() -> void:
+	_layout_text()
+	queue_redraw()
+
+# 指定红字中心应对齐到 overlay 局部坐标的哪个 x（通常是名字文字中心）。
+# 传负数表示回退为横带居中。
+func set_text_center(x:float) -> void:
+	_text_center_x = x
+	_layout_text()
+
+func _layout_text() -> void:
+	if _label == null:
+		return
+	var text_size:Vector2 = _label.get_minimum_size()
+	var cx:float = size.x * 0.5 if _text_center_x < 0.0 else _text_center_x
+	_label.size = text_size
+	_label.position = Vector2(cx - text_size.x * 0.5,(size.y - text_size.y) * 0.5)
 
 func _draw() -> void:
 	var w:float = size.x

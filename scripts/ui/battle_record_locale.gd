@@ -53,10 +53,13 @@ func begin(scene:Node, viewport:Viewport, capture_viewports:Dictionary = {}) -> 
 func _is_wasted(node:Node) -> bool:
 	return node is Control and node.get_script() != null and node.get_script().resource_path == "res://scripts/effects/wasted_overlay.gd"
 
+func _is_screen_source(node:Node) -> bool:
+	return node == world.versus_label or node == world.armor_intro_label
+
 func _is_source(node:Node) -> bool:
 	if not (node is Label or node is RichTextLabel or _is_wasted(node)): return false
-	# 唯一允许的屏幕层来源：VS 在 CanvasLayer，录制时复制到各自视口。
-	if node == world.versus_label: return true
+	# VS and armor introduction have independent screen-space copies.
+	if _is_screen_source(node): return true
 	var parent:Node = node
 	while parent != null and parent != world:
 		if parent is CanvasLayer or parent is Viewport or parent.has_meta("recording_copy"): return false
@@ -67,8 +70,9 @@ func _is_source(node:Node) -> bool:
 func _scan(node:Node) -> void:
 	if node.has_meta("recording_copy") or node is Viewport: return
 	if node is CanvasLayer:
-		if is_instance_valid(world.versus_label) and world.versus_label.get_parent() == node:
-			sources[world.versus_label.get_instance_id()] = world.versus_label
+		for label:Control in [world.versus_label,world.armor_intro_label]:
+			if is_instance_valid(label) and label.get_parent() == node:
+				sources[label.get_instance_id()] = label
 		return
 	if _is_source(node): sources[node.get_instance_id()] = node
 	for child:Node in node.get_children(): _scan(child)
@@ -134,7 +138,7 @@ func _make_copy(source:Control, locale:String) -> Dictionary:
 	var holder := Node2D.new()
 	holder.set_meta("recording_copy", true)
 	holder.z_as_relative = false
-	if source == world.versus_label and screen_roots.has(locale):
+	if _is_screen_source(source) and screen_roots.has(locale):
 		holder.visibility_layer = ZH_BIT if locale == "zh" else EN_BIT
 		screen_roots[locale].add_child(holder)
 	else:
@@ -173,7 +177,7 @@ func _make_copy(source:Control, locale:String) -> Dictionary:
 	copy.remove_from_group(Game._localization.RUNTIME_LOCALIZATION_GROUP)
 	return {"holder":holder, "text":copy, "clips":clips, "content":content}
 
-func _style(source:Control, target:Control) -> void:
+func _style(source:Control, target:Control, localized_versus:bool = false) -> void:
 	target.material = source.material
 	target.self_modulate = source.self_modulate
 	target.texture_filter = source.texture_filter
@@ -181,11 +185,12 @@ func _style(source:Control, target:Control) -> void:
 	var sizes:Array = ["font_size"] if source is Label else ["normal_font_size", "bold_font_size", "italics_font_size", "bold_italics_font_size", "mono_font_size"]
 	for key:String in fonts:
 		if target.get_theme_font(key) != source.get_theme_font(key): target.add_theme_font_override(key, source.get_theme_font(key))
-	for key:String in sizes:
-		if target.get_theme_font_size(key) != source.get_theme_font_size(key): target.add_theme_font_size_override(key, source.get_theme_font_size(key))
+	if not localized_versus:
+		for key:String in sizes:
+			if target.get_theme_font_size(key) != source.get_theme_font_size(key): target.add_theme_font_size_override(key, source.get_theme_font_size(key))
 	for key:String in ["font_color", "default_color", "font_shadow_color", "font_outline_color"]:
 		if source.has_theme_color(key) and target.get_theme_color(key) != source.get_theme_color(key): target.add_theme_color_override(key, source.get_theme_color(key))
-	for key:String in ["outline_size", "shadow_offset_x", "shadow_offset_y", "shadow_outline_size", "line_spacing"]:
+	for key:String in ["outline_size", "shadow_offset_x", "shadow_offset_y", "shadow_outline_size", "line_spacing", "line_separation"]:
 		if source.has_theme_constant(key) and target.get_theme_constant(key) != source.get_theme_constant(key): target.add_theme_constant_override(key, source.get_theme_constant(key))
 	if source is Label:
 		target.horizontal_alignment = source.horizontal_alignment
@@ -196,6 +201,25 @@ func _style(source:Control, target:Control) -> void:
 		target.bbcode_enabled = source.bbcode_enabled
 		target.autowrap_mode = source.autowrap_mode
 		target.visible_ratio = source.visible_ratio
+
+# Translated names need their own layout, not the source language's line height.
+# Keep the bottom edge above the wall; extra lines grow upward, never into battle.
+# Cache shaping inputs so frame_pre_draw does not reset/refit fonts every frame.
+func _fit_localized_versus(source:RichTextLabel, copy:RichTextLabel, pair:Dictionary) -> void:
+	var key:Array = [copy.text, source.size, world.versus_font_min_size,
+		world.versus_font_max_size, world.versus_effect_margin,
+		world.top_text_horizontal_padding, copy.get_theme_font("bold_font")]
+	if pair.get("versus_layout_key", []) != key:
+		var height:float = world.fit_rich_text_label(copy, world.versus_font_min_size,
+			world.versus_font_max_size, source.size.x, world.versus_effect_margin)
+		copy.size = Vector2(source.size.x, height)
+		# Measure the shaped BBCode too; fallback fonts/line spacing can be taller.
+		copy.size.y = maxf(height, float(copy.get_content_height()) + world.versus_effect_margin * 2.0)
+		pair["versus_layout_key"] = key
+		pair["versus_layout_size"] = copy.size
+	copy.scale = Vector2.ONE
+	copy.size = pair["versus_layout_size"]
+	copy.position = Vector2(0.0, source.size.y - copy.size.y)
 
 func sync() -> void:
 	if not is_instance_valid(world): return
@@ -215,7 +239,7 @@ func sync() -> void:
 		var texts:Dictionary = {"zh":translate(source_text,"zh",rich), "en":translate(source_text,"en",rich)}
 		if source == world._center_watermark_name and not world._dead_save_ui_override_active:
 			texts = {"zh":"@丁某人睡觉", "en":"@Gameking"}
-		if not copies.has(id) and texts.zh == source_text and texts.en == source_text and not _is_wasted(source): continue
+		if not copies.has(id) and texts.zh == source_text and texts.en == source_text and not _is_wasted(source) and not _is_screen_source(source): continue
 		if not copies.has(id):
 			masks[id] = source.visibility_layer
 			copies[id] = {"zh":_make_copy(source,"zh"), "en":_make_copy(source,"en")}
@@ -234,18 +258,12 @@ func sync() -> void:
 			var holder:Node2D = pair.holder
 			var copy:Control = pair.text
 			holder.visible = source.is_visible_in_tree()
-			if source == world.versus_label:
+			if _is_screen_source(source):
 				if screen_roots.has(locale):
 					# The capture layer scales logical screen coordinates to its output size.
+					# Keep the title visible through FOLLOW zoom, even when the map
+					# fills its header; the source controls intentional mode hiding.
 					holder.transform = source.get_global_transform_with_canvas()
-					var map_node:Node = world._current_map_node()
-					if is_instance_valid(map_node):
-						var capture:Viewport = screen_roots[locale].get_viewport()
-						var arena_top:float = (capture.canvas_transform * world.return_map_visual_rect(map_node).position).y
-						var title_bottom:float = (screen_roots[locale].transform * (source.get_global_transform_with_canvas() * Vector2(0.0, source.size.y))).y
-						# FOLLOW can fill the header with the arena. Never overlay combat
-						# or jitter a repositioned title; show it again when space returns.
-						holder.visible = holder.visible and title_bottom + maxf(world.map_border_width * 0.5, 12.0) < arena_top
 				else:
 					# Standalone mirror clients without capture viewports keep the World2D fallback.
 					holder.transform = roots[locale].get_global_transform_with_canvas().affine_inverse() * source.get_global_transform_with_canvas()
@@ -266,8 +284,19 @@ func sync() -> void:
 				copy.set_text_center(source._text_center_x)
 				copy.label().text = texts[locale]
 				continue
-			_style(source, copy)
+			var localized_versus:bool = source == world.versus_label and texts[locale] != source_text
+			_style(source, copy, localized_versus)
 			if copy.text != texts[locale]: copy.text = texts[locale]
+			copy.position = Vector2.ZERO
+			if source == world.armor_intro_label:
+				copy.size.x = source.size.x
+				var intro_height:float = world.fit_rich_text_label(copy,world.armor_intro_font_size,world.armor_intro_font_size,source.size.x,2.0)
+				copy.size = Vector2(source.size.x,maxf(intro_height,float(copy.get_content_height()) + 4.0))
+				continue
+			if localized_versus:
+				_fit_localized_versus(source as RichTextLabel, copy as RichTextLabel, pair)
+				continue
+			pair.erase("versus_layout_key")
 			copy.size = source.size
 			# Wider translations fit the same text box without shifting the battle.
 			if copy is Label and copy.autowrap_mode == TextServer.AUTOWRAP_OFF:
@@ -278,6 +307,16 @@ func sync() -> void:
 					copy.size = source.size / factor
 				else: copy.scale = Vector2.ONE
 			else: copy.scale = Vector2.ONE
+	_layout_armor_screen_copies()
+
+func _layout_armor_screen_copies() -> void:
+	var intro:RichTextLabel = world.armor_intro_label
+	if not is_instance_valid(intro) or not intro.is_visible_in_tree() or not copies.has(intro.get_instance_id()): return
+	for locale:String in ["zh","en"]:
+		if not screen_roots.has(locale): continue
+		var pair:Dictionary = copies[intro.get_instance_id()][locale]
+		pair.holder.position.y = maxf(24.0,world.armor_intro_screen_top_padding_px)
+		# VS visibility follows its source; do not reserve or reposition a hidden matchup.
 
 func _drop(id:int) -> void:
 	var source:Variant = sources.get(id)

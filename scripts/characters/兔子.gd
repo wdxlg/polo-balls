@@ -171,9 +171,41 @@ func _get_map_rect() -> Rect2:
 	if not world.map_group.has(str(world.now_choose_map)):
 		return Rect2()
 	var map_node = world.map_group[str(world.now_choose_map)]
+	if world._development != null and world._development.is_prebattle():
+		# 发育期 return_map_world_rect 是两队地图的总外接框，不能拿来限制幼兔；
+		# 必须用亲兔所在分区（传送门地图还要进一步选中对应岛屿）。
+		var lane_key:String = str(get_meta("development_lane_key",""))
+		if not world._development.lanes.has(lane_key):
+			lane_key = world._development.lane_for_point(global_position)
+		var nearest:Rect2 = Rect2()
+		var nearest_distance:float = INF
+		for island:Dictionary in world.map_islands(map_node):
+			if str(island.get("development_lane_key","")) != lane_key:
+				continue
+			var island_rect:Rect2 = island["rect"]
+			if island_rect.has_point(global_position):
+				return island_rect
+			var closest:Vector2 = Vector2(clampf(global_position.x,island_rect.position.x,island_rect.end.x),clampf(global_position.y,island_rect.position.y,island_rect.end.y))
+			var distance:float = global_position.distance_squared_to(closest)
+			if distance < nearest_distance:
+				nearest_distance = distance
+				nearest = island_rect
+		if nearest.has_area():
+			return nearest
 	if not map_node is TileMapLayer:
 		return Rect2()
 	return world.return_map_world_rect(map_node)
+
+func _prepare_family_spawn(member:ball,world:Node2D,spawn_point:Vector2) -> void:
+	# No Master gameplay link is needed, but partner/baby still owns this roster slot.
+	if world.has_method("bind_battle_lifecycle"): world.bind_battle_lifecycle(member,self)
+	# 先在 World 的局部坐标设置位置，再入树；_ready()、node_added 和物理
+	# 注册从第一刻就看到真实出生点，不能短暂把兔子/受击特效放在 (0, 0)。
+	member.position = world.to_local(spawn_point)
+	if has_meta("development_lane_key"):
+		member.set_meta("development_lane_key",get_meta("development_lane_key"))
+	if has_meta("development_neutral"):
+		member.set_meta("development_neutral",true)
 
 
 func _clamp_spawn_to_map(point:Vector2) -> Vector2:
@@ -273,13 +305,12 @@ func _spawn_initial_partner() -> void:
 	partner.direction = -direction if direction.length_squared() > 0.000001 else Vector2.from_angle(randf_range(0.0,TAU))
 	partner.name = Game.return_random_name(partner)
 
-	var world := get_tree().current_scene
+	var world:Node2D = get_tree().current_scene as Node2D
 	if world == null:
 		partner.free()
 		return
-	# 先把关键身份/递归开关写好再入树；加入后再写 global_position，保持与现有幼兔生成逻辑一致。
+	_prepare_family_spawn(partner,world,_choose_initial_partner_position())
 	world.add_child(partner,true)
-	partner.global_position = _choose_initial_partner_position()
 
 
 func _spawn_baby_with(partner:ball) -> void:
@@ -299,9 +330,12 @@ func _spawn_baby_with(partner:ball) -> void:
 	baby.direction = Vector2.from_angle(randf_range(0.0,TAU))
 	baby.name = Game.return_random_name(baby)
 
-	# 先入树再写 global_position，避免父节点 Transform 参与换算时把出生点带偏。
-	get_tree().current_scene.add_child(baby,true)
-	baby.global_position = _choose_safe_baby_position(partner)
+	var world:Node2D = get_tree().current_scene as Node2D
+	if world == null:
+		baby.free()
+		return
+	_prepare_family_spawn(baby,world,_choose_safe_baby_position(partner))
+	world.add_child(baby,true)
 
 	# 幼兔真正生成成功后才播放，避免“碰撞但未繁殖”也出现音效/爱心。
 	_play_breed_feedback.rpc(breed_position)
@@ -309,12 +343,13 @@ func _spawn_baby_with(partner:ball) -> void:
 
 @rpc("authority","call_local","unreliable")
 func _play_breed_feedback(world_position:Vector2) -> void:
-	var world := get_tree().current_scene
+	var world:Node2D = get_tree().current_scene as Node2D
 	if world == null:
 		return
 	var effect:Node2D = RABBIT_BREED_EFFECT.instantiate()
+	# 音效与爱心在 effect._ready() 就播放，不能先在原点入树再挪动。
+	effect.position = world.to_local(world_position)
 	world.add_child(effect,true)
-	effect.global_position = world_position
 
 
 func _grow_after_delay() -> void:

@@ -44,9 +44,9 @@ shape = SubResource("KnifeShape")
 disabled = true
 
 [node name="KnifeVisual" type="Sprite2D" parent="KnifeHitbox"]
-position = Vector2(36, 0)
+position = Vector2(18, 0)
 rotation = 0.56
-scale = Vector2(0.08, 0.08)
+scale = Vector2(0.055, 0.055)
 texture = ExtResource("4_knife")
 texture_filter = 1
 z_index = 6

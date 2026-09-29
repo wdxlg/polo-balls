@@ -1,4 +1,5 @@
 extends Node2D
+const PROJECTILE_CONTACT = preload("res://scripts/projectile_contact.gd")
 
 signal attack_contact(target:Node2D)
 
@@ -309,6 +310,7 @@ func _physics_process(delta:float) -> void:
 
 func _sweep_attack_contact(from_position:Vector2,to_position:Vector2) -> Node2D:
 	var intended_target:Node2D = _resolve_flight_target()
+	if PROJECTILE_CONTACT.ignores(intended_target): return null
 	if intended_target == null or not is_instance_valid(intended_target):
 		return null
 	# 即使某个异常 NodePath 在运行时解析成发牌者自身，也绝不允许把自己当作攻击目标。

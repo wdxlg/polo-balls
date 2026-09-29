@@ -723,7 +723,362 @@
         "volume": 1,
         "pitch": 1
       }
+    ],
+    "entity.spider.ambient": [
+      {
+        "file": "audio/characters/蜘蛛/spider.ambient_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/8a/8a687fb7ea955d58a8e758a7e6ca8147c48dd477",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.spider.ambient",
+        "path": "mob/spider/idle1",
+        "file_hash": "8a687fb7ea955d58a8e758a7e6ca8147c48dd477",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/蜘蛛/spider.ambient_2.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/0d/0d61e1a8550820d63881a1cfb333c4dda042e86a",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.spider.ambient",
+        "path": "mob/spider/idle2",
+        "file_hash": "0d61e1a8550820d63881a1cfb333c4dda042e86a",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/蜘蛛/spider.ambient_3.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/8c/8cb03a82e064925b02b9f89b9b2a492feaeaa117",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.spider.ambient",
+        "path": "mob/spider/idle3",
+        "file_hash": "8cb03a82e064925b02b9f89b9b2a492feaeaa117",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/蜘蛛/spider.ambient_4.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/ce/ceede14b6b28de916432ab1aa7b1de6b50c374fb",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.spider.ambient",
+        "path": "mob/spider/idle4",
+        "file_hash": "ceede14b6b28de916432ab1aa7b1de6b50c374fb",
+        "volume": 1,
+        "pitch": 1
+      }
+    ],
+    "entity.spider.hurt": [
+      {
+        "file": "audio/characters/蜘蛛/spider.hurt_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/8a/8a687fb7ea955d58a8e758a7e6ca8147c48dd477",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.spider.hurt",
+        "path": "mob/spider/hurt1",
+        "file_hash": "8a687fb7ea955d58a8e758a7e6ca8147c48dd477",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/蜘蛛/spider.hurt_2.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/0d/0d61e1a8550820d63881a1cfb333c4dda042e86a",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.spider.hurt",
+        "path": "mob/spider/hurt2",
+        "file_hash": "0d61e1a8550820d63881a1cfb333c4dda042e86a",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/蜘蛛/spider.hurt_3.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/8c/8cb03a82e064925b02b9f89b9b2a492feaeaa117",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.spider.hurt",
+        "path": "mob/spider/hurt3",
+        "file_hash": "8cb03a82e064925b02b9f89b9b2a492feaeaa117",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/蜘蛛/spider.hurt_4.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/ce/ceede14b6b28de916432ab1aa7b1de6b50c374fb",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.spider.hurt",
+        "path": "mob/spider/hurt4",
+        "file_hash": "ceede14b6b28de916432ab1aa7b1de6b50c374fb",
+        "volume": 1,
+        "pitch": 1
+      }
+    ],
+    "entity.spider.death": [
+      {
+        "file": "audio/characters/蜘蛛/spider.death_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/ee/eec5d186206792d2c650e1dbaa9c8796c56d2ea3",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.spider.death",
+        "path": "mob/spider/death",
+        "file_hash": "eec5d186206792d2c650e1dbaa9c8796c56d2ea3",
+        "volume": 1,
+        "pitch": 1
+      }
+    ],
+    "entity.spider.step": [
+      {
+        "file": "audio/characters/蜘蛛/spider.step_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/a0/a0cffda2225b6daff48e5408cedf2ba6deb50e28",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.spider.step",
+        "path": "mob/spider/step1",
+        "file_hash": "a0cffda2225b6daff48e5408cedf2ba6deb50e28",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/蜘蛛/spider.step_2.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/f2/f24f2b189395a15f9fe65e059519a781c1fa42b0",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.spider.step",
+        "path": "mob/spider/step2",
+        "file_hash": "f24f2b189395a15f9fe65e059519a781c1fa42b0",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/蜘蛛/spider.step_3.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/31/31a036700ec392bc377852ca1654224161bea132",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.spider.step",
+        "path": "mob/spider/step3",
+        "file_hash": "31a036700ec392bc377852ca1654224161bea132",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/蜘蛛/spider.step_4.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/9e/9e3191b2fc9df76169aed567f53c535b2f2194da",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.spider.step",
+        "path": "mob/spider/step4",
+        "file_hash": "9e3191b2fc9df76169aed567f53c535b2f2194da",
+        "volume": 1,
+        "pitch": 1
+      }
+    ],
+    "block.cobweb.step": [
+      {
+        "file": "audio/characters/蜘蛛/cobweb.step_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/23/23edec96549a8af965ce41c737bce85b5aa8b2d7",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/block.cobweb.step",
+        "path": "block/cobweb/step1",
+        "file_hash": "23edec96549a8af965ce41c737bce85b5aa8b2d7",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/蜘蛛/cobweb.step_2.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/48/487efa6238a36d1745938c30e434d5d2972c4d29",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/block.cobweb.step",
+        "path": "block/cobweb/step2",
+        "file_hash": "487efa6238a36d1745938c30e434d5d2972c4d29",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/蜘蛛/cobweb.step_3.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/bf/bfb1049841a3595dd8118575db33de1bb482094c",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/block.cobweb.step",
+        "path": "block/cobweb/step3",
+        "file_hash": "bfb1049841a3595dd8118575db33de1bb482094c",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/蜘蛛/cobweb.step_4.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/d7/d7edc70a0a6af1f241c2730869a74b83ece2c34b",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/block.cobweb.step",
+        "path": "block/cobweb/step4",
+        "file_hash": "d7edc70a0a6af1f241c2730869a74b83ece2c34b",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/蜘蛛/cobweb.step_5.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/6b/6b85e734842e78d8284351f9c571d31f90a7da4a",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/block.cobweb.step",
+        "path": "block/cobweb/step5",
+        "file_hash": "6b85e734842e78d8284351f9c571d31f90a7da4a",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/蜘蛛/cobweb.step_6.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/cc/ccb20a2db1107737f4ba087a9047d6dddb85aae8",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/block.cobweb.step",
+        "path": "block/cobweb/step6",
+        "file_hash": "ccb20a2db1107737f4ba087a9047d6dddb85aae8",
+        "volume": 1,
+        "pitch": 1
+      }
+    ],
+    "entity.drowned.ambient": [
+      {
+        "file": "audio/characters/溺尸/drowned.ambient_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/e0/e0b1ba03cb9b518daca91007846dc2b1b8a91899",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.drowned.ambient",
+        "path": "mob/drowned/idle1",
+        "file_hash": "e0b1ba03cb9b518daca91007846dc2b1b8a91899",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/溺尸/drowned.ambient_2.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/54/540e5c7b281cbca39b98ef82c26302c4ada59f49",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.drowned.ambient",
+        "path": "mob/drowned/idle2",
+        "file_hash": "540e5c7b281cbca39b98ef82c26302c4ada59f49",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/溺尸/drowned.ambient_3.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/77/77ef81db0fa49e065c4f0cfc8b3093dc98b926a5",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.drowned.ambient",
+        "path": "mob/drowned/idle3",
+        "file_hash": "77ef81db0fa49e065c4f0cfc8b3093dc98b926a5",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/溺尸/drowned.ambient_4.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/cc/ccf001fd23dab6378684cd638288f7f3e1d02160",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.drowned.ambient",
+        "path": "mob/drowned/idle4",
+        "file_hash": "ccf001fd23dab6378684cd638288f7f3e1d02160",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/溺尸/drowned.ambient_5.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/48/48e25a17ab04266467a54528dfb09d9caf6ec0f2",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.drowned.ambient",
+        "path": "mob/drowned/idle5",
+        "file_hash": "48e25a17ab04266467a54528dfb09d9caf6ec0f2",
+        "volume": 1,
+        "pitch": 1
+      }
+    ],
+    "entity.drowned.hurt": [
+      {
+        "file": "audio/characters/溺尸/drowned.hurt_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/56/56334e56a9ad22e1b8488343cd7b71dc7e77da41",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.drowned.hurt",
+        "path": "mob/drowned/hurt1",
+        "file_hash": "56334e56a9ad22e1b8488343cd7b71dc7e77da41",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/溺尸/drowned.hurt_2.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/d6/d61d7652325cb778c62dc25bee94de856740cfba",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.drowned.hurt",
+        "path": "mob/drowned/hurt2",
+        "file_hash": "d61d7652325cb778c62dc25bee94de856740cfba",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/溺尸/drowned.hurt_3.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/30/3052c1715360c132eabe491a7df05d95835e2a5b",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.drowned.hurt",
+        "path": "mob/drowned/hurt3",
+        "file_hash": "3052c1715360c132eabe491a7df05d95835e2a5b",
+        "volume": 1,
+        "pitch": 1
+      }
+    ],
+    "entity.drowned.death": [
+      {
+        "file": "audio/characters/溺尸/drowned.death_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/9e/9edb642d9b16f8e3dd495c7f65348b9ebdbee5f8",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.drowned.death",
+        "path": "mob/drowned/death1",
+        "file_hash": "9edb642d9b16f8e3dd495c7f65348b9ebdbee5f8",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/溺尸/drowned.death_2.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/f0/f06613bca60316fdc9ae333e39c1c9fd8a06e4de",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.drowned.death",
+        "path": "mob/drowned/death2",
+        "file_hash": "f06613bca60316fdc9ae333e39c1c9fd8a06e4de",
+        "volume": 1,
+        "pitch": 1
+      }
+    ],
+    "entity.arrow.shoot": [
+      {
+        "file": "audio/characters/溺尸/trident.throw_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/4a/4a6c47aa4f8c2cfe3237b250ed19b8714d611fd2",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.arrow.shoot",
+        "path": "random/bow",
+        "file_hash": "4a6c47aa4f8c2cfe3237b250ed19b8714d611fd2",
+        "volume": 1,
+        "pitch": 1
+      }
+    ],
+    "entity.lightning_bolt.thunder": [
+      {
+        "file": "audio/characters/溺尸/riptide.thunder_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/a2/a20f0a846d7becf5d08756207f86acf24fac1a8d",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.lightning_bolt.thunder",
+        "path": "random/thunder1",
+        "file_hash": "a20f0a846d7becf5d08756207f86acf24fac1a8d",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/溺尸/riptide.thunder_2.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/9c/9c94cf13276d60a7ce67eacdc3885f25fa0aadf5",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.lightning_bolt.thunder",
+        "path": "random/thunder2",
+        "file_hash": "9c94cf13276d60a7ce67eacdc3885f25fa0aadf5",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/溺尸/riptide.thunder_3.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/7b/7b96a88619a2228cf4c7d3a2b81ecfd1b3b56673",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.lightning_bolt.thunder",
+        "path": "random/thunder3",
+        "file_hash": "7b96a88619a2228cf4c7d3a2b81ecfd1b3b56673",
+        "volume": 1,
+        "pitch": 1
+      }
+    ],
+    "entity.boat.paddle_water": [
+      {
+        "file": "audio/characters/溺尸/paddle.water_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/a8/a8e8f828ff3d44fdec0ce34c12727a0e075310e3",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.boat.paddle_water",
+        "path": "entity/boat/paddle_water1",
+        "file_hash": "a8e8f828ff3d44fdec0ce34c12727a0e075310e3",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/溺尸/paddle.water_2.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/bb/bb9658d1bc476ab148a13a9c13f465622797eeaf",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.boat.paddle_water",
+        "path": "entity/boat/paddle_water2",
+        "file_hash": "bb9658d1bc476ab148a13a9c13f465622797eeaf",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/溺尸/paddle.water_3.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/69/69dc81055187d0e31f8ee24cc35d37d4297d9a7e",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.boat.paddle_water",
+        "path": "entity/boat/paddle_water3",
+        "file_hash": "69dc81055187d0e31f8ee24cc35d37d4297d9a7e",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "file": "audio/characters/溺尸/paddle.water_4.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/10/10c460699d18665b9e7eee123722dbba524efb56",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.boat.paddle_water",
+        "path": "entity/boat/paddle_water4",
+        "file_hash": "10c460699d18665b9e7eee123722dbba524efb56",
+        "volume": 1,
+        "pitch": 1
+      }
     ]
   },
-  "updated_date": "2026-09-15"
+  "updated_date": "2026-09-18"
 }

@@ -1,5 +1,6 @@
 shader_type canvas_item;
 render_mode unshaded;
+#include "res://shaders/summit_battle_focus.gdshaderinc"
 
 // Native footprint parallel to the 2D battlefield, no oblique perspective.
 // Approved flat-view adaptation; this is not a full Minecraft sky renderer.
@@ -57,5 +58,5 @@ void fragment() {
 		}
 		hit = occupied(cell);
 	}
-	COLOR = hit ? vec4(vec3(face_light), cloud_alpha) : vec4(0.0);
+	COLOR = hit ? vec4(summit_focus_grade(vec3(face_light), world_point, 3.0), cloud_alpha) : vec4(0.0);
 }

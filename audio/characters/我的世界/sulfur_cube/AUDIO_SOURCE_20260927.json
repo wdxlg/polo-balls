@@ -1,0 +1,1517 @@
+{
+  "edition": "Minecraft Java Edition",
+  "version": "26.2",
+  "asset_index_url": "https://piston-meta.mojang.com/v1/packages/52695890153d94cf946455da532806db8c530831/32.json",
+  "asset_index_sha1": "52695890153d94cf946455da532806db8c530831",
+  "sounds_json_sha1": "9ac006d5537ed0fa4a7bcd1eccfc505155847686",
+  "events": {
+    "absorb": {
+      "native_event": "entity.sulfur_cube.absorb",
+      "volume_db": -2.0,
+      "interval": 0.12,
+      "variants": [
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/absorb1.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/absorb2.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 2
+        }
+      ]
+    },
+    "eject": {
+      "native_event": "entity.sulfur_cube.eject",
+      "volume_db": -2.0,
+      "interval": 0.12,
+      "variants": [
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/eject1.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/eject2.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        }
+      ]
+    },
+    "jump": {
+      "native_event": "entity.sulfur_cube.jump",
+      "volume_db": -2.0,
+      "interval": 0,
+      "variants": [
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/jump1.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/jump2.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/jump3.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/jump4.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        }
+      ]
+    },
+    "squish": {
+      "native_event": "entity.sulfur_cube.squish",
+      "volume_db": -2.0,
+      "interval": 0,
+      "variants": [
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/squish1.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/squish2.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/squish3.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/squish4.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        }
+      ]
+    },
+    "hurt": {
+      "native_event": "entity.sulfur_cube.hurt",
+      "volume_db": -5.0,
+      "interval": 0.25,
+      "variants": [
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/hit1.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/hit2.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/hit3.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/hit4.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        }
+      ]
+    },
+    "death": {
+      "native_event": "entity.sulfur_cube.death",
+      "volume_db": -5.0,
+      "interval": 0,
+      "variants": [
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/death.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        }
+      ]
+    },
+    "bounce": {
+      "native_event": "entity.sulfur_cube.bounce",
+      "volume_db": -3.0,
+      "interval": 0.15,
+      "variants": [
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/bounce1.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/bounce2.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/bounce3.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/bounce4.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        }
+      ]
+    },
+    "ice_hit": {
+      "native_event": "entity.sulfur_cube.fast_sliding.hit",
+      "volume_db": -2.0,
+      "interval": 0.14,
+      "variants": [
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/fastsliding_hit1.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/fastsliding_hit2.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/fastsliding_hit3.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/fastsliding_hit4.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        }
+      ]
+    },
+    "magma_hit": {
+      "native_event": "entity.sulfur_cube.hot.hit",
+      "volume_db": -2.0,
+      "interval": 0.2,
+      "variants": [
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/hot_hit1.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/hot_hit2.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/hot_hit3.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/hot_hit4.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        }
+      ]
+    },
+    "honey_grab": {
+      "native_event": "entity.sulfur_cube.sticky.hit",
+      "volume_db": -2.0,
+      "interval": 0.1,
+      "variants": [
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/sticky_hit1.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/sticky_hit2.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/sticky_hit3.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/sticky_hit4.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        }
+      ]
+    },
+    "honey_release": {
+      "native_event": "block.honey_block.break",
+      "volume_db": -5.0,
+      "interval": 0.15,
+      "variants": [
+        {
+          "asset": "minecraft/sounds/block/honeyblock/break1.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/block/honeyblock/break2.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        }
+      ]
+    },
+    "iron_hit": {
+      "native_event": "entity.sulfur_cube.slow_flat.hit",
+      "volume_db": -2.0,
+      "interval": 0.15,
+      "variants": [
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/slowflat_hit1.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/slowflat_hit2.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/slowflat_hit3.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/slowflat_hit4.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        }
+      ]
+    },
+    "tnt_hit": {
+      "native_event": "entity.sulfur_cube.explosive.hit",
+      "volume_db": -3.0,
+      "interval": 0.25,
+      "variants": [
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/explosive_hit1.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/explosive_hit2.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/explosive_hit3.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/explosive_hit4.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        }
+      ]
+    },
+    "ice_form": {
+      "native_event": "entity.sulfur_cube.fast_sliding.push",
+      "volume_db": -3.0,
+      "interval": 0.18,
+      "variants": [
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/fastsliding_push1.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/fastsliding_push2.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/fastsliding_push3.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/fastsliding_push4.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        }
+      ]
+    },
+    "magma_form": {
+      "native_event": "entity.sulfur_cube.hot.push",
+      "volume_db": -3.0,
+      "interval": 0.18,
+      "variants": [
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/hot_push1.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/hot_push2.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/hot_push3.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/hot_push4.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        }
+      ]
+    },
+    "honey_form": {
+      "native_event": "entity.sulfur_cube.sticky.push",
+      "volume_db": -3.0,
+      "interval": 0.18,
+      "variants": [
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/sticky_push1.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/sticky_push2.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/sticky_push3.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/sticky_push4.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        }
+      ]
+    },
+    "iron_form": {
+      "native_event": "entity.sulfur_cube.slow_flat.push",
+      "volume_db": -3.0,
+      "interval": 0.18,
+      "variants": [
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/slowflat_push1.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/slowflat_push2.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/slowflat_push3.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/slowflat_push4.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        }
+      ]
+    },
+    "tnt_form": {
+      "native_event": "entity.sulfur_cube.explosive.push",
+      "volume_db": -3.0,
+      "interval": 0.18,
+      "variants": [
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/explosive_push1.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/explosive_push2.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/explosive_push3.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/mob/sulfur_cube/ball/explosive_push4.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        }
+      ]
+    },
+    "amethyst_grow": {
+      "native_event": "block.amethyst_cluster.place",
+      "volume_db": -3.0,
+      "interval": 0.2,
+      "variants": [
+        {
+          "asset": "minecraft/sounds/block/amethyst_cluster/place1.ogg",
+          "volume": 0.9,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/block/amethyst_cluster/place2.ogg",
+          "volume": 0.9,
+          "pitch": 1.0,
+          "weight": 1
+        }
+      ]
+    },
+    "amethyst_hit": {
+      "native_event": "block.amethyst_block.hit",
+      "volume_db": -3.0,
+      "interval": 0.12,
+      "variants": [
+        {
+          "asset": "minecraft/sounds/block/amethyst/step1.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/block/amethyst/step2.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/block/amethyst/step3.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/block/amethyst/step4.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        }
+      ]
+    },
+    "amethyst_launch": {
+      "native_event": "block.amethyst_block.break",
+      "volume_db": -2.0,
+      "interval": 0.18,
+      "variants": [
+        {
+          "asset": "minecraft/sounds/block/amethyst/break1.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/block/amethyst/break2.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/block/amethyst/break3.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/block/amethyst/break4.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        }
+      ]
+    },
+    "amethyst_break": {
+      "native_event": "block.amethyst_cluster.break",
+      "volume_db": -3.0,
+      "interval": 0.12,
+      "variants": [
+        {
+          "asset": "minecraft/sounds/block/amethyst_cluster/break1.ogg",
+          "volume": 0.8,
+          "pitch": 0.8,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/block/amethyst_cluster/break2.ogg",
+          "volume": 0.8,
+          "pitch": 0.8,
+          "weight": 1
+        }
+      ]
+    },
+    "ice_crack": {
+      "native_event": "block.glass.hit",
+      "volume_db": -7.0,
+      "interval": 0.22,
+      "variants": [
+        {
+          "asset": "minecraft/sounds/step/stone1.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/step/stone2.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        }
+      ]
+    },
+    "ice_break": {
+      "native_event": "block.glass.break",
+      "volume_db": -4.0,
+      "interval": 0.18,
+      "variants": [
+        {
+          "asset": "minecraft/sounds/random/glass1.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/random/glass2.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/random/glass3.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        }
+      ]
+    },
+    "magma_sizzle": {
+      "native_event": "block.lava.pop",
+      "volume_db": -4.0,
+      "interval": 0.45,
+      "variants": [
+        {
+          "asset": "minecraft/sounds/liquid/lavapop.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        }
+      ]
+    },
+    "fuse": {
+      "native_event": "entity.tnt.primed",
+      "volume_db": -2.0,
+      "interval": 0.25,
+      "variants": [
+        {
+          "asset": "minecraft/sounds/random/fuse.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        }
+      ]
+    },
+    "explosion": {
+      "native_event": "entity.generic.explode",
+      "volume_db": -2.0,
+      "interval": 0.1,
+      "variants": [
+        {
+          "asset": "minecraft/sounds/random/explode1.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/random/explode2.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/random/explode3.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/random/explode4.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        }
+      ]
+    },
+    "entity.player.hurt": {
+      "native_event": "entity.player.hurt",
+      "volume_db": 0.0,
+      "interval": 0,
+      "variants": [
+        {
+          "asset": "minecraft/sounds/damage/hit1.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/damage/hit2.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/damage/hit3.ogg",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "weight": 1
+        }
+      ]
+    },
+    "entity.player.attack.crit": {
+      "native_event": "entity.player.attack.crit",
+      "volume_db": 0.0,
+      "interval": 0,
+      "variants": [
+        {
+          "asset": "minecraft/sounds/entity/player/attack/crit1.ogg",
+          "volume": 0.7,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/entity/player/attack/crit2.ogg",
+          "volume": 0.7,
+          "pitch": 1.0,
+          "weight": 1
+        },
+        {
+          "asset": "minecraft/sounds/entity/player/attack/crit3.ogg",
+          "volume": 0.7,
+          "pitch": 1.0,
+          "weight": 1
+        }
+      ]
+    }
+  },
+  "assets": {
+    "minecraft/sounds/mob/sulfur_cube/absorb1.ogg": {
+      "sha1": "2489bce72f76c93ab050a7e479bffc40a4db6e8b",
+      "size": 8752,
+      "url": "https://resources.download.minecraft.net/24/2489bce72f76c93ab050a7e479bffc40a4db6e8b",
+      "path": "audio/characters/我的世界/sulfur_cube/absorb1.ogg",
+      "sha256": "47f7e4b6b694969854d8b19f3199f86a085cb7c25125db071e30868c84ab5537",
+      "new": false
+    },
+    "minecraft/sounds/mob/sulfur_cube/absorb2.ogg": {
+      "sha1": "cb5760fac5c65e7defb496bbe4ee85eac4d0ce67",
+      "size": 8696,
+      "url": "https://resources.download.minecraft.net/cb/cb5760fac5c65e7defb496bbe4ee85eac4d0ce67",
+      "path": "audio/characters/我的世界/sulfur_cube/absorb2.ogg",
+      "sha256": "66c7b28056290be89f02ea67c85d59f2800cb6401decdc0b3634efa1bc7dd020",
+      "new": false
+    },
+    "minecraft/sounds/mob/sulfur_cube/eject1.ogg": {
+      "sha1": "c228fb1654bdf0e5844be6ecf2c268a681f734ed",
+      "size": 8301,
+      "url": "https://resources.download.minecraft.net/c2/c228fb1654bdf0e5844be6ecf2c268a681f734ed",
+      "path": "audio/characters/我的世界/sulfur_cube/eject1.ogg",
+      "sha256": "44cedb9feb28b5eb9059cbb29852915002a0d7ffbe81af151f4fd04ef52bfcf4",
+      "new": false
+    },
+    "minecraft/sounds/mob/sulfur_cube/eject2.ogg": {
+      "sha1": "2ce737b86b1f74b736b9e244b6c772a006c3a7a3",
+      "size": 9785,
+      "url": "https://resources.download.minecraft.net/2c/2ce737b86b1f74b736b9e244b6c772a006c3a7a3",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__eject2.ogg",
+      "new": true,
+      "sha256": "ca652d919201b36e9fdcc0ff2c2ffb7f23c9aabd79a2be6b19bfaba422104609"
+    },
+    "minecraft/sounds/mob/sulfur_cube/jump1.ogg": {
+      "sha1": "6257df7f395baec226d61db8de63cee7f455dacf",
+      "size": 11514,
+      "url": "https://resources.download.minecraft.net/62/6257df7f395baec226d61db8de63cee7f455dacf",
+      "path": "audio/characters/我的世界/sulfur_cube/jump1.ogg",
+      "sha256": "2e9d5c89fd5b15378f4025b88742d0b08ecfca57367731e37e142d0eca610db0",
+      "new": false
+    },
+    "minecraft/sounds/mob/sulfur_cube/jump2.ogg": {
+      "sha1": "c9f1def5efdb2185ed59f052eb60e55e41aad754",
+      "size": 13139,
+      "url": "https://resources.download.minecraft.net/c9/c9f1def5efdb2185ed59f052eb60e55e41aad754",
+      "path": "audio/characters/我的世界/sulfur_cube/jump2.ogg",
+      "sha256": "1ba4bf7a08af45429e74e5a1f5cb46b7bcc289dad5d1ef59467cdbec7784cb6b",
+      "new": false
+    },
+    "minecraft/sounds/mob/sulfur_cube/jump3.ogg": {
+      "sha1": "ea0e1addd16e3ae4e57c09d195d52ed5dacb4517",
+      "size": 10465,
+      "url": "https://resources.download.minecraft.net/ea/ea0e1addd16e3ae4e57c09d195d52ed5dacb4517",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__jump3.ogg",
+      "new": true,
+      "sha256": "02b52113aa265de28d1868e70db491c1d683b594d7bb308fcc82d7721b66dadd"
+    },
+    "minecraft/sounds/mob/sulfur_cube/jump4.ogg": {
+      "sha1": "b4a7e9308ceb2d3c6745aff50952143d3c9a6ea8",
+      "size": 10640,
+      "url": "https://resources.download.minecraft.net/b4/b4a7e9308ceb2d3c6745aff50952143d3c9a6ea8",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__jump4.ogg",
+      "new": true,
+      "sha256": "3e279603b0f61c17e3e2404420d6d6a9c865754410559917b1baf4e5fb2c6472"
+    },
+    "minecraft/sounds/mob/sulfur_cube/squish1.ogg": {
+      "sha1": "105f9bdf4ceeae158f2f0aceb8438633880a4828",
+      "size": 11259,
+      "url": "https://resources.download.minecraft.net/10/105f9bdf4ceeae158f2f0aceb8438633880a4828",
+      "path": "audio/characters/我的世界/sulfur_cube/squish1.ogg",
+      "sha256": "87fda24cbb3d62c02a6639d9db1cc9ad6f0bf7c7b332be58403c35659392981c",
+      "new": false
+    },
+    "minecraft/sounds/mob/sulfur_cube/squish2.ogg": {
+      "sha1": "707ab003ff060570ca9710d75703740dde83abed",
+      "size": 11553,
+      "url": "https://resources.download.minecraft.net/70/707ab003ff060570ca9710d75703740dde83abed",
+      "path": "audio/characters/我的世界/sulfur_cube/squish2.ogg",
+      "sha256": "632f7f6f4e48886ec9eaba5f30144ecb4cab430702d1b4fc503c8b9c5cb0aae1",
+      "new": false
+    },
+    "minecraft/sounds/mob/sulfur_cube/squish3.ogg": {
+      "sha1": "690d34ef9f0fac86afdd0bb4decc7c786aad8c6f",
+      "size": 9933,
+      "url": "https://resources.download.minecraft.net/69/690d34ef9f0fac86afdd0bb4decc7c786aad8c6f",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__squish3.ogg",
+      "new": true,
+      "sha256": "e7c7badc23c1a3013f344276e153dfc86bf1b88eb9af88fd24f23162b5ff551f"
+    },
+    "minecraft/sounds/mob/sulfur_cube/squish4.ogg": {
+      "sha1": "47ffee20e508dede80869b35a2ba78ff17dc874d",
+      "size": 10861,
+      "url": "https://resources.download.minecraft.net/47/47ffee20e508dede80869b35a2ba78ff17dc874d",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__squish4.ogg",
+      "new": true,
+      "sha256": "40bfed54433e92b55dd488bf7360eb54c7907269d69feb30fce3e0d51e1ac5b0"
+    },
+    "minecraft/sounds/mob/sulfur_cube/hit1.ogg": {
+      "sha1": "fad52353ed8c5784deefa245bf34d3ec82b7a6a3",
+      "size": 7524,
+      "url": "https://resources.download.minecraft.net/fa/fad52353ed8c5784deefa245bf34d3ec82b7a6a3",
+      "path": "audio/characters/我的世界/sulfur_cube/hurt1.ogg",
+      "sha256": "cef61a0fb6438d5acd52488a601d62a1d32a7b516c4fc5e581c65efdd8984321",
+      "new": false
+    },
+    "minecraft/sounds/mob/sulfur_cube/hit2.ogg": {
+      "sha1": "3abf71274718ebc1a0a418c47cfa6c6e7f1b2b55",
+      "size": 7429,
+      "url": "https://resources.download.minecraft.net/3a/3abf71274718ebc1a0a418c47cfa6c6e7f1b2b55",
+      "path": "audio/characters/我的世界/sulfur_cube/hurt2.ogg",
+      "sha256": "145e3231a9b5e5565b4994dc2aa1bec23de077ee1afc9c49cd426e80f7696a09",
+      "new": false
+    },
+    "minecraft/sounds/mob/sulfur_cube/hit3.ogg": {
+      "sha1": "c98fce59b0171119f1ebc48626f9bd59a7cdcb7f",
+      "size": 9175,
+      "url": "https://resources.download.minecraft.net/c9/c98fce59b0171119f1ebc48626f9bd59a7cdcb7f",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__hit3.ogg",
+      "new": true,
+      "sha256": "fad831a3cd45d838f4db2d10a31c15d36a432753787f5598aded48abe04c6cb7"
+    },
+    "minecraft/sounds/mob/sulfur_cube/hit4.ogg": {
+      "sha1": "ed343fe56af90b95b24b80d26ef1d08c463f13bb",
+      "size": 8166,
+      "url": "https://resources.download.minecraft.net/ed/ed343fe56af90b95b24b80d26ef1d08c463f13bb",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__hit4.ogg",
+      "new": true,
+      "sha256": "4e75b4693d14beede41c92c3adba2e66d0f20ca5496fa098aab0bbe01f742f69"
+    },
+    "minecraft/sounds/mob/sulfur_cube/death.ogg": {
+      "sha1": "8a357c42afd3a5952d83dbffe7a5e9eea29f7c75",
+      "size": 27566,
+      "url": "https://resources.download.minecraft.net/8a/8a357c42afd3a5952d83dbffe7a5e9eea29f7c75",
+      "path": "audio/characters/我的世界/sulfur_cube/death.ogg",
+      "sha256": "b4349bd689e4cbd85e9bad15d39ee731ab3f7e38271c3e01b90b9ddf00770673",
+      "new": false
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/bounce1.ogg": {
+      "sha1": "5fb37335481341315823f3cf460360945a586bee",
+      "size": 6881,
+      "url": "https://resources.download.minecraft.net/5f/5fb37335481341315823f3cf460360945a586bee",
+      "path": "audio/characters/我的世界/sulfur_cube/bounce.ogg",
+      "sha256": "a8f72bf14cf3a9f5e4bf46679f09edd329c1e4b3dae9a287a6ae2e9eb8ccfd37",
+      "new": false
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/bounce2.ogg": {
+      "sha1": "2fed7ce0b0fe99eaf85d97b2a891788e5f98ed94",
+      "size": 6906,
+      "url": "https://resources.download.minecraft.net/2f/2fed7ce0b0fe99eaf85d97b2a891788e5f98ed94",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__ball__bounce2.ogg",
+      "new": true,
+      "sha256": "3db98e7d7cbc1807062e9e7b199c6d0e14076ebcb7b95b7716675878fd1802f4"
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/bounce3.ogg": {
+      "sha1": "26ca0552f089849051b8baa424c90cf405c8ded9",
+      "size": 6603,
+      "url": "https://resources.download.minecraft.net/26/26ca0552f089849051b8baa424c90cf405c8ded9",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__ball__bounce3.ogg",
+      "new": true,
+      "sha256": "9956bedf68749e663ad159753a841eb78429878a9e377c41d1846f436e00d098"
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/bounce4.ogg": {
+      "sha1": "5dacd90c6ae390060eddd349045a93e7753fa505",
+      "size": 7184,
+      "url": "https://resources.download.minecraft.net/5d/5dacd90c6ae390060eddd349045a93e7753fa505",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__ball__bounce4.ogg",
+      "new": true,
+      "sha256": "56f15568a106b36c9a8f1ff5703cfc00076be80d131a28dfbb880343f41e66ad"
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/fastsliding_hit1.ogg": {
+      "sha1": "45ea925fb5530280e1dfa924187fc6c868b0f5b6",
+      "size": 11391,
+      "url": "https://resources.download.minecraft.net/45/45ea925fb5530280e1dfa924187fc6c868b0f5b6",
+      "path": "audio/characters/我的世界/sulfur_cube/ice_hit.ogg",
+      "sha256": "bb9b20bc82579f7ffa49b52947d28e2f69c0242f36988fd875db1c5d50d9a6af",
+      "new": false
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/fastsliding_hit2.ogg": {
+      "sha1": "2bda0243f23acc46418284afd487a7bd14846b05",
+      "size": 9951,
+      "url": "https://resources.download.minecraft.net/2b/2bda0243f23acc46418284afd487a7bd14846b05",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__ball__fastsliding_hit2.ogg",
+      "new": true,
+      "sha256": "34f5338cf5367688fbd924a8b9ad8c9d7149065ffe12d7ccf293fd6bd9e95c6d"
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/fastsliding_hit3.ogg": {
+      "sha1": "06d44fea5fa165905a41e87740953c6398bd2558",
+      "size": 8248,
+      "url": "https://resources.download.minecraft.net/06/06d44fea5fa165905a41e87740953c6398bd2558",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__ball__fastsliding_hit3.ogg",
+      "new": true,
+      "sha256": "7d348765c7fb08a4d3fd5995d80a86b7d2b7fad5300afa77dac439236ae2637f"
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/fastsliding_hit4.ogg": {
+      "sha1": "739ce363e3e7a9b31ed36bd84d3c091dae491354",
+      "size": 8218,
+      "url": "https://resources.download.minecraft.net/73/739ce363e3e7a9b31ed36bd84d3c091dae491354",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__ball__fastsliding_hit4.ogg",
+      "new": true,
+      "sha256": "93969bf0cbcdc8814c81661a783cfec129b78e187be1f85b9757e5e22b13b186"
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/hot_hit1.ogg": {
+      "sha1": "1da079429501b49dcac45c0d87556e22bfbe5fb5",
+      "size": 5006,
+      "url": "https://resources.download.minecraft.net/1d/1da079429501b49dcac45c0d87556e22bfbe5fb5",
+      "path": "audio/characters/我的世界/sulfur_cube/magma_hit.ogg",
+      "sha256": "b5e830001527d4a008782d64c4a2f05c090070fd8cecccc8b60b977f2cdddda9",
+      "new": false
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/hot_hit2.ogg": {
+      "sha1": "9a9cb127391f595406d9aaca281da802bfd03e2d",
+      "size": 6184,
+      "url": "https://resources.download.minecraft.net/9a/9a9cb127391f595406d9aaca281da802bfd03e2d",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__ball__hot_hit2.ogg",
+      "new": true,
+      "sha256": "540d0974976f4f74614a1106c6cc2def6ef6485ef4d03975d71bd557accd8666"
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/hot_hit3.ogg": {
+      "sha1": "d143d278fa6ebdb0c8c4921e932100aa1a275cce",
+      "size": 5866,
+      "url": "https://resources.download.minecraft.net/d1/d143d278fa6ebdb0c8c4921e932100aa1a275cce",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__ball__hot_hit3.ogg",
+      "new": true,
+      "sha256": "c7dba3a4234bc1201bce18917cf1a4cdb3d56e0bf7b2417f19514a904202869a"
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/hot_hit4.ogg": {
+      "sha1": "50849a402528aa58a0cc853dfdad66f523048293",
+      "size": 6022,
+      "url": "https://resources.download.minecraft.net/50/50849a402528aa58a0cc853dfdad66f523048293",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__ball__hot_hit4.ogg",
+      "new": true,
+      "sha256": "b85c1345221601832feffdb233b12f8cadad7472b05f846fb557d9d0cc98336f"
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/sticky_hit1.ogg": {
+      "sha1": "4aad3e09ab048f67f737eb9519ded75e588d9ffc",
+      "size": 8226,
+      "url": "https://resources.download.minecraft.net/4a/4aad3e09ab048f67f737eb9519ded75e588d9ffc",
+      "path": "audio/characters/我的世界/sulfur_cube/honey_hit.ogg",
+      "sha256": "5c93e80da3d7cb0dbe745d8489f07b202fba817b6ebde96168b76a5aaa155e66",
+      "new": false
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/sticky_hit2.ogg": {
+      "sha1": "53cb3db6a2629d6c042cf8f37d365d09e7342452",
+      "size": 9480,
+      "url": "https://resources.download.minecraft.net/53/53cb3db6a2629d6c042cf8f37d365d09e7342452",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__ball__sticky_hit2.ogg",
+      "new": true,
+      "sha256": "33c4b8818cd62de097d809f13c9dbc2e4f3662b055691bedea94527ca9b7de55"
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/sticky_hit3.ogg": {
+      "sha1": "88d7ec8a0fe4053764f1e1d09cafecc933cb4a25",
+      "size": 7860,
+      "url": "https://resources.download.minecraft.net/88/88d7ec8a0fe4053764f1e1d09cafecc933cb4a25",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__ball__sticky_hit3.ogg",
+      "new": true,
+      "sha256": "7e955aef45a845c0bbcb0d517fa8a3a231a372200d00477d53ed71d3d3e81ff4"
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/sticky_hit4.ogg": {
+      "sha1": "e9098b77d4493f2bff5db4db45950b5fbd880020",
+      "size": 6995,
+      "url": "https://resources.download.minecraft.net/e9/e9098b77d4493f2bff5db4db45950b5fbd880020",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__ball__sticky_hit4.ogg",
+      "new": true,
+      "sha256": "d91fe5a973b2a7925dfe7ce5ef41b669cdabf0e26ee1264086b16bbcf74a6f93"
+    },
+    "minecraft/sounds/block/honeyblock/break1.ogg": {
+      "sha1": "0867899d7b001c677a06b7cf839abe12cdb47ca5",
+      "size": 9784,
+      "url": "https://resources.download.minecraft.net/08/0867899d7b001c677a06b7cf839abe12cdb47ca5",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/block__honeyblock__break1.ogg",
+      "new": true,
+      "sha256": "b3167dbfec931815c74c367d24201b53af39e77278e3e1b92471cb81e9c23e77"
+    },
+    "minecraft/sounds/block/honeyblock/break2.ogg": {
+      "sha1": "760af46c92f93d599f3429e6f3c49795238ab603",
+      "size": 10623,
+      "url": "https://resources.download.minecraft.net/76/760af46c92f93d599f3429e6f3c49795238ab603",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/block__honeyblock__break2.ogg",
+      "new": true,
+      "sha256": "704cca7d098977ca76599849e7510b964d25dc60b4b013007778d7220552cb58"
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/slowflat_hit1.ogg": {
+      "sha1": "798ff098c0fb3146ec295294ddd301f9c4dbf0bf",
+      "size": 10285,
+      "url": "https://resources.download.minecraft.net/79/798ff098c0fb3146ec295294ddd301f9c4dbf0bf",
+      "path": "audio/characters/我的世界/sulfur_cube/iron_hit.ogg",
+      "sha256": "e66e776b3c77bd72a63e9c981a290a4bc89cd30af9e4cc86ecbe9b8ee87243f7",
+      "new": false
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/slowflat_hit2.ogg": {
+      "sha1": "52ed9687afa70a256fe04cd80a5cfc0727801699",
+      "size": 9582,
+      "url": "https://resources.download.minecraft.net/52/52ed9687afa70a256fe04cd80a5cfc0727801699",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__ball__slowflat_hit2.ogg",
+      "new": true,
+      "sha256": "322a8bf44ca6de3e64a823c32e83525248d3cfa8c8005fc413a72f627e216f5d"
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/slowflat_hit3.ogg": {
+      "sha1": "e8f092bae292e9faf5b864794246590c0a1f39fb",
+      "size": 9624,
+      "url": "https://resources.download.minecraft.net/e8/e8f092bae292e9faf5b864794246590c0a1f39fb",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__ball__slowflat_hit3.ogg",
+      "new": true,
+      "sha256": "69cafa50d767babfdfea56028eef60b3dcaa720087bdcded054f387b7018448b"
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/slowflat_hit4.ogg": {
+      "sha1": "cd76e679fe4082de03732f407fa1b6d882dfbe89",
+      "size": 8260,
+      "url": "https://resources.download.minecraft.net/cd/cd76e679fe4082de03732f407fa1b6d882dfbe89",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__ball__slowflat_hit4.ogg",
+      "new": true,
+      "sha256": "d1ec8e438940eb4f965b5429969641347f782aafa450371b250ff7bf0b3d443f"
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/explosive_hit1.ogg": {
+      "sha1": "27dc3d2bc6387289dd331e21aac43064493bfc53",
+      "size": 6364,
+      "url": "https://resources.download.minecraft.net/27/27dc3d2bc6387289dd331e21aac43064493bfc53",
+      "path": "audio/characters/我的世界/sulfur_cube/tnt_hit.ogg",
+      "sha256": "70362fd7de533641774d917a4c308345776f1fac1bf4fc4c45ce47dbde3ccce4",
+      "new": false
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/explosive_hit2.ogg": {
+      "sha1": "362e9c98dcdbfd7b9d08b7afcf22c18a21dace39",
+      "size": 6268,
+      "url": "https://resources.download.minecraft.net/36/362e9c98dcdbfd7b9d08b7afcf22c18a21dace39",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__ball__explosive_hit2.ogg",
+      "new": true,
+      "sha256": "09597d73f2b34c0fc41565aee9b979af55bffa7304868dc3ed1578f5bc2c2bbd"
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/explosive_hit3.ogg": {
+      "sha1": "5e280807c5b16613d708f9139262a36b01ce73b5",
+      "size": 5783,
+      "url": "https://resources.download.minecraft.net/5e/5e280807c5b16613d708f9139262a36b01ce73b5",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__ball__explosive_hit3.ogg",
+      "new": true,
+      "sha256": "5d3161e7f3152050fb2fc2012d240aada09ee171d9b8f108770eabec23c3b583"
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/explosive_hit4.ogg": {
+      "sha1": "f14b2a9fb7d967e04ba339ef98576d64945b7448",
+      "size": 5943,
+      "url": "https://resources.download.minecraft.net/f1/f14b2a9fb7d967e04ba339ef98576d64945b7448",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__ball__explosive_hit4.ogg",
+      "new": true,
+      "sha256": "7421575391bc08957169357e82acfba3bba10dfaa57cc4dc487f887fe78f737c"
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/fastsliding_push1.ogg": {
+      "sha1": "036c0e0e95d96dfdd778d6e80c3939f12b99a81b",
+      "size": 12630,
+      "url": "https://resources.download.minecraft.net/03/036c0e0e95d96dfdd778d6e80c3939f12b99a81b",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__ball__fastsliding_push1.ogg",
+      "new": true,
+      "sha256": "b7b13077d9f3b17bc56447e431b03174a334d5ad2d4c4c1c6dd6f0c49d313a2c"
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/fastsliding_push2.ogg": {
+      "sha1": "be7ca625ca02a4434a38dc0e2b0c5901087a37a7",
+      "size": 11258,
+      "url": "https://resources.download.minecraft.net/be/be7ca625ca02a4434a38dc0e2b0c5901087a37a7",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__ball__fastsliding_push2.ogg",
+      "new": true,
+      "sha256": "5a1581de8359cdeab8e4efefd881cf179d1f3198692a38a97f2c2c680935d430"
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/fastsliding_push3.ogg": {
+      "sha1": "59790ef25fb37fe611963ff3a87278fe46114dc3",
+      "size": 9013,
+      "url": "https://resources.download.minecraft.net/59/59790ef25fb37fe611963ff3a87278fe46114dc3",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__ball__fastsliding_push3.ogg",
+      "new": true,
+      "sha256": "07b9391329b167451d435dbe2b813b1c963ec81017ec96121f3ee3feee6852d2"
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/fastsliding_push4.ogg": {
+      "sha1": "941e56a2ae21da5d19ad3a007ccd947a062995d5",
+      "size": 8746,
+      "url": "https://resources.download.minecraft.net/94/941e56a2ae21da5d19ad3a007ccd947a062995d5",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__ball__fastsliding_push4.ogg",
+      "new": true,
+      "sha256": "4710864d2959aac27ee21834df0c7153014d8be952da23707aca86a36bccb400"
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/hot_push1.ogg": {
+      "sha1": "7ed00e780825ebf1f8ad97c8104748dc16c45a3c",
+      "size": 8167,
+      "url": "https://resources.download.minecraft.net/7e/7ed00e780825ebf1f8ad97c8104748dc16c45a3c",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__ball__hot_push1.ogg",
+      "new": true,
+      "sha256": "2c0339c23335fa4c5d468407d529114485a8d34e2fc83ba3f803afa8185bf9db"
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/hot_push2.ogg": {
+      "sha1": "9687ed26f91bfa9267f2e48d9dd1182c07965e34",
+      "size": 8171,
+      "url": "https://resources.download.minecraft.net/96/9687ed26f91bfa9267f2e48d9dd1182c07965e34",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__ball__hot_push2.ogg",
+      "new": true,
+      "sha256": "03322651c8bb63e95d39fb2797c051d9c0ec3714de6410a66dce77718f83b6c0"
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/hot_push3.ogg": {
+      "sha1": "d43b8d0d0701e77f674941fe6141bb833941af3b",
+      "size": 8145,
+      "url": "https://resources.download.minecraft.net/d4/d43b8d0d0701e77f674941fe6141bb833941af3b",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__ball__hot_push3.ogg",
+      "new": true,
+      "sha256": "ecfd1c2a789c5d35e6524a6670255c76f010b0dd7b14f28cf69b3f5d485e2ee7"
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/hot_push4.ogg": {
+      "sha1": "43923649bcd937a3daeab2f47e94ab8ab4f23b04",
+      "size": 8003,
+      "url": "https://resources.download.minecraft.net/43/43923649bcd937a3daeab2f47e94ab8ab4f23b04",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__ball__hot_push4.ogg",
+      "new": true,
+      "sha256": "1bd97b48c53d0b4782a43be1af03565818b391d3b2bf348c2baaf793937eee6b"
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/sticky_push1.ogg": {
+      "sha1": "f67c9f9a1e5576069b4e3ccb4636b89caabf93d6",
+      "size": 8831,
+      "url": "https://resources.download.minecraft.net/f6/f67c9f9a1e5576069b4e3ccb4636b89caabf93d6",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__ball__sticky_push1.ogg",
+      "new": true,
+      "sha256": "62a7b353782b01a243f62b9e6fc5167a8ea73009d37d262a90b3e42509f30cbf"
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/sticky_push2.ogg": {
+      "sha1": "9dbb4a71574919c61ce331e9ddf3d29143ec8b5b",
+      "size": 9674,
+      "url": "https://resources.download.minecraft.net/9d/9dbb4a71574919c61ce331e9ddf3d29143ec8b5b",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__ball__sticky_push2.ogg",
+      "new": true,
+      "sha256": "f8ce0328fe8d383898fa94b197dda56341be9874ee7e365d4dcc3f4e5e135ad2"
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/sticky_push3.ogg": {
+      "sha1": "008ebacdab8e4d35ce4c0532826e4ed5bfe3f180",
+      "size": 8355,
+      "url": "https://resources.download.minecraft.net/00/008ebacdab8e4d35ce4c0532826e4ed5bfe3f180",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__ball__sticky_push3.ogg",
+      "new": true,
+      "sha256": "dc682ce66b8d3af6b10a56379a0b254c857752988c1871761b23ab10fec0e214"
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/sticky_push4.ogg": {
+      "sha1": "4799f152d5d84734f4274158b429a12668998322",
+      "size": 6887,
+      "url": "https://resources.download.minecraft.net/47/4799f152d5d84734f4274158b429a12668998322",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__ball__sticky_push4.ogg",
+      "new": true,
+      "sha256": "a52a49a9142ec759ed22c30a89d4f871acda1995ffec5911c29b31cf4b054287"
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/slowflat_push1.ogg": {
+      "sha1": "2699696f2bf885a55fce9528cd84800159e95c77",
+      "size": 10340,
+      "url": "https://resources.download.minecraft.net/26/2699696f2bf885a55fce9528cd84800159e95c77",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__ball__slowflat_push1.ogg",
+      "new": true,
+      "sha256": "df9400a09a6012eab11f72f9e9157169002310133a44a098b27ccbf4875d0502"
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/slowflat_push2.ogg": {
+      "sha1": "a77638669e3635d54cdf9a20a8fd2a5246730227",
+      "size": 9622,
+      "url": "https://resources.download.minecraft.net/a7/a77638669e3635d54cdf9a20a8fd2a5246730227",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__ball__slowflat_push2.ogg",
+      "new": true,
+      "sha256": "af5cedbb7c2df346596e8b61e83e21e284b67efe6ee9dbea2ac890458caef4cc"
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/slowflat_push3.ogg": {
+      "sha1": "93ec59a79b7ce8396d80126a0736041f35c1af05",
+      "size": 9840,
+      "url": "https://resources.download.minecraft.net/93/93ec59a79b7ce8396d80126a0736041f35c1af05",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__ball__slowflat_push3.ogg",
+      "new": true,
+      "sha256": "aa43d1cae00ecbf94c3be2ea6217f259d1ce37a51b2ad439901228da1ae61211"
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/slowflat_push4.ogg": {
+      "sha1": "03cc6214a7a372e5fc613f5395a27afe7611af01",
+      "size": 7761,
+      "url": "https://resources.download.minecraft.net/03/03cc6214a7a372e5fc613f5395a27afe7611af01",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__ball__slowflat_push4.ogg",
+      "new": true,
+      "sha256": "c87190aa49953628bb7a72af02457d35e626059c8fcd68adf1805235edeee863"
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/explosive_push1.ogg": {
+      "sha1": "b896701b7230af79ca10ef8ca73c9707eacc5633",
+      "size": 7236,
+      "url": "https://resources.download.minecraft.net/b8/b896701b7230af79ca10ef8ca73c9707eacc5633",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__ball__explosive_push1.ogg",
+      "new": true,
+      "sha256": "12a957bb295557fd58128beb694b04e6eeb940d27ffaee1cafb0f98c8e22496b"
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/explosive_push2.ogg": {
+      "sha1": "df31114b74878dade0d3a9aaaf169e4e5419a99f",
+      "size": 8404,
+      "url": "https://resources.download.minecraft.net/df/df31114b74878dade0d3a9aaaf169e4e5419a99f",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__ball__explosive_push2.ogg",
+      "new": true,
+      "sha256": "7896a799723da083bec7a67f8ba53d657975ff631d2bd46dae2fc22e3f5599e0"
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/explosive_push3.ogg": {
+      "sha1": "11a5dce8eaebfa82bcfa1ae87e0480340b2bfb71",
+      "size": 7658,
+      "url": "https://resources.download.minecraft.net/11/11a5dce8eaebfa82bcfa1ae87e0480340b2bfb71",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__ball__explosive_push3.ogg",
+      "new": true,
+      "sha256": "53ec43226d3a3a55df9f35681348974f1b3d7e7b83250bdce6383bcb6de610b1"
+    },
+    "minecraft/sounds/mob/sulfur_cube/ball/explosive_push4.ogg": {
+      "sha1": "925049533b69391caf98a02fe5f0aa34324c3804",
+      "size": 7270,
+      "url": "https://resources.download.minecraft.net/92/925049533b69391caf98a02fe5f0aa34324c3804",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/mob__sulfur_cube__ball__explosive_push4.ogg",
+      "new": true,
+      "sha256": "3afcc22b5d852a5f0303b156b16439e090bd6d1f062a417d1dfd570a9ce92497"
+    },
+    "minecraft/sounds/block/amethyst_cluster/place1.ogg": {
+      "sha1": "979e158a9c798c2cb3fd6b83a675d3029795b1f7",
+      "size": 15178,
+      "url": "https://resources.download.minecraft.net/97/979e158a9c798c2cb3fd6b83a675d3029795b1f7",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/block__amethyst_cluster__place1.ogg",
+      "new": true,
+      "sha256": "a7e75bffbe87e67f13ab66e55d24615fba1524b291d8554edea026893c420ebd"
+    },
+    "minecraft/sounds/block/amethyst_cluster/place2.ogg": {
+      "sha1": "5739d04564662a44fed5f274e6c1e780c42193d8",
+      "size": 13988,
+      "url": "https://resources.download.minecraft.net/57/5739d04564662a44fed5f274e6c1e780c42193d8",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/block__amethyst_cluster__place2.ogg",
+      "new": true,
+      "sha256": "a0eb0f73e903e3276be0d45b2be6813f9ccf2ba9a2b88f55efea630208dad4b2"
+    },
+    "minecraft/sounds/block/amethyst/step1.ogg": {
+      "sha1": "a0b189453154bd86ff8d6c941e4e01bd5021c472",
+      "size": 20669,
+      "url": "https://resources.download.minecraft.net/a0/a0b189453154bd86ff8d6c941e4e01bd5021c472",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/block__amethyst__step1.ogg",
+      "new": true,
+      "sha256": "2b86c448001da8259644044d6a3dbf56eaf097b83202776f41096635fb7c3304"
+    },
+    "minecraft/sounds/block/amethyst/step2.ogg": {
+      "sha1": "c697b8d40bcc08d02fb14080bc0677554982be5d",
+      "size": 19928,
+      "url": "https://resources.download.minecraft.net/c6/c697b8d40bcc08d02fb14080bc0677554982be5d",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/block__amethyst__step2.ogg",
+      "new": true,
+      "sha256": "60e34799d6d6f03d10433f6ac4c22ca166d0a21197509683c3b3fa5f414b3f02"
+    },
+    "minecraft/sounds/block/amethyst/step3.ogg": {
+      "sha1": "911cf4d77ca2cfc7a4d5ffdb2c40554036cad5d1",
+      "size": 22358,
+      "url": "https://resources.download.minecraft.net/91/911cf4d77ca2cfc7a4d5ffdb2c40554036cad5d1",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/block__amethyst__step3.ogg",
+      "new": true,
+      "sha256": "cae54faf63f45e02b056af9badb579974b2736e5e1d54c543342a6883d08eefd"
+    },
+    "minecraft/sounds/block/amethyst/step4.ogg": {
+      "sha1": "92f61228a9a0dfab21dada9f530a8bf926266e21",
+      "size": 21298,
+      "url": "https://resources.download.minecraft.net/92/92f61228a9a0dfab21dada9f530a8bf926266e21",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/block__amethyst__step4.ogg",
+      "new": true,
+      "sha256": "b423ae531c7baaaee76d8241cf58648721d24f9686407981b6ee58871f1f8cfe"
+    },
+    "minecraft/sounds/block/amethyst/break1.ogg": {
+      "sha1": "97b47b7a62f22addf6ff1db0c57b2fce22504098",
+      "size": 13328,
+      "url": "https://resources.download.minecraft.net/97/97b47b7a62f22addf6ff1db0c57b2fce22504098",
+      "path": "audio/characters/我的世界/new6/amethyst_break1.ogg",
+      "sha256": "a461c6d177c0c5339601b37f9cf16568b6eb9082583b2fdcb3f628362b686677",
+      "new": false
+    },
+    "minecraft/sounds/block/amethyst/break2.ogg": {
+      "sha1": "fc857c1990d4bc7c157f4f8367ca4af0bd6168a2",
+      "size": 13479,
+      "url": "https://resources.download.minecraft.net/fc/fc857c1990d4bc7c157f4f8367ca4af0bd6168a2",
+      "path": "audio/characters/我的世界/new6/amethyst_break2.ogg",
+      "sha256": "1b4fa74632f4be003f8fb3a3363310a93de4fc99e4505b3a5094e02c3a2a230a",
+      "new": false
+    },
+    "minecraft/sounds/block/amethyst/break3.ogg": {
+      "sha1": "3df72a8b90820eb7edfdcc816bf0febf49d94b7c",
+      "size": 13102,
+      "url": "https://resources.download.minecraft.net/3d/3df72a8b90820eb7edfdcc816bf0febf49d94b7c",
+      "path": "audio/characters/我的世界/new6/amethyst_break3.ogg",
+      "sha256": "30359be183a206e4f7a1065244129c63b1cb41acf474f82be5d8e9d7d61097be",
+      "new": false
+    },
+    "minecraft/sounds/block/amethyst/break4.ogg": {
+      "sha1": "02ab34275a8711ea0145682083c321516b1ce490",
+      "size": 13613,
+      "url": "https://resources.download.minecraft.net/02/02ab34275a8711ea0145682083c321516b1ce490",
+      "path": "audio/characters/我的世界/new6/amethyst_break4.ogg",
+      "sha256": "f08a28edef3bf4049627b58b6b5c23f595642986105185844e1f2aa2125f1231",
+      "new": false
+    },
+    "minecraft/sounds/block/amethyst_cluster/break1.ogg": {
+      "sha1": "e1740d184c200975ba50bda28b8095a782670b7d",
+      "size": 16963,
+      "url": "https://resources.download.minecraft.net/e1/e1740d184c200975ba50bda28b8095a782670b7d",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/block__amethyst_cluster__break1.ogg",
+      "new": true,
+      "sha256": "3f3f0a1b26db049f00bc7613316cd49725e186ed5e258761f1f4becfb04a3b53"
+    },
+    "minecraft/sounds/block/amethyst_cluster/break2.ogg": {
+      "sha1": "f083b4a80f957cdde6bbc30ae6a26f8d8d190ae4",
+      "size": 16271,
+      "url": "https://resources.download.minecraft.net/f0/f083b4a80f957cdde6bbc30ae6a26f8d8d190ae4",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/block__amethyst_cluster__break2.ogg",
+      "new": true,
+      "sha256": "316228b8e273579087014049ba8865822726ae3a1820e0df3ed1cdcb5af3a365"
+    },
+    "minecraft/sounds/step/stone1.ogg": {
+      "sha1": "ef859078b24917d4a9d12e84c2a63d08bef04d97",
+      "size": 8657,
+      "url": "https://resources.download.minecraft.net/ef/ef859078b24917d4a9d12e84c2a63d08bef04d97",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/step__stone1.ogg",
+      "new": true,
+      "sha256": "c2df259556168a4ad44ddb739a4e952bf6594c67d2712dc3d9fcde2fbcccf840"
+    },
+    "minecraft/sounds/step/stone2.ogg": {
+      "sha1": "be927139e2936139d4608b8a7645578f95d75dc4",
+      "size": 7689,
+      "url": "https://resources.download.minecraft.net/be/be927139e2936139d4608b8a7645578f95d75dc4",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/step__stone2.ogg",
+      "new": true,
+      "sha256": "f1d9fbcec8ae90466640b48440700e3d75499d73bdc89297939ebc6dc84a896f"
+    },
+    "minecraft/sounds/random/glass1.ogg": {
+      "sha1": "fa35a51bb74a4a6cf0c48161342db5a8577f13e5",
+      "size": 9937,
+      "url": "https://resources.download.minecraft.net/fa/fa35a51bb74a4a6cf0c48161342db5a8577f13e5",
+      "path": "audio/characters/女巫/药水碎裂.ogg",
+      "sha256": "0409013e382d13e121fe464fc99fae4262629e7f6a1f52cff3f5b3475a888c91",
+      "new": false
+    },
+    "minecraft/sounds/random/glass2.ogg": {
+      "sha1": "f1b8e424aa0559952b08651d792f96381d2fb132",
+      "size": 9712,
+      "url": "https://resources.download.minecraft.net/f1/f1b8e424aa0559952b08651d792f96381d2fb132",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/random__glass2.ogg",
+      "new": true,
+      "sha256": "c226b5cbd76dcfae6d5f3252b8ccf996cec4e99b43ef0ca3ae6659c35cbf9867"
+    },
+    "minecraft/sounds/random/glass3.ogg": {
+      "sha1": "3be3cf9a5c8534bf6548ba89c699a3b2abf9e074",
+      "size": 9364,
+      "url": "https://resources.download.minecraft.net/3b/3be3cf9a5c8534bf6548ba89c699a3b2abf9e074",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/random__glass3.ogg",
+      "new": true,
+      "sha256": "1dd567dda2acb11b303d2592d6bf497ec92dd2818f2469addcb88f44ef052495"
+    },
+    "minecraft/sounds/liquid/lavapop.ogg": {
+      "sha1": "9297374242fa6116dbc30ef6778d30d1e73b5f8b",
+      "size": 5186,
+      "url": "https://resources.download.minecraft.net/92/9297374242fa6116dbc30ef6778d30d1e73b5f8b",
+      "path": "audio/characters/我的世界/sulfur_cube/revision/liquid__lavapop.ogg",
+      "new": true,
+      "sha256": "ccc64f95fc2edbc5a056d56860a81f68117aaa741a1b702bca8f2d08413b45d0"
+    },
+    "minecraft/sounds/random/fuse.ogg": {
+      "sha1": "b9a550ba1e028c027557572aeb928b760864efe4",
+      "size": 28874,
+      "url": "https://resources.download.minecraft.net/b9/b9a550ba1e028c027557572aeb928b760864efe4",
+      "path": "audio/characters/我的世界/sulfur_cube/fuse.ogg",
+      "sha256": "3ce4f8c898d0b388c42e435eb6f71e23bab23dfb51c066ff255b0695b2ebf0f5",
+      "new": false
+    },
+    "minecraft/sounds/random/explode1.ogg": {
+      "sha1": "fa85b9e7e54c36c9f9d0249ca739444b5e3bb66c",
+      "size": 23161,
+      "url": "https://resources.download.minecraft.net/fa/fa85b9e7e54c36c9f9d0249ca739444b5e3bb66c",
+      "path": "audio/characters/我的世界/sulfur_cube/explosion.ogg",
+      "sha256": "f5951a4f5ece95d595398c3519ab26044c359bc088a0f0684ee6f1b14c02ebc0",
+      "new": false
+    },
+    "minecraft/sounds/random/explode2.ogg": {
+      "sha1": "e55daa373e577f611565d57ec53cd28dcf472f99",
+      "size": 28696,
+      "url": "https://resources.download.minecraft.net/e5/e55daa373e577f611565d57ec53cd28dcf472f99",
+      "path": "audio/characters/我的世界/new5/e55daa373e577f611565d57ec53cd28dcf472f99.ogg",
+      "sha256": "cb262b2af5fdfaac7b83cc64790c83cc852506444f382f06ded37e83f105b5a8",
+      "new": false
+    },
+    "minecraft/sounds/random/explode3.ogg": {
+      "sha1": "3a92d0fd263265719532041f6f2ea44c7ba2f2e2",
+      "size": 28255,
+      "url": "https://resources.download.minecraft.net/3a/3a92d0fd263265719532041f6f2ea44c7ba2f2e2",
+      "path": "audio/characters/我的世界/new5/3a92d0fd263265719532041f6f2ea44c7ba2f2e2.ogg",
+      "sha256": "c2a8b6821fe8a50d72605bff3410bd8c4c82bff47cbce37d99e225dbaf55f6a4",
+      "new": false
+    },
+    "minecraft/sounds/random/explode4.ogg": {
+      "sha1": "09835e0c3138faf6047506a2b6f1da087c082d2e",
+      "size": 27561,
+      "url": "https://resources.download.minecraft.net/09/09835e0c3138faf6047506a2b6f1da087c082d2e",
+      "path": "audio/characters/我的世界/new5/09835e0c3138faf6047506a2b6f1da087c082d2e.ogg",
+      "sha256": "f676d7fb3ddd9623ca931004ad380c5027846394b51b96b0ac2518159ff915c2",
+      "new": false
+    },
+    "minecraft/sounds/damage/hit1.ogg": {
+      "sha1": "c43077ac1f9ceda7e9e1c152f839baf207833aa8",
+      "size": 7484,
+      "url": "https://resources.download.minecraft.net/c4/c43077ac1f9ceda7e9e1c152f839baf207833aa8",
+      "path": "audio/characters/我的世界/sulfur_cube/impact_hurt1.ogg",
+      "sha256": "d3c5958cbbe957e4c2b33304458663e254e7da8124bce61066c6b4fcd8b4d03c",
+      "new": false
+    },
+    "minecraft/sounds/damage/hit2.ogg": {
+      "sha1": "65bf3f80ca720c55b99925ba3a515d2f932b15b1",
+      "size": 7031,
+      "url": "https://resources.download.minecraft.net/65/65bf3f80ca720c55b99925ba3a515d2f932b15b1",
+      "path": "audio/characters/我的世界/sulfur_cube/impact_hurt2.ogg",
+      "sha256": "4962653496440cc27ebac4d0e08d2eca78580671a184041736fe8ee5a22b88d0",
+      "new": false
+    },
+    "minecraft/sounds/damage/hit3.ogg": {
+      "sha1": "b334c8ab1abc3ffa233bd612074bc8032c9b160f",
+      "size": 8576,
+      "url": "https://resources.download.minecraft.net/b3/b334c8ab1abc3ffa233bd612074bc8032c9b160f",
+      "path": "audio/characters/我的世界/sulfur_cube/impact_hurt3.ogg",
+      "sha256": "cfba56fe35f7a444211209c389062298193c579a7414e7b87120cb00917fdc43",
+      "new": false
+    },
+    "minecraft/sounds/entity/player/attack/crit1.ogg": {
+      "sha1": "caa8f5d2de3c3fa53eca358967e930a45cafca18",
+      "size": 8946,
+      "url": "https://resources.download.minecraft.net/ca/caa8f5d2de3c3fa53eca358967e930a45cafca18",
+      "path": "audio/characters/我的世界/sulfur_cube/impact_crit1.ogg",
+      "sha256": "6cb7add3458f5f1c9b4f305856725d0538d31161de5917d145801a1554cc0b5d",
+      "new": false
+    },
+    "minecraft/sounds/entity/player/attack/crit2.ogg": {
+      "sha1": "3a27444995a679ffa6b87daf3fde2a02451629ef",
+      "size": 10257,
+      "url": "https://resources.download.minecraft.net/3a/3a27444995a679ffa6b87daf3fde2a02451629ef",
+      "path": "audio/characters/我的世界/sulfur_cube/impact_crit2.ogg",
+      "sha256": "182e7c5aae4ff52f7b9fd46a184e80878a8d639d20fdf199bf355816b8e72cd9",
+      "new": false
+    },
+    "minecraft/sounds/entity/player/attack/crit3.ogg": {
+      "sha1": "0366f0465a1b6a3f186b495b4578c7b1c8929943",
+      "size": 8878,
+      "url": "https://resources.download.minecraft.net/03/0366f0465a1b6a3f186b495b4578c7b1c8929943",
+      "path": "audio/characters/我的世界/sulfur_cube/impact_crit3.ogg",
+      "sha256": "093b6003a465dfc49e68c9caf882ce22d85faf4341be9038c551bf9fe0e09b1e",
+      "new": false
+    }
+  },
+  "copyright": "Original Minecraft assets © Mojang AB / Microsoft. Not represented as freely redistributable.",
+  "license_url": "https://www.minecraft.net/en-us/eula",
+  "method": "Original Ogg files, unmodified; native event pitch/volume used for material/creature cues. Damage feedback explicitly overrides vanilla event attenuation with the project MCP 0dB baseline and actual-damage gain. Existing project assets reused by verified SHA-1.",
+  "ambient": "Explicit user exception: no breathing/ambient/idle playback.",
+  "project_damage_gain_override": {
+    "events": [
+      "entity.player.hurt",
+      "entity.player.attack.crit"
+    ],
+    "baseline_extra_db": 0.0,
+    "baseline_multiplier": 1.0,
+    "ignore_vanilla_event_attenuation_for_damage_feedback": true,
+    "reason": "MCP §1 takes precedence over the vanilla critical event volume 0.7. Raw Ogg bytes and pitch are unmodified; extra gain comes only from actual settled damage."
+  },
+  "user_revision_20260927": "Removed iron landing/ground-impact cue at user request. Startup and hit feedback retained. Shared original anvil asset is not deleted."
+}

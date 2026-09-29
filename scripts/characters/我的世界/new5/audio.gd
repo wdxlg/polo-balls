@@ -105,7 +105,7 @@ static func play(context:Node,event:String,position:Vector2,volume_db:float = -4
 	player.stream = record["stream"]
 	var requested_gain:float=volume_db+linear_to_db(maxf(float(record["volume"]),0.01))
 	# Do not attenuate hit feedback again at the playback layer; all other events retain old limits.
-	var hit_event:bool=preload("res://scripts/effects/我的世界/hit_audio_gain.gd").is_hit_event(event)
+	var hit_event:bool=preload("res://scripts/effects/我的世界/hit_audio_gain.gd").is_hit_event(event) or event == "entity.sheep.hit"
 	player.volume_db = clampf(requested_gain,0.0,6.0) if hit_event else clampf(requested_gain,-24.0,2.0)
 	player.pitch_scale = float(record["pitch"])
 	player.max_distance = 1700.0

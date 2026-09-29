@@ -1,4 +1,5 @@
 extends ball
+const PROJECTILE_CONTACT = preload("res://scripts/projectile_contact.gd")
 
 const REWIND_VHS_SHADER:Shader = preload("res://shaders/time_rewind_vhs.gdshader")
 
@@ -291,6 +292,7 @@ func _handle_physical_collision(collision:KinematicCollision2D,motion:Vector2) -
 
 
 func _should_ignore_character(target:ball) -> bool:
+	if PROJECTILE_CONTACT.ignores(target): return true
 	if target == null or not is_instance_valid(target):
 		return true
 	if target == self:

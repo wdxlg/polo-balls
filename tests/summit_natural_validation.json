@@ -1,0 +1,59 @@
+{
+  "date": "2026-09-26",
+  "scope": "natural summit apex and varied branch snow",
+  "engine": "Godot 4.7.2 / D3D12",
+  "suites": [
+    {
+      "suite": "model",
+      "checks": 39,
+      "failures": 0,
+      "exit_code": 0,
+      "log": "E:\\godot\\polo-balls-checkpoints\\summit_natural_peaks_20260926\\model.log"
+    },
+    {
+      "suite": "arena",
+      "checks": 75,
+      "failures": 0,
+      "exit_code": 0,
+      "log": "E:\\godot\\polo-balls-checkpoints\\summit_natural_peaks_20260926\\arena.log"
+    },
+    {
+      "suite": "walls",
+      "checks": 111,
+      "failures": 0,
+      "exit_code": 0,
+      "log": "E:\\godot\\polo-balls-checkpoints\\summit_natural_peaks_20260926\\walls.log"
+    },
+    {
+      "suite": "camera",
+      "checks": 10,
+      "failures": 0,
+      "exit_code": 0,
+      "log": "E:\\godot\\polo-balls-checkpoints\\summit_natural_peaks_20260926\\camera.log"
+    }
+  ],
+  "checks": 235,
+  "failures": 0,
+  "visual_review": [
+    "tests/previews/summit_natural_gameplay.png",
+    "tests/previews/summit_natural_oblique.png (diagnostic camera only)"
+  ],
+  "snow_profiles": {
+    "none": 17,
+    "light": 11,
+    "medium": 16,
+    "heavy": 18
+  },
+  "snow_patches": 748,
+  "known_warnings": [
+    "existing shader case/UID mismatch",
+    "217-220 existing ObjectDB instances reported at full-world test exit"
+  ],
+  "not_validated": [
+    "long-running large-battle performance",
+    "arbitrary extreme camera views",
+    "two-client multiplayer",
+    "end-to-end video encoding"
+  ],
+  "before_commit": "9efa3bff67f16821386759d20614ed3983e2caf3"
+}

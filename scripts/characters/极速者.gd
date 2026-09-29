@@ -1,4 +1,5 @@
 extends ball
+const PROJECTILE_API = preload("res://classes/projectile_interactions.gd")
 
 # 极速者 V23 / Phase 2
 # ============================================================
@@ -579,16 +580,16 @@ func _find_projectile_threat() -> SpeedsterThreat:
 	var scan_sq:float = projectile_scan_radius * projectile_scan_radius
 	var self_velocity:Vector2 = _controller_direction * _base_speed
 
-	for node:Node in get_tree().get_nodes_in_group("Ball"):
-		if not node is ball:
+	for node:Node in PROJECTILE_API.candidates(get_tree()):
+		if not node is Node2D:
 			continue
-		var projectile_ball:ball = node as ball
+		var projectile_ball:Node2D = node as Node2D
 		if not _is_hostile_projectile(projectile_ball):
 			continue
 		if global_position.distance_squared_to(projectile_ball.global_position) > scan_sq:
 			continue
 
-		var projectile_velocity:Vector2 = _ball_motion_velocity(projectile_ball)
+		var projectile_velocity:Vector2 = PROJECTILE_API.velocity_of(projectile_ball)
 		if projectile_velocity.length_squared() <= 1.0:
 			continue
 
@@ -603,7 +604,7 @@ func _find_projectile_threat() -> SpeedsterThreat:
 			continue
 
 		var closest:Vector2 = relative_position + relative_velocity * t_closest
-		var hard_radius:float = _combined_collision_clearance(projectile_ball,closest.normalized())
+		var hard_radius:float = _collision_support_radius(self,closest.normalized()) + PROJECTILE_API.radius_of(projectile_ball)
 		var wanted_radius:float = hard_radius + projectile_extra_margin
 		if closest.length() >= wanted_radius:
 			continue
@@ -631,7 +632,7 @@ func _find_projectile_threat() -> SpeedsterThreat:
 	# 手动训练模式会直接实例化部分 Area2D/Node2D 投射物。它们不是 ball，
 	# 因此原来的 Ball 组扫描看不到。所有手动训练攻击都会加入这个组。
 	for node:Node in get_tree().get_nodes_in_group("ManualTrainingProjectile"):
-		if node == null or not is_instance_valid(node) or node is ball or not node is Node2D:
+		if node == null or not is_instance_valid(node) or PROJECTILE_API.is_projectile(node) or node is ball or not node is Node2D:
 			continue
 		var projectile_node:Node2D = node as Node2D
 		if global_position.distance_squared_to(projectile_node.global_position) > scan_sq:
@@ -1702,19 +1703,8 @@ func get_combat_lock_position() -> Vector2:
 # Character / threat helpers
 # ============================================================
 
-func _is_hostile_projectile(candidate:ball) -> bool:
-	if candidate == self or not is_instance_valid(candidate):
-		return false
-	if candidate.Type != Ball_Type.Shooter and candidate.Type != Ball_Type.Shooter_with_Health:
-		return false
-	if candidate.health <= 0:
-		return false
-	if candidate.state_machine != null and candidate.state_machine.current_state == State.Die:
-		return false
-	if not Team.is_empty() and candidate.Team == Team:
-		return false
-	return true
-
+func _is_hostile_projectile(candidate:Node) -> bool:
+	return candidate != self and PROJECTILE_API.supports(candidate,"predict") and PROJECTILE_API.hostile(self,candidate)
 
 func _is_hostile_character(candidate:ball) -> bool:
 	if candidate == self or not is_instance_valid(candidate):

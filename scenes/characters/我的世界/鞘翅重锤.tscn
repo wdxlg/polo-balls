@@ -23,6 +23,7 @@ size = Vector2(78, 108)
 
 [node name="鞘翅重锤" instance=ExtResource("1_base")]
 script = ExtResource("2_script")
+editor_description = "保留鞘翅滑翔、烟花与真实重锤连砸。AI接近地图外回航距离时主动转向返回，允许短暂越界，不传送或硬钳位置。"
 dir_left = false
 Has_Collision_Damage = false
 Type_Tags = PackedStringArray("我的世界", "近战", "范围", "连击", "击退", "成长", "飞行")

@@ -28,6 +28,8 @@ var _normal_speed:float = 0.0
 var _dash_pending:bool = false
 var _dashing:bool = false
 var _dash_direction:Vector2 = Vector2.ZERO
+var _manual_dash_available:bool = false
+var _manual_dash_target:Vector2 = Vector2.ZERO
 var _saved_collision_mask:int = 0
 var _dash_hit_ids:Dictionary = {}
 var _fires:Array[Node2D] = []
@@ -72,9 +74,36 @@ func _physics_process(delta:float) -> void:
 	dash_area.global_position = global_position
 	dash_area.global_rotation = 0.0
 	_heal_near_lit_fire(delta)
+	if not is_player_controlled() and _manual_dash_available and not _dash_pending and not _dashing:
+		# 放开接管后，未使用的受火堆触发冲锋按原 AI 机制继续执行。
+		_manual_dash_available = false
+		_dash_pending = true
+		call_deferred("_begin_fire_dash",_manual_dash_target)
 	if _dashing:
 		direction = _dash_direction
 		_process_dash_hits()
+
+
+func controlled_attack_action() -> void:
+	# 左键：仅在火堆被敌人触发后才能释放已有的烈焰冲锋。
+	if not is_player_controlled() or not is_multiplayer_authority() or health <= 0 or not is_combat_runtime_active():
+		return
+	if not _manual_dash_available or _dash_pending or _dashing:
+		return
+	_manual_dash_available = false
+	_dash_pending = true
+	call_deferred("_begin_fire_dash",_manual_dash_target)
+
+
+func move(speed:float,delta:float):
+	# 已发动的冲锋锁定到触发火堆的方向，期间暂时忽略 WASD，结束后恢复。
+	if _dashing and is_player_controlled():
+		var input_direction:Vector2 = player_control_direction
+		player_control_direction = _dash_direction
+		super.move(speed,delta)
+		player_control_direction = input_direction
+		return
+	super.move(speed,delta)
 
 # V81：等待地图矩形真正可用后，再在整张地图里做分散随机。
 # 旧 V80 的固定 72px 边距对 10x10 常用地图过大：160px 左右的地图会只剩中央十几像素可随机。
@@ -237,7 +266,11 @@ func _play_primitive_burn_tick_sfx_rpc(position_value:Vector2) -> void:
 	player.play()
 
 func request_fire_dash(fire:Node2D) -> void:
-	if _dash_pending or _dashing or fire == null or not is_instance_valid(fire) or health <= 0:
+	if _dash_pending or _dashing or _manual_dash_available or fire == null or not is_instance_valid(fire) or health <= 0:
+		return
+	if is_player_controlled():
+		_manual_dash_target = fire.global_position
+		_manual_dash_available = true
 		return
 	_dash_pending = true
 	call_deferred("_begin_fire_dash",fire.global_position)

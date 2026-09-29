@@ -1,4 +1,5 @@
 extends "res://scripts/characters/我的世界/iron_golem/pair_base.gd"
+const U=preload("res://scripts/characters/我的世界/new5/utils.gd")
 const VILLAGER_FRAMES:SpriteFrames = preload("res://Images/characters/我的世界/iron_golem/villager_0.tres")
 const PREVIEW:Texture2D = preload("res://Images/characters/我的世界/iron_golem/villager_0_preview.png")
 const INGOT_SCRIPT = preload("res://scripts/characters/我的世界/iron_golem/iron_ingot_projectile.gd")
@@ -20,6 +21,7 @@ var _evade_left:float = 0.0
 var _evade_heading:Vector2 = Vector2.ZERO
 
 func _ready() -> void:
+	manual_controllable_subentity = true
 	mc_audio_role = "villager"
 	pair_frames = VILLAGER_FRAMES
 	super._ready()
@@ -37,7 +39,7 @@ func tick_physics(state:State,delta:float) -> void:
 		if not orphaned and not golem_alive(): on_golem_killed()
 		if not dizziness:
 			repair_wait = maxf(repair_wait-delta,0.0)
-			var target:ball = mc_nearest(delta)
+			var target:ball = null if is_player_controlled() else mc_nearest(delta)
 			if orphaned: step_orphan(target,delta)
 			else: step_helper(target,delta)
 		else:
@@ -49,7 +51,7 @@ func step_helper(target:ball,delta:float = 0.0) -> void:
 	Can_Attack = false
 	carrying_iron = Master.crack_stage()>0
 	# No following, homing, formation tether, or repair-seeking direction override.
-	if carrying_iron: try_repair()
+	if carrying_iron and not is_player_controlled(): try_repair()
 	step_small_evade(target,delta)
 	set_pair_clip(("carry_walk" if carrying_iron else "walk") if not direction.is_zero_approx() else ("carry" if carrying_iron else "idle"))
 
@@ -109,6 +111,9 @@ func step_orphan(target:ball,delta:float) -> void:
 		if before>0.14 and _throw_left<=0.14: launch_iron(_throw_aim)
 		if _throw_left<=0.0: set_pair_clip("carry")
 		return
+	if is_player_controlled():
+		set_pair_clip("carry_walk" if not direction.is_zero_approx() else "carry")
+		return
 	if target == null:
 		set_pair_clip("carry_walk" if not direction.is_zero_approx() else "carry")
 		return
@@ -120,6 +125,26 @@ func step_orphan(target:ball,delta:float) -> void:
 		_throw_left = 0.36
 		_throw_aim = offset.normalized()
 		set_pair_clip("throw")
+
+func controlled_attack_action() -> void:
+	if not is_player_controlled() or not is_multiplayer_authority() or not orphaned or not Can_Attack or dizziness or not mc_live(): return
+	if _throw_wait>0.0 or _throw_left>0.0 or not has_player_control_aim(): return
+	var point:Vector2 = player_control_aim_world_position()
+	var chosen:ball = null
+	var nearest:float = INF
+	for raw:Node in get_tree().get_nodes_in_group("Ball"):
+		if not mc_enemy(raw) or not raw.is_combat_lockable(): continue
+		var distance:float = raw.global_position.distance_to(point)
+		if distance<=U.radius(raw)+6.0 and distance<nearest:
+			chosen=raw as ball
+			nearest=distance
+	if chosen==null or global_position.distance_to(chosen.global_position)>throw_range or not mc_line_clear(global_position,chosen.global_position): return
+	_throw_wait=throw_interval
+	_throw_left=0.36
+	_throw_aim=global_position.direction_to(chosen.global_position)
+	set_pair_clip("throw")
+func controlled_skill_action() -> void:
+	if is_player_controlled() and is_multiplayer_authority() and not orphaned and carrying_iron: try_repair()
 
 func launch_iron(heading:Vector2) -> void:
 	if not mc_live() or dizziness or not orphaned or not Can_Attack: return

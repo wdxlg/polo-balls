@@ -4,11 +4,45 @@ const PHASES = preload("res://scripts/characters/我的世界/snow_golem/phase_s
 # freeze 用原版冻伤音（冰晶脆响，和雪球击中的 block.snow.hit / 受击音区分得开）；
 # 之前的 block.glass.place 实际是 dig/stone 石头闷响，和同一帧的击中音混在一起几乎听不出来。
 # ice_hit：冻住期间被外来攻击打到（cold.gd 检测生命/护盾真实下降），节流由 cold.gd 负责。
-const PHASE_EVENTS:Dictionary = {"freeze":["entity.player.hurt_freeze"],"ice_break":["block.glass.break"],"ice_hit":["mc_snow.ice_hit"],"mini_birth":["block.snow.place","block.wood.place"]}
+const PHASE_EVENTS:Dictionary = {"freeze":["entity.player.hurt_freeze"],"ice_break":["block.glass.break"],"ice_hit":["mc_snow.ice_hit"],"pumpkin_break":["block.wood.break"]}
 # 相位转换音是一次性的关键反馈，抬到 play() 允许的 +2 dB 上限，压过同帧的击中音。
 const PHASE_GAIN_DB:float = 2.0
 const MC_HITS = preload("res://scripts/characters/我的世界/new5/audio.gd")
 const HIT_GAIN = preload("res://scripts/effects/我的世界/hit_audio_gain.gd")
+const ACTION_PLAYER = preload("res://scripts/effects/我的世界/mc_native_audio.gd")
+
+static func action_records(event:String) -> Array:
+	return NATIVE.EVENTS.get(event,PHASES.EVENTS.get(event,[]))
+
+static func action_busy(ticket:Dictionary) -> bool:
+	return ACTION_PLAYER.channel_busy(ticket)
+
+static func queue_action(context:Node2D,event:String,variant:int,point:Vector2,gain:float,reason:String) -> Dictionary:
+	var records:Array = action_records(event)
+	if variant<0 or variant>=records.size(): return {}
+	var record:Dictionary = records[variant]
+	var important:bool = event in ["entity.snow_golem.shoot","block.wood.break"]
+	var tags:Dictionary = {"mc_sound_event":event,"mc_sound_priority":important,"mc_snow_action":true,"mc_snow_source":context.get_instance_id(),"mc_snow_variant":variant,"mc_snow_action_reason":reason}
+	if event=="block.wood.break": tags["mc_snow_phase"] = "pumpkin_break"
+	var parent:Node = context._battle_parent()
+	return ACTION_PLAYER.queue_stream(context,record.stream,point,{
+		"audio_parent":parent,"volume_db":clampf(gain+linear_to_db(maxf(float(record.volume),0.01)),-20.0,2.0),
+		"pitch":record.pitch,"priority":important,"keep_after_source":event=="block.wood.break",
+		"groups":[&"MCSnowSound"],"metadata":tags})
+
+static func action_player(ticket:Dictionary) -> AudioStreamPlayer2D:
+	var ref:WeakRef = ticket.get("player") as WeakRef
+	return ref.get_ref() as AudioStreamPlayer2D if ref!=null else null
+
+static func stop_action(ticket:Dictionary) -> void:
+	if ticket.is_empty(): return
+	# Cancel an unflushed request as well as a currently audible transient.
+	ticket["cancel_requested"] = true
+	var player:AudioStreamPlayer2D = action_player(ticket)
+	if is_instance_valid(player):
+		player.stop()
+		player.queue_free()
+
 static var _last:Dictionary = {}
 static func play(context:Node,event:String,point:Vector2,volume_db:float = -5.0,force_priority:bool = false,unthrottled:bool = false) -> AudioStreamPlayer2D:
 	if not is_instance_valid(context) or not context.is_inside_tree() or (not NATIVE.EVENTS.has(event) and not PHASES.EVENTS.has(event)): return null
@@ -16,6 +50,11 @@ static func play(context:Node,event:String,point:Vector2,volume_db:float = -5.0,
 	if tree.current_scene == null or tree.paused: return null
 	var priority:bool = force_priority or event.ends_with(".death") or event.ends_with(".hurt") or event.ends_with(".shear")
 	if Game.now_stop_state and not event.ends_with(".death"): return null
+	# A rapid volley must not overlap/truncate this caster's native launch voice.
+	if event=="entity.snow_golem.shoot" and context.has_meta("mc_snow_shoot_voice"):
+		var previous:Variant = context.get_meta("mc_snow_shoot_voice")
+		var voice:Variant = previous.get_ref() if previous is WeakRef else null
+		if is_instance_valid(voice) and voice.playing: return null
 	var key:String = event+":"+str(context.get_instance_id()) if priority else event
 	var now:int = Time.get_ticks_msec()
 	if not unthrottled and now-int(_last.get(key,-10000)) < 60: return null
@@ -37,7 +76,11 @@ static func play(context:Node,event:String,point:Vector2,volume_db:float = -5.0,
 	player.max_distance = 1700.0
 	player.attenuation = 0.65
 	if AudioServer.get_bus_index(&"GameplayRecord") >= 0: player.bus = &"GameplayRecord"
-	tree.current_scene.add_child(player)
+	var parent:Node = tree.current_scene
+	if context is Node2D and parent is Node2D and context.get_world_2d()!=parent.get_world_2d():
+		parent = context
+		while parent.get_parent() is Node2D and parent.get_parent().get_world_2d()==context.get_world_2d(): parent = parent.get_parent()
+	parent.add_child(player)
 	player.global_position = point
 	player.add_to_group("MCNativeSFX")
 	player.add_to_group("MCSnowSound")
@@ -46,6 +89,7 @@ static func play(context:Node,event:String,point:Vector2,volume_db:float = -5.0,
 	player.set_meta("mc_sound_priority",priority)
 	player.finished.connect(player.queue_free,CONNECT_ONE_SHOT)
 	player.play()
+	if event=="entity.snow_golem.shoot": context.set_meta("mc_snow_shoot_voice",weakref(player))
 	return player
 
 static func play_phase(context:Node,phase:String,point:Vector2) -> Array[AudioStreamPlayer2D]:

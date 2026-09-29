@@ -10,8 +10,11 @@ func _ready() -> void:
 	# （add_snapshot + advance_snapshots 是 CPU 第一大头）。主人处于大规模战斗模式时
 	# 把采样间距放宽一倍、每帧上限减半：拖尾仍在，只是更稀疏；小场面完全不变。
 	if Master != null and is_instance_valid(Master) and Master.has_method("is_large_battle_performance_mode") and bool(Master.call("is_large_battle_performance_mode")):
-		AfterImage_Spacing = maxf(AfterImage_Spacing,2.0) * 2.0
-		AfterImage_Max_Per_Frame = maxi(int(ceil(float(AfterImage_Max_Per_Frame) * 0.5)),1)
+		# V430：残影密度跟随 World 视觉密度（40 人 ≈ 1/2，200 人 ≈ 1/3 以下），人数回落自动恢复。
+		var density:float = clampf(float(Master.call("get_large_battle_visual_density")),0.15,1.0) if Master.has_method("get_large_battle_visual_density") else 0.5
+		var factor:float = minf(0.5,density)
+		AfterImage_Spacing = maxf(AfterImage_Spacing,2.0) / factor
+		AfterImage_Max_Per_Frame = maxi(int(ceil(float(AfterImage_Max_Per_Frame) * factor)),1)
 
 func _spawn_after_image_at_transform(ghost_transform:Transform2D,world_trail_dir:Vector2) -> void:
 	# A snapshot born inside a SceneTree tween callback must not be advanced by

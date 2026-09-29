@@ -1,4 +1,5 @@
 extends Node2D
+const PROJECTILE_CONTACT = preload("res://scripts/projectile_contact.gd")
 
 var owner_ref:WeakRef = null
 var target_ref:WeakRef = null
@@ -41,6 +42,7 @@ func setup(owner_node:Node,target_node:Node2D,start_position:Vector2,config:Dict
 	_apply_readable_text_rotation()
 
 func _ready() -> void:
+	add_to_group("AllayExtendedProjectile")
 	z_as_relative = false
 	z_index = 70
 
@@ -94,6 +96,7 @@ func _physics_process(delta:float) -> void:
 		return
 	var previous_position:Vector2 = global_position
 	var travel_distance:float = maxf(speed,20.0) * delta
+	if get_tree().has_group("MinecraftAllay") and load("res://scripts/characters/我的世界/allay/capture.gd").sweep(self,global_position,global_position+travel_direction*travel_distance): return
 	global_position += travel_direction * travel_distance
 	# V160：飞行方向不变；只刷新不会倒置/镜像的文字视觉角度。
 	rotation = 0.0
@@ -129,7 +132,10 @@ func _owner() -> Node:
 	return null
 
 func _hit_target(target:Node2D) -> void:
+	if PROJECTILE_CONTACT.ignores(target): return # Also skip contact on visual replicas.
 	var owner_node:Node = _owner()
+	if owner_node != null and owner_node.is_multiplayer_authority():
+		if target.has_method("try_full_projectile_dodge") and bool(target.call("try_full_projectile_dodge",self)): return
 	var did_hit:bool = false
 	# V276：文字弹会在所有 peer 生成视觉镜像；只有薇欧拉 authority 结算伤害/计数。
 	if owner_node != null and owner_node.is_multiplayer_authority() and target.has_method("receive_spatial_damage"):

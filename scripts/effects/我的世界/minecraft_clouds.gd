@@ -15,9 +15,11 @@ const DRIFT_SPEED:float = CELL_SIZE*(0.03*20.0/12.0) # Native drift relative to 
 const PERIOD:float = CELL_SIZE*256.0
 const OVERHEAD_Z:int = 3000
 const BACKGROUND_Z:int = -5
+const SUMMIT_Z:int = -7 # Above mountains(-8), below floor(-6) and character terrain.
 var world:Node
 var enabled:bool = true
 var overhead:bool = true
+var between_layers:bool = false
 var travel:float = 0.0
 var cloud_material:ShaderMaterial
 var regions:Array[Rect2] = []
@@ -38,19 +40,25 @@ func _ready() -> void:
 	cloud_material.set_shader_parameter("height_shift",Vector2(0.0,THICKNESS))
 	cloud_material.set_shader_parameter("plane_depth",PLANE_DEPTH)
 	refresh()
+	RenderingServer.frame_pre_draw.connect(_sync_battle_focus)
 
 func refresh() -> void:
 	if not is_instance_valid(world) or cloud_material == null: return
 	enabled = bool(Game.Game_Settings.get("Minecraft_Clouds",true))
-	overhead = world.map_background_style() == "blue"
-	z_index = OVERHEAD_Z if overhead else BACKGROUND_Z
+	var style:String = world.map_background_style()
+	overhead = style == "blue"
+	between_layers = style == "summit"
+	z_index = OVERHEAD_Z if overhead else (SUMMIT_Z if between_layers else BACKGROUND_Z)
 	cloud_material.set_shader_parameter("parallax",OVERHEAD_PARALLAX if overhead else BACKGROUND_PARALLAX)
+	_sync_battle_focus()
 	visible = enabled
 	if not enabled: return
 	# Reuse the world's exact island-union complement. Grass/other tiled maps
 	# keep clouds outside the opaque arena, behind walls, people and labels.
 	regions.clear()
-	if overhead:
+	# Summit has real foreground alpha: clouds may continue beneath islands/columns.
+	# The foreground 3D pass occludes them precisely, including perspective and doors.
+	if overhead or between_layers:
 		regions.append(Rect2(-1000000,-1000000,2000000,2000000))
 	else:
 		var map_node:Node = world._current_map_node()
@@ -70,6 +78,17 @@ func refresh() -> void:
 		if i < regions.size():
 			var rect:Rect2 = regions[i]
 			_parts[i].polygon = PackedVector2Array([rect.position,Vector2(rect.end.x,rect.position.y),rect.end,Vector2(rect.position.x,rect.end.y)])
+
+func _sync_battle_focus() -> void:
+	if cloud_material == null: return
+	if between_layers and is_instance_valid(world) and is_instance_valid(world.map_wall_volume):
+		world.map_wall_volume.apply_battle_focus(cloud_material)
+	else:
+		cloud_material.set_shader_parameter("focus_strength",0.0)
+
+func _exit_tree() -> void:
+	if RenderingServer.frame_pre_draw.is_connected(_sync_battle_focus):
+		RenderingServer.frame_pre_draw.disconnect(_sync_battle_focus)
 
 func advance(delta:float) -> void:
 	if not enabled or not is_inside_tree() or not is_finite(delta) or delta <= 0.0: return

@@ -1,0 +1,7 @@
+﻿# started 2026-09-22T20:38:35
+test_drowned_damage_audio.gd                  exit=         errs=0    12.4s
+test_drowned_hand_blur_policy.gd              exit=         errs=2    13.2s
+      ERROR: FAIL: wooden spear explicitly retains motion effects
+      ERROR: FAIL: wooden spear high-speed blur remains enabled
+test_drowned_trident_aim_stick.gd             exit=         errs=0    13.1s
+# finished 2026-09-22T20:39:14

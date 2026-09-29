@@ -1,0 +1,23 @@
+{
+  "edition": "Minecraft Java",
+  "version": "1.21.1",
+  "source": "Mojang official asset index and resource CDN",
+  "events": [
+    "item.trident.riptide_1",
+    "entity.wind_charge.wind_burst"
+  ],
+  "assets": [
+    {
+      "asset": "minecraft/sounds/item/trident/riptide1.ogg",
+      "sha1": "57b54789999ded5a14976061ec741ec722061661",
+      "url": "https://resources.download.minecraft.net/57/57b54789999ded5a14976061ec741ec722061661",
+      "file": "riptide1.ogg"
+    },
+    {
+      "asset": "minecraft/sounds/entity/wind_charge/wind_burst1.ogg",
+      "sha1": "b64e99d3d09d12c97242f1d6336a4aea4c3233ec",
+      "url": "https://resources.download.minecraft.net/b6/b64e99d3d09d12c97242f1d6336a4aea4c3233ec",
+      "file": "wind_burst1.ogg"
+    }
+  ]
+}

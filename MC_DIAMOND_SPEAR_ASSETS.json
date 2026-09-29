@@ -1,0 +1,35 @@
+{
+  "game": "Minecraft Java Edition",
+  "version": "1.21.11",
+  "source": "Official Mojang client JAR, byte-for-byte extracted textures",
+  "client": {
+    "sha1": "ba2df812c2d12e0219c489c4cd9a5e1f0760f5bd",
+    "size": 31152600,
+    "url": "https://piston-data.mojang.com/v1/objects/ba2df812c2d12e0219c489c4cd9a5e1f0760f5bd/client.jar"
+  },
+  "assets": [
+    {
+      "jar_path": "assets/minecraft/textures/item/diamond_spear.png",
+      "sha256": "fa6c967027edcae3bc31a6d81c6d4e846833f21f641a34aef6f9f68895ea5cfb",
+      "project_path": "Images/characters/我的世界/diamond_spear/diamond_spear.png"
+    },
+    {
+      "jar_path": "assets/minecraft/textures/item/diamond_spear_in_hand.png",
+      "sha256": "b39edc6f9101da3a5a146d3827d50194cff0c41fb9723072f03274ce5aab3f7d",
+      "project_path": "Images/characters/我的世界/diamond_spear/diamond_spear_in_hand.png"
+    },
+    {
+      "jar_path": "assets/minecraft/models/item/diamond_spear_in_hand.json",
+      "jar_sha256": "4abc8c7a8256f37a31c2ddf45bc945edd379bc18aa909282ecc3f5f4341487bb",
+      "project_sha256": "bdbdc8658fb2bd35ce643ff1e1fb0f238c47dd0773e8c1141d9a366e9470cd86",
+      "note": "Reference model JSON only; final newline normalized, no semantic changes. Runtime uses the unmodified PNG textures.",
+      "project_path": "Images/characters/我的世界/diamond_spear/diamond_spear_in_hand.json"
+    }
+  ],
+  "display": {
+    "rotation_degrees": 135,
+    "sprite_scale": 3.535534,
+    "pixel_changes": "None. Runtime transform only.",
+    "source_license": "Minecraft assets © Mojang / Microsoft; Minecraft usage guidelines apply."
+  }
+}

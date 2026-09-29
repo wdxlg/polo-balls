@@ -26,6 +26,8 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if not is_multiplayer_authority():
 		return
+	# 乘坐只锁定位置与朝向；仍完整运行角色AI、攻击、技能和冷却。
+	if owner is ball: owner.apply_transport_pose()
 
 	# V106：大规模战斗中 get_next_state()（AI/冷却/目标状态判断）按实例错峰。
 	# 只减少决策次数；tick_physics() 仍每个物理帧执行，所以移动、击退、碰撞和攻击动作不会降到 30Hz。
@@ -34,6 +36,9 @@ func _physics_process(delta: float) -> void:
 		var owner_ball:ball = owner as ball
 		if owner_ball.is_large_battle_performance_mode():
 			var divisor:int = maxi(large_battle_state_decision_divisor,1)
+			# V430：大规模战斗物理 tick 已降到 30Hz 时不再二次抽稀，保持 AI 决策仍为 30Hz。
+			if Engine.physics_ticks_per_second <= 30:
+				divisor = 1
 			run_state_decision = divisor <= 1 or ((Engine.get_physics_frames() + owner_ball.get_instance_id()) % divisor) == 0
 
 	if run_state_decision:
@@ -65,6 +70,7 @@ func _physics_process(delta: float) -> void:
 				_warn_state_cycle(current_state,current_state)
 
 	owner.tick_physics(current_state,delta)
+	if owner is ball: owner.apply_transport_pose()
 	state_time += delta
 
 	# 项目实际冷却读取只使用 Attack / Skill；其它状态时长由 state_time 负责。

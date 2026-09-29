@@ -1,6 +1,7 @@
 """Measure actual encoded physics-driven flashes, not merely FPS/container lengths."""
 import array, json, math, os, statistics, subprocess
 from pathlib import Path
+from recording_filename_check import filename_matches_title
 root=Path(os.environ['APPDATA'])/'Godot/app_userdata/polo_balls/recordings/speed_test'
 m=json.loads((root/'manifest.json').read_text(encoding='utf-8'))
 ffmpeg='C:/ffmpeg/bin/ffmpeg.exe';ffprobe='C:/ffmpeg/bin/ffprobe.exe'
@@ -10,12 +11,13 @@ def check(ok,label):
  checks+=1
  if not ok: raise AssertionError(label)
  print('PASS:',label)
-log=Path('tests/record_speed_gpu.log').read_text(encoding='utf-8')
+log=Path(os.environ.get('BATTLE_RECORD_GPU_LOG','tests/record_speed_gpu.log')).read_text(encoding='utf-8')
 check(m['failures']==0 and f"RECORDING_SPEED: {m['checks']} checks / 0 failures" in log and 'SCRIPT ERROR' not in log,'latest physics-speed GPU run passes')
 for run in m['runs']:
- paths=run['outputs']; audios={};flashes={}
+ paths=run['outputs']; audios={};flashes={};titles={}
  for lang,path in paths.items():
-  info=json.loads(subprocess.check_output([ffprobe,'-v','error','-count_frames','-show_streams','-of','json',path]))
+  info=json.loads(subprocess.check_output([ffprobe,'-v','error','-count_frames','-show_streams','-show_format','-of','json',path]))
+  titles[lang]=info.get('format',{}).get('tags',{}).get('title','')
   v=next(s for s in info['streams'] if s['codec_type']=='video');a=next(s for s in info['streams'] if s['codec_type']=='audio')
   check((v['width'],v['height'],v['avg_frame_rate'],int(v['nb_read_frames']))==(1080,1920,'60/1',run['frames']),run['kind']+' '+lang+' all full-HD frames present')
   check(abs(float(v['duration'])-float(a['duration']))<.025,run['kind']+' '+lang+' audio/video duration agreement')
@@ -43,8 +45,8 @@ for run in m['runs']:
    co+=x*w*math.cos(phase);si+=x*w*math.sin(phase)
   return math.hypot(co,si)
  check(power(440)>10*max(power(110),power(1760),1e-6),run['kind']+' normal 440 Hz pitch, not quarter-speed or quadruple-speed audio')
- check(Path(paths['en']).name.replace('英文_','',1)==Path(paths['zh']).name.replace('中文_','',1),run['kind']+' filenames differ ONLY by Chinese language prefix')
+ check(all(filename_matches_title(paths[lang],lang,titles[lang]) for lang in ['zh','en']),run['kind']+' localized filenames match full title metadata')
  results.append({'mode':run['kind'],'codec':run['codec'],'physics_per_wall_second':run['physics']/run['wall'],'physics_per_video_second':run['physics']/run['video'],'flash_times':flashes['zh'],'flash_intervals':[b-a for a,b in zip(flashes['zh'],flashes['zh'][1:])],'peak_queue_bytes_per_language':run['peak_bytes'],'audio_identical':True})
 result={'checks':checks,'failures':0,'gpu_checks':m['checks'],'runs':results}
-Path('tests/recording_speed_validation.json').write_text(json.dumps(result,indent=2)+'\n',encoding='utf-8')
+Path(os.environ.get('BATTLE_RECORD_MEDIA_REPORT','tests/recording_speed_validation.json')).write_text(json.dumps(result,indent=2)+'\n',encoding='utf-8')
 print(json.dumps(result));print(f'RECORDING_SPEED_MEDIA: {checks} checks / 0 failures')

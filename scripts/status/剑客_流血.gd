@@ -90,7 +90,7 @@ func _deal_internal_bleed(amount:int) -> void:
 		return
 	var before:float = float(target.health)
 	# 流血属于体内持续伤害：不触发格挡/闪避，也不反复闪白。
-	target.health -= amount
+	target.receive_internal_status_damage(amount,&"bleed",source)
 	var actual:float = maxf(before - float(target.health),0.0)
 	if actual > 0.0:
 		_play_bleed_damage_audio(actual)

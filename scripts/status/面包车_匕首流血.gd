@@ -77,7 +77,7 @@ func _deal_internal_bleed(amount:int) -> void:
 		return
 	var before:float = float(target.health)
 	# 和剑客一样属于体内伤害：不再触发一次格挡/闪白。
-	target.health -= amount
+	target.receive_internal_status_damage(amount,&"bleed",source)
 	var actual:float = maxf(before - float(target.health),0.0)
 	if actual <= 0.0:
 		return

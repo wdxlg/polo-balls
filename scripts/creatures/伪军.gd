@@ -31,11 +31,13 @@ var _locked_aim_point:Vector2 = Vector2.ZERO
 var _saved_speed:float = 0.0
 var _surrendered:bool = false
 var _flee_target:Vector2 = Vector2.ZERO
+var _manual_burst_pending:bool = false
 
 @onready var character_image:Sprite2D = $Graphics/Image
 
 func _ready() -> void:
 	Type = Ball_Type.Creature
+	manual_controllable_subentity = true
 	Can_Attack = false
 	Can_Skill = false
 	Has_Collision_Damage = false
@@ -84,6 +86,7 @@ func _physics_process(delta:float) -> void:
 	_cooldown_left = maxf(_cooldown_left - delta,0.0)
 	if _cooldown_left > 0.0:
 		return
+	if is_player_controlled(): return
 	var target:ball = TOOLS.nearest_enemy(self,attack_range)
 	if target == null:
 		return
@@ -93,7 +96,24 @@ func _physics_process(delta:float) -> void:
 		direction = aim_direction.normalized()
 	call_deferred("_run_burst")
 
+func controlled_attack_action() -> void:
+	if not is_player_controlled() or not is_multiplayer_authority() or health <= 0 or _surrendered: return
+	if not is_combat_runtime_active() or dizziness or is_damage_output_disabled(): return
+	if _firing or _manual_burst_pending or _cooldown_left > 0.0: return
+	_locked_aim_point = player_control_aim_world_position(global_position+direction*attack_range)
+	var aim_direction:Vector2 = _locked_aim_point - global_position
+	if aim_direction.length_squared() > 0.000001: direction = aim_direction.normalized()
+	_manual_burst_pending = true
+	call_deferred("_run_burst")
+
+func set_player_control_peer(peer_id:int) -> void:
+	if peer_id != player_control_peer_id: _manual_burst_pending = false
+	super.set_player_control_peer(peer_id)
+
 func _run_burst() -> void:
+	# A queued AI start may have been deferred just before C selected the soldier.
+	if is_player_controlled() and not _manual_burst_pending: return
+	_manual_burst_pending = false
 	if _firing or health <= 0 or not is_inside_tree():
 		return
 	_firing = true

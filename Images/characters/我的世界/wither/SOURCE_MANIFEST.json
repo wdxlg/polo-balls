@@ -27,9 +27,13 @@
     "minecraft/sounds/mob/wither/idle2.ogg": "78d511b2ae44d0354e932acdc7acdaaf0a39d73a",
     "minecraft/sounds/random/explode1.ogg": "fa85b9e7e54c36c9f9d0249ca739444b5e3bb66c",
     "minecraft/sounds/block/beacon/activate.ogg": "28892890033064296ba36dfc9462be578d7b969a",
+    "minecraft/sounds/block/beacon/ambient.ogg": "288152797238fee61acb9c8e93aacb7728be8104",
     "minecraft/sounds/block/beacon/power1.ogg": "4b7a8bb552b47179761301bd7db481543e2404cf",
     "minecraft/sounds/block/beacon/deactivate.ogg": "44bd337eda14f18dd7d5c3366b91a5cea7e34bc0",
     "minecraft/sounds/block/soul_sand/step1.ogg": "3591ce4debaac9064c44043a3034cdafd77c2533",
-    "minecraft/sounds/dig/grass1.ogg": "f970f8e68b06d60603af52120056ff2eb66ac75d"
+    "minecraft/sounds/dig/grass1.ogg": "f970f8e68b06d60603af52120056ff2eb66ac75d",
+    "minecraft/sounds/random/bow.ogg": "4a6c47aa4f8c2cfe3237b250ed19b8714d611fd2",
+    "minecraft/sounds/block/conduit/activate.ogg": "c2a7d28c80b49b04a1620a94a17405543a6fb1f6",
+    "minecraft/sounds/mob/ravager/roar1.ogg": "8855447a5c5fe347907ae574495fec645a11a9d1"
   }
 }

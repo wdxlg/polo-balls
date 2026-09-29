@@ -1,4 +1,5 @@
 extends Node2D
+const PROJECTILE_CONTACT = preload("res://scripts/projectile_contact.gd")
 
 # Sans 龙骨炮（Gaster Blaster，V408 音量修正；视觉/伤害主体沿用 V168）：
 # - V50：允许“大风车”传入短于普通龙骨炮的演出时长；仅短时参数走 rapid 分支，普通龙骨炮时序完全保持原样。
@@ -400,6 +401,7 @@ func _apply_beam_damage() -> void:
 
 
 func _is_enemy(target:ball) -> bool:
+	if PROJECTILE_CONTACT.ignores(target): return false
 	if target == null or target == source or target.health <= 0:
 		return false
 	if target.has_method("is_combat_targetable") and not target.is_combat_targetable():

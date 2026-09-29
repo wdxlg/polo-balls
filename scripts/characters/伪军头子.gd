@@ -63,6 +63,18 @@ func _physics_process(delta:float) -> void:
 	if not is_multiplayer_authority():
 		return
 	_spawn_cooldown_left = maxf(_spawn_cooldown_left - delta,0.0)
+	if not is_player_controlled():
+		_try_recruit_soldier()
+
+
+func controlled_attack_action() -> void:
+	# 左键：消耗一张钞票动员一名伪军；掉血触发的增援属于被动，保持不变。
+	if not is_player_controlled() or not is_multiplayer_authority() or health <= 0 or _surrender_started or not is_combat_runtime_active():
+		return
+	_try_recruit_soldier()
+
+
+func _try_recruit_soldier() -> void:
 	if _count_my_soldiers_reserved() < _effective_reinforcement_cap() and money_value >= 1.0 and _spawn_cooldown_left <= 0.0:
 		if _spend_money_and_spawn(0):
 			_spawn_cooldown_left = 1.0 / maxf(spawn_rate_hz,0.01)

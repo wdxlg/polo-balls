@@ -1,0 +1,2 @@
+$idx = Get-Content -Raw C:/Users/q2283/AppData/Roaming/.minecraft/assets/indexes/1.21.json | ConvertFrom-Json
+$idx.objects.PSObject.Properties | Where-Object { $_.Name -match 'sounds/mob/wanderingtrader|sounds/mob/llama|sounds/entity/leashknot|sounds/dig/stone|sounds/step/stone|sounds/random/drink|sounds/entity/lead|sounds.json$' } | ForEach-Object { "$($_.Name) $($_.Value.hash) $($_.Value.size)" }

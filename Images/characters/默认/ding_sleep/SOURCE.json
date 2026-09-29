@@ -1,0 +1,21 @@
+{
+  "origin": "User-provided cat plus user-selected generated eyes-closed edit in this conversation",
+  "sources": [
+    {
+      "name": "猫.png",
+      "sha256": "2ef7019a4bc13bf2d7c4de52b8de1f3bad97fe9118f5edbc0e855d117d735636"
+    },
+    {
+      "name": "猫闭眼.png",
+      "sha256": "aa242eef0590a36422d8d787ebcd415e151c892c77e6acd465aeb94206f956fd"
+    }
+  ],
+  "runtime_processing": "Normalize canvas size; use original cat alpha matte for closed-eye white background removal; same bbox crop for both; downsample to 473x512 maximum. Do not change facial content.",
+  "crop": [
+    591,
+    33,
+    1522,
+    1041
+  ],
+  "license": "User-supplied/custom imagery; no additional rights claimed."
+}

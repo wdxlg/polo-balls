@@ -1,0 +1,33 @@
+{
+  "asset": "山巅",
+  "blender": "5.2.2 LTS",
+  "seed": 9262026,
+  "mesh_objects": 17,
+  "vertices": 398560,
+  "triangles": 199280,
+  "trees": 62,
+  "footprint_blocks": [
+    144,
+    144
+  ],
+  "height_blocks": 113,
+  "summit_anchor": [
+    9.5,
+    14.5,
+    108.125
+  ],
+  "build_seconds": 1.7,
+  "blend": "山巅.blend",
+  "glb": "shandian.glb",
+  "textures_packed": true,
+  "gameplay_integrated": false,
+  "profile": "natural_apex_varied_branch_snow",
+  "model_top": 109.875,
+  "snow_tree_counts": {
+    "none": 17,
+    "light": 11,
+    "medium": 16,
+    "heavy": 18
+  },
+  "snow_patch_count": 748
+}

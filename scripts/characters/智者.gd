@@ -129,8 +129,38 @@ func _ready() -> void:
 
 func tick_physics(state:State,delta:float) -> void:
 	if is_multiplayer_authority() and state != State.Die and health > 0:
-		_update_layout(delta)
+		if is_player_controlled():
+			_update_manual_layout_timers(delta)
+		else:
+			_update_layout(delta)
 	super.tick_physics(state,delta)
+
+
+func _update_manual_layout_timers(delta:float) -> void:
+	# 不再由 AI 选落点/接管走位；已有布局仍按原寿命到期且碰触伤害有效。
+	_cleanup_dead_points()
+	_moving_to_layout_point = false
+	_tactical_mode = TACTIC_NONE
+	_between_point_left = maxf(_between_point_left - delta,0.0)
+	if _layout_points.is_empty() and _next_point_index == 0:
+		_layout_cooldown_left = maxf(_layout_cooldown_left - delta,0.0)
+	if not _layout_points.is_empty():
+		_layout_lifetime_left -= delta
+		if _layout_lifetime_left <= 0.0:
+			_finish_layout_round()
+
+
+func controlled_attack_action() -> void:
+	# 左键：必须亲自走到目标落点附近，维持布点间隔、最小间距和一轮点数。
+	if not is_player_controlled() or not is_multiplayer_authority() or health <= 0 or not is_combat_runtime_active() or not has_player_control_aim():
+		return
+	if _between_point_left > 0.0 or _next_point_index >= maxi(points_per_layout,2):
+		return
+	if _layout_points.is_empty() and _layout_cooldown_left > 0.0:
+		return
+	if _get_target() == null or global_position.distance_to(player_control_aim_world_position()) > placement_reach:
+		return
+	_place_point_at_current_position()
 
 
 func _update_layout(delta:float) -> void:

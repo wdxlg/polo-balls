@@ -1,4 +1,5 @@
 extends Node2D
+const PROJECTILE_CONTACT = preload("res://scripts/projectile_contact.gd")
 
 const SUBMISSION_TOOLS = preload("res://scripts/characters/投稿角色工具.gd")
 const SMALL_BOMB_SCRIPT:Script = preload("res://scripts/effects/乌鲁鲁巡飞弹小炸弹.gd")
@@ -74,10 +75,11 @@ func _physics_process(delta:float) -> void:
 		_impact(source,global_position)
 		return
 	var target:ball = _target()
+	var intangible_target:bool = PROJECTILE_CONTACT.ignores(target)
 	if target != null and is_instance_valid(target):
 		last_target_position = target.global_position
 	var to_target:Vector2 = last_target_position - global_position
-	if to_target.length_squared() > 0.000001:
+	if not intangible_target and to_target.length_squared() > 0.000001:
 		var desired_angle:float = to_target.angle()
 		var current_angle:float = current_direction.angle()
 		var diff:float = wrapf(desired_angle-current_angle,-PI,PI)
@@ -94,7 +96,7 @@ func _physics_process(delta:float) -> void:
 			return
 	global_position = next_position
 	rotation = current_direction.angle()
-	if global_position.distance_squared_to(last_target_position) <= hit_radius * hit_radius:
+	if not intangible_target and global_position.distance_squared_to(last_target_position) <= hit_radius * hit_radius:
 		_impact(source,global_position)
 		return
 	_trail_world.append(global_position)
@@ -136,7 +138,7 @@ func _sweep_enemy(source:ball,from_pos:Vector2,to_pos:Vector2) -> ball:
 	query.exclude = excludes
 	for result:Dictionary in get_world_2d().direct_space_state.intersect_shape(query,64):
 		var candidate:ball = _collider_ball(result.get("collider",null))
-		if candidate != null and SUBMISSION_TOOLS.is_enemy(source,candidate):
+		if candidate != null and not PROJECTILE_CONTACT.ignores(candidate) and SUBMISSION_TOOLS.is_enemy(source,candidate):
 			return candidate
 	return null
 

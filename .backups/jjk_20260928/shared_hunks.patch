@@ -1,0 +1,80 @@
+diff --git a/global/translation_catalog.gd b/global/translation_catalog.gd
+index aa8e846..3460509 100644
+--- a/global/translation_catalog.gd
++++ b/global/translation_catalog.gd
+@@ -753,6 +753,19 @@ const TABLE:Dictionary = {
+ 		"愤怒的人": "愤怒的人",
+ 		"动漫": "动漫",
+ 		"菜月昴": "菜月昴",
++		"五条悟": "五条悟",
++		"宿傩": "宿傩",
++		"魔虚罗": "魔虚罗",
++		"嵌合暗兽": "嵌合暗兽",
++		"咒术": "咒术",
++		"领域": "领域",
++		"超模": "超模",
++		"咒力消耗": "咒力消耗",
++		"被封印": "被封印",
++		"式神": "式神",
++		"适应": "适应",
++		"茈": "茈",
++		"治疗": "治疗",
+ 		"死亡回归": "死亡回归",
+ 		"盘旋拳": "盘旋拳",
+ 		"小弟": "小弟",
+@@ -1579,6 +1592,19 @@ const TABLE:Dictionary = {
+ 		"愤怒的人": "Angry Person",
+ 		"动漫": "Anime",
+ 		"菜月昴": "Natsuki Subaru",
++		"五条悟": "Satoru Gojo",
++		"宿傩": "Ryomen Sukuna",
++		"魔虚罗": "Mahoraga",
++		"嵌合暗兽": "Agito",
++		"咒术": "Jujutsu",
++		"领域": "Domain",
++		"超模": "Overpowered",
++		"咒力消耗": "Cursed Energy Drain",
++		"被封印": "Sealable",
++		"式神": "Shikigami",
++		"适应": "Adaptation",
++		"茈": "Hollow Purple",
++		"治疗": "Healing",
+ 		"死亡回归": "Return by Death",
+ 		"盘旋拳": "Orbiting Fist",
+ 		"小弟": "Minions",
+diff --git a/translations.csv b/translations.csv
+index e0f4d2e..bf3c200 100644
+--- a/translations.csv
++++ b/translations.csv
+@@ -765,6 +765,19 @@ LEGACY_IP_LABEL,IP：,ip:
+ 愤怒的人,愤怒的人,Angry Person
+ 动漫,动漫,Anime
+ 菜月昴,菜月昴,Natsuki Subaru
++五条悟,五条悟,Satoru Gojo
++宿傩,宿傩,Ryomen Sukuna
++魔虚罗,魔虚罗,Mahoraga
++嵌合暗兽,嵌合暗兽,Agito
++咒术,咒术,Jujutsu
++领域,领域,Domain
++超模,超模,Overpowered
++咒力消耗,咒力消耗,Cursed Energy Drain
++被封印,被封印,Sealable
++式神,式神,Shikigami
++适应,适应,Adaptation
++茈,茈,Hollow Purple
++治疗,治疗,Healing
+ 死亡回归,死亡回归,Return by Death
+ 盘旋拳,盘旋拳,Orbiting Fist
+ 小弟,小弟,Minions
+diff --git a/tests/manual_control_inventory.csv b/tests/manual_control_inventory.csv
+index e63fd46..4dd2acc 100644
+--- a/tests/manual_control_inventory.csv
++++ b/tests/manual_control_inventory.csv
+@@ -224,3 +224,7 @@
+ 发射物/子实体候选,scenes/shooter/领导处分文件.tscn,scripts/shooter/领导处分文件.gd,,是,待区分自主单位与纯弹道（纯弹道不选控）
+ 发射物/子实体候选,scenes/shooter/领导小领导.tscn,scripts/shooter/领导小领导.gd,,是,待区分自主单位与纯弹道（纯弹道不选控）
+ 发射物/子实体候选,scenes/shooter/魔角猎人_黑弹.tscn,scripts/shooter/魔角猎人_黑弹.gd,,是,待区分自主单位与纯弹道（纯弹道不选控）
++选角人物,scenes/characters/动漫/五条悟.tscn,scripts/characters/动漫/咒术回战/gojo.gd,"controlled_attack_action,controlled_skill_action,controlled_middle_action,controlled_teleport,controlled_domain,controlled_instant_domain,controlled_barrier_flip",是,左：苍（长按牵引点跟随鼠标）；右：赫（长按蓄力）；中：茈（长按2.4秒200%）；1瞬移 2无量空处 3 0.2秒无量空处 4结界翻转；专项见JJK_CHARACTERS.md
++选角人物,scenes/characters/动漫/宿傩.tscn,scripts/characters/动漫/咒术回战/sukuna.gd,"controlled_attack_action,controlled_skill_action,controlled_middle_action,controlled_amplification,controlled_domain,controlled_mahoraga,controlled_agito,controlled_world_slash",是,左：解（长按蜘蛛网/展延中拳脚）；右：捌；中：开；1领域展延 2伏魔御厨子（再按缩小）3魔虚罗 4嵌合暗兽 5世界斩；专项见JJK_CHARACTERS.md
++选角人物,scenes/characters/动漫/魔虚罗.tscn,scripts/characters/动漫/咒术回战/mahoraga.gd,"controlled_attack_action,controlled_skill_action,controlled_middle_action",是,左：退魔之剑；右：突进斩；中：咆哮；适应被动自动；专项见JJK_CHARACTERS.md
++选角人物,scenes/characters/动漫/嵌合暗兽.tscn,scripts/characters/动漫/咒术回战/agito.gd,"controlled_attack_action,controlled_skill_action,controlled_middle_action",是,左：撕咬；右：鵺落雷；中：圆鹿反转治疗；专项见JJK_CHARACTERS.md

@@ -1,0 +1,78 @@
+{
+  "source": "Mojang official Minecraft Java Edition 1.21.4 asset index and content-addressed asset CDN",
+  "asset_index_url": "https://piston-meta.mojang.com/v1/packages/8d07e20a532738f3ee13392a23871abb5927fd79/19.json",
+  "asset_index_sha1": "8d07e20a532738f3ee13392a23871abb5927fd79",
+  "verification": "Verified index SHA-1 against official version metadata and every original OGG SHA-1 against asset index. OGG bytes are unmodified.",
+  "assets": [
+    {
+      "file": "originals/click.ogg",
+      "asset_path": "minecraft/sounds/random/click.ogg",
+      "url": "https://resources.download.minecraft.net/34/3455ca942556c7d5eac7dd5e458e7fb3bad564c9",
+      "sha1": "3455ca942556c7d5eac7dd5e458e7fb3bad564c9",
+      "sha256": "9c5cecb187a4128f5d7a9f492854d2c1ba60413d413b3d5df36b9720d53a3b15"
+    },
+    {
+      "file": "originals/orb.ogg",
+      "asset_path": "minecraft/sounds/random/orb.ogg",
+      "url": "https://resources.download.minecraft.net/8a/8a04a60d5c28fc60df472a877ca57f37eabc78d7",
+      "sha1": "8a04a60d5c28fc60df472a877ca57f37eabc78d7",
+      "sha256": "706f615c548ca86b780611526ec9d785bba62e2c10580cf7ef738a0757f4c093"
+    },
+    {
+      "file": "originals/pop.ogg",
+      "asset_path": "minecraft/sounds/random/pop.ogg",
+      "url": "https://resources.download.minecraft.net/d6/d6ae1c04d0a7376a33d1df12e1b8057cfbab6bc2",
+      "sha1": "d6ae1c04d0a7376a33d1df12e1b8057cfbab6bc2",
+      "sha256": "4ddf491e1b736a9711cd76590ba70b203136d7ea1d5134a42088e58daccf3951"
+    },
+    {
+      "file": "originals/levelup.ogg",
+      "asset_path": "minecraft/sounds/random/levelup.ogg",
+      "url": "https://resources.download.minecraft.net/19/19034765ba8ba5389b35804ab213537ab5cf706f",
+      "sha1": "19034765ba8ba5389b35804ab213537ab5cf706f",
+      "sha256": "6668fd66a20eacb458565f3e0944aca66613750ac28ef94fb028bc258476b251"
+    }
+  ],
+  "rights": "Minecraft sound assets belong to Mojang/Microsoft and their respective authors; no new rights are granted by this project.",
+  "runtime_conversion": "Runtime resources are native Godot AudioStreamWAV .tres files with original-rate PCM16 samples decoded from the verified originals. This avoids dependence on external WAV import/cache: the previous WAV copies were found replaced by short silent files. No sample gain, timing or pitch edits; playback gain is set by the UI audio helper.",
+  "runtime_assets": [
+    {
+      "file": "click.tres",
+      "sha256": "f95d9d2bb76d4c6130fb3bf360ea97ea5c2fa9948adf176ccff0be7410da4638",
+      "pcm_sha256": "c443b0469b023f0089177c5307537a4591da155a7ad5d391ad34001a4588e909",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 13423
+    },
+    {
+      "file": "orb.tres",
+      "sha256": "f3814e799a4539b514b57ab9cda6cfa479e0e3b1a5ce2b152081ec6ffe8a64cf",
+      "pcm_sha256": "f750e65a834b2b29eb9fc0cb9b0b4e1b3331b2e4bbbe6d40b33344d0844af593",
+      "sample_rate": 44100,
+      "channels": 1,
+      "frames": 32947
+    },
+    {
+      "file": "pop.tres",
+      "sha256": "7c5db72334bdc6cef616938f5cd887682ad80f7a06c7157ec401d36baa2e49c6",
+      "pcm_sha256": "a115ffc8302a2faa87f75152e426541cd4137f1261940ce3bb8ed5aca19c97c2",
+      "sample_rate": 44100,
+      "channels": 1,
+      "frames": 7542
+    },
+    {
+      "file": "levelup.tres",
+      "sha256": "bbaf3b85d6b983f91ea2cc697ee17fb82b3f47d2442f49548cb2d0a713bc6899",
+      "pcm_sha256": "ed0f4fb16393fd3e166111b8b202157361cc1e16ea497af751ab25ef60ea380f",
+      "sample_rate": 44100,
+      "channels": 1,
+      "frames": 77175
+    }
+  ],
+  "roles": {
+    "tick": "quiet Minecraft UI click, 100 ms minimum interval",
+    "confirm": "experience orb, authoritative reveal",
+    "arrival": "item pickup pop, actual portrait arrival",
+    "complete": "level-up, once per round"
+  }
+}

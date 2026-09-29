@@ -34,7 +34,7 @@ func advance(delta:float) -> void:
 	visible = true
 	var dt:float = clampf(delta,0.0,0.1)
 	cooldown = maxf(0.0,cooldown-dt)
-	if phase < 0.0 and cooldown <= 0.0:
+	if phase < 0.0 and cooldown <= 0.0 and not fighter.is_player_controlled():
 		var target:ball = fighter.call("_find_fist_target")
 		if target != null and fighter.global_position.distance_to(target.global_position) <= float(fighter.get("whip_reach"))+18.0:
 			aim = fighter.global_position.angle_to_point(target.global_position)
@@ -72,6 +72,20 @@ func advance(delta:float) -> void:
 			velocities[i] *= exp(-lerpf(34.0,21.0,ratio)*h)
 			points[i] += velocities[i]*h
 	_render_and_hit()
+
+func request_manual_swing(world_point:Vector2) -> bool:
+	if fighter == null or not is_instance_valid(fighter) or not fighter.is_player_controlled() or not fighter.is_multiplayer_authority():
+		return false
+	if fighter.health <= 0 or fighter.is_damage_output_disabled() or not fighter.is_combat_runtime_active():
+		return false
+	if phase >= 0.0 or cooldown > 0.0:
+		return false
+	aim = fighter.global_position.angle_to_point(world_point)
+	phase = 0.0
+	hit_ids.clear()
+	cooldown = maxf(float(fighter.get("whip_interval")),0.05)
+	return true
+
 func _render_and_hit() -> void:
 	var displayed:PackedVector2Array = PackedVector2Array([points[0]])
 	for i:int in range(1,points.size()):

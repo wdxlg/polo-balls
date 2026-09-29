@@ -47,6 +47,7 @@ var _base_hurtbox_monitorable:bool = true
 
 func _ready() -> void:
 	# 头通过身体碰撞直接攻击；没有独立 Attack/Skill 状态。
+	manual_controllable_subentity = true
 	Has_Collision_Damage = true
 	Can_Attack = false
 	Can_Skill = false
@@ -92,10 +93,13 @@ func attack_damage(multiplier:float = 1.0) -> float:
 func current_hit_damage_multiplier() -> float:
 	var body:ball = _hydra_body()
 	if body != null and is_instance_valid(body):
-		for property_info in body.get_property_list():
-			if str(property_info.get("name","")) == "head_damage_multiplier":
-				return maxf(float(body.get("head_damage_multiplier")),0.0)
+		# V431 性能：每次命中都会调用；属性存在性改用按脚本缓存的属性名集合。
+		if PROPERTY_INDEX.has_property(body,"head_damage_multiplier"):
+			return maxf(float(body.get("head_damage_multiplier")),0.0)
 	return 1.0
+
+
+const PROPERTY_INDEX = preload("res://classes/property_index.gd")
 
 
 func _register_with_body_retry() -> void:
@@ -196,7 +200,7 @@ func tick_physics(state:State,delta:float) -> void:
 	_recoil_left = maxf(_recoil_left - delta,0.0)
 	_target_lock_elapsed += delta
 	_target_scan_left -= delta
-	if _recoil_left <= 0.0:
+	if _recoil_left <= 0.0 and not is_player_controlled():
 		_update_attack_direction(body,delta)
 
 	super.tick_physics(state,delta)

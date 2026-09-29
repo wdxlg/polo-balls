@@ -2,6 +2,7 @@ extends Node2D
 
 # 一条战斗时钟负责攻击、地图和倒计时；不使用独立 Timer/Tween 协程推进阶段。
 # 地图只加入本局运行时 map_group，不写设置、不替换原 TileMap、不删除原场景。
+const WALL_SLOTS = preload("res://scripts/effects/传说之下/sans_wall_slots.gd")
 const BONE = preload("res://scripts/effects/传说之下/Sans终幕骨列.gd")
 const SPIKE = preload("res://scripts/effects/传说之下/Sans骨头攻击.gd")
 const TEMP_NAME:String = "SansFinal10x10"
@@ -45,11 +46,29 @@ var snapshot:Dictionary = {}
 var anchor:Vector2
 var overlay:CanvasLayer
 var black:ColorRect
+var blackout_root:Node2D
 var timer_label:Label
 var background:Polygon2D
 var border:Line2D
 var old_safety:Node
 var original_positions_restored:bool = false
+var gesture_left:float=0.0
+var bone_token:String=""
+var pending_corridor:bool=false
+var hidden_surrounding_hud:Dictionary={}
+const SURROUNDING_HUD:Array[String]=["versus_label","interaction_label","_center_watermark_root","_dead_save_watermark_name","character_dialogue_root","rotation_versus_root","timed_training_label"]
+func _suppress_surrounding_hud() -> void:
+	for property:String in SURROUNDING_HUD:
+		var item:Variant=world.get(property)
+		if not is_instance_valid(item) or not item is CanvasItem: continue
+		var id:int=item.get_instance_id()
+		if not hidden_surrounding_hud.has(id): hidden_surrounding_hud[id]={"ref":weakref(item),"visible":item.visible}
+		item.hide()
+func _restore_surrounding_hud() -> void:
+	for record:Dictionary in hidden_surrounding_hud.values():
+		var item:Variant=record.ref.get_ref()
+		if is_instance_valid(item): item.visible=bool(record.visible)
+	hidden_surrounding_hud.clear()
 
 func begin(actor:Node2D) -> bool:
 	source = actor
@@ -90,6 +109,7 @@ func begin(actor:Node2D) -> bool:
 		"mask_enabled": world.get("map_outside_mask_enabled"),
 		"mask_materials": [],
 	}
+	_suppress_surrounding_hud()
 	for polygon:Polygon2D in world.get("map_outside_mask_parts"):
 		snapshot.mask_materials.append(polygon.material)
 	world.get("camera_2d").position_smoothing_enabled = false
@@ -156,7 +176,12 @@ func _build_overlay() -> void:
 	black.color = Color.BLACK
 	black.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	black.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-	overlay.add_child(black)
+	# Backdrop lives in the world canvas below actors; only the timer is HUD.
+	black.z_as_relative=false
+	black.z_index=-1
+	blackout_root=Node2D.new()
+	add_child(blackout_root)
+	blackout_root.add_child(black)
 	timer_label = Label.new()
 	timer_label.size = Vector2(180,54)
 	timer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -287,6 +312,9 @@ func _physics_process(delta:float) -> void:
 				if in_temp:
 					var uv:Vector2 = (raw.global_position-arena_rect.position)/arena_rect.size
 					participants.back()["position"] = original_rect.position+uv.clamp(Vector2(0.15,0.15),Vector2(0.85,0.85))*original_rect.size
+	if gesture_left>0.0:
+		gesture_left=maxf(gesture_left-maxf(delta,0.0),0.0)
+		if gesture_left<=0.0: source.call("_set_visual_mode_local",0)
 	elapsed = minf(elapsed+maxf(delta,0.0),total_duration)
 	while event_cursor < events.size() and float(events[event_cursor].t) <= elapsed:
 		_dispatch(events[event_cursor])
@@ -297,10 +325,14 @@ func _physics_process(delta:float) -> void:
 		arena_rect.size.y = base_rect.size.y*lerpf(1.0,corridor_height/base_rect.size.y,minf(t/2.0,1.0))
 		arena_rect.position.y = base_rect.get_center().y-arena_rect.size.y*0.5
 		_update_arena_geometry()
+	if pending_corridor and not _moving_bones_alive():
+		pending_corridor=false
+		_start_corridor()
 	_sync_wall_bones()
 	_update_slams(delta)
 	if elapsed >= WIND_START and elapsed < wind_end:
 		while wind_emitted < wind_steps and WIND_START+wind_emitted*wind_interval <= elapsed:
+			if wind_emitted==0: _gesture(2)
 			if source.is_multiplayer_authority():
 				source.call("_spawn_windmill_gaster",original_rect,-TAU*float(wind_emitted)/float(wind_slots))
 			wind_emitted += 1
@@ -308,14 +340,27 @@ func _physics_process(delta:float) -> void:
 	if elapsed >= total_duration:
 		finish(true)
 
+func _gesture(side:int) -> void:
+	# Same battle clock as the countdown, so pause cannot consume the gesture timer.
+	source.set("_gesture_serial",int(source.get("_gesture_serial"))+1)
+	var mode:int=source.call("_visual_mode_for_wall_side",side)
+	source.call("_set_visual_mode_local",mode)
+	gesture_left=source.call("_gesture_duration_for_mode",mode)
+func _moving_bones_alive() -> bool:
+	for effect:Node2D in hazards:
+		if is_instance_valid(effect) and not effect.is_queued_for_deletion() and effect.get_script()==BONE and effect.travel_speed>0.0: return true
+	return false
+func _start_corridor() -> void:
+	_clear_hazards()
+	_set_gravity(Vector2.RIGHT,base_rect.size.x*0.8,base_rect.size.x*3.0)
+	_build_stationary_corridor()
 func _dispatch(event:Dictionary) -> void:
 	match str(event.kind):
 		"slam": _start_slam(event.dir)
 		"scroll": _spawn_scroll(int(event.i))
 		"corridor":
-			_clear_hazards()
-			_set_gravity(Vector2.RIGHT,base_rect.size.x*0.8,base_rect.size.x*3.0)
-			_build_stationary_corridor()
+			if _moving_bones_alive(): pending_corridor=true
+			else: _start_corridor()
 		"groups":
 			_clear_hazards() # 弧线完整结束，才进入分组骨头；绝不同时预生成两套。
 			_build_group_corridor()
@@ -355,6 +400,7 @@ func _set_gravity(direction:Vector2,terminal:float,strength:float) -> void:
 			entry.tinted = true
 
 func _start_slam(direction:Vector2) -> void:
+	_gesture(source.call("_wall_side_for_gravity_direction",direction))
 	_clear_slams()
 	impact_sides.clear()
 	var rect:Rect2 = arena_rect if in_temp else original_rect
@@ -412,14 +458,19 @@ func _spawn_spike(rect:Rect2,side:int) -> void:
 
 @rpc("authority","call_local","reliable")
 func _rpc_spike(rect:Rect2,side:int) -> void:
+	if not WALL_SLOTS.available(self,side): return
 	var effect:Node2D = SPIKE.new()
+	WALL_SLOTS.register(effect,self,side,str(effect.get_instance_id()))
 	add_child(effect)
 	effect.add_to_group("BattleTransient")
 	effect.call("configure",source,rect,side,0.05,0.06,0.14,5.0,1.0)
 	hazards.append(effect)
 
 func _bone(root:Vector2,inward:Vector2,move:Vector2,speed:float,length:float,life:float) -> void:
+	var side:int=WALL_SLOTS.side_from_inward(inward)
+	if not WALL_SLOTS.available(self,side,bone_token): return
 	var bone:Node2D = BONE.new()
+	WALL_SLOTS.register(bone,self,side,bone_token)
 	add_child(bone)
 	bone.add_to_group("BattleTransient")
 	bone.call("configure_final",source,root,inward,move,speed,maxf(length,8.0),life)
@@ -447,6 +498,9 @@ func _spawn_scroll(index:int) -> void:
 			if is_instance_valid(unit) and unit != source:
 				unit.configure_external_directional_gravity_hop(true,0.25,0.65,0,2.0,4.0)
 	var top:bool = index%2 == 0
+	if not WALL_SLOTS.available(self,0 if top else 2): return
+	bone_token=str(get_path())+":scroll:"+str(index)
+	_gesture(0 if top else 2)
 	var height:float = base_rect.size.y
 	var y:float = base_rect.position.y+4.0 if top else base_rect.end.y-4.0
 	var inward:Vector2 = Vector2.DOWN if top else Vector2.UP
@@ -454,6 +508,8 @@ func _spawn_scroll(index:int) -> void:
 		_bone(Vector2(base_rect.end.x+8+j*20,y),inward,Vector2.LEFT,base_rect.size.x*0.65,height*0.32,3.0)
 
 func _build_stationary_corridor() -> void:
+	bone_token=str(get_path())+":corridor"
+	_gesture(3)
 	var h:float = corridor_height
 	var cy:float = base_rect.get_center().y
 	var start:float = base_rect.position.x+base_rect.size.x*0.85
@@ -468,6 +524,8 @@ func _build_stationary_corridor() -> void:
 		_bone(Vector2(x,arena_rect.end.y),Vector2.UP,Vector2.ZERO,0.0,(cy+h*0.5)-(gap_y+corridor_gap*0.5),16.0)
 
 func _build_group_corridor() -> void:
+	bone_token=str(get_path())+":groups"
+	_gesture(3)
 	var h:float = corridor_height
 	# 与先前弧形段末端衔接；六组、每组三根，组内 20px，组间 112px。
 	var start:float = base_rect.position.x+base_rect.size.x*7.85
@@ -574,11 +632,11 @@ func _update_hud() -> void:
 	var view:Vector2 = get_viewport_rect().size
 	# 根视口可能以 1080×1920 缩放到手机/竖窗；字号随逻辑高度取值，避免倒计时缩成十几个像素。
 	timer_label.add_theme_font_size_override("font_size",maxi(32,int(view.y*0.04)))
-	world.get("versus_label").visible = bool(snapshot.get("versus_visible",true))
-	world.get("interaction_label").hide()
+	_suppress_surrounding_hud()
 	if is_instance_valid(source.health_bar):
 		source.health_bar.hide()
 	black.size = view
+	blackout_root.global_transform=get_viewport().get_canvas_transform().affine_inverse()
 	var blackout:float = 0.0
 	if elapsed < OPEN_END:
 		blackout = 1.0-smoothstep(0.8,OPEN_END,elapsed)
@@ -615,6 +673,8 @@ func finish(completed:bool) -> void:
 	if finished:
 		return
 	finished = true
+	gesture_left=0.0
+	if is_instance_valid(source): source.call("_set_visual_mode_local",0)
 	_clear_hazards()
 	_release_gravity()
 	_restore_map()
@@ -648,6 +708,7 @@ func finish(completed:bool) -> void:
 			camera.global_position = snapshot.get("camera_position",original_rect.get_center())
 			camera.zoom = snapshot.get("camera_zoom",Vector2.ONE)
 			camera.position_smoothing_enabled = bool(snapshot.get("camera_smoothing",false))
+	_restore_surrounding_hud()
 	set_meta(&"completed",completed)
 	queue_free()
 

@@ -1,0 +1,104 @@
+{
+  "size": [
+    160,
+    224
+  ],
+  "source_commit": "736072450c26a7c67f07b1661f29d9a5ebaa14b1",
+  "trident_visual_scale": 0.6666666666666666,
+  "roles": {
+    "spider": {
+      "clips": {
+        "idle": {
+          "count": 1,
+          "duration": 1.0,
+          "loop": true,
+          "unique": 1
+        },
+        "walk": {
+          "count": 24,
+          "duration": 1.0,
+          "loop": true,
+          "unique": 7
+        },
+        "cast": {
+          "count": 12,
+          "duration": 0.35,
+          "loop": false,
+          "unique": 6
+        },
+        "lunge": {
+          "count": 12,
+          "duration": 0.28,
+          "loop": false,
+          "unique": 6
+        }
+      },
+      "neutral_bounds": [
+        19,
+        94,
+        143,
+        161
+      ],
+      "textures": 18
+    },
+    "drowned": {
+      "clips": {
+        "idle": {
+          "count": 48,
+          "duration": 3.488372093023256,
+          "loop": true,
+          "unique": 48
+        },
+        "walk": {
+          "count": 24,
+          "duration": 1.0,
+          "loop": true,
+          "unique": 24
+        },
+        "splash": {
+          "count": 16,
+          "duration": 0.4,
+          "loop": false,
+          "unique": 16
+        },
+        "throw": {
+          "count": 16,
+          "duration": 0.4,
+          "loop": false,
+          "unique": 16
+        },
+        "windup": {
+          "count": 24,
+          "duration": 0.75,
+          "loop": false,
+          "unique": 24
+        },
+        "idle_empty": {
+          "count": 48,
+          "duration": 3.488372093023256,
+          "loop": true,
+          "unique": 48
+        },
+        "walk_empty": {
+          "count": 24,
+          "duration": 1.0,
+          "loop": true,
+          "unique": 24
+        },
+        "throw_empty": {
+          "count": 16,
+          "duration": 0.4,
+          "loop": false,
+          "unique": 16
+        }
+      },
+      "neutral_bounds": [
+        29,
+        56,
+        117,
+        201
+      ],
+      "textures": 203
+    }
+  }
+}

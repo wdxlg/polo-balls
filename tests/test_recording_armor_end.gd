@@ -39,7 +39,7 @@ func run() -> void:
 	recorder._match_snapshot = naming.snapshot(world,false)
 	check(world._collect_alive_victory_sides().size()==2 and world._victory_bell_played,"reproduce an ongoing armor fight with a naturally retained old bell")
 	check(not recorder._match_over_now() and not recorder._sim_match_over(),"both recorder paths reject the stale terminal signal")
-	check(naming.title(recorder._match_snapshot,"zh")=="Mc小球新角色:烈焰人" and naming.title(recorder._match_snapshot,"en")=="Blaze","real actor selection excludes old setup foes and the dummy")
+	check(naming.title(recorder._match_snapshot,"zh")=="烈焰人" and naming.title(recorder._match_snapshot,"en")=="Blaze","real actor selection excludes old setup foes and the dummy")
 	for simulated:bool in [false,true]:
 		recorder._tail_seconds = 1.5
 		recorder._sim_tail_left = -1.0

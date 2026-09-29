@@ -41,7 +41,7 @@ func unregister_player(player:ball) -> void:
 		queue_free()
 
 
-func request_place(player:ball) -> bool:
+func request_place(player:ball,aim_world_position:Vector2 = Vector2.ZERO,use_aim:bool = false) -> bool:
 	# 棋盘玩法只由 authority 选择格子；客户端只接收同一落子数据做视觉镜像。
 	if multiplayer.has_multiplayer_peer() and not is_multiplayer_authority():
 		return false
@@ -60,11 +60,25 @@ func request_place(player:ball) -> bool:
 	_map_name = current_name
 
 	var rect:Rect2 = map_info["rect"]
+	if use_aim and not rect.has_point(aim_world_position):
+		return false
 	var free_cells:Array[Vector2i] = _return_free_cells(rect)
 	if free_cells.is_empty():
 		return false
 
 	var chosen:Vector2i = free_cells.pick_random()
+	if use_aim:
+		var nearest:Vector2i = chosen
+		var best_distance:float = INF
+		for cell:Vector2i in free_cells:
+			var distance:float = _cell_to_world(cell,rect).distance_squared_to(aim_world_position)
+			if distance < best_distance:
+				best_distance = distance
+				nearest = cell
+		# 鼠标所在格被占用时不可偷偷下到其他格。
+		chosen = nearest
+		if best_distance > (_board_spacing * _board_spacing * 0.5):
+			return false
 	var position:Vector2 = _cell_to_world(chosen,rect)
 	var player_path:NodePath = player.get_path()
 	_spawn_stone_local(player_path,chosen,slot,position)

@@ -108,9 +108,14 @@ class Baker:
             names+=['humanoid.bob','enderman.arms_legs']
             if state.startswith('angry'): names+=['enderman.scary_face']
         elif role=='evoker':
-            names=['evoker.casting' if state in ('cast','celebrate') else 'evoker.general']
-            if walk: names+=['evoker.move']
-            if state=='celebrate': names+=['humanoid.celebrating']
+            # Bedrock controller states are exclusive: celebration does NOT add
+            # its arm rotations on top of casting (-135 + -135 caused folded arms).
+            if state == 'celebrate':
+                names=['humanoid.celebrating']
+                poses['arms']['scale']=np.zeros(3) # hide the folded-arm mesh only
+            else:
+                names=['evoker.casting' if state == 'cast' else 'evoker.general']
+                if walk: names+=['evoker.move']
         elif role=='vex':
             # Controller order is charge then idle: the +/-32.34 offsets in charge
             # explicitly compensate for the following idle track.

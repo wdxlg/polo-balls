@@ -14,6 +14,7 @@ func _init(game: Node) -> void:
 
 
 var _base_game_time_scale:float = 1.0
+var _development_time_multiplier:float = 1.0
 
 var _time_scale_overrides:Dictionary = {}
 
@@ -53,9 +54,14 @@ func get_base_game_time_scale() -> float:
 	return _base_game_time_scale
 
 
+func set_development_time_multiplier(multiplier:float) -> void:
+	_development_time_multiplier = clampf(multiplier,0.0,32.0)
+	_apply_time_scale_overrides()
+
+
 func _apply_time_scale_overrides() -> void:
 	var factor:float = get_time_scale_override_factor()
-	var effective_scale:float = _base_game_time_scale * factor
+	var effective_scale:float = _base_game_time_scale * factor * _development_time_multiplier
 	Engine.time_scale = effective_scale
 	# V415：Engine.time_scale 不会自动改变音频播放速度。把同一有效倍率立即交给 Audios，
 	# 游戏声会按该倍率播放；UI 声音由 Audios 做反向补偿，始终维持正常 1x。
@@ -65,7 +71,7 @@ func _apply_time_scale_overrides() -> void:
 	# Godot 文档指出：单独把 time_scale 拉高会降低物理精度。
 	# 训练模式同步提高 physics_ticks_per_second，使高速投射物/极速闪避在高倍速下仍有足够采样。
 	# 32x 时最多 1920 physics ticks/s；普通游戏仍维持 60Hz，避免无谓 CPU 开销。
-	if _game.is_training_mode():
+	if _game.is_training_mode() or _development_time_multiplier > 1.0:
 		var target_ticks:int = int(round(60.0 * maxf(effective_scale, 1.0)))
 		Engine.physics_ticks_per_second = clampi(target_ticks, 60, _game.TRAINING_MAX_PHYSICS_TICKS)
 		# 高 physics tick 时，Godot 还受“每个渲染帧最多模拟多少物理步”限制。
@@ -76,6 +82,7 @@ func _apply_time_scale_overrides() -> void:
 			64
 		)
 	else:
+		# 普通游戏维持60Hz；已移除的大规模降频接口不能再被读取并转换 int(null)。
 		Engine.physics_ticks_per_second = 60
 		# V420 性能：普通对局把“每渲染帧最多补多少物理步”压到 2。
 		# 旧值 8 会形成死亡螺旋：一帧 CPU 超过 16.7ms 后，下一帧要补 2~8 个物理步，

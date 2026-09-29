@@ -126,6 +126,7 @@ func run() -> void:
 			settle_model()
 			check(cube.has_block(first) and cube.has_block(second) and has_frame(0,first) and has_frame(1,second),"pair %d/%d retains both traits and ordered original-texture icons" % [first,second])
 			check(cube._native_model.block_mode == second and cube._native_model.inner_block.get_child(0).material_override.albedo_texture == C.MODEL.BLOCK_TEXTURES[second],"pair %d/%d renders only newest inner material" % [first,second])
+			cube._iron_down_speed = 170.0 # Explicit downward attack phase, not idle pressure.
 			var expected:Dictionary = {}
 			for mode:int in [first,second]:
 				if mode == C.Block.ICE: expected["sulfur_ice_speed_contact"] = true
@@ -179,7 +180,7 @@ func run() -> void:
 	cube.take_damage(100.0)
 	check(before-cube.health == 100.0,"evicted iron no longer grants resistance")
 
-	# Sticky collision leases remain until HONEY itself is evicted.
+	# A still-active timed honey grab survives moving honey to the older slot.
 	reset_block(C.Block.HONEY)
 	victim.global_position = cube.global_position+Vector2(4,0)
 	cube._pull_touching_enemies(0.1)
@@ -187,7 +188,7 @@ func run() -> void:
 	check(cube.get_collision_exceptions().has(victim) and victim.get_collision_exceptions().has(cube),"honey pair collision exemption survives insertion of magma")
 	victim.Repel = Vector2(250,0)
 	cube._pull_touching_enemies(0.1)
-	check(victim.Repel.x < 250.0 and victim.Repel.x > 0.0,"retained honey keeps its bounded pull, not a hard lock")
+	check(victim.Repel.x == 250.0 and is_equal_approx(cube.KNOCKBACK_EFFECT_SCRIPT.pull_velocity(victim).x,-170.0),"retained honey has a separate bounded pull without overwriting other movement")
 	cube.acquire_block(C.Block.IRON)
 	check(not cube.get_collision_exceptions().has(victim) and not victim.get_collision_exceptions().has(cube),"eviction releases both sides of the honey lease")
 	victim.global_position = center+Vector2(160,0)

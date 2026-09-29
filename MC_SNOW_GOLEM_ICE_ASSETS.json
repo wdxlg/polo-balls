@@ -1,0 +1,64 @@
+{
+  "java_version": "1.21.1",
+  "archive_url": "https://piston-data.mojang.com/v1/objects/30c73b1c5da787909b2f73340419fdf13b9def88/client.jar",
+  "archive_sha1": "30c73b1c5da787909b2f73340419fdf13b9def88",
+  "files": [
+    {
+      "file": "Images/characters/我的世界/snow_golem/ice.png",
+      "sha256": "4d158c24f2ec563d52806642ac7f4e20a5bda168af8c2ae528ed8e9ef1a58771",
+      "archive_entry": "assets/minecraft/textures/block/ice.png"
+    },
+    {
+      "file": "Images/characters/我的世界/snow_golem/ice_crack_0.png",
+      "sha256": "f499533ea289fe9f34b0917d630129b4805ae39b9491859eba496682cd2fd0c3",
+      "archive_entry": "assets/minecraft/textures/block/destroy_stage_0.png"
+    },
+    {
+      "file": "Images/characters/我的世界/snow_golem/ice_crack_1.png",
+      "sha256": "0de13fe3603a953791dc229fbd78ff825845af57bfdb4137eddcc7ef9debce34",
+      "archive_entry": "assets/minecraft/textures/block/destroy_stage_1.png"
+    },
+    {
+      "file": "Images/characters/我的世界/snow_golem/ice_crack_2.png",
+      "sha256": "3dad4672e2cd127105cc113bc7584785ae1d600a993e5e5261661d4805fe9b11",
+      "archive_entry": "assets/minecraft/textures/block/destroy_stage_2.png"
+    },
+    {
+      "file": "Images/characters/我的世界/snow_golem/ice_crack_3.png",
+      "sha256": "d7eca4b992e6a5e33b7a9247b28f7ecb5ef7d64ca876cd6fa4239aca4822552b",
+      "archive_entry": "assets/minecraft/textures/block/destroy_stage_3.png"
+    },
+    {
+      "file": "Images/characters/我的世界/snow_golem/ice_crack_4.png",
+      "sha256": "5d26b667ba1b56164cfa9cc8860a7f603fe0091223249a3c312febd7526c18a3",
+      "archive_entry": "assets/minecraft/textures/block/destroy_stage_4.png"
+    },
+    {
+      "file": "Images/characters/我的世界/snow_golem/ice_crack_5.png",
+      "sha256": "e66112ebadbed250bf374685e5e8f49ecab78aae6d7c8c3c05f503f5a0e2fb28",
+      "archive_entry": "assets/minecraft/textures/block/destroy_stage_5.png"
+    },
+    {
+      "file": "Images/characters/我的世界/snow_golem/ice_crack_6.png",
+      "sha256": "e2d6371698dff727db1f06f9176033c3f6774671f4c87718c05ac38910b12e21",
+      "archive_entry": "assets/minecraft/textures/block/destroy_stage_6.png"
+    },
+    {
+      "file": "Images/characters/我的世界/snow_golem/ice_crack_7.png",
+      "sha256": "e57b32b06a2f1dea079b880bfe6b767d1ee638b07027c82f4abb82ed5330cba7",
+      "archive_entry": "assets/minecraft/textures/block/destroy_stage_7.png"
+    },
+    {
+      "file": "Images/characters/我的世界/snow_golem/ice_crack_8.png",
+      "sha256": "e1c1d8c8ec097fa8de5d0dd6e8f69972c1afb1504bff4899d1911f245de81cc7",
+      "archive_entry": "assets/minecraft/textures/block/destroy_stage_8.png"
+    },
+    {
+      "file": "Images/characters/我的世界/snow_golem/ice_crack_9.png",
+      "sha256": "37aff035cb4ba9d7666b4d8b3270caa5427d0d15ff6850d3bd6c105246bd0638",
+      "archive_entry": "assets/minecraft/textures/block/destroy_stage_9.png"
+    }
+  ],
+  "adaptation": "Unmodified original PNG bytes. The game projects the ice texture onto a translucent cuboid fitted to the victim, overlays the original destruction stages near thaw, and uses cropped native ice texels for breakout fragments. No generated replacement art.",
+  "copyright": "Minecraft assets belong to Mojang/Microsoft. The Minecraft EULA applies; no independent redistribution authorization is asserted."
+}

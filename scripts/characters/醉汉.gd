@@ -1,4 +1,5 @@
 extends ball
+const PROJECTILE_API = preload("res://classes/projectile_interactions.gd")
 
 const BOTTLE_SCENE := preload("res://scenes/shooter/酒瓶.tscn")
 const BOTTLE_WALL_BREAK_AUDIO:AudioStream = preload("res://audio/characters/醉汉/酒瓶碎裂.mp3")
@@ -237,10 +238,8 @@ func _update_dodge_decision_locks(delta:float) -> void:
 
 func _find_projectile_threat() -> Dictionary:
 	var candidates:Dictionary = {}
-	for group_name:String in ["Ball","BattleTransient","ArmsDealerProjectile","HunterPellet","MagnetElectricBall"]:
-		for node:Node in get_tree().get_nodes_in_group(group_name):
-			if node != null and is_instance_valid(node) and node != self:
-				candidates[node.get_instance_id()] = node
+	for node:Node in PROJECTILE_API.candidates(get_tree()):
+		if node != self: candidates[node.get_instance_id()] = node
 
 	var best:Dictionary = {}
 	var best_score:float = INF
@@ -286,17 +285,7 @@ func _find_projectile_threat() -> Dictionary:
 
 
 func _is_projectile_candidate(node:Node) -> bool:
-	if node == null or not is_instance_valid(node):
-		return false
-	if node is ball:
-		var projectile_ball:ball = node as ball
-		return projectile_ball.Type == Ball_Type.Shooter or projectile_ball.Type == Ball_Type.Shooter_with_Health
-	if node.is_in_group("ArmsDealerProjectile") or node.is_in_group("HunterPellet") or node.is_in_group("MagnetElectricBall"):
-		return true
-	if node.is_in_group("BattleTransient"):
-		return _projectile_velocity(node).length_squared() > 1.0
-	return false
-
+	return PROJECTILE_API.supports(node,"predict")
 
 func _is_hostile_projectile_node(node:Node) -> bool:
 	var projectile_team:String = _projectile_team(node)
@@ -306,55 +295,17 @@ func _is_hostile_projectile_node(node:Node) -> bool:
 
 
 func _projectile_team(node:Node) -> String:
-	var team_value:String = ""
-	if _object_has_property(node,"Team"):
-		team_value = str(node.get("Team")).strip_edges()
-	if node is ball:
-		var projectile_ball:ball = node as ball
-		if projectile_ball.Master != null and is_instance_valid(projectile_ball.Master):
-			if team_value.is_empty() or team_value == "Ball":
-				team_value = str(projectile_ball.Master.Team).strip_edges()
-	elif _object_has_property(node,"Master"):
-		var master_value:Variant = node.get("Master")
-		if master_value is ball and (team_value.is_empty() or team_value == "Ball"):
-			team_value = str((master_value as ball).Team).strip_edges()
-	return team_value
-
+	return PROJECTILE_API.team_of(node)
 
 func _projectile_velocity(node:Node) -> Vector2:
-	if node == null or not is_instance_valid(node):
-		return Vector2.ZERO
-	if _object_has_property(node,"velocity"):
-		var velocity_value:Variant = node.get("velocity")
-		if velocity_value is Vector2:
-			var velocity_vector:Vector2 = velocity_value
-			if velocity_vector.length_squared() > 1.0:
-				return velocity_vector
-	var projectile_direction:Vector2 = Vector2.ZERO
-	for property_name:String in ["direction","travel_direction"]:
-		if _object_has_property(node,property_name):
-			var direction_value:Variant = node.get(property_name)
-			if direction_value is Vector2:
-				projectile_direction = direction_value
-				break
-	if projectile_direction.length_squared() <= 0.000001:
-		return Vector2.ZERO
-	var projectile_speed:float = 0.0
-	for speed_name:String in ["Speed","speed","projectile_speed","max_speed"]:
-		if _object_has_property(node,speed_name):
-			projectile_speed = absf(float(node.get(speed_name)))
-			if projectile_speed > 0.0:
-				break
-	return projectile_direction.normalized() * projectile_speed
-
+	return PROJECTILE_API.velocity_of(node)
 
 func _object_has_property(object:Object,property_name:String) -> bool:
-	if object == null:
-		return false
-	for info:Dictionary in object.get_property_list():
-		if str(info.get("name","")) == property_name:
-			return true
-	return false
+	# V431 性能：按脚本缓存属性名集合（classes/property_index.gd），不再逐次 get_property_list()。
+	return PROPERTY_INDEX.has_property(object,property_name)
+
+
+const PROPERTY_INDEX = preload("res://classes/property_index.gd")
 
 
 func Attack() -> void:

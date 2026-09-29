@@ -1,0 +1,7 @@
+{
+  "source": "Original Mojang Bedrock sheep geometry, skin and animation via existing bake_new6.py",
+  "body": "Only body bone; no head or legs in the inflatable texture",
+  "fixed": "Head and leg bones, unscaled during wool defence",
+  "layout": "8 frames per row, 128px cells; walk then idle; same camera and animation times as original atlas",
+  "copyright": "Mojang Studios / Microsoft; Minecraft EULA applies"
+}

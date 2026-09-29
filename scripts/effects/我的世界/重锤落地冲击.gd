@@ -48,6 +48,8 @@ const FLOOR_SAMPLER:Script = preload("res://scripts/effects/地表渲染采样.g
 @export var block_edge_height:float = 12.0
 @export var block_height_falloff:float = 1.35
 
+var _ring_palette:PackedColorArray = PackedColorArray([Color.WHITE,Color.WHITE,Color.WHITE,Color.WHITE])
+
 var _elapsed:float = 0.0
 var _radius:float = 42.0
 var _rng := RandomNumberGenerator.new()
@@ -230,6 +232,12 @@ func _draw() -> void:
 	_draw_block_particles()
 
 
+func _ring_color(index:int,alpha:float) -> Color:
+	var result:Color = _ring_palette[index] if index < _ring_palette.size() else Color.WHITE
+	result.a *= alpha
+	return result
+
+
 func _draw_ring_and_streaks() -> void:
 	var p:float = clampf(_elapsed / maxf(lifetime,0.02),0.0,1.0)
 	if show_impact_ring and p < 1.0:
@@ -239,7 +247,7 @@ func _draw_ring_and_streaks() -> void:
 		# Compress the normal axis, not the in-plane transverse axis: a hoop facing the shot.
 		# Transform the existing pixel annulus including its stroke; reset before other components.
 		draw_set_transform(Vector2.ZERO,ring_axis.angle(),Vector2(clampf(ring_depth_ratio,0.05,1.0),1.0))
-		preload("res://scripts/effects/我的世界/pixel_arc.gd").draw_ring(self,Vector2.ZERO,radius_value,Color.WHITE,alpha,ring_palette)
+		preload("res://scripts/effects/我的世界/pixel_arc.gd").draw_ring(self,Vector2.ZERO,radius_value,Color.WHITE,alpha,ring_palette if not ring_palette.is_empty() else _ring_palette)
 		draw_set_transform(Vector2.ZERO,0.0,Vector2.ONE)
 
 	if not show_impact_streaks: return
@@ -262,7 +270,7 @@ func _draw_ring_and_streaks() -> void:
 		var start:Vector2 = direction * (start_radius + travel * move_t)
 		var finish:Vector2 = start + direction * line_length
 		var width:float = float(data.get("width",1.0))
-		draw_line(start,finish,Color(1.0,1.0,1.0,0.95 * fade),width,true)
+		draw_line(start,finish,_ring_color(3,0.95 * fade),width,true)
 
 
 func _draw_block_particles() -> void:

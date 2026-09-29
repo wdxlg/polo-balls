@@ -10,12 +10,14 @@ size = Vector2(164, 14)
 
 [node name="鞘翅长矛" instance=ExtResource("1_flight")]
 script = ExtResource("2_spear")
-editor_description = "200血。沿用鞘翅重锤滑翔、烟花与越界飞行；下界合金矛尖低速顶人并转开，高速贯穿，伤害随实际飞行速度提高。没有木矛移动蓄速、命中提速、穿刺爆发或穿后扣速，也没有重锤连砸。"
+editor_description = "200血。鞘翅滑翔并在飞远前主动回航；对准敌人可爆发加速穿刺，有效命中继续提速至飞行上限。伤害取当前攻击与命中前速度，普通低速顶人/高速贯穿保留，无重锤连砸。手控左键穿刺冲刺、右键烟花，WASD与鼠标瞄准分离。"
 Type_Tags = PackedStringArray("我的世界", "近战", "飞行", "突刺", "穿透")
 Negative_Tags = PackedStringArray("低血量")
 Max_health = 200
 Damage = 18
 Attack_Cooling = 0.25
+Skill_Cooling = 1.8
+Can_Skill = true
 motion_blur_enabled = false
 motion_stretch_enabled = false
 AfterImage_Speed = 342.0

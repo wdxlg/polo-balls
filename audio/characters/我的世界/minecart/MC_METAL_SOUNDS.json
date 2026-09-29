@@ -1,0 +1,38 @@
+{
+  "minecraft_version": "1.21.5",
+  "events": [
+    "block.metal.place",
+    "block.metal.break"
+  ],
+  "assets": [
+    {
+      "asset": "minecraft/sounds/dig/stone1.ogg",
+      "sha1": "4ec831592ae2bcbac1b4047a9f9f72a2de5ca834",
+      "size": 7434,
+      "url": "https://resources.download.minecraft.net/4e/4ec831592ae2bcbac1b4047a9f9f72a2de5ca834",
+      "file": "metal_stone1.ogg"
+    },
+    {
+      "asset": "minecraft/sounds/dig/stone2.ogg",
+      "sha1": "7afc0a50da1e1f92499c9c45c7ea912808d9a9ea",
+      "size": 7635,
+      "url": "https://resources.download.minecraft.net/7a/7afc0a50da1e1f92499c9c45c7ea912808d9a9ea",
+      "file": "metal_stone2.ogg"
+    },
+    {
+      "asset": "minecraft/sounds/dig/stone3.ogg",
+      "sha1": "dc61bcd12bea28fc6a3427b62e458c4d1922f3fc",
+      "size": 7381,
+      "url": "https://resources.download.minecraft.net/dc/dc61bcd12bea28fc6a3427b62e458c4d1922f3fc",
+      "file": "metal_stone3.ogg"
+    },
+    {
+      "asset": "minecraft/sounds/dig/stone4.ogg",
+      "sha1": "d8bfc754f9ced2f50521f7bb94503ec456887ddc",
+      "size": 7288,
+      "url": "https://resources.download.minecraft.net/d8/d8bfc754f9ced2f50521f7bb94503ec456887ddc",
+      "file": "metal_stone4.ogg"
+    }
+  ],
+  "event_definition": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.5/assets/minecraft/sounds.json"
+}

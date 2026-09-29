@@ -270,7 +270,7 @@ func _physics_process(_delta:float) -> void:
 	# 连续冲撞不倒车时，召唤系统也不会被间接彻底关闭。
 	_summon_elapsed += _delta
 	var summon_due:bool = _summon_elapsed >= summon_interval
-	if summon_due:
+	if summon_due and not is_player_controlled():
 		if _is_reverse_gear_active() and _vehicle_speed <= -maxf(engine_audio_min_speed,12.0):
 			if _spawn_random_van_minion():
 				_summon_elapsed = 0.0
@@ -287,6 +287,8 @@ func _physics_process(_delta:float) -> void:
 		# 倒车阶段结束但仍未找到合法出生点时允许下一次重新请求，不丢失已满冷却。
 		_summon_reverse_requested = false
 
+	# 手控时召唤只响应玩家点击，不能仅因玩家倒车就自动下人。
+
 	var ratio:float = float(health) / maxf(float(Max_health),1.0)
 	# V135：物理帧保留兜底检查，但真正的首次触发也会在 on_actual_health_damage_received()
 	# 中立即登记，避免伤害时序/暂停状态让半血波次漏掉。
@@ -299,6 +301,17 @@ func _physics_process(_delta:float) -> void:
 		_vehicle_speed = clampf(_vehicle_speed,-Speed * reverse_speed_ratio,Speed)
 	# V141：冲撞统一在 tick_physics() 的真实移动之后，用扫掠矩形 + slide collision 结算。
 	# 不再在这里额外做第二次范围查询，避免大规模战斗下每台面包车每物理帧重复查询人物层。
+
+
+func controlled_attack_action() -> void:
+	# 左键：冷却已满且真实倒车达到速度要求时，从车尾下人。
+	if not is_player_controlled() or not is_multiplayer_authority() or health <= 0 or not is_combat_runtime_active():
+		return
+	if _summon_elapsed < summon_interval or not _is_reverse_gear_active() or _vehicle_speed > -maxf(engine_audio_min_speed,12.0):
+		return
+	if _spawn_random_van_minion():
+		_summon_elapsed = 0.0
+		_summon_reverse_requested = false
 
 
 # 面包车完全绕过普通角色的 direction * Speed 追踪。

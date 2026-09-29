@@ -1,5 +1,5 @@
 extends SceneTree
-## Merge regression: world-space moss/silk and TWO-LANE shared 24px managers.
+## Merge regression: world-space moss/silk, map-block snow and independent 24px rails on TWO lanes.
 ## Run: Godot.4.7.2.offline.exe --headless --path . --script tests/test_development_terrain_merge.gd
 var snow_script:Script
 var rails_script:Script
@@ -27,11 +27,10 @@ func entry(id:int,team:String,side:String,character:String,relative:Vector2) -> 
 	return {"id":id,"char":character,"team":team,"scene_path":"res://scenes/characters/我的世界/%s.tscn" % character,
 		"x":point.x,"y":point.y,"development_base_position":true,"development_lane_key":side+":0"}
 
-func make_head(id:int,cell:Vector2i,owner:Node) -> Dictionary:
-	var point:Vector2 = snow_script.point_at(cell)
-	return {"id":id,"cell":cell,"point":point,"start":point+Vector2(0,-30),"landed":true,"blocks":1,
-		"elapsed":0.32,"duration":0.32,"pending":false,"face_right":false,"visual_scale":1.0,
-		"family":str(owner.Team),"team":owner.Team,"source":weakref(owner)}
+func snow_record(field:Node2D,cell:Vector2i,owner:Node,deadline:float) -> Dictionary:
+	var tile:Rect2 = field.snow_tile_at(cell)
+	return {"cell":cell,"tile":tile,"rects":[tile],"level":2,"family":str(owner.Team),
+		"team":owner.Team,"source":weakref(owner),"expires_at":deadline,"fade_duration":0.30}
 
 func run() -> void:
 	create_timer(85.0,true,false,true).timeout.connect(func(): print("TIMEOUT"); quit(2))
@@ -121,21 +120,20 @@ func run() -> void:
 	rails.name = "MinecartRails"
 	world.add_child(rails)
 	rails.add_to_group("BattleTransient")
-	var base_cell:Vector2i = snow_script.cell_at(dev.base_rect.get_center())
-	var snow_left_cell:Vector2i = base_cell+Vector2i(roundi(left.x/24.0),roundi(left.y/24.0))
-	var snow_right_cell:Vector2i = base_cell+Vector2i(roundi(right.x/24.0),roundi(right.y/24.0))
-	snow.patches[snow_left_cell] = {"level":2,"family":"L","team":"Team0","source":weakref(moss_left),"expires_at":11.0,"half_lifetime":4.0}
-	snow.patches[snow_right_cell] = {"level":1,"family":"R","team":"Team1","source":weakref(moss_right),"expires_at":18.0,"half_lifetime":4.0}
-	snow.heads[1] = make_head(1,snow_left_cell,moss_left)
-	snow.heads[2] = make_head(2,snow_right_cell,moss_right)
-	snow._positions[spider_left.get_instance_id()] = snow_script.point_at(snow_left_cell)
+	var base_cell:Vector2i = snow.snow_cell_at(dev.base_rect.get_center())
+	var base_snow_point:Vector2 = snow.snow_point_at(base_cell)
+	var snow_left_cell:Vector2i = snow.snow_cell_at(base_snow_point+left)
+	var snow_right_cell:Vector2i = snow.snow_cell_at(base_snow_point+right)
+	snow.patches[snow_left_cell] = snow_record(snow,snow_left_cell,moss_left,11.0)
+	snow.patches[snow_right_cell] = snow_record(snow,snow_right_cell,moss_right,18.0)
+	snow._positions[spider_left.get_instance_id()] = base_snow_point+left
 	var ice_script:Script = load("res://scripts/effects/我的世界/sulfur_ice_trail.gd")
 	var ice:Node2D = ice_script.new()
 	world.add_child(ice)
-	ice.setup(moss_left,Rect2(snow_script.point_at(snow_left_cell)-Vector2.ONE*12.0,Vector2.ONE*24.0))
+	ice.setup(moss_left,Rect2((base_snow_point+left)-Vector2.ONE*12.0,Vector2.ONE*24.0))
 	var ice_before:Rect2 = ice.cell_rect
 	for offset:Vector2 in [left,right]:
-		var rail_cell:Vector2i = rails.world_to_cell(snow_script.point_at(base_cell)+offset)
+		var rail_cell:Vector2i = rails.world_to_cell(base_snow_point+offset)
 		var a:int = rails._node(rail_cell,offset == left,true)
 		var b:int = rails._node(rail_cell+Vector2i.RIGHT,false,true)
 		rails._connect(a,b)
@@ -148,11 +146,11 @@ func run() -> void:
 	world._rotation_rosters["right"] = [{"id":802}]
 	dev._sync_lanes(false)
 	var rearranged:Vector2 = dev._offset("left:0")-left
-	var moved_snow:Vector2i = snow_left_cell+Vector2i(roundi(rearranged.x/24.0),roundi(rearranged.y/24.0))
+	var moved_snow:Vector2i = snow.snow_cell_at(base_snow_point+left+rearranged)
 	check(not rearranged.is_zero_approx() and close(moss_left.patches[0].point,base_moss_point+left+rearranged) and close(spider_left.global_position,dev.base_rect.get_center()+Vector2(0,-48)+left+rearranged),"roster re-centering carries character and moss together")
 	check(close(silk_left.segments[0].start.point,old_silk_left+rearranged) and close(wall.global_position,old_silk_left+rearranged),"silk anchor and attached obstacle move together when adding a reserve")
-	check(snow.patches.has(moved_snow) and snow.heads[1].cell == moved_snow and not snow.patches.has(snow_left_cell),"snow manager rekeys its old lane when reserve count changes")
-	check(not rails.cell_at(snow_script.point_at(moved_snow)).is_empty() and rails.nodes.size() == 4,"rail graph rekeys without losing lanes before combat")
+	check(snow.patches.has(moved_snow) and close(snow.patches[moved_snow].tile.get_center(),base_snow_point+left+rearranged) and not snow.patches.has(snow_left_cell),"snow manager rekeys its old lane when reserve count changes")
+	check(not rails.cell_at((base_snow_point+left+rearranged)).is_empty() and rails.nodes.size() == 4,"rail graph rekeys without losing lanes before combat")
 	check(close(ice.cell_rect.get_center(),ice_before.get_center()+rearranged) and close(ice.cell_rect.get_center(),ice.global_position),"ice hitbox follows its node during roster re-centering")
 	game.Game_Settings.Training_Mode_Type = "manual"
 	dev._sync_lanes(false)
@@ -171,8 +169,8 @@ func run() -> void:
 	check(silk_left.segments[0].start.ref == null and close(wall.global_position,old_silk_left-left*0.25),"attached silk stays on the moving wall, not its obsolete pre-merge attachment")
 	check(close(silk_left.webs["web"].point,old_web_left-left*0.25) and close(silk_right.webs["web"].point,old_web_right-right*0.25),"silk web draw/damage points move on both sides")
 	check(silk_left.global_position == Vector2.ZERO and silk_left._previous.is_empty() and silk_left._previous_lines.is_empty(),"silk origin stays fixed and outdated sweep caches are cleared")
-	check(snow.global_position == Vector2.ZERO and close(snow._development_draw_offsets[snow_left_cell],-left*0.25) and close(snow.heads[1].point,snow_script.point_at(snow_left_cell)-left*0.25),"snow tiles and pumpkins visually tween while the shared manager stays fixed")
-	check(rails.global_position == Vector2.ZERO and close(rails._development_draw_offsets[rails.world_to_cell(snow_script.point_at(base_cell)+left)],-left*0.25),"rail drawing follows the left map without moving the shared graph node")
+	check(snow.global_position == Vector2.ZERO and close(snow._development_draw_offsets[snow_left_cell],-left*0.25) and close(snow.patches[snow_left_cell].tile.get_center()+snow._development_draw_offsets[snow_left_cell],base_snow_point+half_left),"full snow footprints visually tween while the shared manager stays fixed")
+	check(rails.global_position == Vector2.ZERO and close(rails._development_draw_offsets[rails.world_to_cell(base_snow_point+left)],-left*0.25),"rail drawing follows the left map without moving the shared graph node")
 	check(close(ice.global_position,ice_before.get_center()-left*0.25) and close(ice.cell_rect.get_center(),ice.global_position),"temporary ice tile's image and world-space speed hitbox follow together")
 	dev._complete_merge()
 	check(dev.phase == dev.BATTLE,"merge completes into battle")
@@ -181,12 +179,12 @@ func run() -> void:
 	check(close(silk_left.segments[0].start.point,old_silk_left-left) and close(silk_right.segments[0].start.point,old_silk_right-right),"silk collision anchors and render coordinates agree after merge")
 	check(close(silk_left.webs["web"].point,old_web_left-left) and close(silk_right.webs["web"].point,old_web_right-right),"both spider webs remain at their corresponding destination")
 	check(close(ice.cell_rect.get_center(),ice_before.get_center()-left) and ice.cell_rect.has_point(ice.global_position),"ice boost still applies at the visible tile after merging")
-	check(snow.patches.size() == 1 and snow.patches.has(base_cell) and int(snow.patches[base_cell].level) == 2,"overlapping 24px snow cells coalesce without losing the stronger effect")
-	check(snow.heads[1].cell == base_cell and snow.heads[2].cell == base_cell and close(snow.heads[1].point,snow_script.point_at(base_cell)) and snow._positions.is_empty(),"pumpkin locations and snow collision history are rebased")
+	check(snow.patches.size() == 1 and snow.patches.has(base_cell) and int(snow.patches[base_cell].level) == 2 and snow.patches[base_cell].expires_at == 18.0,"overlapping actual block snow coalesces while preserving the newer deadline")
+	check(snow.patches[base_cell].tile.size == snow.grid_size and close(snow.patches[base_cell].tile.get_center(),base_snow_point) and snow._positions.is_empty() and not snow.has_method("drop_head"),"snow retains full map-block geometry, clears sweep history and does not restore retired pumpkins")
 	check(rails.nodes.size() == 2 and rails.rails.size() == 1 and rails._cell_ids.size() == 2,"overlapping rail cells and edges retain one usable graph")
-	var end_cell:Vector2i = rails.world_to_cell(snow_script.point_at(base_cell))+Vector2i.RIGHT
-	var rail_at:Dictionary = rails.cell_at(snow_script.point_at(base_cell))
-	check(not rail_at.is_empty() and rail_at.cell == rails.world_to_cell(snow_script.point_at(base_cell)) and bool(rail_at.powered) and rails._cell_ids.has(end_cell),"rail occupancy, power and lookup agree at the destination")
+	var end_cell:Vector2i = rails.world_to_cell(base_snow_point)+Vector2i.RIGHT
+	var rail_at:Dictionary = rails.cell_at(base_snow_point)
+	check(not rail_at.is_empty() and rail_at.cell == rails.world_to_cell(base_snow_point) and bool(rail_at.powered) and rails._cell_ids.has(end_cell),"rail occupancy, power and lookup agree at the destination")
 	check(rails.neighbors(int(rail_at.id)).size() == 1 and rails.edge(int(rails.neighbors(int(rail_at.id))[0])).size() > 0 and rails.render_cells().size() == 2,"the merged rail is traversable and draws once per final cell")
 	check(snow.global_position == Vector2.ZERO and rails.global_position == Vector2.ZERO and silk_right.global_position == Vector2.ZERO,"world-origin shared managers do not inherit a guessed lane offset")
 	# Leaving development half-way through a transition must also undo its
@@ -205,16 +203,18 @@ func run() -> void:
 	var active_left:Node = world._spawn_character_from_setup(preview_left)
 	world._spawn_character_from_setup(preview_right)
 	var cancel_offset:Vector2 = dev._offset("left:0")
-	var cancel_cell:Vector2i = snow_script.cell_at(center)
-	var placed_cell:Vector2i = cancel_cell+Vector2i(roundi(cancel_offset.x/24.0),roundi(cancel_offset.y/24.0))
 	var cancel_snow:Node2D = snow_script.ensure(world)
-	cancel_snow.patches[placed_cell] = {"level":2,"family":"C","team":"Team0","source":weakref(active_left),"expires_at":90.0,"half_lifetime":4.0}
+	var cancel_cell:Vector2i = cancel_snow.snow_cell_at(center)
+	var cancel_point:Vector2 = cancel_snow.snow_point_at(cancel_cell)
+	var placed_cell:Vector2i = cancel_snow.snow_cell_at(cancel_point+cancel_offset)
+	cancel_snow.patches[placed_cell] = snow_record(cancel_snow,placed_cell,active_left,90.0)
 	var cancel_rails:Node2D = rails_script.new()
 	cancel_rails.name = "MinecartRails"
 	world.add_child(cancel_rails)
 	cancel_rails.add_to_group("BattleTransient")
-	var first:int = cancel_rails._node(placed_cell,false,true)
-	var second:int = cancel_rails._node(placed_cell+Vector2i.RIGHT,true,true)
+	var cancel_rail_cell:Vector2i = cancel_rails.world_to_cell(cancel_point+cancel_offset)
+	var first:int = cancel_rails._node(cancel_rail_cell,false,true)
+	var second:int = cancel_rails._node(cancel_rail_cell+Vector2i.RIGHT,true,true)
 	cancel_rails._connect(first,second)
 	cancel_rails._publish()
 	world.control.team.hide()
@@ -224,7 +224,7 @@ func run() -> void:
 	dev.cleanup(false)
 	check(dev.phase == dev.OFF and close(active_left.global_position,center),"cancelled merge restores the actor's original coordinate")
 	check(cancel_snow.patches.has(cancel_cell) and not cancel_snow.patches.has(placed_cell) and cancel_snow.global_position == Vector2.ZERO,"cancelled merge restores both snow rendering and snow hitbox cells")
-	check(cancel_rails.nodes.size() == 2 and not cancel_rails.cell_at(snow_script.point_at(cancel_cell)).is_empty() and cancel_rails.global_position == Vector2.ZERO,"cancelled merge restores the rail graph, not just its manager node")
+	check(cancel_rails.nodes.size() == 2 and not cancel_rails.cell_at(cancel_point).is_empty() and cancel_rails.global_position == Vector2.ZERO,"cancelled merge restores the rail graph, not just its manager node")
 	world.reset()
 	await process_frame
 	game.set_runtime_game_setting("Development_Mode",false,false)

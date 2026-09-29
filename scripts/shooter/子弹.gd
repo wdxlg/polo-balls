@@ -42,6 +42,8 @@ func _on_hitbox_on_hit(hurt:hurtbox) -> void:
 	if target != null and is_instance_valid(target):
 		var health_loss:float = maxf(before_health - float(target.health),0.0)
 		var block_loss:float = maxf(before_block - float(target.block),0.0)
+		if health_loss>0.0 and is_instance_valid(Master) and Master.is_in_group("MinecraftAllay"):
+			Master.notify_allay_hit(health_loss,target.global_position)
 		# 只要发生格挡/护盾吸收，或者完全没有伤到生命，都视为“硬碰撞/被防御”。
 		if block_loss > 0.0 or health_loss <= 0.0:
 			_play_bullet_impact_sfx("子弹打墙",1.0)

@@ -549,83 +549,54 @@ func _kill_bar_tween(bar:TextureProgressBar) -> void:
 
 	_bar_tweens.erase(bar)
 
+# V430 性能：大规模战斗时按 World 视觉密度收紧同屏伤害飘字上限（人数回落自动恢复）。
+func _effective_max_live_damage_texts() -> int:
+	var limit:int = max_live_damage_texts
+	var o:Node = owner
+	if o != null and o.has_method("get_large_battle_visual_density"):
+		limit = maxi(int(ceil(float(limit) * clampf(float(o.call("get_large_battle_visual_density")),0.15,1.0))),12)
+	return limit
+
+func _floating_text_point() -> Vector2:
+	# Sample on the character's visual, respecting its scale/rotation, not the HUD.
+	var rng:RandomNumberGenerator = preload("res://scripts/damage_text.gd").visual_random()
+	var visual:Node2D = owner.image as Node2D
+	if is_instance_valid(visual):
+		var rect := Rect2(Vector2(-damage_text_offset_range,-damage_text_offset_range),Vector2.ONE*damage_text_offset_range*2.0)
+		if visual is Sprite2D:
+			rect = visual.get_rect()
+		elif visual is AnimatedSprite2D:
+			var animated := visual as AnimatedSprite2D
+			if animated.sprite_frames != null and animated.sprite_frames.get_frame_count(animated.animation)>0:
+				var texture:Texture2D = animated.sprite_frames.get_frame_texture(animated.animation,animated.frame)
+				if texture != null:
+					var extent:Vector2 = texture.get_size()
+					rect = Rect2(animated.offset-extent*0.5 if animated.centered else animated.offset,extent)
+		var point:Vector2 = rect.get_center()+Vector2(rng.randf_range(-0.32,0.32)*rect.size.x,rng.randf_range(-0.32,0.32)*rect.size.y)
+		return visual.to_global(point)
+	return owner.global_position
+
 func _spawn_heal_text(heal_amount:int) -> void:
-	if heal_amount <= 0:
-		return
-
-	var tree:SceneTree = get_tree()
-
-	if max_live_damage_texts > 0 and tree.get_node_count_in_group("__damage_text_runtime") >= max_live_damage_texts:
-		return
-
-	var heal_text:Label = damage_text.instantiate()
-	heal_text.add_to_group("__damage_text_runtime")
-
-	heal_text.global_position = owner.image.global_position + Vector2(
-		randf_range(-damage_text_offset_range,damage_text_offset_range),
-		randf_range(-damage_text_offset_range,damage_text_offset_range)
-	)
-
-	heal_text.name = Game.return_random_name(heal_text)
-
-	# 先加入 SceneTree。
-	# 如果 Damage_Text.set_properties() 内部创建 Tween/Timer，
-	# 此时节点已经拥有有效 SceneTree。
-	tree.current_scene.add_child(
-		heal_text,
-		true
-	)
-
-	# 再初始化跳字动画。
-	heal_text.set_properties(
-		heal_amount
-	)
-
-	# 最后覆盖为回血显示。
-	heal_text.text = "+" + str(heal_amount)
-	heal_text.add_theme_color_override(
-		"font_color",
-		Color(0.25,1.0,0.35,1.0)
-	)
-	heal_text.add_theme_color_override(
-		"font_outline_color",
-		Color(0.0,0.0,0.0,1.0)
-	)
-
+	if heal_amount <= 0: return
+	_spawn_amount_text(float(heal_amount),&"heal")
 
 func _spawn_damage_text(changed_value:Variant,bar:TextureProgressBar) -> void:
-	var numeric_damage:float = float(changed_value)
-	if numeric_damage <= 0.0:
-		return
-	var infinite_damage:bool = is_inf(numeric_damage) or numeric_damage >= INFINITE_DAMAGE_DISPLAY_THRESHOLD
+	var amount:float = float(changed_value)
+	if amount <= 0.0 or is_nan(amount): return
+	_spawn_amount_text(amount,&"block" if bar == block_bar else &"damage")
+
+func _spawn_amount_text(amount:float,kind:StringName) -> void:
 	var tree:SceneTree = get_tree()
+	if max_live_damage_texts > 0 and tree.get_node_count_in_group("__damage_text_runtime") >= _effective_max_live_damage_texts(): return
+	var popup:Label = damage_text.instantiate()
+	popup.add_to_group("__damage_text_runtime")
+	popup.set_meta("combat_visual_owner",weakref(owner))
+	popup.configure_amount(amount,kind)
+	popup.name = Game.return_random_name(popup)
+	# Set the spawn point before entering the tree; defer flight until layout settles.
+	popup.position = tree.current_scene.to_local(_floating_text_point()) if tree.current_scene is Node2D else _floating_text_point()
+	tree.current_scene.add_child(popup,true)
 
-	if max_live_damage_texts > 0 and tree.get_node_count_in_group("__damage_text_runtime") >= max_live_damage_texts:
-		return
-
-	var damage:Label = damage_text.instantiate()
-	damage.add_to_group("__damage_text_runtime")
-	damage.global_position = owner.image.global_position + Vector2(
-		randf_range(-damage_text_offset_range,damage_text_offset_range),
-		randf_range(-damage_text_offset_range,damage_text_offset_range)
-	)
-	damage.text = "INF" if infinite_damage else "-" + str(int(round(numeric_damage)))
-
-	# INF 伤害使用自己的循环彩色视觉，不再套护盾灰色。
-	if bar == block_bar and not infinite_damage:
-		damage.add_theme_color_override("font_color",Color(0.38,0.38,0.38,1.0))
-		damage.add_theme_color_override("font_outline_color",Color(0.0,0.0,0.0,1.0))
-
-	damage.name = Game.return_random_name(damage)
-	tree.current_scene.add_child(
-		damage,
-		true
-	)
-	if infinite_damage and damage.has_method("set_infinite_damage_visual"):
-		damage.call("set_infinite_damage_visual")
-	damage.set_properties(
-		INFINITE_DAMAGE_DISPLAY_THRESHOLD if infinite_damage else numeric_damage
-	)
 
 func _process(_delta:float) -> void:
 	if _has_health_threshold_provider:

@@ -1,0 +1,6 @@
+{
+  "source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/particle/particles.png",
+  "sha256": "f74895ce1a4d65ca900d8ba6ec134f4cff2161afc8106295deb17d482cc87fd2",
+  "license": "Mojang/Microsoft Minecraft EULA. Not open source.",
+  "animation": "Custom pale yellow-green orbits, mobspell UV row y=64."
+}

@@ -92,9 +92,7 @@ func check_cold(source:Node2D,victim:Node2D) -> void:
 	check(not immune_status.add_cold(100,1.4,victim) and immune_status.frozen_left==0.0 and not source.dizziness,"Snow Golem cannot accumulate cold or freeze")
 	immune_status.accept_state(100,1.4,1.4)
 	check(immune_status.amount==0.0 and immune_status.frozen_left==0.0,"replicated cold visuals cannot bypass cold immunity")
-	var mini:Node2D = spawn(MINI_PATH,source.global_position+Vector2(48,0))
-	check(mini.is_cold_immune(),"mini snow golems inherit the same immunity")
-	mini.queue_free()
+	check(not ResourceLoader.exists(MINI_PATH),"retired mini is not a hidden environment-spawned unit")
 	victim.cold_effect_ratio = 0.5
 	hp = victim.health
 	victim.receive_cold_positional_damage(10,victim.global_position,true,source)
@@ -170,9 +168,9 @@ func check_weather(source:Node2D,victim:Node2D,center:Vector2) -> void:
 	check(field.get_child_count()<8,"snow stays a sparse grid rather than one Area2D or timer per patch")
 	var snapshot:Dictionary = field.environment_patches.duplicate(true)
 	field.advance(100.0)
-	check(field.environment_patches==snapshot,"environment snow never enters the ordinary melting lifecycle")
-	var cell:Vector2i = FIELD.cell_at(center)
-	var record:Dictionary = {"cell":cell,"decorative":false,"rects":[Rect2(center-Vector2.ONE*12,Vector2.ONE*24)]}
+	check(field.environment_patches.is_empty(),"environment snow now shares the finite melting lifecycle")
+	var cell:Vector2i = field.snow_cell_at(center)
+	var record:Dictionary = {"cell":cell,"decorative":false,"tile":field.snow_tile_at(cell),"rects":[field.snow_tile_at(cell)]}
 	field.add_environment_patch(conditions,record)
 	park_contact(field,victim,center)
 	var hp:int = victim.health
@@ -216,16 +214,17 @@ func check_weather(source:Node2D,victim:Node2D,center:Vector2) -> void:
 	game.now_stop_state = false
 	setting("Environment","none")
 	check(not field.wall_view.weather_enabled and field.wall_view.weather_fade==0.0,"None removes falling snow immediately, without a visual tail")
-	check(field.environment_patches.is_empty() and field.patches.size()==natural_count,"turning weather off removes only environmental snow, preserving ordinary golem trails")
-	field.advance(field.full_snow_lifetime+field.half_snow_lifetime+0.1)
-	check(field.patches.is_empty(),"ordinary golem trails still melt normally after weather is disabled")
+	check(field.environment_patches.size()==count and field.patches.size()==natural_count,"turning weather off preserves both existing layers for natural melting")
+	field.advance(field.full_snow_lifetime+field.snow_fade_duration+0.1)
+	check(field.patches.is_empty() and field.environment_patches.is_empty(),"both layers melt normally after weather is disabled")
 	setting("Environment","snow")
 	await physics_frame
 	await physics_frame
 	await process_frame
 	check(field.environment_patches.is_empty(),"re-enabling Snow never restores stale accumulation")
+	conditions.refresh_layout(true)
 	for i:int in range(12): conditions.advance(1.0)
-	var replay_a:Dictionary = field.environment_patches.duplicate(true)
+	var replay_a:Array = field._environment_payload(field.environment_patches.values())
 	var weather_phases:Array = field.wall_view.weather_phases.duplicate()
 	var rng_counters:Dictionary = game._battle_random_counters.duplicate(true)
 	setting("Environment","none")
@@ -233,9 +232,10 @@ func check_weather(source:Node2D,victim:Node2D,center:Vector2) -> void:
 	await physics_frame
 	await physics_frame
 	await process_frame
-	check(field.environment_patches.is_empty() and field.wall_view.weather_time==0.0,"repeat selection starts both visual and gameplay weather at zero")
+	conditions.refresh_layout(true)
+	check(field.environment_patches.is_empty() and field.wall_view.weather_time==0.0,"explicit battle reset starts both visual and gameplay weather at zero")
 	for i:int in range(12): conditions.advance(1.0)
-	check(field.environment_patches==replay_a and field.wall_view.weather_phases==weather_phases,"same seed and elapsed combat time reproduce accumulating snow and native weather phases")
+	check(field._environment_payload(field.environment_patches.values())==replay_a and field.wall_view.weather_phases==weather_phases,"same seed and elapsed combat time reproduce accumulating snow and native weather phases")
 	check(game._battle_random_counters==rng_counters,"weather does not consume another system's deterministic random stream")
 	for i:int in range(400): conditions.advance(10.0)
 	check(field.environment_patches.size()<=conditions.MAX_PATCHES,"long battles retain a bounded number of environmental patches")

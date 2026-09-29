@@ -1,4 +1,5 @@
 extends ball
+const PROJECTILE_API = preload("res://classes/projectile_interactions.gd")
 
 const BLEED_STATUS_SCRIPT:Script = preload("res://scripts/status/剑客_流血.gd")
 const BLEED_NODE_NAME:StringName = &"SwordsmanBleedStatus"
@@ -859,6 +860,7 @@ func _perform_weapon_sweep(world_dir:Vector2,damage:float,bleed_stacks:int) -> i
 
 
 func _spawn_thrust_afterimages(start:Vector2,end:Vector2) -> void:
+	if not allows_character_motion_effects(): return
 	if not image is Sprite2D or not is_inside_tree():
 		return
 	var sprite:Sprite2D = image as Sprite2D
@@ -1028,10 +1030,8 @@ func _play_special_defense_feedback(reason:String,impact_position:Vector2,damage
 		_play_random_parry_audio()
 		notify_block_burst_feedback(impact_position,damage,24.0,Game.battle_rng_seed_or("scripts/characters/剑客.gd:parry_seed",int(Time.get_ticks_usec()) ^ get_instance_id()))
 		# 自定义位置伤害若明确把投射物本体作为 source，也让它按公共格挡规则停下。
-		if source is ball:
-			var projectile:ball = source as ball
-			if projectile.Type == Ball_Type.Shooter or projectile.Type == Ball_Type.Shooter_with_Health:
-				projectile.on_projectile_blocked_by(self,impact_position)
+		if PROJECTILE_API.is_projectile(source):
+			PROJECTILE_API.retire(source,self,impact_position)
 	else:
 		# 闪避反馈只保留位移本身，不再显示文字提示。
 		pass

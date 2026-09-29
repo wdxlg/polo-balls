@@ -107,6 +107,7 @@ func _first_enemy_in_swept_width(space_state:PhysicsDirectSpaceState2D,from:Vect
 			continue
 		var progress:float = clampf((target.global_position - from).dot(direction),0.0,sweep_length)
 		if progress < best_progress:
+			if target.has_method("try_full_projectile_dodge") and bool(target.call("try_full_projectile_dodge",self)): continue
 			best_progress = progress
 			best_target = target
 	if best_target == null:

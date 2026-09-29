@@ -291,9 +291,11 @@ func run() -> void:
 	for rect:Rect2 in cloud.regions: covers_center = covers_center or rect.has_point(center)
 	check(not covers_center and cloud.regions.size()>=4,"grass cloud polygons use the world island complement, not a full-screen overlay")
 	check(is_equal_approx(cloud.travel,2.0*cloud.DRIFT_SPEED),"map style changes preserve cloud phase")
-	for theme:String in ["sand","stone","nether","end","courtyard3d","summit"]:
+	for theme:String in ["sand","stone","nether","end","summit"]:
 		game.set_runtime_game_setting("Map_Background",theme,false)
-		check(not cloud.overhead and cloud.z_index==-5,"other tiled theme safely uses background mode: "+theme)
+		check(not cloud.overhead and cloud.z_index==(cloud.SUMMIT_Z if theme=="summit" else cloud.BACKGROUND_Z),"other tiled theme safely uses its background depth: "+theme)
+	check(cloud.between_layers and cloud.regions.size()==1,"summit clouds continue beneath real foreground geometry")
+	game.set_runtime_game_setting("Map_Background","grass",false)
 	var tested_islands:bool = false
 	for key:Variant in world.map_group.keys():
 		if world.map_island_rects(world.map_group[key]).size() < 2: continue

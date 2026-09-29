@@ -3,7 +3,9 @@ extends "res://scripts/characters/我的世界/frontier/moss_debris.gd"
 const WEB:Texture2D = preload("res://Images/characters/我的世界/蜘蛛/cobweb_native.png")
 static var _palette:PackedColorArray = PackedColorArray()
 func setup_web(owner_actor:Node2D,point:Vector2,diameter:float) -> void:
-	super.setup(owner_actor,point,false,diameter,false,true)
+	# The shared moss controller's placed mode emits six chips; drop the moss
+	# grouping immediately below so these remain purely cobweb fragments.
+	super.setup(owner_actor,point,false,diameter,true)
 	remove_from_group("MCMossPlaceDebris")
 	add_to_group("MCSpiderWebDebris")
 	add_to_group("BattleTransient")

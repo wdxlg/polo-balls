@@ -64,10 +64,6 @@ func park_contact(field:Node2D,target:Node2D,point:Vector2) -> void:
 	target.global_position = point
 	field._positions[target.get_instance_id()] = point
 	field._damage_until.erase(target.get_instance_id())
-func new_mini(before:Array) -> Node2D:
-	for unit:Node in get_nodes_in_group("MCSnowGolem"):
-		if unit.miniature and not unit in before: return unit as Node2D
-	return null
 func finish(code:int) -> void:
 	if done: return
 	done = true
@@ -110,7 +106,7 @@ func check_prewarm() -> void:
 		warm._process(0.016)
 		if warm.is_ready("雪傀儡") or warm.has_failed("雪傀儡"): break
 		await process_frame
-	check(warm.is_ready("雪傀儡") and warm.scenes.has("小雪人") and warm.scenes.has("雪球") and warm.scenes.has("雪傀儡雪地"),"production prewarm prepares the actor, child, snowball and snow-field scenes")
+	check(warm.is_ready("雪傀儡") and not warm.scenes.has("小雪人") and warm.scenes.has("雪球") and warm.scenes.has("雪傀儡雪地"),"production prewarm prepares the actor/projectile/terrain without a retired descendant")
 	check(get_nodes_in_group("MCSnowGolem").is_empty() and not world.has_node("MCSnowField"),"prewarming creates no real actors, terrain, attacks or summon gameplay")
 
 func run() -> void:
@@ -118,17 +114,18 @@ func run() -> void:
 	await check_prewarm()
 	create_timer(50.0).timeout.connect(func(): finish(2))
 	var golem:Node2D = spawn(GOLEM_PATH,center)
+	golem.burst_probability = 0.0 # Isolate unchanged ordinary snow/cold/projectile behavior.
 	var enemy:Node2D = dummy(center+Vector2(96,0))
 	var field:Node2D = golem._field
 	field.set_physics_process(false)
 	await physics_frame
 	await process_frame
 	check(golem.get_script().resource_path.ends_with("snow_golem.gd"),"production scene loads the Snow Golem script")
-	check(golem.health == 360 and golem.Damage == 9 and golem.Attack_Cooling == 2.0,"baseline stats (9 damage, 2s cooldown) are wired into the actual scene")
+	check(golem.health == 425 and golem.Damage == 9 and golem.Attack_Cooling == 2.0,"baseline stats (9 damage, 2s cooldown) are wired into the actual scene")
 	world._ensure_character_path_index()
 	check(world._character_paths_by_folder["我的世界"].has("雪傀儡"),"Snow Golem is indexed in the Minecraft selection category")
 	var translations:Script = load("res://global/translation_catalog.gd")
-	check(translations.TABLE.en.get("雪傀儡") == "Snow Golem" and translations.TABLE.en.has("小雪人"),"both character names have export-safe English translations")
+	check(translations.TABLE.en.get("雪傀儡") == "Snow Golem" and not ResourceLoader.exists(MINI_PATH),"remaining character has an export-safe name and the retired mini has no runtime scene")
 	check(golem.PUMPKIN[1] != golem.BARE[1] and golem.PUMPKIN[1].get_size() == Vector2(160,224),"native pumpkin and bare-face textures are separate, consistently anchored renders")
 	check(field.is_in_group("BattleTransient"),"snow grid participates in ordinary battle cleanup")
 	var sounds:Script = load("res://scripts/characters/我的世界/snow_golem/native_sounds.gd")
@@ -140,8 +137,8 @@ func run() -> void:
 
 	# Full, tile-aligned trail and one shared damage interval per victim.
 	golem.lay_trail()
-	var start_cell:Vector2i = FIELD.cell_at(center)
-	check(field.patches.has(start_cell) and field.patches[start_cell].level == 2 and FIELD.CELL == 24.0,"normal trail occupies one complete map-sized snow tile")
+	var start_cell:Vector2i = field.snow_cell_at(center)
+	check(field.patches.has(start_cell) and field.patches[start_cell].level == 2 and field.patches[start_cell].tile.size == world.map_visual_cell_size(world._current_map_node()),"normal trail occupies one complete map-sized snow tile")
 	golem.global_position = center+Vector2(48,0)
 	golem.lay_trail()
 	check(field.patches.has(start_cell+Vector2i.RIGHT) and field.patches.has(start_cell+Vector2i(2,0)),"movement sweeps fill intermediate snow cells without gaps")
@@ -165,32 +162,19 @@ func run() -> void:
 	allied.queue_free()
 	clear_cold(enemy)
 
-	# Little snowman: harmless half-size tile, genuine re-entry completes it.
-	field.patches.clear()
-	var small_point:Vector2 = center+Vector2(-96,0)
-	var mini:Node2D = spawn(MINI_PATH,small_point)
-	mini.family = golem.family
-	mini.set_meta("mc_snow_family",golem.family)
-	mini.lay_trail()
-	var small_cell:Vector2i = FIELD.cell_at(small_point)
-	check(mini.health == 150 and mini.Damage == golem.Damage and mini.Speed == golem.Speed and mini.snowball_knockback == golem.snowball_knockback and mini.global_scale.x < golem.global_scale.x,"mini keeps only lower HP/smaller body, with matching combat values")
-	check(field.patches[small_cell].level == 1,"little snowman initially leaves a half-size patch")
-	for i:int in range(30): mini.lay_trail()
-	check(field.patches[small_cell].level == 1,"stationary mini cannot upgrade its own patch every frame")
+	# Retired small-snow argument cannot recreate a half-size stage.
+	var small_point:Vector2 = center+Vector2(-72,0)
+	var small_cell:Vector2i = field.snow_cell_at(small_point)
+	field.deposit(golem,small_cell,true)
+	check(field.patches[small_cell].level==2 and field.patches[small_cell].tile.size==field.grid_size,"all deposits are now one full actual map block")
+	field.advance(field.full_snow_lifetime+field.snow_fade_duration*0.5)
 	park_contact(field,enemy,small_point)
-	hp = enemy.health
-	field.advance(0.6)
-	check(enemy.health == hp and not enemy.has_node("MCSnowCold"),"half-size snow causes neither damage nor cold")
-	mini.global_position += Vector2(24,0)
-	mini.lay_trail()
-	mini.global_position = small_point
-	mini.lay_trail()
-	check(field.patches[small_cell].level == 2,"a real leave-and-return pass completes the mini's snow tile")
-	field.advance(0.6)
-	check(enemy.health == hp-3 and is_instance_valid(enemy.get_node_or_null("MCSnowCold")),"completed mini snow uses the same full-tile damage and cold as normal snow")
-	clear_cold(enemy)
+	var half_hp:int = enemy.health
+	field.check_ground()
+	check(enemy.health==half_hp and field.snow_alpha(field.patches[small_cell])<1.0,"fading full-sized snow is harmless without shrinking")
+	check(field.deposit(golem,small_cell,false) and field.snow_alpha(field.patches[small_cell])==1.0,"fresh ordinary snow restores the same full-size footprint to opaque")
 	field.patches.clear()
-	park_contact(field,enemy,center+Vector2(160,96))
+	clear_cold(enemy)
 
 	# Shared cold meter, progressive slow/tint/particles, reset and independent lock.
 	cold = COLD.ensure(enemy)
@@ -276,83 +260,26 @@ func run() -> void:
 	enemy.negative_effect_ratio = 1.0
 	clear_cold(enemy)
 
-	# Real half-health damage hook, falling head, snow absorption and one birth.
+	# Actual half-health now shatters the worn head without construction or snow consumption.
 	golem.global_position = center+Vector2(120,-72)
-	golem.direction = Vector2.RIGHT
-	var landing:Vector2i = field.choose_drop_cell(golem)
-	check(field.deposit(golem,landing,false),"fixture lays real snow beneath the predicted pumpkin landing cell")
-	golem.take_damage(179.0,true)
-	check(golem.health == 181 and golem.has_pumpkin and golem.head_drop_count == 0,"pumpkin remains above the half-health threshold")
+	golem.take_damage(golem.health-ceilf(golem.Max_health*0.5),true)
+	check(golem.health==ceilf(golem.Max_health*0.5) and golem.has_pumpkin and golem.head_break_count==0,"pumpkin remains above the half-health threshold")
+	var before_snow:Dictionary = field.patches.duplicate(true)
 	golem.take_damage(1.0,true)
-	check(golem.health == 180 and not golem.has_pumpkin and golem.head_drop_count == 1,"actual damage crossing exactly half HP drops the pumpkin once")
-	var head_id:int = field._serial
-	check(field.heads[head_id].blocks == 0 and not field.heads[head_id].landed,"pumpkin first flies to the floor instead of instantly becoming a minion")
-	check(golem.image.texture in golem.BARE,"headless parent reveals the original snow face")
-	game.now_stop_state = true
-	field.advance(1.0)
-	check(field.heads[head_id].elapsed == 0.0,"pause also stops the falling pumpkin")
-	game.now_stop_state = false
-	field.advance(0.33)
-	check(field.heads[head_id].landed and field.heads[head_id].blocks == 1 and not field.patches.has(landing),"landing absorbs exactly that snow cell into one snow block below the head")
+	check(golem.health==floorf(golem.Max_health*0.5) and not golem.has_pumpkin and golem.head_break_count==1 and golem.force_next_burst,"actual half-health damage breaks once and guarantees the next volley")
+	check(field.patches==before_snow and not field.has_method("drop_head") and not field.has_method("_spawn_mini"),"half health leaves snow unchanged and exposes no construction or summon entry points")
+	check(golem.image.texture in golem.BARE,"broken pumpkin reveals the native snow face")
 	golem.heal(500.0)
-	golem.take_damage(200.0,true)
-	check(golem.head_drop_count == 1,"healing and crossing half HP again cannot duplicate a lost head")
-	golem._trail_started = false
-	golem.global_position = FIELD.point_at(landing)+Vector2(24,0)
-	golem.lay_trail()
-	var before_birth:Array = get_nodes_in_group("MCSnowGolem")
-	golem.global_position = FIELD.point_at(landing)
-	golem.lay_trail()
-	check(field.heads[head_id].blocks == 2 and field.heads[head_id].pending,"another snow-laying pass reaches two blocks and schedules a birth")
-	check(not field.deposit(golem,landing,false) and not field.patches.has(landing),"pending pumpkin cannot be double-built or generate an extra free snow tile")
-	for i:int in range(20): golem.lay_trail()
-	await process_frame
-	await physics_frame
-	freeze_snow_units()
-	var child:Node2D = new_mini(before_birth)
-	check(is_instance_valid(child) and not field.heads.has(head_id),"two blocks consume the pumpkin stack and create one real mini scene")
-	check(get_nodes_in_group("MCSnowGolem").size() == before_birth.size()+1,"repeated same-frame checks cannot duplicate the mini")
-	if is_instance_valid(child):
-		check(child.Team == golem.Team and child.family == golem.family and child.Master == null,"mini inherits the family and team but has no parent-lifetime dependency")
-		check(child.get_meta("battle_continuation_victory_side_key") == golem.get_meta("battle_continuation_victory_side_key") and child.is_in_group("BattleTransient"),"offspring retain the battle side and participate in cleanup")
-
-	# Dry ground needs two later passes; a mini itself also loses its own head.
-	field.patches.clear()
-	mini.global_position = center+Vector2(-144,-96)
-	mini.direction = Vector2.RIGHT
-	mini.take_damage(75.0,true)
-	var dry_id:int = field._serial
-	field.advance(0.4)
-	check(not mini.has_pumpkin and mini.head_drop_count == 1 and field.heads[dry_id].blocks == 0,"mini keeps the same half-health rule; dry landing is just one pumpkin block")
-	var dry_point:Vector2 = field.heads[dry_id].point
-	mini._trail_started = false
-	mini.global_position = dry_point+Vector2(24,0)
-	mini.lay_trail()
-	mini.global_position = dry_point
-	mini.lay_trail()
-	check(field.heads[dry_id].blocks == 1 and not field.heads[dry_id].pending,"first later pass adds exactly one snow block under a dry pumpkin")
-	for i:int in range(20): mini.lay_trail()
-	check(field.heads[dry_id].blocks == 1,"remaining on the pumpkin cannot instantly create its second block")
-	before_birth = get_nodes_in_group("MCSnowGolem")
-	mini.global_position = dry_point+Vector2(24,0)
-	mini.lay_trail()
-	mini.global_position = dry_point
-	mini.lay_trail()
-	await process_frame
-	freeze_snow_units()
-	check(get_nodes_in_group("MCSnowGolem").size() == before_birth.size()+1 and not field.heads.has(dry_id),"second later pass works for a mini too and creates exactly one descendant")
-	var grandchild:Node2D = new_mini(before_birth)
-	check(is_instance_valid(grandchild) and grandchild.Max_health == 150 and grandchild.Damage == mini.Damage and grandchild.global_scale == mini.global_scale and grandchild.has_pumpkin,"later generations keep the fixed mini form instead of recursively shrinking or losing their pumpkin mechanic")
-	if is_instance_valid(child):
-		var survivor:WeakRef = weakref(child)
-		golem.queue_free()
-		await process_frame
-		check(is_instance_valid(survivor.get_ref()) and child.health > 0,"existing mini survives removal of the original parent")
+	golem.take_damage(ceilf(golem.Max_health*0.5),true)
+	check(golem.head_break_count==1,"healing cannot regrow a second pumpkin")
 
 	# Production projectile: cooldown, swept contact, cold, slight knockback and walls.
 	field.patches.clear()
 	clear_cold(enemy)
+	world.figure_buffs(0.0,[enemy])
+	enemy.restore_default_runtime_properties_fast() # Isolate this contact from the earlier manually advanced freeze-vulnerability probe.
 	var shooter:Node2D = spawn(GOLEM_PATH,center)
+	shooter.burst_probability = 0.0
 	park_contact(field,enemy,center+Vector2(100,0))
 	shooter._shot_left = 0.0
 	check(shooter.fire_at(enemy.global_position) and not shooter.fire_at(enemy.global_position),"snowball attack fires once and enforces its slow cooldown")
@@ -418,13 +345,13 @@ func run() -> void:
 	# Family identity also works without colored teams.
 	var family_point:Vector2 = center+Vector2(168,144)
 	var solo_parent:Node2D = spawn(GOLEM_PATH,family_point,"")
-	var solo_child:Node2D = spawn(MINI_PATH,family_point,"")
+	var solo_child:Node2D = spawn(GOLEM_PATH,family_point,"")
 	solo_child.family = solo_parent.family
 	solo_child.set_meta("mc_snow_family",solo_parent.family)
 	var solo_enemy:Node2D = dummy(family_point,"")
 	solo_parent.lay_trail()
 	field.advance(0.6)
-	check(solo_child.health == 150 and not solo_child.has_node("MCSnowCold"),"unteamed relatives are not damaged or chilled by their family's terrain")
+	check(solo_child.health == solo_child.Max_health and not solo_child.has_node("MCSnowCold"),"unteamed relatives are not damaged or chilled by their family's terrain")
 	check(solo_enemy.health == 9997 and solo_enemy.has_node("MCSnowCold"),"a different unteamed combatant is still an enemy of that same snow family")
 	var sound:AudioStreamPlayer2D = shooter.SNOW_AUDIO.play(shooter,"entity.snow_golem.hurt",center,-10.0)
 	# AudioStreamPlayer2D starts its spatial playback on the following physics step.
@@ -458,7 +385,7 @@ func run() -> void:
 	var field_ref:WeakRef = weakref(field)
 	var mini_refs:Array[WeakRef] = []
 	for unit:Node in get_nodes_in_group("MCSnowGolem"):
-		if unit.miniature: mini_refs.append(weakref(unit))
+		mini_refs.append(weakref(unit))
 	var victim_cold:Node = COLD.ensure(enemy)
 	victim_cold.add_cold(100.0,1.4)
 	var cold_ref:WeakRef = weakref(victim_cold)

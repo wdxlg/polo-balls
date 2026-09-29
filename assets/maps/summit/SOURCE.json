@@ -1,0 +1,44 @@
+{
+  "asset": "山巅 / ancient arena",
+  "model_source": "art_sources/summit/shandian.glb",
+  "model_sha256": "d81e041a0efd7e8b8bac299d36c5d7dcb3d880f7548f2f26f0d3017fca15c124",
+  "minecraft": "Java 1.21.1",
+  "rights": "Minecraft original textures copyright Mojang Studios / Microsoft. Local use at user request; no redistribution permission granted. See art_sources/summit/SOURCE.json.",
+  "textures": [
+    {
+      "file": "stone_bricks.png",
+      "jar_entry": "assets/minecraft/textures/block/stone_bricks.png",
+      "sha256": "33da66239c5586ee712ffa3fab45927cd7d4968cf111829d3049f84152d85953"
+    },
+    {
+      "file": "cracked_stone_bricks.png",
+      "jar_entry": "assets/minecraft/textures/block/cracked_stone_bricks.png",
+      "sha256": "185b70d98bc6b1298fda8d6b7f52b0bfe0e8bb02711fd8d5e8bb581be69322a6"
+    },
+    {
+      "file": "mossy_stone_bricks.png",
+      "jar_entry": "assets/minecraft/textures/block/mossy_stone_bricks.png",
+      "sha256": "51d9f7354dcc25f6f731f82e553c6f9385dddb64ccda84265e5eebe8409b4010"
+    },
+    {
+      "file": "chiseled_stone_bricks.png",
+      "jar_entry": "assets/minecraft/textures/block/chiseled_stone_bricks.png",
+      "sha256": "9de3cdfa63b9956058b6ef27cb82faa1bc11622a6b8145c12b0c7a2783a50b3b"
+    },
+    {
+      "file": "sandstone.png",
+      "jar_entry": "assets/minecraft/textures/block/sandstone.png",
+      "sha256": "532e1da119576e3ca8a0983c173040fb3e932a935aba29aff79deb4c8a26fb1c"
+    },
+    {
+      "file": "sandstone_top.png",
+      "jar_entry": "assets/minecraft/textures/block/sandstone_top.png",
+      "sha256": "321c39b772533abf1b6441d484d05e8e7bf1fa017c97acafcaec9e63781cb40c"
+    },
+    {
+      "file": "sandstone_bottom.png",
+      "jar_entry": "assets/minecraft/textures/block/sandstone_bottom.png",
+      "sha256": "40dc238417a2a36c791589da33a1c1bb37d3c63cbc39c95ad66956cadb6e5ec7"
+    }
+  ]
+}

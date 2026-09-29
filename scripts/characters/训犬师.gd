@@ -44,6 +44,7 @@ const TRAINER_AUDIO = preload("res://scripts/audio/训犬师音效.gd")
 
 var dogs:Array[ball] = []
 var dog_spawn_timer:Timer = null
+var _dog_spawn_ready:bool = false
 var marked_target:ball = null
 var _marker_visual:Node2D = null
 var _active_mark_hunters:Dictionary = {}
@@ -133,6 +134,10 @@ func _start_dog_system() -> void:
 func _on_dog_spawn_timer_timeout() -> void:
 	if health <= 0 or not is_multiplayer_authority() or not is_combat_runtime_active():
 		return
+	if is_player_controlled():
+		_dog_spawn_ready = true
+		return
+	_dog_spawn_ready = false
 	_spawn_dog()
 
 func _physics_process(delta:float) -> void:
@@ -152,6 +157,9 @@ func _physics_process(delta:float) -> void:
 		return
 
 	_cleanup_dogs()
+	if not is_player_controlled() and _dog_spawn_ready:
+		_dog_spawn_ready = false
+		_spawn_dog()
 
 	if marked_target != null:
 		if not is_instance_valid(marked_target) or marked_target.health <= 0 or not TOOLS.is_enemy(self,marked_target):
@@ -166,12 +174,44 @@ func _physics_process(delta:float) -> void:
 	if dogs.is_empty():
 		return
 
+	if is_player_controlled():
+		return
 	var candidate:ball = _closest_detected_enemy()
 	if candidate != null and _whistle_action_ready():
 		_set_mark(candidate)
 		_assign_mark_to_available_dogs(candidate)
 		if _active_mark_hunters.is_empty():
 			_clear_mark()
+
+
+func controlled_attack_action() -> void:
+	# 左键：原水平扫描线内、吹哨冷却就绪时指定猎犬围猎目标。
+	if not is_player_controlled() or not is_multiplayer_authority() or health <= 0 or not is_combat_runtime_active():
+		return
+	_cleanup_dogs()
+	if dogs.is_empty() or marked_target != null or not _whistle_action_ready():
+		return
+	if has_player_control_aim():
+		_facing_sign = -1.0 if player_control_aim_world_position().x < global_position.x else 1.0
+	var candidate:ball = _closest_detected_enemy()
+	if candidate != null:
+		_set_mark(candidate)
+		_assign_mark_to_available_dogs(candidate)
+		if _active_mark_hunters.is_empty():
+			_clear_mark()
+
+
+func controlled_skill_action() -> void:
+	# 右键：定时召狗改为由玩家起手；上限和出生第一条狗仍保持原样。
+	if not is_player_controlled() or not is_multiplayer_authority() or health <= 0 or not is_combat_runtime_active() or not _dog_spawn_ready:
+		return
+	_cleanup_dogs()
+	if dogs.size() >= maxi(dog_max_count,1):
+		return
+	_dog_spawn_ready = false
+	_spawn_dog()
+	if dog_spawn_timer != null and is_instance_valid(dog_spawn_timer):
+		dog_spawn_timer.start()
 
 func _is_live_healthbar_character(candidate:ball) -> bool:
 	if candidate == null or candidate == self or not is_instance_valid(candidate):

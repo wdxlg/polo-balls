@@ -191,6 +191,7 @@ func _freeze_tick() -> void:
 	# 冰从体内冻伤，护盾挡不住；伤害本身也吃冻结的加倍。
 	target.receive_cold_positional_damage(_resolve_freeze_damage(),target.global_position,true,source)
 	freeze_damage_dealt += maxf(before-float(target.health),0.0)
+	preload("res://scripts/effects/我的世界/mc_hit_feedback.gd").finish(source,target,before,target.global_position)
 	_watch()
 
 func _watch() -> void:

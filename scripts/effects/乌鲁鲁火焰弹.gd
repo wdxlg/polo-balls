@@ -29,6 +29,7 @@ func setup(owner_ball:ball,start_value:Vector2,target_value:Vector2,config:Dicti
 
 
 func _ready() -> void:
+	add_to_group("AllayExtendedProjectile")
 	z_as_relative = false
 	z_index = 78
 	add_to_group("BattleTransient")
@@ -48,6 +49,7 @@ func _physics_process(delta:float) -> void:
 	var t:float = clampf(elapsed / maxf(duration,0.001),0.0,1.0)
 	var base:Vector2 = start_position.lerp(target_position,t)
 	var lift:float = -arc_height * 4.0 * t * (1.0 - t)
+	if get_tree().has_group("MinecraftAllay") and load("res://scripts/characters/我的世界/allay/capture.gd").sweep(self,global_position,base+Vector2(0.0,lift)): return
 	global_position = base + Vector2(0.0,lift)
 	rotation += delta * 5.8
 	if t >= 1.0:

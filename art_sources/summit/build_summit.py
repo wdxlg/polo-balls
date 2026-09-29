@@ -14,6 +14,7 @@ BATCHES = {}
 HEIGHT = {}
 TRAIL = set()
 MATERIALS = {}
+FOREST_SNOW = []
 
 def status(stage, **kw):
     (ROOT / 'build_status.json').write_text(json.dumps(dict(stage=stage, **kw),ensure_ascii=False,indent=2),encoding='utf-8')
@@ -34,7 +35,7 @@ def noise(x,y):
 def fbm(x,y):
     return noise(x,y)+noise(x*2.1+17,y*2.1-5)*.48+noise(x*4.4-8,y*4.4+29)*.22
 
-def terrain(x,y):
+def terrain(x,y,flatten_summit=True):
     radial=((x/72)**2+(y/65)**2)**.5
     edge=1-radial+.055*noise(x*.12,y*.12)
     if edge<.015:return 0
@@ -57,7 +58,7 @@ def terrain(x,y):
         g=abs(x-(-11+.23*y+2*math.sin(y*.12)))
         h-=max(0,1-g/5)*min(12,max(0,(-y-7)*.6))
     h=min(h,10+edge*135)
-    if abs(x-8)<=4 and abs(y-15)<=4: h=96
+    if flatten_summit and abs(x-8)<=4 and abs(y-15)<=4: h=96
     return max(1,int(h))
 
 def material(key,texture,tint=(1,1,1,1)):
@@ -133,7 +134,36 @@ def build_terrain():
                 else:pts=[(x,y,z),(x+1,y,z),(x+1,y,z+1),(x,y,z+1)]
                 face('01 Mountain',mat,pts)
 
-def build_forest():
+def branch_snow(index,x,y,ground,height,leaves):
+    """Snow rests on exposed leaf tops, with a stable per-tree weather profile."""
+    load=min(3,int((hashnoise(x*17+31,y*23-7)+1)*2))
+    names=['none','light','medium','heavy']
+    density=[0,.18,.46,.82][load]
+    exposed={}
+    for lx,ly,lz in leaves:exposed[lx,ly]=max(lz,exposed.get((lx,ly),-1000))
+    candidates=sorted((hashnoise(lx*13+index*19,ly*11-index*7),lx,ly,lz)
+                      for (lx,ly),lz in exposed.items())
+    chosen=[]
+    if load:
+        chosen=[p for p in candidates if (p[0]+1)*.5<density]
+        # Even sparse snow is a few separate branch patches, not a lone tip cap.
+        if len(chosen)<3:chosen=candidates[:3]
+        if len({p[3] for p in chosen})<2:
+            extra=next((p for p in candidates if p[3]!=chosen[0][3]),None)
+            if extra is not None:chosen.append(extra)
+    patches=[]
+    for score,lx,ly,lz in chosen:
+        thickness=.125*(1+min(load-1,int((hashnoise(lx+117,ly-43)+1)*1.5)))
+        box('02 Alpine spruce','Snow',lx,ly,lz+1,1,1,thickness)
+        patches.append([lx,ly,lz+1,thickness])
+    FOREST_SNOW.append(dict(index=index,base=[x,y,ground],height=height,
+                           load=names[load],patches=patches,
+                           snow_levels=sorted({p[2] for p in patches})))
+
+
+def build_forest(snow_style='tip'):
+    assert snow_style in ('tip','varied')
+    FOREST_SNOW.clear()
     locations=[]
     for _ in range(2500):
         x=RNG.randrange(-62,63);y=RNG.randrange(-59,57);h=HEIGHT.get((x,y),0)
@@ -144,6 +174,7 @@ def build_forest():
         if len(locations)>=62:break
     for index,(x,y) in enumerate(locations):
         z=HEIGHT[x,y];height=RNG.randrange(7,12)
+        leaves=[]
         box('02 Alpine spruce','Spruce bark',x,y,z,1,1,height,top='Spruce end')
         for level,radius in [(height-6,3),(height-4,2),(height-2,2),(height,1)]:
             for dx in range(-radius,radius+1):
@@ -151,8 +182,11 @@ def build_forest():
                     if abs(dx)+abs(dy)>radius+1 or (dx==0 and dy==0):continue
                     if hashnoise(x+dx*3,y+dy*3)<-.65:continue
                     box('02 Alpine spruce','Spruce needles',x+dx,y+dy,z+level)
+                    leaves.append((x+dx,y+dy,z+level))
         box('02 Alpine spruce','Spruce needles',x,y,z+height+1)
-        if z>30:box('02 Alpine spruce','Snow',x,y,z+height+2,1,1,.2)
+        leaves.append((x,y,z+height+1))
+        if snow_style=='varied':branch_snow(index,x,y,z,height,leaves)
+        elif z>30:box('02 Alpine spruce','Snow',x,y,z+height+2,1,1,.2)
     return len(locations)
 
 def build_summit():

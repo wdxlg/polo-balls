@@ -1,0 +1,166 @@
+{
+  "minecraft_version": "1.21.5",
+  "assets": [
+    {
+      "event": "block.moss.place",
+      "asset": "minecraft/sounds/block/moss/break1.ogg",
+      "sha1": "a0f85922a40f928d450f846340e63071d3c65293",
+      "size": 7268,
+      "url": "https://resources.download.minecraft.net/a0/a0f85922a40f928d450f846340e63071d3c65293",
+      "file": "block_moss_place0.ogg",
+      "volume": 0.93,
+      "pitch": 1
+    },
+    {
+      "event": "block.moss.place",
+      "asset": "minecraft/sounds/block/moss/break2.ogg",
+      "sha1": "c135cc7d343007fd57558f70c787f708d49bd268",
+      "size": 7754,
+      "url": "https://resources.download.minecraft.net/c1/c135cc7d343007fd57558f70c787f708d49bd268",
+      "file": "block_moss_place1.ogg",
+      "volume": 0.93,
+      "pitch": 1
+    },
+    {
+      "event": "block.moss.place",
+      "asset": "minecraft/sounds/block/moss/break3.ogg",
+      "sha1": "2d84a21b5d925497558acce92b7448e37a7bea11",
+      "size": 8662,
+      "url": "https://resources.download.minecraft.net/2d/2d84a21b5d925497558acce92b7448e37a7bea11",
+      "file": "block_moss_place2.ogg",
+      "volume": 0.93,
+      "pitch": 1
+    },
+    {
+      "event": "block.moss.place",
+      "asset": "minecraft/sounds/block/moss/break4.ogg",
+      "sha1": "ae3e9a8a423c4928f74b0e45cf57e95fec81dcbe",
+      "size": 7257,
+      "url": "https://resources.download.minecraft.net/ae/ae3e9a8a423c4928f74b0e45cf57e95fec81dcbe",
+      "file": "block_moss_place3.ogg",
+      "volume": 0.93,
+      "pitch": 1
+    },
+    {
+      "event": "block.moss.place",
+      "asset": "minecraft/sounds/block/moss/break5.ogg",
+      "sha1": "e36dc802e3e9b499fe37b0663e3ea6e3b55850a2",
+      "size": 7780,
+      "url": "https://resources.download.minecraft.net/e3/e36dc802e3e9b499fe37b0663e3ea6e3b55850a2",
+      "file": "block_moss_place4.ogg",
+      "volume": 0.93,
+      "pitch": 1
+    },
+    {
+      "event": "block.moss.break",
+      "asset": "minecraft/sounds/block/moss/break1.ogg",
+      "sha1": "a0f85922a40f928d450f846340e63071d3c65293",
+      "size": 7268,
+      "url": "https://resources.download.minecraft.net/a0/a0f85922a40f928d450f846340e63071d3c65293",
+      "file": "block_moss_place0.ogg",
+      "volume": 0.95,
+      "pitch": 1
+    },
+    {
+      "event": "block.moss.break",
+      "asset": "minecraft/sounds/block/moss/break2.ogg",
+      "sha1": "c135cc7d343007fd57558f70c787f708d49bd268",
+      "size": 7754,
+      "url": "https://resources.download.minecraft.net/c1/c135cc7d343007fd57558f70c787f708d49bd268",
+      "file": "block_moss_place1.ogg",
+      "volume": 0.93,
+      "pitch": 1
+    },
+    {
+      "event": "block.moss.break",
+      "asset": "minecraft/sounds/block/moss/break3.ogg",
+      "sha1": "2d84a21b5d925497558acce92b7448e37a7bea11",
+      "size": 8662,
+      "url": "https://resources.download.minecraft.net/2d/2d84a21b5d925497558acce92b7448e37a7bea11",
+      "file": "block_moss_place2.ogg",
+      "volume": 0.93,
+      "pitch": 1
+    },
+    {
+      "event": "block.moss.break",
+      "asset": "minecraft/sounds/block/moss/break4.ogg",
+      "sha1": "ae3e9a8a423c4928f74b0e45cf57e95fec81dcbe",
+      "size": 7257,
+      "url": "https://resources.download.minecraft.net/ae/ae3e9a8a423c4928f74b0e45cf57e95fec81dcbe",
+      "file": "block_moss_place3.ogg",
+      "volume": 0.93,
+      "pitch": 1
+    },
+    {
+      "event": "block.moss.break",
+      "asset": "minecraft/sounds/block/moss/break5.ogg",
+      "sha1": "e36dc802e3e9b499fe37b0663e3ea6e3b55850a2",
+      "size": 7780,
+      "url": "https://resources.download.minecraft.net/e3/e36dc802e3e9b499fe37b0663e3ea6e3b55850a2",
+      "file": "block_moss_place4.ogg",
+      "volume": 0.93,
+      "pitch": 1
+    },
+    {
+      "event": "block.moss.step",
+      "asset": "minecraft/sounds/block/moss/step1.ogg",
+      "sha1": "771cae5478daa79c850470d8bd06cf880fab04a9",
+      "size": 8525,
+      "url": "https://resources.download.minecraft.net/77/771cae5478daa79c850470d8bd06cf880fab04a9",
+      "file": "block_moss_step0.ogg",
+      "volume": 1,
+      "pitch": 1
+    },
+    {
+      "event": "block.moss.step",
+      "asset": "minecraft/sounds/block/moss/step2.ogg",
+      "sha1": "539290770406876dd05593efada83ff5db358ed6",
+      "size": 8167,
+      "url": "https://resources.download.minecraft.net/53/539290770406876dd05593efada83ff5db358ed6",
+      "file": "block_moss_step1.ogg",
+      "volume": 1,
+      "pitch": 1
+    },
+    {
+      "event": "block.moss.step",
+      "asset": "minecraft/sounds/block/moss/step3.ogg",
+      "sha1": "b2faf0571510850c8ca3471181b6ec7a1abc83f0",
+      "size": 8105,
+      "url": "https://resources.download.minecraft.net/b2/b2faf0571510850c8ca3471181b6ec7a1abc83f0",
+      "file": "block_moss_step2.ogg",
+      "volume": 1,
+      "pitch": 1
+    },
+    {
+      "event": "block.moss.step",
+      "asset": "minecraft/sounds/block/moss/step4.ogg",
+      "sha1": "f7afa9f94ab6e8f64d3fb45d0b848a56931c0462",
+      "size": 7512,
+      "url": "https://resources.download.minecraft.net/f7/f7afa9f94ab6e8f64d3fb45d0b848a56931c0462",
+      "file": "block_moss_step3.ogg",
+      "volume": 1,
+      "pitch": 1
+    },
+    {
+      "event": "block.moss.step",
+      "asset": "minecraft/sounds/block/moss/step5.ogg",
+      "sha1": "012237aa6dd50c9fc43bf5f53cb4a49ddefdb2b9",
+      "size": 8496,
+      "url": "https://resources.download.minecraft.net/01/012237aa6dd50c9fc43bf5f53cb4a49ddefdb2b9",
+      "file": "block_moss_step4.ogg",
+      "volume": 1,
+      "pitch": 1
+    },
+    {
+      "event": "block.moss.step",
+      "asset": "minecraft/sounds/block/moss/step6.ogg",
+      "sha1": "c8ab43d9d879323c65366ff56387d9c29cf3d64e",
+      "size": 7997,
+      "url": "https://resources.download.minecraft.net/c8/c8ab43d9d879323c65366ff56387d9c29cf3d64e",
+      "file": "block_moss_step5.ogg",
+      "volume": 1,
+      "pitch": 1
+    }
+  ],
+  "source_definition": "Minecraft Java 1.21.5 sounds.json: block.moss.place/break/step. Native variants; footstep cooldown includes longest variant duration and random extra silence."
+}

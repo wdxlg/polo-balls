@@ -1,0 +1,65 @@
+{
+  "revision": "original-style mountain range with highest original peak; thin floating arena with four columns and continuous seats",
+  "date": "2026-09-26",
+  "engine": "Godot 4.7.2 / D3D12 Forward+ / RTX 4060 Laptop",
+  "total_checks": 193,
+  "tests": {
+    "authored_verified": {
+      "checks": 72,
+      "child_exit": 0,
+      "errors": 0,
+      "warnings": [
+        "WARNING: res://scenes/ball.tscn:6 - ext_resource, invalid UID: uid://c5swo3m3c1w3t - using text path instead: res://shaders/set_rgb_color.gdshader",
+        "WARNING: Case mismatch opening requested file 'res://shaders/set_rgb_color.gdshader', stored as 'res://shaders/Set_RGB_Color.gdshader' in the filesystem. This file will not open when exported to other case-sensitive platforms.",
+        "WARNING: 217 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+      ]
+    },
+    "old_walls": {
+      "checks": 111,
+      "child_exit": 0,
+      "errors": 0,
+      "warnings": [
+        "WARNING: res://scenes/ball.tscn:6 - ext_resource, invalid UID: uid://c5swo3m3c1w3t - using text path instead: res://shaders/set_rgb_color.gdshader",
+        "WARNING: Case mismatch opening requested file 'res://shaders/set_rgb_color.gdshader', stored as 'res://shaders/Set_RGB_Color.gdshader' in the filesystem. This file will not open when exported to other case-sensitive platforms.",
+        "WARNING: 220 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+      ]
+    },
+    "old_camera": {
+      "checks": 10,
+      "child_exit": 0,
+      "errors": 0,
+      "warnings": [
+        "WARNING: res://scenes/ball.tscn:6 - ext_resource, invalid UID: uid://c5swo3m3c1w3t - using text path instead: res://shaders/set_rgb_color.gdshader",
+        "WARNING: Case mismatch opening requested file 'res://shaders/set_rgb_color.gdshader', stored as 'res://shaders/Set_RGB_Color.gdshader' in the filesystem. This file will not open when exported to other case-sensitive platforms."
+      ]
+    }
+  },
+  "rock_texture_original_bytes_verified": true,
+  "platform_drop_cells": 0.3,
+  "outer_lip_cells": 0.55,
+  "corner_columns": 4,
+  "column_shaft_height_cells": 3.0,
+  "seat_tiers": 2,
+  "seat_spans_standard_map": 8,
+  "max_seat_height_cells": 0.34,
+  "surrounding_authored_instances": 167,
+  "original_meshes_per_instance": 17,
+  "secondary_landmark_meshes_hidden_per_instance": 3,
+  "sample_map_10x10": {
+    "original_top_y": -96.0,
+    "secondary_aabb_top_y": -194.092834472656,
+    "valley_floor_y": -497.279986143112
+  },
+  "background_coverage_probes": {
+    "camera_poses": 3,
+    "points_per_pose": 99,
+    "uncovered": 0
+  },
+  "shared_viewport_mean_luma_error": 0.01029903262854,
+  "limitations": [
+    "Finite scenery extent; not infinite mountain detail for arbitrary cameras",
+    "No long-duration performance benchmark",
+    "No multiplayer or encoded-video E2E",
+    "Resource exit warnings remain"
+  ]
+}

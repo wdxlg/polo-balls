@@ -48,6 +48,8 @@ func move(speed:float,delta:float) -> void:
 	if _consumed: return
 	var from:Vector2 = global_position
 	velocity = direction * speed
+	if get_tree().has_group("MinecraftAllay") and load("res://scripts/characters/我的世界/allay/capture.gd").sweep(self,from,from+velocity*delta): return
+	if get_tree().has_group("MinecraftWoolSheep") and load("res://scripts/characters/我的世界/new6/wool_projectile.gd").sweep(self,from,from+velocity*delta): return
 	var wall:KinematicCollision2D = move_and_collide(velocity * delta)
 	_trail_wait -= delta
 	if _trail_wait <= 0.0:

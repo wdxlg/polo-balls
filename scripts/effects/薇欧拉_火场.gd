@@ -2,7 +2,7 @@ extends Node2D
 
 const WAR_GODDESS_BURN_SCRIPT:Script = preload("res://scripts/status/战争女神_灼烧.gd")
 const WAR_GODDESS_BURN_NODE_NAME:StringName = &"WarGoddessBurnStatus"
-const FIRE_FRAMES:SpriteFrames = preload("res://particles/薇欧拉火焰序列.tres")
+const FIRE_FRAMES:SpriteFrames = preload("res://particles/mc_ground_fire.tres")
 const SMALL_FLAME_TEXTURE:Texture2D = preload("res://Images/characters/人物/薇欧拉/火焰粒子/flame.png")
 const FIRE_BURN_LOOP_SFX:AudioStream = preload("res://audio/characters/薇欧拉/火焰燃烧_[cut_94sec].mp3")
 
@@ -99,6 +99,7 @@ func _build_fire_visual() -> void:
 		return
 	_main_fire = AnimatedSprite2D.new()
 	_main_fire.name = "MainFireSequence"
+	_main_fire.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_main_fire.sprite_frames = FIRE_FRAMES
 	_main_fire.animation = &"default"
 	_main_fire.frame = _rng.randi_range(0,maxi(FIRE_FRAMES.get_frame_count(&"default") - 1,0))

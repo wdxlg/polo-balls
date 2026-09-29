@@ -188,6 +188,10 @@ func set_training_mode(enabled:bool, apply_existing_characters:bool = true) -> v
 func get_training_mode_type() -> String:
 	return _training.get_training_mode_type()
 
+func get_rotation_match_type() -> String:
+	var value:String = str(Game_Settings.get("Rotation_Match_Type","wheel" if bool(Game_Settings.get("Training_Wheel_Battle",false)) else "duel"))
+	return value if value in ["duel","wheel","challenge"] else "duel"
+
 func is_rotation_training_mode() -> bool:
 	return _training.is_rotation_training_mode()
 
@@ -252,6 +256,10 @@ func get_time_scale_override_factor() -> float:
 func get_base_game_time_scale() -> float:
 	return _time_scale.get_base_game_time_scale()
 
+# 发育期倍率独立于玩家速度滑条；合并时设为 0 冻结游戏时间，结束后恢复 1。
+func set_development_time_multiplier(multiplier:float) -> void:
+	_time_scale.set_development_time_multiplier(multiplier)
+
 func _apply_time_scale_overrides() -> void:
 	_time_scale._apply_time_scale_overrides()
 
@@ -282,6 +290,7 @@ const MULTIPLAYER_CONTROL_RING_SCRIPT = preload("res://scripts/ui/multiplayer_co
 var controlled_character_local:Node = null
 var _control_rings_by_peer:Dictionary = {}
 var _remote_control_assignments:Dictionary = {}
+var _local_control_release_requested:bool = false
 var _controlled_ring:Node2D = null # 旧字段仅兼容旧调用；V277 起不再是唯一控制圈。
 var _controlled_peer_paths:Dictionary = {}
 var _controlled_path_peers:Dictionary = {}
@@ -414,7 +423,10 @@ func get_local_controlled_character() -> Node:
 	return null
 
 func is_controlling_character() -> bool:
-	return get_local_controlled_character() != null
+	if get_local_controlled_character() != null:
+		return true
+	# 形态节点未复制过来时仍可按 C 取消控制，不会误当成重新选择。
+	return network_role == "client" and multiplayer.has_multiplayer_peer() and not _local_control_release_requested and not str(_remote_control_assignments.get(_local_control_peer_id(),"")).is_empty()
 
 func should_follow_controlled_character() -> bool:
 	return is_controlling_character() and bool(Game_Settings.get("Follow_Controlled_Character",false))
@@ -459,7 +471,17 @@ func _apply_runtime_game_setting_local(setting:String,value:Variant,save_after:b
 		return
 	if BATTLE_CONDITIONS_CATALOG.SETTING_KEYS.has(setting):
 		value = BATTLE_CONDITIONS_CATALOG.normalize_setting(setting,value)
-	if setting == "Training_Mode":
+	if setting == "Rotation_Match_Type":
+		var match_type:String = str(value)
+		if match_type not in ["duel","wheel","challenge"]: match_type = "duel"
+		Game_Settings[setting] = match_type
+		Game_Settings["Training_Wheel_Battle"] = match_type == "wheel"
+		game_setting_changed.emit(setting,match_type)
+	elif setting == "Training_Wheel_Battle":
+		Game_Settings[setting] = bool(value)
+		Game_Settings["Rotation_Match_Type"] = "wheel" if bool(value) else "duel"
+		game_setting_changed.emit("Rotation_Match_Type",Game_Settings["Rotation_Match_Type"])
+	elif setting == "Training_Mode":
 		_training.set_training_mode(bool(value))
 	elif setting == "Training_Mode_Type":
 		var mode:String = str(value)
@@ -467,6 +489,12 @@ func _apply_runtime_game_setting_local(setting:String,value:Variant,save_after:b
 			mode = "manual"
 		Game_Settings[setting] = mode
 		game_setting_changed.emit(setting,mode)
+	elif setting == "Development_Duration":
+		Game_Settings[setting] = clampf(float(value),1.0,86400.0)
+		game_setting_changed.emit(setting,Game_Settings[setting])
+	elif setting == "Development_Speed":
+		Game_Settings[setting] = clampf(float(value),1.0,32.0)
+		game_setting_changed.emit(setting,Game_Settings[setting])
 	else:
 		Game_Settings[setting] = value
 		game_setting_changed.emit(setting,value)
@@ -492,6 +520,9 @@ func _request_runtime_game_setting(setting:String,value:Variant) -> void:
 
 @rpc("authority","call_remote","reliable")
 func _receive_shared_setting(setting:String,value:Variant) -> void:
+	if setting == "Show_Center_Watermark":
+		Game_Settings.erase(setting)
+		return
 	if not _is_network_shared_setting(setting):
 		return
 	_apply_runtime_game_setting_local(setting,value,false)
@@ -613,6 +644,11 @@ func load_persistent_settings() -> void:
 
 	for key:String in BATTLE_CONDITIONS_CATALOG.SETTING_KEYS:
 		Game_Settings[key] = BATTLE_CONDITIONS_CATALOG.normalize_setting(key,Game_Settings.get(key))
+	# Migrate the old winner-stays checkbox once, without overriding a saved challenge choice.
+	if not config.has_section_key("game_settings","Rotation_Match_Type"):
+		Game_Settings["Rotation_Match_Type"] = "wheel" if bool(Game_Settings.get("Training_Wheel_Battle",false)) else "duel"
+	Game_Settings["Rotation_Match_Type"] = get_rotation_match_type()
+	Game_Settings["Training_Wheel_Battle"] = get_rotation_match_type() == "wheel"
 	# 关键：
 	# 不再恢复旧的 speed_slider。
 	# 速度倍率直接影响 physics delta，高倍率会降低高速投射物碰撞可靠性。
@@ -624,6 +660,8 @@ func load_persistent_settings() -> void:
 	Game_Settings["Manual_Collision_Damage"] = false
 	Game_Settings["Training_Debug_Mode"] = false
 	_training.set_manual_training_attack_interval(float(Game_Settings.get("Manual_Attack_Interval", 0.15)), false)
+	# 水印开关已删除。旧配置和旧内存值都不再恢复。
+	Game_Settings.erase("Show_Center_Watermark")
 	if not _localization.SUPPORTED_LOCALES.has(_localization.current_locale):
 		_localization.current_locale = "zh"
 
@@ -635,6 +673,9 @@ func save_persistent_settings() -> void:
 	# 先加载旧文件，方便以后增加其他 section 时不被覆盖。
 	config.load(SETTINGS_PATH)
 
+	Game_Settings.erase("Show_Center_Watermark")
+	if config.has_section_key("game_settings","Show_Center_Watermark"):
+		config.erase_section_key("game_settings","Show_Center_Watermark")
 	for setting in Game_Settings.keys():
 		if str(setting) in ["Training_Mode", "Training_Mode_Type", "Manual_Training", "Manual_Collision_Damage", "Training_Debug_Mode"]:
 			continue
@@ -675,8 +716,6 @@ func _on_speed_slider_drag_ended(value_changed:bool) -> void:
 	Follow_Controlled_Character = false,
 	# 英文模式下只翻译战斗内文本；工具栏、设置和选人面板继续保持中文。
 	Only_In_Game_Translation = false,
-	# 地图中央创作者水印显示开关；属于普通参数并跨启动保存。
-	Show_Center_Watermark = true,
 	# 仅影响本机地图外观，旧存档缺少此项时仍使用原蓝色背景。
 	Map_Background = "blue",
 	# Local visual preference, persisted by the existing settings path.
@@ -690,8 +729,13 @@ func _on_speed_slider_drag_ended(value_changed:bool) -> void:
 	Random_Events = false,
 	Random_Event_Selection = [],
 	Environment = "none",
+	# 赛前分别在左右两张完整地图发育；设置时长按游戏秒计算，倍率不改玩家滑条。
+	Development_Mode = false,
+	Development_Duration = 60.0,
+	Development_Speed = 2.0,
 	# 轮放模式：false=任一方死亡后双方都换下一位；true=胜者留场，只补死亡方。
-	Training_Wheel_Battle = false,
+	Training_Wheel_Battle = false, # Legacy compatibility; UI uses Rotation_Match_Type.
+	Rotation_Match_Type = "duel",
 	# 计时模式时长（秒）。SpinBox 可自由输入。
 	Training_Timed_Duration = 60.0,
 	# Boss 模式固定为左右两队；其中一侧按倍率强化。
@@ -843,6 +887,9 @@ func report_training_damage(source:Node, target:Node, actual_health_damage:float
 
 
 func set_runtime_game_setting(setting:String, value:Variant, save_after:bool = true) -> void:
+	if setting == "Show_Center_Watermark":
+		Game_Settings.erase(setting)
+		return
 	if not Game_Settings.has(setting):
 		return
 
@@ -1393,7 +1440,8 @@ func _try_world_right_click_delete(world:World) -> bool:
 	return true
 
 func _can_control_candidate(node:Node) -> bool:
-	if node == null or not is_instance_valid(node) or not (node is ball) or not node.is_in_group("Ball"):
+	# A few autonomous companions intentionally avoid the combat "Ball" group.
+	if node == null or not is_instance_valid(node) or not (node is ball) or (not node.is_in_group("Ball") and not node.is_in_group("ManualControlSubentity")):
 		return false
 	var candidate:ball = node as ball
 	if not candidate.can_player_control():
@@ -1408,7 +1456,9 @@ func _find_control_candidate(world:World) -> Node:
 	var point:Vector2 = world.get_global_mouse_position()
 	var chosen:Node = null
 	var best_distance:float = INF
-	for node:Node in get_tree().get_nodes_in_group("Ball"):
+	var candidates:Array[Node] = get_tree().get_nodes_in_group("Ball")
+	candidates.append_array(get_tree().get_nodes_in_group("ManualControlSubentity"))
+	for node:Node in candidates:
 		if not (node is ball) or not is_instance_valid(node):
 			continue
 		var candidate:ball = node as ball
@@ -1584,6 +1634,76 @@ func _sync_control_assignments(assignments:Dictionary) -> void:
 		var path_string:String = str(assignments[peer_key])
 		if peer_id > 0 and not path_string.is_empty():
 			_remote_control_assignments[peer_id] = path_string
+	var local_path:String = str(_remote_control_assignments.get(_local_control_peer_id(),""))
+	var current:Node = get_local_controlled_character()
+	if local_path.is_empty():
+		_local_control_release_requested = false
+		if current != null:
+			_set_local_control_target(null)
+	elif not _local_control_release_requested and (current == null or str(current.get_path()) != local_path):
+		_resolve_assigned_local_control_target(local_path)
+
+
+func _resolve_assigned_local_control_target(target_path:String) -> void:
+	# 同步分配可能早于目标球在客户端出现；每帧复核映射，避免过期等待重新接管控制。
+	for frame:int in range(300):
+		if _local_control_release_requested or str(_remote_control_assignments.get(_local_control_peer_id(),"")) != target_path:
+			return
+		var target:Node = get_node_or_null(NodePath(target_path))
+		if target != null and _can_control_candidate(target):
+			_set_local_control_target(target)
+			return
+		await get_tree().process_frame
+	push_warning("手控形态同步超时：" + target_path)
+
+
+func transfer_character_control_for_replacement(old_target:Node,new_target:Node) -> void:
+	# 只有服务器可以迁移控制；实体死亡/按 C 退出仍走原有释放流程。
+	if not multiplayer.is_server() or old_target == null or not is_instance_valid(old_target):
+		return
+	if new_target == null or not _can_control_candidate(new_target):
+		return
+	var old_path:String = str(old_target.get_path())
+	var peer_id:int = int(_controlled_path_peers.get(old_path,0))
+	if peer_id <= 0:
+		# 离线单人不使用服务器映射，仍须将本机跟随和 WASD/鼠标输入切到新形态。
+		if not multiplayer.has_multiplayer_peer() and get_local_controlled_character() == old_target:
+			_copy_control_input_for_replacement(old_target,new_target)
+			_set_local_control_target(new_target)
+			old_target.call("set_player_control_peer",0)
+			new_target.call("set_player_control_peer",1)
+		return
+	var new_path:String = str(new_target.get_path())
+	if _controlled_path_peers.has(new_path) and int(_controlled_path_peers[new_path]) != peer_id:
+		_release_control_for_peer(peer_id)
+		return
+	# 释放旧形态的长按/蓄力和服务器复读计时，新形态必须等下一次按下才会出招。
+	var held_mask:int = int(_remote_control_action_hold_masks.get(peer_id,0))
+	if old_target.has_method("player_control_action_cancelled"):
+		for index:int in range(CONTROL_ACTION_COUNT):
+			if (held_mask & (1 << index)) != 0:
+				old_target.call("player_control_action_cancelled",index)
+	_remote_control_action_hold_masks.erase(peer_id)
+	_remote_control_action_repeat_ready_msec.erase(peer_id)
+	_copy_control_input_for_replacement(old_target,new_target)
+	_controlled_path_peers.erase(old_path)
+	_controlled_path_peers[new_path] = peer_id
+	_controlled_peer_paths[peer_id] = new_path
+	if get_local_controlled_character() == old_target:
+		_set_local_control_target(new_target)
+	old_target.call("set_player_control_peer",0)
+	new_target.call("set_player_control_peer",peer_id)
+	_broadcast_control_assignments()
+
+
+func _copy_control_input_for_replacement(old_target:Node,new_target:Node) -> void:
+	if not old_target is ball or not new_target is ball:
+		return
+	var previous:ball = old_target as ball
+	var successor:ball = new_target as ball
+	successor.set_player_control_direction(previous.player_control_direction)
+	if previous.has_player_control_aim():
+		successor.set_player_control_aim_position(previous.player_control_aim_position)
 
 
 func _release_control_for_peer(peer_id:int) -> void:
@@ -1634,6 +1754,7 @@ func _toggle_character_control(world:World) -> void:
 	if is_controlling_character():
 		var old_target:Node = get_local_controlled_character()
 		if network_role == "client":
+			_local_control_release_requested = true
 			_request_release_control.rpc_id(Server_Id)
 		elif multiplayer.is_server():
 			_release_control_for_peer(multiplayer.get_unique_id())
@@ -1645,6 +1766,7 @@ func _toggle_character_control(world:World) -> void:
 	if target == null:
 		return
 	if network_role == "client":
+		_local_control_release_requested = false
 		_request_control_character.rpc_id(Server_Id,target.get_path())
 	else:
 		var peer_id:int = multiplayer.get_unique_id() if multiplayer.has_multiplayer_peer() else 1
@@ -1676,6 +1798,8 @@ func _request_release_control() -> void:
 
 @rpc("authority","call_remote","reliable")
 func _control_character_result(target_path:NodePath) -> void:
+	if _local_control_release_requested:
+		return
 	var target:Node = get_node_or_null(target_path) if not str(target_path).is_empty() else null
 	_set_local_control_target(target)
 

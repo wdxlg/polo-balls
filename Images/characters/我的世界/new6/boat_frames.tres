@@ -1,0 +1,144 @@
+[gd_resource type="SpriteFrames" format=3 uid="uid://3n58x0gmx65n"]
+
+[ext_resource type="Texture2D" uid="uid://dcmdaefr38ct5" path="res://Images/characters/我的世界/new6/boat_frames.png" id="atlas"]
+
+[sub_resource type="AtlasTexture" id="idle_0"]
+atlas = ExtResource("atlas")
+region = Rect2(0, 0, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="idle_1"]
+atlas = ExtResource("atlas")
+region = Rect2(128, 0, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="idle_2"]
+atlas = ExtResource("atlas")
+region = Rect2(256, 0, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="idle_3"]
+atlas = ExtResource("atlas")
+region = Rect2(384, 0, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="idle_4"]
+atlas = ExtResource("atlas")
+region = Rect2(512, 0, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="idle_5"]
+atlas = ExtResource("atlas")
+region = Rect2(640, 0, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="idle_6"]
+atlas = ExtResource("atlas")
+region = Rect2(768, 0, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="idle_7"]
+atlas = ExtResource("atlas")
+region = Rect2(896, 0, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="row_0"]
+atlas = ExtResource("atlas")
+region = Rect2(0, 128, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="row_1"]
+atlas = ExtResource("atlas")
+region = Rect2(128, 128, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="row_2"]
+atlas = ExtResource("atlas")
+region = Rect2(256, 128, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="row_3"]
+atlas = ExtResource("atlas")
+region = Rect2(384, 128, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="row_4"]
+atlas = ExtResource("atlas")
+region = Rect2(512, 128, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="row_5"]
+atlas = ExtResource("atlas")
+region = Rect2(640, 128, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="row_6"]
+atlas = ExtResource("atlas")
+region = Rect2(768, 128, 128, 128)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="row_7"]
+atlas = ExtResource("atlas")
+region = Rect2(896, 128, 128, 128)
+filter_clip = true
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("idle_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("idle_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("idle_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("idle_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("idle_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("idle_5")
+}, {
+"duration": 1.0,
+"texture": SubResource("idle_6")
+}, {
+"duration": 1.0,
+"texture": SubResource("idle_7")
+}],
+"loop": 1,
+"name": &"idle",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("row_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("row_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("row_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("row_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("row_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("row_5")
+}, {
+"duration": 1.0,
+"texture": SubResource("row_6")
+}, {
+"duration": 1.0,
+"texture": SubResource("row_7")
+}],
+"loop": 1,
+"name": &"row",
+"speed": 9.0
+}]

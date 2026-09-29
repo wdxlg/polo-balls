@@ -1,0 +1,32 @@
+Godot Engine v4.7.2.stable.steam.ed1daf0bf - https://godotengine.org
+D3D12 12_0 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 4060 Laptop GPU
+
+PASS: no debris before jaw begins emerging
+PASS: debris begins before unchanged bite time
+PASS: reuses mace ground particles rather than copying simulation
+PASS: small bounded 12 to 18 block burst
+PASS: no center ring or streak explosion
+PASS: all fragments start outside center, travel outward and rise only 2 to 4 pixels
+PASS: debris distributed around fang, not one central jet
+PASS: one cast budgets four extra debris bursts, not one per jaw
+PASS: budgeted fangs still animate and bite on schedule
+PASS: budgeted fangs still animate and bite on schedule
+PASS: budgeted fangs still animate and bite on schedule
+PASS: budgeted fangs still animate and bite on schedule
+PASS: budgeted fangs still animate and bite on schedule
+PASS: budgeted fangs still animate and bite on schedule
+PASS: no bite particles before closure
+PASS: jaw closure emits only a few CRIT sparks, even without a victim
+PASS: bite burst reuses the single world batch layer
+PASS: uses pixel-verified native CRIT texture
+PASS: fang sparks stay neutral like the vanilla CRIT sprite, not the damage-crit brown
+PASS: fang CRIT keeps the shared size ramp instead of a bespoke sprite size
+PASS: both stages are one-shot
+PASS: ordinary damage feedback thresholds unchanged
+PASS: pause cannot retrigger fang stages
+FANG_GPU ground_pixels=160 bite_pixels=419
+PASS: both emergence debris and bite particles draw on actual GPU
+PASS: native particles clear after lifetime
+PASS: detached blocks and fang clean up independently
+FANG_PARTICLES_RESULT checks=26 failures=0
+BAT RESULT: 26/26 passed

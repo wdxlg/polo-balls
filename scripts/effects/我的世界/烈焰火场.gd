@@ -1,12 +1,12 @@
 extends Node2D
 
-const FIRE_FRAMES:SpriteFrames = preload("res://particles/薇欧拉火焰序列.tres")
-const BURN_SCRIPT:Script = preload("res://scripts/status/战争女神_灼烧.gd")
-const BURN_NODE_NAME:StringName = &"MinecraftBlazeBurn"
+const FIRE_FRAMES:SpriteFrames = preload("res://particles/mc_ground_fire.tres")
+const SHARED_BURN:Script = preload("res://scripts/effects/我的世界/mc_shared_burn.gd")
 const BURN_AMBIENT_SFX:AudioStream = preload("res://audio/sfx/我的世界/烈焰火焰燃烧.ogg")
 const FIRE_AUDIO_NEXT_META:StringName = &"minecraft_blaze_fire_audio_next_msec"
 const FIRE_AUDIO_COUNT_META:StringName = &"minecraft_blaze_fire_audio_source_count"
 const MC_SMOKE_SCENE:PackedScene = preload("res://scenes/effects/我的世界/MC烟雾粒子.tscn")
+const MC_DAMAGE_SFX:Script = preload("res://scripts/effects/我的世界/女巫药水伤害音效.gd")
 
 var _source_ref:WeakRef = null
 var _source_team:String = ""
@@ -20,8 +20,9 @@ var _burn_duration:float = 2.2
 var _burn_tick_damage_multiplier:float = 0.05
 
 var _main_fire:AnimatedSprite2D = null
-var _fire_base_width:float = 30.0
-var _fire_base_height:float = 44.0
+var _fire_base_width:float = 24.0
+var _fire_base_height:float = 24.0
+var _fire_cell_rect:Rect2 = Rect2()
 var _damage_center_offset:Vector2 = Vector2.ZERO
 var _fire_visual_local_position:Vector2 = Vector2.ZERO
 var _map_world_rect_cache:Rect2 = Rect2()
@@ -39,10 +40,11 @@ func setup(source:ball,team:String,world_position:Vector2,radius:float,duration:
 	_burn_duration = maxf(burn_duration,0.1)
 	_burn_tick_damage_multiplier = maxf(burn_tick_damage_multiplier,0.0)
 
-	# 只复用薇欧拉的火焰逐帧素材；烈焰人火场不复用她的“出现/呼吸/收束”演出。
-	# 视觉保持原地固定尺寸循环。默认约 30×44px；伤害半径默认 34px。
-	_fire_base_width = clampf(_radius * 0.88,24.0,36.0)
-	_fire_base_height = clampf(_radius * 1.30,36.0,52.0)
+	# 原版MC fire_0逐帧素材；烈焰人火场不复用薇欧拉的“出现/呼吸/收束”演出。
+	# 火焰覆盖落点所在的一格地图方块，底边对齐格子底边；视觉尺寸与伤害半径解耦。
+	_fire_cell_rect = _fire_cell_rect_at(world_position)
+	_fire_base_width = _fire_cell_rect.size.x
+	_fire_base_height = _fire_cell_rect.size.y
 
 	# V36：火场根节点保留在烈焰弹的实际撞击点附近。
 	# 若撞到地图边墙，只把“火焰视觉中心”和“伤害圆中心”分别向地图内部偏移，
@@ -63,6 +65,7 @@ func _build_fire_visual() -> void:
 		return
 	_main_fire = AnimatedSprite2D.new()
 	_main_fire.name = "MainFireSequence"
+	_main_fire.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_main_fire.sprite_frames = FIRE_FRAMES
 	_main_fire.animation = &"default"
 	_main_fire.frame = _rng.randi_range(0,maxi(FIRE_FRAMES.get_frame_count(&"default") - 1,0))
@@ -101,8 +104,7 @@ func _apply_static_fire_visual() -> void:
 		_fire_base_width / maxf(tex_size.x,1.0),
 		_fire_base_height / maxf(tex_size.y,1.0)
 	)
-	# 通常火焰底部落在撞击点；贴墙时只移动子视觉，使贴墙侧刚好落在地图边缘，
-	# 根节点仍保留在实际撞击点，因此不会出现“撞墙却隔很远才起火”。
+	# 子视觉覆盖所在格子，底部落在方块底边；根节点仍记录实际撞击点。
 	_main_fire.position = _fire_visual_local_position
 	_main_fire.modulate = Color.WHITE
 
@@ -253,19 +255,58 @@ func _damage_inside(source:ball) -> void:
 		if seen.has(id):
 			continue
 		seen[id] = true
+		var health_before:float = maxf(float(target.health),0.0)
 		var outgoing:float = source.attack_damage(_area_tick_damage_multiplier)
 		var applied:bool = false
 		if outgoing > 0.0:
 			applied = target.receive_fire_positional_damage(outgoing,damage_center,false,source)
+		var actual_damage:float = maxf(health_before - maxf(float(target.health),0.0),0.0)
+		if applied and actual_damage > 0.0:
+			MC_DAMAGE_SFX.play_scaled(target,target.global_position,actual_damage,source,"blaze_ground_fire")
 		# 闪避/完全拒绝本次火场命中的角色不应该在瞬移后凭空被附加燃烧。
 		if applied:
 			_apply_burn(source,target)
 
+func _fire_cell_rect_at(world_position:Vector2) -> Rect2:
+	var world:Node = get_tree().current_scene if get_tree() != null else null
+	if world != null:
+		var maps:Variant = world.get("map_group")
+		if maps is Dictionary:
+			var map_node:Variant = maps.get(str(world.get("now_choose_map")))
+			if map_node is Node:
+				var layer:TileMapLayer = _fire_layer_near(map_node,world_position)
+				if layer != null: return _cell_rect_on_layer(layer,world_position)
+	# Non-tile test/custom arenas use the same 24px grid as MC terrain.
+	var center:Vector2 = (world_position/24.0).round()*24.0
+	return Rect2(center-Vector2.ONE*12.0,Vector2.ONE*24.0)
+func _fire_layer_near(node:Node,point:Vector2) -> TileMapLayer:
+	if node is TileMapLayer and node.tile_set != null: return node as TileMapLayer
+	var closest:TileMapLayer = null
+	var distance:float = INF
+	for child:Node in node.get_children():
+		var candidate:TileMapLayer = _fire_layer_near(child,point)
+		if candidate == null: continue
+		var rect:Rect2 = _cell_rect_on_layer(candidate,point)
+		var gap:float = point.distance_squared_to(point.clamp(rect.position,rect.end))
+		if gap < distance:
+			closest = candidate
+			distance = gap
+	return closest
+func _cell_rect_on_layer(layer:TileMapLayer,point:Vector2) -> Rect2:
+	var cell:Vector2i = layer.local_to_map(layer.to_local(point))
+	var used:Rect2i = layer.get_used_rect()
+	if used.has_area():
+		cell.x = clampi(cell.x,used.position.x,used.end.x-1)
+		cell.y = clampi(cell.y,used.position.y,used.end.y-1)
+	var center:Vector2 = layer.to_global(layer.map_to_local(cell))
+	var tile_size:Vector2 = Vector2(layer.tile_set.tile_size)
+	var size:Vector2 = Vector2(layer.global_transform.x.length()*tile_size.x,layer.global_transform.y.length()*tile_size.y)
+	return Rect2(center-size*0.5,size)
 func _fit_and_clamp_fire_patch_to_current_map(world_position:Vector2) -> Vector2:
 	var map_rect:Rect2 = _current_map_world_rect()
 	_map_world_rect_cache = map_rect
 	_damage_center_offset = Vector2.ZERO
-	_fire_visual_local_position = Vector2(0.0,-_fire_base_height * 0.5)
+	_fire_visual_local_position = _fire_cell_rect.get_center()-world_position
 	if map_rect.size.x <= 0.001 or map_rect.size.y <= 0.001:
 		return world_position
 
@@ -292,9 +333,8 @@ func _fit_and_clamp_fire_patch_to_current_map(world_position:Vector2) -> Vector2
 	var damage_center:Vector2 = _clamp_center_inside_rect(anchor,map_rect,_radius,_radius)
 	_damage_center_offset = damage_center - anchor
 
-	# 火焰素材默认“底部 = 撞击点”。若撞到左右墙/上墙导致素材越界，
-	# 只移动 AnimatedSprite2D 子节点的中心，让素材边缘贴住墙，而不是移动撞击点。
-	var natural_visual_center:Vector2 = anchor + Vector2(0.0,-_fire_base_height * 0.5)
+	# 火焰底边与所在格子的底边对齐，视觉占一格；地图边界仍进行安全裁限。
+	var natural_visual_center:Vector2 = _fire_cell_rect.get_center()
 	var visual_center:Vector2 = _clamp_center_inside_rect(
 		natural_visual_center,
 		map_rect,
@@ -343,17 +383,7 @@ func _current_map_world_rect() -> Rect2:
 	return Rect2()
 
 func _apply_burn(source:ball,target:ball) -> void:
-	if target == null or not is_instance_valid(target) or not target.can_receive_fire_status():
-		return
-	var path := NodePath(String(BURN_NODE_NAME))
-	var existing:Node = target.get_node_or_null(path)
-	if existing != null and is_instance_valid(existing) and existing.has_method("refresh"):
-		existing.call("refresh",source,_burn_duration,source.attack_damage(_burn_tick_damage_multiplier))
-		return
-	var status:Node2D = BURN_SCRIPT.new() as Node2D
-	status.name = BURN_NODE_NAME
-	target.add_child(status,true)
-	status.call("setup",target,source,_burn_duration,0.55,source.attack_damage(_burn_tick_damage_multiplier))
+	SHARED_BURN.apply(source,target,_burn_duration,_burn_tick_damage_multiplier)
 
 func _can_damage(target:ball) -> bool:
 	if target == null or not is_instance_valid(target) or target.health <= 0 or not target.is_combat_targetable():

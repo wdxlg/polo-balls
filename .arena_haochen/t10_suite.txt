@@ -1,0 +1,15 @@
+﻿
+test_haochen exit=0 :: HAOCHEN checks=55 failures=0 :: HAOCHEN checks=55 failures=0
+test_haochen_reuse exit=0 :: HAOCHEN_REUSE checks=14 failures=0 :: HAOCHEN_REUSE checks=14 failures=0
+test_haochen_network exit=0 :: HAOCHEN_NETWORK checks=27 failures=0 | HAOCHEN_NETWORK_FINAL checks=28 failures=0 :: HAOCHEN_NETWORK checks=27 failures=0 || HAOCHEN_NETWORK_FINAL checks=28 failures=0
+test_haochen_task8 exit=-1073741819 :: HAOCHEN_TASK8 checks=8 failures=0 :: HAOCHEN_TASK8 checks=8 failures=0
+test_haochen_task10 exit=0 :: HAOCHEN_TASK10 checks=88 failures=0 :: HAOCHEN_TASK10 checks=88 failures=0
+test_manual_control_roster_extensions exit=0 :: ROSTER_CONTROL_RESULT checks=71 failures=0 :: ROSTER_CONTROL_RESULT checks=71 failures=0
+test_mc_bat exit=2 :: BAT RESULT: 12/17 passed :: ERROR: FAIL: initial swarm HP and maximum are 5 x 30 || ERROR: FAIL: bat heals and grows by actual health damage || ERROR: FAIL: growth survives World property reset || ERROR: FAIL: vampire has stronger attack and movement stats || ERROR: FAIL: 65/30 floors to two bats
+test_slime_family_victory exit=0 :: SLIME_FAMILY_VICTORY checks=63 failures=0 | NEW5_RESULT checks=63 failures=0 :: SLIME_FAMILY_VICTORY checks=63 failures=0 || NEW5_RESULT checks=63 failures=0
+test_void_projectile_contacts exit=0 :: VOID_PROJECTILE_CONTACTS checks=68 failures=0 | BAT RESULT: 68/68 passed :: VOID_PROJECTILE_CONTACTS checks=68 failures=0
+test_haochen_task9 exit=0 :: HAOCHEN_TASK9 checks=23 failures=0 :: HAOCHEN_TASK9 checks=23 failures=0
+test_haochen_real_battle_gpu exit=0 :: HAOCHEN_REAL_BATTLE checks=11 failures=0 :: HAOCHEN_REAL_BATTLE checks=11 failures=0
+test_haochen_visual_audio exit=0 :: HAOCHEN_VISUAL_AUDIO checks=11 failures=0 :: HAOCHEN_VISUAL_AUDIO checks=11 failures=0
+test_haochen_face_link_gpu exit=0 :: HAOCHEN_FACE_LINK checks=3 failures=0 :: HAOCHEN_FACE_LINK checks=3 failures=0
+ALLDONE

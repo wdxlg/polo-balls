@@ -157,13 +157,53 @@ func _physics_process(delta:float) -> void:
 
 	if _periodic_roll_started:
 		_periodic_roll_cooldown_left = maxf(_periodic_roll_cooldown_left - delta,0.0)
-		if _periodic_roll_cooldown_left <= 0.0:
+		if _periodic_roll_cooldown_left <= 0.0 and not is_player_controlled():
 			# 先占住本轮定时触发，避免 call_deferred 真正进入 _rolling 前重复排队。
 			_periodic_roll_cooldown_left = PERIODIC_ROLL_INTERVAL
 			_queue_roll(1)
 			return
 
 	_tick_granted_weapons(delta)
+
+func controlled_attack_action() -> void:
+	# 左键：定时投骰改为玩家起手；出生、半血及保命的受击骰仍自动触发。
+	if not _can_use_manual_dice_action() or _rolling or _pending_rolls > 0 or not _periodic_roll_started or _periodic_roll_cooldown_left > 0.0:
+		return
+	_periodic_roll_cooldown_left = PERIODIC_ROLL_INTERVAL
+	_queue_roll(1)
+
+func controlled_skill_action() -> void:
+	# 右键：已获得的第一把远程武器。
+	_fire_manual_granted_weapon(0)
+
+func controlled_middle_action() -> void:
+	# 中键：已获得的第二把远程武器，不复制第一把的动作。
+	_fire_manual_granted_weapon(1)
+
+func _can_use_manual_dice_action() -> bool:
+	return is_player_controlled() and is_multiplayer_authority() and health > 0 and not _rolling and is_combat_runtime_active()
+
+func _fire_manual_granted_weapon(slot:int) -> void:
+	if not _can_use_manual_dice_action() or not has_player_control_aim() or slot >= _weapon_paths.size() or _weapon_cooldowns[slot] > 0.0:
+		return
+	var aim:Vector2 = player_control_aim_world_position()
+	var target:ball = null
+	var best_distance:float = INF
+	var max_range_sq:float = pow(900.0 * weapon_range_multiplier,2.0)
+	for raw:Node in get_tree().get_nodes_in_group("Ball"):
+		if not raw is ball:
+			continue
+		var candidate:ball = raw as ball
+		if not SUBMISSION_TOOLS.is_enemy(self,candidate) or global_position.distance_squared_to(candidate.global_position) > max_range_sq:
+			continue
+		var distance:float = aim.distance_squared_to(candidate.global_position)
+		if distance < best_distance:
+			best_distance = distance
+			target = candidate
+	if target == null:
+		return
+	_fire_granted_weapon(_weapon_paths[slot],target,slot,aim,true)
+	_weapon_cooldowns[slot] = _weapon_base_cooldown(_weapon_paths[slot]) * maxf(weapon_cooldown_multiplier,0.05)
 
 func on_actual_health_damage_received(actual_health_damage:float,health_before:float) -> void:
 	if _suppress_roll_trigger_depth > 0 or actual_health_damage <= 0.0:
@@ -365,75 +405,19 @@ func _spawn_explosion_everywhere() -> void:
 
 func _clone_nearest_enemy_as_ally() -> void:
 	var enemy:ball = SUBMISSION_TOOLS.nearest_enemy(self)
-	if enemy == null or not is_instance_valid(enemy):
-		return
-	var path:String = str(enemy.scene_file_path)
-	if path.is_empty() or not ResourceLoader.exists(path):
-		return
-	var packed:PackedScene = load(path) as PackedScene
-	if packed == null:
-		return
-	var instance:Node = packed.instantiate()
-	if not instance is ball:
-		instance.queue_free()
-		return
-	var clone:ball = instance as ball
-	var original_current_health:int = maxi(int(enemy.health),1)
-	_apply_enemy_clone_stats(clone,enemy,original_current_health,false)
-	clone.Master = self
-	clone.Master_name = str(name)
-	clone.Team = Team
-	clone.set_meta(&"forced_combat_team",Team)
-	clone.set_meta(&"dice_enemy_copy",true)
-	_copy_victory_identity_to(clone)
-	clone.global_position = SUBMISSION_TOOLS.safe_spawn_position(
-		self,
-		global_position + Vector2(_rng.randf_range(-46.0,46.0),_rng.randf_range(-46.0,46.0)),
-		24.0
-	)
-	get_tree().current_scene.add_child(clone,true)
-	# 某些角色会在 _ready() 里再次写入自己的基础属性；入树后再压一次，确保投稿规则最终成立。
-	_apply_enemy_clone_stats(clone,enemy,original_current_health)
-	clone.Master = self
-	clone.Master_name = str(name)
-	clone.Team = Team
-	clone.set_meta(&"forced_combat_team",Team)
+	if not is_instance_valid(enemy): return
+	var snapshot:Dictionary = SUBMISSION_TOOLS.capture_character_template(enemy)
+	if str(snapshot.get("scene","")).is_empty() or not ResourceLoader.exists(str(snapshot.scene)): return
+	var point:Vector2 = SUBMISSION_TOOLS.safe_spawn_position(self,global_position+Vector2(_rng.randf_range(-46.0,46.0),_rng.randf_range(-46.0,46.0)),24.0)
+	SUBMISSION_TOOLS.spawn_character_copy(self,snapshot,point,1.0/3.0,{"full_vitals":false,"cooldown_factor":1.0/3.0,"assign_random_name":false,"prepare_instance":_copy_victory_identity_to,"metadata":{"dice_enemy_copy":true}})
 
 func _apply_enemy_clone_stats(clone:ball,enemy:ball,original_current_health:int,apply_current_health:bool = true) -> void:
-	if clone == null or enemy == null:
-		return
-	var original_max_health:int = maxi(int(enemy.Max_health),1)
-	clone.Max_health = maxi(int(ceil(float(original_max_health) / 3.0)),1)
-	clone.Damage = maxi(int(ceil(float(maxi(enemy.Damage,0)) / 3.0)),0)
-	# “除了速度都只有三分之一”按公共 ball 的基础战斗数值执行；Speed 唯一保持原值。
-	clone.Speed = enemy.Speed
-	clone.Attack_Cooling = maxf(enemy.Attack_Cooling / 3.0,0.01)
-	clone.Skill_Cooling = maxf(enemy.Skill_Cooling / 3.0,0.01)
-	clone.Health_Restore = maxi(int(ceil(float(maxi(enemy.Health_Restore,0)) / 3.0)),0)
-	clone.Damage_reduction = enemy.Damage_reduction / 3.0
-	clone.max_block = maxi(int(ceil(float(maxi(enemy.max_block,0)) / 3.0)),0)
-	clone.max_energy = maxi(int(ceil(float(maxi(enemy.max_energy,0)) / 3.0)),0)
-	if apply_current_health:
-		clone.health = clampi(int(ceil(float(original_current_health) / 3.0)),1,clone.Max_health)
-		# block/energy 的 setter 会通知 Health_Bar。某些特殊角色在复制时血条仍可能尚未
-		# 完成 @onready 绑定，所以只有血条有效时才写当前值；上限已在上面安全写入。
-		if clone.health_bar != null:
-			if "block" in clone and "block" in enemy:
-				clone.block = maxi(int(ceil(float(maxi(enemy.block,0)) / 3.0)),0)
-			if "energy" in clone and "energy" in enemy:
-				clone.energy = maxi(int(ceil(float(maxi(enemy.energy,0)) / 3.0)),0)
-		# World 每帧会从 default_properties 恢复公共属性。复制完成后把 1/3 数值写成
-		# 复制体自己的默认值，避免下一帧又跳回原角色场景数值。
-		if clone.default_properties != null:
-			clone.default_properties["Max_health"] = clone.Max_health
-			clone.default_properties["Damage"] = clone.Damage
-			clone.default_properties["Speed"] = clone.Speed
-			clone.default_properties["Attack_Cooling"] = clone.Attack_Cooling
-			clone.default_properties["Skill_Cooling"] = clone.Skill_Cooling
-			clone.default_properties["Health_Restore"] = clone.Health_Restore
-			clone.default_properties["Damage_reduction"] = clone.Damage_reduction
-			clone.default_properties["max_block"] = clone.max_block
-			clone.default_properties["max_energy"] = clone.max_energy
+	if not is_instance_valid(clone) or not is_instance_valid(enemy): return
+	var snapshot:Dictionary = SUBMISSION_TOOLS.capture_character_template(enemy)
+	if snapshot.is_empty(): return
+	snapshot["health"] = original_current_health
+	var profile:Dictionary = SUBMISSION_TOOLS.build_character_copy_profile(snapshot,1.0/3.0,{"full_vitals":false,"cooldown_factor":1.0/3.0,"team":Team,"master_name":str(name)})
+	SUBMISSION_TOOLS.apply_character_copy_profile(clone,profile,apply_current_health)
 
 func _clone_self_with_weapons() -> void:
 	var path:String = str(scene_file_path)
@@ -500,7 +484,7 @@ func _pretty_weapon_name(path:String) -> String:
 func _tick_granted_weapons(delta:float) -> void:
 	if _weapon_paths.is_empty():
 		return
-	var target:ball = SUBMISSION_TOOLS.nearest_enemy(self,900.0 * weapon_range_multiplier)
+	var target:ball = null if is_player_controlled() else SUBMISSION_TOOLS.nearest_enemy(self,900.0 * weapon_range_multiplier)
 	for i:int in range(_weapon_paths.size()):
 		_weapon_cooldowns[i] = maxf(_weapon_cooldowns[i] - delta,0.0)
 		if _weapon_cooldowns[i] > 0.0 or target == null:
@@ -523,7 +507,7 @@ func _weapon_base_cooldown(path:String) -> float:
 		return 0.92
 	return 1.18
 
-func _fire_granted_weapon(path:String,target:ball,slot:int) -> void:
+func _fire_granted_weapon(path:String,target:ball,slot:int,aim_world_position:Vector2 = Vector2.ZERO,use_aim:bool = false) -> void:
 	if target == null or not is_instance_valid(target) or not ResourceLoader.exists(path):
 		return
 	var packed:PackedScene = load(path) as PackedScene
@@ -534,7 +518,7 @@ func _fire_granted_weapon(path:String,target:ball,slot:int) -> void:
 		node.queue_free()
 		return
 	var projectile:Node2D = node as Node2D
-	var aim:Vector2 = target.global_position - global_position
+	var aim:Vector2 = (aim_world_position if use_aim else target.global_position) - global_position
 	if aim.length_squared() <= 0.000001:
 		aim = Vector2.RIGHT
 	aim = aim.normalized()

@@ -16,11 +16,14 @@ func configure_final(actor:ball,root:Vector2,inward:Vector2,move:Vector2,speed:f
 	tail.position = Vector2(-BONE_HEAD_LATERAL_OFFSET * visual_scale,-5.0 * visual_scale)
 	add_child(tail)
 
+func _should_retire() -> bool:
+	return travel_speed>0.0 and _distance_moved>0.0 and _past_screen_exit()
 func _physics_process(delta:float) -> void:
-	if Game.now_stop_state:
-		return
-	remaining_life -= delta
-	if remaining_life <= 0.0:
-		queue_free()
-		return
+	if Game.now_stop_state: return
+	# Only stationary corridor scenery uses a duration. Moving bones leave the screen.
+	if travel_speed<=0.0:
+		remaining_life-=maxf(delta,0.0)
+		if remaining_life<=0.0:
+			queue_free()
+			return
 	super._physics_process(delta)

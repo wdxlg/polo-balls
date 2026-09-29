@@ -1,0 +1,102 @@
+{
+  "source": "https://o.xbottle.top/mcsounds/",
+  "events": {
+    "block.slime_block.place": [
+      {
+        "path": "mob/slime/big1",
+        "file_hash": "eff4b27c4de6d4e6c8fd88adfaf2a7d486ce7886",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/ef/eff4b27c4de6d4e6c8fd88adfaf2a7d486ce7886"
+      },
+      {
+        "path": "mob/slime/big2",
+        "file_hash": "791edfe35bc72bb3d836ae1ecd5270d441777844",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/79/791edfe35bc72bb3d836ae1ecd5270d441777844"
+      },
+      {
+        "path": "mob/slime/big3",
+        "file_hash": "5cde6592ea7457b2bc11169b996cc491790608fd",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/5c/5cde6592ea7457b2bc11169b996cc491790608fd"
+      },
+      {
+        "path": "mob/slime/big4",
+        "file_hash": "96fd44f6a57b46075ad2553d2b68263aa5800f31",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/96/96fd44f6a57b46075ad2553d2b68263aa5800f31"
+      }
+    ],
+    "block.slime_block.step": [
+      {
+        "path": "mob/slime/small1",
+        "file_hash": "b8dac8173742660aa660232450f635945f3fdc1f",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/b8/b8dac8173742660aa660232450f635945f3fdc1f"
+      },
+      {
+        "path": "mob/slime/small2",
+        "file_hash": "16797c4ad9d87a3ff939a4816d29acb189590dca",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/16/16797c4ad9d87a3ff939a4816d29acb189590dca"
+      },
+      {
+        "path": "mob/slime/small3",
+        "file_hash": "78c8e3e8fc96d3b576eddf850c010b97e5959de4",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/78/78c8e3e8fc96d3b576eddf850c010b97e5959de4"
+      },
+      {
+        "path": "mob/slime/small4",
+        "file_hash": "98c23d73be7bd53350cd4b1b830705f98465fa03",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/98/98c23d73be7bd53350cd4b1b830705f98465fa03"
+      },
+      {
+        "path": "mob/slime/small5",
+        "file_hash": "e46d37992739a282c1aee677fa874bb5646e947e",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/e4/e46d37992739a282c1aee677fa874bb5646e947e"
+      }
+    ],
+    "entity.guardian.ambient_land": [
+      {
+        "path": "mob/guardian/land_idle1",
+        "file_hash": "92ecd29a556b0b14727b8aac22c4929b4baa37c5",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/92/92ecd29a556b0b14727b8aac22c4929b4baa37c5"
+      },
+      {
+        "path": "mob/guardian/land_idle2",
+        "file_hash": "3db7f5a1f49f02357824ad7200019ffa76256181",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/3d/3db7f5a1f49f02357824ad7200019ffa76256181"
+      },
+      {
+        "path": "mob/guardian/land_idle3",
+        "file_hash": "09731cd69beab52a64296536a2470605d1647d15",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/09/09731cd69beab52a64296536a2470605d1647d15"
+      },
+      {
+        "path": "mob/guardian/land_idle4",
+        "file_hash": "eeb39963e94bc35785a7b1967e753e8fc708aa9b",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/ee/eeb39963e94bc35785a7b1967e753e8fc708aa9b"
+      }
+    ]
+  }
+}

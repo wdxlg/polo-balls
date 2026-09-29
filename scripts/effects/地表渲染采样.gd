@@ -10,14 +10,14 @@ var _frame:int = -1
 var _snapshot:Dictionary = {}
 
 func capture(rect:Rect2) -> Dictionary:
-	if _busy:
+	while _busy:
 		await capture_finished
-		return _snapshot
-	if _frame == Engine.get_process_frames(): return _snapshot
+		if _snapshot_covers(rect): return _snapshot
+	if _frame == Engine.get_process_frames() and _snapshot_covers(rect): return _snapshot
 	if rect.size.x <= 0.0 or rect.size.y <= 0.0 or DisplayServer.get_name() == "headless":
 		return {} # 无渲染环境保留冲击圈，不伪造蓝色碎屑。
 	_busy = true
-	_snapshot = {}
+	var completed:Dictionary = {}
 	var world:Node = get_parent()
 	var viewport := SubViewport.new()
 	viewport.name = "GroundCaptureViewport"
@@ -40,7 +40,7 @@ func capture(rect:Rect2) -> Dictionary:
 	if is_instance_valid(viewport):
 		var image:Image = viewport.get_texture().get_image()
 		if image != null and not image.is_empty():
-			_snapshot = {"image":image,"rect":rect}
+			completed = {"image":image,"rect":rect}
 		viewport.queue_free()
 	for instance_id:int in changed:
 		var object:Object = instance_from_id(instance_id)
@@ -48,10 +48,16 @@ func capture(rect:Rect2) -> Dictionary:
 			continue
 		var item:CanvasItem = object as CanvasItem
 		item.visibility_layer = (item.visibility_layer & ~CAPTURE_LAYER) | (int(changed[instance_id]) & CAPTURE_LAYER)
+	_snapshot = completed
 	_frame = Engine.get_process_frames()
 	_busy = false
 	capture_finished.emit()
-	return _snapshot
+	return completed # A resumed waiter may already have begun a different capture.
+
+func _snapshot_covers(rect:Rect2) -> bool:
+	if _snapshot.is_empty(): return false
+	var captured:Rect2 = _snapshot.get("rect",Rect2())
+	return captured.encloses(rect)
 
 func _mark_floor_items(node:Node,parent_z:int,changed:Dictionary) -> void:
 	# Screen-following tooltips and recording text are not map ground. Their

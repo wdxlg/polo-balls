@@ -17,11 +17,14 @@ var pieces:Array[Dictionary] = []
 var age:float = 0.0
 var _duration:float = 0.0
 var _rng := RandomNumberGenerator.new()
+var _configured_seed:int = -1
 
 static func spawn_obstacle(context:Node2D,tile_info:Dictionary = {},options:Dictionary = {}) -> Node2D:
 	var effect:Node2D = load("res://scripts/effects/我的世界/block_fragments.gd").new()
 	effect._configure(options)
-	EXPLOSION.runtime_container(context).add_child(effect)
+	var parent:Node = options.get("effect_parent")
+	if not is_instance_valid(parent): parent = EXPLOSION.runtime_container(context)
+	parent.add_child(effect)
 	effect.global_position = context.global_position
 	if context is TileMapLayer and tile_info.has("cell"):
 		var layer:TileMapLayer = context as TileMapLayer
@@ -57,6 +60,7 @@ static func spawn_texture(context:Node2D,texture:Texture2D,point:Vector2,scale_f
 	return effect
 
 func _configure(options:Dictionary) -> void:
+	if options.has("seed"): _configured_seed = int(options.seed)
 	for key:String in ["scatter_radius","arc_height_min","arc_height_max","flight_min","flight_max","ground_hold","fade_time","max_pieces","spin_speed","z_layer"]:
 		if options.has(key): set(key,options[key])
 
@@ -66,7 +70,8 @@ func _ready() -> void:
 	top_level = true
 	global_position = Vector2.ZERO
 	global_scale = Vector2.ONE
-	_rng.randomize()
+	if _configured_seed>=0: _rng.seed = _configured_seed
+	else: _rng.randomize()
 
 func cut_obstacle_tree(node:Node) -> void:
 	if str(node.name).begins_with("MCBlockCracks") or pieces.size() >= max_pieces: return

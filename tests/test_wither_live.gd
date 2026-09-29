@@ -78,8 +78,8 @@ func run() -> void:
 		check(fired.heading.dot((skull_target-muzzle).normalized()) > 0.999,"skull %d aims from its own muzzle"%i)
 		fired.queue_free()
 	var before:float = enemy.health
-	wither._blast(enemy.global_position,64.0,45.0,enemy,true)
-	check(is_equal_approx(before-enemy.health,75.0),"one skull direct impact settles exactly 75 damage, not another splash")
+	wither._blast(enemy.global_position,64.0,wither.SKULL.SPLASH_DAMAGE,enemy,true)
+	check(is_equal_approx(before-enemy.health,50.0),"one skull direct impact settles exactly 50 damage, not another splash")
 	check(enemy.get_node_or_null("WitherStatus") != null,"skull applies visible Wither status")
 	var potion_particles:Array[Node] = get_nodes_in_group("WitherPotionParticle")
 	check(not potion_particles.is_empty(),"Wither impact emits Witch-style black potion particles immediately")
@@ -88,15 +88,9 @@ func run() -> void:
 		check(particle.get_script().resource_path.ends_with("女巫药水粒子.gd") and particle.get_parent() == world,"Wither particles reuse the eight-frame Witch sprite in world space")
 		check(particle.global_scale.x>=.020 and particle.global_scale.x<=.030,"Wither status particles match Witch status world-space size")
 		check(particle.self_modulate.r < 0.16 and particle.self_modulate.g < 0.16 and particle.self_modulate.b < 0.16,"Wither particle tint is near black")
-	wither._blast(enemy.global_position,64.0,45.0,enemy,true)
+	wither._blast(enemy.global_position,64.0,wither.SKULL.SPLASH_DAMAGE,enemy,true)
 	check(enemy.get_node_or_null("WitherStatus") != null,"second impact refreshes one status instead of stacking nodes")
-	# Sweep a real skull into a real enemy and a nearby ordinary flower.
-	# This checks the actual projectile path, not only a manual _blast call.
-	var nearby_flower:Node2D = load("res://scripts/characters/我的世界/wither/rose.gd").new()
-	world.add_child(nearby_flower,true)
-	nearby_flower.global_position = enemy.global_position-Vector2(30,0)
-	nearby_flower.configure(wither)
-	nearby_flower.age = 0.6
+	# Sweep a real skull into a real enemy; the removed flower skill is absent.
 	var skull:Node2D = load("res://scripts/characters/我的世界/wither/skull.gd").new()
 	world.add_child(skull,true)
 	skull.global_position = enemy.global_position-Vector2(80,0)
@@ -106,8 +100,6 @@ func run() -> void:
 	skull._physics_process(0.5)
 	var explosions_after:Array[Node] = get_nodes_in_group("MCExplosion")
 	check(skull.exploded and explosions_after.size() == explosions_before+1,"real skull impact spawns exactly one shared MC explosion")
-	check(nearby_flower.withered,"a real skull impact converts an ordinary poppy inside its blast")
-	nearby_flower.queue_free()
 	if explosions_after.size() > explosions_before:
 		var visual:Node = explosions_after.back()
 		check(is_equal_approx(visual.radius,64.0) and not visual.play_audio,"skull explosion uses the shared effect and keeps one sound")
@@ -119,38 +111,6 @@ func run() -> void:
 	before = enemy.health
 	status._physics_process(1.1)
 	check(is_equal_approx(before-enemy.health,10.0),"Wither I removes 1% of a 1000-max-health enemy each second")
-	var rose:Node2D = load("res://scripts/characters/我的世界/wither/rose.gd").new()
-	world.add_child(rose,true)
-	rose.global_position = enemy.global_position
-	rose.configure(wither)
-	rose.age = 0.6
-	check(rose.get_ai_hazard_info().get("radius",0.0) == 11.0 and rose.get_ai_hazard_info().get("kind","") == "ordinary_rose","ordinary poppy keeps the small trap radius and is not yet a Wither rose")
-	status.remaining = 1.0
-	before = enemy.health
-	rose._physics_process(0.016)
-	check(rose.consumed and rose.is_queued_for_deletion() and is_equal_approx(before-enemy.health,4.0),"stepping on an ordinary poppy deals the prior 4 damage and consumes it")
-	check(is_equal_approx(status.remaining,1.0),"ordinary poppy does not add or refresh Wither status")
-	var converted:Node2D = load("res://scripts/characters/我的世界/wither/rose.gd").new()
-	world.add_child(converted,true)
-	converted.global_position = enemy.global_position+Vector2(90,0)
-	converted.configure(wither)
-	converted.age = 0.6
-	var far_flower:Node2D = load("res://scripts/characters/我的世界/wither/rose.gd").new()
-	world.add_child(far_flower,true)
-	far_flower.global_position = converted.global_position+Vector2(170,0)
-	far_flower.configure(wither)
-	far_flower.age = 0.6
-	wither._blast(converted.global_position,64.0,0.0,null,false)
-	check(not converted.withered,"awakening blast does not transform poppies")
-	wither._blast(converted.global_position,64.0,0.0,null,true)
-	check(converted.withered and converted.is_in_group("WitherRose"),"skull blast converts only roses within its area")
-	check(not far_flower.withered,"poppies outside the skull blast remain ordinary")
-	converted.global_position = enemy.global_position
-	before = enemy.health
-	converted._physics_process(0.016)
-	check(converted.consumed and converted.is_queued_for_deletion() and is_equal_approx(before-enemy.health,4.0),"transformed rose deals the same 4 damage and disappears when stepped on")
-	check(status.remaining > 2.9,"transformed rose refreshes the same Wither status")
-	far_flower.queue_free()
 	status.remaining = 3.0
 	status.tick_left = 1.0
 	before = enemy.health
@@ -188,22 +148,53 @@ func run() -> void:
 	check(beacon.beams_fired == 1 and wither._buff==beacon.last_buff,"completed beam retains the effect granted at launch")
 	floor_body.queue_free()
 	# Let the real character state machine tick, rather than calling its skill helpers.
-	wither._rose_left = 0.05
 	wither._head_shot_left.fill(0.05)
 	wither._global_shot_left = 0.0
 	wither._charge_left = 999.0
 	wither.state_machine.set_physics_process(true)
-	# At the old two-second checkpoint a faster skull may already have hit
-	# and consumed the flower. Observe the ordinary stage before its windup.
 	await create_timer(0.25).timeout
-	var ordinary_grew:bool = false
-	for living_flower:Node in get_nodes_in_group("WitherFlower"):
-		if not living_flower.is_queued_for_deletion() and not living_flower.withered: ordinary_grew = true
-	check(ordinary_grew,"live physics grows ordinary poppies before the first skull")
+	check(get_nodes_in_group("WitherFlower").is_empty(),"live physics creates no removed flowers")
 	await create_timer(1.75).timeout
 	var fired_head:bool = false
 	for left:float in wither._head_shot_left:
 		if left > 0.5: fired_head = true
 	check(fired_head,"live physics triggers at least one independently cooled skull attack")
+	wither.state_machine.set_physics_process(false)
+	var analyzer:Node = world.get_node_or_null("CombatThreatAnalyzer")
+	check(analyzer!=null,"actual World exposes threat display for balanced Wither")
+	if analyzer!=null:
+		var visible_skull:Node2D = wither.SKULL.new()
+		world.add_child(visible_skull)
+		visible_skull.configure(wither,Vector2.RIGHT)
+		visible_skull.global_position = center+Vector2(0,-120)
+		visible_skull.set_physics_process(false)
+		wither._charge_windup = 0.45
+		wither._charge_dir = Vector2.RIGHT
+		game.Game_Settings.Training_Debug_Mode = true
+		analyzer._physics_process(0.2)
+		var matched:bool = false
+		for threat:Dictionary in analyzer._debug_threats:
+			if threat.source==wither and threat.shape=="segment" and is_equal_approx(threat.damage,wither.own_attack_damage(100.0)): matched = true
+		check(analyzer.visible and matched,"enabled display uses live 100-base charge damage")
+		matched = false
+		for threat:Dictionary in analyzer._debug_threats:
+			if threat.get("kind","")=="wither_skull" and is_equal_approx(threat.damage,wither.own_attack_damage(50.0)): matched = true
+		check(matched,"enabled display calls the standard receiver-aware head hazard and shows live 50-base damage")
+		visible_skull.queue_free()
+		wither._charge_windup = 0.0
+		analyzer._refresh_debug_world()
+		matched = false
+		for threat:Dictionary in analyzer._debug_threats:
+			if threat.source==wither and threat.shape=="segment": matched = true
+		check(not matched,"ending charge removes its displayed attack segment")
+		game.Game_Settings.Training_Debug_Mode = false
+		analyzer._physics_process(0.1)
+		check(not analyzer.visible and analyzer._debug_threats.is_empty(),"disabling threat display clears all balanced attack markers")
+	var previous_locale:String = game.current_locale
+	for locale:String in ["zh","en"]:
+		game.current_locale = locale
+		var text:String = world._armor_test_special_effect_summary(wither,wither.Type_Tags)
+		check(text==wither.get_armor_test_effect_summary() and not text.contains("玫瑰") and not text.to_lower().contains("rose"),"actual World uses updated "+locale+" description without flowers")
+	game.current_locale = previous_locale
 	await clear_units()
 	finish(0 if failures == 0 else 1)

@@ -1,0 +1,66 @@
+{
+  "source": "Minecraft Java 1.21.4 official asset index",
+  "license": "Mojang/Microsoft Minecraft EULA; not a permissive license",
+  "files": [
+    {
+      "file": "ambient_1.ogg",
+      "asset": "minecraft/sounds/mob/warden/ambient_1.ogg",
+      "sha1": "ed3f57eae7abddc41f115384387ff6c24ded1996",
+      "url": "https://resources.download.minecraft.net/ed/ed3f57eae7abddc41f115384387ff6c24ded1996"
+    },
+    {
+      "file": "ambient_2.ogg",
+      "asset": "minecraft/sounds/mob/warden/ambient_2.ogg",
+      "sha1": "1ae2ea9397f8ed322f169d020e629fb2ed77b8ba",
+      "url": "https://resources.download.minecraft.net/1a/1ae2ea9397f8ed322f169d020e629fb2ed77b8ba"
+    },
+    {
+      "file": "angry_1.ogg",
+      "asset": "minecraft/sounds/mob/warden/angry_1.ogg",
+      "sha1": "da5bbadb46099260439283e7d170d1b1e2440756",
+      "url": "https://resources.download.minecraft.net/da/da5bbadb46099260439283e7d170d1b1e2440756"
+    },
+    {
+      "file": "angry_2.ogg",
+      "asset": "minecraft/sounds/mob/warden/angry_2.ogg",
+      "sha1": "8bba51d3ece2194b3d080df7b1d5c0d40895cf10",
+      "url": "https://resources.download.minecraft.net/8b/8bba51d3ece2194b3d080df7b1d5c0d40895cf10"
+    },
+    {
+      "file": "roar_1.ogg",
+      "asset": "minecraft/sounds/mob/warden/roar_1.ogg",
+      "sha1": "6a1ae356c74c9fb89af87a9ac6d313ff4363fb2a",
+      "url": "https://resources.download.minecraft.net/6a/6a1ae356c74c9fb89af87a9ac6d313ff4363fb2a"
+    },
+    {
+      "file": "roar_2.ogg",
+      "asset": "minecraft/sounds/mob/warden/roar_2.ogg",
+      "sha1": "9ee7ddc0aa7a89321fe1f9c7a7eb3a4c9c11c8c9",
+      "url": "https://resources.download.minecraft.net/9e/9ee7ddc0aa7a89321fe1f9c7a7eb3a4c9c11c8c9"
+    },
+    {
+      "file": "step_1.ogg",
+      "asset": "minecraft/sounds/mob/warden/step_1.ogg",
+      "sha1": "9d75dbce9be2bab1e8f77dc841bad52eb190549d",
+      "url": "https://resources.download.minecraft.net/9d/9d75dbce9be2bab1e8f77dc841bad52eb190549d"
+    },
+    {
+      "file": "step_2.ogg",
+      "asset": "minecraft/sounds/mob/warden/step_2.ogg",
+      "sha1": "dbe17da4c29e39b19e85bf85c8729a62824552f0",
+      "url": "https://resources.download.minecraft.net/db/dbe17da4c29e39b19e85bf85c8729a62824552f0"
+    },
+    {
+      "file": "tendril_1.ogg",
+      "asset": "minecraft/sounds/mob/warden/tendril_clicks_1.ogg",
+      "sha1": "a892bf72bd55a468fb49901d3c2256b7d9f0d38e",
+      "url": "https://resources.download.minecraft.net/a8/a892bf72bd55a468fb49901d3c2256b7d9f0d38e"
+    },
+    {
+      "file": "tendril_2.ogg",
+      "asset": "minecraft/sounds/mob/warden/tendril_clicks_2.ogg",
+      "sha1": "e1256df4732914224e42e64aafb2b51df33cca90",
+      "url": "https://resources.download.minecraft.net/e1/e1256df4732914224e42e64aafb2b51df33cca90"
+    }
+  ]
+}

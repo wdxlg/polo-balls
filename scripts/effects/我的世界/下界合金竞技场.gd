@@ -77,6 +77,7 @@ func _has_ingot_on_field() -> bool:
 func _ensure_table() -> void:
 	if not _is_spawning_authority() or get_tree() == null or get_tree().current_scene == null:
 		return
+	if get_tree().current_scene.get_meta("mc_smithing_table_destroyed",false): return
 	var rect:Rect2 = _map_rect()
 	if rect.size.x <= 1.0 or rect.size.y <= 1.0:
 		# 地图数据还没准备好时不要拿 (0,0) 当“中间”。下一帧继续等真正地图范围。

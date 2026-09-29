@@ -25,8 +25,8 @@ const SFX_KNIFE_HITS:Array[AudioStream] = [
 @export_range(0.10,1.00,0.01) var stab_duration:float = 0.34
 @export_range(0.0,0.5,0.01) var stab_active_from:float = 0.10
 @export_range(0.0,0.8,0.01) var stab_active_until:float = 0.23
-@export_range(20.0,160.0,1.0) var knife_rest_distance:float = 48.0
-@export_range(30.0,220.0,1.0) var knife_max_distance:float = 118.0
+@export_range(20.0,160.0,1.0) var knife_rest_distance:float = 20.0
+@export_range(30.0,220.0,1.0) var knife_max_distance:float = 54.0
 @export_range(0.0,1.0,0.01) var angry_expression_threshold:float = 0.50
 
 @export_category("愤怒的普通人 - 音效")

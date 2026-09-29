@@ -1,0 +1,218 @@
+{
+  "textures": [
+    {
+      "file": "Images/characters/我的世界/蝙蝠/bat.png",
+      "source": "https://minecraft.wiki/images/Bat_JE4_BE3.png",
+      "processing": "alpha crop and resize to 128px"
+    },
+    {
+      "file": "Images/characters/我的世界/蝙蝠/vampire_face.png",
+      "source": "https://cdn.mcskincraft.com/skin-image/1759297032921-550847842.png",
+      "page": "https://mcskincraft.com/skin/vampire-skin-n7xub9l4uyv75q4",
+      "processing": "skin face (8,8,16,16) plus head overlay (40,8,48,16), nearest resize",
+      "credit": "Vampire Skin by Cleora, mcskincraft listing. Minecraft use is advertised; verify rights for redistribution outside Minecraft before release."
+    }
+  ],
+  "audio": {
+    "entity.bat.ambient": [
+      {
+        "path": "mob/bat/idle1",
+        "file_hash": "4d69060908edf479353f2b48e00fed9009d3b2a7",
+        "volume": 1,
+        "pitch": 1,
+        "file": "audio/characters/我的世界/蝙蝠/entity.bat.ambient_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/4d/4d69060908edf479353f2b48e00fed9009d3b2a7",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.bat.ambient"
+      },
+      {
+        "path": "mob/bat/idle2",
+        "file_hash": "2e08911ec9116f3e21afe947fa6fec64d1d6fcb8",
+        "volume": 1,
+        "pitch": 1,
+        "file": "audio/characters/我的世界/蝙蝠/entity.bat.ambient_2.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/2e/2e08911ec9116f3e21afe947fa6fec64d1d6fcb8",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.bat.ambient"
+      },
+      {
+        "path": "mob/bat/idle3",
+        "file_hash": "1c48ebfeef25389410fcc7d7ed6e3ab9fe183e0b",
+        "volume": 1,
+        "pitch": 1,
+        "file": "audio/characters/我的世界/蝙蝠/entity.bat.ambient_3.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/1c/1c48ebfeef25389410fcc7d7ed6e3ab9fe183e0b",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.bat.ambient"
+      },
+      {
+        "path": "mob/bat/idle4",
+        "file_hash": "4bb5bce96a4fa6e248b253faf92bbc959f772e59",
+        "volume": 1,
+        "pitch": 1,
+        "file": "audio/characters/我的世界/蝙蝠/entity.bat.ambient_4.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/4b/4bb5bce96a4fa6e248b253faf92bbc959f772e59",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.bat.ambient"
+      }
+    ],
+    "entity.bat.hurt": [
+      {
+        "path": "mob/bat/hurt1",
+        "file_hash": "1f149c8e23220f9fa9c126a91b806444369bdf9c",
+        "volume": 1,
+        "pitch": 1,
+        "file": "audio/characters/我的世界/蝙蝠/entity.bat.hurt_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/1f/1f149c8e23220f9fa9c126a91b806444369bdf9c",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.bat.hurt"
+      },
+      {
+        "path": "mob/bat/hurt2",
+        "file_hash": "fa7c0f7aa58bb840ede0c7eef5428779d64ad67d",
+        "volume": 1,
+        "pitch": 1,
+        "file": "audio/characters/我的世界/蝙蝠/entity.bat.hurt_2.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/fa/fa7c0f7aa58bb840ede0c7eef5428779d64ad67d",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.bat.hurt"
+      },
+      {
+        "path": "mob/bat/hurt3",
+        "file_hash": "459fca285ade6aced5f9d489fcacd1096f87402b",
+        "volume": 1,
+        "pitch": 1,
+        "file": "audio/characters/我的世界/蝙蝠/entity.bat.hurt_3.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/45/459fca285ade6aced5f9d489fcacd1096f87402b",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.bat.hurt"
+      },
+      {
+        "path": "mob/bat/hurt4",
+        "file_hash": "44031ccae235f6b1c2b4af85c4e3050ec7d0b141",
+        "volume": 1,
+        "pitch": 1,
+        "file": "audio/characters/我的世界/蝙蝠/entity.bat.hurt_4.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/44/44031ccae235f6b1c2b4af85c4e3050ec7d0b141",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.bat.hurt"
+      }
+    ],
+    "entity.bat.death": [
+      {
+        "path": "mob/bat/death",
+        "file_hash": "412bd95a470640470d72be3d107d6a6cf61c0a8d",
+        "volume": 1,
+        "pitch": 1,
+        "file": "audio/characters/我的世界/蝙蝠/entity.bat.death_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/41/412bd95a470640470d72be3d107d6a6cf61c0a8d",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.bat.death"
+      }
+    ],
+    "entity.bat.takeoff": [
+      {
+        "path": "mob/bat/takeoff",
+        "file_hash": "5f569f554286fe2cda904c330392f6cf781aa63f",
+        "volume": 1,
+        "pitch": 1,
+        "file": "audio/characters/我的世界/蝙蝠/entity.bat.takeoff_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/5f/5f569f554286fe2cda904c330392f6cf781aa63f",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.bat.takeoff"
+      }
+    ],
+    "entity.generic.eat": [
+      {
+        "path": "random/eat1",
+        "file_hash": "ebf6fcfa3dd26d6f684fd90388221d4ee4a1af1d",
+        "volume": 1,
+        "pitch": 1,
+        "file": "audio/characters/我的世界/蝙蝠/entity.generic.eat_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/eb/ebf6fcfa3dd26d6f684fd90388221d4ee4a1af1d",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.generic.eat"
+      },
+      {
+        "path": "random/eat2",
+        "file_hash": "608792c62e053a9ddf9fc3bd493a6da1437ad36a",
+        "volume": 1,
+        "pitch": 1,
+        "file": "audio/characters/我的世界/蝙蝠/entity.generic.eat_2.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/60/608792c62e053a9ddf9fc3bd493a6da1437ad36a",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.generic.eat"
+      },
+      {
+        "path": "random/eat3",
+        "file_hash": "d8a23d7672a2e277c8a0c08e131fded629fb5db7",
+        "volume": 1,
+        "pitch": 1,
+        "file": "audio/characters/我的世界/蝙蝠/entity.generic.eat_3.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/d8/d8a23d7672a2e277c8a0c08e131fded629fb5db7",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.generic.eat"
+      }
+    ],
+    "entity.breeze.deflect": [
+      {
+        "path": "mob/breeze/deflect1",
+        "file_hash": "8d9238f873139d3c0f5eba3ce952553c7d5b195c",
+        "volume": 1,
+        "pitch": 1,
+        "file": "audio/characters/我的世界/蝙蝠/entity.breeze.deflect_1.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/8d/8d9238f873139d3c0f5eba3ce952553c7d5b195c",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.breeze.deflect"
+      },
+      {
+        "path": "mob/breeze/deflect2",
+        "file_hash": "1059daca2eb9c39744a5b3829627bc43c8af8968",
+        "volume": 1,
+        "pitch": 1,
+        "file": "audio/characters/我的世界/蝙蝠/entity.breeze.deflect_2.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/10/1059daca2eb9c39744a5b3829627bc43c8af8968",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.breeze.deflect"
+      },
+      {
+        "path": "mob/breeze/deflect3",
+        "file_hash": "d94071f611865533ad8b71382e0e1972b54b17de",
+        "volume": 1,
+        "pitch": 1,
+        "file": "audio/characters/我的世界/蝙蝠/entity.breeze.deflect_3.ogg",
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/d9/d94071f611865533ad8b71382e0e1972b54b17de",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.breeze.deflect"
+      }
+    ]
+  },
+  "animation": {
+    "source": "https://minecraft.wiki/images/Bat_JE4_BE3.gif",
+    "sha256": "28ddfd54f0702763cfda0d914b9fa1e559f08a1453f128aef0d27d116d29f6d3",
+    "frames": 25,
+    "frame_durations_ms": [
+      20,
+      20,
+      20,
+      20,
+      20,
+      20,
+      20,
+      20,
+      20,
+      20,
+      20,
+      20,
+      20,
+      20,
+      20,
+      20,
+      20,
+      20,
+      20,
+      20,
+      20,
+      20,
+      20,
+      20,
+      20
+    ],
+    "processing": "Composite original GIF disposal frames, same union crop and fixed nearest-neighbor resize for all frames. No regenerated motion, no per-frame fitting or sprite squashing.",
+    "output": "Images/characters/我的世界/蝙蝠/bat_fly.tres",
+    "common_crop": [
+      0,
+      1,
+      298,
+      266
+    ],
+    "output_size": [
+      128,
+      114
+    ]
+  }
+}

@@ -1,4 +1,5 @@
 extends ball
+const U=preload("res://scripts/characters/我的世界/new5/utils.gd")
 
 const TOOLS = preload("res://scripts/characters/投稿角色工具.gd")
 const BULLET_SCENE:PackedScene = preload("res://scenes/shooter/子弹.tscn")
@@ -297,6 +298,7 @@ func _physics_process(delta:float) -> void:
 		return
 	if _attack_elapsed < Attack_Cooling or _van_weapon_attacking:
 		return
+	if is_player_controlled(): return
 	var target:ball = TOOLS.nearest_enemy(self,ranged_range if _is_ranged() else attack_range)
 	if target == null:
 		return
@@ -443,6 +445,27 @@ func _rpc_play_gang_flee_sfx(position_value:Vector2) -> void:
 
 func _is_ranged() -> bool:
 	return kind == Kind.GANG_GUN or kind == Kind.NC_RIFLE or kind == Kind.NC_TANK
+
+func player_control_action_ids() -> Array[StringName]:
+	# Summoned ordinary gang members only have passive collision damage;
+	# their standalone selection variant also has the existing active melee.
+	if (kind==Kind.GANG_NORMAL and not standalone_selection) or _fleeing: return []
+	return [&"controlled_attack_action"]
+func controlled_attack_action() -> void:
+	if not is_player_controlled() or not is_multiplayer_authority() or health<=0 or dizziness or _fleeing or not is_combat_runtime_active() or is_damage_output_disabled(): return
+	if _attack_elapsed<Attack_Cooling or _reload_remaining>0.0 or _van_weapon_attacking or not has_player_control_aim(): return
+	var point:Vector2=player_control_aim_world_position()
+	var chosen:ball=null
+	var nearest:float=INF
+	for raw:Node in get_tree().get_nodes_in_group("Ball"):
+		if not (raw is ball) or not TOOLS.is_enemy(self,raw): continue
+		var distance:float=raw.global_position.distance_to(point)
+		if distance<=U.radius(raw)+6.0 and distance<nearest:
+			chosen=raw as ball
+			nearest=distance
+	if chosen==null or global_position.distance_to(chosen.global_position)> (ranged_range if _is_ranged() else attack_range): return
+	_attack_elapsed=0.0
+	_do_attack(chosen)
 
 func _do_attack(target:ball) -> void:
 	if target == null or not is_instance_valid(target):

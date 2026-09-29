@@ -99,6 +99,20 @@ func is_train_conductor() -> bool:
 	return true
 
 
+func controlled_attack_action() -> void:
+	# 列车不是 ball；点击火车长发令，保留开局首趟和停靠后的煤量缩短冷却。
+	if not is_player_controlled() or not is_multiplayer_authority():
+		return
+	if _train == null or not is_instance_valid(_train) or not is_combat_runtime_active():
+		return
+	if not _train.call("can_request_manual_launch"):
+		return
+	if multiplayer.has_multiplayer_peer():
+		_rpc_launch_waiting_train.rpc()
+	else:
+		_rpc_launch_waiting_train()
+
+
 func tick_physics(state:State,delta:float) -> void:
 	if state == State.Die or health <= 0:
 		direction = Vector2.ZERO
@@ -455,6 +469,13 @@ func _broadcast_refuel_coal_arc(start_position:Vector2,end_position:Vector2,dura
 func _rpc_start_initial_train() -> void:
 	if _train != null and is_instance_valid(_train):
 		_train.call("start_initial_run")
+
+
+@rpc("authority","call_local","reliable")
+func _rpc_launch_waiting_train() -> void:
+	# 使用可跨端定位的火车长节点发 RPC；列车名含本地 instance_id，不能当 RPC 路径。
+	if _train != null and is_instance_valid(_train):
+		_train.call("launch_waiting_train")
 
 
 @rpc("authority","call_local","reliable")

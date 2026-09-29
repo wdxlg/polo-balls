@@ -106,6 +106,13 @@ func _create_market_controller() -> void:
 	add_child(controller)
 	_market_controller = controller
 
+func controlled_attack_action() -> void:
+	# 左键：要求地图控制器生成下一列行情；原柱的生长/滚动与碰撞继续自动结算。
+	if not is_player_controlled() or not is_multiplayer_authority() or health <= 0 or not is_combat_runtime_active():
+		return
+	if _market_controller != null and is_instance_valid(_market_controller):
+		_market_controller.call("request_manual_column")
+
 
 func set_market_damage_multiplier(value:float,is_green:bool,height_normalized:float) -> void:
 	_market_damage_multiplier = maxf(value,0.0)

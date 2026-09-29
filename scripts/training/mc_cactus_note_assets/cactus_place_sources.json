@@ -1,0 +1,42 @@
+{
+  "data": {
+    "event_name": "block.wool.place",
+    "tags": [
+      "block",
+      "place",
+      "wool",
+      "\u5757",
+      "\u6316\u6398",
+      "\u653e\u7f6e",
+      "\u65b9\u5757",
+      "\u7f8a\u6bdb"
+    ],
+    "sounds": [
+      {
+        "path": "dig/cloth1",
+        "file_hash": "311ef8b58ab266c5a5d903dd758a062532e33f3b",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "path": "dig/cloth2",
+        "file_hash": "7eb276f23a2f4ef72e77a4876f78b141488b77f3",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "path": "dig/cloth3",
+        "file_hash": "965177ba822cee3f7cd1c82cf4ee0a956cbf62bd",
+        "volume": 1,
+        "pitch": 1
+      },
+      {
+        "path": "dig/cloth4",
+        "file_hash": "2cc660a4ab39a14a29ecb79265684901cbaf90fe",
+        "volume": 1,
+        "pitch": 1
+      }
+    ]
+  },
+  "msg": "ok"
+}

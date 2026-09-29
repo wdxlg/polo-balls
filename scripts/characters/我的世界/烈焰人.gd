@@ -23,12 +23,12 @@ const HURT_SFX:Array[AudioStream] = [
 ]
 const DEATH_SFX:AudioStream = preload("res://audio/characters/我的世界/烈焰人/死亡.ogg")
 const MC_SMOKE_SCENE:PackedScene = preload("res://scenes/effects/我的世界/MC烟雾粒子.tscn")
-const BLAZE_HIT_FLASH_SHADER:Shader = preload("res://shaders/Set_RGB_Color.gdshader")
+const BLAZE_HIT_FLASH_SHADER:Shader = preload("res://shaders/set_rgb_color.gdshader")
 
 @export_category("烈焰人 / 视觉")
 # 原版烈焰人 1.8 格、苦力怕 1.7 格；1.18 是旧 SVG 素材（含大量透明留白）时代的补偿值，
 # 换成原生逐帧模型后同一比例会把烈焰人放大约 30%。
-@export_range(0.75,1.40,0.01) var body_size_vs_creeper:float = 1.0
+@export_range(0.75,1.40,0.01) var body_size_vs_creeper:float = 0.8 # Body only: 20% smaller; external rods stay unchanged.
 
 @export_category("烈焰人 / 连射")
 @export_range(1,8,1) var burst_min_shots:int = 3
@@ -534,3 +534,6 @@ func play_war_burn_tick_sfx(position_value:Vector2) -> void:
 
 func get_preview_texture() -> Texture2D:
 	return BLAZE_TEXTURE
+
+func get_armor_test_effect_summary() -> String:
+	return Game.t("MC_ARMOR_INTRO_BLAZE")

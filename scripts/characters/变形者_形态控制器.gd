@@ -81,6 +81,8 @@ func _restore_original(form:ball) -> void:
 	_apply_transform_config_before_ready(restored,transform_config)
 	apply_base_properties_before_ready(restored,preserved_default_properties)
 	apply_identity_before_ready(restored,live_state,display_name)
+	if form.is_player_controlled():
+		restored.set_player_control_peer(form.player_control_peer_id)
 
 	var parent := form.get_parent()
 	if parent == null:
@@ -113,6 +115,7 @@ func _restore_original(form:ball) -> void:
 	)
 
 	rebind_world_references(form,restored)
+	Game.transfer_character_control_for_replacement(form,restored)
 
 	if is_instance_valid(form):
 		form.queue_free()

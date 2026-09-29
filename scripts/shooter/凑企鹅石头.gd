@@ -1,4 +1,5 @@
 extends CharacterBody2D
+const PROJECTILE_CONTACT = preload("res://scripts/projectile_contact.gd")
 
 const COLLISION_AUDIO:AudioStream = preload("res://audio/sfx/physics/balls_hit1.sfxr")
 
@@ -28,6 +29,7 @@ var _owned_audio_players:Array[AudioStreamPlayer] = []
 
 
 func _ready() -> void:
+	add_to_group("AllayExtendedProjectile")
 	add_to_group("CouPenguinRock")
 	# V286：飞行石头也是投射物，加入统一 BattleTransient，
 	# 使菊花茶定向重力能改变它的 direction/travel_speed；落地后速度为0，不会继续被拖。
@@ -61,6 +63,7 @@ func _physics_process(delta:float) -> void:
 		if rock_sprite != null:
 			rock_sprite.rotation += deg_to_rad(spin_degrees_per_second) * delta
 		velocity = direction * travel_speed
+		if get_tree().has_group("MinecraftAllay") and load("res://scripts/characters/我的世界/allay/capture.gd").sweep(self,global_position,global_position+velocity*delta): return
 		var collision:KinematicCollision2D = move_and_collide(velocity * delta)
 		if collision != null:
 			var collider:Variant = collision.get_collider()
@@ -75,9 +78,11 @@ func _physics_process(delta:float) -> void:
 
 
 func _land(collider:Variant) -> void:
+	if PROJECTILE_CONTACT.ignores(collider): return
 	if not flying:
 		return
 	flying = false
+	PROJECTILE_CONTACT.refresh_body_exceptions(self)
 	remove_from_group("BattleTransient")
 	velocity = Vector2.ZERO
 	if damage_area != null and is_instance_valid(damage_area):
@@ -128,6 +133,7 @@ func _on_damage_area_body_entered(body:Node2D) -> void:
 
 
 func _try_damage_character(target:ball,direct_throw:bool) -> void:
+	if direct_throw and PROJECTILE_CONTACT.ignores(target): return
 	if target == null or not is_instance_valid(target) or target.health <= 0:
 		return
 	if is_instance_valid(Master) and target == Master:

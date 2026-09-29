@@ -13,6 +13,9 @@ const MAX_VIEW_PIXELS:int = 2560
 const VIEW_FOV:float = 90.0
 const WALL_HEIGHT_CELLS:float = 0.4
 const LIGHT_HORIZONTAL_RATIO:float = 1.5
+const FOREGROUND_LAYER:int = 1
+const SCENERY_LAYER:int = 2
+const FLOOR_LAYER:int = 4
 
 var wall_edges:Array[Dictionary] = []
 var wall_rects:Array[Rect2] = []
@@ -23,7 +26,6 @@ var tiled:bool = false
 var wall_texture:Texture2D
 var wall_side_texture:Texture2D
 var wall_bottom_texture:Texture2D
-var _emission_strength:float = 0.0
 var viewport:SubViewport
 var shadow_viewport:SubViewport
 var mesh_node:MeshInstance3D
@@ -39,6 +41,19 @@ var _center:Vector2
 var _render_scale:float = 1.0
 var _camera_height:float = 1.0
 var _composite_material:ShaderMaterial
+var background_viewport:SubViewport
+var background_camera:Camera3D
+var background_picture:Sprite2D
+var floor_viewport:SubViewport
+var floor_camera:Camera3D
+var floor_picture:Sprite2D
+var _terrain_shadow_casters:Array[MeshInstance3D] = []
+var _background_active:bool = false
+var summit_arena:Node3D
+# Pure appearance on background composites; no camera/lighting/gameplay change.
+var battle_focus_strength:float = 1.0
+var _focus_bounds:Rect2
+var _focus_daylight:float = 1.0
 
 
 func _create_renderer() -> void:
@@ -117,6 +132,8 @@ func _create_renderer() -> void:
 	shadow_viewport.add_child(shadow_environment)
 	sun_light = DirectionalLight3D.new()
 	sun_light.name = "WallSun3D"
+	# Lights are VisualInstance3D too: all three camera masks must see this same sun.
+	sun_light.layers = FOREGROUND_LAYER | SCENERY_LAYER | FLOOR_LAYER
 	sun_light.light_color = Color(1.0,0.96,0.87)
 	sun_light.light_energy = 2.6
 	sun_light.shadow_enabled = true
@@ -148,12 +165,126 @@ func _create_renderer() -> void:
 	picture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	picture.texture = viewport.get_texture()
 	picture.material = _composite_material
+	picture.set_instance_shader_parameter("focus_role",2.0)
 	add_child(picture)
 	if not RenderingServer.frame_pre_draw.is_connected(_sync_projection_before_draw):
 		RenderingServer.frame_pre_draw.connect(_sync_projection_before_draw)
 
 
+func _set_background_enabled(active:bool) -> void:
+	_background_active = active
+	if is_instance_valid(camera):
+		camera.cull_mask = FOREGROUND_LAYER if active else 0xFFFFF
+	if active and not is_instance_valid(background_viewport):
+		# One actual World3D, environment and sun; only visibility masks differ.
+		# Mountains(-8) < clouds(-7) < floor(-6) < existing terrain(-5/-4) < architecture(-4).
+		background_viewport = SubViewport.new()
+		background_viewport.name = "SummitSceneryViewport"
+		background_viewport.size = viewport.size
+		background_viewport.transparent_bg = true
+		background_viewport.world_3d = viewport.find_world_3d()
+		add_child(background_viewport)
+		background_camera = Camera3D.new()
+		background_camera.name = "SynchronizedSceneryCamera"
+		background_camera.cull_mask = SCENERY_LAYER
+		background_viewport.add_child(background_camera)
+		background_camera.make_current()
+		background_picture = Sprite2D.new()
+		background_picture.name = "MountainsBelowClouds"
+		background_picture.centered = false
+		background_picture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		background_picture.texture = background_viewport.get_texture()
+		background_picture.material = _composite_material
+		background_picture.set_instance_shader_parameter("focus_role",1.0)
+		background_picture.z_as_relative = false
+		background_picture.z_index = -8
+		add_child(background_picture)
+		RenderingServer.frame_pre_draw.connect(_sync_background_camera)
+	if active and not is_instance_valid(floor_viewport):
+		# A true floor-only pass. Do not bake walls into the ground sampler or
+		# move character effects above walls, status frames, bodies or blood.
+		floor_viewport = SubViewport.new()
+		floor_viewport.name = "SummitFloorViewport"
+		floor_viewport.size = viewport.size
+		floor_viewport.transparent_bg = true
+		floor_viewport.world_3d = viewport.find_world_3d()
+		add_child(floor_viewport)
+		floor_camera = Camera3D.new()
+		floor_camera.name = "SynchronizedFloorCamera"
+		floor_camera.cull_mask = FLOOR_LAYER
+		floor_viewport.add_child(floor_camera)
+		floor_camera.make_current()
+		floor_picture = Sprite2D.new()
+		floor_picture.name = "ArenaFloorBelowCharacterTerrain"
+		floor_picture.centered = false
+		floor_picture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		floor_picture.texture = floor_viewport.get_texture()
+		floor_picture.material = _composite_material
+		floor_picture.z_as_relative = false
+		floor_picture.z_index = -6
+		add_child(floor_picture)
+	if is_instance_valid(background_viewport):
+		background_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS if active else SubViewport.UPDATE_DISABLED
+		background_picture.visible = active
+	if is_instance_valid(floor_viewport):
+		floor_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS if active else SubViewport.UPDATE_DISABLED
+		floor_picture.visible = active
+	apply_battle_focus(_composite_material)
+
+
+func _sync_background_camera() -> void:
+	if not _background_active or not is_visible_in_tree() or not is_instance_valid(background_camera): return
+	# Also follows a diagnostic camera while the normal camera callback is disconnected.
+	background_viewport.size = viewport.size
+	floor_viewport.size = viewport.size
+	for pass_camera:Camera3D in [background_camera,floor_camera]:
+		pass_camera.projection = camera.projection
+		pass_camera.keep_aspect = camera.keep_aspect
+		pass_camera.fov = camera.fov
+		pass_camera.size = camera.size
+		pass_camera.frustum_offset = camera.frustum_offset
+		pass_camera.near = camera.near
+		pass_camera.far = camera.far
+		pass_camera.attributes = camera.attributes
+		pass_camera.environment = camera.environment
+		pass_camera.global_transform = camera.global_transform
+	background_picture.transform = picture.transform
+	floor_picture.transform = picture.transform
+
+
+func _clear_terrain_shadow_casters() -> void:
+	for proxy:MeshInstance3D in _terrain_shadow_casters:
+		if not is_instance_valid(proxy): continue
+		proxy.get_parent().remove_child(proxy)
+		proxy.queue_free()
+	_terrain_shadow_casters.clear()
+
+
+func _build_terrain_shadow_casters() -> void:
+	# GPU camera culling also culls shadow casters. Each pass sees the other
+	# pass's exact shared ArrayMesh as SHADOWS_ONLY, never as opaque ground.
+	# Parent to the source so diagnostic visibility/transforms stay consistent.
+	var sources:Array[MeshInstance3D] = [mesh_node]
+	for child:Node in summit_arena.get_children():
+		if child is MeshInstance3D: sources.append(child as MeshInstance3D)
+	for source:MeshInstance3D in sources:
+		if source.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF: continue
+		var proxy:=MeshInstance3D.new()
+		proxy.name = "SharedMeshShadowForOtherTerrainPass"
+		proxy.mesh = source.mesh
+		proxy.layers = FLOOR_LAYER if source.layers == FOREGROUND_LAYER else FOREGROUND_LAYER
+		proxy.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+		source.add_child(proxy)
+		_terrain_shadow_casters.append(proxy)
+
+
 func configure_regions(ground:Array[Rect2],walls:Array[Rect2],edges:Array[Dictionary],cell:Vector2,style:String,light_source:Vector2,_height_cells:float) -> void:
+	_set_background_enabled(false)
+	_clear_terrain_shadow_casters()
+	if is_instance_valid(summit_arena):
+		summit_arena.get_parent().remove_child(summit_arena)
+		summit_arena.queue_free()
+		summit_arena = null
 	wall_edges = edges.duplicate(true)
 	wall_rects = walls.duplicate()
 	tiled = THEMES.tiled(style)
@@ -171,7 +302,6 @@ func configure_regions(ground:Array[Rect2],walls:Array[Rect2],edges:Array[Dictio
 	wall_texture = THEMES.wall_texture(style)
 	wall_side_texture = _side_texture(style)
 	wall_bottom_texture = SAND_BOTTOM if style == "sand" else wall_texture
-	_emission_strength = {"grass":0.28,"sand":0.0,"stone":0.75,"nether":2.1,"end":0.05}.get(style,0.0)
 	_create_renderer()
 	var ambient:Environment = (viewport.get_node("BlockAmbientLight") as WorldEnvironment).environment
 	ambient.ambient_light_color = Color(0.72,0.79,0.89)
@@ -188,19 +318,40 @@ func configure_regions(ground:Array[Rect2],walls:Array[Rect2],edges:Array[Dictio
 	var bounds:Rect2 = walls[0]
 	for i:int in range(1,walls.size()): bounds = bounds.merge(walls[i])
 	_center = bounds.get_center()
+	_focus_bounds = ground[0] if not ground.is_empty() else bounds
+	for region:Rect2 in ground: _focus_bounds = _focus_bounds.merge(region)
+	_focus_bounds = _focus_bounds.grow(minf(cell_size.x,cell_size.y)*0.25)
 	_rebuild_mesh(ground)
+	if style == "summit":
+		summit_arena = load("res://scripts/effects/summit_arena_3d.gd").new()
+		summit_arena.name = "SummitAncientArena"
+		viewport.add_child(summit_arena)
+		summit_arena.build(ground,walls,cell_size,SCENERY_LAYER,FLOOR_LAYER)
+		_build_terrain_shadow_casters()
+		_set_background_enabled(true)
+		ambient.ambient_light_energy = 0.72
+		sun_light.light_energy = 1.15
 	shadow_sun.light_energy = sun_light.light_energy
 	_update_light(light_source)
 	_update_projection()
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	shadow_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	# Summit receives shadows directly in the shared 3D world; old maps use the catcher.
+	shadow_picture.visible = style != "summit"
+	if style == "summit": shadow_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
 
 
 func update_time_lighting(source:Vector2,daylight:float) -> void:
 	# 时间更新只转灯/淡化太阳影子，不走 configure_regions，不重建 ArrayMesh。
 	if not tiled or not is_instance_valid(sun_light): return
 	_update_light(source)
-	shadow_picture.modulate.a = 0.62*clampf(daylight,0.0,1.0)
+	var strength:float = clampf(daylight,0.0,1.0)
+	_focus_daylight = strength
+	apply_battle_focus(_composite_material)
+	# Both direct 3D scenery and the separate 2D-floor catcher fade solar shadows once.
+	# Keep brightness/color in the single world day/night tint, not a second darkening pass.
+	sun_light.shadow_opacity = strength
+	shadow_picture.modulate.a = 0.62*strength
 
 
 func _sync_projection_before_draw() -> void:
@@ -210,9 +361,13 @@ func _sync_projection_before_draw() -> void:
 
 
 func _exit_tree() -> void:
+	if RenderingServer.frame_pre_draw.is_connected(_sync_background_camera):
+		RenderingServer.frame_pre_draw.disconnect(_sync_background_camera)
+	if is_instance_valid(background_viewport): background_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	if is_instance_valid(floor_viewport): floor_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
 	if RenderingServer.frame_pre_draw.is_connected(_sync_projection_before_draw):
 		RenderingServer.frame_pre_draw.disconnect(_sync_projection_before_draw)
-	# 离开世界或测试退出时先停掉两路实时 GPU 渲染，再由 Godot 回收子视口。
+	# 离开世界或测试退出时先停掉各路实时 GPU 渲染，再由 Godot 回收子视口。
 	if is_instance_valid(viewport): viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
 	if is_instance_valid(shadow_viewport): shadow_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
 
@@ -246,6 +401,20 @@ func _update_projection() -> void:
 	var precise:Transform2D = picture.global_transform
 	_composite_material.set_shader_parameter("quad_world_basis",Vector4(precise.x.x,precise.x.y,precise.y.x,precise.y.y))
 	_composite_material.set_shader_parameter("quad_world_origin",precise.origin)
+	apply_battle_focus(_composite_material)
+	_sync_background_camera()
+
+
+func apply_battle_focus(material:ShaderMaterial) -> void:
+	if material == null: return
+	var strength:float = clampf(battle_focus_strength,0.0,1.0) if _background_active else 0.0
+	material.set_shader_parameter("focus_strength",strength)
+	material.set_shader_parameter("focus_daylight",_focus_daylight)
+	var center:Vector2 = _focus_bounds.get_center()
+	var half:Vector2 = _focus_bounds.size*0.5
+	material.set_shader_parameter("focus_playfield",Vector4(center.x,center.y,half.x,half.y))
+	material.set_shader_parameter("focus_near_width",minf(cell_size.x,cell_size.y)*1.5)
+	material.set_shader_parameter("focus_outer_span",maxf(minf(_focus_bounds.size.x,_focus_bounds.size.y)*0.65,minf(cell_size.x,cell_size.y)*8.0))
 
 
 func _side_texture(style:String) -> Texture2D:
@@ -268,16 +437,15 @@ func _new_material(texture:Texture2D) -> StandardMaterial3D:
 	material.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
 	material.roughness = 1.0
 	material.cull_mode = BaseMaterial3D.CULL_DISABLED
-	if _emission_strength>0.0:
-		material.emission_enabled = true
-		material.emission_texture = texture
-		material.emission_energy_multiplier = _emission_strength
+	# Ordinary blocks are not emissive; correct front faces now receive the actual sun.
 	return material
 
 
 func _face(tool:SurfaceTool,points:Array[Vector3],uvs:Array[Vector2]) -> void:
 	var normal:Vector3 = (points[1]-points[0]).cross(points[2]-points[0]).normalized()
-	for i:int in [0,1,2,0,2,3]:
+	# Match Godot PlaneMesh and the authored scenery: outward normals + clockwise fronts.
+	# Opposite winding flips normals under CULL_DISABLED and lights the back of the wall.
+	for i:int in [0,2,1,0,3,2]:
 		tool.set_normal(normal)
 		tool.set_uv(uvs[i])
 		tool.add_vertex(points[i])

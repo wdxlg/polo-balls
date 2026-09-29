@@ -6,6 +6,8 @@ var _life_left:float
 var _retired:bool = false
 func _ready() -> void:
 	Type = Ball_Type.Creature
+	# Both the Vex and Enderman clone are live, independently moving summons.
+	manual_controllable_subentity = true
 	collision_layer = 0
 	collision_mask = 1 if enderman_clone else 0
 	Can_Attack = false

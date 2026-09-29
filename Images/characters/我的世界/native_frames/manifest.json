@@ -77,7 +77,7 @@
           "count": 16,
           "duration": 0.45,
           "loop": true,
-          "unique": 16
+          "unique": 9
         }
       },
       "foot_y": 199,
@@ -87,7 +87,28 @@
         116,
         202
       ],
-      "textures": 38
+      "textures": 38,
+      "celebration_fix": {
+        "reason": "controller celebrating excludes casting rotation; folded arms hidden independently",
+        "files": {
+          "evoker_022.png": "148f1fb74f06d2b44618d246225262520258600b74422e364f24409ea984d31e",
+          "evoker_023.png": "d4dae9f9c9772ff2376dd1852014e29ea817ad8112f79c7b5b0b15c877b8af86",
+          "evoker_024.png": "5ce6c9a826ec72fe48a0542df1b984ec6bc77afd9c55e4784ca60d0b63da7928",
+          "evoker_025.png": "8c790515dcd29a7df4cd541569089e009abb1d187a730b78db4be42eca600e1a",
+          "evoker_026.png": "1ef37a3ab4689320310d6260002dcffa8b48df8dc8bd1f02ccb107f56c8d8b0c",
+          "evoker_027.png": "ed2a7ce0898e2bed0febf69185c98be4e588722467e75e10653b72c44ca86a32",
+          "evoker_028.png": "08223bfd88ed81bcd7e4db2fae032358bb9d203bbfd6162ddeca5f75cbecb0d6",
+          "evoker_029.png": "98a4a810f642e6b1ea5e90a2777330f04006cfed55da25e51c47af3a29b282df",
+          "evoker_030.png": "268b2fb60369727949d65b7325c0373f28e73d8f84f460daa7288e5a067491ce",
+          "evoker_031.png": "98a4a810f642e6b1ea5e90a2777330f04006cfed55da25e51c47af3a29b282df",
+          "evoker_032.png": "08223bfd88ed81bcd7e4db2fae032358bb9d203bbfd6162ddeca5f75cbecb0d6",
+          "evoker_033.png": "ed2a7ce0898e2bed0febf69185c98be4e588722467e75e10653b72c44ca86a32",
+          "evoker_034.png": "1ef37a3ab4689320310d6260002dcffa8b48df8dc8bd1f02ccb107f56c8d8b0c",
+          "evoker_035.png": "8c790515dcd29a7df4cd541569089e009abb1d187a730b78db4be42eca600e1a",
+          "evoker_036.png": "5ce6c9a826ec72fe48a0542df1b984ec6bc77afd9c55e4784ca60d0b63da7928",
+          "evoker_037.png": "d4dae9f9c9772ff2376dd1852014e29ea817ad8112f79c7b5b0b15c877b8af86"
+        }
+      }
     },
     "vex": {
       "clips": {

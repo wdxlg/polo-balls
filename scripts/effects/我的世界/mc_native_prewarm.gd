@@ -1,6 +1,6 @@
 extends Node
 ## Resources only: no character instantiation, _ready(), combat or random draws.
-const CHARACTERS:Array[String] = ["骷髅","女巫","烈焰人","苦力怕","蠹虫","末影人","唤魔者","潜影贝"]
+const CHARACTERS:Array[String] = ["骷髅","女巫","烈焰人","苦力怕","蠹虫","末影人","唤魔者","潜影贝","史莱姆","守卫者","恶魂","粘性活塞","钓鱼竿","蝙蝠","仙人掌","唱片机","弓","天堂陨落长弓","羊","木船","雪傀儡","铜剑","铁砧"]
 var scenes:Dictionary = {}
 var finished:Dictionary = {}
 var failed:Dictionary = {}
@@ -100,8 +100,8 @@ func _collect(value:Variant) -> void:
 		for key:Variant in value.get_script_constant_map():
 			var item:Variant = value.get_script_constant_map()[key]
 			if item is Texture2D or item is SpriteFrames or item is Material: _collect(item)
-			elif item is Script and "mc_native" in item.resource_path: _collect(item)
-			elif str(key) == "FRAMES" and item is Dictionary:
+			elif item is Script and ("mc_native" in item.resource_path or "/new5/" in item.resource_path or "/mc_explosion.gd" in item.resource_path): _collect(item)
+			elif str(key) in ["FRAMES","PARTS"] and item is Dictionary:
 				for frames:Variant in item.values(): _collect(frames)
 
 func _process(_delta:float) -> void:
@@ -151,6 +151,28 @@ func _process(_delta:float) -> void:
 			var base:PackedScene = load("res://scenes/ball.tscn")
 			_collect(base)
 			_collect(packed)
+			if character == "史莱姆":
+				for child_name:String in ["史莱姆_中","史莱姆_小"]:
+					var child_scene:PackedScene=load("res://scenes/creatures/我的世界/"+child_name+".tscn")
+					scenes[child_name]=child_scene
+					_collect(child_scene)
+			elif character == "恶魂":
+				var projectile:PackedScene=load("res://scenes/shooter/我的世界/恶魂火焰弹.tscn")
+				scenes["恶魂火焰弹"]=projectile
+				_collect(projectile)
+			elif character == "雪傀儡":
+				# Resources only: these dynamic descendants must not run _ready() here.
+				for path:String in ["res://scenes/effects/我的世界/雪傀儡雪地.tscn","res://scenes/shooter/我的世界/雪球.tscn"]:
+					var child_scene:PackedScene = load(path)
+					scenes[path.get_file().get_basename()] = child_scene
+					_collect(child_scene)
+				var snow:Script = load("res://scripts/characters/我的世界/snow_golem/snow_golem.gd")
+				for texture:Texture2D in snow.PUMPKIN+snow.BARE+snow.HEAD_FRAMES: _collect(texture)
+				var cold:Script = load("res://scripts/characters/我的世界/snow_golem/cold.gd")
+				for texture:Texture2D in cold.FLAKES: _collect(texture)
+				_collect(cold.ICE_SHELL.ICE)
+				for texture:Texture2D in cold.ICE_SHELL.CRACKS: _collect(texture)
+				_collect(load("res://scripts/effects/我的世界/block_fragments.gd"))
 			return
 
 func _exit_tree() -> void:

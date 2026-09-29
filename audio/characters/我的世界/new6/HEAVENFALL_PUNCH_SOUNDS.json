@@ -1,0 +1,104 @@
+{
+  "minecraft_version": "1.21.11",
+  "asset_index_url": "https://piston-meta.mojang.com/v1/packages/a63b2bea5bcbba70c87df110b64ab6f2d71d446f/29.json",
+  "notes": "Revision 2: sharper arrow attacks and physical wave impulse, using verified Mojang sources plus procedural pitched impacts/noise. Existing transit and large/small rift assets are untouched. Minecraft-derived assets remain subject to Mojang terms. Rebuild with numpy/scipy/soundfile and HEAVENFALL_PUNCH_BUILD.py.",
+  "sources": [
+    {
+      "asset": "minecraft/sounds/random/bow.ogg",
+      "sha1": "4a6c47aa4f8c2cfe3237b250ed19b8714d611fd2",
+      "url": "https://resources.download.minecraft.net/4a/4a6c47aa4f8c2cfe3237b250ed19b8714d611fd2",
+      "cache_file": "random_bow.ogg"
+    },
+    {
+      "asset": "minecraft/sounds/mob/endermen/portal.ogg",
+      "sha1": "15eb7f0940b43b5422524c8f20db44b72b310233",
+      "url": "https://resources.download.minecraft.net/15/15eb7f0940b43b5422524c8f20db44b72b310233",
+      "cache_file": "mob_endermen_portal.ogg"
+    },
+    {
+      "asset": "minecraft/sounds/mob/endermen/portal2.ogg",
+      "sha1": "e513adbd9b3ea95b7c2d5726c8ae7a5f497e0328",
+      "url": "https://resources.download.minecraft.net/e5/e513adbd9b3ea95b7c2d5726c8ae7a5f497e0328",
+      "cache_file": "mob_endermen_portal2.ogg"
+    },
+    {
+      "asset": "minecraft/sounds/block/respawn_anchor/charge1.ogg",
+      "sha1": "0e0d263eeae9e4289916c92f830e282a5d45f720",
+      "url": "https://resources.download.minecraft.net/0e/0e0d263eeae9e4289916c92f830e282a5d45f720",
+      "cache_file": "block_respawn_anchor_charge1.ogg"
+    },
+    {
+      "asset": "minecraft/sounds/block/respawn_anchor/charge2.ogg",
+      "sha1": "76ba0d2dec5567374c31d2d788183c440efebe9a",
+      "url": "https://resources.download.minecraft.net/76/76ba0d2dec5567374c31d2d788183c440efebe9a",
+      "cache_file": "block_respawn_anchor_charge2.ogg"
+    },
+    {
+      "asset": "minecraft/sounds/block/respawn_anchor/deplete1.ogg",
+      "sha1": "a084cc73ae04f6d4aaec3b33865dc05709c17603",
+      "url": "https://resources.download.minecraft.net/a0/a084cc73ae04f6d4aaec3b33865dc05709c17603",
+      "cache_file": "block_respawn_anchor_deplete1.ogg"
+    },
+    {
+      "asset": "minecraft/sounds/block/respawn_anchor/deplete2.ogg",
+      "sha1": "f39c3b69a7d8f3fac8797a9145c8b93cac94fc67",
+      "url": "https://resources.download.minecraft.net/f3/f39c3b69a7d8f3fac8797a9145c8b93cac94fc67",
+      "cache_file": "block_respawn_anchor_deplete2.ogg"
+    },
+    {
+      "asset": "minecraft/sounds/block/amethyst/break1.ogg",
+      "sha1": "97b47b7a62f22addf6ff1db0c57b2fce22504098",
+      "url": "https://resources.download.minecraft.net/97/97b47b7a62f22addf6ff1db0c57b2fce22504098",
+      "cache_file": "block_amethyst_break1.ogg"
+    },
+    {
+      "asset": "minecraft/sounds/block/amethyst/break2.ogg",
+      "sha1": "fc857c1990d4bc7c157f4f8367ca4af0bd6168a2",
+      "url": "https://resources.download.minecraft.net/fc/fc857c1990d4bc7c157f4f8367ca4af0bd6168a2",
+      "cache_file": "block_amethyst_break2.ogg"
+    }
+  ],
+  "event_design": {
+    "shoot": "0.24s, concentrated 2.7–9kHz bow transient, short snap, restrained 300–150Hz body",
+    "rain_shoot": "0.16s, sharper bow transient, short snap, lighter body",
+    "wave": "0.46s, 175–62Hz downward impact with audible harmonics, wideband initial crack, then native dimensional decay"
+  },
+  "derived_outputs": [
+    {
+      "file": "heaven_shot_punch1.ogg",
+      "duration_seconds": 0.24,
+      "sha256": "c495debfa1183fe184e41b62f407caf6ace184484af6f41de0940e0ad35c9dad",
+      "decoded_peak": 0.7644608020782471
+    },
+    {
+      "file": "heaven_rain_shot_punch1.ogg",
+      "duration_seconds": 0.16,
+      "sha256": "c10ae236a284602e31f6e3aa9de2f6030629ac1679cf25451fdbca8cdf12e58a",
+      "decoded_peak": 0.8597772717475891
+    },
+    {
+      "file": "heaven_wave_punch1.ogg",
+      "duration_seconds": 0.46,
+      "sha256": "76d0ccab47ad0b255b7d87228332361b79604d48bc95ac076520d61bceac774b",
+      "decoded_peak": 0.7628353834152222
+    },
+    {
+      "file": "heaven_shot_punch2.ogg",
+      "duration_seconds": 0.24,
+      "sha256": "eece67981240dcdab0d173028dc7cd58eaa9e64101375211bb1f7e867492604e",
+      "decoded_peak": 0.7324289679527283
+    },
+    {
+      "file": "heaven_rain_shot_punch2.ogg",
+      "duration_seconds": 0.16,
+      "sha256": "c2011a79cf8d09a9db74348d92c0bcc6109c6e0275d57e4f35be2e46e879339c",
+      "decoded_peak": 0.7398281097412109
+    },
+    {
+      "file": "heaven_wave_punch2.ogg",
+      "duration_seconds": 0.46,
+      "sha256": "bbdf9eca7e677f3f31af4a15d90027d705ffc708744ec46c076496c5dd67c75c",
+      "decoded_peak": 0.7803471088409424
+    }
+  ]
+}

@@ -108,8 +108,8 @@ func run() -> void:
 	host_field.environment_source = host_source
 	host_source.field = host_field
 	host_field.set_physics_process(false)
-	var ground:Dictionary = {"cell":Vector2i.ZERO,"decorative":false,"rects":[Rect2(-12,-12,24,24)]}
-	var wall:Dictionary = {"cell":Vector2i(0,-2),"decorative":true,"rects":[Rect2(-12,-49,24,2)]}
+	var ground:Dictionary = {"cell":Vector2i(3,3),"decorative":false,"tile":Rect2(-8,-8,16,16),"rects":[Rect2(-8,-8,16,16)]}
+	var wall:Dictionary = {"cell":Vector2i(0,-3),"decorative":true,"tile":Rect2(-8,-56,16,16),"rects":[Rect2(-8,-49,16,2)]}
 	# Before a guest-side field exists, exercise a genuine late snapshot rather than sending RPCs to a missing node.
 	host_field._environment_state([ground,wall],true)
 	host_field._clock = 500.0
@@ -117,12 +117,13 @@ func run() -> void:
 	guest_field.environment_source = guest_source
 	guest_source.field = guest_field
 	guest_field.set_physics_process(false)
-	check(await until(func():return guest_field.environment_patches==host_field.environment_patches),"late field requests permanent ground and decorative wall state across ENet")
+	check(await until(func():return guest_field._environment_payload(guest_field.environment_patches.values())==host_field._environment_payload(host_field.environment_patches.values())),"late field requests remaining lifetime plus ground and decorative wall state across ENet")
 	check(host_field.is_multiplayer_authority() and not guest_field.is_multiplayer_authority(),"only the server owns sparse snow gameplay")
+	check(guest_field.environment_tile(guest_field.environment_patches[ground.cell])==ground.tile,"late snapshot retains exact 16-unit geometry independently of ordinary trail IDs")
 	check(host_field.get_world_2d()!=guest_field.get_world_2d(),"replicas use independent physics worlds")
 	check(guest_field._clock<10 and guest_field.environment_patches.size()==2,"late join does not mistake server absolute age for a melting deadline")
 	check(not guest_field.add_environment_patch(guest_source,{"cell":Vector2i.ONE,"decorative":false,"rects":[Rect2(12,12,24,24)]}),"client cannot independently generate damaging weather cells")
-	var local_walls:Array[Rect2] = [Rect2(-12,-49,24,2)]
+	var local_walls:Array[Rect2] = [Rect2(-8,-49,16,2)]
 	for snow_field:Node2D in [host_field,guest_field]:
 		snow_field.wall_view.visual_walls = local_walls.duplicate()
 		snow_field.wall_view.weather_bounds = Rect2(-256,-256,512,512)
@@ -135,9 +136,24 @@ func run() -> void:
 	game.now_stop_state = true
 	guest_source.advance(2.0)
 	check(is_equal_approx(guest_field.wall_view.weather_time,0.5),"client weather animation respects the combat pause")
+	var fade_before:float = guest_field.wall_view.weather_fade
+	guest_source.environment = "none" # Apply the received weather target on this independent client controller.
+	guest_field.wall_view.set_weather(false)
+	check(guest_field.wall_view.weather_fade==fade_before,"connected client preserves opacity when applying weather-off")
+	guest_source.advance(1.0)
+	check(guest_field.wall_view.weather_fade==fade_before,"connected client also pauses its outgoing fade")
+	game.now_stop_state = false
+	guest_source.advance(0.225)
+	check(is_equal_approx(guest_field.wall_view.weather_fade,fade_before-0.25),"non-authority controller advances an outgoing fade with weather disabled")
+	check(guest_field.environment_patches==authoritative,"client fade-out never changes authoritative ground snow")
+	guest_source.environment = "snow"
+	guest_field.wall_view.set_weather(true)
+	guest_source.advance(0.225)
+	check(is_equal_approx(guest_field.wall_view.weather_fade,fade_before),"connected client reverses fade smoothly without resetting opacity")
 	game.now_stop_state = false
 	for i:int in range(3): await process_frame
 	check(is_instance_valid(host_field.wall_view.mesh_node) and is_instance_valid(guest_field.wall_view.mesh_node),"both ENet peers independently build actual 3D decorative snow from one replicated record")
+	check(is_equal_approx(guest_field.wall_view.snow_thickness,2.0),"replicated one-block wall snow keeps its correct 2-unit thickness")
 	var hp:int = host_target.health
 	host_field.check_ground()
 	check(host_target.health==hp-3,"authority resolves neutral snow through the real cold damage pipeline")
@@ -157,7 +173,7 @@ func run() -> void:
 	check(remote_cold.amount==0 and remote_cold.frozen_left==0 and not guest_target.dizziness,"a replicated freeze cannot bypass recipient cold immunity")
 	guest_target.cold_effect_ratio = 1.0
 	host_field.clear_environment()
-	check(await until(func():return guest_field.environment_patches.is_empty()),"turning off weather clears only the synchronized environmental layer")
+	check(await until(func():return guest_field.environment_patches.is_empty()),"explicit battle cleanup clears only the synchronized environmental layer")
 	host_field.add_environment_patch(host_source,ground)
 	check(await until(func():return guest_field.environment_patches.size()==1),"incremental authority snow placement reaches the client")
 	clear_cold(guest_target)

@@ -2,24 +2,27 @@ extends Node2D
 # 纯视觉重复贴图：内部草地 + 一圈木墙，用少量 Sprite 覆盖任意大小地图。
 # 木墙按 wall_spans 拆分（每边若干段），传送门缺口处就不画墙，缺口真的“空”出来。
 # wall_spans 为空时沿用老行为：四条边各画整条墙。
+const MAP_BACKGROUND_THEMES = preload("res://scripts/effects/我的世界/地图背景主题.gd")
 const GRASS:Texture2D = preload("res://Images/effects/我的世界/草方块背景/grass_block_top.png")
 const LOG:Texture2D = preload("res://Images/effects/我的世界/草方块背景/oak_log_top.png")
 const TEXTURE_CELL:Vector2 = Vector2(16,16)
 
-var parts:Array[Sprite2D] = []      # parts[0] 是内部草地，其余是木墙段
+var style_key:String = "grass"
+var parts:Array[Sprite2D] = []      # parts[0] 是内部底图，其余是外墙段
 var interior_rect:Rect2
 var visual_rect:Rect2
 var cell_size:Vector2
 
 
-func configure(rect:Rect2,cell:Vector2,enabled:bool,wall_spans:Array = []) -> void:
+func configure(rect:Rect2,cell:Vector2,enabled:bool,wall_spans:Array = [],theme_key:String = "grass") -> void:
+	style_key = MAP_BACKGROUND_THEMES.normalize(theme_key)
 	visible = enabled
 	if not enabled:
 		return
 	interior_rect = rect
 	cell_size = cell
 	visual_rect = Rect2(rect.position-cell,rect.size+cell*2.0)
-	_ensure_part(0,GRASS,Color("91bd59"))
+	_ensure_part(0,MAP_BACKGROUND_THEMES.floor_texture(style_key),MAP_BACKGROUND_THEMES.theme(style_key).get("floor_modulate",Color.WHITE))
 	_apply_part(parts[0],rect)
 	var spans:Array = wall_spans if not wall_spans.is_empty() else _full_wall_spans()
 	var wanted:Array[Rect2] = []
@@ -50,7 +53,7 @@ func configure(rect:Rect2,cell:Vector2,enabled:bool,wall_spans:Array = []) -> vo
 					break
 		if index < 0:
 			index = parts.size()
-			_ensure_part(index,LOG,Color.WHITE)
+			_ensure_part(index,MAP_BACKGROUND_THEMES.wall_texture(style_key),MAP_BACKGROUND_THEMES.theme(style_key).get("wall_modulate",Color.WHITE))
 		if used.size() < parts.size():
 			used.resize(parts.size())
 		used[index] = true
@@ -113,17 +116,24 @@ func _wall_rect(side:int,axis_a:float,axis_b:float) -> Rect2:
 			return Rect2(axis_a,interior_rect.end.y,axis_b-axis_a,cell_size.y)
 
 
-func configure_regions(ground:Array[Rect2],walls:Array[Rect2],cell:Vector2,enabled:bool) -> void:
+func configure_regions(ground:Array[Rect2],walls:Array[Rect2],cell:Vector2,enabled:bool,theme_key:String = "grass") -> void:
+	style_key = MAP_BACKGROUND_THEMES.normalize(theme_key)
 	visible = enabled
 	if not enabled: return
 	cell_size = cell
+	# 保持旧 configure() 暴露的矩形元数据：大地图刷新和世界外沿/旧专项都直接使用这些值。
+	interior_rect = ground[0] if not ground.is_empty() else Rect2()
+	visual_rect = Rect2(interior_rect.position-cell,interior_rect.size+cell*2.0) if not ground.is_empty() else Rect2()
+	var theme:Dictionary = MAP_BACKGROUND_THEMES.theme(style_key)
 	var areas:Array[Rect2] = ground.duplicate()
 	areas.append_array(walls)
 	for i:int in range(areas.size()):
 		var grass:bool = i < ground.size()
-		_ensure_part(i,GRASS if grass else LOG,Color.WHITE)
-		parts[i].texture = GRASS if grass else LOG
-		parts[i].modulate = Color("91bd59") if grass else Color.WHITE
+		var texture:Texture2D = theme.get("floor",GRASS) if grass else theme.get("wall",LOG)
+		var tint:Color = theme.get("floor_modulate" if grass else "wall_modulate",Color.WHITE)
+		_ensure_part(i,texture,tint)
+		parts[i].texture = texture
+		parts[i].modulate = tint
 		parts[i].set_meta("is_wall",not grass)
 		parts[i].set_meta("wall_rect",areas[i] if not grass else Rect2())
 		parts[i].visible = true

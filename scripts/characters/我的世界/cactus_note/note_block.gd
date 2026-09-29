@@ -72,6 +72,16 @@ func _ready() -> void:
 	_disc_sprite.z_index = 7
 	image.get_parent().add_child(_disc_sprite)
 	start_track(rng.randi_range(0,TRACKS.size()-1))
+func controlled_attack_action() -> void:
+	# The already inserted/playing disc keeps its music-driven attack to completion.
+	# Only loading the NEXT disc is a fresh manual action.
+	if is_player_controlled() and is_multiplayer_authority() and can_act() and record_phase==3:
+		start_track(track_index+1)
+func set_player_control_peer(peer_id:int) -> void:
+	var was_controlled:bool=is_player_controlled()
+	super.set_player_control_peer(peer_id)
+	if was_controlled and not is_player_controlled() and record_phase==3 and health>0 and is_multiplayer_authority():
+		start_track(track_index+1)
 func start_track(index:int,at:float = 0.0) -> void:
 	track_index = posmod(index,TRACKS.size())
 	_pending_start_time = maxf(at,0)
@@ -344,7 +354,9 @@ func _eject_record(song:int,point:Vector2,side:float,bounds:Rect2) -> void:
 	FX.runtime_container(self).add_child(_ejected_record)
 	_ejected_record.configure(self,DISCS[posmod(song,DISCS.size())],point,side,bounds)
 func finish_ejection() -> void:
-	if record_phase==2 and health>0 and is_multiplayer_authority(): start_track(track_index+1)
+	if record_phase!=2 or health<=0 or not is_multiplayer_authority(): return
+	if is_player_controlled(): record_phase=3 # Waiting for the next manual left-click.
+	else: start_track(track_index+1)
 
 func register_music_hit(id:int) -> void:
 	combo_decaying = false

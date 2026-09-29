@@ -1,0 +1,66 @@
+{
+  "minecraft_version": "Java 1.21.8",
+  "client_url": "https://piston-data.mojang.com/v1/objects/a19d9badbea944a4369fd0059e53bf7286597576/client.jar",
+  "client_sha1": "a19d9badbea944a4369fd0059e53bf7286597576",
+  "asset_index": {
+    "id": "26",
+    "sha1": "94077c8d52bb89d70e9ce408a56847423034c172",
+    "size": 491670,
+    "totalSize": 448978006,
+    "url": "https://piston-meta.mojang.com/v1/packages/94077c8d52bb89d70e9ce408a56847423034c172/26.json"
+  },
+  "renderer": "scripts/training/mc_native_assets/fetch_anvil_assets.py",
+  "rights": "Minecraft assets are Mojang property, subject to Minecraft EULA/usage guidelines. Public access is not an unrestricted redistribution license.",
+  "files": [
+    {
+      "path": "Images/characters/我的世界/anvil/native/anvil.json",
+      "sha256": "9a58a547d9e8266669b49316c892c18fc4fcfa836f534d1e68bc2e916b57235b",
+      "source": "vanilla Java 1.21.8 client.jar:assets/minecraft/models/block/anvil.json",
+      "unaltered": true
+    },
+    {
+      "path": "Images/characters/我的世界/anvil/native/template_anvil.json",
+      "sha256": "0d9175562123afe2c9bfff33a7b585544832eba760794faf777a1aeceb4461f0",
+      "source": "vanilla Java 1.21.8 client.jar:assets/minecraft/models/block/template_anvil.json",
+      "unaltered": true
+    },
+    {
+      "path": "Images/characters/我的世界/anvil/native/block.json",
+      "sha256": "3ef6c442f1ab55d2a57fa58e28bb831268159052659f12b453b637b31ded1da8",
+      "source": "vanilla Java 1.21.8 client.jar:assets/minecraft/models/block/block.json",
+      "unaltered": true
+    },
+    {
+      "path": "Images/characters/我的世界/anvil/native/anvil.png",
+      "sha256": "2266db251b99f5df98d8f049e3f7dd6cd85e8146b46011f6918995f392721e48",
+      "source": "vanilla Java 1.21.8 client.jar:assets/minecraft/textures/block/anvil.png",
+      "unaltered": true
+    },
+    {
+      "path": "Images/characters/我的世界/anvil/native/anvil_top.png",
+      "sha256": "757d6f79099583c159e3f95e9981efe0b16b524bed90739ae213142ad40fad26",
+      "source": "vanilla Java 1.21.8 client.jar:assets/minecraft/textures/block/anvil_top.png",
+      "unaltered": true
+    },
+    {
+      "path": "audio/characters/我的世界/anvil/anvil_land.ogg",
+      "sha256": "7696f2375d33a721531415338b593540cea50e694e89aff837b704f7acb93d1f",
+      "sha1": "781d4bfc6ee0aff2a61b0d78f0da34610a28aa62",
+      "source": "https://resources.download.minecraft.net/78/781d4bfc6ee0aff2a61b0d78f0da34610a28aa62",
+      "unaltered": true
+    },
+    {
+      "path": "audio/characters/我的世界/anvil/anvil_break.ogg",
+      "sha256": "3aa452a48704b38273ad6630d168eaee341bdc4e976f88b44b09e0ee284ee77a",
+      "sha1": "6fa4895a44f671fd7c24c366f87ca908da6485a3",
+      "source": "https://resources.download.minecraft.net/6f/6fa4895a44f671fd7c24c366f87ca908da6485a3",
+      "unaltered": true
+    },
+    {
+      "path": "Images/characters/我的世界/anvil/anvil.png",
+      "sha256": "188846a3d09dc9a4e66de035026e79af96779315d64c88cb8a039c5d26c88ab4",
+      "source": "Deterministic bake of the exact vanilla template_anvil geometry/UVs/textures, using vanilla block GUI rotation/scale; native face shading and nearest sampling. Not a directly downloaded PNG; no AI imagery.",
+      "unaltered": false
+    }
+  ]
+}

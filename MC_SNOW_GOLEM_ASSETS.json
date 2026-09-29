@@ -1,0 +1,442 @@
+{
+  "bedrock_commit": "736072450c26a7c67f07b1661f29d9a5ebaa14b1",
+  "java_version": "1.21.1",
+  "version_manifest_url": "https://piston-meta.mojang.com/v1/packages/81396eb81dcfec06cf6fa1c6fa06e4ab0c15eb81/1.21.1.json",
+  "asset_index": {
+    "id": "17",
+    "sha1": "76d7a97b9e0778fda3b14e474f012450ca0de1bb",
+    "size": 449557,
+    "totalSize": 824921227,
+    "url": "https://piston-meta.mojang.com/v1/packages/76d7a97b9e0778fda3b14e474f012450ca0de1bb/17.json"
+  },
+  "sounds_definition": {
+    "url": "https://resources.download.minecraft.net/09/09eab141cce7550f9a74c65db0e9abbb342cf50f",
+    "sha1": "09eab141cce7550f9a74c65db0e9abbb342cf50f"
+  },
+  "copyright": "Minecraft assets belong to Mojang/Microsoft. Minecraft EULA applies; no commercial/republication license is asserted.",
+  "adaptation": "Native Bedrock Snow Golem v1.0 geometry/skin and original arm/torso Molang sampled at three target-yaw angles. Native carved-pumpkin block texels are projected at the head attachment (the engine-specific pumpkin material is not embedded). Bare state removes only that pumpkin, revealing the native snow face. Blocks are orthographic projections of native block textures. This is a 2D software bake, not a Minecraft engine screenshot or an invented official walking/throwing animation. Java snowball/snowflake PNG and OGG bytes are unmodified.",
+  "files": [
+    {
+      "file": "scripts/training/mc_snow_golem_assets/resource_pack/models/entity/snow_golem.v1.0.geo.json",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/models/entity/snow_golem.v1.0.geo.json",
+      "sha256": "79021cd69d095d7785e145449fc822cfb4893a06452d4bd7f99b3c73b4a0614c"
+    },
+    {
+      "file": "scripts/training/mc_snow_golem_assets/resource_pack/animations/snow_golem.animations.v1.0.json",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/animations/snow_golem.animations.v1.0.json",
+      "sha256": "56f0efcd04bafc0165b4603703dfd5b2babf1fdd46f9f579c4fc777c96c3bb3f"
+    },
+    {
+      "file": "scripts/training/mc_snow_golem_assets/resource_pack/textures/entity/snow_golem.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/entity/snow_golem.png",
+      "sha256": "8233b8e8135b080cfbb3190b3e064fd346397f719ef25f3d661357f5d291a2f9"
+    },
+    {
+      "file": "scripts/training/mc_snow_golem_assets/resource_pack/textures/blocks/snow.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/blocks/snow.png",
+      "sha256": "d13cd31720a666ce44f956cd43326e49dd91b6320927a55125b7084b5b58a0da"
+    },
+    {
+      "file": "scripts/training/mc_snow_golem_assets/resource_pack/textures/blocks/pumpkin_face_off.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/blocks/pumpkin_face_off.png",
+      "sha256": "8993e19661e39829ec6e126ea3fe97e5e63725c268d0776c3c71ff824087f1aa"
+    },
+    {
+      "file": "scripts/training/mc_snow_golem_assets/resource_pack/textures/blocks/pumpkin_side.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/blocks/pumpkin_side.png",
+      "sha256": "4794db787370fd96d9b767600e6b8a678e49683ce2be12b2668ee8e8c11b7cb0"
+    },
+    {
+      "file": "scripts/training/mc_snow_golem_assets/resource_pack/textures/blocks/pumpkin_top.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/blocks/pumpkin_top.png",
+      "sha256": "d454f99259a049130e4be02ec3c7a59ccac2d6754c9f5fc1283259e200f05e41"
+    },
+    {
+      "file": "scripts/training/mc_snow_golem_assets/LICENSE.minecraft.md",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/LICENSE.md",
+      "sha256": "ca18c0dede68ce24ea1cd6f9df0813579b6f9f979787983a50baec99345f975d"
+    },
+    {
+      "file": "Images/characters/我的世界/snow_golem/snowball.png",
+      "url": "https://piston-data.mojang.com/v1/objects/30c73b1c5da787909b2f73340419fdf13b9def88/client.jar",
+      "sha256": "4e4dff01a4935f58ad5a3f80700b4b85062baa0b395736b2e53e189107673d81",
+      "archive_entry": "assets/minecraft/textures/item/snowball.png",
+      "archive_sha1": "30c73b1c5da787909b2f73340419fdf13b9def88"
+    },
+    {
+      "file": "scripts/training/mc_snow_golem_assets/snowflake.json",
+      "url": "https://piston-data.mojang.com/v1/objects/30c73b1c5da787909b2f73340419fdf13b9def88/client.jar",
+      "sha256": "40da6e690115a66fab5e9aa0ace19f373fe32d213ea2e6dc7a82b9e9cd3ea4fe",
+      "archive_entry": "assets/minecraft/particles/snowflake.json",
+      "archive_sha1": "30c73b1c5da787909b2f73340419fdf13b9def88"
+    },
+    {
+      "file": "Images/characters/我的世界/snow_golem/snowflake_0.png",
+      "url": "https://piston-data.mojang.com/v1/objects/30c73b1c5da787909b2f73340419fdf13b9def88/client.jar",
+      "sha256": "858a9804aef73be823a616e0faf518ee425421a20ffbb68f2a686ac76c017ca3",
+      "archive_entry": "assets/minecraft/textures/particle/generic_7.png",
+      "archive_sha1": "30c73b1c5da787909b2f73340419fdf13b9def88"
+    },
+    {
+      "file": "Images/characters/我的世界/snow_golem/snowflake_1.png",
+      "url": "https://piston-data.mojang.com/v1/objects/30c73b1c5da787909b2f73340419fdf13b9def88/client.jar",
+      "sha256": "1d0bce47b910d93d60de34deca732abeeea2dcdf0d2ed16bf8881f1f2ee92442",
+      "archive_entry": "assets/minecraft/textures/particle/generic_6.png",
+      "archive_sha1": "30c73b1c5da787909b2f73340419fdf13b9def88"
+    },
+    {
+      "file": "Images/characters/我的世界/snow_golem/snowflake_2.png",
+      "url": "https://piston-data.mojang.com/v1/objects/30c73b1c5da787909b2f73340419fdf13b9def88/client.jar",
+      "sha256": "ea3bb652d7604349517ceb17061b0007578ff70f86e1adc5e823da767a315fcf",
+      "archive_entry": "assets/minecraft/textures/particle/generic_5.png",
+      "archive_sha1": "30c73b1c5da787909b2f73340419fdf13b9def88"
+    },
+    {
+      "file": "Images/characters/我的世界/snow_golem/snowflake_3.png",
+      "url": "https://piston-data.mojang.com/v1/objects/30c73b1c5da787909b2f73340419fdf13b9def88/client.jar",
+      "sha256": "2cacbc3e1b3297b34997fdb46aa35bbc3597d4f1a608f7412aa843a22bfb4a28",
+      "archive_entry": "assets/minecraft/textures/particle/generic_4.png",
+      "archive_sha1": "30c73b1c5da787909b2f73340419fdf13b9def88"
+    },
+    {
+      "file": "Images/characters/我的世界/snow_golem/snowflake_4.png",
+      "url": "https://piston-data.mojang.com/v1/objects/30c73b1c5da787909b2f73340419fdf13b9def88/client.jar",
+      "sha256": "0988037438acb1dab7e583e6e17dbdc0d47c51721d237ea628311fc7ae3e355a",
+      "archive_entry": "assets/minecraft/textures/particle/generic_3.png",
+      "archive_sha1": "30c73b1c5da787909b2f73340419fdf13b9def88"
+    },
+    {
+      "file": "Images/characters/我的世界/snow_golem/snowflake_5.png",
+      "url": "https://piston-data.mojang.com/v1/objects/30c73b1c5da787909b2f73340419fdf13b9def88/client.jar",
+      "sha256": "b685389739d5add8d9240511f15b60e3365262c9e557b80fc3bf352dc30564a2",
+      "archive_entry": "assets/minecraft/textures/particle/generic_2.png",
+      "archive_sha1": "30c73b1c5da787909b2f73340419fdf13b9def88"
+    },
+    {
+      "file": "Images/characters/我的世界/snow_golem/snowflake_6.png",
+      "url": "https://piston-data.mojang.com/v1/objects/30c73b1c5da787909b2f73340419fdf13b9def88/client.jar",
+      "sha256": "85fb6789e97a9385e823a6da6f6fbdd376c6e8165a449e8f1613ef34592afb2e",
+      "archive_entry": "assets/minecraft/textures/particle/generic_1.png",
+      "archive_sha1": "30c73b1c5da787909b2f73340419fdf13b9def88"
+    },
+    {
+      "file": "Images/characters/我的世界/snow_golem/snowflake_7.png",
+      "url": "https://piston-data.mojang.com/v1/objects/30c73b1c5da787909b2f73340419fdf13b9def88/client.jar",
+      "sha256": "040799acfd2e753632cef5642ab07e0182a973cc990cbfcb6bf7d201f10cfa03",
+      "archive_entry": "assets/minecraft/textures/particle/generic_0.png",
+      "archive_sha1": "30c73b1c5da787909b2f73340419fdf13b9def88"
+    },
+    {
+      "file": "Images/characters/我的世界/snow_golem/snow.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/blocks/snow.png",
+      "sha256": "d13cd31720a666ce44f956cd43326e49dd91b6320927a55125b7084b5b58a0da"
+    },
+    {
+      "file": "audio/characters/我的世界/snow_golem/da71b9f569cffbd8b4c88dbd30767315aba8067b.ogg",
+      "url": "https://resources.download.minecraft.net/da/da71b9f569cffbd8b4c88dbd30767315aba8067b",
+      "sha256": "a1f6e6cf6558be48147ae01af1f9b22aaf4273ea25c6591ca77ee23e02a33dd9",
+      "asset_key": "minecraft/sounds/entity/snowman/hurt1.ogg",
+      "sha1": "da71b9f569cffbd8b4c88dbd30767315aba8067b"
+    },
+    {
+      "file": "audio/characters/我的世界/snow_golem/50bf881d5a1a484f15f009bf0b86703111834516.ogg",
+      "url": "https://resources.download.minecraft.net/50/50bf881d5a1a484f15f009bf0b86703111834516",
+      "sha256": "30348de198895e1322102467094df6f1521e544f8664f1cf1bfe3228120d302a",
+      "asset_key": "minecraft/sounds/entity/snowman/hurt2.ogg",
+      "sha1": "50bf881d5a1a484f15f009bf0b86703111834516"
+    },
+    {
+      "file": "audio/characters/我的世界/snow_golem/9a9d88fc2ba4c56b0089df4441f3a3ac1fcb8b0e.ogg",
+      "url": "https://resources.download.minecraft.net/9a/9a9d88fc2ba4c56b0089df4441f3a3ac1fcb8b0e",
+      "sha256": "8187b898b559d40c2ee3642b4745a877924b67d4e56b110f31eea7ef50a56309",
+      "asset_key": "minecraft/sounds/entity/snowman/hurt3.ogg",
+      "sha1": "9a9d88fc2ba4c56b0089df4441f3a3ac1fcb8b0e"
+    },
+    {
+      "file": "audio/characters/我的世界/snow_golem/888fb12c5fb536268747df857ad439e17a4a2f44.ogg",
+      "url": "https://resources.download.minecraft.net/88/888fb12c5fb536268747df857ad439e17a4a2f44",
+      "sha256": "5370d65d05c664b6e87223177db644aafe4d5d858201d780aadb4118902ef079",
+      "asset_key": "minecraft/sounds/entity/snowman/death1.ogg",
+      "sha1": "888fb12c5fb536268747df857ad439e17a4a2f44"
+    },
+    {
+      "file": "audio/characters/我的世界/snow_golem/36409234aed55db1d006a65b92f1c64be4e4bbe0.ogg",
+      "url": "https://resources.download.minecraft.net/36/36409234aed55db1d006a65b92f1c64be4e4bbe0",
+      "sha256": "0509e020cde9c72a3d085d41bbb052e7e535dd3ae373b54f5f2176b4b6a6e67f",
+      "asset_key": "minecraft/sounds/entity/snowman/death2.ogg",
+      "sha1": "36409234aed55db1d006a65b92f1c64be4e4bbe0"
+    },
+    {
+      "file": "audio/characters/我的世界/snow_golem/9f910c27c8cf336f211a75830821b0ec6abf6fa9.ogg",
+      "url": "https://resources.download.minecraft.net/9f/9f910c27c8cf336f211a75830821b0ec6abf6fa9",
+      "sha256": "856af0f82c84b8e7abde67698d8dc9b82901ff35ba2f2c23f4395fcd6c973467",
+      "asset_key": "minecraft/sounds/entity/snowman/death3.ogg",
+      "sha1": "9f910c27c8cf336f211a75830821b0ec6abf6fa9"
+    },
+    {
+      "file": "audio/characters/我的世界/snow_golem/87edc11141fb5a045f2ed830b545aaa73f96ee99.ogg",
+      "url": "https://resources.download.minecraft.net/87/87edc11141fb5a045f2ed830b545aaa73f96ee99",
+      "sha256": "9492b523393851444789a0befcb1c0c5f382638b9b87e56dfa4da6dcb61dd3f3",
+      "asset_key": "minecraft/sounds/random/bow.ogg",
+      "sha1": "87edc11141fb5a045f2ed830b545aaa73f96ee99"
+    },
+    {
+      "file": "audio/characters/我的世界/snow_golem/5d9055cf25f126c47e18637aeef917fa1ef61a42.ogg",
+      "url": "https://resources.download.minecraft.net/5d/5d9055cf25f126c47e18637aeef917fa1ef61a42",
+      "sha256": "eef052be8e48ed418b5f9c983181807afe74b2fd3969e85d422ea10703231abc",
+      "asset_key": "minecraft/sounds/mob/sheep/shear.ogg",
+      "sha1": "5d9055cf25f126c47e18637aeef917fa1ef61a42"
+    },
+    {
+      "file": "audio/characters/我的世界/snow_golem/e9bab7d3d15541f0aaa93fad31ad37fd07e03a6c.ogg",
+      "url": "https://resources.download.minecraft.net/e9/e9bab7d3d15541f0aaa93fad31ad37fd07e03a6c",
+      "sha256": "f7e03bb5bcc487cea313bfd72ded4cfd4e215b82228cf9744760f61da4c496bb",
+      "asset_key": "minecraft/sounds/dig/snow1.ogg",
+      "sha1": "e9bab7d3d15541f0aaa93fad31ad37fd07e03a6c"
+    },
+    {
+      "file": "audio/characters/我的世界/snow_golem/5887d10234c4f244ec5468080412f3e6ef9522f3.ogg",
+      "url": "https://resources.download.minecraft.net/58/5887d10234c4f244ec5468080412f3e6ef9522f3",
+      "sha256": "a0d603f69ad58662e688d74b9ca2f345eebc0938b4af954f16840adf436fe8d9",
+      "asset_key": "minecraft/sounds/dig/snow2.ogg",
+      "sha1": "5887d10234c4f244ec5468080412f3e6ef9522f3"
+    },
+    {
+      "file": "audio/characters/我的世界/snow_golem/a4bc069321a96236fde04a3820664cc23b2ea619.ogg",
+      "url": "https://resources.download.minecraft.net/a4/a4bc069321a96236fde04a3820664cc23b2ea619",
+      "sha256": "ae97513c5bcac9d08f5c8bcbaf55b7a3112134603c141b5de70e15a06c77e325",
+      "asset_key": "minecraft/sounds/dig/snow3.ogg",
+      "sha1": "a4bc069321a96236fde04a3820664cc23b2ea619"
+    },
+    {
+      "file": "audio/characters/我的世界/snow_golem/e26fa3036cdab4c2264ceb19e1cd197a2a510227.ogg",
+      "url": "https://resources.download.minecraft.net/e2/e26fa3036cdab4c2264ceb19e1cd197a2a510227",
+      "sha256": "c7918a0b58c45a6f0d29fa990bbd31a7b482ef61387c83a02eb7f70b672e4761",
+      "asset_key": "minecraft/sounds/dig/snow4.ogg",
+      "sha1": "e26fa3036cdab4c2264ceb19e1cd197a2a510227"
+    }
+  ],
+  "generated": [
+    {
+      "file": "Images/characters/我的世界/snow_golem/pumpkin_left.png",
+      "sha256": "8641c18359be496e5d159b03655458ebefa44c7b07787db845d768076fca3e59",
+      "bounds": [
+        29,
+        52,
+        130,
+        207
+      ]
+    },
+    {
+      "file": "Images/characters/我的世界/snow_golem/pumpkin_center.png",
+      "sha256": "08ff12397fbdee782ff9cf063c5a735654d2fee1f476c7e8a0ec44e366ab5c10",
+      "bounds": [
+        34,
+        50,
+        126,
+        207
+      ]
+    },
+    {
+      "file": "Images/characters/我的世界/snow_golem/pumpkin_right.png",
+      "sha256": "5b24bb74d172c9d26468b1637cdfac001ccd38cfdeffbab4ba67458d63bc17db",
+      "bounds": [
+        39,
+        50,
+        121,
+        207
+      ]
+    },
+    {
+      "file": "Images/characters/我的世界/snow_golem/bare_left.png",
+      "sha256": "8e65f59661f778c91c2438884b967624f6161ade69e1291b524c519760b7d8cf",
+      "bounds": [
+        29,
+        61,
+        130,
+        207
+      ]
+    },
+    {
+      "file": "Images/characters/我的世界/snow_golem/bare_center.png",
+      "sha256": "2c341b785b884620e74fc50007f3885348a71debead79eb3ebe270d88c096e68",
+      "bounds": [
+        34,
+        60,
+        126,
+        207
+      ]
+    },
+    {
+      "file": "Images/characters/我的世界/snow_golem/bare_right.png",
+      "sha256": "0acc9b2b115480760a4d9b4d327167c58b1063ddc56840ea815e21b63ed717cc",
+      "bounds": [
+        39,
+        60,
+        121,
+        207
+      ]
+    },
+    {
+      "file": "Images/characters/我的世界/snow_golem/pumpkin_block.png",
+      "sha256": "9e2e8660d23cec7195b80e1eb860a284929597ad1bc39396c33567cf8a1134f1",
+      "size": [
+        112,
+        103
+      ]
+    },
+    {
+      "file": "Images/characters/我的世界/snow_golem/snow_block.png",
+      "sha256": "7b45d52f4b43959cbeeb2b99fcd0998d5f21221744594a29e608f1fb178a2e08",
+      "size": [
+        112,
+        103
+      ]
+    }
+  ],
+  "events": {
+    "entity.snow_golem.hurt": [
+      {
+        "path": "res://audio/characters/我的世界/snow_golem/da71b9f569cffbd8b4c88dbd30767315aba8067b.ogg",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "path": "res://audio/characters/我的世界/snow_golem/50bf881d5a1a484f15f009bf0b86703111834516.ogg",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "path": "res://audio/characters/我的世界/snow_golem/9a9d88fc2ba4c56b0089df4441f3a3ac1fcb8b0e.ogg",
+        "volume": 1.0,
+        "pitch": 1.0
+      }
+    ],
+    "entity.snow_golem.death": [
+      {
+        "path": "res://audio/characters/我的世界/snow_golem/888fb12c5fb536268747df857ad439e17a4a2f44.ogg",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "path": "res://audio/characters/我的世界/snow_golem/36409234aed55db1d006a65b92f1c64be4e4bbe0.ogg",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "path": "res://audio/characters/我的世界/snow_golem/9f910c27c8cf336f211a75830821b0ec6abf6fa9.ogg",
+        "volume": 1.0,
+        "pitch": 1.0
+      }
+    ],
+    "entity.snow_golem.shoot": [
+      {
+        "path": "res://audio/characters/我的世界/snow_golem/87edc11141fb5a045f2ed830b545aaa73f96ee99.ogg",
+        "volume": 1.0,
+        "pitch": 1.0
+      }
+    ],
+    "entity.snow_golem.shear": [
+      {
+        "path": "res://audio/characters/我的世界/snow_golem/5d9055cf25f126c47e18637aeef917fa1ef61a42.ogg",
+        "volume": 1.0,
+        "pitch": 1.0
+      }
+    ],
+    "entity.snowball.throw": [
+      {
+        "path": "res://audio/characters/我的世界/snow_golem/87edc11141fb5a045f2ed830b545aaa73f96ee99.ogg",
+        "volume": 1.0,
+        "pitch": 1.0
+      }
+    ],
+    "block.snow.place": [
+      {
+        "path": "res://audio/characters/我的世界/snow_golem/e9bab7d3d15541f0aaa93fad31ad37fd07e03a6c.ogg",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "path": "res://audio/characters/我的世界/snow_golem/5887d10234c4f244ec5468080412f3e6ef9522f3.ogg",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "path": "res://audio/characters/我的世界/snow_golem/a4bc069321a96236fde04a3820664cc23b2ea619.ogg",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "path": "res://audio/characters/我的世界/snow_golem/e26fa3036cdab4c2264ceb19e1cd197a2a510227.ogg",
+        "volume": 1.0,
+        "pitch": 1.0
+      }
+    ],
+    "block.snow.break": [
+      {
+        "path": "res://audio/characters/我的世界/snow_golem/e9bab7d3d15541f0aaa93fad31ad37fd07e03a6c.ogg",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "path": "res://audio/characters/我的世界/snow_golem/5887d10234c4f244ec5468080412f3e6ef9522f3.ogg",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "path": "res://audio/characters/我的世界/snow_golem/a4bc069321a96236fde04a3820664cc23b2ea619.ogg",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "path": "res://audio/characters/我的世界/snow_golem/e26fa3036cdab4c2264ceb19e1cd197a2a510227.ogg",
+        "volume": 1.0,
+        "pitch": 1.0
+      }
+    ],
+    "block.snow.step": [
+      {
+        "path": "res://audio/characters/我的世界/snow_golem/e9bab7d3d15541f0aaa93fad31ad37fd07e03a6c.ogg",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "path": "res://audio/characters/我的世界/snow_golem/5887d10234c4f244ec5468080412f3e6ef9522f3.ogg",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "path": "res://audio/characters/我的世界/snow_golem/a4bc069321a96236fde04a3820664cc23b2ea619.ogg",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "path": "res://audio/characters/我的世界/snow_golem/e26fa3036cdab4c2264ceb19e1cd197a2a510227.ogg",
+        "volume": 1.0,
+        "pitch": 1.0
+      }
+    ],
+    "block.snow.hit": [
+      {
+        "path": "res://audio/characters/我的世界/snow_golem/e9bab7d3d15541f0aaa93fad31ad37fd07e03a6c.ogg",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "path": "res://audio/characters/我的世界/snow_golem/5887d10234c4f244ec5468080412f3e6ef9522f3.ogg",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "path": "res://audio/characters/我的世界/snow_golem/a4bc069321a96236fde04a3820664cc23b2ea619.ogg",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "path": "res://audio/characters/我的世界/snow_golem/e26fa3036cdab4c2264ceb19e1cd197a2a510227.ogg",
+        "volume": 1.0,
+        "pitch": 1.0
+      }
+    ]
+  }
+}

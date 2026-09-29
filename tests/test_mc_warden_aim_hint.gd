@@ -42,6 +42,8 @@ func run() -> void:
 	check(w.aim_kind=="melee" and w.aim_point.distance_to(enemy.global_position)<0.01,"melee aim hint marks the sound position")
 	w.melee_left=0;w.release_melee()
 	check(w.aim_left==0.0,"melee release clears the hint")
+	# Complete recovery before testing a genuinely new attack and its hint.
+	w.step_mob(0.41)
 	w._attack_cooldown=0;w.sounds.clear();w.hear_noise(enemy,enemy.global_position,"attack",120)
 	check(w.begin_melee() and w.aim_left>0.0,"second melee re-arms the hint")
 	w._cancel_attacks(true)

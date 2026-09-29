@@ -158,6 +158,7 @@ func _damage_enemies() -> void:
 			continue
 		if global_position.distance_to(target.global_position) > collision_radius:
 			continue
+		if target.has_method("try_full_projectile_dodge") and bool(target.call("try_full_projectile_dodge",self)): continue
 		var dealt_damage:float = current_damage()
 		var did_damage:bool = target.receive_positional_damage(dealt_damage,global_position,false,master)
 		if did_damage:

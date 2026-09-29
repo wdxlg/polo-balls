@@ -153,7 +153,7 @@ func _ensure_editor_gate_nodes() -> void:
 func collect_islands() -> void:
 	islands.clear()
 	for c:Node in get_children():
-		if c is TileMapLayer and not c.has_method("portal_doors"):
+		if c is TileMapLayer and not c.has_method("portal_doors") and not c.has_method("is_character_spawn_layer"):
 			Geometry.invalidate(c)
 			islands[str(c.name)] = c
 	_refresh_island_rects()

@@ -1,0 +1,31 @@
+[
+  {
+    "name": "creator",
+    "url": "https://resources.download.minecraft.net/d1/d1c3c66face8215ff2f9635f4d7c168fdea34d88",
+    "sha1": "d1c3c66face8215ff2f9635f4d7c168fdea34d88",
+    "size": 4682476,
+    "texture": "assets/minecraft/textures/item/music_disc_creator.png"
+  },
+  {
+    "name": "precipice",
+    "url": "https://resources.download.minecraft.net/a0/a069bdaa24c0d9b9c0a2907113c5716ae5775846",
+    "sha1": "a069bdaa24c0d9b9c0a2907113c5716ae5775846",
+    "size": 9818275,
+    "texture": "assets/minecraft/textures/item/music_disc_precipice.png"
+  },
+  {
+    "name": "relic",
+    "url": "https://resources.download.minecraft.net/f6/f6c8af3b270a609b12eddd4a56fe2139662782e8",
+    "sha1": "f6c8af3b270a609b12eddd4a56fe2139662782e8",
+    "size": 5838275,
+    "texture": "assets/minecraft/textures/item/music_disc_relic.png"
+  },
+  {
+    "name": "dispense",
+    "event": "block.dispenser.dispense",
+    "url": "https://resources.download.minecraft.net/ec/ec4f4d122ab7c5d44e48419de0e3de1b0922514d",
+    "sha1": "ec4f4d122ab7c5d44e48419de0e3de1b0922514d",
+    "size": 9138,
+    "purpose": "User-approved eject substitute, not a dedicated jukebox eject sound"
+  }
+]

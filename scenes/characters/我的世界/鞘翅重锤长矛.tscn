@@ -6,7 +6,7 @@
 
 [node name="鞘翅重锤长矛" instance=ExtResource("1_spear")]
 script = ExtResource("2_combo")
-editor_description = "沿用鞘翅长矛的滑翔、烟花、矛尖穿刺与命中提速。矛尖命中触发重锤冲击并起跳；后续真实落地命中续跳、叠层增加范围和伤害。使用用户提供的重锤长矛贴图。"
+editor_description = "鞘翅滑翔、越界主动回航、烟花和矛尖命中提速。对准敌人冲刺时先加速穿过并持续获得有效命中提速，穿越结束再弹起接原重锤连砸；普通矛尖命中仍立即冲击起跳，后续落地命中叠层续跳。手控左键穿刺冲刺、右键烟花。"
 Type_Tags = PackedStringArray("我的世界", "近战", "范围", "飞行", "突刺", "穿透", "击退", "连击", "成长")
 
 [node name="Image" parent="Graphics" index="0"]

@@ -27,6 +27,15 @@ properties/4/replication_mode = 2
 properties/5/path = NodePath(".:honey_target_paths")
 properties/5/spawn = true
 properties/5/replication_mode = 2
+properties/6/path = NodePath(".:_iron_down_speed")
+properties/6/spawn = true
+properties/6/replication_mode = 1
+properties/7/path = NodePath(".:_actual_speed")
+properties/7/spawn = true
+properties/7/replication_mode = 1
+properties/8/path = NodePath(".:direction")
+properties/8/spawn = true
+properties/8/replication_mode = 2
 
 [node name="硫方怪" instance=ExtResource("1_base")]
 script = ExtResource("2_script")

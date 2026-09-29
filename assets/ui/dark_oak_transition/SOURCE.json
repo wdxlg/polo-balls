@@ -1,0 +1,45 @@
+{
+  "source": "Minecraft Java Edition 1.21.1, user local Bbs.jar",
+  "date": "2026-09-27",
+  "license": "Original Mojang/Microsoft game assets; extracting does not grant redistribution rights.",
+  "processing": "Original PNG/JSON/Ogg bytes unchanged; runtime mesh maps native 3/16 thickness and face UVs; screen aspect is adapted.",
+  "files": [
+    {
+      "file": "dark_oak_door_top.png",
+      "entry": "assets/minecraft/textures/block/dark_oak_door_top.png",
+      "sha256": "dc181a0c9a35f6867c860f3de6c3314c755738a01739e75cb279abf1c24e852b"
+    },
+    {
+      "file": "dark_oak_door_bottom.png",
+      "entry": "assets/minecraft/textures/block/dark_oak_door_bottom.png",
+      "sha256": "2f5413d0f9264bef301a7663417e7c2535516a878de36b328ce53c577e76274d"
+    },
+    {
+      "file": "door_bottom_left.json",
+      "entry": "assets/minecraft/models/block/door_bottom_left.json",
+      "sha256": "f818050450f03a3d4007a8d5d2bbc191ce43fb0d2026a0f162b17f8fee93143f"
+    },
+    {
+      "file": "door_top_left.json",
+      "entry": "assets/minecraft/models/block/door_top_left.json",
+      "sha256": "e19a248131949d827f31f6aefb47c3b62ee949ebc62f3072e2aa03ab399c16f2"
+    },
+    {
+      "file": "open.ogg",
+      "asset_index": "17",
+      "entry": "minecraft/sounds/block/wooden_door/open1.ogg",
+      "sha1": "d2ba0797ca24fcf15d105c88899089e4af5cb9f4",
+      "sha256": "0f6799c9b410bfd11a44d185cc617e47316d885d6615b0882297af995c62959d",
+      "official_url": "https://resources.download.minecraft.net/d2/d2ba0797ca24fcf15d105c88899089e4af5cb9f4"
+    },
+    {
+      "file": "close.ogg",
+      "asset_index": "17",
+      "entry": "minecraft/sounds/block/wooden_door/close1.ogg",
+      "sha1": "6e0d43b064fb69f7b63e0704d99a38bb2ebc19e0",
+      "sha256": "d77a889b0881364f6705558b82b3cd70c30f64350ac58c32606633ca88854313",
+      "official_url": "https://resources.download.minecraft.net/6e/6e0d43b064fb69f7b63e0704d99a38bb2ebc19e0"
+    }
+  ],
+  "revision": "Actual 3D hinged doors + original wooden-door sounds"
+}

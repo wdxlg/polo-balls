@@ -48,6 +48,9 @@ func _process(delta:float) -> void:
 	if not is_multiplayer_authority() or health <= 0 or not is_combat_runtime_active():
 		return
 	_tear_left -= delta
+	if is_player_controlled():
+		_tear_left = maxf(_tear_left,0.0)
+		return
 	# V397：按固定时间步追赶发射次数。即使某一渲染帧较长，也不会直接漏掉整波泪滴，
 	# 从而保持“源源不断”的左右双眼泪流。单帧最多补发 3 波，避免卡顿时无限追赶。
 	var emitted:int = 0
@@ -57,6 +60,15 @@ func _process(delta:float) -> void:
 		_spawn_tear(0)
 		_spawn_tear(1)
 		emitted += 1
+
+
+func controlled_attack_action() -> void:
+	# 左键：保留原双眼流泪攻击与发射间隔，哭声音频仍持续播放。
+	if not is_player_controlled() or not is_multiplayer_authority() or health <= 0 or not is_combat_runtime_active() or _tear_left > 0.0:
+		return
+	_tear_left = maxf(tear_interval,0.02)
+	_spawn_tear(0)
+	_spawn_tear(1)
 
 # ================================
 # V400 悲伤形态持续哭声

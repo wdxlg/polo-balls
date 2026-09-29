@@ -517,6 +517,7 @@ func _begin_radio_call(reason:String) -> bool:
 	request.set("spawn_map_margin",spawn_map_margin)
 	request.set("spawn_position",confirmed_position)
 	request.set("disembark_distance",reinforcement_disembark_distance)
+	request.bind_battle_source(self)
 	get_tree().current_scene.add_child(request,true)
 
 	_show_reinforcement_car_everywhere(
@@ -766,6 +767,7 @@ func _spawn_initial_teammates() -> void:
 		var base_dir:Vector2 = direction.normalized() if direction.length_squared() > 0.000001 else Vector2.RIGHT
 		teammate.direction = base_dir.rotated((-0.28 if index % 2 == 0 else 0.28))
 		teammate.name = Game.return_random_name(teammate)
+		get_tree().current_scene.bind_battle_lifecycle(teammate,self)
 		get_tree().current_scene.add_child(teammate,true)
 		# 再写一次作为保险：若项目中的其他入树初始化逻辑改写了 Team，立即拉回小队 Team。
 		teammate.Team = squad_team

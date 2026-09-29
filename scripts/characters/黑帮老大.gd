@@ -78,7 +78,7 @@ func _process(delta:float) -> void:
 
 	# 每 10 秒检查一次是否能补 1 名普通小弟，总人数最多 4。
 	_summon_elapsed += delta
-	if _summon_elapsed >= summon_interval:
+	if not is_player_controlled() and _summon_elapsed >= summon_interval:
 		_summon_elapsed = fmod(_summon_elapsed,maxf(summon_interval,0.01))
 		if _gang_minion_count() < max_minions:
 			_show_pose(BOSS_CALL_TEXTURE,call_pose_duration)
@@ -86,18 +86,61 @@ func _process(delta:float) -> void:
 
 	# 每隔一段时间尝试给一个普通小弟扔钱；没有普通小弟时本轮什么都不做。
 	_money_elapsed += delta
-	if _money_elapsed >= money_interval:
+	if not is_player_controlled() and _money_elapsed >= money_interval:
 		_money_elapsed = fmod(_money_elapsed,maxf(money_interval,0.01))
 		var ordinary:ball = _pick_money_target()
 		if ordinary != null:
 			_throw_money_to(ordinary)
 
 	_attack_elapsed += delta
-	if not _attack_busy and _attack_elapsed >= ranged_attack_interval:
+	if not is_player_controlled() and not _attack_busy and _attack_elapsed >= ranged_attack_interval:
 		var target:ball = TOOLS.nearest_enemy(self,ranged_attack_range)
 		if target != null and is_instance_valid(target):
 			_attack_elapsed = 0.0
 			_begin_ranged_attack(target)
+
+
+func controlled_attack_action() -> void:
+	# 左键：鼠标瞄准开枪，沿用原射击间隔与起手动画。
+	if not _can_use_manual_gang_action() or _attack_busy or _attack_elapsed < ranged_attack_interval or not has_player_control_aim():
+		return
+	_attack_elapsed = 0.0
+	_attack_busy = true
+	_show_pose(BOSS_SHOOT_TEXTURE,shoot_pose_duration)
+	_fire_after_manual_windup(player_control_aim_world_position())
+
+
+func controlled_skill_action() -> void:
+	# 右键：呼叫一名普通小弟；开局固定的小弟仍属出生初始化。
+	if not _can_use_manual_gang_action() or _summon_elapsed < summon_interval or _gang_minion_count() >= max_minions:
+		return
+	_summon_elapsed = 0.0
+	_show_pose(BOSS_CALL_TEXTURE,call_pose_duration)
+	_spawn_group(MINION_SCRIPT.Kind.GANG_NORMAL,1)
+
+
+func player_control_extra_actions() -> Array[StringName]:
+	return [&"controlled_money_action"]
+
+
+func controlled_money_action() -> void:
+	# 中键：给现有普通小弟扔钱升级，不在无小弟时消耗冷却。
+	if not _can_use_manual_gang_action() or _money_elapsed < money_interval:
+		return
+	var ordinary:Array[ball] = _ordinary_minions()
+	if ordinary.is_empty():
+		return
+	var chosen:ball = ordinary[0]
+	var aim:Vector2 = player_control_aim_world_position(global_position)
+	for minion:ball in ordinary:
+		if minion.global_position.distance_squared_to(aim) < chosen.global_position.distance_squared_to(aim):
+			chosen = minion
+	_money_elapsed = 0.0
+	_throw_money_to(chosen)
+
+
+func _can_use_manual_gang_action() -> bool:
+	return is_player_controlled() and is_multiplayer_authority() and health > 0 and is_combat_runtime_active()
 
 func _set_boss_texture(texture:Texture2D) -> void:
 	if not image is Sprite2D or texture == null:
@@ -262,16 +305,27 @@ func _fire_after_short_windup(target_ref:WeakRef) -> void:
 	if is_instance_valid(self):
 		_attack_busy = false
 
+func _fire_after_manual_windup(aim:Vector2) -> void:
+	await get_tree().create_timer(0.10).timeout
+	if is_instance_valid(self) and _can_use_manual_gang_action():
+		_fire_bullet_toward(aim)
+	await get_tree().create_timer(maxf(shoot_pose_duration - 0.10,0.05)).timeout
+	if is_instance_valid(self):
+		_attack_busy = false
+
 func _fire_bullet(target:ball) -> void:
 	if target == null or not is_instance_valid(target):
 		return
+	_fire_bullet_toward(combat_target_position(target))
+
+func _fire_bullet_toward(aim:Vector2) -> void:
 	var world:Node = get_tree().current_scene
 	if world == null:
 		return
 	var projectile:ball = BOSS_BULLET_SCENE.instantiate() as ball
 	if projectile == null:
 		return
-	var dir:Vector2 = combat_target_position(target) - global_position
+	var dir:Vector2 = aim - global_position
 	if dir.length_squared() <= 0.001:
 		dir = Vector2.RIGHT
 	dir = dir.normalized()

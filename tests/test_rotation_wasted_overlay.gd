@@ -52,7 +52,13 @@ func run() -> void:
 	check(text.get_theme_color("font_outline_color") == Color.BLACK and text.get_theme_constant("outline_size") >= 2,"text has black outline")
 	var font:Font = text.get_theme_font("font")
 	check(font is FontVariation and (font as FontVariation).variation_embolden > 0.5,"text is bold")
-	check(font is FontVariation and (font as FontVariation).spacing_glyph < 0,"letter spacing is tightened")
+	check(font is FontVariation and (font as FontVariation).spacing_glyph >= 0,"letter spacing is not squeezed (slightly looser than before)")
+	# 红字必须压在名字文字中心上，而不是横带中心（横带贴边时两者不重合）。
+	var name_font:Font = left.get_theme_font("font")
+	var name_w:float = name_font.get_string_size(left.text,HORIZONTAL_ALIGNMENT_LEFT,-1,left.get_theme_font_size("font_size")).x
+	var name_center_x:float = left.size.x - name_w * 0.5
+	var wasted_center_x:float = overlay.position.x + text.position.x + text.size.x * 0.5
+	check(absf(wasted_center_x - name_center_x) <= 1.5,"WASTED text is centered on the name text (%.1f vs %.1f)" % [wasted_center_x,name_center_x])
 	world._rotation_mark_current_dead("left",true)
 	check(left.get_children().filter(func(c): return c.name == "WastedOverlay").size() == 1,"overlay is not duplicated")
 	await create_timer(0.4).timeout

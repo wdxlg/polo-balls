@@ -11,10 +11,11 @@ var _base_rgb:Color = Color.WHITE
 var _minecraft_burn_visual:AnimatedSprite2D = null
 
 const BURN_TINT := Color(1.0, 0.78, 0.52, 1.0)
-const MINECRAFT_BURN_FRAMES:SpriteFrames = preload("res://scenes/effects/我的世界/燃烧动画帧.tres")
+const MINECRAFT_BURN_FRAMES:SpriteFrames = preload("res://particles/mc_burning_fire.tres")
 const MINECRAFT_BURN_ANIMATION:StringName = &"burn"
 const MINECRAFT_TAG:String = "我的世界"
-const MINECRAFT_BURN_FRAME_SIZE := Vector2(151.0,197.0)
+const MINECRAFT_BURN_FRAME_SIZE := Vector2(16.0,16.0)
+const MINECRAFT_BURN_HEIGHT_RATIO:float = 197.0/151.0
 const MINECRAFT_BURN_WIDTH_RATIO:float = 1.18
 const MINECRAFT_BURN_MIN_WIDTH:float = 44.0
 const MINECRAFT_BURN_MAX_WIDTH:float = 132.0
@@ -122,13 +123,13 @@ func _update_minecraft_burn_visual_layout() -> void:
 		MINECRAFT_BURN_MIN_WIDTH,
 		MINECRAFT_BURN_MAX_WIDTH
 	)
-	var visual_scale:float = desired_width / MINECRAFT_BURN_FRAME_SIZE.x
-	_minecraft_burn_visual.scale = Vector2.ONE * visual_scale
+	var desired_height:float = desired_width*MINECRAFT_BURN_HEIGHT_RATIO
+	_minecraft_burn_visual.scale = Vector2(desired_width,desired_height)/MINECRAFT_BURN_FRAME_SIZE
 	# AnimatedSprite2D 默认围绕中心绘制；把中心上移半个动画高度，
 	# 就能让动画底部中心与目标底部中心严格重合。
 	_minecraft_burn_visual.position = foot_center + Vector2(
 		0.0,
-		-MINECRAFT_BURN_FRAME_SIZE.y * visual_scale * 0.5
+		-desired_height * 0.5
 	)
 
 

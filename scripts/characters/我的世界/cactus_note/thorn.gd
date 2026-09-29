@@ -56,4 +56,4 @@ func _apply_damage(target:ball,amount:float) -> void:
 		return
 	# Fixed outgoing 5, independent of cactus Damage/ordinary-shot multipliers.
 	if is_instance_valid(target) and target.receive_positional_damage(5.0,global_position,false,_source_ball()):
-		MC_DAMAGE_SFX.play(target,global_position)
+		pass # Victim-owned feedback also covers fixed retaliation damage.

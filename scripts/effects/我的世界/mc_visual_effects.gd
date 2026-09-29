@@ -37,9 +37,12 @@ static func smoke(context:Node2D,point:Vector2,delay:float = 0.9,size:float = 0.
 	sprite.animation = &"死亡烟雾"
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	sprite.z_index = 8
+	if bool(context.get_meta("submission_allow_map_escape",false)):
+		sprite.z_as_relative = false
+		sprite.z_index = 103
 	sprite.scale = Vector2.ONE*size
 	sprite.visible = false
-	world.add_child(sprite)
+	preload("res://scripts/effects/我的世界/mc_explosion.gd").runtime_container(context).add_child(sprite)
 	sprite.global_position = point
 	sprite.add_to_group("BattleTransient")
 	sprite.add_to_group("MCDeathSmoke")
@@ -48,6 +51,43 @@ static func smoke(context:Node2D,point:Vector2,delay:float = 0.9,size:float = 0.
 	tween.tween_interval(delay)
 	tween.tween_callback(sprite.show)
 	tween.tween_callback(sprite.play.bind(&"死亡烟雾"))
+static func sample_smoke_trail(from:Vector2,to:Vector2,spacing:float,rear_offset:float,carry:float) -> Dictionary:
+	# Distance sampling is shared by body charges and skulls; frame rate does not set density.
+	var step:float = maxf(spacing,1.0)
+	var length:float = from.distance_to(to)
+	var points:PackedVector2Array = []
+	var heading:Vector2 = from.direction_to(to)
+	var along:float = step-fposmod(carry,step)
+	while along <= length and points.size() < 48:
+		points.append(from+heading*(along-rear_offset))
+		along += step
+	return {"points":points,"distance":fposmod(carry+length,step)}
+
+static var _smoke_rng := RandomNumberGenerator.new()
+static var _smoke_rng_seeded:bool = false
+static func _smoke_jitter() -> RandomNumberGenerator:
+	if not _smoke_rng_seeded:
+		_smoke_rng.randomize()
+		_smoke_rng_seeded = true
+	return _smoke_rng
+
+static func smoke_particle(context:Node2D,point:Vector2,source:Texture2D,motion:Vector2,lifetime:float = 0.65,width:float = 12.0,tint:Color = Color(0.22,0.22,0.22,0.85)) -> void:
+	# Reuse the shared native particle motion/fade/cleanup, not a new character-specific simulator.
+	if context.get_tree() == null or context.get_tree().current_scene == null: return
+	if context.get_tree().get_nodes_in_group("MCSmokeTrail").size() >= 256: return
+	var particle:Node2D = PORTAL.new()
+	preload("res://scripts/effects/我的世界/mc_explosion.gd").runtime_container(context).add_child(particle)
+	particle.frames = [source]
+	particle.setup(point,motion,maxf(lifetime,0.01),1.0)
+	# 2026-09-28：凋灵头颅拖尾/冲刺拖尾——每粒随机角度，大小在 ±12% 小范围随机（纯视觉 RNG）。
+	particle._pixel_width = clampf(width*_smoke_jitter().randf_range(0.88,1.12),1.0,32.0)
+	particle.scale = Vector2.ONE*(particle._pixel_width/float(source.get_width()))
+	particle.rotation = _smoke_jitter().randf()*TAU
+	particle.self_modulate = tint
+	particle.set_meta("mc_emitter_id",context.get_instance_id())
+	particle.remove_from_group("MCEnderParticle")
+	particle.add_to_group("MCSmokeTrail")
+
 static func death_pose(context:Node2D,source:Sprite2D,moving_right:bool) -> void:
 	# 仅复制视觉，不保留死亡角色的碰撞/AI。姿势与骷髅一致：染红、90度倒下、原有烟雾。
 	var world:Node = context.get_tree().current_scene
@@ -59,9 +99,12 @@ static func death_pose(context:Node2D,source:Sprite2D,moving_right:bool) -> void
 	pose.flip_h = context.is_character_visual_flipped_h()
 	pose.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	pose.self_modulate = source.self_modulate
-	world.add_child(pose)
+	preload("res://scripts/effects/我的世界/mc_explosion.gd").runtime_container(context).add_child(pose)
 	pose.global_transform = source.global_transform
 	pose.z_index = 3
+	if bool(context.get_meta("submission_allow_map_escape",false)):
+		pose.z_as_relative = false
+		pose.z_index = 102
 	pose.add_to_group("BattleTransient")
 	pose.add_to_group("MCDeathPose")
 	# 沿用角色着色器，黑色末影人也能出现死亡红色。

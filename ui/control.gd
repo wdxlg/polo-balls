@@ -4,6 +4,7 @@ extends Control
 @onready var team: Control = $Team
 
 var team_set_button_tem := preload("res://ui/team_set_button.tscn")
+const MAP_BACKGROUND_THEMES = preload("res://scripts/effects/我的世界/地图背景主题.gd")
 @onready var team_box: VBoxContainer = $Team/Team/Team_Inner/VBoxContainer
 @onready var char_box: VBoxContainer = $Team/Char/Char_Inner/CharScroll/VBoxContainer
 @onready var char_scroll: ScrollContainer = $Team/Char/Char_Inner/CharScroll
@@ -744,6 +745,8 @@ var training_mode_option:OptionButton
 var map_background_label:Label
 var map_background_option:OptionButton
 var rotation_mode_options:VBoxContainer
+var rotation_match_option:OptionButton
+var rotation_match_label:Label
 var timed_mode_options:VBoxContainer
 var boss_mode_options:VBoxContainer
 var timed_duration_label:Label
@@ -753,6 +756,9 @@ var boss_side_option:OptionButton
 var boss_multiplier_label:Label
 var boss_multiplier_spin:SpinBox
 var boss_specialization_row:Control
+var development_options:VBoxContainer
+var development_duration_spin:SpinBox
+var development_speed_spin:SpinBox
 var mode_section_gap:Control
 var _settings_middle_dragging:bool = false
 var _character_middle_dragging:bool = false
@@ -783,6 +789,8 @@ func add_game_set() -> void:
 		tab.button_group = settings_tab_group
 		tab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		tab.custom_minimum_size = Vector2(0, 23)
+		tab.clip_text = true
+		tab.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		# 分类按钮统一使用紧凑字号，中文/英文都能在同一排显示。
 		tab.add_theme_font_size_override("font_size", 9)
 		tab.set_meta("settings_category", category)
@@ -919,7 +927,25 @@ func _build_training_settings(parent_box:VBoxContainer) -> void:
 	rotation_mode_options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	rotation_mode_options.add_theme_constant_override("separation",2)
 	parent_box.add_child(rotation_mode_options)
-	_create_bool_setting_row(rotation_mode_options, "Training_Wheel_Battle")
+	var rotation_row := HBoxContainer.new()
+	rotation_row.name = "RotationMatchRow"
+	rotation_row.custom_minimum_size = Vector2(0,24)
+	rotation_row.add_theme_constant_override("separation",3)
+	rotation_mode_options.add_child(rotation_row)
+	var rotation_title:Dictionary = _create_setting_title_from_template("SETTING_ROTATION_MATCH_TYPE",64.0)
+	rotation_row.add_child(rotation_title["panel"] as Control)
+	rotation_match_label = rotation_title["label"] as Label
+	rotation_match_option = OptionButton.new()
+	rotation_match_option.name = "RotationMatchOption"
+	rotation_match_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rotation_match_option.custom_minimum_size = Vector2(0,24)
+	for key:String in ["ROTATION_DUEL","ROTATION_WHEEL","ROTATION_CHALLENGE"]:
+		rotation_match_option.add_item(Game.ui_t(key))
+	for index:int in range(3):
+		rotation_match_option.set_item_metadata(index,["duel","wheel","challenge"][index])
+	rotation_match_option.item_selected.connect(_on_rotation_match_selected)
+	rotation_row.add_child(rotation_match_option)
+	Game.Set_Ui_sfx(rotation_match_option)
 
 	timed_mode_options = VBoxContainer.new()
 	timed_mode_options.name = "TimedModeOptions"
@@ -1007,6 +1033,48 @@ func _build_training_settings(parent_box:VBoxContainer) -> void:
 	_create_bool_setting_row(parent_box, "Training_Mode")
 	_create_bool_setting_row(parent_box, "Training_Debug_Mode")
 	parent_box.add_child(load("res://ui/battle_conditions_settings.gd").new(self))
+	_create_bool_setting_row(parent_box, "Development_Mode")
+	development_options = VBoxContainer.new()
+	development_options.name = "DevelopmentOptions"
+	development_options.add_theme_constant_override("separation",2)
+	parent_box.add_child(development_options)
+	var development_duration_row := HBoxContainer.new()
+	development_duration_row.custom_minimum_size = Vector2(0,24)
+	development_duration_row.add_theme_constant_override("separation",3)
+	development_options.add_child(development_duration_row)
+	development_duration_row.add_child(_create_setting_title_from_template("SETTING_DEVELOPMENT_TIME",64.0)["panel"])
+	development_duration_spin = SpinBox.new()
+	development_duration_spin.name = "DevelopmentDurationSpin"
+	development_duration_spin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	development_duration_spin.custom_minimum_size = Vector2(0,24)
+	development_duration_spin.min_value = 1.0
+	development_duration_spin.max_value = 86400.0
+	development_duration_spin.step = 1.0
+	development_duration_spin.rounded = true
+	development_duration_spin.select_all_on_focus = true
+	development_duration_spin.set_value_no_signal(float(Game.Game_Settings.get("Development_Duration",60.0)))
+	development_duration_spin.value_changed.connect(func(value:float): Game.set_runtime_game_setting("Development_Duration",value))
+	development_duration_row.add_child(development_duration_spin)
+	_style_settings_spinbox(development_duration_spin)
+	var development_speed_row := HBoxContainer.new()
+	development_speed_row.custom_minimum_size = Vector2(0,24)
+	development_speed_row.add_theme_constant_override("separation",3)
+	development_options.add_child(development_speed_row)
+	development_speed_row.add_child(_create_setting_title_from_template("SETTING_DEVELOPMENT_SPEED",64.0)["panel"])
+	development_speed_spin = SpinBox.new()
+	development_speed_spin.name = "DevelopmentSpeedSpin"
+	development_speed_spin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	development_speed_spin.custom_minimum_size = Vector2(0,24)
+	development_speed_spin.min_value = 1.0
+	development_speed_spin.max_value = 32.0
+	development_speed_spin.step = 1.0
+	development_speed_spin.rounded = true
+	development_speed_spin.suffix = "×"
+	development_speed_spin.select_all_on_focus = true
+	development_speed_spin.set_value_no_signal(float(Game.Game_Settings.get("Development_Speed",2.0)))
+	development_speed_spin.value_changed.connect(func(value:float): Game.set_runtime_game_setting("Development_Speed",value))
+	development_speed_row.add_child(development_speed_spin)
+	_style_settings_spinbox(development_speed_spin)
 	_create_bool_setting_row(parent_box, "Manual_Training")
 
 	manual_training_options = VBoxContainer.new()
@@ -1244,13 +1312,16 @@ func _create_map_background_setting(parent_box:VBoxContainer) -> void:
 	map_background_label = title["label"]
 	map_background_option = OptionButton.new()
 	map_background_option.name = "MapBackgroundOption"
+	# A long translated item must not enlarge the entire settings VBox and tabs.
+	map_background_option.fit_to_longest_item = false
+	map_background_option.clip_text = true
+	map_background_option.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	map_background_option.custom_minimum_size = Vector2(0,24)
 	map_background_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	map_background_option.add_theme_font_size_override("font_size",9)
-	map_background_option.add_item("")
-	map_background_option.add_item("")
-	map_background_option.set_item_metadata(0,"blue")
-	map_background_option.set_item_metadata(1,"grass")
+	for key:String in MAP_BACKGROUND_THEMES.OPTIONS:
+		map_background_option.add_item(Game.ui_t("MAP_BACKGROUND_" + key.to_upper()))
+		map_background_option.set_item_metadata(map_background_option.item_count - 1,key)
 	map_background_option.item_selected.connect(_on_map_background_selected)
 	row.add_child(map_background_option)
 	Game.Set_Ui_sfx(map_background_option)
@@ -1258,14 +1329,19 @@ func _create_map_background_setting(parent_box:VBoxContainer) -> void:
 func _sync_map_background_setting() -> void:
 	if not is_instance_valid(map_background_option): return
 	map_background_label.text = Game.ui_t("SETTING_MAP_BACKGROUND")
-	map_background_option.set_item_text(0,Game.ui_t("MAP_BACKGROUND_BLUE"))
-	map_background_option.set_item_text(1,Game.ui_t("MAP_BACKGROUND_GRASS"))
-	map_background_option.select(1 if Game.Game_Settings.get("Map_Background","blue") == "grass" else 0)
+	for index:int in range(map_background_option.item_count):
+		var key:String = str(map_background_option.get_item_metadata(index))
+		map_background_option.set_item_text(index,Game.ui_t("MAP_BACKGROUND_" + key.to_upper()))
+	var chosen:String = MAP_BACKGROUND_THEMES.normalize(str(Game.Game_Settings.get("Map_Background","blue")))
+	map_background_option.select(MAP_BACKGROUND_THEMES.OPTIONS.find(chosen))
+	map_background_option.tooltip_text = Game.ui_t("MAP_BACKGROUND_" + chosen.to_upper())
 func _on_map_background_selected(index:int) -> void:
 	Game.set_runtime_game_setting("Map_Background",str(map_background_option.get_item_metadata(index)))
 
 func _build_parameter_settings(parent_box:VBoxContainer) -> void:
 	_create_map_background_setting(parent_box)
+	var door_preview:Button = preload("res://scripts/ui/dark_oak_transition_button.gd").new()
+	parent_box.add_child(door_preview)
 	if not Game.Game_Settings.has("Minecraft_Clouds"): Game.Game_Settings["Minecraft_Clouds"] = true
 	_create_bool_setting_row(parent_box,"Minecraft_Clouds")
 	var excluded:Dictionary = {
@@ -1277,8 +1353,12 @@ func _build_parameter_settings(parent_box:VBoxContainer) -> void:
 		"Random_Events": true,
 		"Random_Event_Selection": true,
 		"Environment": true,
+		"Development_Mode": true,
+		"Development_Duration": true,
+		"Development_Speed": true,
 		"Training_Mode_Type": true,
 		"Training_Wheel_Battle": true,
+		"Rotation_Match_Type": true,
 		"Training_Timed_Duration": true,
 		"Training_Boss_Side": true,
 		"Training_Boss_Wheel_Battle": true,
@@ -1287,7 +1367,7 @@ func _build_parameter_settings(parent_box:VBoxContainer) -> void:
 		"Training_Boss_Intro": true,
 		# 这个选项单独固定在“参数”第一行，不能依赖 Dictionary 的遍历顺序。
 		"Only_In_Game_Translation": true,
-		# 水印开关也固定在参数页顶部，避免 Dictionary 顺序变化。
+		# 旧水印开关已删除。保留排除项，避免旧字典遍历时又生成这个按钮。
 		"Show_Center_Watermark": true,
 	}
 
@@ -1296,10 +1376,6 @@ func _build_parameter_settings(parent_box:VBoxContainer) -> void:
 	if not Game.Game_Settings.has("Only_In_Game_Translation"):
 		Game.Game_Settings["Only_In_Game_Translation"] = false
 	_create_bool_setting_row(parent_box, "Only_In_Game_Translation")
-
-	if not Game.Game_Settings.has("Show_Center_Watermark"):
-		Game.Game_Settings["Show_Center_Watermark"] = true
-	_create_bool_setting_row(parent_box, "Show_Center_Watermark")
 
 	for raw_setting:Variant in Game.Game_Settings.keys():
 		var setting:String = str(raw_setting)
@@ -1324,6 +1400,7 @@ func _refresh_game_setting_toggle_visuals() -> void:
 	_sync_training_mode_controls()
 	_update_training_mode_extra_visibility()
 	_update_manual_training_options_visibility()
+	_update_development_options_visibility()
 
 
 func _collect_descendants(root:Node) -> Array[Node]:
@@ -1409,6 +1486,14 @@ func _refresh_settings_category_texts() -> void:
 
 
 func _sync_training_mode_controls() -> void:
+	if is_instance_valid(rotation_match_label): rotation_match_label.text = Game.ui_t("SETTING_ROTATION_MATCH_TYPE")
+	if is_instance_valid(rotation_match_option):
+		var keys:Array[String] = ["ROTATION_DUEL","ROTATION_WHEEL","ROTATION_CHALLENGE"]
+		for index:int in range(3):
+			rotation_match_option.set_item_text(index,Game.ui_t(keys[index]))
+			if str(rotation_match_option.get_item_metadata(index)) == Game.get_rotation_match_type(): rotation_match_option.select(index)
+		rotation_match_option.disabled = Game.is_network_guest() and not Game.guest_has_free_permissions()
+		rotation_match_option.tooltip_text = Game.ui_t("ROTATION_CHALLENGE_HINT")
 	if is_instance_valid(training_mode_label):
 		training_mode_label.text = Game.ui_t("SETTING_TRAINING_MODE_TYPE")
 	if is_instance_valid(timed_duration_label):
@@ -1438,6 +1523,17 @@ func _sync_training_mode_controls() -> void:
 				break
 	if is_instance_valid(boss_multiplier_spin):
 		boss_multiplier_spin.set_value_no_signal(Game.get_training_boss_multiplier())
+	if is_instance_valid(development_duration_spin):
+		development_duration_spin.set_value_no_signal(float(Game.Game_Settings.get("Development_Duration",60.0)))
+	if is_instance_valid(development_speed_spin):
+		development_speed_spin.set_value_no_signal(float(Game.Game_Settings.get("Development_Speed",2.0)))
+	_update_development_options_visibility()
+
+
+func _update_development_options_visibility() -> void:
+	if is_instance_valid(development_options):
+		development_options.visible = bool(Game.Game_Settings.get("Development_Mode",false))
+		call_deferred("_refresh_settings_scroll_layout")
 
 
 func _update_training_mode_extra_visibility() -> void:
@@ -1466,6 +1562,10 @@ func _refresh_settings_scroll_layout() -> void:
 		settings_scroll.scroll_vertical = clampi(settings_scroll.scroll_vertical,0,max_scroll)
 		_style_pixel_scroll_container(settings_scroll)
 
+
+func _on_rotation_match_selected(index:int) -> void:
+	if not is_instance_valid(rotation_match_option): return
+	Game.set_runtime_game_setting("Rotation_Match_Type",str(rotation_match_option.get_item_metadata(index)))
 
 func _on_training_mode_type_selected(index:int) -> void:
 	if not is_instance_valid(training_mode_option):

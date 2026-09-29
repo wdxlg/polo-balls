@@ -37,6 +37,8 @@ var stun_only_on_collision:bool = false
 
 # 撞墙/撞人时，受到击退的目标自己承受的碰撞伤害。
 var collision_damage:float = 0.0
+# 可选：只在撞墙时造成二次伤害；其它技能默认行为不变。
+var collision_damage_wall_only:bool = false
 var collision_damage_ignore_block:bool = false
 
 # 兼容旧调用：整段速度线性衰减。
@@ -106,6 +108,16 @@ func _ready() -> void:
 		queue_free()
 		return
 
+	# 自定义派生击退也可能直接 add_child，不能只依赖 apply_knockback 的入口过滤。
+	if not is_instance_valid(source): source = null
+	if not target.can_receive_control_from(source):
+		# 未接管目标，不得在退出时清掉其它合法控制器的 Repel。
+		_finished = true
+		queue_free()
+		return
+
+	if respect_target_displacement_immunity(): return
+
 	# 角色先执行 move_and_slide()；击退控制器随后读取本帧碰撞并准备下一帧速度。
 	process_physics_priority = target.process_physics_priority + 100
 
@@ -152,6 +164,8 @@ func replace_with_hit(
 ) -> void:
 	if _finished or not _target_is_usable():
 		return
+	if not target.can_receive_control_from(options.get("source",null)):
+		return
 
 	var sanitized_distance:float = maxf(new_distance,0.0)
 	var sanitized_stun:float = maxf(new_stun_duration,0.0)
@@ -195,6 +209,7 @@ func replace_with_hit(
 	stun_duration = maxf(stun_duration,sanitized_stun)
 	stun_only_on_collision = bool(options.get("stun_only_on_collision",false))
 	collision_damage = maxf(float(options.get("collision_damage",0.0)),0.0)
+	collision_damage_wall_only = bool(options.get("collision_damage_wall_only",false))
 	collision_damage_ignore_block = bool(options.get("collision_damage_ignore_block",false))
 	use_speed_falloff = bool(options.get("use_speed_falloff",false))
 	end_speed_ratio = clampf(float(options.get("end_speed_ratio",0.35)),0.0,1.0)
@@ -235,6 +250,17 @@ func replace_with_hit(
 	_write_repel(_last_physics_delta)
 
 
+# Opt-in displacement immunity; ordinary actors retain the existing controller.
+# Directly instantiated subclasses (e.g. piston push) use this too.
+func respect_target_displacement_immunity() -> bool:
+	if _finished or _stage == 1 or distance <= 0.0 or not _target_is_usable(): return false
+	if not target.has_method("is_knockback_displacement_immune") or not bool(target.call("is_knockback_displacement_immune")): return false
+	var keep_stun:bool = stun_duration > 0.0 and (not stun_only_on_collision or _had_collision)
+	var stun_source:Node = source if is_instance_valid(source) else null
+	_finish(false)
+	if keep_stun: target.apply_stun(stun_duration,stun_source)
+	return true
+
 func is_active_effect() -> bool:
 	return not _finished
 
@@ -242,10 +268,13 @@ func is_active_effect() -> bool:
 func _physics_process(delta:float) -> void:
 	if _finished:
 		return
-	if not _target_is_usable():
+	# 来源可能先于击退结束被释放；未知来源沿用原本的外部控制行为。
+	if not is_instance_valid(source): source = null
+	if not _target_is_usable() or not target.can_receive_control_from(source):
 		_finish(false)
 		return
 
+	if respect_target_displacement_immunity(): return
 	_last_physics_delta = maxf(delta,0.000001)
 
 	if _stage == 1:
@@ -343,7 +372,7 @@ func _handle_wall_collision(normal:Vector2,impact_position:Vector2) -> bool:
 
 func _handle_character_collision(normal:Vector2,impact_position:Vector2) -> bool:
 	_had_collision = true
-	_apply_collision_damage(impact_position)
+	if not collision_damage_wall_only: _apply_collision_damage(impact_position)
 	if target != null and target.has_method("notify_bounce_feedback"):
 		target.notify_bounce_feedback(_current_direction,maxf(_current_speed,80.0),null)
 
@@ -597,3 +626,59 @@ func _finish(from_exit:bool) -> void:
 
 func _exit_tree() -> void:
 	_finish(true)
+
+
+# Non-exclusive, refreshed pull leases: unlike finite-distance knockback these
+# must coexist with voluntary movement and an already active knockback controller.
+# Contributions never accumulate in Repel and never acquire a control lock.
+const PULL_META:StringName = &"shared_motion_pull_leases"
+
+static func set_pull(unit:ball,caster:Node,pull:Vector2) -> bool:
+	if not is_instance_valid(unit) or unit.is_queued_for_deletion() or unit.health <= 0 or not unit.is_multiplayer_authority(): return false
+	if not is_instance_valid(caster) or caster.is_queued_for_deletion() or not caster.is_inside_tree(): return false
+	if caster is ball and (caster.health <= 0 or not caster.is_multiplayer_authority() or caster.is_damage_output_disabled()): return false
+	if not unit.is_combat_runtime_active() or not unit.can_receive_control_from(caster): return false
+	if unit.has_method("is_knockback_displacement_immune") and bool(unit.call("is_knockback_displacement_immune")): return false
+	if not pull.is_finite(): return false
+	var leases:Dictionary = unit.get_meta(PULL_META,{})
+	leases[caster.get_instance_id()] = {"caster":weakref(caster),"velocity":pull,"frame":Engine.get_physics_frames()}
+	unit.set_meta(PULL_META,leases)
+	return true
+
+static func release_pull(unit:ball,caster:Node) -> void:
+	if not is_instance_valid(unit) or not unit.has_meta(PULL_META) or not is_instance_valid(caster): return
+	var leases:Dictionary = unit.get_meta(PULL_META)
+	leases.erase(caster.get_instance_id())
+	if leases.is_empty(): unit.remove_meta(PULL_META)
+
+static func pull_velocity(unit:ball) -> Vector2:
+	if not unit.has_meta(PULL_META) or not unit.is_multiplayer_authority() or unit.health <= 0 or not unit.is_combat_runtime_active(): return Vector2.ZERO
+	var leases:Dictionary = unit.get_meta(PULL_META)
+	var result:Vector2 = Vector2.ZERO
+	var immune:bool = unit.has_method("is_knockback_displacement_immune") and bool(unit.call("is_knockback_displacement_immune"))
+	for id:int in leases.keys():
+		var entry:Dictionary = leases[id]
+		var caster:Variant = (entry.caster as WeakRef).get_ref()
+		# The owner refreshes every physics step; stale/deleted owners cannot
+		# leave a permanent force behind. Two frames cover caller update order.
+		var stale:bool = Engine.get_physics_frames()-int(entry.frame) > 2
+		if not is_instance_valid(caster) or stale or immune:
+			leases.erase(id)
+			continue
+		if caster.is_queued_for_deletion() or not caster.is_inside_tree() or not unit.can_receive_control_from(caster):
+			leases.erase(id)
+			continue
+		if caster is ball and (caster.health <= 0 or not caster.is_multiplayer_authority() or not caster.is_combat_runtime_active() or caster.is_damage_output_disabled()):
+			leases.erase(id)
+			continue
+		result += entry.velocity
+	if leases.is_empty(): unit.remove_meta(PULL_META)
+	return result
+
+func get_status_effect_polarity() -> int:
+	# Self-powered recoil/dashes are not negative statuses; hostile displacement
+	# and source-less/hostile stuns are. Descendant airborne effects share this.
+	return 0 if source==target and stun_duration<=0.0 else -1
+
+func cleanse_status_effect() -> void:
+	_finish(false) # Virtual dispatch retains specialized airborne cleanup.

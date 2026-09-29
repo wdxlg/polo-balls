@@ -1,0 +1,49 @@
+{
+  "minecraft_version": "1.21.11",
+  "asset_index": {
+    "id": "29",
+    "sha1": "a63b2bea5bcbba70c87df110b64ab6f2d71d446f",
+    "size": 529966,
+    "totalSize": 451548922,
+    "url": "https://piston-meta.mojang.com/v1/packages/a63b2bea5bcbba70c87df110b64ab6f2d71d446f/29.json"
+  },
+  "notes": "Unmodified Mojang sound assets. Large rift: respawn anchor deplete; small rain rift: amethyst break. Original assets remain subject to Mojang/Minecraft terms, not CC0.",
+  "assets": [
+    {
+      "asset": "minecraft/sounds/block/amethyst/break1.ogg",
+      "sha1": "97b47b7a62f22addf6ff1db0c57b2fce22504098",
+      "url": "https://resources.download.minecraft.net/97/97b47b7a62f22addf6ff1db0c57b2fce22504098",
+      "file": "audio/characters/我的世界/new6/amethyst_break1.ogg"
+    },
+    {
+      "asset": "minecraft/sounds/block/amethyst/break2.ogg",
+      "sha1": "fc857c1990d4bc7c157f4f8367ca4af0bd6168a2",
+      "url": "https://resources.download.minecraft.net/fc/fc857c1990d4bc7c157f4f8367ca4af0bd6168a2",
+      "file": "audio/characters/我的世界/new6/amethyst_break2.ogg"
+    },
+    {
+      "asset": "minecraft/sounds/block/amethyst/break3.ogg",
+      "sha1": "3df72a8b90820eb7edfdcc816bf0febf49d94b7c",
+      "url": "https://resources.download.minecraft.net/3d/3df72a8b90820eb7edfdcc816bf0febf49d94b7c",
+      "file": "audio/characters/我的世界/new6/amethyst_break3.ogg"
+    },
+    {
+      "asset": "minecraft/sounds/block/amethyst/break4.ogg",
+      "sha1": "02ab34275a8711ea0145682083c321516b1ce490",
+      "url": "https://resources.download.minecraft.net/02/02ab34275a8711ea0145682083c321516b1ce490",
+      "file": "audio/characters/我的世界/new6/amethyst_break4.ogg"
+    },
+    {
+      "asset": "minecraft/sounds/block/respawn_anchor/deplete1.ogg",
+      "sha1": "a084cc73ae04f6d4aaec3b33865dc05709c17603",
+      "url": "https://resources.download.minecraft.net/a0/a084cc73ae04f6d4aaec3b33865dc05709c17603",
+      "file": "audio/characters/我的世界/new6/respawn_anchor_deplete1.ogg"
+    },
+    {
+      "asset": "minecraft/sounds/block/respawn_anchor/deplete2.ogg",
+      "sha1": "f39c3b69a7d8f3fac8797a9145c8b93cac94fc67",
+      "url": "https://resources.download.minecraft.net/f3/f39c3b69a7d8f3fac8797a9145c8b93cac94fc67",
+      "file": "audio/characters/我的世界/new6/respawn_anchor_deplete2.ogg"
+    }
+  ]
+}

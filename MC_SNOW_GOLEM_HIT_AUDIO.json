@@ -1,0 +1,63 @@
+{
+  "java_version": "1.21.5",
+  "version_metadata_url": "https://piston-meta.mojang.com/v1/packages/9b841ffc9571fd1219b887b6ff3a705774cb9614/1.21.5.json",
+  "asset_index": {
+    "id": "24",
+    "sha1": "2b11bad5dd93d7eae4e86aaafd8029d0dc79bfb8",
+    "size": 483183,
+    "totalSize": 426731107,
+    "url": "https://piston-meta.mojang.com/v1/packages/2b11bad5dd93d7eae4e86aaafd8029d0dc79bfb8/24.json"
+  },
+  "reuse": "Existing shared OGG files are used without modification or transcoding. Each hash matches the official Mojang Java 1.21.5 asset index. The original Snow Golem-owned files remain pinned separately to 1.21.1.",
+  "files": [
+    {
+      "file": "audio/characters/女巫/hit1.ogg",
+      "event": "entity.player.hurt",
+      "asset_key": "minecraft/sounds/damage/hit1.ogg",
+      "sha1": "c43077ac1f9ceda7e9e1c152f839baf207833aa8",
+      "source_url": "https://resources.download.minecraft.net/c4/c43077ac1f9ceda7e9e1c152f839baf207833aa8"
+    },
+    {
+      "file": "audio/sfx/我的世界/近战/暴击/暴击01.ogg",
+      "event": "entity.player.attack.crit",
+      "asset_key": "minecraft/sounds/entity/player/attack/crit1.ogg",
+      "sha1": "caa8f5d2de3c3fa53eca358967e930a45cafca18",
+      "source_url": "https://resources.download.minecraft.net/ca/caa8f5d2de3c3fa53eca358967e930a45cafca18"
+    },
+    {
+      "file": "audio/characters/女巫/hit2.ogg",
+      "event": "entity.player.hurt",
+      "asset_key": "minecraft/sounds/damage/hit2.ogg",
+      "sha1": "65bf3f80ca720c55b99925ba3a515d2f932b15b1",
+      "source_url": "https://resources.download.minecraft.net/65/65bf3f80ca720c55b99925ba3a515d2f932b15b1"
+    },
+    {
+      "file": "audio/sfx/我的世界/近战/暴击/暴击02.ogg",
+      "event": "entity.player.attack.crit",
+      "asset_key": "minecraft/sounds/entity/player/attack/crit3.ogg",
+      "sha1": "0366f0465a1b6a3f186b495b4578c7b1c8929943",
+      "source_url": "https://resources.download.minecraft.net/03/0366f0465a1b6a3f186b495b4578c7b1c8929943"
+    },
+    {
+      "file": "audio/characters/女巫/hit3.ogg",
+      "event": "entity.player.hurt",
+      "asset_key": "minecraft/sounds/damage/hit3.ogg",
+      "sha1": "b334c8ab1abc3ffa233bd612074bc8032c9b160f",
+      "source_url": "https://resources.download.minecraft.net/b3/b334c8ab1abc3ffa233bd612074bc8032c9b160f"
+    },
+    {
+      "file": "audio/sfx/我的世界/近战/暴击/暴击03.ogg",
+      "event": "entity.player.attack.crit",
+      "asset_key": "minecraft/sounds/entity/player/attack/crit2.ogg",
+      "sha1": "3a27444995a679ffa6b87daf3fde2a02451629ef",
+      "source_url": "https://resources.download.minecraft.net/3a/3a27444995a679ffa6b87daf3fde2a02451629ef"
+    }
+  ],
+  "gain_policy": "res://scripts/effects/我的世界/hit_audio_gain.gd",
+  "normal_event": "entity.player.hurt",
+  "critical_event": "entity.player.attack.crit",
+  "critical_threshold": "actual health damage > 50 (50 remains normal)",
+  "material_contact_db": 0.0,
+  "health_hit_gain_db": "6 * (1 - 50 / (50 + actual_damage)); zero-dB floor and +6-dB limit",
+  "copyright": "Minecraft audio belongs to Mojang/Microsoft; retaining provenance does not grant an independent commercial redistribution license."
+}

@@ -1,0 +1,58 @@
+[
+  {
+    "event": "entity.puffer_fish.blow_out",
+    "name": "blow_out_0.ogg",
+    "path": "mob/pufferfish/blow_out1",
+    "file_hash": "1104f9f1943d809f8c25c6853ece27d6072636ff",
+    "volume": 0.7,
+    "pitch": 1
+  },
+  {
+    "event": "entity.puffer_fish.blow_out",
+    "name": "blow_out_1.ogg",
+    "path": "mob/pufferfish/blow_out2",
+    "file_hash": "65d56e92a4dc664b3462c9756131bf2174725fdd",
+    "volume": 0.7,
+    "pitch": 1
+  },
+  {
+    "event": "entity.puffer_fish.sting",
+    "name": "sting_0.ogg",
+    "path": "mob/pufferfish/sting1",
+    "file_hash": "9b761739bb3899f466089a1fe8a1fb32fe97a6a8",
+    "volume": 1,
+    "pitch": 1
+  },
+  {
+    "event": "entity.puffer_fish.sting",
+    "name": "sting_1.ogg",
+    "path": "mob/pufferfish/sting2",
+    "file_hash": "dc83e6bd215c0e4afd8727fb49c38dbde31f17c9",
+    "volume": 1,
+    "pitch": 1
+  },
+  {
+    "event": "entity.player.attack.crit",
+    "name": "crit_0.ogg",
+    "path": "entity/player/attack/crit1",
+    "file_hash": "caa8f5d2de3c3fa53eca358967e930a45cafca18",
+    "volume": 0.7,
+    "pitch": 1
+  },
+  {
+    "event": "entity.player.attack.crit",
+    "name": "crit_1.ogg",
+    "path": "entity/player/attack/crit2",
+    "file_hash": "3a27444995a679ffa6b87daf3fde2a02451629ef",
+    "volume": 0.7,
+    "pitch": 1
+  },
+  {
+    "event": "entity.player.attack.crit",
+    "name": "crit_2.ogg",
+    "path": "entity/player/attack/crit3",
+    "file_hash": "0366f0465a1b6a3f186b495b4578c7b1c8929943",
+    "volume": 0.7,
+    "pitch": 1
+  }
+]

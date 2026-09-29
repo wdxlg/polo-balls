@@ -1,4 +1,5 @@
 extends ball
+const PROJECTILE_API = preload("res://classes/projectile_interactions.gd")
 
 @export_category("镜子 - 外观")
 @export var normal_texture:Texture2D
@@ -64,64 +65,24 @@ func _random_between(a:float,b:float,minimum:float) -> float:
 # 被 hitbox.gd 在伤害真正结算前调用。
 # 反射窗口内可以反射多颗投射物；窗口之外近战/远程都正常受伤。
 func can_receive_hit_from(incoming_hit) -> bool:
-	if not _reflect_active or incoming_hit == null:
-		return true
-	var projectile:Node = incoming_hit.get_parent()
-	if not (projectile is ball) and incoming_hit.owner is ball:
-		projectile = incoming_hit.owner
-	if projectile == null or not is_instance_valid(projectile) or not (projectile is ball):
-		return true
-	var shot:ball = projectile as ball
-	if shot.Type != Ball_Type.Shooter and shot.Type != Ball_Type.Shooter_with_Health:
-		return true
-	if shot.has_meta(&"__mirror_reflect_pending"):
-		return false
+	if not _reflect_active or incoming_hit == null: return true
+	var shot:Node = incoming_hit.get_parent()
+	if not PROJECTILE_API.is_projectile(shot): shot = incoming_hit.owner
+	return not try_reflect_projectile(shot)
 
-	shot.set_meta(&"__mirror_reflect_pending",true)
-	call_deferred("_reflect_projectile",shot)
-	if reflect_audio != "":
-		Audios.play_sfx.rpc(reflect_audio,{},true)
-	return false
-
-
-# 通用格挡系统默认会销毁被拒绝的投射物；镜子是例外，
-# 因为 can_receive_hit_from() 已经安排了反射，所以必须保留弹丸。
-func should_destroy_projectile_on_rejected_hit(incoming_hit:hitbox) -> bool:
-	if not _reflect_active or incoming_hit == null:
-		return true
-	var node:Node = incoming_hit.get_parent()
-	if node is ball:
-		var shot:ball = node as ball
-		if shot.Type == Ball_Type.Shooter or shot.Type == Ball_Type.Shooter_with_Health:
-			return false
+func try_reflect_projectile(shot:Node) -> bool:
+	if not _reflect_active or not is_multiplayer_authority() or not shot is Node2D: return false
+	if not PROJECTILE_API.reflect(shot,self,reflect_push_out): return false
+	if reflect_audio != "": Audios.play_sfx.rpc(reflect_audio,{},true)
 	return true
 
+func should_destroy_projectile_on_rejected_hit(incoming_hit:hitbox) -> bool:
+	if incoming_hit == null: return true
+	var shot:Node = incoming_hit.get_parent()
+	return not (PROJECTILE_API.is_projectile(shot) and int(shot.get_meta("projectile_reflected_frame",-1)) == Engine.get_physics_frames())
 
-func _reflect_projectile(shot:ball) -> void:
-	if shot == null or not is_instance_valid(shot):
-		return
-	shot.remove_meta(&"__mirror_reflect_pending")
-
-	var new_dir:Vector2 = -shot.direction
-	if new_dir.length_squared() <= 0.000001:
-		new_dir = shot.global_position - global_position
-	if new_dir.length_squared() <= 0.000001:
-		new_dir = Vector2.RIGHT
-	new_dir = new_dir.normalized()
-
-	var old_master = shot.Master
-	shot.Master = self
-	shot.Master_name = name
-	shot.Team = Team
-	shot.Ignore_Team_Damage_Setting = Ignore_Team_Damage_Setting
-	shot.Target_Enemy = old_master if old_master != null and is_instance_valid(old_master) else Nearest_Enemy
-	shot.direction = new_dir
-	shot.global_position = global_position + new_dir * maxf(reflect_push_out,4.0)
-	shot.velocity = Vector2.ZERO
-	shot.Repel = Vector2.ZERO
-	if shot.Type != Ball_Type.Ball:
-		shot.global_rotation = shot.Default_Rotation + new_dir.angle()
-
+func _reflect_projectile(shot:Node) -> void:
+	try_reflect_projectile(shot)
 
 func Die() -> void:
 	super()

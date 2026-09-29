@@ -36,6 +36,7 @@ Can_Attack = true
 Can_Skill = false
 direction = Vector2(0, 0)
 motion_blur_enabled = false
+motion_stretch_enabled = true
 AfterImage_Speed = -1.0
 
 [node name="Image" parent="Graphics" index="0"]

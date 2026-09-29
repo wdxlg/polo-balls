@@ -19,6 +19,7 @@ var _money_sprite:Sprite2D = null
 
 
 func setup(owner_node:Node,start_position:Vector2,direction_value:Vector2,speed_value:float,lifetime_value:float,team_value:String,is_authority:bool) -> void:
+	add_to_group("AllayExtendedProjectile")
 	add_to_group("BattleTransient")
 	collector = owner_node
 	global_position = start_position
@@ -38,6 +39,7 @@ func _physics_process(delta:float) -> void:
 	_elapsed += delta
 	var from_pos:Vector2 = global_position
 	var to_pos:Vector2 = from_pos + travel_direction * projectile_speed * delta
+	if get_tree().has_group("MinecraftAllay") and load("res://scripts/characters/我的世界/allay/capture.gd").sweep(self,from_pos,to_pos): return
 	var terrain_hit:Dictionary = _terrain_hit(from_pos,to_pos)
 	if not terrain_hit.is_empty():
 		to_pos = terrain_hit.get("position",to_pos)
@@ -87,6 +89,7 @@ func _find_first_enemy_hit(from_pos:Vector2,to_pos:Vector2) -> ball:
 		var closest:Vector2 = from_pos.lerp(to_pos,t)
 		var target_radius:float = _estimate_target_radius(candidate)
 		if candidate.global_position.distance_to(closest) <= hit_radius + target_radius and t < best_t:
+			if candidate.has_method("try_full_projectile_dodge") and bool(candidate.call("try_full_projectile_dodge",self)): continue
 			best_t = t
 			best = candidate
 	return best

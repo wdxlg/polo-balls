@@ -297,6 +297,7 @@ func _release_execution_camera_focus() -> void:
 
 
 func _play_pull_reinsert_sfx() -> void:
+	if not _executing or is_queued_for_deletion() or not is_inside_tree(): return
 	if EXECUTION_SFX == null:
 		return
 	if get_tree() == null or get_tree().current_scene == null:
@@ -323,6 +324,7 @@ func _on_execution_arrow_passed_through(
 	counter:Array[int],
 	total:int
 ) -> void:
+	if not _executing or is_queued_for_deletion(): return
 	if arrow != null and is_instance_valid(arrow):
 		if arrow.has_method("launch_execution_flyout"):
 			if arrow.has_method("get_flight_direction"):
@@ -343,6 +345,7 @@ func _on_execution_arrow_passed_through(
 
 
 func _finish_execution() -> void:
+	if not _executing or is_queued_for_deletion(): return
 	if target != null and is_instance_valid(target) and target.health > 0:
 		var source:Node = _last_source if _last_source != null and is_instance_valid(_last_source) else self
 		# 用结算这一刻的剩余生命，保证斩杀伤害/跳字不再显示额外的9999。
@@ -358,4 +361,16 @@ func _finish_execution() -> void:
 
 func _exit_tree() -> void:
 	# 目标被其他来源提前删掉/切场景时也必须释放慢动作与镜头占用。
+	_release_execution_camera_focus()
+
+func cleanse_status_effect() -> void:
+	# Stop pending execution before removing embeds; never run its lethal finish.
+	_executing = false
+	_execution_arrow_count = 0
+	for arrow:Node2D in arrows.duplicate():
+		if not is_instance_valid(arrow): continue
+		if arrow.get_parent()!=null: arrow.get_parent().remove_child(arrow)
+		arrow.queue_free()
+	arrows.clear()
+	_cleanup_overlay()
 	_release_execution_camera_focus()

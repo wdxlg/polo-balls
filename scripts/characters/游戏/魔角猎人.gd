@@ -3,7 +3,7 @@ extends ball
 const BLACK_BULLET_SCENE:PackedScene = preload("res://scenes/shooter/魔角猎人_黑弹.tscn")
 const SMALL_BOMB_SCENE:PackedScene = preload("res://scenes/effects/魔角猎人_小爆弹.tscn")
 const MARK_SCRIPT:Script = preload("res://scripts/effects/魔角猎人_标记.gd")
-const EXPLOSION_EFFECT_SCENE:PackedScene = preload("res://scenes/effects/魔角猎人_爆炸特效.tscn")
+const EXPLOSION_EFFECT_SCENE:PackedScene = preload("res://scenes/effects/我的世界/MC爆炸.tscn")
 const CHARACTER_TEXTURE:Texture2D = preload("res://Images/characters/游戏/魔角猎人/人物.png")
 const WEAPON_TEXTURE:Texture2D = preload("res://Images/characters/游戏/魔角猎人/武器.png")
 const BURN_SFX:AudioStream = preload("res://audio/status/debuff/烫伤.wav")
@@ -536,16 +536,15 @@ func _play_magic_horn_explosion_everywhere(world_position:Vector2,visual_diamete
 
 
 @rpc("authority","call_local","reliable")
-func _rpc_play_magic_horn_explosion(world_position:Vector2,selected_variant:int,visual_diameter:float,volume_db:float) -> void:
+func _rpc_play_magic_horn_explosion(world_position:Vector2,_selected_variant:int,visual_diameter:float,volume_db:float) -> void:
 	var effect:Node2D = EXPLOSION_EFFECT_SCENE.instantiate() as Node2D
 	if effect == null:
 		return
-	effect.set("variant",clampi(selected_variant,1,3))
-	effect.set("visual_diameter",maxf(visual_diameter,16.0))
+	effect.set("radius",maxf(visual_diameter*0.5,8.0))
 	effect.set("volume_db",volume_db)
-	# 视觉由每个客户端本地创建，挂在角色下避免被 World 的 MultiplayerSpawner 当成网络对象再次自动生成。
-	add_child(effect)
-	effect.global_position = world_position
+	# Local visual container: no duplicate spawns and no premature owner-death cleanup.
+	effect.position = world_position
+	load("res://scripts/effects/我的世界/mc_explosion.gd").runtime_container(self).add_child(effect)
 
 
 func _current_weapon_aim_vector() -> Vector2:

@@ -1,0 +1,37 @@
+﻿diff --git a/shaders/Set_RGB_Color.gdshader b/shaders/Set_RGB_Color.gdshader
+index 9df29a8..9930a2f 100644
+--- a/shaders/Set_RGB_Color.gdshader
++++ b/shaders/Set_RGB_Color.gdshader
+@@ -2,4 +2,6 @@ shader_type canvas_item;
+ 
+ instance uniform float power:hint_range(0.0, 1.0) = 0.0;
++// Optional copy style; default0 preserves every existing character.
++instance uniform float character_grayscale:hint_range(0.0,1.0) = 0.0;
+ instance uniform vec4 hit_white_color:source_color;
+ 
+@@ -34,4 +36,10 @@ instance uniform vec4 bounce_params_b = vec4(0.17, 0.040, 68.0, 0.070);
+ instance uniform vec2 bounce_direction = vec2(1.0, 0.0);
+ 
++// Snow-cold tint is independent of team color, poison modulation and hit flashes.
++instance uniform float snow_cold:hint_range(0.0, 1.0) = 0.0;
++// Default-zero, per-instance visual-only freeze tremor. It never moves physics
++// or the Graphics transform used by the independent ordinary-stun system.
++instance uniform vec2 snow_freeze_offset = vec2(0.0);
++
+ varying vec4 sprite_modulate;
+ 
+@@ -60,4 +68,5 @@ void vertex() {
+ 	// V9：反弹不再整体平移/旋转整张人物图片。
+ 	// 所有“弹性”都留在 fragment UV 的局部软体形变里，角色视觉锚点始终固定。
++	VERTEX += snow_freeze_offset;
+ 	sprite_modulate = COLOR;
+ }
+@@ -196,5 +205,8 @@ void fragment() {
+ 	vec4 out_color = tex * sprite_modulate;
+ 	out_color.rgb = mix(out_color.rgb, default_color.rgb, defualt_color_mix);
++	out_color.rgb = mix(out_color.rgb, vec3(0.94, 0.98, 1.0), clamp(snow_cold, 0.0, 1.0) * 0.88);
+ 	out_color.rgb = mix(out_color.rgb, hit_white_color.rgb, power);
++	float luminance = dot(out_color.rgb,vec3(0.299,0.587,0.114));
++	out_color.rgb = mix(out_color.rgb,vec3(luminance),character_grayscale);
+ 	COLOR = out_color;
+ }

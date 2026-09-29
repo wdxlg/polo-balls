@@ -47,13 +47,26 @@ func _process(delta:float) -> void:
 	if not _frenzy and ratio <= frenzy_trigger_ratio:
 		_enter_frenzy()
 	_summon_elapsed += delta
-	if _summon_elapsed >= summon_interval:
-		_summon_elapsed = 0.0
-		var count:int = low_health_summon_count if _frenzy else normal_summon_count
-		for i:int in range(count):
-			if _count_kind(MINION_SCRIPT.Kind.KING_GUARD) >= guard_cap:
-				break
-			_spawn_minion(MINION_SCRIPT.Kind.KING_GUARD)
+	if not is_player_controlled() and _summon_elapsed >= summon_interval:
+		_summon_guards()
+
+
+func controlled_attack_action() -> void:
+	# 左键：沿用原召唤节奏与守卫上限，手控期间 AI 不再定时召唤。
+	if not is_player_controlled() or not is_multiplayer_authority() or health <= 0 or not is_combat_runtime_active():
+		return
+	if _summon_elapsed < summon_interval:
+		return
+	_summon_guards()
+
+
+func _summon_guards() -> void:
+	_summon_elapsed = 0.0
+	var count:int = low_health_summon_count if _frenzy else normal_summon_count
+	for i:int in range(count):
+		if _count_kind(MINION_SCRIPT.Kind.KING_GUARD) >= guard_cap:
+			break
+		_spawn_minion(MINION_SCRIPT.Kind.KING_GUARD)
 
 
 func _enter_frenzy() -> void:

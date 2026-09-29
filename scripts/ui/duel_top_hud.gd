@@ -129,12 +129,23 @@ var layout_fit_scale:float = 1.0
 
 ## 已过去的游戏时间（秒）。
 var elapsed:float = 0.0
+var timed_mode:bool = false
+var timed_remaining:float = 0.0
+var timed_overtime:bool = false
+var round_result_locked:bool = false
+var round_exit:float = 0.0
 ## 两侧快照：{side_key, raw_name, color, texture, nodes, hp, max_hp, dead}
 var sides:Array = []
 ## 结算动画：开始后保持到重置/新对阵。outro_elapsed 为真实秒数。
 var outro_active:bool = false
 var outro_elapsed:float = 0.0
 var winner_index:int = -1
+var victory_result:Dictionary = {}
+var _victory_roster:Dictionary = {}
+var _wool_cache:Dictionary = {}
+const WOOL_NAMES:Array[String] = ["white","orange","magenta","light_blue","yellow","lime","pink","gray","light_gray","cyan","purple","blue","brown","green","red","black"]
+const WOOL_ZH:Array[String] = ["白色","橙色","品红色","浅蓝色","黄色","黄绿色","粉色","灰色","浅灰色","青色","紫色","蓝色","棕色","绿色","红色","黑色"]
+const WOOL_COLORS:Array[Color] = [Color("f9fffe"),Color("f9801d"),Color("c74ebd"),Color("3ab3da"),Color("fed83d"),Color("80c71f"),Color("f38baa"),Color("474f52"),Color("9d9d97"),Color("169c9c"),Color("8932b8"),Color("3c44aa"),Color("835432"),Color("5e7c16"),Color("b02e26"),Color("1d1d21")]
 var _focus_requested:bool = false
 var _panel_shift:float = 0.0
 
@@ -263,6 +274,11 @@ func _physics_process(delta:float) -> void:
 
 
 func _update_clock(delta:float) -> void:
+	timed_mode=Game.is_timed_training_mode()
+	if timed_mode:
+		timed_remaining=maxf(float(world.get("_timed_time_left")),0.0)
+		timed_overtime=bool(world.get("_timed_overtime"))
+	if round_result_locked: return
 	var generation:int = int(world.get("_victory_bell_sequence_generation"))
 	var serial:int = int(world.call("get_character_dialogue_battle_serial")) if world.has_method("get_character_dialogue_battle_serial") else 0
 	if generation != _generation or serial != _serial:
@@ -306,10 +322,11 @@ func _process(delta:float) -> void:
 		visible = false
 		return
 	_scan_elapsed += delta
-	if _scan_elapsed >= SCAN_INTERVAL:
+	if _scan_elapsed >= SCAN_INTERVAL and not round_result_locked:
 		_scan_elapsed = 0.0
+		for unit:Node in world._battle_units_cache: remember_victory_participant(unit)
 		_refresh_pair()
-	_refresh_values()
+	if not round_result_locked: _refresh_values()
 	_apply_layout()
 	_update_outro(delta)
 	var shown_now:bool = _should_show()
@@ -323,12 +340,14 @@ func _process(delta:float) -> void:
 
 
 func _should_show() -> bool:
-	if sides.size() != 2:
-		return false
+	if round_result_locked: return true
 	if bool(world.get("_dead_save_ui_override_active")):
 		return false
 	if bool(world.get("_armor_stand_test_hud_active")):
 		return false
+	if not victory_result.is_empty() and outro_active: return true
+	if sides.size()!=2:
+		return timed_mode and (bool(world.get("_timed_running")) or bool(world.get("_timed_finished")))
 	# 普通 VS 标题因布阵/盔甲架/Boss 车轮战等模式主动隐藏时，本 HUD 同样不出现。
 	var title:Variant = world.get("versus_label")
 	return title is CanvasItem and is_instance_valid(title) and (title as CanvasItem).visible
@@ -497,24 +516,122 @@ static func ease_out(t:float) -> float:
 	return 1.0 - pow(1.0 - x,4.0)
 
 
+func reset_victory_roster() -> void:
+	_victory_roster.clear()
+	_clear_pair() # Do not let a stale one-survivor pair recreate the old achievement.
+	elapsed=0.0
+	_scan_elapsed=999.0
+	visible=false
+	_sync_versus_title(false)
+
+func remember_victory_participant(unit:Node) -> void:
+	if Game.is_rotation_training_mode() or not is_instance_valid(unit) or not unit is ball: return
+	if not world._is_primary_battle_character(unit) or world._is_runtime_summon(unit) or unit.has_meta("development_reserve"): return
+	if unit.is_queued_for_deletion() or unit.health<=0 or bool(unit.get_meta("battle_lifecycle_exiting",false)): return
+	var identity:Dictionary=unit.get_meta("battle_lifecycle_identity",{})
+	if not identity.is_empty() and (int(identity.get("generation",-1))!=world._battle_lifecycle_generation or int(identity.get("round",-1))!=world._battle_lifecycle_round): return
+	var setup_id:int=int(identity.get("setup",unit.get_meta("battle_setup_id",-1)))
+	if not world.is_victory_setup_current(setup_id): return
+	var id:String="setup:"+str(setup_id) if setup_id>=0 else "root:"+str(identity.get("root",unit.get_instance_id()))
+	_victory_roster[id]={"key":world._victory_side_key_for_character(unit),"name":world.return_ball_display_name(unit),
+		"scene_path":unit.scene_file_path,"node":weakref(unit),"setup":setup_id}
+
+func _build_victory_result() -> Dictionary:
+	if Game.is_rotation_training_mode(): return {}
+	var alive:Dictionary=world._collect_alive_victory_sides()
+	var key:String=""
+	if Game.is_timed_training_mode() and world._timed_finished:
+		for record:Dictionary in _victory_roster.values():
+			if int(record.setup)==int(world._timed_winner_setup): key=str(record.key);break
+	elif alive.size()==1: key=str(alive.keys()[0])
+	if key.is_empty(): return {}
+	var members:Dictionary={}
+	var team_order:Array[String]=[]
+	# Configured roots retain original membership even if they died before the first HUD scan.
+	for entry:Dictionary in world._battle_setup:
+		if str(entry.get("kind",""))=="obstacle": continue
+		if not world.is_victory_setup_current(int(entry.get("id",-1))): continue
+		var team:String=str(entry.get("team",""))
+		var entry_key:String="team:"+team if not team.is_empty() else "solo_setup:"+str(entry.get("id",-1))
+		if world._versus_is_named_team(entry_key) and not team_order.has(entry_key): team_order.append(entry_key)
+		if entry_key==key: members["setup:"+str(entry.id)]={"name":str(entry.get("char","")),"scene_path":str(entry.get("scene_path",""))}
+	for id:String in _victory_roster:
+		var record:Dictionary=_victory_roster[id]
+		if world._versus_is_named_team(record.key) and not team_order.has(record.key): team_order.append(record.key)
+		if record.key==key: members[id]=record
+	if members.is_empty(): return {}
+	var nodes:Array=[]
+	for unit:Node in world._battle_units_cache:
+		if is_instance_valid(unit) and world._battle_unit_keeps_family_alive(unit) and world._victory_side_key_for_character(unit)==key: nodes.append(unit)
+	var first:Dictionary=members.values()[0]
+	var is_team:bool=key.begins_with("team:") and members.size()>1
+	var color:Color=world._versus_side_color(key,team_order.size(),team_order.find(key))
+	return {"key":key,"is_team":is_team,"member_count":members.size(),"raw_name":first.name,
+		"scene_path":first.scene_path,"color":color,"wool":_wool_for_color(color),"nodes":nodes}
+
+func _wool_for_color(color:Color) -> String:
+	if color.is_equal_approx(Color(0.25,0.65,1.0)): return "blue"
+	if color.is_equal_approx(Color(1.0,0.26,0.26)): return "red"
+	var best:int=0
+	var distance:float=INF
+	for i:int in range(WOOL_COLORS.size()):
+		var c:Color=WOOL_COLORS[i]
+		var gap:float=Vector3(color.r,color.g,color.b).distance_squared_to(Vector3(c.r,c.g,c.b))
+		if gap<distance: distance=gap;best=i
+	return WOOL_NAMES[best]
+
+func _victory_texture() -> Texture2D:
+	var result:Dictionary=_data().victory_result
+	if bool(result.get("is_team",false)):
+		var wool:String=str(result.wool)
+		if not _wool_cache.has(wool): _wool_cache[wool]=load("res://Images/UI/team_victory/"+wool+"_wool.png")
+		return _wool_cache[wool]
+	return _portraits.resolve(world,{"char":str(result.get("raw_name","")),"scene_path":str(result.get("scene_path",""))})
+
+func victory_body_text() -> String:
+	var data=_data()
+	var result:Dictionary=data.victory_result
+	var display:String=""
+	if not result.is_empty():
+		if bool(result.is_team):
+			var index:int=WOOL_NAMES.find(str(result.wool))
+			display=WOOL_ZH[index]+"队伍" if _toast_locale()=="zh" else str(result.wool).replace("_"," ").capitalize()+" Team"
+		else: display=_display_name(str(result.raw_name))
+	elif data.winner_index>=0 and data.winner_index<data.sides.size(): display=_display_name(str(data.sides[data.winner_index].raw_name))
+	else: return "双方战败" if _toast_locale()=="zh" else "Double knockout"
+	return str(TOAST_TEXT[_toast_locale()].body)%display
+
+func _draw_wool_cube(texture:Texture2D,rect:Rect2) -> void:
+	var uv:=PackedVector2Array([Vector2(0,0),Vector2(1,0),Vector2(1,1),Vector2(0,1)])
+	var faces:Array=[ [Vector2(0.5,0),Vector2(1,0.25),Vector2(0.5,0.5),Vector2(0,0.25)],
+		[Vector2(0,0.25),Vector2(0.5,0.5),Vector2(0.5,1),Vector2(0,0.75)],
+		[Vector2(0.5,0.5),Vector2(1,0.25),Vector2(1,0.75),Vector2(0.5,1)] ]
+	for i:int in range(3):
+		var points:=PackedVector2Array()
+		for point:Vector2 in faces[i]: points.append(rect.position+point*rect.size)
+		var shade:float=[1.0,0.8,0.6][i]
+		draw_polygon(points,PackedColorArray([Color(shade,shade,shade)]),uv,texture)
+
 func _update_outro(delta:float) -> void:
 	if outro_active:
 		# 真实时间：不受倍速/训练加速影响；暂停时 _process 不跑，自然冻结。
 		outro_elapsed = minf(outro_elapsed + delta / maxf(Engine.time_scale,0.0001),30.0)
 		return
-	if not visible or sides.size() != 2 or not bool(world.get("_victory_bell_played")):
-		return
+	if not bool(world.get("_victory_bell_played")): return
+	if not Game.is_rotation_training_mode(): victory_result=_build_victory_result()
+	if victory_result.is_empty() and (not visible or sides.size()!=2): return
 	var alive:Array[int] = []
 	for i:int in range(sides.size()):
 		if not bool(sides[i].dead):
 			alive.append(i)
-	if alive.size() != 1:
+	if victory_result.is_empty() and alive.size()!=1:
 		return # 同归于尽等无唯一胜者时不播放
 	outro_active = true
 	outro_elapsed = 0.0
-	winner_index = alive[0]
+	winner_index = alive[0] if alive.size()==1 else -1
 	var winner:Node2D = null
-	for raw:Variant in sides[winner_index].nodes:
+	var focus_nodes:Array=victory_result.get("nodes",[]) if not victory_result.is_empty() else sides[winner_index].nodes
+	for raw:Variant in focus_nodes:
 		if raw is Node2D and is_instance_valid(raw) and not (raw as Node).is_queued_for_deletion():
 			winner = raw
 			break
@@ -531,6 +648,7 @@ func _reset_outro() -> void:
 	if _focus_requested and is_instance_valid(world) and world.has_method("release_cinematic_focus"):
 		world.call("release_cinematic_focus",self)
 	_focus_requested = false
+	victory_result.clear()
 	outro_active = false
 	outro_elapsed = 0.0
 	winner_index = -1
@@ -549,6 +667,36 @@ func _outro_panel_shift(data) -> float:
 
 
 ## 成就框矩形；未到出场时间返回空矩形。
+func begin_round_result(winner_side:String) -> void:
+	# Snapshot real roster identities before the old units are cleared, even if a summon finished the round.
+	var entries:Dictionary={}
+	var order:Array=["Team0","Team1"]
+	for i:int in range(2):
+		var side:String="left" if i==0 else "right"
+		var roster:Array=world._rotation_rosters[side]
+		var index:int=int(world._rotation_next_index[side])-1
+		if index<0 or index>=roster.size(): return
+		var record:Dictionary=roster[index]
+		var actor:Node=world._find_character_by_setup_id_any(int(record.id))
+		var row:Dictionary={"side_key":order[i],"raw_name":str(record.char),"color":Color("5599ff") if i==0 else Color("ff5555"),
+			"texture":_portraits.resolve(world,record),"nodes":[actor] if is_instance_valid(actor) else [],
+			"hp":float(actor.health) if is_instance_valid(actor) else 0.0,"max_hp":float(actor.Max_health) if is_instance_valid(actor) else 1.0,
+			"block":0.0,"absorption":0.0,"reduction":0.0,"damage":0.0,"setup_id":int(record.id),"dead":side!=winner_side}
+		entries[side]=row
+	_reset_outro()
+	sides=[entries.left,entries.right]
+	round_result_locked=true
+	round_exit=0.0
+	winner_index=0 if winner_side=="left" else 1 if winner_side=="right" else -1
+	outro_active=true
+	outro_elapsed=0.0
+	visible=true
+func end_round_result() -> void:
+	round_result_locked=false
+	round_exit=0.0
+	_clear_pair()
+	_scan_elapsed=999.0
+
 func _toast_rect(data) -> Rect2:
 	if not bool(data.outro_active) or float(data.outro_elapsed) < OUTRO_TOAST_DELAY:
 		return Rect2()
@@ -556,7 +704,8 @@ func _toast_rect(data) -> Rect2:
 	var final_y:float = TOP + (PANEL_HEIGHT - size_px.y) * 0.5
 	var start_y:float = _offscreen_top_local() - size_px.y - 16.0
 	var t:float = ease_out((float(data.outro_elapsed) - OUTRO_TOAST_DELAY) / OUTRO_TOAST_TIME)
-	return Rect2((DESIGN_WIDTH - size_px.x) * 0.5,lerpf(start_y,final_y,t),size_px.x,size_px.y)
+	var y:float=lerpf(lerpf(start_y,final_y,t),start_y,ease_out(float(data.round_exit)))
+	return Rect2((DESIGN_WIDTH - size_px.x) * 0.5,y,size_px.x,size_px.y)
 
 
 func _toast_locale() -> String:
@@ -623,6 +772,7 @@ func _collect_battle_sides() -> Dictionary:
 
 
 func _refresh_pair() -> void:
+	if not victory_result.is_empty() and bool(world.get("_victory_bell_played")): return
 	var collected:Dictionary = _collect_battle_sides()
 	var order:Array = collected.order
 	var entries:Dictionary = collected.entries
@@ -697,6 +847,8 @@ func _build_sides(order:Array,entries:Dictionary) -> void:
 			"color":colors[i],
 			"texture":_resolve_portrait(raw_name,first),
 			"nodes":(entry.nodes as Array).duplicate(),
+			"setup_id":int(first.get_meta("battle_setup_id",first.get_meta("battle_lifecycle_identity",{}).get("setup",-1))),
+			"damage":0.0,
 			"hp":0.0,
 			"max_hp":1.0,
 			"block":0.0,
@@ -719,6 +871,7 @@ func _resolve_portrait(raw_name:String,node:Node) -> Texture2D:
 
 func _refresh_values() -> void:
 	for side:Dictionary in sides:
+		side.damage=float(world._timed_damage_by_setup.get(int(side.get("setup_id",-1)),0.0))
 		var hp:float = 0.0
 		var max_hp:float = 0.0
 		var block:float = 0.0
@@ -857,7 +1010,12 @@ func _draw_patch(box:StyleBoxTexture,rect:Rect2,pixel:float) -> void:
 
 func _draw() -> void:
 	var data = _data()
-	if not is_instance_valid(data) or data.sides.size() != 2:
+	if not is_instance_valid(data): return
+	if data.sides.size()!=2:
+		if bool(data.timed_mode) and not data.outro_active:
+			_panel_shift=0.0
+			_draw_patch(_effect_box,_panel_rects()[1],GUI_PIXEL)
+		_draw_toast_graphics()
 		return
 	_panel_shift = _outro_panel_shift(data)
 	var rects:Array = _panel_rects()
@@ -869,14 +1027,22 @@ func _draw() -> void:
 		_draw_patch(_tooltip_frame_box,outer,GUI_PIXEL)
 		_draw_side_graphics(panel,data.sides[0 if i == 0 else 1],i == 2)
 	_draw_patch(_effect_box,rects[1],GUI_PIXEL)
+	_draw_toast_graphics()
+
+func _draw_toast_graphics() -> void:
+	var data=_data()
 	var toast:Rect2 = _toast_rect(data)
 	if toast.has_area():
 		draw_texture_rect(TOAST_ADVANCEMENT,toast,false)
 		var winner_side:int = int(data.winner_index)
-		if winner_side >= 0 and winner_side < data.sides.size():
-			var texture:Texture2D = data.sides[winner_side].texture
+		if not data.victory_result.is_empty() or (winner_side >= 0 and winner_side < data.sides.size()):
+			var texture:Texture2D = _victory_texture() if not data.victory_result.is_empty() else data.sides[winner_side].texture
 			if texture != null:
 				var slot:Rect2 = Rect2(toast.position + Vector2(8.0,8.0) * TOAST_PIXEL,Vector2(16.0,16.0) * TOAST_PIXEL)
+				if bool(data.victory_result.get("is_team",false)):
+					draw_texture_rect(ITEM_FRAME,slot,false)
+					_draw_wool_cube(texture,slot.grow(-slot.size.x*0.18))
+					return
 				var texture_size:Vector2 = texture.get_size()
 				var fitted:Vector2 = texture_size * minf(slot.size.x / maxf(texture_size.x,1.0),slot.size.y / maxf(texture_size.y,1.0))
 				draw_texture_rect(texture,Rect2(slot.get_center() - fitted * 0.5,fitted),false)
@@ -893,7 +1059,7 @@ func _draw_side_graphics(panel:Rect2,side:Dictionary,mirrored:bool) -> void:
 		var texture_size:Vector2 = texture.get_size()
 		var fitted:Vector2 = texture_size * minf(area.size.x / maxf(texture_size.x,1.0),area.size.y / maxf(texture_size.y,1.0))
 		draw_texture_rect(texture,Rect2(area.get_center() - fitted * 0.5,fitted),false,tint)
-	_draw_hearts(panel,side,mirrored,tint)
+	if not bool(_data().timed_mode): _draw_hearts(panel,side,mirrored,tint)
 	_draw_armor(panel,side,mirrored,tint)
 
 
@@ -928,9 +1094,36 @@ func _outlined_text(canvas:CanvasItem,left_baseline:Vector2,text:String,alignmen
 	canvas.draw_string(FONT,left_baseline,text,alignment,width,font_size,color)
 
 
+func side_value_text(side:Dictionary) -> String:
+	if bool(_data().timed_mode):
+		return ("造成伤害：" if _toast_locale()=="zh" else "Damage: ")+str(roundi(float(side.get("damage",0.0))))
+	return "%d / %d" % [ceili(float(side.hp)),roundi(float(side.max_hp))]
+func clock_text() -> String:
+	var data=_data()
+	if bool(data.timed_mode):
+		if bool(data.timed_overtime): return "加赛" if _toast_locale()=="zh" else "OT"
+		return format_elapsed(ceilf(float(data.timed_remaining)))
+	return format_elapsed(float(data.elapsed))
+
+func _draw_clock_text(center:Rect2) -> void:
+	var data=_data()
+	var inner_x:float = center.position.x + 8.0
+	var inner_width:float = center.size.x - 16.0
+	var time_text:String = clock_text()
+	var time_size:int = _fit_font_size(time_text,inner_width,TIME_TEXT_SIZE,20)
+	_outlined_text(_text_layer,Vector2(inner_x,center.position.y + 62.0),time_text,HORIZONTAL_ALIGNMENT_CENTER,
+		inner_width,time_size,Color("ff5555") if bool(data.timed_mode) and float(data.timed_remaining)<=5.0 else TIME_COLOR,5)
+	_outlined_text(_text_layer,Vector2(inner_x,center.position.y + 146.0),"VS",HORIZONTAL_ALIGNMENT_CENTER,
+		inner_width,VS_TEXT_SIZE,Color.WHITE,8)
+
 func _draw_text() -> void:
 	var data = _data()
-	if not is_instance_valid(data) or data.sides.size() != 2:
+	if not is_instance_valid(data): return
+	if data.sides.size()!=2:
+		if bool(data.timed_mode) and not data.outro_active:
+			_panel_shift=0.0
+			_draw_clock_text(_panel_rects()[1])
+		_draw_toast_text()
 		return
 	_panel_shift = _outro_panel_shift(data)
 	var rects:Array = _panel_rects()
@@ -949,33 +1142,29 @@ func _draw_text() -> void:
 			name_color = name_color * DEAD_TEXT_TINT
 		_outlined_text(_text_layer,Vector2(area.position.x,area.position.y + NAME_BASELINE),name_text,alignment,
 			area.size.x,name_size,name_color,6)
-		var hp_text:String = "%d / %d" % [ceili(float(side.hp)),roundi(float(side.max_hp))]
+		var hp_text:String = side_value_text(side)
 		var row_x:float = panel.position.x + PAD
 		var row_width:float = SIDE_WIDTH - PAD * 2.0
 		var hp_size:int = _fit_font_size(hp_text,row_width,HP_TEXT_SIZE,16)
 		_outlined_text(_text_layer,Vector2(row_x,panel.position.y + HP_BASELINE),hp_text,alignment,
 			row_width,hp_size,HP_TEXT_COLOR * (DEAD_TEXT_TINT if dead else Color.WHITE),5)
-	var center:Rect2 = rects[1]
-	var inner_x:float = center.position.x + 8.0
-	var inner_width:float = center.size.x - 16.0
-	var time_text:String = format_elapsed(float(data.elapsed))
-	var time_size:int = _fit_font_size(time_text,inner_width,TIME_TEXT_SIZE,20)
-	_outlined_text(_text_layer,Vector2(inner_x,center.position.y + 62.0),time_text,HORIZONTAL_ALIGNMENT_CENTER,
-		inner_width,time_size,TIME_COLOR,5)
-	_outlined_text(_text_layer,Vector2(inner_x,center.position.y + 146.0),"VS",HORIZONTAL_ALIGNMENT_CENTER,
-		inner_width,VS_TEXT_SIZE,Color.WHITE,8)
+	_draw_clock_text(rects[1])
+	_draw_toast_text()
+
+func _draw_toast_text() -> void:
+	var data=_data()
 	var toast:Rect2 = _toast_rect(data)
 	var winner_side:int = int(data.winner_index)
-	if toast.has_area() and winner_side >= 0 and winner_side < data.sides.size():
+	if toast.has_area():
 		var strings:Dictionary = TOAST_TEXT[_toast_locale()]
 		var text_x:float = toast.position.x + 30.0 * TOAST_PIXEL
 		var text_width:float = toast.size.x - 30.0 * TOAST_PIXEL - 8.0 * TOAST_PIXEL
-		var title:String = str(strings.title)
+		var title:String = str(strings.title) if winner_side>=0 or not data.victory_result.is_empty() else ("本局结束" if _toast_locale()=="zh" else "Round Complete")
 		var title_size:int = _fit_font_size(title,text_width,36,20)
 		_text_layer.draw_string(FONT,Vector2(text_x,toast.position.y + 7.0 * TOAST_PIXEL + 30.0),title,
 			HORIZONTAL_ALIGNMENT_LEFT,text_width,title_size,TOAST_TITLE_COLOR)
-		var body:String = str(strings.body) % _display_name(str(data.sides[winner_side].raw_name))
+		var body:String = victory_body_text()
 		var body_size:int = _fit_font_size(body,text_width,36,18)
 		body = _ellipsize(body,text_width,body_size)
 		_text_layer.draw_string(FONT,Vector2(text_x,toast.position.y + 18.0 * TOAST_PIXEL + 30.0),body,
-			HORIZONTAL_ALIGNMENT_LEFT,text_width,body_size,TOAST_BODY_COLOR)
+			HORIZONTAL_ALIGNMENT_LEFT,text_width,body_size,data.victory_result.get("color",TOAST_BODY_COLOR) if bool(data.victory_result.get("is_team",false)) else TOAST_BODY_COLOR)

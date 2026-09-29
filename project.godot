@@ -14,10 +14,6 @@ config/name="polo_balls"
 run/main_scene="uid://6ed8rmcc3t0e"
 config/features=PackedStringArray("4.7", "Forward Plus")
 
-[audio]
-
-buses/default_bus_layout="uid://c6tafoee2ydr1"
-
 [autoload]
 
 Audios="*uid://c7o2cx26286wg"

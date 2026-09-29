@@ -1120,6 +1120,7 @@ func _dash_to_point(point:Vector2,speed:float,invulnerable:bool) -> void:
 
 
 func _spawn_displacement_afterimage() -> void:
+	if not allows_character_motion_effects(): return
 	_spawn_displacement_afterimage_local()
 	if multiplayer.has_multiplayer_peer() and is_multiplayer_authority():
 		_remote_spawn_displacement_afterimage.rpc()
@@ -1131,6 +1132,7 @@ func _remote_spawn_displacement_afterimage() -> void:
 
 
 func _spawn_displacement_afterimage_local() -> void:
+	if not allows_character_motion_effects(): return
 	if not displacement_afterimage_enabled or displacement_afterimage_alpha <= 0.0:
 		return
 	var source:Sprite2D = image as Sprite2D

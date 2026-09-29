@@ -1,6 +1,6 @@
 extends "res://scripts/training/test_mc_new5.gd"
 ## Real World fixture: three independent skull clocks, shared shot gap,
-## faster poppies, and one consistent awakening damage/visual/threat radius.
+## removed flower skill, and one consistent awakening damage/visual/threat radius.
 
 func check(ok:bool,label:String) -> void:
 	super.check(ok,label)
@@ -50,10 +50,9 @@ func run() -> void:
 	enemy.health = 5000.0
 	enemy.Damage_reduction = 0.0
 	enemy.block = 0
-	check(wither.skull_interval == 3.0 and wither.skull_global_cooldown == 0.45 and wither.rose_interval == 4.0 and wither._rose_left == 4.0,"new attack and initial flower timings are active in the scene")
+	check(wither.skull_interval == 3.0 and wither.skull_global_cooldown == 0.45,"independent skull timing remains active after flower removal")
 	wither.summoned = true
 	wither._head_shot_left.fill(0.0)
-	wither._rose_left = 999.0
 	wither._charge_left = 999.0
 	_step(wither,0.01)
 	check(wither._windup_head == 0 and _skulls().is_empty(),"first ready head winds up without firing early")
@@ -104,19 +103,9 @@ func run() -> void:
 	check(wither._head_shot_left[0] == 0.0 and wither._head_shot_left[1] == 0.0 and is_equal_approx(wither._global_shot_left,0.45),"haste does not consume the other heads or the shared gap")
 	wither._head_shot_left.fill(999.0)
 	wither._global_shot_left = 999.0
-	wither._rose_left = wither.rose_interval
-	_step(wither,3.95)
-	check(_flowers(wither).is_empty(),"first poppy does not appear before four seconds")
-	_step(wither,0.06)
-	check(_flowers(wither).size() == 1 and not _flowers(wither)[0].withered and _flowers(wither)[0].life == 12.0,"first ordinary poppy grows at the new four-second interval")
-	_step(wither,4.0)
-	_step(wither,4.0)
-	check(_flowers(wither).size() == 3,"four-second cycles fill the existing three-flower cap")
-	_step(wither,4.0)
-	check(_flowers(wither).size() == 3,"faster cycles still respect the three-flower cap")
-	_flowers(wither)[0].queue_free()
-	_step(wither,4.0)
-	check(_flowers(wither).size() == 3,"a queued/expired flower can be replaced on the next cycle")
+	for cycle:int in range(8): _step(wither,4.0)
+	check(_flowers(wither).is_empty(),"32 simulated seconds cannot spawn any removed flowers")
+	check(not wither.has_method("_grow_rose") and not wither.has_method("_try_grow_rose"),"flower creation methods are removed, not just delayed")
 	wither.summoned = false
 	wither.summon_time = wither.summon_duration-0.2
 	var threats:Array = wither.get_ai_attack_threats(enemy)

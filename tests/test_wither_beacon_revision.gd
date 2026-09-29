@@ -10,6 +10,7 @@ func slab(offset:Vector2,size:Vector2) -> StaticBody2D:
 func run() -> void:
 	game = root.get_node("Game")
 	saved = game.Game_Settings.duplicate(true)
+	game.Game_Settings.Development_Mode = false
 	game.Game_Settings.Training_Mode = false
 	game.Game_Settings.Training_Mode_Type = "manual"
 	game.Game_Settings.Ball_Can_Move = true
@@ -44,7 +45,11 @@ func run() -> void:
 	await physics_frame
 	beacon.step_mob(0.5)
 	check(beacon.landed and beacon._activated,"swept full body lands and activates")
+	check(not beacon.image.visible,"landing does not skip the remaining Nether Star transformation")
 	check(absf(beacon.global_position.y-(center.y+94.0-beacon._body.shape.get_rect().size.y*absf(beacon._body.global_scale.y)*0.5))<0.1,"landing height matches the actual collider height, not a 20px ray")
+	beacon.step_mob(1.35)
+	beacon._process(0)
+	check(beacon.image.visible and not beacon._summon_fx.star.visible,"the landed beacon only becomes visible after the arrival shake and white flash")
 	var grounded_y:float = beacon.global_position.y
 	enemy.global_position = center+Vector2(140,-140)
 	var old_x:float = beacon.global_position.x

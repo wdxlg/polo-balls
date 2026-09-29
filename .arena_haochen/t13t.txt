@@ -1,0 +1,6 @@
+﻿
+test_wandering_trader exit=0 :: WANDERING_TRADER checks=51 failures=0 :: WANDERING_TRADER checks=51 failures=0
+test_wandering_trader exit=0 :: WANDERING_TRADER checks=51 failures=0 :: WANDERING_TRADER checks=51 failures=0
+test_wandering_trader exit=0 :: WANDERING_TRADER checks=51 failures=0 :: WANDERING_TRADER checks=51 failures=0
+test_battle_lifecycle exit=0 :: BATTLE_LIFECYCLE_RESULT checks=83 failures=0 :: BATTLE_LIFECYCLE_RESULT checks=83 failures=0
+ALLDONE

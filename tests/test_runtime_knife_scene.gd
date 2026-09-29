@@ -68,7 +68,19 @@ func _run() -> void:
 		failures += 1
 		print("SCENE_GLOBAL_RNG_CHANGED")
 	var a:Node = source.instantiate()
+	# V430: the runtime scene deliberately drops projectile-irrelevant nodes.
+	# Apply the same strip to the reference instance so everything else must match.
+	var strip_sync:bool = cache.should_strip_synchronizer(world)
+	checks += 1
+	if cache.strip_projectile_nodes(a,strip_sync) != (8 if strip_sync else 7):
+		failures += 1
+		print("SCENE_STRIP_COUNT_UNEXPECTED")
 	var b:Node = cache.instantiate(world,source)
+	checks += 1
+	for stripped:StringName in cache.PROJECTILE_STRIP_NODES:
+		if b.get_node_or_null(NodePath(stripped)) != null:
+			failures += 1
+			print("SCENE_STRIP_NODE_PRESENT ",stripped)
 	compare(a,b,a,b,"before_ready")
 	a.process_mode = Node.PROCESS_MODE_DISABLED
 	b.process_mode = Node.PROCESS_MODE_DISABLED
@@ -78,6 +90,7 @@ func _run() -> void:
 	b.name = a.name + "_paired"
 	compare(a,b,a,b,"after_ready")
 	var c:Node = source.instantiate()
+	cache.strip_projectile_nodes(c,strip_sync)
 	var d:Node = cache.instantiate(world,source)
 	checks += 1
 	if a.get_instance_id() == b.get_instance_id() or b.get_instance_id() == d.get_instance_id():

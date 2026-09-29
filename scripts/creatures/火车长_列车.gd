@@ -178,6 +178,28 @@ func is_waiting_for_coal() -> bool:
 	return _started and _state == STATE_STAGED
 
 
+func can_request_manual_launch() -> bool:
+	return is_waiting_for_coal() and _launch_elapsed >= _current_launch_delay()
+
+
+func launch_waiting_train() -> void:
+	# 服务器已核准等待时间，远端使用同一个同步发车时刻，不再各自比较本地帧计时。
+	if is_waiting_for_coal():
+		_launch_from_current_coal()
+
+
+func _conductor_is_manually_controlled() -> bool:
+	if owner_conductor == null or not is_instance_valid(owner_conductor):
+		return false
+	if owner_conductor.is_player_controlled():
+		return true
+	# 客户端不会直接给球设置 player_control_peer_id，而是接收服务器的控制分配。
+	if not multiplayer.has_multiplayer_peer():
+		return false
+	var assignments:Dictionary = Game._current_control_assignments_for_display()
+	return assignments.values().has(str(owner_conductor.get_path()))
+
+
 func get_refuel_target_position() -> Vector2:
 	if map_rect.size.x <= 0.0 or map_rect.size.y <= 0.0:
 		return global_position
@@ -274,7 +296,7 @@ func _physics_process(delta:float) -> void:
 		global_position = _station_position
 		_launch_elapsed += delta
 		var normal_launch_delay:float = _current_launch_delay()
-		if _launch_elapsed >= normal_launch_delay:
+		if _launch_elapsed >= normal_launch_delay and not _conductor_is_manually_controlled():
 			_launch_from_current_coal()
 
 	_update_motion_blur(delta)

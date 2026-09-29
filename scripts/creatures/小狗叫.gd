@@ -59,6 +59,7 @@ var _route_side_sign:float = 1.0
 # 功能：初始化为不可瞄准/不可受伤的独立 ball，并建立只对小狗自身生效的实体碰撞。
 func _ready() -> void:
     Type = Ball_Type.Creature # Creature 让 World 默认目标选择调用 is_combat_targetable()。
+    manual_controllable_subentity = true
     Can_Attack = false # 普通 ball 攻击关闭，伤害完全由 BarkMechanic 的真实 DamageArea 负责。
     Can_Skill = false # 小狗没有手动技能。
     Has_Collision_Damage = false # 身体碰撞只负责反弹，不直接造成接触伤害。
@@ -77,6 +78,7 @@ func _ready() -> void:
     # 关键：它是 ball 类，但不加入普通目标/胜负/训练扫描使用的 "Ball" 组，因此不会被绝大多数锁定逻辑枚举到。
     if is_in_group("Ball"):
         remove_from_group("Ball")
+    add_to_group("ManualControlSubentity") # Keep combat/target scans unchanged while allowing C selection.
     add_to_group("DogBarkingCompanion")
 
     input_pickable = false # 鼠标/物理拾取不把小狗当可选角色。
@@ -218,6 +220,12 @@ func Attack() -> void:
 func Skill() -> void:
     Using_Skill = false
 
+func player_control_action_ids() -> Array[StringName]:
+    return [&"controlled_attack_action"] # Real charged howl, not empty Attack/Skill.
+func controlled_attack_action() -> void:
+    if is_player_controlled() and is_multiplayer_authority() and is_instance_valid(bark_mechanic):
+        bark_mechanic.call("request_manual_howl")
+
 
 # 功能：状态机每个物理帧调用这里；只执行软跟随、弹性碰撞与狗叫视觉，不使用 ball 默认移动。
 func tick_physics(_state:State,delta:float) -> void:
@@ -229,6 +237,16 @@ func tick_physics(_state:State,delta:float) -> void:
 
     if bark_mechanic != null and bark_mechanic.has_method("set_mechanic_enabled"):
         bark_mechanic.call("set_mechanic_enabled",true)
+
+    if is_player_controlled():
+        # Retain the original springy physical contacts (which charge barking),
+        # but drive the existing mover with WASD instead of an AI follow anchor.
+        var input:Vector2 = Vector2.ZERO if dizziness or not bool(Game.Game_Settings.get("Ball_Can_Move",true)) else player_control_direction
+        var distance_value:float = lerpf(follow_dead_zone,follow_catchup_distance,0.45) if input.length_squared()>0.001 else 0.0
+        _move_with_elastic_collision(distance_value,input,delta)
+        direction = velocity.normalized() if velocity.length_squared()>4.0 else Vector2.ZERO
+        _update_visual_from_motion()
+        return
 
     var desired_anchor:Vector2 = _get_desired_anchor()
     var navigation_anchor:Vector2 = _get_navigation_anchor(desired_anchor) # 当前在大狗前方时，会先主动绕到侧面，再进入正后方。

@@ -79,11 +79,12 @@ func _physics_process(delta:float) -> void:
 			var settled_damage:int = maxi(int(floor(_fractional_damage+0.000001)),0)
 			_fractional_damage = maxf(_fractional_damage-float(settled_damage),0.0)
 			if settled_damage <= 0: continue
-			var context:Dictionary = {"point":target.global_position,"shape":"all"}
+			var context:Dictionary = {"point":target.global_position,"shape":"all","damage_kind":"wither","carrier":"status_tick"}
 			var caster:Variant = source_ref.get_ref() if source_ref != null else null
 			if is_instance_valid(caster): context["source"] = caster
-			if target.receive_spatial_raw_health_damage(float(settled_damage),context):
-				DAMAGE_SFX.play(target,target.global_position)
+			var before:float = maxf(float(target.health),0.0)
+			target.receive_spatial_raw_health_damage(float(settled_damage),context)
+			preload("res://scripts/effects/我的世界/mc_hit_feedback.gd").finish(source if is_instance_valid(source) else null,target,before,target.global_position)
 	EFFECTS.elapse_sources(applications,delta)
 	_choose_application()
 

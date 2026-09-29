@@ -1,0 +1,99 @@
+{
+  "version": "1.21.11",
+  "asset_index": {
+    "id": "29",
+    "sha1": "adb0a43fae291fd88ee27d85a372ba6f2072b0a3",
+    "size": 529966,
+    "totalSize": 451578866,
+    "url": "https://piston-meta.mojang.com/v1/packages/adb0a43fae291fd88ee27d85a372ba6f2072b0a3/29.json"
+  },
+  "sounds_json": {
+    "url": "https://resources.download.minecraft.net/12/123370fbb15bf1e85cf5038b3e8ca719ad391dfb",
+    "hash": "123370fbb15bf1e85cf5038b3e8ca719ad391dfb",
+    "size": 581030
+  },
+  "events": {
+    "item.spear.attack": {
+      "sounds": [
+        "item/spear/attack1",
+        "item/spear/attack2",
+        "item/spear/attack3"
+      ],
+      "subtitle": "subtitles.item.spear.attack"
+    },
+    "item.spear.hit": {
+      "sounds": [
+        "item/spear/hit1",
+        "item/spear/hit2",
+        "item/spear/hit3"
+      ],
+      "subtitle": "subtitles.item.spear.hit"
+    },
+    "item.spear.use": {
+      "sounds": [
+        "item/spear/use"
+      ],
+      "subtitle": "subtitles.item.spear.use"
+    }
+  },
+  "assets": [
+    {
+      "event": "minecraft:item.spear.use",
+      "asset_path": "minecraft/sounds/item/spear/use.ogg",
+      "file": "use.ogg",
+      "sha1": "1ae7fea3dc9c7b3016ff1b79b5e51bd1c1e1cf50",
+      "size": 12217,
+      "url": "https://resources.download.minecraft.net/1a/1ae7fea3dc9c7b3016ff1b79b5e51bd1c1e1cf50"
+    },
+    {
+      "event": "minecraft:item.spear.attack",
+      "asset_path": "minecraft/sounds/item/spear/attack1.ogg",
+      "file": "attack1.ogg",
+      "sha1": "b7465f5c97e1056f5b49b6b0a7bb5205b21bca26",
+      "size": 11696,
+      "url": "https://resources.download.minecraft.net/b7/b7465f5c97e1056f5b49b6b0a7bb5205b21bca26"
+    },
+    {
+      "event": "minecraft:item.spear.attack",
+      "asset_path": "minecraft/sounds/item/spear/attack2.ogg",
+      "file": "attack2.ogg",
+      "sha1": "f93dad41a57680ecb0e0d65a3ca5776f608beb0b",
+      "size": 8733,
+      "url": "https://resources.download.minecraft.net/f9/f93dad41a57680ecb0e0d65a3ca5776f608beb0b"
+    },
+    {
+      "event": "minecraft:item.spear.attack",
+      "asset_path": "minecraft/sounds/item/spear/attack3.ogg",
+      "file": "attack3.ogg",
+      "sha1": "605719f2e01fe91850a84c83f70b31853aa3e99b",
+      "size": 9892,
+      "url": "https://resources.download.minecraft.net/60/605719f2e01fe91850a84c83f70b31853aa3e99b"
+    },
+    {
+      "event": "minecraft:item.spear.hit",
+      "asset_path": "minecraft/sounds/item/spear/hit1.ogg",
+      "file": "hit1.ogg",
+      "sha1": "0b00ccbaf87997fd2571946b20b8eedb29dd0388",
+      "size": 10036,
+      "url": "https://resources.download.minecraft.net/0b/0b00ccbaf87997fd2571946b20b8eedb29dd0388"
+    },
+    {
+      "event": "minecraft:item.spear.hit",
+      "asset_path": "minecraft/sounds/item/spear/hit2.ogg",
+      "file": "hit2.ogg",
+      "sha1": "d53d8610feeae6d4dc089a65f05e82c939b5eef2",
+      "size": 8974,
+      "url": "https://resources.download.minecraft.net/d5/d53d8610feeae6d4dc089a65f05e82c939b5eef2"
+    },
+    {
+      "event": "minecraft:item.spear.hit",
+      "asset_path": "minecraft/sounds/item/spear/hit3.ogg",
+      "file": "hit3.ogg",
+      "sha1": "07f255f4919ea113183e1148d96342723e622d07",
+      "size": 8782,
+      "url": "https://resources.download.minecraft.net/07/07f255f4919ea113183e1148d96342723e622d07"
+    }
+  ],
+  "rights": "Unmodified Minecraft audio copyright Mojang/Microsoft; no redistribution rights granted.",
+  "verification": "Asset index and sounds.json SHA1 verified; each OGG SHA1 and size verified against the official index before installation."
+}

@@ -1,0 +1,15 @@
+WARNING: Case mismatch opening requested file 'res://shaders/Set_RGB_Color.gdshader', stored as 'res://shaders/set_rgb_color.gdshader' in the filesystem. This file will not open when exported to other case-sensitive platforms.
+   at: open_internal (drivers/windows/file_access_windows.cpp:192)
+   GDScript backtrace (most recent call first):
+       [0] _collect_manual_attack_scenes (res://global/game_training_mode.gd:181)
+       [1] get_manual_attack_catalog (res://global/game_training_mode.gd:135)
+       [2] get_manual_attack_catalog (res://global/game.gd:230)
+       [3] _populate_manual_attack_options (res://ui/control.gd:1705)
+       [4] _build_training_settings (res://ui/control.gd:1066)
+       [5] add_game_set (res://ui/control.gd:819)
+       [6] _ready (res://ui/control.gd:162)
+       [7] _run (res://tests/benchmark_200.gd:26)
+WARNING: Case mismatch opening requested file 'res://shaders/Set_RGB_Color.gdshader', stored as 'res://shaders/set_rgb_color.gdshader' in the filesystem. This file will not open when exported to other case-sensitive platforms.
+   at: open_internal (drivers/windows/file_access_windows.cpp:192)
+WARNING: 92 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2536)

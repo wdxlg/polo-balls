@@ -1,0 +1,6 @@
+{
+  "method": "Original native mesh depth test: fixed pixels behind torso removed, foreground head and leg pixels retained",
+  "frames": 16,
+  "occluded_pixels_removed": 14679,
+  "native_full_render_mismatched_pixels": 0
+}

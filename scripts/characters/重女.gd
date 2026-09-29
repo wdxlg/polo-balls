@@ -55,12 +55,24 @@ func _process(delta:float) -> void:
 	_text_elapsed += delta
 	# 第二形态文字生成频率翻倍。
 	var current_spawn_interval:float = text_spawn_interval * (0.5 if _phase2 else 1.0)
-	if is_multiplayer_authority() and health > 0 and _text_elapsed >= current_spawn_interval:
+	if is_player_controlled():
+		_text_elapsed = minf(_text_elapsed,current_spawn_interval)
+	elif is_multiplayer_authority() and health > 0 and _text_elapsed >= current_spawn_interval:
 		_text_elapsed = 0.0
 		_spawn_text()
 	if _phase2 and health > 0:
 		_update_phase2(delta)
 	_update_phase2_visual()
+
+func controlled_attack_action() -> void:
+	# 左键：把原随机文字放到鼠标所指的地图位置；二阶段吸力仍为被动。
+	if not is_player_controlled() or not is_multiplayer_authority() or health <= 0 or not is_combat_runtime_active() or not has_player_control_aim():
+		return
+	var interval:float = text_spawn_interval * (0.5 if _phase2 else 1.0)
+	if _text_elapsed < interval:
+		return
+	if _spawn_text(player_control_aim_world_position(),true):
+		_text_elapsed = 0.0
 
 func get_next_state(state:State) -> int:
 	if health <= 0 and not _phase2 and is_multiplayer_authority():
@@ -143,17 +155,20 @@ func _pull_world_objects(delta:float) -> void:
 		if raw_text != null and is_instance_valid(raw_text) and raw_text.has_method("set_pull_target"):
 			raw_text.call("set_pull_target",self,phase2_pull_radius)
 
-func _spawn_text() -> void:
+func _spawn_text(aim_world_position:Vector2 = Vector2.ZERO,use_aim:bool = false) -> bool:
 	var rect:Rect2 = TOOLS.map_rect(self)
 	if rect.size.x <= 1.0 or rect.size.y <= 1.0:
-		return
+		return false
+	if use_aim and not rect.has_point(aim_world_position):
+		return false
 	var red:bool = randf() < red_text_chance
 	var raw_text:String = text_pool[randi() % text_pool.size()] if not text_pool.is_empty() else "..."
-	var point := Vector2(randf_range(rect.position.x + 30.0,rect.end.x - 30.0),randf_range(rect.position.y + 30.0,rect.end.y - 30.0))
+	var point:Vector2 = aim_world_position if use_aim else Vector2(randf_range(rect.position.x + 30.0,rect.end.x - 30.0),randf_range(rect.position.y + 30.0,rect.end.y - 30.0))
 	var seed_value:int = randi()
 	_spawn_text_local(raw_text,red,point,seed_value,false)
 	if multiplayer.has_multiplayer_peer():
 		_rpc_spawn_text.rpc(raw_text,red,point,seed_value)
+	return true
 
 
 @rpc("authority","call_remote","unreliable")

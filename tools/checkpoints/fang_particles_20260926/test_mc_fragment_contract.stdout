@@ -1,0 +1,22 @@
+Godot Engine v4.7.2.stable.steam.ed1daf0bf - https://godotengine.org
+
+PASS: item death entry is separate and crops current character art
+PASS: item shard speed, spin and gravity are configurable at spawn
+PASS: real item death uses item-only fragmentation once
+PASS: flying shards can cut a plain Sprite2D without any character methods
+PASS: generic non-character shards still launch upward
+PASS: flying effect also accepts a bare source texture
+PASS: block uses shared block effect, bounded original pixels and skips cracks overlay
+PASS: block shards keep source texture and configured arc parameters
+PASS: block particles outlive destroyed source
+PASS: airborne midpoint is above the ground path
+PASS: shard visibly lands before fading
+PASS: landed shard stays on ground and fades
+PASS: block effect clears shortly after landing, not upon leaving the map
+PASS: plain Polygon2D obstacle cuts and lands using its own color
+PASS: flying fragmentation also accepts a generic Polygon2D
+PASS: TileMapLayer cuts the actual atlas cell, not the whole tile sheet
+PASS: flying fragmentation accepts a TileMapLayer cell without a character
+PASS: destroyed sword workbench uses shared block arc, not character death
+MC FRAGMENT RESULT checks=18 failures=0
+BAT RESULT: 18/18 passed

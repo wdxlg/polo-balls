@@ -42,6 +42,7 @@ var _travelled_distance:float = 0.0
 
 
 func _ready() -> void:
+	add_to_group("AllayExtendedProjectile")
 	add_to_group("BattleTransient")
 	add_to_group("ArmsDealerProjectile")
 	_life_left = maxf(lifetime,0.1)
@@ -141,6 +142,7 @@ func _physics_process(delta:float) -> void:
 			return
 		step_distance = minf(step_distance,remaining)
 	var finish:Vector2 = start + direction * step_distance
+	if get_tree().has_group("MinecraftAllay") and load("res://scripts/characters/我的世界/allay/capture.gd").sweep(self,start,finish): return
 	var hit:Dictionary = _raycast_motion(start,finish)
 	if hit.is_empty():
 		global_position = finish

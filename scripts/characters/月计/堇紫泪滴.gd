@@ -115,9 +115,11 @@ func _physics_process(delta:float) -> void:
 
 	_stance_elapsed += delta
 	_attack_elapsed += delta
-	if not _action_busy and _stance_elapsed >= maxf(stance_switch_interval,0.2):
+	if not is_player_controlled() and not _action_busy and _stance_elapsed >= maxf(stance_switch_interval,0.2):
 		_switch_random_stance()
 
+	if is_player_controlled():
+		return
 	if _action_busy or _stance == Stance.DEFENSE:
 		return
 	if _attack_elapsed < maxf(attack_interval,0.1):
@@ -129,6 +131,50 @@ func _physics_process(delta:float) -> void:
 	_action_serial += 1
 	_action_busy = true
 	call_deferred("_run_stance_attack",target,_action_serial)
+
+func controlled_attack_action() -> void:
+	# 左键按当前姿态发动已有攻击；防御姿态没有主动攻击。
+	if not is_player_controlled() or not is_multiplayer_authority() or health <= 0 or _rewinding or not is_combat_runtime_active():
+		return
+	if _action_busy or _stance == Stance.DEFENSE or _attack_elapsed < maxf(attack_interval,0.1):
+		return
+	var target:ball = _manual_aimed_enemy()
+	if target == null:
+		return
+	_attack_elapsed = 0.0
+	_action_serial += 1
+	_action_busy = true
+	call_deferred("_run_stance_attack",target,_action_serial)
+
+func controlled_skill_action() -> void:
+	# 右键依次切换防御、打击、斩击、突刺；不能跳过原切换间隔。
+	if not is_player_controlled() or not is_multiplayer_authority() or health <= 0 or _rewinding or not is_combat_runtime_active():
+		return
+	if _action_busy or _stance_elapsed < maxf(stance_switch_interval,0.2):
+		return
+	_stance = (_stance + 1) % 4
+	_stance_elapsed = 0.0
+	_set_stance_visual()
+	_sync_stance_remote()
+
+func _manual_aimed_enemy() -> ball:
+	if not has_player_control_aim():
+		return null
+	var aim:Vector2 = player_control_aim_world_position()
+	var nearest:ball = null
+	var best_distance:float = pow(maxf(attack_detection_radius,1.0) * 0.6,2.0)
+	var radius_sq:float = pow(maxf(attack_detection_radius,0.0),2.0)
+	for raw:Node in get_tree().get_nodes_in_group("Ball"):
+		if not raw is ball:
+			continue
+		var candidate:ball = raw as ball
+		if not _is_enemy(candidate) or global_position.distance_squared_to(candidate.global_position) > radius_sq:
+			continue
+		var distance:float = aim.distance_squared_to(candidate.global_position)
+		if distance < best_distance:
+			best_distance = distance
+			nearest = candidate
+	return nearest
 
 func get_debug_detection_regions() -> Array[Dictionary]:
 	if _rewinding or _stance == Stance.DEFENSE:

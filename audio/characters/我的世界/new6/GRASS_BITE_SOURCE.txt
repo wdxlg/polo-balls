@@ -1,0 +1,4 @@
+Mojang Minecraft Java 1.21.4 original sound: minecraft/sounds/dig/grass1.ogg
+https://resources.download.minecraft.net/39/39fd80b9346a28f891c6ffabd197b974fa61f2cd
+SHA1 39fd80b9346a28f891c6ffabd197b974fa61f2cd
+Copyright Mojang Studios / Microsoft; Minecraft EULA applies.

@@ -1,4 +1,5 @@
 extends Node2D
+const PROJECTILE_CONTACT = preload("res://scripts/projectile_contact.gd")
 
 const SUBMISSION_TOOLS = preload("res://scripts/characters/投稿角色工具.gd")
 const SMALL_BOMB_SCRIPT:Script = preload("res://scripts/effects/堵桥巡飞弹小炸弹.gd")
@@ -83,6 +84,7 @@ func _physics_process(delta:float) -> void:
 		return
 
 	var target:ball = _target()
+	var intangible_target:bool = PROJECTILE_CONTACT.ignores(target)
 	if target != null and is_instance_valid(target):
 		last_target_position = target.global_position
 
@@ -92,7 +94,7 @@ func _physics_process(delta:float) -> void:
 	else:
 		speed = cruise_speed
 		var to_target:Vector2 = last_target_position - global_position
-		if to_target.length_squared() > 0.000001:
+		if not intangible_target and to_target.length_squared() > 0.000001:
 			var desired_angle:float = to_target.angle()
 			var current_angle:float = current_direction.angle()
 			var diff:float = wrapf(desired_angle - current_angle,-PI,PI)
@@ -150,7 +152,7 @@ func _sweep_enemy(source:ball,from_pos:Vector2,to_pos:Vector2) -> ball:
 		if not raw is ball:
 			continue
 		var candidate:ball = raw as ball
-		if not SUBMISSION_TOOLS.is_enemy(source,candidate):
+		if PROJECTILE_CONTACT.ignores(candidate) or not SUBMISSION_TOOLS.is_enemy(source,candidate):
 			continue
 
 		var t:float = 0.0

@@ -1,4 +1,5 @@
 extends ball
+const U=preload("res://scripts/characters/我的世界/new5/utils.gd")
 
 const FOOD_BONE:int = 0
 const FOOD_BIG_MEAT:int = 1
@@ -61,10 +62,12 @@ var _next_bite_bonus_multiplier:float = 0.0
 var _carried_bone_visual:Node2D = null
 var _bite_pose_left:float = 0.0
 var _current_visual:Texture2D = null
+var _manual_bite_window:float = 0.0
 
 
 func _ready() -> void:
 	Type = Ball_Type.Creature
+	manual_controllable_subentity = true
 	Can_Attack = false
 	Can_Skill = false
 	Has_Collision_Damage = false
@@ -142,6 +145,26 @@ func assign_food(food:Node2D) -> bool:
 	_bite_target = null
 	return true
 
+func controlled_attack_action() -> void:
+	if not is_player_controlled() or not is_multiplayer_authority() or mode!=DogMode.ORBIT or _bite_cooldown_left>0.0 or not has_player_control_aim(): return
+	var point:Vector2 = player_control_aim_world_position()
+	var chosen:ball = null
+	var nearest:float = INF
+	for raw:Node in get_tree().get_nodes_in_group("Ball"):
+		if not (raw is ball) or raw==self or raw==owner_human or raw.health<=0 or _is_friendly(raw): continue
+		var distance:float = raw.global_position.distance_to(point)
+		if distance<=U.radius(raw)+6.0 and distance<nearest:
+			chosen=raw as ball
+			nearest=distance
+	if chosen==null or global_position.distance_to(chosen.global_position)>bite_trigger_radius: return
+	_bite_target=chosen
+	_manual_bite_window=0.5 # Existing bite still needs a real physical contact.
+func set_player_control_peer(peer_id:int) -> void:
+	if peer_id!=player_control_peer_id:
+		_bite_target=null
+		_manual_bite_window=0.0
+	super.set_player_control_peer(peer_id)
+
 
 func tick_physics(_state:State,delta:float) -> void:
 	if not is_multiplayer_authority():
@@ -166,6 +189,18 @@ func tick_physics(_state:State,delta:float) -> void:
 		direction = Vector2.ZERO
 		velocity = Vector2.ZERO
 		Repel = Vector2.ZERO
+		return
+	if is_player_controlled() and mode in [DogMode.ORBIT,DogMode.RETURNING]:
+		# Food/eating sequences already in flight continue, but the trip back
+		# after eating is walked with WASD instead of owner-follow AI.
+		if mode==DogMode.RETURNING and global_position.distance_to(owner_human.global_position+_orbit_side*orbit_distance)<=arrive_distance+5.0:
+			_finish_return_home()
+		_manual_bite_window=maxf(0.0,_manual_bite_window-delta)
+		if _manual_bite_window<=0.0 or not is_instance_valid(_bite_target): _bite_target=null
+		direction=Vector2.ZERO if dizziness else player_control_direction
+		_dog_move(delta)
+		_update_dog_visual()
+		Repel=Vector2.ZERO
 		return
 
 	match mode:
@@ -279,6 +314,9 @@ func _try_contact_damage(target:ball,impact_position:Vector2) -> void:
 	var damage:float = attack_damage(food_run_collision_damage_multiplier)
 	var is_bite:bool = mode == DogMode.ORBIT and _bite_target == target and _bite_cooldown_left <= 0.0
 	if is_bite:
+		if is_player_controlled():
+			_bite_target=null
+			_manual_bite_window=0.0
 		_bite_pose_left = 0.28
 		damage = attack_damage(bite_damage_multiplier + _next_bite_bonus_multiplier)
 		_next_bite_bonus_multiplier = 0.0

@@ -1,4 +1,5 @@
 extends Node
+const PROJECTILE_API = preload("res://classes/projectile_interactions.gd")
 const PROJECTILE_CONTACT = preload("res://scripts/projectile_contact.gd")
 # 被羊毛弹开的弹丸：保留原生外观，以独立扫掠飞行解除旧主人/追踪逻辑。
 const U = preload("res://scripts/characters/我的世界/new5/utils.gd")
@@ -7,6 +8,7 @@ var holder:WeakRef
 var flying:bool = false
 var flight:Vector2 = Vector2.ZERO
 var damage:float = 10.0
+var damage_kind:StringName = &"ordinary"
 var life:float = 4.0
 var grace:float = 0.0
 var replica:bool = false
@@ -18,23 +20,14 @@ static func has_prop(node:Object,key:String) -> bool:
 		if prop.name == key: return true
 	return false
 static func is_projectile(node:Node) -> bool:
-	if not is_instance_valid(node) or node.is_queued_for_deletion(): return false
-	if node is ball:
-		return node.health > 0 and (node.Type in [ball.Ball_Type.Shooter,ball.Ball_Type.Shooter_with_Health] or has_prop(node,"flight_velocity"))
-	return node is Node2D and has_prop(node,"_damage") and has_prop(node,"_dir") and has_prop(node,"_speed")
+	return PROJECTILE_API.supports(node,"wool")
+
 static func motion(node:Node2D) -> Vector2:
-	if node.has_meta("mc_wool_flight"):
-		var controller = node.get_meta("mc_wool_flight").get_ref()
-		if is_instance_valid(controller): return controller.flight
-	if has_prop(node,"flight_velocity"): return node.get("flight_velocity")
-	if node is ball:
-		return node.velocity if node.velocity.length_squared() > 1 else node.direction*maxf(node.Speed,1.0)
-	return node.get("_dir")*float(node.get("_speed"))
+	return PROJECTILE_API.velocity_of(node)
+
 static func candidates(tree:SceneTree) -> Array[Node]:
-	var list:Array[Node] = tree.get_nodes_in_group("Ball")
-	for node:Node in tree.get_nodes_in_group("BattleTransient"):
-		if is_projectile(node) and not list.has(node): list.append(node)
-	return list
+	return PROJECTILE_API.candidates(tree)
+
 static func entry_fraction(start:Vector2,finish:Vector2,center:Vector2,radius:float) -> float:
 	var offset:Vector2 = start-center
 	if offset.length_squared() <= radius*radius: return 0.0
@@ -70,7 +63,8 @@ static func sweep(node:Node2D,start:Vector2,finish:Vector2,ignore:Node = null) -
 func setup(projectile:Node2D,sheep:Node) -> void:
 	shot = projectile
 	flight = motion(shot)
-	damage = float(shot.attack_damage()) if shot is ball else float(shot.get("_damage"))
+	damage = PROJECTILE_API.damage_of(shot)
+	damage_kind = StringName(PROJECTILE_API.damage_kind_of(shot))
 	shot.set_meta("mc_wool_flight",weakref(self))
 	# 原脚本不再抢方向、重选主人或在被拒绝的命中后自行销毁。
 	shot.set_deferred("process_mode",Node.PROCESS_MODE_DISABLED)
@@ -97,19 +91,8 @@ func launch() -> void:
 	flying = true
 	holder = null
 	grace = 0.16
-	if shot is ball:
-		shot.Team = ""
-		shot.Master = null
-		shot.Master_name = ""
-		shot.Ignore_Team_Damage_Setting = true
-		shot.Target_Enemy = null
-		shot.direction = dir
-		shot.velocity = flight
-		shot.Repel = Vector2.ZERO
-		if shot.has_meta("forced_combat_team"): shot.remove_meta("forced_combat_team")
-	else:
-		if has_prop(shot,"_team"): shot.set("_team","")
-		if has_prop(shot,"_src_ref"): shot.set("_src_ref",null)
+	PROJECTILE_API.bind_owner(shot,null,"")
+	if shot is ball: shot.Repel = Vector2.ZERO
 	shot.global_rotation = (shot.Default_Rotation if shot is ball else 0.0)+dir.angle()
 func _physics_process(delta:float) -> void:
 	if not is_instance_valid(shot) or shot.is_queued_for_deletion(): queue_free(); return
@@ -149,7 +132,7 @@ func _physics_process(delta:float) -> void:
 			nearest_t = t
 	if nearest != null:
 		if nearest.has_method("catch_wool_projectile") and nearest.catch_wool_projectile(shot): return
-		nearest.receive_positional_damage(damage,start,false,shot)
+		nearest.receive_classified_positional_damage(damage,start,damage_kind,false,shot)
 		_retire()
 		return
 	shot.global_position = finish

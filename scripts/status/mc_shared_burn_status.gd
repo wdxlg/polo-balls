@@ -10,6 +10,7 @@ func _physics_process(delta:float) -> void:
 	super._physics_process(delta)
 	if not is_instance_valid(source) or not is_instance_valid(target) or not source.is_multiplayer_authority(): return
 	if not source.Type_Tags.has("我的世界"): return
+	if preload("res://scripts/effects/我的世界/mc_hit_feedback.gd").manages(source): return # The receive path already emitted each tick.
 	var actual:float = maxf(old_health-maxf(target.health,0.0),0.0)
 	if actual <= 0.0: return
 	var event:StringName = StringName(HIT_GAIN.damage_event(actual))

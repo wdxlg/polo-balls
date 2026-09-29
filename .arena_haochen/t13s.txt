@@ -1,0 +1,6 @@
+﻿
+test_wandering_trader exit=1 :: WANDERING_TRADER checks=51 failures=1 :: ERROR: FAIL: knockback follows the llama's motion direction (moved (-8.212128, 6.620148)) ||        [1] run (res://tests/test_wandering_trader.gd:114) ||        [2] seconds (res://tests/test_wandering_trader.gd:23) || WANDERING_TRADER checks=51 failures=1
+test_all_character_potion_contract exit=0 :: POTION_CHARACTER_RESULT checks=4259 failures=0 scenes=190 fighters=185 skipped=5 immune=0 tracked_only=false limit=0 :: POTION_CHARACTER_PROGRESS scenes=20 fighters=20 failures=0 || POTION_CHARACTER_PROGRESS scenes=40 fighters=40 failures=0 || POTION_CHARACTER_PROGRESS scenes=60 fighters=60 failures=0 || POTION_CHARACTER_PROGRESS scenes=80 fighters=80 failures=0 || POTION_CHARACTER_PROGRESS scenes=100 fighters=100 failures=0 || POTION_CHARACTER_PROGRESS scenes=120 fighters=120 failures=0
+test_combat_classification exit=1 :: CLASSIFICATION_FULL scenes=287 scripts=623 checks=2893 failures=1 | BAT RESULT: 2892/2893 passed :: ERROR: FAIL: valid attack mode res://scripts/characters/动漫/咒术回战/jjk_domain.gd || CLASSIFICATION_FULL scenes=287 scripts=623 checks=2893 failures=1
+preview_wandering_trader_gpu exit=0 :: WANDERING_TRADER_GPU checks=2 failures=0 :: WANDERING_TRADER_GPU checks=2 failures=0
+ALLDONE

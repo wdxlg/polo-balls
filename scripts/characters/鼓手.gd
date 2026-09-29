@@ -465,6 +465,13 @@ func _texture_visible_metrics(texture:Texture2D) -> Dictionary:
 	if texture == null:
 		return {"size":Vector2.ONE,"center_offset":Vector2.ZERO}
 
+	# V431 性能：可见像素范围只取决于纹理本身。此前每一次鼓点都会 Texture2D.get_image()
+	# （GPU -> CPU 回读）+ get_used_rect()，单次约 20 ms；现在按纹理对象缓存一次。
+	var cache_key:int = texture.get_instance_id()
+	var cached:Variant = _shared_texture_visible_metrics_cache.get(cache_key)
+	if cached is Dictionary:
+		return (cached as Dictionary).duplicate()
+
 	var texture_size:Vector2 = texture.get_size()
 	var used_size:Vector2 = texture_size
 	var center_offset:Vector2 = Vector2.ZERO
@@ -475,7 +482,12 @@ func _texture_visible_metrics(texture:Texture2D) -> Dictionary:
 			used_size = Vector2(used_rect.size)
 			center_offset = texture_size * 0.5 - (Vector2(used_rect.position) + Vector2(used_rect.size) * 0.5)
 
-	return {"size":used_size,"center_offset":center_offset}
+	var result:Dictionary = {"size":used_size,"center_offset":center_offset}
+	_shared_texture_visible_metrics_cache[cache_key] = result.duplicate()
+	return result
+
+
+static var _shared_texture_visible_metrics_cache:Dictionary = {}
 
 
 func Die() -> void:

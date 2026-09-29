@@ -1,0 +1,128 @@
+{
+  "entity.allay.ambient_with_item": [
+    {
+      "path": "res://audio/characters/我的世界/allay/627589684101a92869557aaedd8fcb8516ada1a4.ogg",
+      "volume": 0.3,
+      "pitch": 1.25
+    },
+    {
+      "path": "res://audio/characters/我的世界/allay/8274b6fc1041d4a27c879a6a43d618c8d7f9f71a.ogg",
+      "volume": 0.3,
+      "pitch": 1.25
+    },
+    {
+      "path": "res://audio/characters/我的世界/allay/068150649374a1d09acd5367c9d766e3e3348359.ogg",
+      "volume": 0.3,
+      "pitch": 1.25
+    },
+    {
+      "path": "res://audio/characters/我的世界/allay/c3247cd403ee8356d8809f77b58378fefcd857e5.ogg",
+      "volume": 0.3,
+      "pitch": 1.25
+    }
+  ],
+  "entity.allay.ambient_without_item": [
+    {
+      "path": "res://audio/characters/我的世界/allay/2f5a4f4b76d5233b59a017adff9a82b3405e843a.ogg",
+      "volume": 0.25,
+      "pitch": 1
+    },
+    {
+      "path": "res://audio/characters/我的世界/allay/b0d0aecd1c7335b3c299bdd92d0e57d2e639a077.ogg",
+      "volume": 0.25,
+      "pitch": 1
+    },
+    {
+      "path": "res://audio/characters/我的世界/allay/96ba43f8d85eb36f2214a5d2234eb2b59de5efd1.ogg",
+      "volume": 0.25,
+      "pitch": 1
+    },
+    {
+      "path": "res://audio/characters/我的世界/allay/1f838023c8cfe5feb98089526c657d2fcdca6767.ogg",
+      "volume": 0.25,
+      "pitch": 1
+    }
+  ],
+  "entity.allay.death": [
+    {
+      "path": "res://audio/characters/我的世界/allay/476ed5783a1e2256e98d6aef2c275e7b9fcfe9a2.ogg",
+      "volume": 0.6,
+      "pitch": 1
+    },
+    {
+      "path": "res://audio/characters/我的世界/allay/de400349b09de19a1890bfb0242ed7a8cf1cd975.ogg",
+      "volume": 0.6,
+      "pitch": 1
+    }
+  ],
+  "entity.allay.hurt": [
+    {
+      "path": "res://audio/characters/我的世界/allay/d2b828c3e293a79503066437b747ab478fcf0182.ogg",
+      "volume": 0.8,
+      "pitch": 1.5
+    },
+    {
+      "path": "res://audio/characters/我的世界/allay/ebf587cdec36f56f65d35399254616f13a299e2e.ogg",
+      "volume": 0.8,
+      "pitch": 1.5
+    }
+  ],
+  "entity.allay.item_given": [
+    {
+      "path": "res://audio/characters/我的世界/allay/62df046cd04e3575a1c71969f537227eb0841c0c.ogg",
+      "volume": 0.1,
+      "pitch": 1
+    },
+    {
+      "path": "res://audio/characters/我的世界/allay/c53004e94dd5e1938d7d1d24aab2d7047f4f7277.ogg",
+      "volume": 0.1,
+      "pitch": 1
+    },
+    {
+      "path": "res://audio/characters/我的世界/allay/a3a44e2f8890a2a57705bbe886b8960e4c2d3e53.ogg",
+      "volume": 0.1,
+      "pitch": 1
+    },
+    {
+      "path": "res://audio/characters/我的世界/allay/5def13c4e70335dcd666ab1b15488185e6b6bbc6.ogg",
+      "volume": 0.1,
+      "pitch": 1
+    }
+  ],
+  "entity.allay.item_taken": [
+    {
+      "path": "res://audio/characters/我的世界/allay/d3b4c71ecbda0ffc6580cfe8a196110d6f9289e2.ogg",
+      "volume": 0.1,
+      "pitch": 1.25
+    },
+    {
+      "path": "res://audio/characters/我的世界/allay/049e77e98d26b42cb05252cceb5270c466ab2c81.ogg",
+      "volume": 0.1,
+      "pitch": 1.25
+    },
+    {
+      "path": "res://audio/characters/我的世界/allay/0ac1cdec8185ba8aa4b6f9233106c65412332673.ogg",
+      "volume": 0.1,
+      "pitch": 1.25
+    },
+    {
+      "path": "res://audio/characters/我的世界/allay/dcf9bc5b8e43c7dee2d0f09fbc4ac6535850a7ff.ogg",
+      "volume": 0.1,
+      "pitch": 1.25
+    }
+  ],
+  "entity.allay.item_thrown": [
+    {
+      "path": "res://audio/characters/我的世界/allay/e56a9f248acfc53fd12e64a9d54ef14f2a7de5fb.ogg",
+      "volume": 0.25,
+      "pitch": 1
+    }
+  ],
+  "block.note_block.harp": [
+    {
+      "path": "res://audio/characters/我的世界/allay/6b6bae253b1032ce3f3b4fb5816a9a819cac7b59.ogg",
+      "volume": 1,
+      "pitch": 1
+    }
+  ]
+}

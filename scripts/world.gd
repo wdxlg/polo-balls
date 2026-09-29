@@ -3,6 +3,26 @@ extends Node2D
 
 signal character_dialogue_battle_started(serial:int)
 
+func character_scene_path(char_name:String) -> String:
+	_ensure_character_path_index()
+	char_name = _canonical_character_name(char_name)
+	var current:Variant = Characters_Dic.get(char_name,"")
+	if current is PackedScene: return current.resource_path
+	if not str(current).is_empty(): return str(current)
+	for category:String in _char_folder_names:
+		var indexed:Dictionary = _character_paths_by_folder.get(category,{})
+		if indexed.has(char_name): return str(indexed[char_name])
+	return ""
+
+func _get_character_scene_path(char_name:String,scene_path:String = "") -> PackedScene:
+	if scene_path.is_empty(): return _get_character_scene_any(char_name)
+	if _character_scene_cache.has(scene_path): return _character_scene_cache[scene_path]
+	if not ResourceLoader.exists(scene_path,"PackedScene"): return null
+	var scene:PackedScene = load(scene_path) as PackedScene
+	if scene != null: _character_scene_cache[scene_path] = scene
+	return scene
+
+
 const TRAINING_STATS_HUD_SCRIPT = preload("res://scripts/training/training_stats_hud.gd")
 const MANUAL_TRAINING_CONTROLLER_SCRIPT = preload("res://scripts/training/manual_training_controller.gd")
 const COMBAT_THREAT_ANALYZER_SCRIPT = preload("res://scripts/training/combat_threat_analyzer.gd")
@@ -10,6 +30,7 @@ const BOSS_INTRO_OVERLAY_SCRIPT = preload("res://scripts/ui/boss_intro_overlay.g
 const WAITER_DOOR_VISUAL_SCRIPT = preload("res://scripts/effects/服务员门.gd")
 const VICTORY_BELL_AUDIO:AudioStream = preload("res://audio/system/胜利铃声.mp3")
 const WORLD_OUTSIDE_GRID_SHADER:Shader = preload("res://shaders/world_outside_checker.gdshader")
+const MAP_BACKGROUND_THEMES = preload("res://scripts/effects/我的世界/地图背景主题.gd")
 const HEAVY_GIRL_GLYPH_SHAKE_EFFECT = preload("res://scripts/effects/重女式逐字颤抖.gd")
 const MOJANGLES_FONT = preload("res://fonts/Mojangles.ttf")
 const DUEL_TOP_HUD_SCRIPT = preload("res://scripts/ui/duel_top_hud.gd")
@@ -48,15 +69,18 @@ var _cinematic_focus_tween:Tween = null
 @onready var spawner: MultiplayerSpawner = $MultiplayerSpawner
 
 @export_group("地图下方水印")
-@export_range(0.05,1.0,0.01) var center_watermark_opacity:float = 0.24
+@export_range(0.05,1.0,0.01) var center_watermark_opacity:float = 0.48
 @export_range(12,96,1) var center_watermark_font_size:int = 36
 @export_range(0.0,128.0,1.0) var center_watermark_bottom_gap:float = 7.0
 # 只允许按地图比例缩小，不会因为换成纯文字后反而被放大。
+# 中文继续用 0.30。英文单独放宽，避免把中文水印一起放大。
 @export_range(0.05,0.80,0.01) var center_watermark_map_width_ratio:float = 0.30
+@export_range(0.05,0.80,0.01) var center_watermark_english_map_width_ratio:float = 0.56
 @export_range(0.03,0.30,0.01) var center_watermark_map_height_ratio:float = 0.07
 var _center_watermark_root:Control = null
 var _center_watermark_row:HBoxContainer = null
 var _center_watermark_name:Label = null
+var _center_watermark_follow:Label = null
 var _dead_save_watermark_name:RichTextLabel = null
 
 # V392：菜月昴 5 死“死亡回归死档”覆盖顶部对战信息/底部水印。
@@ -306,7 +330,6 @@ func create_new_particle(particle_name:String,master:Node,offset:Vector2 = Vecto
 @export_range(0.5,10.0,0.1) var out_of_bounds_death_delay:float = 3.0
 # 默认按地图真实矩形判断；需要给墙边留容错时可以填正数。
 @export_range(0.0,100.0,1.0) var out_of_bounds_margin:float = 0.0
-@export_range(8,64,1) var out_of_bounds_number_font_size:int = 24
 var _out_of_bounds_states:Dictionary = {}
 
 #========================================================
@@ -348,6 +371,8 @@ const WAITER_DOOR_PASSAGE_GRACE_MSEC:int = 520
 @onready var now_choose_char:String
 @onready var now_choose_map:String = default_map
 var map_group:Dictionary = {}
+const DEVELOPMENT_MODE_SCRIPT = preload("res://scripts/development_mode.gd")
+var _development
 
 #========================================================
 # 断开地形（PortalMap）支持
@@ -378,6 +403,8 @@ func _current_map_node() -> Node:
 
 
 func current_portal_map() -> PortalMap:
+	if _development != null and _development.is_prebattle():
+		return null # 发育期每张副本各有自己的 PortalMap，不能误用原始地图的门。
 	var node:Node = _current_map_node()
 	if node is PortalMap:
 		return node as PortalMap
@@ -388,6 +415,8 @@ func current_portal_map() -> PortalMap:
 const TileGeometry = preload("res://classes/map_tile_geometry.gd")
 
 func map_islands(map_node:Node) -> Array[Dictionary]:
+	if _development != null and _development.is_prebattle() and map_node == _current_map_node():
+		return _development.current_islands
 	var result:Array[Dictionary] = []
 	if map_node is PortalMap:
 		for entry:Dictionary in (map_node as PortalMap).island_entries():
@@ -530,6 +559,9 @@ func portal_set_projectile_velocity(node:Node,new_velocity:Vector2) -> void:
 
 
 func _process_portal_transits(delta:float,ball_group:Array) -> void:
+	if _development != null and _development.is_prebattle():
+		_development.process_portal_transits(delta,ball_group,_ball_projectile_units,_non_ball_projectiles)
+		return
 	var portal:PortalMap = current_portal_map()
 	if portal == null:
 		return
@@ -553,7 +585,12 @@ func _process_portal_transits(delta:float,ball_group:Array) -> void:
 @export var versus_font_min_size:int = 6
 # 与地图边缘和相机平移无关的屏幕标题留白（屏幕像素）。
 @export var versus_screen_top_padding_px:float = 240.0
-@export var versus_screen_side_padding_px:float = 12.0
+@export var versus_screen_side_padding_px:float = 24.0
+
+# Armor introductions replace VS in test battles; ordinary match titles are unchanged.
+@export var armor_intro_screen_top_padding_px:float = 48.0
+@export var armor_intro_font_size:int = 32
+var armor_intro_label:RichTextLabel
 
 # 第二行：互动文字（紧贴在 VS 文字下面）
 # 同样使用自适应字号，不再固定高度。
@@ -697,8 +734,23 @@ var _rotation_future_labels:Dictionary = {"left": [], "right": []}
 # 以及第一位实际人物的冻结预览实例。开战时第一位从预览状态直接启用。
 var _rotation_setup_preview_labels:Dictionary = {"left": [], "right": []}
 var _rotation_preview_character:Dictionary = {"left": null, "right": null}
+var _rotation_results:Dictionary = {}
+var _rotation_frame_hud:Node2D
+var _rotation_epoch:int = 0
+var _rotation_finished:bool = false
+var _rotation_clearing_round:bool = false
+var _rotation_fresh_round:bool = false
+var _rotation_saved_rosters:Dictionary = {"left": [], "right": []}
+var _rotation_saved_map:String = ""
 var _rotation_started:bool = false
 var _rotation_transitioning:bool = false
+var _rotation_combat_released:bool = false
+var _rotation_combat_blocked:bool = false
+var _rotation_door:CanvasLayer
+var _rotation_toast_mirror:Control
+var _rotation_load_ready:bool = false
+var _rotation_ui_token:int = 0
+var _rotation_ui_progress:float = 0.0
 var _rotation_pending_dead_sides:Array[String] = []
 # V83：布阵名单超过顶部可视区域时，用滚轮查看更早/更后的名字。
 # 数值表示“从最新一页向旧名单回滚了多少行”，0 = 始终跟随最新加入的人物。
@@ -710,6 +762,12 @@ var timed_training_label:Label = null
 var _timed_pending_entries:Array[Dictionary] = []
 var _timed_running:bool = false
 var _timed_finished:bool = false
+var _timed_overtime:bool = false
+var _timed_winner_setup:int = -1
+var _timed_defeated_setups:Dictionary = {}
+var _timed_sync_elapsed:float = 0.0
+var _timed_sync_sequence:int = 0
+var _timed_received_sequence:int = -1
 # 只有“本轮确实新放置过计时角色”时，关闭工具栏才允许自动开始。
 # Reset 后旧角色使用 queue_free()，同一帧仍可能暂时留在 Ball 组里；
 # 没有这个闸门时会被误判为“仍有两名角色”，从而把刚重置的计时器立刻再次启动。
@@ -861,6 +919,7 @@ func _update_heavy_hitstop() -> void:
 @export var damage_focus_enabled:bool = true
 @export_range(1.0,500.0,1.0) var damage_focus_min_damage:float = 40.0
 @export_range(0.05,1.0,0.01) var damage_focus_health_ratio:float = 0.25
+@export_range(1.0,500.0,1.0) var damage_focus_max_threshold:float = 75.0
 @export_range(1.02,1.40,0.01) var damage_focus_max_zoom:float = 1.18
 @export_range(0.3,2.0,0.05) var damage_focus_cooldown:float = 0.70
 @export_group("")
@@ -874,7 +933,10 @@ var _damage_focus_next_usec:int = 0
 
 
 func request_damage_focus(damage:float,reference_health:float,impact_position:Vector2) -> void:
-	var threshold:float = maxf(damage_focus_min_damage,reference_health * damage_focus_health_ratio)
+	# A boss's large HP pool must not raise the hit threshold without bound:
+	# a confirmed 100-damage hit is still a strong hit on a 1000-HP target.
+	var relative_threshold:float = maxf(damage_focus_min_damage,reference_health * damage_focus_health_ratio)
+	var threshold:float = minf(relative_threshold,maxf(damage_focus_max_threshold,damage_focus_min_damage))
 	if not damage_focus_enabled or not is_finite(damage) or damage < threshold:
 		return
 	if not impact_position.is_finite() or not is_combat_runtime_active() or not _impact_is_on_screen(impact_position):
@@ -1091,6 +1153,8 @@ var _battle_setup_next_id:int = 1
 # 阵营计算包含 Ball/Creature 型附属，但不把子弹等 Shooter 算成独立阵营。
 var _victory_bell_armed:bool = false
 var _victory_bell_played:bool = false
+var _victory_encounter_limited:bool = false
+var _victory_encounter_setup_ids:Dictionary = {}
 # V434 性能：网格重建时顺带整理一份“当前可被索敌的人物”快照（仍在 Ball 组、is_combat_targetable()）。
 # 投稿角色工具 / MC 生物等公共索敌助手每次查询不再遍历 SceneTree 整个 Ball 组
 # （其中大半是投射物、死亡单位），候选数从 ~250 降到真正存活的人物数；
@@ -1113,7 +1177,8 @@ func _apply_mojangles_rich_text_fonts(label:RichTextLabel) -> void:
 
 
 func _is_center_watermark_enabled() -> bool:
-	return bool(Game.Game_Settings.get("Show_Center_Watermark", true))
+	# 设置开关已删除。旧存档里的 false 不能再隐藏水印。
+	return true
 
 
 func _get_center_watermark_map_rect() -> Rect2:
@@ -1125,9 +1190,6 @@ func _get_center_watermark_map_rect() -> Rect2:
 
 func _refresh_center_watermark_layout(map_rect:Rect2 = Rect2()) -> void:
 	if not is_instance_valid(_center_watermark_root) or not is_instance_valid(_center_watermark_row):
-		return
-	if not _is_center_watermark_enabled():
-		_center_watermark_root.visible = false
 		return
 	if map_rect.size.x <= 0.0 or map_rect.size.y <= 0.0:
 		map_rect = _get_center_watermark_map_rect()
@@ -1143,11 +1205,21 @@ func _refresh_center_watermark_layout(map_rect:Rect2 = Rect2()) -> void:
 		return
 	_center_watermark_row.size = base_size
 	_center_watermark_row.position = -base_size * 0.5
+	var content_width:float = base_size.x
+	if is_instance_valid(_center_watermark_follow):
+		var follow_size:Vector2 = _center_watermark_follow.get_minimum_size()
+		if follow_size.x > 1.0 and follow_size.y > 1.0:
+			_center_watermark_follow.size = follow_size
+			_center_watermark_follow.position = Vector2(-follow_size.x * 0.5,_center_watermark_row.position.y + base_size.y + 4.0)
+			content_width = maxf(content_width,follow_size.x)
 	if is_instance_valid(_dead_save_watermark_name):
 		_dead_save_watermark_name.position = -base_size * 0.5
 		_dead_save_watermark_name.size = base_size
 
-	var scale_by_width:float = (map_rect.size.x * maxf(center_watermark_map_width_ratio,0.001)) / base_size.x
+	var width_ratio:float = center_watermark_map_width_ratio
+	if not str(Game.current_locale).begins_with("zh"):
+		width_ratio = center_watermark_english_map_width_ratio
+	var scale_by_width:float = (map_rect.size.x * maxf(width_ratio,0.001)) / content_width
 	var scale_by_height:float = (map_rect.size.y * maxf(center_watermark_map_height_ratio,0.001)) / base_size.y
 	var uniform_scale:float = clampf(minf(scale_by_width,scale_by_height),0.001,1.0)
 	_center_watermark_root.scale = Vector2.ONE * uniform_scale
@@ -1156,6 +1228,10 @@ func _refresh_center_watermark_layout(map_rect:Rect2 = Rect2()) -> void:
 	# 因而 bottom_gap 表示“地图底边 -> 文字上缘”的真实间距。
 	var map_bottom:float = map_rect.position.y + map_rect.size.y
 	var scaled_half_height:float = base_size.y * uniform_scale * 0.5
+	if Game.is_rotation_training_mode() and not _armor_stand_test_hud_active and not _dead_save_ui_override_active and not (_development != null and _development.is_prebattle()) and map_group.has(now_choose_map):
+		# Keep existing watermark text below the new red frame row, not behind it.
+		var frame_cell:Vector2 = map_visual_cell_size(map_group[now_choose_map])
+		map_bottom += minf(frame_cell.x,frame_cell.y)*1.22
 	_center_watermark_root.global_position = Vector2(
 		map_rect.get_center().x,
 		map_bottom + center_watermark_bottom_gap + scaled_half_height
@@ -1164,6 +1240,7 @@ func _refresh_center_watermark_layout(map_rect:Rect2 = Rect2()) -> void:
 
 func _setup_center_watermark() -> void:
 	if is_instance_valid(_center_watermark_root):
+		_ensure_center_watermark_follow()
 		_refresh_center_watermark()
 		return
 
@@ -1215,16 +1292,29 @@ func _setup_center_watermark() -> void:
 	_dead_save_watermark_name.install_effect(HEAVY_GIRL_GLYPH_SHAKE_EFFECT.new())
 	_center_watermark_root.add_child(_dead_save_watermark_name)
 
+	_ensure_center_watermark_follow()
 	_refresh_center_watermark()
 	call_deferred("_refresh_center_watermark_layout")
 
 
+func _ensure_center_watermark_follow() -> void:
+	if is_instance_valid(_center_watermark_follow) or not is_instance_valid(_center_watermark_root):
+		return
+	_center_watermark_follow = Label.new()
+	_center_watermark_follow.name = "WatermarkFollow"
+	_center_watermark_follow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_center_watermark_follow.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	_center_watermark_follow.add_theme_font_size_override("font_size",center_watermark_font_size)
+	_center_watermark_follow.add_theme_color_override("font_color",Color.WHITE)
+	_center_watermark_follow.add_theme_color_override("font_outline_color",Color(0.0,0.0,0.0,0.82))
+	_center_watermark_follow.add_theme_constant_override("outline_size",4)
+	_center_watermark_follow.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_center_watermark_follow.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_center_watermark_root.add_child(_center_watermark_follow)
+
+
 func _refresh_center_watermark() -> void:
 	if not is_instance_valid(_center_watermark_row):
-		return
-	if not _is_center_watermark_enabled():
-		if is_instance_valid(_center_watermark_root):
-			_center_watermark_root.visible = false
 		return
 	if is_instance_valid(_center_watermark_root):
 		_center_watermark_root.visible = true
@@ -1235,9 +1325,13 @@ func _refresh_center_watermark() -> void:
 			_center_watermark_name.text = DEAD_SAVE_WATERMARK_TEXT
 			_center_watermark_name.modulate.a = 0.0
 		else:
-			_center_watermark_name.text = "@丁某人睡觉" if chinese_mode else "@Gameking"
+			_center_watermark_name.text = _development.time_text() if _development != null and _development.is_prebattle() else ("@丁某人睡觉" if chinese_mode else "@Gameking")
 			_center_watermark_name.modulate.a = 1.0
 			_center_watermark_name.add_theme_color_override("font_color",Color.WHITE)
+	if is_instance_valid(_center_watermark_follow):
+		_center_watermark_follow.text = Game.t("点赞加关注！")
+		_center_watermark_follow.modulate.a = clampf(center_watermark_opacity,0.0,1.0)
+		_center_watermark_follow.visible = not _dead_save_ui_override_active and not (_development != null and _development.is_prebattle())
 	if is_instance_valid(_dead_save_watermark_name):
 		_dead_save_watermark_name.visible = _dead_save_ui_override_active
 		_dead_save_watermark_name.modulate.a = clampf(center_watermark_opacity,0.0,1.0)
@@ -1306,6 +1400,8 @@ func _apply_dead_save_ui_override() -> void:
 	if is_instance_valid(_center_watermark_name):
 		_center_watermark_name.text = DEAD_SAVE_WATERMARK_TEXT
 		_center_watermark_name.modulate.a = 0.0
+	if is_instance_valid(_center_watermark_follow):
+		_center_watermark_follow.visible = false
 	if is_instance_valid(_dead_save_watermark_name):
 		_dead_save_watermark_name.visible = true
 		_dead_save_watermark_name.modulate.a = clampf(center_watermark_opacity,0.0,1.0)
@@ -1349,6 +1445,8 @@ func _ready() -> void:
 	setup_combat_threat_analyzer()
 	setup_training_stats_hud()
 	_reset_special_training_state()
+	_development = DEVELOPMENT_MODE_SCRIPT.new(self)
+	_development.prepare()
 
 	# 初始化已删除的互动文案兼容状态（保持为空）。
 	initialize_interaction_text()
@@ -1389,8 +1487,11 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
+	_cancel_rotation_presentation()
 	if get_viewport() != null and get_viewport().size_changed.is_connected(refresh_top_text_layout):
 		get_viewport().size_changed.disconnect(refresh_top_text_layout)
+	if _development != null:
+		_development.cleanup(false)
 	_release_heavy_hitstop()
 	_cinematic_focus_requests.clear()
 	Game.release_time_scale_override(CINEMATIC_FOCUS_TIME_KEY)
@@ -1521,6 +1622,10 @@ func _process(delta: float) -> void:
 	# V286：渲染帧发生在物理更新之后，这里读取投射物上一帧到当前帧的真实位移，
 	# 只修视觉根节点朝向，不参与其运动。这样重力把弹道掰弯后，图片也会跟着转向。
 	_update_non_ball_projectile_visual_facing()
+	if _development != null:
+		_development.update(delta)
+		if _development.phase == _development.MERGING:
+			return
 	_update_special_training_modes(delta)
 	# 训练模式自身会每帧刷新轮放/计时 HUD；盔甲架测试时在同一帧末尾统一压回隐藏，
 	# 这样不会出现 VS/计时器短暂闪回。
@@ -1589,6 +1694,9 @@ func get_battle_units_fast() -> Array:
 func register_battle_unit(unit:ball) -> void:
 	if unit == null or not is_instance_valid(unit):
 		return
+	bind_battle_lifecycle(unit)
+	if _timed_finished and _timed_defeated_setups.has(_resolve_timed_source_setup_id(unit)):
+		call_deferred("_eliminate_timed_defeated",unit)
 	# 继承 ball 的投射物单独登记，供传送门地图逐帧检查穿越；不进入战斗单位表。
 	if unit.Type == ball.Ball_Type.Shooter or unit.Type == ball.Ball_Type.Shooter_with_Health:
 		var projectile_id:int = unit.get_instance_id()
@@ -1603,6 +1711,8 @@ func register_battle_unit(unit:ball) -> void:
 		return
 	_battle_unit_ids[id] = true
 	_battle_units_cache.append(unit)
+	_include_victory_encounter_unit(unit)
+	if is_instance_valid(duel_top_hud): duel_top_hud.remember_victory_participant(unit)
 	_battle_registry_dirty = true
 	_alive_primary_cache_frame = -1
 	# 盔甲架一注册就立即切换顶部 HUD；测试模式下新放角色也立刻刷新，
@@ -1621,6 +1731,7 @@ func register_battle_unit(unit:ball) -> void:
 func unregister_battle_unit(unit:ball) -> void:
 	if unit == null:
 		return
+	unit.set_meta("battle_lifecycle_exiting",true)
 	var id:int = unit.get_instance_id()
 	if _ball_projectile_ids.has(id):
 		_ball_projectile_ids.erase(id)
@@ -1628,6 +1739,7 @@ func unregister_battle_unit(unit:ball) -> void:
 			if _ball_projectile_units[i] == unit:
 				_ball_projectile_units.remove_at(i)
 				break
+	call_deferred("_scan_rotation_family_extinctions")
 	_battle_unit_ids.erase(id)
 	for i:int in range(_battle_units_cache.size()-1,-1,-1):
 		var raw:Variant = _battle_units_cache[i]
@@ -1640,14 +1752,14 @@ func unregister_battle_unit(unit:ball) -> void:
 	# 因此统一延后一拍刷新：盔甲架退出时重算测试模式，普通角色退出时则解除旧目标锁，
 	# 让新放下的第一个角色立即接管顶部信息。
 	if _is_armor_stand_test_unit(unit) or _armor_stand_test_hud_active:
+		call_deferred("refresh_versus_text")
+
+
 # V434：只读快速入口，返回最近一次（≤33ms 前）网格重建时仍可被索敌的人物快照。
 # 调用方必须继续对每个候选做自己的实时有效性/敌我判断；这里只负责去掉投射物、
 # 已死亡、已退出 Ball 组或已明确退出索敌契约的单位。
 func get_combat_targetable_units_fast() -> Array:
 	return _battle_targetable_units
-
-
-		call_deferred("refresh_versus_text")
 
 
 func _rebuild_battle_unit_ids() -> void:
@@ -1730,6 +1842,7 @@ func _rebuild_battle_spatial_grid(units:Array) -> void:
 			(old_bucket as Array).clear()
 	_battle_spatial_active_cells.clear()
 	_battle_spatial_has_units = false
+	_battle_targetable_units.clear()
 
 	var count:int = units.size()
 	_battle_spatial_positions.resize(count)
@@ -1743,6 +1856,9 @@ func _rebuild_battle_spatial_grid(units:Array) -> void:
 		if unit == null or not is_instance_valid(unit) or unit.health <= 0:
 			_battle_spatial_positions[i] = Vector2.ZERO
 			continue
+		# V434：可索敌人物快照（投射物已在 register 时排除；这里再排除死亡/退出契约/退出 Ball 组的单位）。
+		if unit.is_combat_targetable() and unit.is_in_group("Ball"):
+			_battle_targetable_units.append(unit)
 		var pos:Vector2 = unit.global_position
 		_battle_spatial_positions[i] = pos
 		if _is_primary_battle_character(unit):
@@ -1776,6 +1892,8 @@ func _rebuild_battle_spatial_grid(units:Array) -> void:
 func _nearest_enemy_candidate_distance_sq(source:ball,candidate:ball) -> float:
 	if candidate == null or not is_instance_valid(candidate) or source == candidate:
 		return INF
+	if candidate.has_meta("development_reserve") or (_development != null and not _development.same_lane(source,candidate)):
+		return INF
 	if candidate.Type == ball.Ball_Type.Shooter or candidate.health <= 0:
 		return INF
 	if not candidate.is_combat_lockable():
@@ -1788,7 +1906,6 @@ func _nearest_enemy_candidate_distance_sq(source:ball,candidate:ball) -> float:
 		# Tall / multi-part bodies: distance to their part nearest to the source.
 		return source.global_position.distance_squared_to(candidate.call(&"combat_distance_point_for",source))
 	return source.global_position.distance_squared_to(candidate.global_position)
-	_battle_targetable_units.clear()
 
 
 # Tall / multi-part bodies register here: the spatial grid only knows their origin cell, so the
@@ -1823,9 +1940,6 @@ func _find_nearest_enemy_spatial(source:ball,units:Array) -> ball:
 					if idx < 0 or idx >= units.size():
 						continue
 					var candidate:ball = units[idx] as ball
-		# V434：可索敌人物快照（投射物已在 register 时排除；这里再排除死亡/退出契约/退出 Ball 组的单位）。
-		if unit.is_combat_targetable() and unit.is_in_group("Ball"):
-			_battle_targetable_units.append(unit)
 					var distance_sq:float = _nearest_enemy_candidate_distance_sq(source,candidate)
 					if distance_sq < nearest_sq:
 						nearest_sq = distance_sq
@@ -2056,6 +2170,8 @@ func _refresh_one_nearest_enemy(b:ball,set_property_group:Array) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if _development != null and _development.phase == _development.MERGING:
+		return
 	if is_instance_valid(day_night_cycle): day_night_cycle.advance(delta)
 	if is_instance_valid(minecraft_clouds): minecraft_clouds.advance(delta)
 	# World 的定向重力注册表只在这里清理一次；ball 之后走 fast 查询，避免 N 个单位重复清理。
@@ -2319,16 +2435,8 @@ func open_waiter_door(
 
 
 func _waiter_door_background_color() -> Color:
-	# 门洞内的方块不是“地图 TileMap 背景”，而是沿用真正场景 Background 的颜色。
-	# 当前 world.tscn 使用 GradientTexture2D，因此取渐变中点就能与蓝色背景自然衔接。
-	var background:Node = get_node_or_null("Background")
-	if background is Sprite2D:
-		var texture:Texture2D = (background as Sprite2D).texture
-		if texture is GradientTexture2D:
-			var gradient:Gradient = (texture as GradientTexture2D).gradient
-			if gradient != null:
-				return gradient.sample(0.5)
-	return Color(0.0,0.5882353,0.87058824,1.0)
+	# 门洞填充色跟随当前地图外背景，而不是固定读取蓝色场景渐变。
+	return MAP_BACKGROUND_THEMES.theme(map_background_style()).get("grid_normal",Color(0.0,0.5882353,0.87058824,1.0))
 
 
 func close_waiter_door(door_id:int,close_animation_duration:float = 0.28) -> void:
@@ -2724,6 +2832,8 @@ func _process_map_squeeze_protection(ball_group:Array = []) -> void:
 		if not node is ball:
 			continue
 		var b:ball = node as ball
+		if b.has_meta("development_reserve"):
+			continue
 		if b.Type != ball.Ball_Type.Ball:
 			continue
 		if b.health <= 0 or (b.state_machine != null and b.state_machine.current_state == ball.State.Die):
@@ -2807,7 +2917,7 @@ func _process_map_squeeze_protection(ball_group:Array = []) -> void:
 					b.notify_bounce_feedback(incoming_dir,feedback_power,null)
 
 
-func _animate_ball_back_inside_map(b:ball,target_position:Vector2) -> void:
+func _animate_ball_back_inside_map(b:ball,target_position:Vector2,entry_seconds:float=-1.0) -> void:
 	if b == null or not is_instance_valid(b):
 		return
 	if b.has_meta(&"map_rescue_animating") and bool(b.get_meta(&"map_rescue_animating")):
@@ -2816,14 +2926,38 @@ func _animate_ball_back_inside_map(b:ball,target_position:Vector2) -> void:
 	var had_physics:bool = b.is_physics_processing()
 	b.set_meta(&"map_rescue_had_physics",had_physics)
 	b.set_physics_process(false)
-	var tween:Tween = create_tween()
-	tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tween.tween_property(b,"global_position",target_position,maxf(map_rescue_animation_duration,0.05))
+	var tween:Tween = create_tween().bind_node(b)
+	if entry_seconds>0.0:
+		b.set_meta("queue_entry_state_physics",b.state_machine.is_physics_processing() if b.state_machine!=null else false)
+		if b.state_machine!=null: b.state_machine.set_physics_process(false)
+		b.set_meta("queue_entry_z",b.z_index)
+		b.set_meta("queue_entry_z_relative",b.z_as_relative)
+		b.z_as_relative=false
+		b.z_index=95 # Visible outside the map crop; restore the original depth on entry.
+		b.direction=b.global_position.direction_to(target_position)
+		tween.set_trans(Tween.TRANS_LINEAR)
+	else:
+		tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.set_process_mode(Tween.TWEEN_PROCESS_PHYSICS)
+	tween.tween_property(b,"global_position",target_position,entry_seconds if entry_seconds>0.0 else maxf(map_rescue_animation_duration,0.05))
+	if entry_seconds>0.0: _guard_queue_entry_tween(weakref(b),tween)
 	# Tween.finished() 自身不携带参数。这里绑定 WeakRef 而不是把自定义
 	# class_name ball 作为强类型回调参数，避免脚本热重载后出现
 	# “Cannot convert argument 1 from Object to Object”的类身份不一致错误。
 	tween.finished.connect(_finish_ball_map_rescue.bind(weakref(b)))
 
+
+func _guard_queue_entry_tween(b_ref:WeakRef,tween:Tween) -> void:
+	while tween.is_valid() and is_inside_tree():
+		var actor:Variant=b_ref.get_ref()
+		if not is_instance_valid(actor) or actor.is_queued_for_deletion(): return
+		if actor.health<=0:
+			tween.kill()
+			_finish_ball_map_rescue(b_ref)
+			return
+		if is_combat_runtime_active(): tween.play()
+		else: tween.pause()
+		await get_tree().physics_frame
 
 func _finish_ball_map_rescue(b_ref:WeakRef) -> void:
 	if b_ref == null:
@@ -2833,6 +2967,11 @@ func _finish_ball_map_rescue(b_ref:WeakRef) -> void:
 		return
 	# 不在函数签名里使用自定义 ball 类型；对象本身仍然是原角色实例。
 	var b:Variant = obj
+	if b.has_meta("queue_entry_z"):
+		b.z_index=int(b.get_meta("queue_entry_z"))
+		b.z_as_relative=bool(b.get_meta("queue_entry_z_relative"))
+		if b.state_machine!=null: b.state_machine.set_physics_process(bool(b.get_meta("queue_entry_state_physics")))
+		for key:String in ["queue_entry_z","queue_entry_z_relative","queue_entry_state_physics"]: b.remove_meta(key)
 	var restore_physics:bool = bool(b.get_meta(&"map_rescue_had_physics",true))
 	b.set_physics_process(restore_physics)
 	b.remove_meta(&"map_rescue_had_physics")
@@ -2895,6 +3034,8 @@ func _process_out_of_bounds_rule(delta:float,ball_group:Array = []) -> void:
 		if not node is ball:
 			continue
 		var b:ball = node as ball
+		if b.has_meta("development_reserve"):
+			continue
 		# 这里只处理真正角色；子弹和召唤物有自己的生命周期。
 		if b.Type != ball.Ball_Type.Ball:
 			continue
@@ -2926,24 +3067,13 @@ func _process_out_of_bounds_rule(delta:float,ball_group:Array = []) -> void:
 		if not _out_of_bounds_states.has(id):
 			entry = {
 				"node": b,
-				"elapsed": 0.0,
-				"shown": -1,
-				"label": _create_out_of_bounds_label()
+				"elapsed": 0.0
 			}
 			_out_of_bounds_states[id] = entry
 		else:
 			entry = _out_of_bounds_states[id]
 
 		entry["elapsed"] = float(entry.get("elapsed",0.0)) + delta
-		var remaining_time:float = maxf(out_of_bounds_death_delay - float(entry["elapsed"]),0.0)
-		var shown_number:int = maxi(int(ceil(remaining_time)),1)
-		var label = entry.get("label",null)
-		if label != null and is_instance_valid(label):
-			label.global_position = b.global_position + Vector2(-30.0,-72.0)
-			if int(entry.get("shown",-1)) != shown_number:
-				entry["shown"] = shown_number
-				label.text = str(shown_number)
-
 		_out_of_bounds_states[id] = entry
 
 		if float(entry["elapsed"]) >= maxf(out_of_bounds_death_delay,0.1):
@@ -2958,36 +3088,16 @@ func _process_out_of_bounds_rule(delta:float,ball_group:Array = []) -> void:
 				b.health_bar.suppress_floating_text = false
 			_clear_out_of_bounds_state(id)
 
-	# 清除已经删除/换形的旧节点留下的提示。
+	# 清除已经删除/换形的旧节点留下的计时状态。
 	for raw_id in _out_of_bounds_states.keys().duplicate():
 		var stale_id:int = int(raw_id)
 		if not active_ids.has(stale_id):
 			_clear_out_of_bounds_state(stale_id)
 
 
-func _create_out_of_bounds_label() -> Label:
-	var label := Label.new()
-	label.text = "3"
-	label.size = Vector2(60.0,44.0)
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	label.add_theme_font_size_override("font_size",out_of_bounds_number_font_size)
-	label.add_theme_color_override("font_color",Color(1.0,0.08,0.08,1.0))
-	label.add_theme_color_override("font_outline_color",Color.BLACK)
-	label.add_theme_constant_override("outline_size",2)
-	label.z_index = 140
-	add_child(label)
-	return label
-
-
 func _clear_out_of_bounds_state(id:int) -> void:
 	if not _out_of_bounds_states.has(id):
 		return
-	var entry:Dictionary = _out_of_bounds_states[id]
-	var label = entry.get("label",null)
-	if label != null and is_instance_valid(label):
-		label.queue_free()
 	_out_of_bounds_states.erase(id)
 
 
@@ -3051,6 +3161,24 @@ const BUFF_RUNTIME_PROPERTY_NAMES:Array = [
 	"Damage_reduction",
 ]
 
+func _apply_runtime_property_buff(b:ball,buff:Buff) -> void:
+	if buff.buff_type >= 0 and buff.buff_type < BUFF_RUNTIME_PROPERTY_NAMES.size():
+		var property_name:String = String(BUFF_RUNTIME_PROPERTY_NAMES[buff.buff_type])
+		if property_name in b.default_properties:
+			if buff.algorithm == Buff.Algorithms.add: b[property_name] += buff.amount
+			elif buff.algorithm == Buff.Algorithms.mul: b[property_name] *= buff.amount
+			elif buff.algorithm == Buff.Algorithms.Set: b[property_name] = buff.amount
+
+func refresh_runtime_buffs(b:ball) -> void:
+	# Immediate refresh after cleansing, using the same property math as the
+	# normal tick; never advance duration, poison/parasite ticks or global clocks.
+	if not is_instance_valid(b) or not b.is_multiplayer_authority(): return
+	b.restore_default_runtime_properties_fast()
+	for index:int in range(4):
+		for source_buffs:Dictionary in b.Buff_Dic.values():
+			for buff:Buff in source_buffs.values():
+				if buff.index==index and buff.duration>0.0: _apply_runtime_property_buff(b,buff)
+
 var process_time:float =  0
 func figure_buffs(delta:float,group:Array) -> void:
 	if not is_multiplayer_authority():
@@ -3077,15 +3205,7 @@ func figure_buffs(delta:float,group:Array) -> void:
 					if buff.index != i:
 						continue
 
-					if buff.buff_type >= 0 and buff.buff_type < BUFF_RUNTIME_PROPERTY_NAMES.size():
-						var property_name:String = String(BUFF_RUNTIME_PROPERTY_NAMES[buff.buff_type])
-						if property_name in b.default_properties:
-							if buff.algorithm == Buff.Algorithms.add:
-								b[property_name] += buff.amount
-							elif buff.algorithm == Buff.Algorithms.mul:
-								b[property_name] *= buff.amount
-							elif buff.algorithm == Buff.Algorithms.Set:
-								b[property_name] = buff.amount
+					_apply_runtime_property_buff(b,buff)
 
 					if process_time >= 1 and buff.buff_type == Buff.Buff_types.poison:
 						Audios.play_sfx.rpc(
@@ -3095,7 +3215,7 @@ func figure_buffs(delta:float,group:Array) -> void:
 						)
 						b.receive_spatial_raw_health_damage(
 							buff.amount,
-							{"shape":"all"}
+							{"shape":"all","damage_kind":"poison","carrier":"status_tick"}
 						)
 
 					buff.duration -= delta
@@ -3426,6 +3546,7 @@ func _clear_battle_transients() -> void:
 		"MinerStone",
 		"ShadowVisual",
 		"OfficerNuke",
+		"GuardReinforcementRequest", # Cancel confirmed arrivals during reset/round retirement.
 		# V43：这两类运行时节点挂在 World 下，不随角色父节点自动释放。
 		# 专用组只用于清场，不加入 BattleTransient，避免菜月昴时间轴把无 PackedScene 的
 		# Line2D / script.new() 行情柱当成可重建快照对象。
@@ -3462,6 +3583,8 @@ func reset() -> void:
 		return
 	if is_instance_valid(day_night_cycle): day_night_cycle.reset_to_noon()
 	if is_instance_valid(minecraft_clouds): minecraft_clouds.reset_drift()
+	if _development != null:
+		_development.cleanup(false)
 
 	_reset_victory_bell_state()
 	# Reset 是“清空战场”。在清空前保存这一套初始阵容，之后仍可点“重打”。
@@ -3483,9 +3606,13 @@ func reset() -> void:
 		Game.free_node(b)
 	for b in get_tree().get_nodes_in_group("Shooter"):
 		Game.free_node(b)
+	if _development != null:
+		_development.prepare()
 
 
 func has_rematch_setup() -> bool:
+	if Game.is_rotation_training_mode():
+		return not _rotation_rosters["left"].is_empty() or not _rotation_saved_rosters["left"].is_empty()
 	return not _battle_setup.is_empty() or not _last_battle_setup.is_empty()
 
 
@@ -3548,6 +3675,8 @@ func delete_rotation_queue_setup_id(setup_id:int,side_hint:String = "") -> bool:
 				)
 	else:
 		_rotation_refresh_future_labels(found_side)
+	if _development != null:
+		_development.on_character_removed(setup_id)
 
 	_reset_victory_bell_state()
 	return true
@@ -3601,6 +3730,8 @@ func forget_battle_setup_node(node:Node) -> void:
 		if int(_battle_setup[index].get("id", -1)) == setup_id:
 			_battle_setup.remove_at(index)
 			break
+	if _development != null:
+		_development.on_character_removed(setup_id)
 
 	# 手动删除角色属于重新布阵，不应该被当成“击败最后一个阵营”。
 	# 清掉已经武装的胜利状态；如果删除后场上仍然有至少两个阵营，
@@ -3614,6 +3745,14 @@ func rematch_last_battle(exact_replay:bool = true) -> void:
 		return
 	if is_instance_valid(day_night_cycle) and has_rematch_setup(): day_night_cycle.reset_to_noon()
 	if is_instance_valid(minecraft_clouds) and has_rematch_setup(): minecraft_clouds.reset_drift()
+	if Game.is_rotation_training_mode():
+		var roster_source:Dictionary = _rotation_rosters if not _rotation_rosters["left"].is_empty() else _rotation_saved_rosters
+		if not roster_source["left"].is_empty():
+			if not exact_replay: _battle_random_seed = 0
+			if not _rotation_saved_map.is_empty() and map_group.has(_rotation_saved_map) and _rotation_rosters["left"].is_empty():
+				Game.request_map_choice(_rotation_saved_map)
+			_restart_rotation_series(roster_source.duplicate(true))
+		return
 
 	_reset_victory_bell_state()
 	var using_current:bool = not _battle_setup.is_empty()
@@ -3622,6 +3761,8 @@ func rematch_last_battle(exact_replay:bool = true) -> void:
 	var source_seed:int = _battle_random_seed if using_current else _last_battle_random_seed
 	if source.is_empty():
 		return
+	if _development != null:
+		_development.cleanup(false)
 
 	# 右键只复用地图/人物/位置：抹掉上一局记录的初始移动方向，并使用全新随机种子。
 	if not exact_replay:
@@ -3659,6 +3800,8 @@ func rematch_last_battle(exact_replay:bool = true) -> void:
 
 	# queue_free 在帧末处理；下一帧按保存的 setup id / team / char / position 重建。
 	await get_tree().process_frame
+	if _development != null:
+		_development.prepare()
 	_battle_setup = source.duplicate(true)
 	_battle_setup_map = source_map
 	_battle_random_seed = source_seed if exact_replay and source_seed > 0 else Game.make_battle_random_seed()
@@ -3736,8 +3879,11 @@ var map_wall_volume:Node2D
 # 指向右上角的光源，影子朝其反方向投在地面；纯视觉配置，不触碰安全墙。
 @export var map_wall_light_direction:Vector2 = Vector2(1.0,-1.0)
 var map_wall_height_cells:float = 0.4 # 低矮连续墙；渲染端同步固定为 0.4 格，物理碰撞不变。
+func map_background_style() -> String:
+	return MAP_BACKGROUND_THEMES.normalize(str(Game.Game_Settings.get("Map_Background","blue")))
 func _is_grass_map_background() -> bool:
-	return Game.Game_Settings.get("Map_Background","blue") == "grass"
+	# 保持旧调用方名称；沙/石/下界/末地也复用草地的一格外墙与几何逻辑。
+	return MAP_BACKGROUND_THEMES.tiled(map_background_style())
 func map_visual_cell_size(map_node:Node) -> Vector2:
 	var layer:TileMapLayer = map_node as TileMapLayer if map_node is TileMapLayer else ((map_node as PortalMap).primary_island() if map_node is PortalMap else null)
 	if not is_instance_valid(layer) or layer.tile_set == null: return Vector2(16,16)
@@ -3785,6 +3931,9 @@ func _map_shape_walls(map_node:Node) -> Array[Rect2]:
 	walls = TileGeometry.subtract(walls,map_island_rects(map_node))
 	var portal:PortalMap = current_portal_map()
 	if portal != null: walls = TileGeometry.subtract(walls,portal.void_rects())
+	if _development != null and _development.is_prebattle() and _development.phase != _development.MERGING:
+		for raw_clone:Variant in _development.portal_clones.values():
+			if is_instance_valid(raw_clone): walls = TileGeometry.subtract(walls,(raw_clone as PortalMap).void_rects())
 	if not _waiter_doors.is_empty():
 		var cell:Vector2 = map_visual_cell_size(map_node)
 		var door_cuts:Array[Rect2] = []
@@ -3808,6 +3957,8 @@ func _map_shape_visual(map_node:Node) -> Array[Rect2]:
 	return regions
 
 func _shape_edge_gaps(edge:Dictionary,island:Dictionary,portal:PortalMap,include_portals:bool = true) -> Array[Vector2]:
+	if _development != null and _development.is_prebattle() and _development.phase != _development.MERGING and island.has("development_lane_key"):
+		portal = _development.portal_for_lane(str(island["development_lane_key"]))
 	var rect:Rect2 = island.rect
 	var side:int = edge.side
 	var outer:float = [rect.position.x,rect.end.x,rect.position.y,rect.end.y][side]
@@ -3829,13 +3980,18 @@ func _refresh_map_background_tiles(layer:Node) -> void:
 		map_background_shadow = load("res://scripts/effects/我的世界/地图外沿阴影.gd").new()
 		map_background_shadow.name = "MapOutsideShadow"
 		add_child(map_background_shadow)
+	# Summit's compatibility tiles must stay below the true 3D floor (-6).
+	# Keep other themes at their existing depth and restore it on every switch.
+	map_background_tiles.z_index = -7 if map_background_style()=="summit" else -5
 	var cell:Vector2 = map_visual_cell_size(layer)
 	var ground:Array[Rect2] = map_island_rects(layer)
 	var portal:PortalMap = current_portal_map()
 	if portal != null:
 		portal.set_wall_carving(_is_grass_map_background())
 		portal.refresh_visuals(map_border_width,-maxf(map_border_width,0.0)*0.5-cell.x if _is_grass_map_background() else 1.0,not _is_grass_map_background())
-	map_background_tiles.configure_regions(ground,_map_shape_walls(layer),cell,_is_grass_map_background())
+	elif _development != null and _development.is_prebattle() and _development.phase != _development.MERGING:
+		_development.refresh_portal_visuals(map_border_width,-maxf(map_border_width,0.0)*0.5-cell.x if _is_grass_map_background() else 1.0,not _is_grass_map_background())
+	map_background_tiles.configure_regions(ground,_map_shape_walls(layer),cell,_is_grass_map_background(),map_background_style())
 	map_background_shadow.configure_union(_map_shape_visual(layer),cell,[])
 	for extra:Node2D in _island_extra_background_tiles: extra.visible = false
 	for extra:Node2D in _island_extra_background_shadows: extra.visible = false
@@ -3892,6 +4048,12 @@ func setup_map_presentation() -> void:
 	versus_label.visibility_layer = COMBAT_TEXT_VISIBILITY_LAYER
 	versus_label.install_effect(HEAVY_GIRL_GLYPH_SHAKE_EFFECT.new())
 	versus_screen_layer.add_child(versus_label)
+	armor_intro_label = versus_label.duplicate(0) as RichTextLabel
+	armor_intro_label.name = "ArmorStandIntroduction"
+	armor_intro_label.add_theme_constant_override("outline_size",4)
+	armor_intro_label.add_theme_constant_override("line_separation",6)
+	armor_intro_label.visible = false
+	versus_screen_layer.add_child(armor_intro_label)
 	# 1v1 顶部对战 HUD：仅在恰好两名主角色分属两方时自行显示；原文字 VS 保留。
 	duel_top_hud = DUEL_TOP_HUD_SCRIPT.new()
 	duel_top_hud.world = self
@@ -3937,6 +4099,8 @@ func _sync_selected_map_visibility() -> void:
 		var selected:bool = str(map_name) == now_choose_map
 		if node is PortalMap:
 			var portal:PortalMap = node as PortalMap
+			if _development != null and _development.is_prebattle() and selected:
+				selected = false
 			if portal.is_active() != selected:
 				portal.set_active(selected)
 			continue
@@ -3979,6 +4143,15 @@ func _setup_map_outside_grid() -> void:
 
 
 func _refresh_map_outside_grid(map_rect:Rect2) -> void:
+	# The scene's original blue Sprite must remain below the summit scenery (-8).
+	# Preserve its original depth exactly when returning to a non-summit theme.
+	var base:CanvasItem = get_node_or_null("Background") as CanvasItem
+	if is_instance_valid(base):
+		if not base.has_meta("summit_original_depth"):
+			base.set_meta("summit_original_depth",Vector2i(base.z_index,int(base.z_as_relative)))
+		var original:Vector2i = base.get_meta("summit_original_depth")
+		base.z_as_relative = false if map_background_style()=="summit" else bool(original.y)
+		base.z_index = -10 if map_background_style()=="summit" else original.x
 	if is_instance_valid(minecraft_clouds): minecraft_clouds.refresh()
 	_setup_map_outside_grid()
 	if map_outside_grid_root == null or not is_instance_valid(map_outside_grid_root):
@@ -3998,6 +4171,9 @@ func _refresh_map_outside_grid(map_rect:Rect2) -> void:
 		var cell:Vector2 = map_visual_cell_size(portal)
 		portal.refresh_visuals(map_border_width,-maxf(map_border_width,0.0)*0.5-cell.x,false)
 		rects.append_array(portal.void_rects())
+	elif _development != null and _development.is_prebattle() and _development.phase != _development.MERGING and _is_grass_map_background():
+		for raw_clone:Variant in _development.portal_clones.values():
+			if is_instance_valid(raw_clone): rects.append_array((raw_clone as PortalMap).void_rects())
 	while map_outside_grid_parts.size() < rects.size():
 		var extra_poly := Polygon2D.new()
 		extra_poly.name = "OutsideGrid_%d" % map_outside_grid_parts.size()
@@ -4034,12 +4210,18 @@ func _update_map_outside_grid_parallax() -> void:
 
 	if map_outside_grid_root != null and is_instance_valid(map_outside_grid_root):
 		map_outside_grid_root.visible = true
+		# Keep the fallback grid behind the mountain/cloud/map sandwich.
+		map_outside_grid_root.z_index = -9 if map_background_style()=="summit" else -5
 	var viewport_size:Vector2 = get_viewport_rect().size
 	var zoom:Vector2 = camera_2d.zoom
-	map_outside_grid_material.set_shader_parameter("normal_color",map_outside_grid_normal_color)
-	map_outside_grid_material.set_shader_parameter("dark_color",map_outside_grid_dark_color)
-	map_outside_grid_material.set_shader_parameter("cell_size_px",maxf(map_outside_grid_cell_size_px,1.0))
-	map_outside_grid_material.set_shader_parameter("parallax_scale",clampf(map_outside_grid_parallax_scale,0.0,1.0))
+	var theme:Dictionary = MAP_BACKGROUND_THEMES.theme(map_background_style())
+	map_outside_grid_material.set_shader_parameter("normal_color",theme.get("grid_normal",map_outside_grid_normal_color))
+	map_outside_grid_material.set_shader_parameter("dark_color",theme.get("grid_dark",map_outside_grid_dark_color))
+	map_outside_grid_material.set_shader_parameter("accent_color",theme.get("grid_accent",Color(1,1,1,0.12)))
+	map_outside_grid_material.set_shader_parameter("pattern_style",int(theme.get("grid_style",0)))
+	map_outside_grid_material.set_shader_parameter("background_texture",theme.get("grid_texture",null))
+	map_outside_grid_material.set_shader_parameter("cell_size_px",maxf(float(theme.get("grid_cell",map_outside_grid_cell_size_px)),1.0))
+	map_outside_grid_material.set_shader_parameter("parallax_scale",clampf(float(theme.get("grid_parallax",map_outside_grid_parallax_scale)),0.0,1.0))
 	map_outside_grid_material.set_shader_parameter("camera_position",camera_2d.global_position)
 	map_outside_grid_material.set_shader_parameter("camera_zoom",Vector2(maxf(absf(zoom.x),0.001),maxf(absf(zoom.y),0.001)))
 	map_outside_grid_material.set_shader_parameter("viewport_size",Vector2(maxf(viewport_size.x,1.0),maxf(viewport_size.y,1.0)))
@@ -4116,6 +4298,8 @@ func _refresh_map_outside_mask(map_rect:Rect2) -> void:
 # 获取地图真实世界矩形
 #========================================================
 func return_map_world_rect(map_layer:Node) -> Rect2:
+	if _development != null and _development.is_prebattle() and map_layer == _current_map_node():
+		return _development.world_rect()
 	# 传送门地图：所有岛的外接矩形（相机取景、顶部文字、水印用）。
 	if map_layer is PortalMap:
 		return (map_layer as PortalMap).world_rect()
@@ -4321,6 +4505,19 @@ func _anchor_versus_to_screen() -> void:
 	versus_label.position = Vector2(versus_screen_side_padding_px,versus_screen_top_padding_px)
 	versus_label.scale = Vector2.ONE * _versus_layout_base_zoom
 	versus_label.rotation = 0.0
+	_layout_armor_intro_to_screen()
+
+func _layout_armor_intro_to_screen() -> void:
+	if not is_instance_valid(armor_intro_label) or not armor_intro_label.visible:
+		return
+	var width:float = maxf(1.0,get_viewport_rect().size.x - 2.0 * versus_screen_side_padding_px)
+	armor_intro_label.size.x = width # Shape at the final width before measuring wrapped content.
+	var height:float = fit_rich_text_label(armor_intro_label,armor_intro_font_size,armor_intro_font_size,width,2.0)
+	height = maxf(height,float(armor_intro_label.get_content_height()) + 4.0)
+	armor_intro_label.size = Vector2(width,height)
+	armor_intro_label.scale = Vector2.ONE
+	var top:float = maxf(24.0,armor_intro_screen_top_padding_px)
+	armor_intro_label.position = Vector2(maxf(0.0,versus_screen_side_padding_px),top)
 
 
 #========================================================
@@ -4599,6 +4796,8 @@ func _battle_death_bridge_presentation_side_key(b:ball) -> String:
 func _is_primary_battle_character(b:ball) -> bool:
 	if b == null:
 		return false
+	if b.has_meta("development_reserve"):
+		return false
 	# V192：寸头猪地图外来客只是一次性攻击演出，不属于比赛阵营，不能进入 VS / 胜利统计。
 	if b.has_meta(&"pig_outside_guest_exempt") and bool(b.get_meta(&"pig_outside_guest_exempt")):
 		return false
@@ -4717,42 +4916,148 @@ func _victory_root_primary_character(b:ball) -> ball:
 	return root if _is_primary_battle_character(root) else null
 
 
+# A roster slot is a family, never a particular body or a Team alone.
+# Ownership is captured at registration, BEFORE the first victory poll or death.
+# See docs/BATTLE_LIFECYCLE.md; use tickets for spawns that outlive their source.
+const BATTLE_LIFECYCLE_META:StringName = &"battle_lifecycle_identity"
+const BATTLE_LIFECYCLE_CLASSIFICATION = preload("res://classes/combat_classification.gd")
+var _battle_lifecycle_generation:int = 0
+var _battle_lifecycle_round:int = 0
+var _battle_spawn_ticket_serial:int = 0
+var _battle_spawn_tickets:Dictionary = {}
+
+func bind_battle_lifecycle(unit:ball,source:ball = null,force:bool = false,depth:int = 0) -> Dictionary:
+	if not is_instance_valid(unit) or depth > 12: return {}
+	if unit.has_meta("development_reserve") or bool(unit.get_meta("pig_outside_guest_exempt",false)): return {}
+	var old:Dictionary = unit.get_meta(BATTLE_LIFECYCLE_META,{})
+	if not force and not old.is_empty() and (int(old.get("generation",-1)) != _battle_lifecycle_generation or int(old.get("round",-1)) != _battle_lifecycle_round): return {}
+	if not is_instance_valid(source):
+		if is_instance_valid(unit.Master): source = unit.Master
+		elif not unit.Master_name.is_empty(): source = get_node_or_null(NodePath(unit.Master_name)) as ball
+	var identity:Dictionary = {}
+	if is_instance_valid(source) and source != unit:
+		identity = bind_battle_lifecycle(source,null,false,depth+1)
+		if identity.is_empty(): return {}
+	elif not force and not old.is_empty() and int(old.get("root",0)) != unit.get_instance_id():
+		# Orphans keep their original family even after Master is freed/cleared.
+		identity = old
+	elif _is_primary_battle_character(unit):
+		var setup_id:int = int(unit.get_meta("battle_setup_id",unit.get_meta("battle_continuation_setup_id",-1)))
+		identity = {"generation":_battle_lifecycle_generation,"round":_battle_lifecycle_round,
+			"root":unit.get_instance_id(),"setup":setup_id,
+			"victory":str(unit.get_meta("battle_continuation_victory_side_key",_victory_side_key_for_character(unit)))}
+	elif not old.is_empty(): identity = old
+	if identity.is_empty(): return {}
+	if int(identity.get("generation",-1)) != _battle_lifecycle_generation or int(identity.get("round",-1)) != _battle_lifecycle_round:
+		return {}
+	unit.set_meta(BATTLE_LIFECYCLE_META,identity.duplicate())
+	unit.set_meta("victory_side_key",str(identity.get("victory","")))
+	return identity
+
+func _battle_unit_keeps_family_alive(unit:ball) -> bool:
+	if not is_instance_valid(unit) or unit.is_queued_for_deletion() or not unit.is_inside_tree(): return false
+	if unit.has_meta("development_reserve") or bool(unit.get_meta("pig_outside_guest_exempt",false)) or bool(unit.get_meta("battle_lifecycle_exiting",false)): return false
+	# Shared identity/phase classification excludes projectiles, detached weapons,
+	# terrain, hazards and decorations even if their old Type says Ball/Creature.
+	var kind:String = str(BATTLE_LIFECYCLE_CLASSIFICATION.profile_of(unit).get("entity_kind",""))
+	if kind not in ["character","subentity"]: return false
+	if bind_battle_lifecycle(unit).is_empty(): return false
+	if unit.health > 0 or _is_battle_death_bridge_unit(unit): return true
+	# Give the real death/revival state machine its turn, not an arbitrary delay.
+	# Dead animations without a continuation bridge do NOT keep a side alive.
+	return unit.Type == ball.Ball_Type.Ball and (unit._zero_health_resolution_pending or (unit.state_machine != null and unit.state_machine.current_state != ball.State.Die))
+
+func begin_battle_spawn(source:ball,custodian:Node) -> int:
+	if not is_multiplayer_authority() or not is_instance_valid(custodian): return 0
+	if _timed_finished and _timed_defeated_setups.has(_resolve_timed_source_setup_id(source)): return 0
+	var identity:Dictionary = bind_battle_lifecycle(source)
+	if identity.is_empty(): return 0
+	_battle_spawn_ticket_serial += 1
+	_battle_spawn_tickets[_battle_spawn_ticket_serial] = {"identity":identity.duplicate(),"custodian":weakref(custodian)}
+	return _battle_spawn_ticket_serial
+
+func _prune_battle_spawn_tickets() -> void:
+	for ticket:Variant in _battle_spawn_tickets.keys():
+		var row:Dictionary = _battle_spawn_tickets[ticket]
+		var keeper:Node = (row.custodian as WeakRef).get_ref() as Node
+		var identity:Dictionary = row.identity
+		if not is_instance_valid(keeper) or keeper.is_queued_for_deletion() or not keeper.is_inside_tree() or int(identity.generation) != _battle_lifecycle_generation or int(identity.round) != _battle_lifecycle_round:
+			_battle_spawn_tickets.erase(ticket)
+
+func apply_battle_spawn_identity(unit:ball,ticket:int) -> bool:
+	_prune_battle_spawn_tickets()
+	if not is_instance_valid(unit) or not _battle_spawn_tickets.has(ticket): return false
+	unit.set_meta(BATTLE_LIFECYCLE_META,(_battle_spawn_tickets[ticket].identity as Dictionary).duplicate())
+	return true
+
+func finish_battle_spawn(ticket:int) -> void:
+	_battle_spawn_tickets.erase(ticket)
+	call_deferred("_scan_rotation_family_extinctions")
+
+func _battle_family_alive(setup_id:int) -> bool:
+	if setup_id < 0: return false
+	for raw:Variant in _battle_units_cache:
+		if not raw is ball or not _battle_unit_keeps_family_alive(raw): continue
+		var identity:Dictionary = raw.get_meta(BATTLE_LIFECYCLE_META,{})
+		if int(identity.get("setup",-1)) == setup_id: return true
+	_prune_battle_spawn_tickets()
+	for row:Dictionary in _battle_spawn_tickets.values():
+		if int(row.identity.get("setup",-1)) == setup_id: return true
+	return false
+
+func _scan_rotation_family_extinctions() -> void:
+	if not is_multiplayer_authority() or not _queue_battle_mode_active() or not _rotation_started or _rotation_clearing_round or _rotation_finished: return
+	for side:String in ["left","right"]:
+		var setup_id:int=int(_rotation_active_setup.get(side,-1))
+		if setup_id<0: continue
+		if _battle_family_alive(setup_id):
+			_rotation_pending_dead_sides.erase(side)
+		elif not _rotation_pending_dead_sides.has(side):
+			# Only a candidate. Do not erase the slot, cross the portrait or end a totem save yet.
+			_rotation_pending_dead_sides.append(side)
+	if not _rotation_transitioning and not _rotation_pending_dead_sides.is_empty():
+		call_deferred("_rotation_resolve_pending_deaths")
+
+func _retire_rotation_families() -> void:
+	# Snapshot victory BEFORE clearing descendants. A living minion can win even
+	# when the original body no longer exists. Administrative removal never kills.
+	_rotation_clearing_round = true
+	var setup_ids:Array[int] = []
+	for side:String in ["left","right"]:
+		var setup_id:int = int(_rotation_active_setup.get(side,-1))
+		if setup_id >= 0:
+			setup_ids.append(setup_id)
+			var alive:bool = _battle_family_alive(setup_id)
+			_rotation_mark_current_dead(side,not alive,alive)
+	# Include already-extinct slots whose dying bodies/children may still linger.
+	for side:String in ["left","right"]:
+		var index:int = int(_rotation_next_index[side])-1
+		if index >= 0 and index < _rotation_rosters[side].size(): setup_ids.append(int(_rotation_rosters[side][index].id))
+	for raw:Variant in _battle_units_cache.duplicate():
+		if not raw is ball or not is_instance_valid(raw): continue
+		var identity:Dictionary = raw.get_meta(BATTLE_LIFECYCLE_META,{})
+		if setup_ids.has(int(identity.get("setup",-1))) and not raw.has_meta("development_reserve"):
+			raw.process_mode = Node.PROCESS_MODE_DISABLED
+			Game.free_node(raw)
+	_battle_lifecycle_round += 1
+	_battle_spawn_tickets.clear()
+	_rotation_active_setup = {"left":-1,"right":-1}
+	_rotation_active_name = {"left":"","right":""}
+	_clear_battle_transients()
+	_rotation_clearing_round = false
+
 func _collect_alive_victory_sides() -> Dictionary:
 	var sides:Dictionary = {}
-	for node:Node in _battle_units_cache:
-		if node == null or not is_instance_valid(node) or node.is_queued_for_deletion() or not node is ball:
-			continue
-		var b:ball = node as ball
-		var is_death_bridge:bool = _is_battle_death_bridge_unit(b)
-		if b.health <= 0 and not is_death_bridge:
-			continue
-		if b.Type != ball.Ball_Type.Ball and b.Type != ball.Ball_Type.Creature:
-			continue
-
-		# V82/V83：比赛延续单位与死亡演出桥的阵营都使用生成/死亡前冻结的 key。
-		# 蠹虫 HP 归零后仍会先完成 0.90s 死亡姿势；这段时间本方不会瞬间从胜负统计消失，
-		# 石砖在 0.18s 后孵化出的延续蠹虫可以无缝接棒。
-		var key:String = ""
-		if is_death_bridge:
-			key = _battle_death_bridge_victory_side_key(b)
-		elif _is_battle_continuation_unit(b):
-			key = str(b.get_meta(&"battle_continuation_victory_side_key","")).strip_edges()
-		else:
-			# 胜利只统计玩家实际放下的主角色，以及这些主角色的附属。
-			# 地图里其他 Creature/辅助 Ball 不得把阵营数永久卡在 2 以上。
-			var primary_root:ball = _victory_root_primary_character(b)
-			if primary_root != null:
-				key = _victory_side_key_for_character(b)
-			elif _is_runtime_summon(b) and b.has_meta(&"victory_side_key"):
-				# 主人先死亡后，仍存活的普通附属沿用主人还在时缓存的阵营。
-				key = str(b.get_meta(&"victory_side_key"))
-			else:
-				continue
-
-		if not key.is_empty():
-			sides[key] = true
+	for raw:Variant in _battle_units_cache:
+		if not raw is ball or not _battle_unit_keeps_family_alive(raw): continue
+		var identity:Dictionary = raw.get_meta(BATTLE_LIFECYCLE_META,{})
+		var key:String = str(identity.get("victory",""))
+		if not key.is_empty(): sides[key] = true
+	_prune_battle_spawn_tickets()
+	for row:Dictionary in _battle_spawn_tickets.values():
+		var key:String = str(row.identity.get("victory",""))
+		if not key.is_empty(): sides[key] = true
 	return sides
-
 
 func _configured_manual_victory_side_count() -> int:
 	# 手动模式的胜利判定不能只靠“这一帧仍活着的节点”来武装。
@@ -4765,6 +5070,7 @@ func _configured_manual_victory_side_count() -> int:
 			continue
 		var entry:Dictionary = entry_value as Dictionary
 		if str(entry.get("kind","")) == "obstacle": continue
+		if not is_victory_setup_current(int(entry.get("id",-1))): continue
 		var team_name:String = str(entry.get("team","")).strip_edges()
 		var key:String = ""
 		if not team_name.is_empty():
@@ -4783,8 +5089,9 @@ func _configured_manual_victory_side_count() -> int:
 			if not node is ball:
 				continue
 			var b:ball = node as ball
-			if b.health <= 0 or not _is_primary_battle_character(b):
+			if b.health <= 0 or not _is_primary_battle_character(b) or not _battle_unit_keeps_family_alive(b):
 				continue
+			if not is_victory_setup_current(int(b.get_meta("battle_setup_id",-1))): continue
 			var fallback_key:String = _victory_side_key_for_character(b)
 			if not fallback_key.is_empty():
 				sides[fallback_key] = true
@@ -4793,52 +5100,22 @@ func _configured_manual_victory_side_count() -> int:
 
 
 func _rotation_side_has_contender(side:String) -> bool:
-	var active_id:int = int(_rotation_active_setup.get(side,-1))
-	if active_id >= 0:
-		var active:ball = _find_character_by_setup_id_any(active_id)
-		if active != null and is_instance_valid(active) and not active.is_queued_for_deletion() and active.health > 0:
-			return true
+	if _battle_family_alive(int(_rotation_active_setup.get(side,-1))): return true
 	var roster:Array = _rotation_rosters[side]
 	var next_index:int = int(_rotation_next_index.get(side,0))
 	return next_index >= 0 and next_index < roster.size()
 
-
-# V177：蠹虫死亡桥的最终兜底。
-# 蠹虫 HP=0 后会先保留死亡桥，并可能由石砖孵化同阵营延续单位；只有节点真正退出后才调用这里。
-# 等一个 process_frame，让 queue_free()/新孵化节点的 group 状态稳定，再判断“这一方是否真的完全消失”。
 func request_silverfish_extinction_victory_recheck(extinct_side_key:String) -> void:
-	if extinct_side_key.is_empty() or not is_multiplayer_authority():
-		return
-	if Game.is_timed_training_mode():
-		return
+	# Compatibility entry only. Never bypass queue/challenge/timed/prebattle rules.
+	if extinct_side_key.is_empty() or not is_multiplayer_authority(): return
+	var generation:int = _battle_lifecycle_generation
 	await get_tree().process_frame
-	if not is_instance_valid(self) or _victory_bell_played:
-		return
-
-	# 同一阵营只要还有一只活蠹虫、死亡桥或石砖孵化延续个体，就不能判定为彻底消灭。
-	for node:Node in _battle_units_cache:
-		if node == null or not is_instance_valid(node) or node.is_queued_for_deletion() or not node is ball:
-			continue
-		var candidate:ball = node as ball
-		var candidate_key:String = ""
-		if _is_battle_death_bridge_unit(candidate):
-			candidate_key = _battle_death_bridge_victory_side_key(candidate)
-		elif _is_battle_continuation_unit(candidate):
-			candidate_key = str(candidate.get_meta(&"battle_continuation_victory_side_key","")).strip_edges()
-		elif candidate.health > 0:
-			candidate_key = _victory_side_key_for_character(candidate)
-		if candidate_key == extinct_side_key:
-			return
-
-	# 现在蠹虫这一方确实已经没有任何比赛延续。先跑一次通用结算；若历史 armed 状态被
-	# 某个特殊清场顺序错过，则“场上恰好只剩一个阵营”本身已经足够证明有唯一胜者。
+	if generation != _battle_lifecycle_generation or _victory_bell_played: return
+	var alive:Dictionary = _collect_alive_victory_sides()
+	if alive.has(extinct_side_key): return
+	# Do not invent an armed state from an old actor's exit callback.
+	# Normal setup/observed sides arm the shared collector, including after reset.
 	_update_manual_victory_bell()
-	if _victory_bell_played:
-		return
-	var alive_sides:Dictionary = _collect_alive_victory_sides()
-	if alive_sides.size() == 1:
-		_trigger_victory_bell()
-
 
 func _trigger_victory_bell() -> void:
 	if _victory_bell_played:
@@ -4886,7 +5163,14 @@ func _notify_battle_victory_for_setup(setup_id:int) -> void:
 
 
 func _update_manual_victory_bell() -> void:
-	if not is_multiplayer_authority() or _victory_bell_played:
+	_scan_rotation_family_extinctions()
+	if not is_multiplayer_authority(): return
+	# Free placement / training respawn can introduce a new opponent after a verdict.
+	# Reconcile real families BEFORE the old verdict's early return.
+	if Game.get_training_mode_type()=="manual" and _victory_bell_played and _collect_alive_victory_sides().size()>=2:
+		_begin_manual_victory_encounter()
+	if _victory_bell_played: return
+	if _development != null and _development.is_prebattle():
 		return
 
 	# 手动模式不能把 Team/选人面板是否可见当成“比赛是否开始”的条件。
@@ -4902,6 +5186,8 @@ func _update_manual_victory_bell() -> void:
 	# 轮放不能用“当前场上只剩一边”判断，否则换人间隙会误报。
 	# 只有一边已经没有当前角色、也没有后续名单时，另一边才算最终胜利。
 	if _queue_battle_mode_active():
+		# Challenge settles per blue attempt, not whenever a red roster runs out.
+		if Game.is_rotation_training_mode() and Game.get_rotation_match_type() == "challenge": return
 		if not _rotation_started or _rotation_transitioning:
 			return
 		var left_alive:bool = _rotation_side_has_contender("left")
@@ -4926,17 +5212,42 @@ func _update_manual_victory_bell() -> void:
 		_trigger_victory_bell()
 
 
+func is_victory_setup_current(setup_id:int) -> bool:
+	return not _victory_encounter_limited or setup_id<0 or _victory_encounter_setup_ids.has(setup_id)
+
+func _include_victory_encounter_unit(unit:ball) -> void:
+	if not _victory_encounter_limited or not _battle_unit_keeps_family_alive(unit): return
+	if not _is_primary_battle_character(unit): return
+	var identity:Dictionary=unit.get_meta(BATTLE_LIFECYCLE_META,{})
+	var setup_id:int=int(identity.get("setup",unit.get_meta("battle_setup_id",-1)))
+	if setup_id>=0: _victory_encounter_setup_ids[setup_id]=true
+
+func _begin_manual_victory_encounter() -> void:
+	# Start a new result scope, not a new battle scene: survivors keep HP, effects and families.
+	_reset_victory_bell_state()
+	_victory_encounter_limited=true
+	for unit:Node in _battle_units_cache:
+		if not is_instance_valid(unit) or not unit is ball: continue
+		_include_victory_encounter_unit(unit)
+		if is_instance_valid(duel_top_hud): duel_top_hud.remember_victory_participant(unit)
+	_victory_bell_armed=_collect_alive_victory_sides().size()>=2
+
 func _reset_victory_bell_state() -> void:
+	_victory_encounter_limited=false
+	_victory_encounter_setup_ids.clear()
 	_victory_bell_armed = false
 	_victory_bell_played = false
 	_victory_bell_sequence_generation += 1
+	if is_instance_valid(duel_top_hud): duel_top_hud.reset_victory_roster()
 
 
 func play_victory_bell_triplet() -> void:
-	# 0.2 秒按真实时间计算，不受训练模式速度倍率影响。
+	# 0.2 秒按真实时间计算；重置/新增对手后不能补播上一场的胜利铃。
+	var generation:int=_victory_bell_sequence_generation
 	_play_victory_bell_once()
 	for _index:int in range(2):
 		await get_tree().create_timer(0.2,true,false,true).timeout
+		if not is_inside_tree() or generation!=_victory_bell_sequence_generation: return
 		_play_victory_bell_once()
 
 
@@ -5319,41 +5630,53 @@ const ARMOR_TEST_ROLE_SUMMARIES:Dictionary = {
 	# 乐队
 	"res://scripts/characters/乐队/户山香澄.gd":"星星砸中敌人会永久提高攻速。",
 	"res://scripts/characters/乐队/薇欧拉.gd":"拍照会眩晕并积累舆论；录音会记录伤害来源并用文字弹幕反击。",
-	# 我的世界
-	"res://scripts/characters/我的世界/女巫.gd":"投掷伤害、负面或治疗药水；血量高时不会优先炼治疗药。",
-	"res://scripts/characters/我的世界/烈焰人.gd":"烈焰弹命中会留下灼烧和火焰区域。",
-	"res://scripts/characters/我的世界/苦力怕.gd":"目标靠近时积累引信，离开时引信回退；蓄满后自爆。",
-	"res://scripts/characters/我的世界/蠹虫.gd":"受伤或死亡会让附近石砖孵化更多蠹虫；整群都算同一个角色，最多10只。",
-	"res://scripts/characters/我的世界/重锤.gd":"近身挥锤，命中后会跳起砸地；砸中敌人还能继续连砸，而且越砸越痛。",
-	"res://scripts/characters/我的世界/钻石剑.gd":"剑气会向前推进；遇到锻造台会停下锻造。",
-	"res://scripts/characters/我的世界/骷髅.gd":"每次开弓只锁定这一箭的方向，不会为瞄准改变移动路线。",
-	"res://scripts/characters/我的世界/铁匠村民.gd":"持续不攻击时锻造越来越快（最快0.5秒一次），眩晕打断期间也会继续加速；每锻造3次随机升级头盔或剑，满装后每次锻造永久提高伤害或护甲。",
-	"res://scripts/characters/我的世界/木矛.gd":"越跑越快，自身越快、敌人迎面冲得越快，伤害越高。普通刺命中加速，顺向命中加得更多。高速穿刺短暂爆发提速，顺向直穿爆发更强、伤害翻倍，但穿后损失更多蓄速。矛头能格挡，撞墙减速，眩晕重置速度。",
-	"res://scripts/characters/我的世界/bat/bat.gd":"蝙蝠群吸附敌人吸血、快速啃护盾；合成吸血鬼时合并生命上限，之后再分裂。",
-	"res://scripts/characters/我的世界/唤魔者.gd":"用尖牙攻击敌人，还会召唤能穿过内部墙体的恼鬼。",
-	"res://scripts/characters/我的世界/末影人.gd":"闪避来袭攻击；对视积累怒气，暴怒后瞬移到敌人背后突袭。",
-	"res://scripts/characters/我的世界/潜影贝.gd":"闭壳时格挡伤害，开壳发射浮空弹；战斗越久，连射越密。",
-	"res://scripts/characters/我的世界/new5/slime.gd":"跳起撞人，落地使敌人减速；死亡后分裂成小史莱姆。",
-	"res://scripts/characters/我的世界/new5/guardian.gd":"锁敌蓄力激光，近身张开尖刺；受伤会延后攻击。",
-	"res://scripts/characters/我的世界/new5/ghast.gd":"火球可被打回；爆炸不分敌我，还能破坏地形。",
-	"res://scripts/characters/我的世界/new5/piston.gd":"伸缩推开或黏住敌人，撞墙会眩晕；连打越久，自身移动越慢。",
-	"res://scripts/characters/我的世界/new5/fishing_rod.gd":"钓钩收回时猛拉敌人并接剑斩；甩竿与剑击共用冷却。",
-	"res://scripts/characters/我的世界/蜘蛛.gd":"贴墙织蛛丝、铺蛛网；困住敌人后扑击。",
-	"res://scripts/characters/我的世界/溺尸.gd":"三叉戟会附魔引雷；同队三叉戟还能连成电网。",
-	"res://scripts/characters/我的世界/allay/allay.gd":"积攒音符射出投射物，近身可召回音符爆发；还能收集来袭投射物。",
-	"res://scripts/characters/我的世界/cactus_note/cactus.gd":"逐渐长高并射出尖刺；侧面接触会伤敌，受击可反击。",
-	"res://scripts/characters/我的世界/cactus_note/note_block.gd":"随唱片节拍从不同声道发射音波；连续命中增伤，间断会衰减。",
-	"res://scripts/characters/我的世界/wither/wither.gd":"觉醒期间免伤并反弹弹丸；觉醒后射头颅、种凋零玫瑰，半血召唤信标。",
-	"res://scripts/characters/我的世界/new6/sheep.gd":"羊毛减伤，近身反击并蓄力冲撞；吃草可回血长毛。",
-	"res://scripts/characters/我的世界/new6/oak_boat.gd":"可载人或抓敌上船，高速撞人；撞墙触礁会受伤并减速。",
-	"res://scripts/characters/我的世界/new6/bow.gd":"蓄力越久箭越快；命中伤害随箭速变化，敌人贴近会提前松弦。",
-	"res://scripts/characters/我的世界/new6/heavenfall_longbow.gd":"追踪箭可穿墙并引落箭雨和裂隙；受击时可借裂隙瞬移反击。",
-	"res://scripts/characters/我的世界/钻石长矛.gd":"疾跑刺击越快越痛，虚影连刺；还能横扫、瞬移袭敌。",
-	"res://scripts/characters/我的世界/铁傀儡.gd":"蓄力上挑击飞敌人；村民可修复它，村民阵亡后会狂暴。",
-	"res://scripts/characters/我的世界/硫方怪.gd":"同时保留最近两块特性，左旧右新，体内只显示新块；TNT爆炸后消耗并补块。",
-	"res://scripts/characters/我的世界/鞘翅重锤.gd":"烟花推进飞行；命中后跃起连砸，连续砸中伤害递增。",
-	"res://scripts/characters/我的世界/鞘翅长矛.gd":"烟花助飞，低速点刺后转身，高速贯穿；每次命中还会提速。",
-	"res://scripts/characters/我的世界/鞘翅重锤长矛.gd":"飞行矛尖命中会引发锤击并跃起连砸，连砸伤害递增。",
+	# 我的世界：稳定翻译键；中英文战斗机制统一维护于 translations.csv。
+	"res://scripts/characters/我的世界/bat/bat.gd":"MC_ARMOR_INTRO_BAT",
+	"res://scripts/characters/我的世界/cactus_note/note_block.gd":"MC_ARMOR_INTRO_JUKEBOX",
+	"res://scripts/characters/我的世界/wither/wither.gd":"MC_ARMOR_INTRO_WITHER",
+	"res://scripts/characters/我的世界/wither_skeleton/wither_skeleton.gd":"MC_ARMOR_INTRO_WITHER_SKELETON",
+	"res://scripts/characters/我的世界/new5/fishing_rod.gd":"MC_ARMOR_INTRO_FISHING_ROD",
+	"res://scripts/characters/我的世界/蠹虫.gd":"MC_ARMOR_INTRO_SILVERFISH",
+	"res://scripts/characters/我的世界/new5/ghast.gd":"MC_ARMOR_INTRO_GHAST",
+	"res://scripts/characters/我的世界/new6/bow.gd":"MC_ARMOR_INTRO_BOW",
+	"res://scripts/characters/我的世界/皓宸.gd":"MC_ARMOR_INTRO_HAOCHEN",
+	"res://scripts/characters/我的世界/唤魔者.gd":"MC_ARMOR_INTRO_EVOKER",
+	"res://scripts/characters/我的世界/frontier/warden.gd":"MC_ARMOR_INTRO_WARDEN",
+	"res://scripts/characters/我的世界/骷髅.gd":"MC_ARMOR_INTRO_SKELETON",
+	"res://scripts/characters/我的世界/苦力怕.gd":"MC_ARMOR_INTRO_CREEPER",
+	"res://scripts/characters/我的世界/minecart/minecart.gd":"MC_ARMOR_INTRO_MINECART",
+	"res://scripts/characters/我的世界/烈焰人.gd":"MC_ARMOR_INTRO_BLAZE",
+	"res://scripts/characters/我的世界/流浪商人.gd":"MC_ARMOR_INTRO_WANDERING_TRADER",
+	"res://scripts/characters/我的世界/硫方怪.gd":"MC_ARMOR_INTRO_SULFUR_CUBE",
+	"res://scripts/characters/我的世界/末影人.gd":"MC_ARMOR_INTRO_ENDERMAN",
+	"res://scripts/characters/我的世界/new6/oak_boat.gd":"MC_ARMOR_INTRO_OAK_BOAT",
+	"res://scripts/characters/我的世界/frontier/wooden_sword.gd":"MC_ARMOR_INTRO_WOODEN_SWORD",
+	"res://scripts/characters/我的世界/木矛.gd":"MC_ARMOR_INTRO_WOODEN_SPEAR",
+	"res://scripts/characters/我的世界/溺尸.gd":"MC_ARMOR_INTRO_DROWNED",
+	"res://scripts/characters/我的世界/女巫.gd":"MC_ARMOR_INTRO_WITCH",
+	"res://scripts/characters/我的世界/潜影贝.gd":"MC_ARMOR_INTRO_SHULKER",
+	"res://scripts/characters/我的世界/鞘翅长矛.gd":"MC_ARMOR_INTRO_ELYTRA_SPEAR",
+	"res://scripts/characters/我的世界/鞘翅重锤.gd":"MC_ARMOR_INTRO_ELYTRA_MACE",
+	"res://scripts/characters/我的世界/鞘翅重锤长矛.gd":"MC_ARMOR_INTRO_ELYTRA_MACE_SPEAR",
+	"res://scripts/characters/我的世界/石矛.gd":"MC_ARMOR_INTRO_STONE_SPEAR",
+	"res://scripts/characters/我的世界/new5/slime.gd":"MC_ARMOR_INTRO_SLIME",
+	"res://scripts/characters/我的世界/new5/guardian.gd":"MC_ARMOR_INTRO_GUARDIAN",
+	"res://scripts/characters/我的世界/frontier/moss.gd":"MC_ARMOR_INTRO_MOSS_BLOCK",
+	"res://scripts/characters/我的世界/new6/heavenfall_longbow.gd":"MC_ARMOR_INTRO_LONGBOW_OF_THE_HEAVENS",
+	"res://scripts/characters/我的世界/铁匠村民.gd":"MC_ARMOR_INTRO_BLACKSMITH_VILLAGER",
+	"res://scripts/characters/我的世界/铁傀儡.gd":"MC_ARMOR_INTRO_IRON_GOLEM",
+	"res://scripts/characters/我的世界/铁砧.gd":"MC_ARMOR_INTRO_ANVIL",
+	"res://scripts/characters/我的世界/铜剑.gd":"MC_ARMOR_INTRO_COPPER_SWORD",
+	"res://scripts/characters/我的世界/fog_man/actor.gd":"MC_ARMOR_INTRO_FOG_MAN",
+	"res://scripts/characters/我的世界/cactus_note/cactus.gd":"MC_ARMOR_INTRO_CACTUS",
+	"res://scripts/characters/我的世界/snow_golem/snow_golem.gd":"MC_ARMOR_INTRO_SNOW_GOLEM",
+	"res://scripts/characters/我的世界/new6/sheep.gd":"MC_ARMOR_INTRO_SHEEP",
+	"res://scripts/characters/我的世界/allay/allay.gd":"MC_ARMOR_INTRO_ALLAY",
+	"res://scripts/characters/我的世界/new5/piston.gd":"MC_ARMOR_INTRO_STICKY_PISTON",
+	"res://scripts/characters/我的世界/蜘蛛.gd":"MC_ARMOR_INTRO_SPIDER",
+	"res://scripts/characters/我的世界/重锤.gd":"MC_ARMOR_INTRO_MACE",
+	"res://scripts/characters/我的世界/钻石剑.gd":"MC_ARMOR_INTRO_DIAMOND_SWORD",
+	"res://scripts/characters/我的世界/钻石长矛.gd":"MC_ARMOR_INTRO_DIAMOND_SPEAR",
 	# 月计
 	"res://scripts/characters/月计/伞夫.gd":"理智越低连段越长，负理智时会追加更多攻击段数。",
 	"res://scripts/characters/月计/堇紫泪滴.gd":"四种姿态机制不同；能叠流血，并在低血时回溯一次几秒前的状态。",
@@ -5396,7 +5719,7 @@ func _armor_test_special_effect_summary(enemy:ball,_tags:PackedStringArray) -> S
 	var role_script_path:String = _armor_stand_test_primary_script_path
 	if role_script_path.is_empty():
 		role_script_path = _armor_test_script_path(enemy)
-	return str(ARMOR_TEST_ROLE_SUMMARIES.get(role_script_path,""))
+	return Game.t(str(ARMOR_TEST_ROLE_SUMMARIES.get(role_script_path,"")))
 
 func _armor_test_capture_snapshot(enemy:ball) -> Dictionary:
 	if enemy == null or not is_instance_valid(enemy) or enemy.is_queued_for_deletion():
@@ -5477,7 +5800,9 @@ func _build_armor_stand_test_enemy_info() -> String:
 		lines.append(special_text)
 	if lines.is_empty():
 		return ""
-	return "[center][color=#F2F2F2]" + "\n".join(lines) + "[/color][/center]"
+	# Keep the selected original role name, not a matchup or a summoned unit name.
+	var role_name:String = escape_bbcode(Game.t(_armor_stand_test_primary_identity).replace("_"," "))
+	return "[center][color=#F2F2F2][b]" + role_name + "[/b]\n" + "\n".join(lines) + "[/color][/center]"
 
 
 func _apply_armor_stand_test_hud_suppression() -> void:
@@ -5494,15 +5819,16 @@ func _apply_armor_stand_test_hud_suppression() -> void:
 
 
 func _refresh_armor_stand_test_enemy_info() -> void:
-	if not is_instance_valid(versus_label):
+	if not is_instance_valid(versus_label) or not is_instance_valid(armor_intro_label):
 		return
 	_apply_armor_stand_test_hud_suppression()
 	var new_text:String = _build_armor_stand_test_enemy_info()
-	if versus_label.text != new_text:
-		versus_label.text = new_text
-	versus_label.visible = not new_text.is_empty()
-	if new_text.is_empty():
-		versus_label.size.y = 0.0
+	if armor_intro_label.text != new_text:
+		armor_intro_label.text = new_text
+	armor_intro_label.visible = not new_text.is_empty()
+	versus_label.text = ""
+	versus_label.hide()
+	versus_label.size.y = 0.0
 	_last_versus_text = "__armor_stand_test_hud__"
 	refresh_top_text_layout()
 
@@ -5521,9 +5847,22 @@ func build_versus_text() -> String:
 	var team_index:int = 0
 	for side_key:String in side_order:
 		var members:PackedStringArray = PackedStringArray()
+		# Count the participants currently represented by return_battle_sides,
+		# not the saved lineup. Keep first-appearance order and never merge teams.
+		var counts:Dictionary = {}
+		var names:PackedStringArray = PackedStringArray()
 
 		for member in side_members[side_key]:
-			members.append(escape_bbcode(Game.t(str(member)).replace("_", " ")))
+			var name:String = str(member)
+			if not counts.has(name):
+				counts[name] = 0
+				names.append(name)
+			counts[name] = int(counts[name]) + 1
+		for name:String in names:
+			var text:String = escape_bbcode(Game.t(name).replace("_", " "))
+			if int(counts[name]) > 1:
+				text += " * %d" % int(counts[name])
+			members.append(text)
 
 		var side_text:String = " + ".join(members)
 		var side_color:Color = _versus_side_color(side_key,active_team_count,team_index)
@@ -5542,24 +5881,31 @@ func build_versus_text() -> String:
 	return "[center]" + "  [color=#FFFFFF][b]VS[/b][/color]  ".join(colored_sides) + "[/center]"
 
 func refresh_versus_text() -> void:
+	# Early returns for prebattle/dead-save must not leave the previous prose visible.
+	if is_instance_valid(armor_intro_label):
+		armor_intro_label.hide()
 	if versus_label == null:
 		return
 	if _dead_save_ui_override_active:
 		_apply_dead_save_ui_override()
 		return
+	if _development != null and _development.is_prebattle():
+		versus_label.visible = false
+		versus_label.text = ""
+		_last_versus_text = ""
+		if is_instance_valid(rotation_versus_root): rotation_versus_root.visible = false
+		if is_instance_valid(timed_training_label): timed_training_label.visible = false
+		return
 
 	# 场上只要有任意盔甲架系角色，就把这一局视为测试。
-	# 原 VS / 轮换名单 / 计时器不再占用地图上方；顶部只显示第一个敌方角色的实用数据与白话机制说明。
+	# 只显示放大的角色名称与机制介绍，不显示 VS、轮换名单或计时器。
 	if _refresh_armor_stand_test_mode_state():
 		_refresh_armor_stand_test_enemy_info()
 		return
 
-	# V108：顶部 VS 只能有一个来源。
-	# - 轮放模式，以及 Boss 开启“车轮战”时：只显示轮换名单 VS。
-	# - Boss 未开启“车轮战”时：只显示普通/手动式 VS。
-	# 旧逻辑只把 rotation 模式当作轮换 HUD，导致 Boss 车轮战时普通 versus_label
-	# 仍保持可见，于是两个 VS 同时叠在地图上方。
-	if _queue_battle_mode_active():
+	# Rotation frames have no text VS: reuse the ordinary screen-space XX VS XX.
+	# Boss wheel mode still owns its legacy name-column VS; never show both.
+	if _queue_battle_mode_active() and not Game.is_rotation_training_mode():
 		versus_label.visible = false
 		versus_label.text = ""
 		versus_label.size.y = 0.0
@@ -5817,6 +6163,7 @@ func return_random_char() -> String:
 # 特殊训练模式公共流程
 #========================================================
 func _should_freeze_special_training_prestart() -> bool:
+	if _rotation_clearing_round: return true
 	# Boss 开场必须在“任何战斗逻辑运行之前”冻结，即使是 Rematch 这种没有重新打开
 	# Team 面板的启动路径也一样，因此 Boss 判断要早于 is_set_team()。
 	if Game.is_boss_training_mode():
@@ -5854,6 +6201,8 @@ func _freeze_special_training_node(node:Node) -> void:
 func _on_training_scene_node_added(node:Node) -> void:
 	# node_added 会在角色脚本开始正常物理行为前触发。
 	# 这能抓住兔子在 call_deferred 中补出的第二只兔等“额外角色”。
+	if _development != null:
+		_development.on_scene_node_added(node)
 	_freeze_special_training_node(node)
 
 	# V410：只对 shooter 脚本安排一次延迟注册。BattleTransient 通常在投射物 _ready()
@@ -5862,7 +6211,7 @@ func _on_training_scene_node_added(node:Node) -> void:
 		return
 	var script_value:Variant = node.get_script()
 	if script_value is Script and (script_value as Script).resource_path.begins_with("res://scripts/shooter/"):
-		call_deferred("_try_register_non_ball_projectile",node)
+		call_deferred("_try_register_non_ball_projectile_id",node.get_instance_id())
 
 
 func _freeze_existing_special_prestart_nodes() -> void:
@@ -5890,6 +6239,17 @@ func _restore_special_prestart_nodes() -> void:
 
 
 func _on_training_game_setting_changed(setting:String,_value:Variant) -> void:
+	if setting == "Development_Mode" and _development != null:
+		if bool(_value):
+			# 战斗中途不突然拆成两张地图；从新一局布阵开始生效。
+			if _battle_setup.is_empty() and _rotation_rosters["left"].is_empty() and _rotation_rosters["right"].is_empty():
+				_development.prepare()
+		else:
+			_development.cleanup()
+		return
+	if setting == "Development_Speed" and _development != null and _development.is_running():
+		Game.set_development_time_multiplier(float(_value))
+		return
 	if setting == "Minecraft_Clouds":
 		if is_instance_valid(minecraft_clouds): minecraft_clouds.refresh()
 		return
@@ -5908,10 +6268,15 @@ func _on_training_game_setting_changed(setting:String,_value:Variant) -> void:
 		_layout_timed_training_hud()
 		return
 	if setting == "Training_Mode_Type":
+		if _development != null and _development.is_prebattle():
+			_development.cleanup(false)
 		_reset_victory_bell_state()
 		# 切换玩法只重置轮放/计时/Boss自己的运行状态，不再打开训练模式，也不强制清空普通布阵。
 		_reset_special_training_state()
+		if _development != null and _battle_setup.is_empty():
+			_development.prepare()
 		refresh_versus_text()
+		_refresh_center_watermark_layout()
 	elif setting == "Training_Mode":
 		_reset_victory_bell_state()
 		if not Game.is_training_mode():
@@ -5922,7 +6287,9 @@ func _on_training_game_setting_changed(setting:String,_value:Variant) -> void:
 		if Game.is_timed_training_mode() and not _timed_running:
 			_timed_time_left = Game.get_training_timed_duration()
 			_refresh_timed_training_hud()
-	elif setting == "Training_Wheel_Battle":
+	elif setting in ["Training_Wheel_Battle","Rotation_Match_Type"]:
+		if Game.is_rotation_training_mode() and is_multiplayer_authority():
+			_restart_rotation_series(_rotation_rosters.duplicate(true))
 		_rotation_refresh_all_texts()
 	elif setting in ["Training_Boss_Side","Training_Boss_Wheel_Battle","Training_Boss_Multiplier","Training_Boss_Specialization","Training_Boss_Intro"]:
 		# Boss 队伍/倍率/特殊化是布阵属性；开场动画开关影响下一次正式开战。
@@ -5930,6 +6297,17 @@ func _on_training_game_setting_changed(setting:String,_value:Variant) -> void:
 
 
 func _reset_special_training_state() -> void:
+	_battle_lifecycle_generation += 1
+	_battle_spawn_tickets.clear()
+	_rotation_epoch += 1 # Cancel delayed deaths from reset / mode switches / rematches.
+	_cancel_rotation_presentation()
+	if not _rotation_rosters["left"].is_empty() or not _rotation_rosters["right"].is_empty():
+		_rotation_saved_rosters = _rotation_rosters.duplicate(true)
+		_rotation_saved_map = now_choose_map
+	_rotation_results.clear()
+	_rotation_finished = false
+	_rotation_clearing_round = false
+	if is_instance_valid(_rotation_frame_hud): _rotation_frame_hud.reset_scroll()
 	if is_instance_valid(_boss_intro_overlay):
 		_boss_intro_overlay.queue_free()
 	_boss_intro_overlay = null
@@ -5950,6 +6328,9 @@ func _reset_special_training_state() -> void:
 	_timed_pending_entries.clear()
 	_timed_running = false
 	_timed_finished = false
+	_timed_overtime = false
+	_timed_winner_setup = -1
+	_timed_defeated_setups.clear()
 	_timed_start_armed = false
 	_timed_time_left = Game.get_training_timed_duration()
 	_timed_damage_by_setup.clear()
@@ -5960,13 +6341,16 @@ func _reset_special_training_state() -> void:
 	_timed_damage_labels.clear()
 	_timed_damage_label_character_ids.clear()
 	if is_instance_valid(timed_training_label):
-		timed_training_label.visible = Game.is_timed_training_mode()
+		timed_training_label.visible = false
 	_refresh_timed_training_hud()
 	if is_instance_valid(rotation_versus_root):
 		rotation_versus_root.visible = _queue_battle_mode_active()
 
 
 func _update_special_training_modes(delta:float) -> void:
+	if _development != null and _development.is_prebattle():
+		return
+	if _queue_battle_mode_active() and (not is_multiplayer_authority() or _rotation_transitioning or _rotation_finished): return
 	# 轮放 / 计时 / Boss 都是独立玩法，不能被“训练模式”总开关关掉。
 	if Game.is_boss_training_mode():
 		var boss_wheel:bool = Game.is_training_boss_wheel_battle_enabled()
@@ -6021,13 +6405,16 @@ func _update_special_training_modes(delta:float) -> void:
 	if is_instance_valid(rotation_versus_root): rotation_versus_root.visible = false
 
 	if Game.is_timed_training_mode():
-		if is_instance_valid(timed_training_label): timed_training_label.visible = true
+		if is_instance_valid(timed_training_label): timed_training_label.visible = false
+		if not is_multiplayer_authority():
+			_enforce_timed_character_hud()
+			return
 		if not _timed_running and not _timed_finished and control.is_set_team():
 			_freeze_existing_special_prestart_nodes()
 		# 计时模式人物在布阵时已经实际生成，只是被冻结。关掉工具栏才一起启用并开始计时。
 		if not control.is_set_team() and not _timed_pending_entries.is_empty():
 			_spawn_pending_timed_characters()
-		if _timed_running and not _timed_finished and not get_tree().paused:
+		if _timed_running and not _timed_finished and is_combat_runtime_active():
 			_timed_time_left = maxf(_timed_time_left - maxf(delta,0.0),0.0)
 			_refresh_timed_training_hud()
 			if _timed_time_left <= 0.0:
@@ -6039,6 +6426,7 @@ func _update_special_training_modes(delta:float) -> void:
 			_timed_time_left = Game.get_training_timed_duration()
 			_refresh_timed_training_hud()
 		_enforce_timed_character_hud()
+		_sync_timed_match(delta)
 	else:
 		if is_instance_valid(timed_training_label): timed_training_label.visible = false
 
@@ -6071,16 +6459,18 @@ func _count_primary_battle_characters() -> int:
 #========================================================
 # 轮放模式
 #========================================================
-func _enqueue_rotation_character(_requested_team:String,char_name:String,poi:Vector2,forced_side:String = "") -> void:
-	if not _has_character_scene_any(char_name):
+func _enqueue_rotation_character(_requested_team:String,char_name:String,poi:Vector2,forced_side:String = "",scene_path:String = "") -> void:
+	if _get_character_scene_path(char_name,scene_path) == null:
 		push_warning("轮放模式无法加入角色: " + char_name)
 		return
 	var side:String = forced_side if forced_side in ["left","right"] else _boss_side_for_position(poi)
 	var setup_id:int = _battle_setup_next_id
 	_battle_setup_next_id += 1
 	var roster:Array = _rotation_rosters[side]
-	roster.append({"id":setup_id,"char":char_name})
+	roster.append({"id":setup_id,"char":char_name,"scene_path":scene_path if not scene_path.is_empty() else character_scene_path(char_name)})
 	_rotation_rosters[side] = roster
+	if _development != null and _development.is_prebattle():
+		_development._sync_lanes(true)
 
 	if not _rotation_started:
 		# 布阵阶段：名单立刻在 VS 两侧显示；每边第一位角色也立即显示在固定出生点，
@@ -6095,6 +6485,9 @@ func _enqueue_rotation_character(_requested_team:String,char_name:String,poi:Vec
 	if is_instance_valid(rotation_versus_root):
 		rotation_versus_root.visible = true
 		_layout_rotation_versus_hud()
+	if _development != null and _development.is_prebattle():
+		_development.on_rotation_enqueued(side)
+		refresh_versus_text()
 
 	# 如果比赛已经开始但这一边刚好没人（名单先耗尽、后来又补了人），关掉选人面板后会补上。
 	if _rotation_started and int(_rotation_active_setup[side]) < 0 and not control.is_set_team():
@@ -6142,7 +6535,7 @@ func _spawn_next_rotation_character(side:String) -> ball:
 	_rotation_next_index[side] = index + 1
 	var setup_id:int = int(record.get("id",-1))
 	var char_name:String = str(record.get("char",""))
-	var is_reinforcement:bool = index > 0
+	var is_reinforcement:bool = index > 0 and not _rotation_fresh_round
 	var pos:Vector2 = _queue_outside_spawn_position(side) if is_reinforcement else _rotation_spawn_position(side)
 	var entry:Dictionary = _queue_entry_for_record(record, side, pos)
 	var spawned:ball = null
@@ -6155,9 +6548,13 @@ func _spawn_next_rotation_character(side:String) -> ball:
 		_rotation_preview_character[side] = null
 		used_prestart_preview = true
 	else:
-		spawned = _spawn_character_from_setup(entry)
+		if _development != null:
+			spawned = _development.take_candidate(setup_id,pos)
+		if spawned == null:
+			spawned = _spawn_character_from_setup(entry)
 	if spawned == null:
 		return null
+	bind_battle_lifecycle(spawned,null,true)
 	spawned.set_meta("rotation_side",side)
 	spawned.set_meta("queue_character_name",char_name)
 	if is_reinforcement and not used_prestart_preview:
@@ -6176,57 +6573,334 @@ func _spawn_next_rotation_character(side:String) -> ball:
 	return spawned
 
 
-func _on_rotation_character_tree_exiting(character:ball,side:String,setup_id:int) -> void:
-	if not _queue_battle_mode_active():
-		return
-	if character == null or not is_instance_valid(character):
-		return
-	if int(character.health) > 0:
-		return
-	if int(_rotation_active_setup.get(side,-1)) != setup_id:
-		return
-	_rotation_active_setup[side] = -1
-	_rotation_active_name[side] = ""
-	_rotation_mark_current_dead(side)
-	if not _rotation_pending_dead_sides.has(side):
-		_rotation_pending_dead_sides.append(side)
-	if not _rotation_transitioning:
-		call_deferred("_rotation_resolve_pending_deaths")
-
+func _on_rotation_character_tree_exiting(_character:ball,_side:String,_setup_id:int) -> void:
+	# The body exiting is only a notification; descendants own the same slot.
+	if is_instance_valid(_character): _character.set_meta("battle_lifecycle_exiting",true)
+	_scan_rotation_family_extinctions()
 
 func _rotation_resolve_pending_deaths() -> void:
-	if _rotation_transitioning or not _queue_battle_mode_active() or _rotation_pending_dead_sides.is_empty():
-		return
-	_rotation_transitioning = true
-	await get_tree().create_timer(0.28).timeout
+	if _rotation_transitioning or not _queue_battle_mode_active() or _rotation_pending_dead_sides.is_empty(): return
+	_rotation_transitioning=true
+	var epoch:int=_rotation_epoch
+	await get_tree().create_timer(0.28,false).timeout
+	if not is_inside_tree() or epoch!=_rotation_epoch: return
 	if not _queue_battle_mode_active():
-		_rotation_transitioning = false
+		_rotation_transitioning=false
 		_rotation_pending_dead_sides.clear()
 		return
-
-	var dead_sides:Array[String] = _rotation_pending_dead_sides.duplicate()
+	var dead_sides:Array[String]=[]
+	for side:String in _rotation_pending_dead_sides:
+		var setup_id:int=int(_rotation_active_setup.get(side,-1))
+		# Revalidate the same live family after death prevention / revival / deferred descendants settle.
+		if setup_id>=0 and not _battle_family_alive(setup_id): dead_sides.append(side)
 	_rotation_pending_dead_sides.clear()
-	if (Game.is_boss_training_mode() and Game.is_training_boss_wheel_battle_enabled()) or bool(Game.Game_Settings.get("Training_Wheel_Battle",false)):
-		# 双方同一帧死亡时，两边都会各自上下一位，不会只处理第一个回调。
-		for dead_side:String in dead_sides:
-			_spawn_next_rotation_character(dead_side)
+	if dead_sides.is_empty():
+		_rotation_transitioning=false
+		return
+	for side:String in dead_sides:
+		_rotation_active_setup[side]=-1
+		_rotation_active_name[side]=""
+		_rotation_mark_current_dead(side)
+	if Game.is_rotation_training_mode() and Game.get_rotation_match_type()!="wheel":
+		_rotation_ui_token+=1
+		if multiplayer.has_multiplayer_peer(): _rotation_remote_begin.rpc(dead_sides,_rotation_ui_token,_rotation_rosters,_rotation_next_index)
+		await _present_rotation_match(dead_sides,epoch,true)
 	else:
-		# 普通轮放：任何一方死亡都结束这一小局，幸存者也退场，然后双方各上下一位。
-		_clear_battle_transients()
-		for side:String in ["left","right"]:
-			var active_id:int = int(_rotation_active_setup.get(side,-1))
-			if active_id >= 0:
-				var active:ball = _find_character_by_setup_id_any(active_id)
-				if active != null and is_instance_valid(active):
-					_rotation_mark_current_dead(side,false)
-					Game.free_node(active)
-			_rotation_active_setup[side] = -1
-			_rotation_active_name[side] = ""
+		await _advance_rotation_match(dead_sides,epoch)
+	if not is_inside_tree() or epoch!=_rotation_epoch: return
+	_rotation_transitioning=false
+	_rotation_combat_released=false
+	if not _rotation_pending_dead_sides.is_empty(): call_deferred("_rotation_resolve_pending_deaths")
+
+func _advance_rotation_match(dead_sides:Array[String],epoch:int) -> void:
+	if Game.is_rotation_training_mode() and Game.get_rotation_match_type()=="challenge":
+		await _resolve_rotation_challenge(dead_sides,epoch)
+	elif (Game.is_boss_training_mode() and Game.is_training_boss_wheel_battle_enabled()) or Game.get_rotation_match_type()=="wheel":
+		for dead_side:String in dead_sides: _spawn_next_rotation_character(dead_side)
+	else:
+		_retire_rotation_families()
 		_spawn_next_rotation_character("left")
 		_spawn_next_rotation_character("right")
+
+func _rotation_presentation_valid(epoch:int) -> bool:
+	return is_inside_tree() and epoch==_rotation_epoch and Game.is_rotation_training_mode()
+func _rotation_ui_wait(seconds:float,epoch:int) -> void:
+	var until:int=Time.get_ticks_usec()+int(seconds*1000000.0)
+	while _rotation_presentation_valid(epoch) and Time.get_ticks_usec()<until: await get_tree().process_frame
+func _cancel_rotation_presentation() -> void:
+	_rotation_combat_blocked=false
+	_rotation_combat_released=false
+	_rotation_load_ready=false
+	_rotation_ui_token+=1
+	if is_instance_valid(_rotation_door): _rotation_door.cancel()
+	_rotation_door=null
+	if is_instance_valid(_rotation_toast_mirror): _rotation_toast_mirror.queue_free()
+	_rotation_toast_mirror=null
+	if is_instance_valid(duel_top_hud): duel_top_hud.end_round_result()
+func _set_rotation_load_progress(value:float) -> void:
+	_rotation_ui_progress=clampf(value,0.0,1.0)
+	if is_instance_valid(_rotation_door): _rotation_door.set_loading_progress(_rotation_ui_progress)
+	if is_multiplayer_authority() and multiplayer.has_multiplayer_peer(): _rotation_remote_progress.rpc(_rotation_ui_token,_rotation_ui_progress,false)
+
+@rpc("authority","call_remote","reliable")
+func _rotation_remote_begin(dead_sides:Array[String],token:int,rosters:Dictionary,next_index:Dictionary) -> void:
+	if not Game.is_rotation_training_mode() or token<=_rotation_ui_token: return
+	_rotation_ui_token=token
+	_rotation_rosters=rosters.duplicate(true)
+	_rotation_next_index=next_index.duplicate()
+	_rotation_started=true
+	_rotation_transitioning=true
+	var epoch:int=_rotation_epoch
+	await _present_rotation_match(dead_sides,epoch,false)
+	if not _rotation_presentation_valid(epoch): return
+	_rotation_transitioning=false
+	_rotation_combat_released=false
+@rpc("authority","call_remote","reliable")
+func _rotation_remote_progress(token:int,value:float,ready:bool) -> void:
+	if token!=_rotation_ui_token: return
+	_rotation_ui_progress=maxf(_rotation_ui_progress,clampf(value,0.0,1.0))
+	_rotation_load_ready=_rotation_load_ready or ready
+	if is_instance_valid(_rotation_door) and _rotation_door.phase==_rotation_door.Phase.COVERED:
+		_rotation_door.set_loading_progress(_rotation_ui_progress)
+
+func _present_rotation_match(dead_sides:Array[String],epoch:int,authority:bool) -> void:
+	_rotation_combat_blocked=false # Old round keeps moving/attacking while the result and closing doors play.
+	_rotation_load_ready=false
+	_rotation_ui_progress=0.0
+	_rotation_combat_released=false
+	var winner_side:String="" if dead_sides.size()!=1 else ("right" if dead_sides[0]=="left" else "left")
+	if is_instance_valid(duel_top_hud): duel_top_hud.begin_round_result(winner_side)
+	if authority and not winner_side.is_empty(): _trigger_victory_bell()
+	# Keep the previous scene/actors until the result has arrived and the doors have actually covered a frame.
+	await _rotation_ui_wait(1.20,epoch)
+	if not _rotation_presentation_valid(epoch): return
+	_rotation_door=load("res://scripts/ui/dark_oak_transition.gd").ensure(get_tree())
+	while _rotation_presentation_valid(epoch) and _rotation_door.is_busy(): await get_tree().process_frame
+	if not _rotation_presentation_valid(epoch): return
+	if is_instance_valid(duel_top_hud):
+		_rotation_toast_mirror=duel_top_hud.make_mirror("",COMBAT_TEXT_VISIBILITY_LAYER)
+		_rotation_toast_mirror.process_mode=Node.PROCESS_MODE_ALWAYS
+		_rotation_door.shield.add_child(_rotation_toast_mirror)
+	var began:bool=_rotation_door.play(_load_rotation_covered.bind(dead_sides,epoch,authority),_release_rotation_combat.bind(epoch))
+	if not began: return
+	await _rotation_door.finished
+	if not _rotation_presentation_valid(epoch): return
+	if is_instance_valid(_rotation_toast_mirror): _rotation_toast_mirror.queue_free()
+	_rotation_toast_mirror=null
+	_rotation_door=null
+func _release_rotation_combat(epoch:int) -> void:
+	if not _rotation_presentation_valid(epoch) or not _rotation_load_ready: return
+	_rotation_combat_released=true
+	_rotation_combat_blocked=false
+	if is_instance_valid(duel_top_hud): duel_top_hud.end_round_result()
+func _rotation_next_scene_paths(dead_sides:Array[String]) -> Array[String]:
+	var paths:Array[String]=[]
+	var mode:String=Game.get_rotation_match_type()
+	var starts_fresh:bool=mode=="challenge" and (dead_sides.has("left") or (dead_sides.has("right") and int(_rotation_next_index.right)>=_rotation_rosters.right.size()))
+	if starts_fresh and int(_rotation_next_index.left)>=_rotation_rosters.left.size(): return paths
+	for side:String in ["left","right"]:
+		if not starts_fresh and mode!="duel" and not dead_sides.has(side): continue
+		var roster:Array=_rotation_rosters[side]
+		var index:int=0 if starts_fresh and side=="right" else int(_rotation_next_index[side])
+		if index<0 or index>=roster.size(): continue
+		var entry:Dictionary=roster[index]
+		var path:String=str(entry.get("scene_path",""))
+		if path.is_empty(): path=character_scene_path(str(entry.get("char","")))
+		# Do not silently skip broken contenders and report a false 100% success.
+		if not paths.has(path): paths.append(path)
+	return paths
+
+func _rotation_fail_load(path:String) -> void:
+	if multiplayer.has_multiplayer_peer() and not multiplayer.get_peers().is_empty(): _rotation_abort_load.rpc(_rotation_ui_token,path)
+	_rotation_abort_load(_rotation_ui_token,path)
+@rpc("authority","call_remote","reliable")
+func _rotation_abort_load(token:int,path:String) -> void:
+	if token!=_rotation_ui_token: return
+	_rotation_epoch+=1
+	_cancel_rotation_presentation()
+	_rotation_transitioning=false
+	_rotation_started=false
+	_rotation_finished=true
+	# Return to the existing formation controls without clearing the surviving old actor.
+	control.show()
+	control.team.show()
+	var dialog:=AcceptDialog.new()
+	dialog.title="加载失败 / Load failed"
+	dialog.dialog_text="无法加载下一位，请修复资源后重置对局。\nCannot load the next contender. Fix the resource and reset the match.\n"+path
+	dialog.confirmed.connect(dialog.queue_free)
+	dialog.canceled.connect(dialog.queue_free)
+	add_child(dialog)
+	dialog.popup_centered()
+
+func _load_rotation_covered(dead_sides:Array[String],epoch:int,authority:bool) -> void:
+	if not _rotation_presentation_valid(epoch): return
+	_rotation_combat_blocked=true
+	# The old winner can still die to an existing projectile/status before coverage.
+	if authority:
+		for side:String in ["left","right"]:
+			var setup_id:int=int(_rotation_active_setup[side])
+			if not dead_sides.has(side) and setup_id>=0 and not _battle_family_alive(setup_id):
+				dead_sides.append(side)
+				_rotation_active_setup[side]=-1
+				_rotation_active_name[side]=""
+				_rotation_mark_current_dead(side)
+		_rotation_pending_dead_sides.clear()
+		if dead_sides.size()==2 and is_instance_valid(duel_top_hud): duel_top_hud.begin_round_result("")
+	_rotation_door.set_loading_progress(_rotation_ui_progress)
+	await _rotation_ui_wait(0.25,epoch) # Let the bar emerge before blocking instantiation work.
+	if not _rotation_presentation_valid(epoch): return
+	if authority:
+		_set_rotation_load_progress(0.10) # Covered + old scene still intact.
+		var paths:Array[String]=_rotation_next_scene_paths(dead_sides)
+		for i:int in range(paths.size()):
+			var path:String=paths[i]
+			if path.is_empty() or not ResourceLoader.exists(path,"PackedScene"):
+				_rotation_fail_load(path)
+				return
+			if not ResourceLoader.has_cached(path):
+				var error:Error=ResourceLoader.load_threaded_request(path,"PackedScene")
+				if error!=OK:
+					_rotation_fail_load(path)
+					return
+				if error==OK:
+					var measured:Array=[]
+					while ResourceLoader.load_threaded_get_status(path,measured)==ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+						if not _rotation_presentation_valid(epoch): return
+						_set_rotation_load_progress(0.10+0.55*(float(i)+float(measured[0] if not measured.is_empty() else 0.0))/maxi(paths.size(),1))
+						await get_tree().process_frame
+					if ResourceLoader.load_threaded_get_status(path)!=ResourceLoader.THREAD_LOAD_LOADED:
+						_rotation_fail_load(path)
+						return
+					ResourceLoader.load_threaded_get(path)
+			if not load(path) is PackedScene:
+				_rotation_fail_load(path)
+				return
+			_set_rotation_load_progress(0.10+0.55*float(i+1)/maxi(paths.size(),1))
+		if not _rotation_presentation_valid(epoch): return
+		await _advance_rotation_match(dead_sides,epoch) # All retirement and spawning is behind closed doors.
+		if not _rotation_presentation_valid(epoch): return
+		_set_rotation_load_progress(0.90)
+		await get_tree().process_frame
+		if not _rotation_presentation_valid(epoch): return
+		if DisplayServer.get_name()!="headless": await RenderingServer.frame_post_draw
+		if not _rotation_presentation_valid(epoch): return
+		_rotation_load_ready=true
+		_reset_victory_bell_state()
+		_set_rotation_load_progress(1.0)
+		if multiplayer.has_multiplayer_peer(): _rotation_remote_progress.rpc(_rotation_ui_token,1.0,true)
+	else:
+		while _rotation_presentation_valid(epoch) and not _rotation_load_ready: await get_tree().process_frame
+	if not _rotation_presentation_valid(epoch): return
+	await _rotation_ui_wait(0.15,epoch)
+	if not _rotation_presentation_valid(epoch): return
+	_rotation_door.set_loading_progress(-1.0)
+	var started:int=Time.get_ticks_usec()
+	while _rotation_presentation_valid(epoch):
+		var amount:float=clampf(float(Time.get_ticks_usec()-started)/300000.0,0.0,1.0)
+		if is_instance_valid(duel_top_hud): duel_top_hud.round_exit=amount
+		if amount>=1.0: break
+		await get_tree().process_frame
+
+func _clear_rotation_round_units() -> void:
+	_battle_lifecycle_round += 1
+	_battle_spawn_tickets.clear()
+	_rotation_clearing_round = true
+	_rotation_active_setup = {"left": -1,"right": -1}
+	_rotation_active_name = {"left": "","right": ""}
+	_rotation_preview_character = {"left": null,"right": null}
+	_rotation_pending_dead_sides.clear()
+	_training_respawn_pending.clear()
+	_restore_special_prestart_nodes()
+	_release_heavy_hitstop()
+	_clear_battle_transients()
+	for group:String in ["Ball","Shooter"]:
+		for node:Node in get_tree().get_nodes_in_group(group):
+			if node.has_meta("development_reserve"):
+				continue
+			if is_instance_valid(node) and not node.is_queued_for_deletion():
+				node.process_mode = Node.PROCESS_MODE_DISABLED
+				Game.free_node(node)
+	if has_method("_reset_map_character_spawners"): call("_reset_map_character_spawners")
+	_reset_victory_bell_state()
+	_clear_rotation_hud_labels()
+
+func _resolve_rotation_challenge(dead_sides:Array[String],epoch:int) -> void:
+	var blue_lost:bool = dead_sides.has("left")
+	var red_finished:bool = dead_sides.has("right") and int(_rotation_next_index["right"]) >= _rotation_rosters["right"].size()
+	if not blue_lost and not red_finished:
+		if dead_sides.has("right"): _spawn_next_rotation_character("right")
+		return
+	# Simultaneous elimination counts as failure: a successful challenger must survive.
+	var blue_index:int = int(_rotation_next_index["left"])-1
+	if blue_index >= 0 and blue_index < _rotation_rosters["left"].size():
+		var blue_id:int = int(_rotation_rosters["left"][blue_index]["id"])
+		_rotation_results[blue_id] = "dead" if blue_lost else "won"
+		if not blue_lost and not is_instance_valid(_rotation_door): _play_victory_bell_once()
+	_clear_rotation_round_units()
+	await get_tree().process_frame
+	if epoch != _rotation_epoch or not is_inside_tree(): return
+	# Clear deferred summons/projectiles produced by the old fighters during teardown.
+	_clear_battle_transients()
+	for node:Node in get_tree().get_nodes_in_group("Ball"):
+		if node.has_meta("development_reserve"):
+			continue
+		if is_instance_valid(node) and not node.is_queued_for_deletion(): Game.free_node(node)
+	await get_tree().process_frame
+	if epoch != _rotation_epoch or not is_inside_tree(): return
+	_rotation_clearing_round = false
+	if int(_rotation_next_index["left"]) >= _rotation_rosters["left"].size():
+		_rotation_finished = true
+		return
+	# All red opponents are fresh for EVERY blue challenger (including the first red).
+	_rotation_next_index["right"] = 0
+	for record:Dictionary in _rotation_rosters["right"]:
+		_rotation_results.erase(int(record["id"]))
+	if is_instance_valid(_rotation_frame_hud): _rotation_frame_hud.rows["right"].reset_scroll()
+	_rotation_fresh_round = true
+	_spawn_next_rotation_character("left")
+	_spawn_next_rotation_character("right")
+	_rotation_fresh_round = false
+	notify_primary_battle_character_alive_changed()
+
+func _restart_rotation_series(rosters:Dictionary) -> void:
+	if not is_multiplayer_authority(): return
+	if _development != null:
+		_development.cleanup(false)
+	_rotation_epoch += 1
+	_cancel_rotation_presentation()
+	var epoch:int = _rotation_epoch
+	_rotation_transitioning = true
+	Game.end_battle_random()
+	_clear_rotation_round_units()
+	await get_tree().process_frame
+	if epoch != _rotation_epoch or not is_inside_tree(): return
+	_rotation_rosters = rosters.duplicate(true)
+	_rotation_next_index = {"left": 0,"right": 0}
+	_rotation_results.clear()
+	_rotation_finished = false
+	_rotation_started = false
+	_rotation_clearing_round = false
 	_rotation_transitioning = false
-	if not _rotation_pending_dead_sides.is_empty():
-		call_deferred("_rotation_resolve_pending_deaths")
+	_battle_setup.clear()
+	_battle_setup_next_id = 1
+	if _development != null:
+		_development.prepare()
+	if is_instance_valid(_rotation_frame_hud): _rotation_frame_hud.reset_scroll()
+	for side:String in ["left","right"]:
+		for record:Dictionary in _rotation_rosters[side]:
+			_battle_setup_next_id = maxi(_battle_setup_next_id,int(record["id"])+1)
+			_rotation_add_setup_preview_label(side,str(record["char"]),int(record["id"]))
+		_spawn_rotation_preview_character_if_needed(side)
+	if _development != null:
+		_development.seed_rotation_roster()
+	refresh_versus_text()
+
+@rpc("authority","call_remote","reliable")
+func _receive_rotation_frame_state(rosters:Dictionary,results:Dictionary,active:Dictionary) -> void:
+	if is_multiplayer_authority(): return
+	_rotation_rosters = rosters
+	_rotation_results = results
+	_rotation_active_setup = active
 
 
 func _find_character_by_setup_id_any(setup_id:int) -> ball:
@@ -6237,6 +6911,10 @@ func _find_character_by_setup_id_any(setup_id:int) -> ball:
 
 
 func _build_rotation_versus_hud() -> void:
+	_rotation_frame_hud = preload("res://scripts/ui/rotation_frame_hud.gd").new()
+	_rotation_frame_hud.world = self
+	_rotation_frame_hud.visibility_layer = COMBAT_TEXT_VISIBILITY_LAYER
+	add_child(_rotation_frame_hud)
 	rotation_versus_root = Control.new()
 	rotation_versus_root.name = "RotationVersusHUD"
 	# 根节点自身不拦战场输入；左右名单区域单独接管滚轮/右键。
@@ -6483,7 +7161,11 @@ func _rotation_create_current_label(side:String,char_name:String,setup_id:int = 
 	_layout_rotation_label_widths()
 
 
-func _rotation_mark_current_dead(side:String,red:bool = true) -> void:
+func _rotation_mark_current_dead(side:String,red:bool = true,winner:bool = false) -> void:
+	var index:int = int(_rotation_next_index.get(side,0))-1
+	var roster:Array = _rotation_rosters[side]
+	if index >= 0 and index < roster.size():
+		_rotation_results[int(roster[index].get("id",-1))] = "dead" if red else ("won" if winner else "retired")
 	var raw:Variant = _rotation_current_labels.get(side,null)
 	if not raw is Label or not is_instance_valid(raw):
 		return
@@ -6620,6 +7302,18 @@ func _layout_rotation_versus_hud() -> void:
 	rotation_versus_root.scale = Vector2.ONE
 	rotation_versus_root.visible = _queue_battle_mode_active() and not _armor_stand_test_hud_active
 	if not rotation_versus_root.visible:
+		return
+	var use_frames:bool = Game.is_rotation_training_mode()
+	rotation_left_root.visible = not use_frames
+	rotation_right_root.visible = not use_frames
+	rotation_vs_label.visible = not use_frames
+	if use_frames:
+		var frame_map_rect:Rect2 = return_map_visual_rect(map_group[now_choose_map])
+		var frame_cell:Vector2 = map_visual_cell_size(map_group[now_choose_map])
+		rotation_versus_root.position = Vector2(frame_map_rect.position.x,frame_map_rect.position.y-frame_cell.y*1.22)
+		rotation_versus_root.size = Vector2(frame_map_rect.size.x,frame_cell.y)
+		if is_instance_valid(_rotation_frame_hud): _rotation_frame_hud.sync()
+		_refresh_center_watermark_layout()
 		return
 	var map_rect:Rect2 = return_map_visual_rect(map_group[now_choose_map])
 	# Scale the complete legacy roster, not just the two letters: name columns,
@@ -6927,6 +7621,11 @@ func _update_non_ball_projectile_visual_facing() -> void:
 			projectile.global_rotation = desired_rotation
 
 
+func _try_register_non_ball_projectile_id(instance_id:int) -> void:
+	if is_instance_id_valid(instance_id):
+		_try_register_non_ball_projectile(instance_from_id(instance_id) as Node)
+
+
 func _try_register_non_ball_projectile(node:Node) -> void:
 	if node == null or not is_instance_valid(node) or not node.is_inside_tree():
 		return
@@ -7117,6 +7816,8 @@ func _is_character_dialogue_enabled() -> bool:
 # - 仍保留各自正式开始条件。
 func is_combat_runtime_active() -> bool:
 	var tree:SceneTree = get_tree()
+	if _development != null and _development.phase == _development.MERGING:
+		return false
 	if (
 		tree == null
 		or tree.paused
@@ -7124,6 +7825,8 @@ func is_combat_runtime_active() -> bool:
 		or Engine.time_scale <= 0.000001
 	):
 		return false
+	if _development != null and _development.is_running():
+		return _has_alive_primary_battle_character_cached()
 
 	# 手动模式：工具栏开着也算运行中，只看时间有没有停止。
 	if Game.get_training_mode_type() == "manual":
@@ -7140,21 +7843,29 @@ func is_combat_runtime_active() -> bool:
 	if Game.is_boss_training_mode():
 		return _boss_started and not _boss_intro_playing
 	if Game.is_rotation_training_mode():
-		return _rotation_started and not _rotation_transitioning
+		return _rotation_started and not _rotation_combat_blocked
 	if Game.is_timed_training_mode():
-		return _timed_running and not _timed_finished
+		return _timed_running or (_timed_finished and _has_alive_primary_battle_character_cached())
 
 	return _has_alive_primary_battle_character_cached()
 
 
 # 同一 physics tick 内复用存活判断；渲染帧（非物理帧）不缓存，保持原逐次扫描语义。
+# Runtime survival is broader than editable/main-character count. Keep the
+# exact existence/count optimization above unchanged for placement callers.
+func _has_active_battle_participant() -> bool:
+	for raw:Variant in _battle_units_cache:
+		if raw is ball and _battle_unit_keeps_family_alive(raw): return true
+	_prune_battle_spawn_tickets()
+	return not _battle_spawn_tickets.is_empty()
+
 func _has_alive_primary_battle_character_cached() -> bool:
 	if not Engine.is_in_physics_frame():
-		return _has_alive_primary_battle_character()
+		return _has_active_battle_participant()
 	var frame:int = Engine.get_physics_frames()
 	if _alive_primary_cache_frame != frame:
 		_alive_primary_cache_frame = frame
-		_alive_primary_cache_value = _has_alive_primary_battle_character()
+		_alive_primary_cache_value = _has_active_battle_participant()
 	return _alive_primary_cache_value
 
 
@@ -7551,7 +8262,7 @@ func _format_timed_clock(seconds_left:float) -> String:
 func _refresh_timed_training_hud() -> void:
 	if not is_instance_valid(timed_training_label):
 		return
-	timed_training_label.visible = Game.is_timed_training_mode() and not _armor_stand_test_hud_active
+	timed_training_label.visible = false # Clock lives in the screen-space VS HUD.
 	if not timed_training_label.visible:
 		return
 	if _timed_finished:
@@ -7693,6 +8404,9 @@ func _enforce_timed_character_hud() -> void:
 
 
 func _resolve_timed_source_setup_id(source:Node) -> int:
+	if is_instance_valid(source):
+		var identity:Dictionary=source.get_meta(BATTLE_LIFECYCLE_META,{})
+		if int(identity.get("setup",-1))>=0: return int(identity.setup)
 	var cursor:Node = source
 	for _i in range(4):
 		if cursor == null or not is_instance_valid(cursor):
@@ -7707,7 +8421,7 @@ func _resolve_timed_source_setup_id(source:Node) -> int:
 
 
 func _on_timed_training_damage_resolved(source:Node,target:Node,actual_health_damage:float) -> void:
-	if not Game.is_timed_training_mode() or _timed_finished or actual_health_damage <= 0.0:
+	if not Game.is_timed_training_mode() or not is_multiplayer_authority() or _timed_finished or actual_health_damage <= 0.0:
 		return
 	# 计分只统计对真正参战人物造成的伤害；打自己的伤害、召唤物/杂物不刷分。
 	if not target is ball or not _is_primary_battle_character(target as ball):
@@ -7720,6 +8434,7 @@ func _on_timed_training_damage_resolved(source:Node,target:Node,actual_health_da
 		return
 	_timed_damage_by_setup[setup_id] = float(_timed_damage_by_setup.get(setup_id,0.0)) + actual_health_damage
 	_update_timed_damage_label(setup_id)
+	if _timed_overtime: _finish_timed_training() # Settle the first actual lead, not a later physics tick.
 
 
 func _update_timed_damage_label(setup_id:int) -> void:
@@ -7728,43 +8443,77 @@ func _update_timed_damage_label(setup_id:int) -> void:
 		(raw as Label).text = str(int(round(float(_timed_damage_by_setup.get(setup_id,0.0)))))
 
 
+func _sync_timed_match(delta:float,force:bool=false) -> void:
+	if not is_multiplayer_authority() or not multiplayer.has_multiplayer_peer() or multiplayer.get_peers().is_empty(): return
+	_timed_sync_elapsed+=maxf(delta,0.0)
+	if not force and _timed_sync_elapsed<0.1: return
+	_timed_sync_elapsed=0.0
+	_timed_sync_sequence+=1
+	_receive_timed_match.rpc(_timed_sync_sequence,_timed_time_left,_timed_damage_by_setup,_timed_running,_timed_finished,_timed_overtime,_timed_winner_setup)
+@rpc("authority","call_remote","reliable")
+func _receive_timed_match(sequence:int,remaining:float,scores:Dictionary,running:bool,finished:bool,overtime:bool,winner:int) -> void:
+	if is_multiplayer_authority() or not Game.is_timed_training_mode() or sequence<=_timed_received_sequence: return
+	_timed_received_sequence=sequence
+	_timed_time_left=maxf(remaining,0.0)
+	_timed_damage_by_setup=scores.duplicate()
+	_timed_running=running
+	_timed_finished=finished
+	_timed_overtime=overtime
+	_timed_winner_setup=winner
+	if finished: _victory_bell_played=true
+	_refresh_timed_training_hud()
+
 func _finish_timed_training() -> void:
-	if _timed_finished:
-		return
-	_timed_finished = true
-	_timed_running = false
-	_timed_start_armed = false
-	if is_instance_valid(timed_training_label):
-		timed_training_label.add_theme_color_override("font_color",Color(1.0,0.12,0.12))
-	var best_score:float = -1.0
-	var winners:Array[int] = []
+	if _timed_finished or not is_multiplayer_authority(): return
+	_timed_time_left=0.0
+	var best_score:float=-1.0
+	var winners:Array[int]=[]
 	for raw_id:Variant in _timed_damage_by_setup.keys():
-		var setup_id:int = int(raw_id)
-		var score:float = float(_timed_damage_by_setup[raw_id])
-		if score > best_score + 0.001:
-			best_score = score
-			winners = [setup_id]
-		elif absf(score - best_score) <= 0.001:
-			winners.append(setup_id)
+		var setup_id:int=int(raw_id)
+		var score:float=float(_timed_damage_by_setup[raw_id])
+		if score>best_score+0.001:
+			best_score=score
+			winners=[setup_id]
+		elif absf(score-best_score)<=0.001: winners.append(setup_id)
+	if winners.size()!=1:
+		var first_overtime:bool=not _timed_overtime
+		_timed_overtime=true
+		_timed_running=true
+		if first_overtime: _sync_timed_match(0.0,true)
+		return
+	_timed_finished=true
+	_timed_running=false
+	_timed_overtime=false
+	_timed_start_armed=false
+	_timed_winner_setup=winners[0]
+	for raw_id:Variant in _timed_damage_by_setup.keys():
+		if int(raw_id)!=_timed_winner_setup: _timed_defeated_setups[int(raw_id)]=true
+	_training_respawn_pending.clear()
+	for unit:Node in _battle_units_cache.duplicate()+_ball_projectile_units.duplicate():
+		if is_instance_valid(unit) and _timed_defeated_setups.has(_resolve_timed_source_setup_id(unit)):
+			_eliminate_timed_defeated(unit)
+	_trigger_victory_bell()
+	_notify_battle_victory_for_setup(_timed_winner_setup)
+	_sync_timed_match(0.0,true)
+	notify_primary_battle_character_alive_changed()
+	# Deliberately no SceneTree pause or disabled winner: death animations and victory movement continue.
 
-	if winners.is_empty() or winners.size() > 1:
-		timed_training_label.text = Game.t("TRAINING_TIME_UP") + " · " + Game.t("TRAINING_DRAW")
-	else:
-		var winner_id:int = winners[0]
-		var winner_name:String = Game.t(str(_timed_name_by_setup.get(winner_id,""))).replace("_"," ")
-		timed_training_label.text = Game.t("TRAINING_TIME_UP") + " · " + Game.t("TRAINING_WINNER") + ": " + winner_name + " · " + str(int(round(best_score))) + " " + Game.t("TRAINING_DAMAGE")
-		_trigger_victory_bell()
-		_notify_battle_victory_for_setup(winner_id)
-
-	# 时间到后冻结战斗对象，但 UI/工具栏仍然正常工作；Reset 后会创建新对象恢复比赛。
-	var frozen:Dictionary = {}
-	for group_name:String in ["Ball","Shooter"]:
-		for node:Node in get_tree().get_nodes_in_group(group_name):
-			if node == null or not is_instance_valid(node): continue
-			var id:int = node.get_instance_id()
-			if frozen.has(id): continue
-			frozen[id] = true
-			node.process_mode = Node.PROCESS_MODE_DISABLED
+func _eliminate_timed_defeated(unit:Node) -> void:
+	if not is_instance_valid(unit) or unit.is_queued_for_deletion() or not _timed_finished: return
+	if not _timed_defeated_setups.has(_resolve_timed_source_setup_id(unit)): return
+	if not unit is ball: return
+	var b:ball=unit
+	if bool(b.get_meta("timed_verdict_death",false)): return
+	b.set_meta("timed_verdict_death",true)
+	# Existing forced-map-rule death policy skips multi-life/totem prevention, not normal combat hits.
+	b.set_meta(&"__out_of_bounds_forced_death",true)
+	b.Can_Attack=false
+	b.Can_Skill=false
+	b.apply_damage_disable(3600.0)
+	b.block=0
+	b.health=0
+	if b.state_machine!=null: b.state_machine.current_state=ball.State.Die
+	else: b.Die();b.queue_free()
 
 
 #========================================================
@@ -7888,6 +8637,7 @@ func _queue_entry_for_record(record:Dictionary, side:String, position:Vector2) -
 		"id": int(record.get("id",-1)),
 		"team": _queue_internal_team_for_side(side),
 		"char": str(record.get("char","")),
+		"scene_path": str(record.get("scene_path","")),
 		"x": position.x,
 		"y": position.y,
 	}
@@ -7908,8 +8658,11 @@ func _queue_outside_spawn_position(side:String) -> Vector2:
 func _animate_queue_reinforcement_into_map(character:ball, side:String) -> void:
 	if character == null or not is_instance_valid(character):
 		return
-	# 复用 World 已有的地图救援 Tween：先停物理，再从地图外平滑移到该侧标准出生点。
-	_animate_ball_back_inside_map(character, _rotation_spawn_position(side))
+	# Wheel replacements visibly walk in; do not hide a 0.2-second rescue snap behind doors.
+	var wheel:bool=Game.get_rotation_match_type()=="wheel" or (Game.is_boss_training_mode() and Game.is_training_boss_wheel_battle_enabled())
+	var target:Vector2=_rotation_spawn_position(side)
+	var seconds:float=clampf(character.global_position.distance_to(target)/maxf(character.Speed,40.0),0.65,3.0) if wheel else -1.0
+	_animate_ball_back_inside_map(character,target,seconds)
 
 
 func _apply_boss_training_scaling(character:ball, factor:float) -> void:
@@ -8023,6 +8776,12 @@ func create_char(team:String,char:String,poi:Vector2):
 		var prepared:PackedScene = _mc_prewarmer.scenes.get(char)
 		if prepared != null: _character_scene_cache[prepared.resource_path] = prepared
 	var placement_id:int = _battle_setup_next_id
+	if _development != null and _development.is_prebattle() and _development.is_default_character(char):
+		# 默认分区人物（盔甲架等）是地图里的中立单位，不属于轮换名单。
+		if not _has_character_scene_any(char):
+			return
+		_spawn_character_from_setup({"id":-1,"team":"","char":char,"x":poi.x,"y":poi.y,"development_neutral":true})
+		return
 	# 轮放/Boss 的队伍归属优先读取 Team0/Team1；未选队伍才按放置位置分左右。
 	# 其他明确选择的队伍在这两个模式里无效，不能创建人物。
 	if Game.is_rotation_training_mode() and not _restoring_battle_setup:
@@ -8067,6 +8826,8 @@ func create_char(team:String,char:String,poi:Vector2):
 		"x": poi.x,
 		"y": poi.y,
 	}
+	if _development != null and _development.is_prebattle():
+		entry = _development.normalize_manual_entry(entry)
 	if Game.is_boss_training_mode():
 		var side:String = "left" if team == _boss_team_for_side("left") else "right"
 		entry["boss_side"] = side
@@ -8079,12 +8840,16 @@ func create_char(team:String,char:String,poi:Vector2):
 		# 旧版只在 _battle_setup 为空时追加第一个角色，导致胜利判定永远看不到第二个阵营。
 		_battle_setup.append(entry.duplicate(true))
 
-	_spawn_character_from_setup(entry)
+	var placed:ball=_spawn_character_from_setup(entry)
+	# Explicitly adding a real character ends the old free-mode result, even if it is an ally.
+	# Failed placements / obstacles / summons do not restart a concluded contest.
+	if is_instance_valid(placed) and _is_primary_battle_character(placed) and Game.get_training_mode_type()=="manual" and _victory_bell_played:
+		_begin_manual_victory_encounter()
 
 
 func _spawn_character_from_setup(entry:Dictionary) -> ball:
 	var char_name:String = str(entry.get("char", ""))
-	var char_scene:PackedScene = _get_character_scene_any(char_name)
+	var char_scene:PackedScene = _get_character_scene_path(char_name,str(entry.get("scene_path","")))
 	if char_scene == null:
 		push_warning("无法加载角色场景: " + char_name)
 		return null
@@ -8118,11 +8883,16 @@ func _spawn_character_from_setup(entry:Dictionary) -> ball:
 		float(entry.get("x", 0.0)),
 		float(entry.get("y", 0.0))
 	)
+	var development_placement:Dictionary = {}
+	if _development != null and _development.is_prebattle():
+		development_placement = _development.spawn_placement(entry,new_char.global_position)
+		if not development_placement.is_empty():
+			new_char.global_position = development_placement["position"]
 	var setup_id:int = int(entry.get("id", -1))
 	new_char.set_meta("battle_setup_id", setup_id)
 	var boss_specialization_active:bool = false
 	var boss_multiplier:float = 1.0
-	if Game.is_boss_training_mode():
+	if Game.is_boss_training_mode() and not bool(entry.get("development_neutral",false)):
 		var entry_side:String = str(entry.get("boss_side",_boss_side_for_position(new_char.global_position)))
 		var should_boost:bool = bool(entry.get("boss_boost",entry_side == Game.get_training_boss_side()))
 		new_char.set_meta("training_boss_side",entry_side)
@@ -8146,6 +8916,8 @@ func _spawn_character_from_setup(entry:Dictionary) -> ball:
 
 	new_char.name = Game.return_random_name(new_char)
 	add_child(new_char,true)
+	if _development != null:
+		_development.on_spawn(new_char,entry,development_placement)
 
 	# post-ready 钩子：允许专属 Boss 形态安全访问 @onready 节点、切换图片/动画/技能。
 	if boss_specialization_active and is_instance_valid(new_char):
@@ -8184,7 +8956,7 @@ func _battle_setup_character_exists(setup_id:int) -> bool:
 
 
 func _on_training_character_tree_exiting(character:ball, setup_id:int) -> void:
-	if not Game.is_training_mode():
+	if not Game.is_training_mode() or _timed_finished:
 		return
 	if character == null or not is_instance_valid(character):
 		return
@@ -8203,7 +8975,7 @@ func _on_training_character_tree_exiting(character:ball, setup_id:int) -> void:
 
 func _training_respawn_after_delay(setup_id:int, token:int) -> void:
 	await get_tree().create_timer(maxf(training_respawn_delay,0.1)).timeout
-	if not Game.is_training_mode():
+	if not Game.is_training_mode() or _timed_finished:
 		_training_respawn_pending.erase(setup_id)
 		return
 	if int(_training_respawn_pending.get(setup_id, -1)) != token:
@@ -8216,7 +8988,7 @@ func _training_respawn_after_delay(setup_id:int, token:int) -> void:
 	_training_respawn_pending.erase(setup_id)
 
 
-func _prepare_character_preview_visual(char:ball) -> void:
+func _prepare_character_preview_visual(char:Node2D) -> void:
 	if char == null:
 		return
 
@@ -8329,6 +9101,70 @@ func create_ghost_ball():
 
 	ghost_root.add_child(image)
 	add_child(ghost_root)
+	char.free()
+	return ghost_root
+	
+func create_character_preview(character_name:String,scene_path:String = "",attach_to_world:bool = true) -> Node2D:
+	# Missing previews are retried next frame by Game; never block on an active loader.
+	if scene_path.is_empty() and is_instance_valid(_mc_prewarmer) and _mc_prewarmer.handles(character_name):
+		if not _mc_prewarmer.is_ready(character_name): return null
+		var prepared:PackedScene = _mc_prewarmer.scenes.get(character_name)
+		if prepared != null: _character_scene_cache[prepared.resource_path] = prepared
+	# 搜索结果可能来自当前分类之外，预览也必须走完整角色索引。
+	var char_scene:PackedScene = _get_character_scene_path(character_name,scene_path)
+	if char_scene == null:
+		return null
+	var char:Node2D = char_scene.instantiate() as Node2D
+	if char == null: return null
+
+	# 预览对象不会加入 SceneTree，所以角色根节点的 _ready() 不会执行。
+	# 一些角色把正式立绘留到 _ready() 里才自动加载，若这里不先补上，
+	# Ghost 会直接复制 ball.tscn 的默认占位图。先只执行“安全的纹理加载”并选择
+	# 正常/本体立绘，再做 CharacterAutoFit，保证预览和真正放下后的角色一致。
+	_prepare_character_preview_visual(char)
+
+	# 预览角色没有真正进树，因此 CharacterAutoFit._ready() 也不会自动执行。
+	# 在复制视觉节点前手动跑一次与正式角色完全相同的自动适配。
+	var auto_fit := char.get_node_or_null("CharacterAutoFit")
+	if auto_fit != null and auto_fit.has_method("apply_fit"):
+		auto_fit.call("apply_fit")
+
+	var graphics := char.get_node_or_null("Graphics") as Node2D
+	var source_image:Node2D = null
+	if graphics != null:
+		var sprite := graphics.get_node_or_null("Image") as Sprite2D
+		if sprite != null and sprite.texture != null:
+			source_image = sprite
+		else:
+			var animated := graphics.get_node_or_null("AnimatedSprite2D") as AnimatedSprite2D
+			if animated != null:
+				source_image = animated
+
+	if source_image == null:
+		char.free()
+		return null
+
+	# 用一个轻量 Node2D 做预览根节点，完整保留 Ball -> Graphics -> Image
+	# 的局部缩放/旋转，而不是只粗暴地 image.scale *= char.scale。
+	var ghost_root := Node2D.new()
+	ghost_root.name = character_name
+	# Ghost 是“放置预览”而不是真实角色。真实角色越界仍被 z=90 的地图外遮罩裁掉；
+	# 预览提高到 z=95，让鼠标移到地图外测试带时仍能看到准备放置的位置。
+	ghost_root.z_as_relative = false
+	ghost_root.z_index = 95
+	ghost_root.scale = char.scale
+	ghost_root.rotation = char.rotation
+	ghost_root.skew = char.skew
+
+	var image := source_image.duplicate() as Node2D
+	image.name = "PreviewImage"
+	image.transform = graphics.transform * source_image.transform
+	image.modulate = Color(1.0,1.0,1.0,0.439 if attach_to_world else 1.0)
+	if image is AnimatedSprite2D:
+		(image as AnimatedSprite2D).pause()
+
+	ghost_root.add_child(image)
+	if attach_to_world: add_child(ghost_root)
 	char.free()
 	return ghost_root
 	

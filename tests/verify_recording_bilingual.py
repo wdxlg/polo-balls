@@ -1,6 +1,7 @@
 """Verify independently decodable bilingual files, shared audio and matching action."""
 import array, hashlib, json, math, os, re, subprocess
 from pathlib import Path
+from recording_filename_check import filename_matches_title
 folder=Path(os.environ['APPDATA'])/'Godot/app_userdata/polo_balls/recordings'
 m=json.loads((folder/'bilingual_test/manifest.json').read_text(encoding='utf-8'))
 ffmpeg='C:/ffmpeg/bin/ffmpeg.exe';ffprobe='C:/ffmpeg/bin/ffprobe.exe'
@@ -15,12 +16,10 @@ def raw(path,args):
 pairs=[('bilingual_live',m['outputs'],m['frames'])]
 original=json.loads((folder/'test_recording_manifest.json').read_text(encoding='utf-8'))
 for index,item in enumerate(original):
- p=Path(item['path']);suffix=re.search(r'_(\d{4}-\d\d-\d\d_\d\d-\d\d-\d\d_\d+)\.mp4$',p.name).group(1)
- english=list(p.parent.glob('英文_*_'+suffix+'.mp4'))
- check(len(english)==1,'matching English file exists for original regression output')
- pairs.append((['original_live','sim_abort','sim_finish'][index],{'zh':str(p),'en':str(english[0])},item['frames']))
+ check(set(item.get('outputs',{}))=={'zh','en'},'current regression manifest records explicit same-session bilingual paths; rerun GPU fixture if missing')
+ pairs.append((['original_live','sim_abort','sim_finish'][index],item['outputs'],item['frames']))
 check(m['failures']==0,'bilingual GPU suite passes')
-log=Path('tests/record_bilingual_gpu.log').read_text(encoding='utf-8')
+log=Path(os.environ.get('BATTLE_RECORD_GPU_LOG','tests/record_bilingual_gpu.log')).read_text(encoding='utf-8')
 check(f"BILINGUAL: {m['checks']} checks / 0 failures" in log and 'SCRIPT ERROR' not in log and 'ERROR:' not in log,'latest GPU log is successful, not a stale manifest')
 for label,paths,count in pairs:
  infos={};audios={};battle={}
@@ -29,7 +28,7 @@ for label,paths,count in pairs:
   v=next(s for s in info['streams'] if s['codec_type']=='video');a=next(s for s in info['streams'] if s['codec_type']=='audio')
   check((v['width'],v['height'],v['avg_frame_rate'],int(v['nb_read_frames']))==(1080,1920,'60/1',count),label+' '+lang+' native dimensions and identical frame count')
   check(v['codec_name']=='h264' and a['codec_name']=='aac',label+' '+lang+' H264 + AAC')
-  check(v.get('tags',{}).get('language')==('zho' if lang=='zh' else 'eng') and bool(info['format'].get('tags',{}).get('title')),label+' '+lang+' video metadata preserves language and full title')
+  check(v.get('tags',{}).get('language')==('zho' if lang=='zh' else 'eng') and filename_matches_title(path,lang,info['format'].get('tags',{}).get('title')),label+' '+lang+' video metadata and localized filename preserve language and full title')
   check(abs(float(v['duration'])-float(a['duration']))<.025,label+' '+lang+' audio and video durations agree')
   decode=subprocess.run([ffmpeg,'-v','error','-i',path,'-f','null','-'],capture_output=True,timeout=40)
   check(decode.returncode==0 and not decode.stderr,label+' '+lang+' full decode clean')
@@ -48,5 +47,5 @@ for name,region in [('matchup','1080:420:0:220'),('watermark','600:300:240:1290'
  changed=sum(abs(a-b)>12 for a,b in zip(*crops))/len(crops[0])
  check(changed>.0005,name+' differs in actual encoded Chinese and English pictures')
 result={'checks':checks,'failures':0,'gpu_checks':m['checks'],'pairs':results}
-Path('tests/recording_bilingual_validation.json').write_text(json.dumps(result,indent=2)+'\n',encoding='utf-8')
+Path(os.environ.get('BATTLE_RECORD_MEDIA_REPORT','tests/recording_bilingual_validation.json')).write_text(json.dumps(result,indent=2)+'\n',encoding='utf-8')
 print(json.dumps(result));print(f'BILINGUAL_MEDIA: {checks} checks / 0 failures')

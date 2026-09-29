@@ -1,0 +1,237 @@
+{
+  "version": "Minecraft Java 1.21.11",
+  "source": "Official Mojang asset index and sounds.json verified in this session",
+  "events": {
+    "sleep": [
+      {
+        "event": "entity.fox.sleep",
+        "sha1": "e3cc500d7f48934f7f7198e5a88f529a72016dcd",
+        "native_volume": 0.8,
+        "pitch": 1,
+        "path": "res://audio/characters/默认/ding_sleep/e3cc500d7f48934f7f7198e5a88f529a72016dcd.ogg"
+      },
+      {
+        "event": "entity.fox.sleep",
+        "sha1": "5dc64ea990d5980f7b435d65590b5fadc583c22c",
+        "native_volume": 0.8,
+        "pitch": 1,
+        "path": "res://audio/characters/默认/ding_sleep/5dc64ea990d5980f7b435d65590b5fadc583c22c.ogg"
+      },
+      {
+        "event": "entity.fox.sleep",
+        "sha1": "bb1c912446199a6b0e45e18c6d5ff586f6261610",
+        "native_volume": 0.8,
+        "pitch": 1,
+        "path": "res://audio/characters/默认/ding_sleep/bb1c912446199a6b0e45e18c6d5ff586f6261610.ogg"
+      },
+      {
+        "event": "entity.fox.sleep",
+        "sha1": "cdfc9ce095217d16a3783fa493b32b1d39cb3332",
+        "native_volume": 0.8,
+        "pitch": 1,
+        "path": "res://audio/characters/默认/ding_sleep/cdfc9ce095217d16a3783fa493b32b1d39cb3332.ogg"
+      },
+      {
+        "event": "entity.fox.sleep",
+        "sha1": "d9766e5713edb90c8b20409701f630b287e0a23d",
+        "native_volume": 0.8,
+        "pitch": 1,
+        "path": "res://audio/characters/默认/ding_sleep/d9766e5713edb90c8b20409701f630b287e0a23d.ogg"
+      }
+    ],
+    "z_legacy_unused": [
+      {
+        "event": "block.bubble_column.bubble_pop",
+        "sha1": "631b1e3d64b315c432792ae015ba06083f34ef42",
+        "native_volume": 0.1,
+        "pitch": 1,
+        "path": "res://audio/characters/默认/ding_sleep/631b1e3d64b315c432792ae015ba06083f34ef42.ogg"
+      },
+      {
+        "event": "block.bubble_column.bubble_pop",
+        "sha1": "912f27c8f38db853b835421579b3423393ae6260",
+        "native_volume": 0.1,
+        "pitch": 1,
+        "path": "res://audio/characters/默认/ding_sleep/912f27c8f38db853b835421579b3423393ae6260.ogg"
+      },
+      {
+        "event": "block.bubble_column.bubble_pop",
+        "sha1": "7b82612898e03ec61a3f49f809db703cfcd90c46",
+        "native_volume": 0.1,
+        "pitch": 1,
+        "path": "res://audio/characters/默认/ding_sleep/7b82612898e03ec61a3f49f809db703cfcd90c46.ogg"
+      }
+    ],
+    "wake": [
+      {
+        "event": "entity.warden.sonic_boom",
+        "sha1": "2f812473b307c7586e3760ed8c4b800b8802e2c7",
+        "native_volume": 1,
+        "pitch": 1,
+        "path": "res://audio/characters/我的世界/frontier/sonic_boom.ogg"
+      },
+      {
+        "event": "entity.warden.sonic_boom",
+        "sha1": "de72462d4723182ceed3fdc86b87b2aab912b812",
+        "native_volume": 1,
+        "pitch": 1,
+        "path": "res://audio/characters/默认/ding_sleep/de72462d4723182ceed3fdc86b87b2aab912b812.ogg"
+      },
+      {
+        "event": "entity.warden.sonic_boom",
+        "sha1": "6ed9e10ed18f497d4b1c5e8f26af748bcb46b9fe",
+        "native_volume": 1,
+        "pitch": 1,
+        "path": "res://audio/characters/默认/ding_sleep/6ed9e10ed18f497d4b1c5e8f26af748bcb46b9fe.ogg"
+      },
+      {
+        "event": "entity.warden.sonic_boom",
+        "sha1": "2a1f98cfe05895f6ea959e00df12247bbe5dce6a",
+        "native_volume": 1,
+        "pitch": 1,
+        "path": "res://audio/characters/默认/ding_sleep/2a1f98cfe05895f6ea959e00df12247bbe5dce6a.ogg"
+      }
+    ],
+    "hurt": [
+      {
+        "event": "entity.cat.hurt",
+        "sha1": "43900ed0dab4b45659688892d9b007749422555b",
+        "native_volume": 0.65,
+        "pitch": 1,
+        "path": "res://audio/characters/默认/ding_sleep/43900ed0dab4b45659688892d9b007749422555b.ogg"
+      },
+      {
+        "event": "entity.cat.hurt",
+        "sha1": "baf2cefc76fb045e9e42b52e7000945dbdf36a09",
+        "native_volume": 0.65,
+        "pitch": 1,
+        "path": "res://audio/characters/默认/ding_sleep/baf2cefc76fb045e9e42b52e7000945dbdf36a09.ogg"
+      },
+      {
+        "event": "entity.cat.hurt",
+        "sha1": "2ffe20140c099788da13857e58695526075e17ba",
+        "native_volume": 0.65,
+        "pitch": 1,
+        "path": "res://audio/characters/默认/ding_sleep/2ffe20140c099788da13857e58695526075e17ba.ogg"
+      }
+    ],
+    "death": [
+      {
+        "event": "entity.cat.death",
+        "sha1": "43900ed0dab4b45659688892d9b007749422555b",
+        "native_volume": 0.75,
+        "pitch": 0.9,
+        "path": "res://audio/characters/默认/ding_sleep/43900ed0dab4b45659688892d9b007749422555b.ogg"
+      },
+      {
+        "event": "entity.cat.death",
+        "sha1": "baf2cefc76fb045e9e42b52e7000945dbdf36a09",
+        "native_volume": 0.75,
+        "pitch": 0.9,
+        "path": "res://audio/characters/默认/ding_sleep/baf2cefc76fb045e9e42b52e7000945dbdf36a09.ogg"
+      },
+      {
+        "event": "entity.cat.death",
+        "sha1": "2ffe20140c099788da13857e58695526075e17ba",
+        "native_volume": 0.75,
+        "pitch": 0.9,
+        "path": "res://audio/characters/默认/ding_sleep/2ffe20140c099788da13857e58695526075e17ba.ogg"
+      }
+    ]
+  },
+  "assets": {
+    "e3cc500d7f48934f7f7198e5a88f529a72016dcd": {
+      "sha1": "e3cc500d7f48934f7f7198e5a88f529a72016dcd",
+      "size": 15700,
+      "asset_path": "minecraft/sounds/mob/fox/sleep1.ogg",
+      "url": "https://resources.download.minecraft.net/e3/e3cc500d7f48934f7f7198e5a88f529a72016dcd"
+    },
+    "5dc64ea990d5980f7b435d65590b5fadc583c22c": {
+      "sha1": "5dc64ea990d5980f7b435d65590b5fadc583c22c",
+      "size": 11262,
+      "asset_path": "minecraft/sounds/mob/fox/sleep2.ogg",
+      "url": "https://resources.download.minecraft.net/5d/5dc64ea990d5980f7b435d65590b5fadc583c22c"
+    },
+    "bb1c912446199a6b0e45e18c6d5ff586f6261610": {
+      "sha1": "bb1c912446199a6b0e45e18c6d5ff586f6261610",
+      "size": 17770,
+      "asset_path": "minecraft/sounds/mob/fox/sleep3.ogg",
+      "url": "https://resources.download.minecraft.net/bb/bb1c912446199a6b0e45e18c6d5ff586f6261610"
+    },
+    "cdfc9ce095217d16a3783fa493b32b1d39cb3332": {
+      "sha1": "cdfc9ce095217d16a3783fa493b32b1d39cb3332",
+      "size": 20350,
+      "asset_path": "minecraft/sounds/mob/fox/sleep4.ogg",
+      "url": "https://resources.download.minecraft.net/cd/cdfc9ce095217d16a3783fa493b32b1d39cb3332"
+    },
+    "d9766e5713edb90c8b20409701f630b287e0a23d": {
+      "sha1": "d9766e5713edb90c8b20409701f630b287e0a23d",
+      "size": 14611,
+      "asset_path": "minecraft/sounds/mob/fox/sleep5.ogg",
+      "url": "https://resources.download.minecraft.net/d9/d9766e5713edb90c8b20409701f630b287e0a23d"
+    },
+    "631b1e3d64b315c432792ae015ba06083f34ef42": {
+      "sha1": "631b1e3d64b315c432792ae015ba06083f34ef42",
+      "size": 8210,
+      "asset_path": "minecraft/sounds/block/bubble_column/bubble1.ogg",
+      "url": "https://resources.download.minecraft.net/63/631b1e3d64b315c432792ae015ba06083f34ef42"
+    },
+    "912f27c8f38db853b835421579b3423393ae6260": {
+      "sha1": "912f27c8f38db853b835421579b3423393ae6260",
+      "size": 6582,
+      "asset_path": "minecraft/sounds/block/bubble_column/bubble2.ogg",
+      "url": "https://resources.download.minecraft.net/91/912f27c8f38db853b835421579b3423393ae6260"
+    },
+    "7b82612898e03ec61a3f49f809db703cfcd90c46": {
+      "sha1": "7b82612898e03ec61a3f49f809db703cfcd90c46",
+      "size": 7480,
+      "asset_path": "minecraft/sounds/block/bubble_column/bubble3.ogg",
+      "url": "https://resources.download.minecraft.net/7b/7b82612898e03ec61a3f49f809db703cfcd90c46"
+    },
+    "2f812473b307c7586e3760ed8c4b800b8802e2c7": {
+      "sha1": "2f812473b307c7586e3760ed8c4b800b8802e2c7",
+      "size": 33242,
+      "asset_path": "minecraft/sounds/mob/warden/sonic_boom1.ogg",
+      "url": "https://resources.download.minecraft.net/2f/2f812473b307c7586e3760ed8c4b800b8802e2c7"
+    },
+    "de72462d4723182ceed3fdc86b87b2aab912b812": {
+      "sha1": "de72462d4723182ceed3fdc86b87b2aab912b812",
+      "size": 33422,
+      "asset_path": "minecraft/sounds/mob/warden/sonic_boom2.ogg",
+      "url": "https://resources.download.minecraft.net/de/de72462d4723182ceed3fdc86b87b2aab912b812"
+    },
+    "6ed9e10ed18f497d4b1c5e8f26af748bcb46b9fe": {
+      "sha1": "6ed9e10ed18f497d4b1c5e8f26af748bcb46b9fe",
+      "size": 32334,
+      "asset_path": "minecraft/sounds/mob/warden/sonic_boom3.ogg",
+      "url": "https://resources.download.minecraft.net/6e/6ed9e10ed18f497d4b1c5e8f26af748bcb46b9fe"
+    },
+    "2a1f98cfe05895f6ea959e00df12247bbe5dce6a": {
+      "sha1": "2a1f98cfe05895f6ea959e00df12247bbe5dce6a",
+      "size": 32617,
+      "asset_path": "minecraft/sounds/mob/warden/sonic_boom4.ogg",
+      "url": "https://resources.download.minecraft.net/2a/2a1f98cfe05895f6ea959e00df12247bbe5dce6a"
+    },
+    "43900ed0dab4b45659688892d9b007749422555b": {
+      "sha1": "43900ed0dab4b45659688892d9b007749422555b",
+      "size": 8086,
+      "asset_path": "minecraft/sounds/mob/cat/hitt1.ogg",
+      "url": "https://resources.download.minecraft.net/43/43900ed0dab4b45659688892d9b007749422555b"
+    },
+    "baf2cefc76fb045e9e42b52e7000945dbdf36a09": {
+      "sha1": "baf2cefc76fb045e9e42b52e7000945dbdf36a09",
+      "size": 9534,
+      "asset_path": "minecraft/sounds/mob/cat/hitt2.ogg",
+      "url": "https://resources.download.minecraft.net/ba/baf2cefc76fb045e9e42b52e7000945dbdf36a09"
+    },
+    "2ffe20140c099788da13857e58695526075e17ba": {
+      "sha1": "2ffe20140c099788da13857e58695526075e17ba",
+      "size": 7843,
+      "asset_path": "minecraft/sounds/mob/cat/hitt3.ogg",
+      "url": "https://resources.download.minecraft.net/2f/2ffe20140c099788da13857e58695526075e17ba"
+    }
+  },
+  "rights": "Unmodified Mojang/Microsoft audio; no additional redistribution rights.",
+  "reused_count": 1,
+  "new_count": 14
+}

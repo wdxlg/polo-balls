@@ -1,0 +1,24 @@
+WARNING: res://scenes/world.tscn:5 - ext_resource, invalid UID: uid://dpwql48tncd6r - using text path instead: res://ui/default.tres
+   at: load (scene/resources/resource_format_text.cpp:501)
+   GDScript backtrace (most recent call first):
+       [0] run (res://tests/test_mc13_revision.gd:66)
+WARNING: res://ui/default.tres:4 - ext_resource, invalid UID: uid://t4o33yqco1x4 - using text path instead: res://ui/Button/focus.tres
+   at: load (scene/resources/resource_format_text.cpp:501)
+   GDScript backtrace (most recent call first):
+       [0] run (res://tests/test_mc13_revision.gd:66)
+WARNING: res://ui/default.tres:5 - ext_resource, invalid UID: uid://cjub0gkrl4vem - using text path instead: res://ui/Button/hover.tres
+   at: load (scene/resources/resource_format_text.cpp:501)
+   GDScript backtrace (most recent call first):
+       [0] run (res://tests/test_mc13_revision.gd:66)
+WARNING: res://ui/default.tres:6 - ext_resource, invalid UID: uid://jfpvxklkhua5 - using text path instead: res://ui/set_button_background.tres
+   at: load (scene/resources/resource_format_text.cpp:501)
+   GDScript backtrace (most recent call first):
+       [0] run (res://tests/test_mc13_revision.gd:66)
+WARNING: res://ui/default.tres:7 - ext_resource, invalid UID: uid://coegwcwyol0qq - using text path instead: res://ui/Button/normal.tres
+   at: load (scene/resources/resource_format_text.cpp:501)
+   GDScript backtrace (most recent call first):
+       [0] run (res://tests/test_mc13_revision.gd:66)
+WARNING: res://scenes/world.tscn:7 - ext_resource, invalid UID: uid://bkud2ewhukedf - using text path instead: res://ui/control.tscn
+   at: load (scene/resources/resource_format_text.cpp:501)
+   GDScript backtrace (most recent call first):
+       [0] run (res://tests/test_mc13_revision.gd:66)

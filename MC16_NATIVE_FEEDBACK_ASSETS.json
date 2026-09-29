@@ -1,0 +1,624 @@
+{
+  "version": "1.21.5",
+  "version_url": "https://piston-meta.mojang.com/v1/packages/9b841ffc9571fd1219b887b6ff3a705774cb9614/1.21.5.json",
+  "index_url": "https://piston-meta.mojang.com/v1/packages/2b11bad5dd93d7eae4e86aaafd8029d0dc79bfb8/24.json",
+  "web_url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/blocks/web.png",
+  "license": "Minecraft EULA; original Mojang assets, no additional redistribution rights granted.",
+  "events": {
+    "entity.spider.step": [
+      "audio/characters/蜘蛛/spider.step_1.ogg",
+      "audio/characters/蜘蛛/spider.step_2.ogg",
+      "audio/characters/蜘蛛/spider.step_3.ogg",
+      "audio/characters/蜘蛛/spider.step_4.ogg"
+    ],
+    "entity.spider.lunge": [
+      "audio/characters/蜘蛛/spider.ambient_1.ogg",
+      "audio/characters/蜘蛛/spider.ambient_2.ogg",
+      "audio/characters/蜘蛛/spider.ambient_3.ogg",
+      "audio/characters/蜘蛛/spider.ambient_4.ogg"
+    ],
+    "block.cobweb.place": [
+      "audio/characters/蜘蛛/cobweb.break_1.ogg",
+      "audio/characters/蜘蛛/cobweb.break_2.ogg",
+      "audio/characters/蜘蛛/cobweb.break_3.ogg",
+      "audio/characters/蜘蛛/cobweb.break_4.ogg",
+      "audio/characters/蜘蛛/cobweb.break_5.ogg",
+      "audio/characters/蜘蛛/cobweb.break_6.ogg"
+    ],
+    "block.cobweb.step": [
+      "audio/characters/蜘蛛/cobweb.step_1.ogg",
+      "audio/characters/蜘蛛/cobweb.step_2.ogg",
+      "audio/characters/蜘蛛/cobweb.step_3.ogg",
+      "audio/characters/蜘蛛/cobweb.step_4.ogg",
+      "audio/characters/蜘蛛/cobweb.step_5.ogg",
+      "audio/characters/蜘蛛/cobweb.step_6.ogg"
+    ],
+    "entity.drowned.step": [
+      "audio/characters/溺尸/drowned.step_1.ogg",
+      "audio/characters/溺尸/drowned.step_2.ogg",
+      "audio/characters/溺尸/drowned.step_3.ogg",
+      "audio/characters/溺尸/drowned.step_4.ogg",
+      "audio/characters/溺尸/drowned.step_5.ogg"
+    ],
+    "item.trident.throw": [
+      "audio/characters/溺尸/trident.native_throw_1.ogg",
+      "audio/characters/溺尸/trident.throw_2.ogg"
+    ],
+    "item.trident.hit": [
+      "audio/characters/溺尸/trident.hit_1.ogg",
+      "audio/characters/溺尸/trident.hit_2.ogg",
+      "audio/characters/溺尸/trident.hit_3.ogg"
+    ],
+    "item.trident.hit_ground": [
+      "audio/characters/溺尸/trident.hit_ground_1.ogg",
+      "audio/characters/溺尸/trident.hit_ground_2.ogg",
+      "audio/characters/溺尸/trident.hit_ground_3.ogg",
+      "audio/characters/溺尸/trident.hit_ground_4.ogg"
+    ],
+    "item.trident.return": [
+      "audio/characters/溺尸/trident.return_1.ogg",
+      "audio/characters/溺尸/trident.return_2.ogg",
+      "audio/characters/溺尸/trident.return_3.ogg"
+    ],
+    "item.trident.riptide_1": [
+      "audio/characters/溺尸/trident.charge_1.ogg"
+    ],
+    "item.trident.thunder": [
+      "audio/characters/溺尸/trident.thunder_1.ogg",
+      "audio/characters/溺尸/trident.thunder_2.ogg"
+    ],
+    "entity.item.pickup": [
+      "audio/characters/溺尸/trident.pickup_1.ogg"
+    ],
+    "entity.spider.ambient": [
+      "audio/characters/蜘蛛/spider.ambient_1.ogg",
+      "audio/characters/蜘蛛/spider.ambient_2.ogg",
+      "audio/characters/蜘蛛/spider.ambient_3.ogg",
+      "audio/characters/蜘蛛/spider.ambient_4.ogg"
+    ],
+    "entity.spider.hurt": [
+      "audio/characters/蜘蛛/spider.hurt_1.ogg",
+      "audio/characters/蜘蛛/spider.hurt_2.ogg",
+      "audio/characters/蜘蛛/spider.hurt_3.ogg",
+      "audio/characters/蜘蛛/spider.hurt_4.ogg"
+    ],
+    "entity.spider.death": [
+      "audio/characters/蜘蛛/spider.death_1.ogg"
+    ],
+    "entity.drowned.ambient": [
+      "audio/characters/溺尸/drowned.ambient_1.ogg",
+      "audio/characters/溺尸/drowned.ambient_2.ogg",
+      "audio/characters/溺尸/drowned.ambient_3.ogg",
+      "audio/characters/溺尸/drowned.ambient_4.ogg",
+      "audio/characters/溺尸/drowned.ambient_5.ogg"
+    ],
+    "entity.drowned.hurt": [
+      "audio/characters/溺尸/drowned.hurt_1.ogg",
+      "audio/characters/溺尸/drowned.hurt_2.ogg",
+      "audio/characters/溺尸/drowned.hurt_3.ogg"
+    ],
+    "entity.drowned.death": [
+      "audio/characters/溺尸/drowned.death_1.ogg",
+      "audio/characters/溺尸/drowned.death_2.ogg"
+    ],
+    "block.redstone_torch.burnout": [
+      "audio/characters/溺尸/trident.wire_fizz.ogg"
+    ],
+    "entity.lightning_bolt.thunder": [
+      "audio/characters/我的世界/苦力怕/thunder1.ogg",
+      "audio/characters/我的世界/苦力怕/thunder2.ogg",
+      "audio/characters/我的世界/苦力怕/thunder3.ogg"
+    ],
+    "entity.generic.explode": [
+      "audio/characters/我的世界/苦力怕/explode1.ogg",
+      "audio/characters/我的世界/苦力怕/explode2.ogg",
+      "audio/characters/我的世界/苦力怕/explode3.ogg",
+      "audio/characters/我的世界/苦力怕/explode4.ogg"
+    ],
+    "block.enchantment_table.use": [
+      "audio/characters/溺尸/trident.enchant_1.ogg",
+      "audio/characters/溺尸/trident.enchant_2.ogg",
+      "audio/characters/溺尸/trident.enchant_3.ogg"
+    ],
+    "entity.experience_orb.pickup": [
+      "audio/characters/溺尸/trident.refill_ding.ogg"
+    ]
+  },
+  "files": [
+    {
+      "file": "audio/characters/蜘蛛/spider.step_1.ogg",
+      "asset_key": "minecraft/sounds/mob/spider/step1.ogg",
+      "sha1": "a0cffda2225b6daff48e5408cedf2ba6deb50e28",
+      "size": 9682,
+      "url": "https://resources.download.minecraft.net/a0/a0cffda2225b6daff48e5408cedf2ba6deb50e28"
+    },
+    {
+      "file": "audio/characters/蜘蛛/spider.step_2.ogg",
+      "asset_key": "minecraft/sounds/mob/spider/step2.ogg",
+      "sha1": "f24f2b189395a15f9fe65e059519a781c1fa42b0",
+      "size": 10208,
+      "url": "https://resources.download.minecraft.net/f2/f24f2b189395a15f9fe65e059519a781c1fa42b0"
+    },
+    {
+      "file": "audio/characters/蜘蛛/spider.step_3.ogg",
+      "asset_key": "minecraft/sounds/mob/spider/step3.ogg",
+      "sha1": "31a036700ec392bc377852ca1654224161bea132",
+      "size": 9991,
+      "url": "https://resources.download.minecraft.net/31/31a036700ec392bc377852ca1654224161bea132"
+    },
+    {
+      "file": "audio/characters/蜘蛛/spider.step_4.ogg",
+      "asset_key": "minecraft/sounds/mob/spider/step4.ogg",
+      "sha1": "9e3191b2fc9df76169aed567f53c535b2f2194da",
+      "size": 10489,
+      "url": "https://resources.download.minecraft.net/9e/9e3191b2fc9df76169aed567f53c535b2f2194da"
+    },
+    {
+      "file": "audio/characters/蜘蛛/spider.ambient_1.ogg",
+      "asset_key": "minecraft/sounds/mob/spider/say1.ogg",
+      "sha1": "8a687fb7ea955d58a8e758a7e6ca8147c48dd477",
+      "size": 10210,
+      "url": "https://resources.download.minecraft.net/8a/8a687fb7ea955d58a8e758a7e6ca8147c48dd477"
+    },
+    {
+      "file": "audio/characters/蜘蛛/spider.ambient_2.ogg",
+      "asset_key": "minecraft/sounds/mob/spider/say2.ogg",
+      "sha1": "0d61e1a8550820d63881a1cfb333c4dda042e86a",
+      "size": 8521,
+      "url": "https://resources.download.minecraft.net/0d/0d61e1a8550820d63881a1cfb333c4dda042e86a"
+    },
+    {
+      "file": "audio/characters/蜘蛛/spider.ambient_3.ogg",
+      "asset_key": "minecraft/sounds/mob/spider/say3.ogg",
+      "sha1": "8cb03a82e064925b02b9f89b9b2a492feaeaa117",
+      "size": 8826,
+      "url": "https://resources.download.minecraft.net/8c/8cb03a82e064925b02b9f89b9b2a492feaeaa117"
+    },
+    {
+      "file": "audio/characters/蜘蛛/spider.ambient_4.ogg",
+      "asset_key": "minecraft/sounds/mob/spider/say4.ogg",
+      "sha1": "ceede14b6b28de916432ab1aa7b1de6b50c374fb",
+      "size": 6897,
+      "url": "https://resources.download.minecraft.net/ce/ceede14b6b28de916432ab1aa7b1de6b50c374fb"
+    },
+    {
+      "file": "audio/characters/蜘蛛/cobweb.break_1.ogg",
+      "asset_key": "minecraft/sounds/block/cobweb/break1.ogg",
+      "sha1": "e3bf0330c20e1020e23eb873ad655686d3bb2eb3",
+      "size": 9339,
+      "url": "https://resources.download.minecraft.net/e3/e3bf0330c20e1020e23eb873ad655686d3bb2eb3"
+    },
+    {
+      "file": "audio/characters/蜘蛛/cobweb.break_2.ogg",
+      "asset_key": "minecraft/sounds/block/cobweb/break2.ogg",
+      "sha1": "d691d8b12f320c6dde1edf27eea87db82b1d8a8f",
+      "size": 9052,
+      "url": "https://resources.download.minecraft.net/d6/d691d8b12f320c6dde1edf27eea87db82b1d8a8f"
+    },
+    {
+      "file": "audio/characters/蜘蛛/cobweb.break_3.ogg",
+      "asset_key": "minecraft/sounds/block/cobweb/break3.ogg",
+      "sha1": "2219b4e3106c3491936c82624e76faeee2dd66aa",
+      "size": 8245,
+      "url": "https://resources.download.minecraft.net/22/2219b4e3106c3491936c82624e76faeee2dd66aa"
+    },
+    {
+      "file": "audio/characters/蜘蛛/cobweb.break_4.ogg",
+      "asset_key": "minecraft/sounds/block/cobweb/break4.ogg",
+      "sha1": "d30cb8759cd6ec4da16d2cd3703efca5b0b5b413",
+      "size": 8652,
+      "url": "https://resources.download.minecraft.net/d3/d30cb8759cd6ec4da16d2cd3703efca5b0b5b413"
+    },
+    {
+      "file": "audio/characters/蜘蛛/cobweb.break_5.ogg",
+      "asset_key": "minecraft/sounds/block/cobweb/break5.ogg",
+      "sha1": "10425642c04c50bcfd974356d9b6c70d8a104730",
+      "size": 8859,
+      "url": "https://resources.download.minecraft.net/10/10425642c04c50bcfd974356d9b6c70d8a104730"
+    },
+    {
+      "file": "audio/characters/蜘蛛/cobweb.break_6.ogg",
+      "asset_key": "minecraft/sounds/block/cobweb/break6.ogg",
+      "sha1": "0abd682271cda1a5513e57cea7cdbcf383893813",
+      "size": 7823,
+      "url": "https://resources.download.minecraft.net/0a/0abd682271cda1a5513e57cea7cdbcf383893813"
+    },
+    {
+      "file": "audio/characters/蜘蛛/cobweb.step_1.ogg",
+      "asset_key": "minecraft/sounds/block/cobweb/step1.ogg",
+      "sha1": "23edec96549a8af965ce41c737bce85b5aa8b2d7",
+      "size": 6920,
+      "url": "https://resources.download.minecraft.net/23/23edec96549a8af965ce41c737bce85b5aa8b2d7"
+    },
+    {
+      "file": "audio/characters/蜘蛛/cobweb.step_2.ogg",
+      "asset_key": "minecraft/sounds/block/cobweb/step2.ogg",
+      "sha1": "487efa6238a36d1745938c30e434d5d2972c4d29",
+      "size": 6737,
+      "url": "https://resources.download.minecraft.net/48/487efa6238a36d1745938c30e434d5d2972c4d29"
+    },
+    {
+      "file": "audio/characters/蜘蛛/cobweb.step_3.ogg",
+      "asset_key": "minecraft/sounds/block/cobweb/step3.ogg",
+      "sha1": "bfb1049841a3595dd8118575db33de1bb482094c",
+      "size": 5942,
+      "url": "https://resources.download.minecraft.net/bf/bfb1049841a3595dd8118575db33de1bb482094c"
+    },
+    {
+      "file": "audio/characters/蜘蛛/cobweb.step_4.ogg",
+      "asset_key": "minecraft/sounds/block/cobweb/step4.ogg",
+      "sha1": "d7edc70a0a6af1f241c2730869a74b83ece2c34b",
+      "size": 6486,
+      "url": "https://resources.download.minecraft.net/d7/d7edc70a0a6af1f241c2730869a74b83ece2c34b"
+    },
+    {
+      "file": "audio/characters/蜘蛛/cobweb.step_5.ogg",
+      "asset_key": "minecraft/sounds/block/cobweb/step5.ogg",
+      "sha1": "6b85e734842e78d8284351f9c571d31f90a7da4a",
+      "size": 7206,
+      "url": "https://resources.download.minecraft.net/6b/6b85e734842e78d8284351f9c571d31f90a7da4a"
+    },
+    {
+      "file": "audio/characters/蜘蛛/cobweb.step_6.ogg",
+      "asset_key": "minecraft/sounds/block/cobweb/step6.ogg",
+      "sha1": "ccb20a2db1107737f4ba087a9047d6dddb85aae8",
+      "size": 6494,
+      "url": "https://resources.download.minecraft.net/cc/ccb20a2db1107737f4ba087a9047d6dddb85aae8"
+    },
+    {
+      "file": "audio/characters/溺尸/drowned.step_1.ogg",
+      "asset_key": "minecraft/sounds/mob/drowned/step1.ogg",
+      "sha1": "36a5b2759d4d42c4e6e0af5bb05496d2f73e9f67",
+      "size": 16817,
+      "url": "https://resources.download.minecraft.net/36/36a5b2759d4d42c4e6e0af5bb05496d2f73e9f67"
+    },
+    {
+      "file": "audio/characters/溺尸/drowned.step_2.ogg",
+      "asset_key": "minecraft/sounds/mob/drowned/step2.ogg",
+      "sha1": "7d35b855afd6df7f3b12db2da7a08d59b6c0d069",
+      "size": 13690,
+      "url": "https://resources.download.minecraft.net/7d/7d35b855afd6df7f3b12db2da7a08d59b6c0d069"
+    },
+    {
+      "file": "audio/characters/溺尸/drowned.step_3.ogg",
+      "asset_key": "minecraft/sounds/mob/drowned/step3.ogg",
+      "sha1": "94029c8b507945a2ffbcb85b224f9ebdb63631eb",
+      "size": 14244,
+      "url": "https://resources.download.minecraft.net/94/94029c8b507945a2ffbcb85b224f9ebdb63631eb"
+    },
+    {
+      "file": "audio/characters/溺尸/drowned.step_4.ogg",
+      "asset_key": "minecraft/sounds/mob/drowned/step4.ogg",
+      "sha1": "5863a08b676a22d88a0c8af9955c2e48d2deb2ad",
+      "size": 14211,
+      "url": "https://resources.download.minecraft.net/58/5863a08b676a22d88a0c8af9955c2e48d2deb2ad"
+    },
+    {
+      "file": "audio/characters/溺尸/drowned.step_5.ogg",
+      "asset_key": "minecraft/sounds/mob/drowned/step5.ogg",
+      "sha1": "8227d2c8a967ab7d1a0362332b52a8a107d82b7a",
+      "size": 19468,
+      "url": "https://resources.download.minecraft.net/82/8227d2c8a967ab7d1a0362332b52a8a107d82b7a"
+    },
+    {
+      "file": "audio/characters/溺尸/trident.native_throw_1.ogg",
+      "asset_key": "minecraft/sounds/item/trident/throw1.ogg",
+      "sha1": "57bc0d3c05470580efb254ec51262eae17ff0c4c",
+      "size": 9735,
+      "url": "https://resources.download.minecraft.net/57/57bc0d3c05470580efb254ec51262eae17ff0c4c"
+    },
+    {
+      "file": "audio/characters/溺尸/trident.throw_2.ogg",
+      "asset_key": "minecraft/sounds/item/trident/throw2.ogg",
+      "sha1": "c8e64c102f026145de1da692d73ba8bb400ef025",
+      "size": 12582,
+      "url": "https://resources.download.minecraft.net/c8/c8e64c102f026145de1da692d73ba8bb400ef025"
+    },
+    {
+      "file": "audio/characters/溺尸/trident.hit_1.ogg",
+      "asset_key": "minecraft/sounds/item/trident/pierce1.ogg",
+      "sha1": "8636f54842ab14cbec18f43907c7e765d718ae88",
+      "size": 8027,
+      "url": "https://resources.download.minecraft.net/86/8636f54842ab14cbec18f43907c7e765d718ae88"
+    },
+    {
+      "file": "audio/characters/溺尸/trident.hit_2.ogg",
+      "asset_key": "minecraft/sounds/item/trident/pierce2.ogg",
+      "sha1": "20ff9c365388f6d79ee733522dbe3aadbfd536f3",
+      "size": 7379,
+      "url": "https://resources.download.minecraft.net/20/20ff9c365388f6d79ee733522dbe3aadbfd536f3"
+    },
+    {
+      "file": "audio/characters/溺尸/trident.hit_3.ogg",
+      "asset_key": "minecraft/sounds/item/trident/pierce3.ogg",
+      "sha1": "3a67e115eda155d00a0c71fdc4f454f040d14e82",
+      "size": 10970,
+      "url": "https://resources.download.minecraft.net/3a/3a67e115eda155d00a0c71fdc4f454f040d14e82"
+    },
+    {
+      "file": "audio/characters/溺尸/trident.hit_ground_1.ogg",
+      "asset_key": "minecraft/sounds/item/trident/ground_impact1.ogg",
+      "sha1": "b6d586ac6b9ba1660b8f5c49463ff5860fc26914",
+      "size": 11563,
+      "url": "https://resources.download.minecraft.net/b6/b6d586ac6b9ba1660b8f5c49463ff5860fc26914"
+    },
+    {
+      "file": "audio/characters/溺尸/trident.hit_ground_2.ogg",
+      "asset_key": "minecraft/sounds/item/trident/ground_impact2.ogg",
+      "sha1": "a1ef47e0497eb04404fd8c4625bb229c1295abfd",
+      "size": 12970,
+      "url": "https://resources.download.minecraft.net/a1/a1ef47e0497eb04404fd8c4625bb229c1295abfd"
+    },
+    {
+      "file": "audio/characters/溺尸/trident.hit_ground_3.ogg",
+      "asset_key": "minecraft/sounds/item/trident/ground_impact3.ogg",
+      "sha1": "816e9600a743cdc43a539dab603445ae7f6a27b1",
+      "size": 11718,
+      "url": "https://resources.download.minecraft.net/81/816e9600a743cdc43a539dab603445ae7f6a27b1"
+    },
+    {
+      "file": "audio/characters/溺尸/trident.hit_ground_4.ogg",
+      "asset_key": "minecraft/sounds/item/trident/ground_impact4.ogg",
+      "sha1": "1956d4d05996b70d3dd3f8183a146705ae2d427f",
+      "size": 13036,
+      "url": "https://resources.download.minecraft.net/19/1956d4d05996b70d3dd3f8183a146705ae2d427f"
+    },
+    {
+      "file": "audio/characters/溺尸/trident.return_1.ogg",
+      "asset_key": "minecraft/sounds/item/trident/return1.ogg",
+      "sha1": "d956f17b213d2f1cd188f2661660b8f21243dc4a",
+      "size": 19067,
+      "url": "https://resources.download.minecraft.net/d9/d956f17b213d2f1cd188f2661660b8f21243dc4a"
+    },
+    {
+      "file": "audio/characters/溺尸/trident.return_2.ogg",
+      "asset_key": "minecraft/sounds/item/trident/return2.ogg",
+      "sha1": "a33fc4451792179988c4a8b82a941719f224c45a",
+      "size": 19683,
+      "url": "https://resources.download.minecraft.net/a3/a33fc4451792179988c4a8b82a941719f224c45a"
+    },
+    {
+      "file": "audio/characters/溺尸/trident.return_3.ogg",
+      "asset_key": "minecraft/sounds/item/trident/return3.ogg",
+      "sha1": "d772889423e6824e729c8454825b6f3db09782c9",
+      "size": 18004,
+      "url": "https://resources.download.minecraft.net/d7/d772889423e6824e729c8454825b6f3db09782c9"
+    },
+    {
+      "file": "audio/characters/溺尸/trident.charge_1.ogg",
+      "asset_key": "minecraft/sounds/item/trident/riptide1.ogg",
+      "sha1": "37320ce148b868929eed407e4ea5cf41613f8eaf",
+      "size": 17281,
+      "url": "https://resources.download.minecraft.net/37/37320ce148b868929eed407e4ea5cf41613f8eaf"
+    },
+    {
+      "file": "audio/characters/溺尸/trident.thunder_1.ogg",
+      "asset_key": "minecraft/sounds/item/trident/thunder1.ogg",
+      "sha1": "9b50f8b4ace51d032fdb0dfe37b5edd9591cb41e",
+      "size": 65245,
+      "url": "https://resources.download.minecraft.net/9b/9b50f8b4ace51d032fdb0dfe37b5edd9591cb41e"
+    },
+    {
+      "file": "audio/characters/溺尸/trident.thunder_2.ogg",
+      "asset_key": "minecraft/sounds/item/trident/thunder2.ogg",
+      "sha1": "e93cec6a428a6459861daa2bb392094310186fdb",
+      "size": 61713,
+      "url": "https://resources.download.minecraft.net/e9/e93cec6a428a6459861daa2bb392094310186fdb"
+    },
+    {
+      "file": "audio/characters/溺尸/trident.pickup_1.ogg",
+      "asset_key": "minecraft/sounds/random/pop.ogg",
+      "sha1": "d6ae1c04d0a7376a33d1df12e1b8057cfbab6bc2",
+      "size": 4487,
+      "url": "https://resources.download.minecraft.net/d6/d6ae1c04d0a7376a33d1df12e1b8057cfbab6bc2"
+    },
+    {
+      "file": "audio/characters/蜘蛛/spider.hurt_1.ogg",
+      "asset_key": "minecraft/sounds/mob/spider/say1.ogg",
+      "sha1": "8a687fb7ea955d58a8e758a7e6ca8147c48dd477",
+      "size": 10210,
+      "url": "https://resources.download.minecraft.net/8a/8a687fb7ea955d58a8e758a7e6ca8147c48dd477"
+    },
+    {
+      "file": "audio/characters/蜘蛛/spider.hurt_2.ogg",
+      "asset_key": "minecraft/sounds/mob/spider/say2.ogg",
+      "sha1": "0d61e1a8550820d63881a1cfb333c4dda042e86a",
+      "size": 8521,
+      "url": "https://resources.download.minecraft.net/0d/0d61e1a8550820d63881a1cfb333c4dda042e86a"
+    },
+    {
+      "file": "audio/characters/蜘蛛/spider.hurt_3.ogg",
+      "asset_key": "minecraft/sounds/mob/spider/say3.ogg",
+      "sha1": "8cb03a82e064925b02b9f89b9b2a492feaeaa117",
+      "size": 8826,
+      "url": "https://resources.download.minecraft.net/8c/8cb03a82e064925b02b9f89b9b2a492feaeaa117"
+    },
+    {
+      "file": "audio/characters/蜘蛛/spider.hurt_4.ogg",
+      "asset_key": "minecraft/sounds/mob/spider/say4.ogg",
+      "sha1": "ceede14b6b28de916432ab1aa7b1de6b50c374fb",
+      "size": 6897,
+      "url": "https://resources.download.minecraft.net/ce/ceede14b6b28de916432ab1aa7b1de6b50c374fb"
+    },
+    {
+      "file": "audio/characters/蜘蛛/spider.death_1.ogg",
+      "asset_key": "minecraft/sounds/mob/spider/death.ogg",
+      "sha1": "eec5d186206792d2c650e1dbaa9c8796c56d2ea3",
+      "size": 15134,
+      "url": "https://resources.download.minecraft.net/ee/eec5d186206792d2c650e1dbaa9c8796c56d2ea3"
+    },
+    {
+      "file": "audio/characters/溺尸/drowned.ambient_1.ogg",
+      "asset_key": "minecraft/sounds/mob/drowned/idle1.ogg",
+      "sha1": "e0b1ba03cb9b518daca91007846dc2b1b8a91899",
+      "size": 22010,
+      "url": "https://resources.download.minecraft.net/e0/e0b1ba03cb9b518daca91007846dc2b1b8a91899"
+    },
+    {
+      "file": "audio/characters/溺尸/drowned.ambient_2.ogg",
+      "asset_key": "minecraft/sounds/mob/drowned/idle2.ogg",
+      "sha1": "540e5c7b281cbca39b98ef82c26302c4ada59f49",
+      "size": 14931,
+      "url": "https://resources.download.minecraft.net/54/540e5c7b281cbca39b98ef82c26302c4ada59f49"
+    },
+    {
+      "file": "audio/characters/溺尸/drowned.ambient_3.ogg",
+      "asset_key": "minecraft/sounds/mob/drowned/idle3.ogg",
+      "sha1": "77ef81db0fa49e065c4f0cfc8b3093dc98b926a5",
+      "size": 22117,
+      "url": "https://resources.download.minecraft.net/77/77ef81db0fa49e065c4f0cfc8b3093dc98b926a5"
+    },
+    {
+      "file": "audio/characters/溺尸/drowned.ambient_4.ogg",
+      "asset_key": "minecraft/sounds/mob/drowned/idle4.ogg",
+      "sha1": "ccf001fd23dab6378684cd638288f7f3e1d02160",
+      "size": 29817,
+      "url": "https://resources.download.minecraft.net/cc/ccf001fd23dab6378684cd638288f7f3e1d02160"
+    },
+    {
+      "file": "audio/characters/溺尸/drowned.ambient_5.ogg",
+      "asset_key": "minecraft/sounds/mob/drowned/idle5.ogg",
+      "sha1": "48e25a17ab04266467a54528dfb09d9caf6ec0f2",
+      "size": 22569,
+      "url": "https://resources.download.minecraft.net/48/48e25a17ab04266467a54528dfb09d9caf6ec0f2"
+    },
+    {
+      "file": "audio/characters/溺尸/drowned.hurt_1.ogg",
+      "asset_key": "minecraft/sounds/mob/drowned/hurt1.ogg",
+      "sha1": "56334e56a9ad22e1b8488343cd7b71dc7e77da41",
+      "size": 10153,
+      "url": "https://resources.download.minecraft.net/56/56334e56a9ad22e1b8488343cd7b71dc7e77da41"
+    },
+    {
+      "file": "audio/characters/溺尸/drowned.hurt_2.ogg",
+      "asset_key": "minecraft/sounds/mob/drowned/hurt2.ogg",
+      "sha1": "d61d7652325cb778c62dc25bee94de856740cfba",
+      "size": 8417,
+      "url": "https://resources.download.minecraft.net/d6/d61d7652325cb778c62dc25bee94de856740cfba"
+    },
+    {
+      "file": "audio/characters/溺尸/drowned.hurt_3.ogg",
+      "asset_key": "minecraft/sounds/mob/drowned/hurt3.ogg",
+      "sha1": "3052c1715360c132eabe491a7df05d95835e2a5b",
+      "size": 9755,
+      "url": "https://resources.download.minecraft.net/30/3052c1715360c132eabe491a7df05d95835e2a5b"
+    },
+    {
+      "file": "audio/characters/溺尸/drowned.death_1.ogg",
+      "asset_key": "minecraft/sounds/mob/drowned/death1.ogg",
+      "sha1": "9edb642d9b16f8e3dd495c7f65348b9ebdbee5f8",
+      "size": 13851,
+      "url": "https://resources.download.minecraft.net/9e/9edb642d9b16f8e3dd495c7f65348b9ebdbee5f8"
+    },
+    {
+      "file": "audio/characters/溺尸/drowned.death_2.ogg",
+      "asset_key": "minecraft/sounds/mob/drowned/death2.ogg",
+      "sha1": "f06613bca60316fdc9ae333e39c1c9fd8a06e4de",
+      "size": 16003,
+      "url": "https://resources.download.minecraft.net/f0/f06613bca60316fdc9ae333e39c1c9fd8a06e4de"
+    },
+    {
+      "file": "Images/characters/我的世界/蜘蛛/cobweb_native.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/blocks/web.png",
+      "sha256": "5d4f7313d3c8f84bbfc3e5b420604db34ffde520f3f6b4e58757ae10fe88cb37",
+      "size": 243
+    },
+    {
+      "file": "audio/characters/我的世界/苦力怕/thunder1.ogg",
+      "asset_key": "minecraft/sounds/ambient/weather/thunder1.ogg",
+      "sha1": "a20f0a846d7becf5d08756207f86acf24fac1a8d",
+      "size": 39387,
+      "url": "https://resources.download.minecraft.net/a2/a20f0a846d7becf5d08756207f86acf24fac1a8d"
+    },
+    {
+      "file": "audio/characters/我的世界/苦力怕/thunder2.ogg",
+      "asset_key": "minecraft/sounds/ambient/weather/thunder2.ogg",
+      "sha1": "9c94cf13276d60a7ce67eacdc3885f25fa0aadf5",
+      "size": 43220,
+      "url": "https://resources.download.minecraft.net/9c/9c94cf13276d60a7ce67eacdc3885f25fa0aadf5"
+    },
+    {
+      "file": "audio/characters/我的世界/苦力怕/thunder3.ogg",
+      "asset_key": "minecraft/sounds/ambient/weather/thunder3.ogg",
+      "sha1": "7b96a88619a2228cf4c7d3a2b81ecfd1b3b56673",
+      "size": 45050,
+      "url": "https://resources.download.minecraft.net/7b/7b96a88619a2228cf4c7d3a2b81ecfd1b3b56673"
+    },
+    {
+      "file": "audio/characters/我的世界/苦力怕/explode1.ogg",
+      "asset_key": "minecraft/sounds/random/explode1.ogg",
+      "sha1": "fa85b9e7e54c36c9f9d0249ca739444b5e3bb66c",
+      "size": 23161,
+      "url": "https://resources.download.minecraft.net/fa/fa85b9e7e54c36c9f9d0249ca739444b5e3bb66c"
+    },
+    {
+      "file": "audio/characters/我的世界/苦力怕/explode2.ogg",
+      "asset_key": "minecraft/sounds/random/explode2.ogg",
+      "sha1": "e55daa373e577f611565d57ec53cd28dcf472f99",
+      "size": 28696,
+      "url": "https://resources.download.minecraft.net/e5/e55daa373e577f611565d57ec53cd28dcf472f99"
+    },
+    {
+      "file": "audio/characters/我的世界/苦力怕/explode3.ogg",
+      "asset_key": "minecraft/sounds/random/explode3.ogg",
+      "sha1": "3a92d0fd263265719532041f6f2ea44c7ba2f2e2",
+      "size": 28255,
+      "url": "https://resources.download.minecraft.net/3a/3a92d0fd263265719532041f6f2ea44c7ba2f2e2"
+    },
+    {
+      "file": "audio/characters/我的世界/苦力怕/explode4.ogg",
+      "asset_key": "minecraft/sounds/random/explode4.ogg",
+      "sha1": "09835e0c3138faf6047506a2b6f1da087c082d2e",
+      "size": 27561,
+      "url": "https://resources.download.minecraft.net/09/09835e0c3138faf6047506a2b6f1da087c082d2e"
+    },
+    {
+      "file": "audio/characters/溺尸/trident.wire_fizz.ogg",
+      "asset_key": "minecraft/sounds/random/fizz.ogg",
+      "sha1": "bd76df5c882dc4b65925a8b25c0e7dbebef9bb2e",
+      "size": 15222,
+      "url": "https://resources.download.minecraft.net/bd/bd76df5c882dc4b65925a8b25c0e7dbebef9bb2e"
+    },
+    {
+      "file": "audio/characters/溺尸/trident.enchant_1.ogg",
+      "asset_key": "minecraft/sounds/block/enchantment_table/enchant1.ogg",
+      "sha1": "81fb73a754948f5d3f66972eb8404c12caf3d440",
+      "size": 14724,
+      "url": "https://resources.download.minecraft.net/81/81fb73a754948f5d3f66972eb8404c12caf3d440"
+    },
+    {
+      "file": "audio/characters/溺尸/trident.enchant_2.ogg",
+      "asset_key": "minecraft/sounds/block/enchantment_table/enchant2.ogg",
+      "sha1": "3da9a539fa3df4e70c6ab3eda39244288d83d3c4",
+      "size": 14768,
+      "url": "https://resources.download.minecraft.net/3d/3da9a539fa3df4e70c6ab3eda39244288d83d3c4"
+    },
+    {
+      "file": "audio/characters/溺尸/trident.enchant_3.ogg",
+      "asset_key": "minecraft/sounds/block/enchantment_table/enchant3.ogg",
+      "sha1": "62579dcf7b4bee2dfed7b64b94191bc2fee59cf3",
+      "size": 16522,
+      "url": "https://resources.download.minecraft.net/62/62579dcf7b4bee2dfed7b64b94191bc2fee59cf3"
+    },
+    {
+      "file": "audio/characters/溺尸/trident.refill_ding.ogg",
+      "asset_key": "minecraft/sounds/random/orb.ogg",
+      "sha1": "8a04a60d5c28fc60df472a877ca57f37eabc78d7",
+      "size": 7815,
+      "url": "https://resources.download.minecraft.net/8a/8a04a60d5c28fc60df472a877ca57f37eabc78d7"
+    }
+  ],
+  "existing_lightning_events": {
+    "entity.lightning_bolt.thunder": [
+      "audio/characters/我的世界/苦力怕/thunder1.ogg",
+      "audio/characters/我的世界/苦力怕/thunder2.ogg",
+      "audio/characters/我的世界/苦力怕/thunder3.ogg"
+    ],
+    "entity.generic.explode": [
+      "audio/characters/我的世界/苦力怕/explode1.ogg",
+      "audio/characters/我的世界/苦力怕/explode2.ogg",
+      "audio/characters/我的世界/苦力怕/explode3.ogg",
+      "audio/characters/我的世界/苦力怕/explode4.ogg"
+    ]
+  }
+}

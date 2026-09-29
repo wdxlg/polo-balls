@@ -251,6 +251,7 @@ func run() -> void:
 func finish(code:int) -> void:
 	if finishing: return
 	finishing = true
+	if not await load("res://tests/mc_animation_test_cleanup.gd").wait_for_preloads(self): code = 1
 	if is_instance_valid(game):
 		game.Game_Settings = saved
 		game.now_stop_state = saved_stop

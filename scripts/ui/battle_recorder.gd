@@ -23,6 +23,9 @@ const LIVE_OUTPUT_FPS:float = 60.0
 const LIVE_RENDER_MAX_FPS:int = 60
 const OUTPUT_SIZE:Vector2i = Vector2i(1080, 1920)
 const VIDEO_CRF:String = "14"
+# NVENC still performs RGBA -> YUV preprocessing on CPU. Two auto-sized filter
+# pools can starve each other/the editor; bound these separately from x264 threads.
+const ENCODER_FILTER_THREADS:int = 2
 const AudioCaptureScript = preload("res://scripts/ui/battle_record_audio.gd")
 const EffectTooltipsScript = preload("res://scripts/ui/battle_record_effect_tooltips.gd")
 const SIM_OUTPUT_FPS:float = 60.0
@@ -75,6 +78,7 @@ var mode:int = Mode.IDLE
 var _live_saved_max_fps:int = -1
 var _live_applied_max_fps:int = -1
 
+var _live_preparing:bool = false
 var _session_active:bool = false
 var _finalizing:bool = false
 var _capture_viewport:Viewport = null
@@ -89,7 +93,6 @@ var _follow_screen_center:Vector2 = Vector2.ZERO
 var _follow_zoom:float = 1.0
 var _camera_initialized:bool = false
 var _overview_viewport:SubViewport = null
-var _recording_title:Label = null
 var _player_composition_mode:int = -1
 var _player_camera:Camera2D = null
 var _player_camera_center:Vector2 = Vector2.ZERO
@@ -318,7 +321,12 @@ func set_tail_seconds(seconds:float) -> bool:
 	return true
 
 
+func is_preparing() -> bool:
+	return _live_preparing
+
+
 func get_pause_reason() -> String:
+	if _live_preparing: return "正在准备录制画面，准备完成后开始音画计时。"
 	if get_tree().paused or Game.now_stop_state: return "对局暂停中，请按 Esc 继续。"
 	if Game.stop_background.is_visible_in_tree() or Game.stop_text.is_visible_in_tree():
 		return "暂停画面或恢复倒计时中，请等待对局继续。"
@@ -332,6 +340,7 @@ func get_pause_reason() -> String:
 func _enter_mode(next_mode:int) -> void:
 	mode = next_mode
 	_session_active = true
+	_live_preparing = next_mode == Mode.LIVE
 	_pause_boundary = false
 	if _audio.effect != null: _audio.effect.clear_buffer()
 	_last_capture_paused = _capture_is_paused()
@@ -442,6 +451,7 @@ func _open_pipe_encoder() -> bool:
 
 	var args:Array = [
 		"-y", "-hide_banner", "-loglevel", "error",
+		"-filter_threads", str(ENCODER_FILTER_THREADS),
 		"-f", "rawvideo", "-pix_fmt", "rgba",
 		"-s", "%dx%d" % [_capture_size.x, _capture_size.y],
 		"-r", "%.6f" % _output_fps,
@@ -621,10 +631,41 @@ func _release_sim_world_state(keep_result:bool = true) -> void:
 func _capture_is_paused() -> bool:
 	return not get_pause_reason().is_empty()
 
+func _prime_live_capture() -> bool:
+	# D3D12's first bilingual viewport draw/readback may compile pipelines for
+	# seconds. This is preparation, not recorded time: otherwise the first draw
+	# fabricates ~100 repeated frames and overwhelms the bounded writer queues.
+	_prepare_next_capture()
+	await RenderingServer.frame_post_draw
+	if mode != Mode.LIVE: return false # Stop during preparation remains valid.
+	var zh:PackedByteArray = _grab_capture_rgba()
+	var en:PackedByteArray = _secondary._grab_capture_rgba()
+	var expected:int = _capture_size.x * _capture_size.y * 4
+	if zh.size() != expected or en.size() != expected:
+		return _fail("录制画面准备失败：中英文首帧不完整，本次未开始正式录制。")
+	# Drop preparation audio too; audio, video and the end-tail share the new
+	# epoch. Never reset these clocks or discard audio after recording starts.
+	_audio.drain(1.0, true)
+	if not _audio.error.is_empty(): return _fail(_audio.error)
+	return true
+
+
 func _capture_loop() -> void:
 	if mode == Mode.SIM:
 		_offline_capture_loop()
 		return
+	var ready:bool = await _prime_live_capture()
+	_live_preparing = false
+	if not ready:
+		stop()
+		_finish_session()
+		return
+	_last_capture_paused = _capture_is_paused()
+	_last_capture_scale = 1.0
+	_pause_boundary = false
+	_speed_real = 0.0
+	_speed_physics_start = _physics_clock
+	_speed_warmup = 1.0
 	_profile_enabled = OS.get_environment("BATTLE_RECORD_PROFILE") == "1"
 	_profile_buckets.fill(0)
 	_profile_frames = 0
@@ -690,8 +731,8 @@ func _capture_loop() -> void:
 			break
 		if wanted > 0:
 			var read_begin:int = _wall_usec() if _profile_enabled else 0
-			# The first frame validates both RD textures; unsupported formats keep the
-			# original synchronous path. Later frames read back without stalling draw.
+			# Preparation validated both RD textures; unsupported formats keep the
+			# original synchronous path. Ready textures use asynchronous readback.
 			var async_ready:bool = _writer != null and _secondary._writer != null and _readback_texture.is_valid() and _secondary._readback_texture.is_valid() and _readback_device.has_method("texture_get_data_async")
 			if async_ready:
 				if _live_pending.size() >= 8:
@@ -938,9 +979,10 @@ func _sync_player_composition(delta:float) -> void:
 		_player_composition_mode = composition
 		_sync_player_overview(composition, rect, view)
 		return
-	# World updates the base zoom every frame before this priority-10 callback.
-	# Use the unmodified zoom accessor rather than the last composed camera.zoom.
-	var base_zoom:float = maxf(float(world.get_effective_camera_zoom()), 0.001)
+	# Fit the map/actors at the stable manual zoom. Fitting against the effective
+	# zoom would divide by the hit/cinematic multiplier and cancel its push-in.
+	var base_zoom:float = maxf(float(world._base_camera_zoom_value()) * float(world.toolbar_zoom_multiplier), 0.001)
+	var transient_zoom:float = maxf(float(world.get_effective_camera_zoom()), 0.001) / base_zoom
 	var full_factor:float = clampf(minf(view.x * 0.87 / maxf(rect.size.x * base_zoom, 1.0), view.y * 0.55 / maxf(rect.size.y * base_zoom, 1.0)), 0.85, 1.55)
 	var target_center:Vector2 = rect.get_center()
 	var target_zoom:float = base_zoom * full_factor
@@ -975,7 +1017,9 @@ func _sync_player_composition(delta:float) -> void:
 	# Existing cinematic and hit reactions keep their center override.
 	var focus:float = maxf(float(world.get("_cinematic_focus_weight")), float(world.get("_damage_focus_weight")))
 	if focus > 0.0: composed_center = composed_center.lerp(camera.global_position, clampf(focus, 0.0, 1.0))
-	camera.zoom = Vector2.ONE * _player_camera_zoom
+	# Apply short hit and cinematic zoom *after* smoothing the stable framing;
+	# this camera is shared by the player and both recording viewports.
+	camera.zoom = Vector2.ONE * (_player_camera_zoom * transient_zoom)
 	camera.global_position = composed_center
 	camera.force_update_scroll()
 	_player_camera = camera
@@ -1240,8 +1284,8 @@ func _setup_sim_capture_viewport() -> void:
 		if not is_instance_valid(_locale_mirror):
 			_locale_mirror = LocaleScript.new()
 			add_child(_locale_mirror)
-			# Put VS in each capture's own screen layer. In FOLLOW/OVERVIEW the
-			# mirror hides it if the zoomed arena occupies the title header.
+			# Put VS in each capture's own screen layer. The mirror stays visible
+			# through FOLLOW/OVERVIEW zoom even when the arena fills the header.
 			_locale_mirror.begin(_world(), main, {"zh":_sim_viewport, "en":_secondary._sim_viewport})
 		# CanvasLayers belong to the player Viewport, not its shared World2D.
 		# Add locale-specific copies to BOTH real video sources (LIVE and SIM).
@@ -1255,38 +1299,9 @@ func _setup_recording_composition(sub:SubViewport) -> void:
 	overlay.name = "RecordingComposition"
 	overlay.layer = 100
 	sub.add_child(overlay)
-	# The camera may bring the arena border behind the title in tracking mode.
-	# Give the match identity a stable high-contrast safe zone in every layout.
-	var header := ColorRect.new()
-	header.color = Color(0.018, 0.06, 0.105, 0.66)
-	header.position = Vector2(0, 76)
-	header.size = Vector2(_capture_size.x, 212)
-	header.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	overlay.add_child(header)
-	# Screen-space labels stay legible while the combat viewport pans and zooms.
-	var eyebrow := Label.new()
-	eyebrow.text = ("对战实况" if _locale == "zh" else "BATTLE REPLAY")
-	eyebrow.position = Vector2(60, 93)
-	eyebrow.size = Vector2(960, 46)
-	eyebrow.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	eyebrow.add_theme_font_size_override("font_size", 24)
-	eyebrow.add_theme_color_override("font_color", Color(0.72, 0.91, 1.0))
-	eyebrow.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.85))
-	eyebrow.add_theme_constant_override("shadow_offset_y", 2)
-	overlay.add_child(eyebrow)
-	_recording_title = Label.new()
-	_recording_title.name = "MatchTitle"
-	_recording_title.text = NamingScript.title(_match_snapshot, _locale).replace("_", "  ")
-	_recording_title.position = Vector2(60, 149)
-	_recording_title.size = Vector2(960, 130)
-	_recording_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_recording_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_recording_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_recording_title.add_theme_font_size_override("font_size", 39)
-	_recording_title.add_theme_color_override("font_color", Color.WHITE)
-	_recording_title.add_theme_color_override("font_outline_color", Color(0.02, 0.06, 0.12))
-	_recording_title.add_theme_constant_override("outline_size", 9)
-	overlay.add_child(_recording_title)
+	# FULL/FOLLOW show only the localized World VS above the map. Never draw a
+	# second screen-space title or a dark header over the portrait footage.
+	# FOLLOW_OVERVIEW keeps its separate, small-map inset below.
 	if _composition != PreferencesScript.FOLLOW_OVERVIEW: return
 	var overview := SubViewport.new()
 	overview.name = "BattleOverview"
@@ -1382,7 +1397,6 @@ func _free_sim_capture_viewport() -> void:
 	_readback_device = null
 	_readback_checked = false
 	_capture_vignette = null
-	_recording_title = null
 	_camera_initialized = false
 	if is_instance_valid(_overview_viewport):
 		_overview_viewport.queue_free()
@@ -1467,6 +1481,7 @@ func _on_overlay_abort_pressed() -> void:
 
 
 func _update_sim_progress(game_delta:float) -> void:
+	_cancel_invalid_armor_tail()
 	if _sim_tail_left < 0.0:
 		if _sim_match_over():
 			_sim_tail_left = _tail_seconds
@@ -1480,8 +1495,9 @@ func _update_sim_progress(game_delta:float) -> void:
 		_update_overlay_text()
 
 
-## LIVE 用：只看胜负，不受 SIM 的 300 秒上限约束；倒计时用游戏时间。
+## LIVE 和 SIM 均没有固定时长上限；只有实际终局后才按游戏时间续录。
 func _update_match_end_tail(game_delta:float) -> void:
+	_cancel_invalid_armor_tail()
 	if _sim_tail_left < 0.0:
 		# 没有对局场景时实时录制照常进行（例如录菜单），不把“无世界”当成胜负已分。
 		var world:Node = _world()
@@ -1509,11 +1525,37 @@ func _sim_match_over() -> bool:
 	return _match_over_now()
 
 
-## 世界此刻是否已明确宣告结束：胜利铃已响，或队列对战已全部打完。不含存活阵营推断。
+## An old victory bell can survive adding a new armor-stand opponent. Only
+## reject that finish signal while the existing World contender contract proves
+## the armor demonstration is still contested. Never infer an ordinary match end.
+func _armor_recording_still_contested(world:Node) -> bool:
+	if world == null or not is_instance_valid(world): return false
+	var armor_test:bool = bool(world.get("_armor_stand_test_hud_active"))
+	if not armor_test and (mode != Mode.IDLE or _session_active):
+		armor_test = bool(_match_snapshot.get("armor_test",false))
+	if not armor_test: return false
+	# Timed expiry / exhausted queue are real terminal events even with survivors.
+	if Game.is_timed_training_mode() and bool(world.get("_timed_finished")): return false
+	if world.has_method("_queue_battle_mode_active") and bool(world.call("_queue_battle_mode_active")) and bool(world.get("_rotation_finished")): return false
+	if not world.has_method("_collect_alive_victory_sides"): return false
+	var sides:Dictionary = world.call("_collect_alive_victory_sides")
+	return sides.size() > 1
+
+
+func _cancel_invalid_armor_tail() -> void:
+	if not _armor_recording_still_contested(_world()): return
+	# Re-entering an ongoing demonstration also cancels an already armed tail.
+	_sim_tail_left = -1.0
+	_sim_finished = false
+	_stale_match_over = false
+
+
+## 世界正式结算为准；盔甲架仍有对立存活阵营时不能沿用上一场的铃声。
 func _match_over_now() -> bool:
 	var world:Node = _world()
 	if world == null or not is_instance_valid(world):
 		return false
+	if _armor_recording_still_contested(world): return false
 	var played:Variant = world.get("_victory_bell_played")
 	if played != null and bool(played):
 		return true

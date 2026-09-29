@@ -1,0 +1,9 @@
+{
+  "head": "097aeddb43dd72cbc50f4f52178babd7f6940a7c",
+  "branch": "main",
+  "files": {
+    "global/game.gd": "52d6a8494d701439f2522ebee0c2456a15d5646be791951a113e5a6913bb70dd",
+    "scripts/characters/我的世界/new5/fishing_rod.gd": "c4f7255cd0f7295256a41556fdf6480fb275c844bc6777f796ae34e1fb6748d5",
+    "MCP_CONTEXT.md": "3eb1978458b2c82ae1e34d8ecc3eea94028392f632a2b162df409058c6347d2b"
+  }
+}

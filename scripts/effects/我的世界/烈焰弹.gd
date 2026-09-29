@@ -4,8 +4,7 @@ extends Node2D
 # 闪避成功后继续沿原射线路径查询后方碰撞体，不生成火场、不销毁弹丸。
 
 const FIRE_PATCH_SCRIPT:Script = preload("res://scripts/effects/我的世界/烈焰火场.gd")
-const BURN_SCRIPT:Script = preload("res://scripts/status/战争女神_灼烧.gd")
-const BURN_NODE_NAME:StringName = &"MinecraftBlazeBurn"
+const SHARED_BURN:Script = preload("res://scripts/effects/我的世界/mc_shared_burn.gd")
 const MC_DAMAGE_SFX:Script = preload("res://scripts/effects/我的世界/女巫药水伤害音效.gd")
 const MC_SMOKE_SCENE:PackedScene = preload("res://scenes/effects/我的世界/MC烟雾粒子.tscn")
 
@@ -32,6 +31,7 @@ var _smoke_rng := RandomNumberGenerator.new()
 
 
 func _ready() -> void:
+	add_to_group("AllayCapturableBlaze")
 	_smoke_rng.seed = Game.battle_rng_seed_or("scripts/effects/我的世界/烈焰弹.gd:_smoke_rng.seed",maxi(abs(int(Time.get_ticks_usec()) ^ int(get_instance_id())),1))
 	_smoke_left = _smoke_rng.randf_range(smoke_interval_min,smoke_interval_max)
 
@@ -71,6 +71,7 @@ func _physics_process(delta:float) -> void:
 	_update_smoke_trail(maxf(delta,0.0))
 	var start:Vector2 = global_position
 	var finish:Vector2 = start + _direction * _speed * maxf(delta,0.0)
+	if get_tree().has_group("MinecraftAllay") and load("res://scripts/characters/我的世界/allay/capture.gd").sweep(self,start,finish): return
 	var hit:Dictionary = _raycast_motion(start,finish,source)
 	if hit.is_empty():
 		global_position = finish
@@ -79,9 +80,11 @@ func _physics_process(delta:float) -> void:
 	var collider:Variant = hit.get("collider",null)
 	var target:ball = _resolve_ball_from_collider(collider)
 	if target != null and _can_damage(target):
+		var health_before:float = maxf(float(target.health),0.0)
 		var applied:bool = target.receive_fire_positional_damage(source.attack_damage(_damage_multiplier),global_position,false,source)
+		var actual_damage:float = maxf(health_before - maxf(float(target.health),0.0),0.0)
 		if applied:
-			MC_DAMAGE_SFX.play(target,global_position)
+			MC_DAMAGE_SFX.play_scaled(target,global_position,actual_damage,source,"blaze_fireball")
 			_apply_burn(source,target,_burn_duration,source.attack_damage(_burn_tick_damage_multiplier))
 		queue_free()
 		return
@@ -196,15 +199,9 @@ func _runtime_container() -> Node:
 	return container
 
 func _apply_burn(source:ball,target:ball,duration:float,tick_damage:float) -> void:
-	var path := NodePath(String(BURN_NODE_NAME))
-	var existing:Node = target.get_node_or_null(path)
-	if existing != null and is_instance_valid(existing) and existing.has_method("refresh"):
-		existing.call("refresh",source,duration,tick_damage)
-		return
-	var status:Node2D = BURN_SCRIPT.new() as Node2D
-	status.name = BURN_NODE_NAME
-	target.add_child(status,true)
-	status.call("setup",target,source,duration,0.55,tick_damage)
+	# The shared entry owns the status node and refresh semantics; reuse the
+	# already computed live attack value from the existing Blaze call site.
+	SHARED_BURN.apply_amount(source,target,duration,tick_damage)
 
 func _can_damage(target:ball) -> bool:
 	if target == null or not is_instance_valid(target) or target.health <= 0 or not target.is_combat_targetable():

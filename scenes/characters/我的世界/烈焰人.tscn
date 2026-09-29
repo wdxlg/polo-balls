@@ -8,11 +8,11 @@
 
 [sub_resource type="RectangleShape2D" id="BodyShape"]
 resource_local_to_scene = true
-size = Vector2(78, 155)
+size = Vector2(62.4, 124)
 
 [sub_resource type="RectangleShape2D" id="HurtShape"]
 resource_local_to_scene = true
-size = Vector2(74, 150)
+size = Vector2(59.2, 120)
 
 [sub_resource type="RectangleShape2D" id="RodShape"]
 resource_local_to_scene = true

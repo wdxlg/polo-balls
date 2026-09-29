@@ -34,3 +34,26 @@ func _init(Index:int=0,Duration:float=0,Buff_type:Buff_types=Buff_types.Damage,A
 	buff_type = Buff_type
 	amount = Amount
 	algorithm = Algorithm
+
+# Explicit polarity for future/non-stat effects: -1 negative, +1 positive,
+# 0 uses the shared stat semantics below. Never infer from translated buff names.
+var effect_polarity:int = 0
+const BENEFIT_DIRECTION:Dictionary = {
+	Buff_types.Damage:1, Buff_types.Speed:1, Buff_types.max_block:1,
+	Buff_types.max_energy:1, Buff_types.Max_health:1, Buff_types.Attack_Cooling:-1,
+	Buff_types.Skill_Cooling:-1, Buff_types.Health_Restore:1,
+	Buff_types.Damage_reduction:1, Buff_types.Attack_Amount:1,
+	Buff_types.Infection:-1, Buff_types.poison:-1,
+}
+
+func is_negative_for(target:Node) -> bool:
+	if effect_polarity!=0: return effect_polarity<0
+	if buff_type in [Buff_types.Infection,Buff_types.poison]: return true
+	if not BENEFIT_DIRECTION.has(buff_type) or not (amount is int or amount is float): return false
+	var change:float = float(amount)
+	if algorithm==Algorithms.mul: change -= 1.0
+	elif algorithm==Algorithms.Set:
+		var property:String = str(Buff_types.find_key(buff_type))
+		var baseline:float = float(target.default_properties.get(property,target.get(property) if property in target else 0.0))
+		change -= baseline
+	return change*int(BENEFIT_DIRECTION[buff_type]) < -0.000001

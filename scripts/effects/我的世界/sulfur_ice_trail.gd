@@ -2,6 +2,7 @@ extends Node2D
 ## One actual terrain cell of Sulfur Cube's temporary blue-ice trail.
 const ICE:Texture2D = preload("res://Images/characters/我的世界/sulfur_cube/source/blue_ice.png")
 const FRAGMENTS:Script = preload("res://scripts/effects/我的世界/block_fragments.gd")
+const AUDIO = preload("res://scripts/characters/我的世界/sulfur_cube_audio.gd")
 const CRACKS:Array[Texture2D] = [
 	preload("res://Images/characters/我的世界/snow_golem/ice_crack_0.png"),
 	preload("res://Images/characters/我的世界/snow_golem/ice_crack_1.png"),
@@ -17,7 +18,7 @@ const GROUND_Z:int = -4 # Ground overlay: above map floor (-5), below bodies/obs
 const LIFETIME:float = 4.0
 const CRACK_START:float = 2.0
 const ACCELERATION = preload("res://scripts/effects/surface_acceleration.gd")
-const SLIDE_ACCELERATION:float = 240.0 # world px/s²; integrates with physics delta
+const SLIDE_ACCELERATION:float = 240.0 # User: halve continuous ice acceleration; cap policy unchanged.
 const MAX_BONUS_RATIO:float = 1.5 # up to 2.5x normal movement, not exponential
 const SCAN_INTERVAL:float = 1.0/60.0
 var cell_rect:Rect2
@@ -83,6 +84,7 @@ func _physics_process(delta:float) -> void:
 		_break_tile()
 		return
 	if age >= CRACK_START:
+		if not _crack.visible: _terrain_sound(&"ice_crack")
 		var index:int = clampi(int((age-CRACK_START)/(LIFETIME-CRACK_START)*10.0),0,9)
 		_crack.texture = CRACKS[index]
 		_crack.show()
@@ -103,5 +105,21 @@ func surface_acceleration_at(point:Vector2) -> Dictionary:
 func _break_tile() -> void:
 	if is_queued_for_deletion(): return
 	if is_inside_tree():
+		_terrain_sound(&"ice_break")
 		FRAGMENTS.spawn_texture(self,ICE,global_position,cell_rect.size.x/maxf(ICE.get_width(),1.0),{"max_pieces":9,"scatter_radius":cell_rect.size.x,"z_layer":GROUND_Z})
 	queue_free()
+
+
+func _terrain_sound(event:StringName) -> void:
+	if not is_inside_tree(): return
+	var owner:Variant = source_ref.get_ref() if source_ref != null else null
+	if is_instance_valid(owner) and not owner.is_queued_for_deletion():
+		# Stable owner coalesces a row of tiles on THIS peer. No second network send.
+		owner.call("_sulfur_sound",event,global_position,AUDIO.default_gain(event))
+	elif is_instance_valid(get_tree().current_scene):
+		# Orphaned tail: one clustered break per scene interval, not dozens on death.
+		var scene:Node = get_tree().current_scene
+		var now:int = Time.get_ticks_msec()
+		var key:StringName = &"sulfur_orphan_ice_break_msec"
+		if now-int(scene.get_meta(key,-100000)) < AUDIO.interval_ms(event): return
+		if not AUDIO.play(self,event,global_position).is_empty(): scene.set_meta(key,now)

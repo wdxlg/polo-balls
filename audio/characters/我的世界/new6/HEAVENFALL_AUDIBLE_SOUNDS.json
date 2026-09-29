@@ -1,0 +1,68 @@
+{
+  "minecraft_version": "1.21.11",
+  "notes": "Wave revision: prominent native mace-air and wind-charge midrange attack, cosmic crack tail, compressed to preserve sustained audible energy. Not CC0. Rebuild with numpy scipy soundfile.",
+  "sources": [
+    {
+      "asset": "minecraft/sounds/item/mace/smash_air1.ogg",
+      "sha1": "dcdef344e1dff43fd798e3faa41e3ac5e36410f2",
+      "url": "https://resources.download.minecraft.net/dc/dcdef344e1dff43fd798e3faa41e3ac5e36410f2",
+      "cache_file": "item_mace_smash_air1.ogg"
+    },
+    {
+      "asset": "minecraft/sounds/item/mace/smash_air2.ogg",
+      "sha1": "15f8ff8cda809e33413e5aa428840f37caf15b3c",
+      "url": "https://resources.download.minecraft.net/15/15f8ff8cda809e33413e5aa428840f37caf15b3c",
+      "cache_file": "item_mace_smash_air2.ogg"
+    },
+    {
+      "asset": "minecraft/sounds/entity/wind_charge/wind_burst1.ogg",
+      "sha1": "22b61f8192748c33e482b973edd993eed7c405da",
+      "url": "https://resources.download.minecraft.net/22/22b61f8192748c33e482b973edd993eed7c405da",
+      "cache_file": "entity_wind_charge_wind_burst1.ogg"
+    },
+    {
+      "asset": "minecraft/sounds/entity/wind_charge/wind_burst2.ogg",
+      "sha1": "839b5c67010398d2e655500b498e9931e9a30ce1",
+      "url": "https://resources.download.minecraft.net/83/839b5c67010398d2e655500b498e9931e9a30ce1",
+      "cache_file": "entity_wind_charge_wind_burst2.ogg"
+    },
+    {
+      "asset": "minecraft/sounds/block/amethyst/break1.ogg",
+      "sha1": "97b47b7a62f22addf6ff1db0c57b2fce22504098",
+      "url": "https://resources.download.minecraft.net/97/97b47b7a62f22addf6ff1db0c57b2fce22504098",
+      "cache_file": "block_amethyst_break1.ogg"
+    },
+    {
+      "asset": "minecraft/sounds/block/amethyst/break2.ogg",
+      "sha1": "fc857c1990d4bc7c157f4f8367ca4af0bd6168a2",
+      "url": "https://resources.download.minecraft.net/fc/fc857c1990d4bc7c157f4f8367ca4af0bd6168a2",
+      "cache_file": "block_amethyst_break2.ogg"
+    },
+    {
+      "asset": "minecraft/sounds/block/respawn_anchor/deplete1.ogg",
+      "sha1": "a084cc73ae04f6d4aaec3b33865dc05709c17603",
+      "url": "https://resources.download.minecraft.net/a0/a084cc73ae04f6d4aaec3b33865dc05709c17603",
+      "cache_file": "block_respawn_anchor_deplete1.ogg"
+    },
+    {
+      "asset": "minecraft/sounds/block/respawn_anchor/deplete2.ogg",
+      "sha1": "f39c3b69a7d8f3fac8797a9145c8b93cac94fc67",
+      "url": "https://resources.download.minecraft.net/f3/f39c3b69a7d8f3fac8797a9145c8b93cac94fc67",
+      "cache_file": "block_respawn_anchor_deplete2.ogg"
+    }
+  ],
+  "derived_outputs": [
+    {
+      "file": "heaven_wave_punch_audible1.ogg",
+      "duration_seconds": 0.46,
+      "sha256": "f0dd33d0d461bb62cb27b709aa4d776387fab8a98a5739d248a7a648cfbfb803",
+      "decoded_peak": 0.8674389123916626
+    },
+    {
+      "file": "heaven_wave_punch_audible2.ogg",
+      "duration_seconds": 0.46,
+      "sha256": "0646d473799a29f7d24f0a4e6cd0f0217ef77faf9513e00d61a01fdd5f5beb3b",
+      "decoded_peak": 0.9314284920692444
+    }
+  ]
+}

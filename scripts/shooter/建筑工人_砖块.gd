@@ -22,6 +22,7 @@ var _terminal_sound_played:bool = false
 
 
 func _ready() -> void:
+	add_to_group("AllayExtendedProjectile")
 	add_to_group("BattleTransient")
 	monitoring = true
 	monitorable = false
@@ -89,6 +90,7 @@ func _physics_process(delta:float) -> void:
 		rotation = _velocity.angle()
 
 	var step:Vector2 = _velocity * delta
+	if get_tree().has_group("MinecraftAllay") and load("res://scripts/characters/我的世界/allay/capture.gd").sweep(self,global_position,global_position+step): return
 	global_position += step
 
 	# 目标墙因为物理帧顺序没有发出 body_entered 时，用距离兜底。
@@ -121,6 +123,7 @@ func _on_body_entered(body:Node) -> void:
 	var target_id:int = target.get_instance_id()
 	if _hit_ids.has(target_id):
 		return
+	if target.has_method("try_full_projectile_dodge") and bool(target.call("try_full_projectile_dodge",self)): return
 	_hit_ids[target_id] = true
 
 	if target.has_method("try_block_projectile_hit") and bool(target.call("try_block_projectile_hit",self,global_position,enemy_damage)):

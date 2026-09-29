@@ -2,7 +2,7 @@
 
 [ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1"]
 [ext_resource type="Script" path="res://scripts/characters/我的世界/snow_golem/snow_golem.gd" id="2"]
-[ext_resource type="Texture2D" path="res://Images/characters/我的世界/snow_golem/pumpkin_center.png" id="3"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/snow_golem/faces/pumpkin_03.png" id="3"]
 
 [sub_resource type="RectangleShape2D" id="Body"]
 resource_local_to_scene = true
@@ -15,9 +15,9 @@ size = Vector2(90, 142)
 [node name="雪傀儡" instance=ExtResource("1")]
 script = ExtResource("2")
 Has_Collision_Damage = false
-dir_left = true
-Type_Tags = PackedStringArray("我的世界", "远程", "雪球", "寒冷", "冻结", "雪径", "召唤")
-Max_health = 360
+dir_left = false
+Type_Tags = PackedStringArray("我的世界", "远程", "雪球", "寒冷", "冻结", "雪径", "连射")
+Max_health = 425
 Damage = 9
 Speed = 80.0
 Attack_Cooling = 2.0

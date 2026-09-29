@@ -47,6 +47,7 @@ func setup(
 
 
 func _ready() -> void:
+	add_to_group("AllayExtendedProjectile")
 	add_to_group("BattleTransient")
 	hit_area.collision_layer = 0
 	hit_area.collision_mask = 3
@@ -83,6 +84,7 @@ func _physics_process(delta:float) -> void:
 	var sub_distance:float = move_distance / float(substeps)
 	for _index:int in range(substeps):
 		var next_position:Vector2 = global_position + direction * sub_distance
+		if get_tree().has_group("MinecraftAllay") and load("res://scripts/characters/我的世界/allay/capture.gd").sweep(self,global_position,next_position): return
 		var obstacle_hit:bool = _query_damage_shape(next_position)
 		global_position = next_position
 		_travelled += sub_distance
@@ -139,6 +141,7 @@ func _apply_projectile_hit(target:ball,impact_position:Vector2) -> void:
 	var target_id:int = target.get_instance_id()
 	if _hit_target_ids.has(target_id):
 		return
+	if target.has_method("try_full_projectile_dodge") and bool(target.call("try_full_projectile_dodge",self)): return
 	_hit_target_ids[target_id] = true
 	var outgoing:float = owner_ball.effective_outgoing_damage(damage_amount)
 	if outgoing <= 0.0:

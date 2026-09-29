@@ -25,3 +25,5 @@ desktop.ini
 .DS_Store
 *.tmp
 *.log
+# local engine binary (104 MB, over GitHub 100 MB limit)
+/godot.exe

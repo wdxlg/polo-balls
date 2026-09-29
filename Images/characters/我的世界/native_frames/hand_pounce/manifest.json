@@ -1,0 +1,16 @@
+{
+  "source_commit": "736072450c26a7c67f07b1661f29d9a5ebaa14b1",
+  "native_geometry_and_skins": true,
+  "hand_scale": 0.5,
+  "previous_hand_scale": 0.6666666666666666,
+  "hand_samples": 216,
+  "textures": 297,
+  "spider_actions": {
+    "lunge": 10,
+    "lunge_air": 16,
+    "attack": 12,
+    "land": 10
+  },
+  "adaptation": "Spider pounce/attack/landing are custom bone poses using the original Mojang model/skin and default leg pose, NOT claimed as vanilla animation files. Held item rendered as separate foreground rightItem layer, oriented outward around the native grip.",
+  "license": "Minecraft EULA applies; no additional redistribution rights."
+}

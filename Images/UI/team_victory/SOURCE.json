@@ -1,0 +1,89 @@
+{
+  "source": "Minecraft Java 1.21.1 official client jar; SHA1 and size verified against piston-meta",
+  "jar_sha1": "30c73b1c5da787909b2f73340419fdf13b9def88",
+  "license": "Mojang/Microsoft assets; no redistribution license asserted",
+  "files": [
+    {
+      "path": "Images/UI/team_victory/white_wool.png",
+      "jar_entry": "assets/minecraft/textures/block/white_wool.png",
+      "sha256": "66688395b5ddc7f413c2e91ffabd33abfc78e0a870ce0111c45d7d09d9b4e100"
+    },
+    {
+      "path": "Images/UI/team_victory/orange_wool.png",
+      "jar_entry": "assets/minecraft/textures/block/orange_wool.png",
+      "sha256": "efe422b1ff12e6517b62cd94a9b53f31b028a095d8e527464be8a7478eb29987"
+    },
+    {
+      "path": "Images/UI/team_victory/magenta_wool.png",
+      "jar_entry": "assets/minecraft/textures/block/magenta_wool.png",
+      "sha256": "4f9ffec3612741cf9a65fa5975cdbf8bc5b6af68d72e5d7c6087351bb264963c"
+    },
+    {
+      "path": "Images/UI/team_victory/light_blue_wool.png",
+      "jar_entry": "assets/minecraft/textures/block/light_blue_wool.png",
+      "sha256": "80ebec0ffcaaeef75809dd94f0583141ebec56198b39603bdcd282b6445fe6ab"
+    },
+    {
+      "path": "Images/UI/team_victory/yellow_wool.png",
+      "jar_entry": "assets/minecraft/textures/block/yellow_wool.png",
+      "sha256": "230b85ec19649ccf29d10d314aa68a04bf55f4bc435635144bad17aeb667a2ed"
+    },
+    {
+      "path": "Images/UI/team_victory/lime_wool.png",
+      "jar_entry": "assets/minecraft/textures/block/lime_wool.png",
+      "sha256": "859212a0539264adf8a5d15d796fb22eed3a8dcf5fbfa9a22a12ad1ca2ca3240"
+    },
+    {
+      "path": "Images/UI/team_victory/pink_wool.png",
+      "jar_entry": "assets/minecraft/textures/block/pink_wool.png",
+      "sha256": "ea5d97e12e3d9c95f29d91c944f3409902bb0c5f880024c8c40fc3c464a441b1"
+    },
+    {
+      "path": "Images/UI/team_victory/gray_wool.png",
+      "jar_entry": "assets/minecraft/textures/block/gray_wool.png",
+      "sha256": "aabf83cf9dc5eb7ed254405e2fb312974e26198b3b2fcd0640b67fa9368cd654"
+    },
+    {
+      "path": "Images/UI/team_victory/light_gray_wool.png",
+      "jar_entry": "assets/minecraft/textures/block/light_gray_wool.png",
+      "sha256": "5bde87dc311adde7b581ad469ec8ff31d4593f4a1f914d749978ff807a1dc7ce"
+    },
+    {
+      "path": "Images/UI/team_victory/cyan_wool.png",
+      "jar_entry": "assets/minecraft/textures/block/cyan_wool.png",
+      "sha256": "9c388570eca46cc62628360c34368747e8fd670c99319b2cb195d4af5646a9b0"
+    },
+    {
+      "path": "Images/UI/team_victory/purple_wool.png",
+      "jar_entry": "assets/minecraft/textures/block/purple_wool.png",
+      "sha256": "18ec46e904333a9800b94ec8dd5f57207dca87b33159d45bbae9c5e52cf2c293"
+    },
+    {
+      "path": "Images/UI/team_victory/blue_wool.png",
+      "jar_entry": "assets/minecraft/textures/block/blue_wool.png",
+      "sha256": "d648659165a4b450323de777533b1c1eb3978655c967508bf8ecb6daff1e2854"
+    },
+    {
+      "path": "Images/UI/team_victory/brown_wool.png",
+      "jar_entry": "assets/minecraft/textures/block/brown_wool.png",
+      "sha256": "d6bfcd1e5a8ecef072201c73ba6b8e50dd4a6065cd504e8413da8413c6d0fd60"
+    },
+    {
+      "path": "Images/UI/team_victory/green_wool.png",
+      "jar_entry": "assets/minecraft/textures/block/green_wool.png",
+      "sha256": "4f327ad998ee5e5a25a5b0f7beaafe3ee13f88f2694600597e1267efe296bd3e"
+    },
+    {
+      "path": "Images/UI/team_victory/red_wool.png",
+      "jar_entry": "assets/minecraft/textures/block/red_wool.png",
+      "sha256": "b0ffb8c5e070c8e9c96dfa4a02cd07382ba3bc245c9c6543042ec78156ed7a39"
+    },
+    {
+      "path": "Images/UI/team_victory/black_wool.png",
+      "jar_entry": "assets/minecraft/textures/block/black_wool.png",
+      "sha256": "ca2d4dc4ee191a3d49bf3ed4a097f0e817bbfd34d6b3424d12d54ad14c7f8ec4"
+    }
+  ],
+  "client_url": "https://piston-data.mojang.com/v1/objects/30c73b1c5da787909b2f73340419fdf13b9def88/client.jar",
+  "verification": "Complete 26836906-byte client download matched official SHA1; each PNG is an unchanged jar member. HUD projects it onto three shaded cube faces inside the existing item frame."
+}

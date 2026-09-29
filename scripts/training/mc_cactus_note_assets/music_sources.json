@@ -1,0 +1,18 @@
+{
+  "version": "1.21.1",
+  "index": "https://piston-meta.mojang.com/v1/packages/76d7a97b9e0778fda3b14e474f012450ca0de1bb/17.json",
+  "tracks": {
+    "minecraft/sounds/records/cat.ogg": {
+      "hash": "d1eb3d2e39bf1f6289cfcbca44e1c9bb508b20f0",
+      "size": 1286636
+    },
+    "minecraft/sounds/records/otherside.ogg": {
+      "hash": "a5effd79795773422bb4de85841838f3ad9c216d",
+      "size": 5649721
+    },
+    "minecraft/sounds/records/pigstep.ogg": {
+      "hash": "9ffb1791e8aba8f266a673abec1846c3bf8fb8cc",
+      "size": 4838555
+    }
+  }
+}

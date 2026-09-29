@@ -39,31 +39,31 @@ func run() -> void:
 	game.Game_Settings.Training_Mode_Type = "manual"
 	await settle()
 	# Freeze an explicit initial matchup for names; all rendering below is a shared World.
-	world._battle_setup.assign([{"id":1,"team":"Team0","char":"钻石剑"},{"id":2,"team":"Team1","char":"木剑"},{"id":3,"team":"Team2","char":"牛"}])
+	world._battle_setup.assign([{"id":1,"team":"Team0","char":"钻石剑"},{"id":2,"team":"Team1","char":"木剑"},{"id":3,"team":"Team2","char":"牛"},{"id":4,"team":"Team0","char":"钻石剑"},{"id":5,"team":"Team0","char":"钻石剑"},{"id":6,"team":"Team1","char":"木剑"}])
 	var data:Dictionary = Naming.snapshot(world,false)
-	check(Naming.title(data,"zh") == "钻石剑 vs 木剑 vs 牛", "three ordinary sides keep ordered Chinese vs names")
-	check(Naming.title(data,"en").contains("Diamond Sword") and Naming.title(data,"en").count(" vs ") == 2, "English matchup uses translated character names")
+	check(Naming.title(data,"zh") == "3个钻石剑 vs 2个木剑 vs 牛", "three ordinary sides keep ordered Chinese quantities without a branding prefix")
+	check(Naming.title(data,"en") == "Diamond Sword * 3 vs Wooden Sword * 2 vs Cow", "English matchup uses translated names and name-star-count")
 	var random_data:Dictionary = data.duplicate(true)
 	random_data.groups = [{"team":"Team0","members":[{"char":"牛","random_choice":true},{"char":"木剑","random_choice":true},{"char":"钻石剑","random_choice":true}]},{"team":"Team1","members":[{"char":"牛","random_choice":true},{"char":"木剑","random_choice":true},{"char":"钻石剑","random_choice":true}]}]
-	check(Naming.title(random_data,"zh") == "3人随机队伍 vs 3人随机队伍", "random 3v3 filenames describe teams, not sampled names")
-	check(Naming.title(random_data,"en") == "3-Person Random Team vs 3-Person Random Team", "random team English naming")
+	check(Naming.title(random_data,"zh") == "3个随机人物 vs 3个随机人物", "random 3v3 filenames preserve provenance and use quantities")
+	check(Naming.title(random_data,"en") == "Random Character * 3 vs Random Character * 3", "random team English naming")
 	for mode_name:String in ["rotation","timed","boss"]:
 		var special:Dictionary = random_data.duplicate(true)
 		special.settings.Training_Mode_Type = mode_name
 		special.settings.Rotation_Match_Type = "challenge"
 		special.settings.Training_Boss_Wheel_Battle = true
-		check(Naming.title(special,"zh") != Naming.title(random_data,"zh") and Naming.title(special,"en") != Naming.title(random_data,"en"), "special mode has its own bilingual name: " + mode_name)
+		check(Naming.title(special,"zh") == Naming.title(random_data,"zh") and Naming.title(special,"en") == Naming.title(random_data,"en"), "special modes retain the same requested matchup-only format: " + mode_name)
 	var timed:Dictionary = random_data.duplicate(true)
 	timed.settings.Training_Mode_Type = "timed"
 	timed.settings.Training_Timed_Duration = 60.0
 	print("TIMED_TITLE=",Naming.title(timed,"zh")," / ",Naming.title(timed,"en"))
-	check(Naming.title(timed,"zh").begins_with("计时60秒_") and Naming.title(timed,"en").begins_with("Timed 60s_"), "timed filenames contain actual duration")
+	check(Naming.title(timed,"zh") == Naming.title(random_data,"zh") and Naming.title(timed,"en") == Naming.title(random_data,"en"), "timed mode does not add a duration prefix")
 	var boss:Dictionary = random_data.duplicate(true)
 	boss.settings.Training_Mode_Type = "boss"
 	boss.settings.Training_Boss_Multiplier = 3.0
 	boss.settings.Training_Boss_Wheel_Battle = true
 	print("BOSS_TITLE=",Naming.title(boss,"zh")," / ",Naming.title(boss,"en"))
-	check(Naming.title(boss,"zh").begins_with("Boss车轮战 x3_") and Naming.title(boss,"en").begins_with("Boss Wheel Battle x3_"), "Boss filenames contain wheel battle and multiplier")
+	check(Naming.title(boss,"zh") == Naming.title(random_data,"zh") and Naming.title(boss,"en") == Naming.title(random_data,"en"), "Boss HP multiplier is not a character count")
 	var unsafe:Dictionary = data.duplicate(true)
 	unsafe.groups[0].members[0].char = "A:B/Bad*Name?"
 	var safe:String = Naming.filename(unsafe,"en","STAMP","C:/videos")
@@ -139,7 +139,7 @@ func run() -> void:
 	recorder.stop()
 	await wait_idle()
 	check(recorder.last_outputs.size() == 2, "one session saves two final localized MP4 files")
-	check(str(recorder.last_outputs.zh).get_file().begins_with("中文_钻石剑 vs 木剑 vs 牛_") and str(recorder.last_outputs.en).get_file().begins_with("英文_钻石剑 vs 木剑 vs 牛_"), "both final filenames contain language and initial matchup")
+	check(str(recorder.last_outputs.zh).get_file().begins_with("3个钻石剑 vs 2个木剑 vs 牛") and str(recorder.last_outputs.en).get_file().begins_with("Diamond Sword ＊ 3 vs Wooden Sword ＊ 2 vs Cow"), "both real MP4 filenames retain localized initial quantities")
 	check(text.visibility_layer == original_visibility and root.canvas_cull_mask == mask, "source visibility and window restored after recording")
 	check(game.current_locale == original_locale and TranslationServer.get_locale() == server_locale, "user language still unchanged after finalization")
 	check(controls.english_path.text == recorder.last_outputs.en, "result dialog exposes both saved paths")

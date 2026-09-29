@@ -127,7 +127,7 @@ func Attack() -> void:
 
 	# V402：恢复原本的锁定规则。整组三发只在攻击起手这一刻读取一次目标位置。
 	# 后两发不会重新读取移动中的敌人，也不做速度预判；三发始终围绕同一条起手方向形成扇形。
-	var target_snapshot:Vector2 = target.global_position
+	var target_snapshot:Vector2 = player_control_aim_world_position(target.global_position) if is_player_controlled() else target.global_position
 	var base_direction:Vector2 = target_snapshot - global_position
 	if base_direction.length_squared() <= 0.000001:
 		base_direction = Vector2.RIGHT

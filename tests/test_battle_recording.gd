@@ -55,7 +55,7 @@ func run() -> void:
 	# Never read/write the user's persisted choice during automated capture tests.
 	DirAccess.remove_absolute("user://test_battle_recording.cfg")
 	recorder.preferences = recorder.PreferencesScript.new("user://test_battle_recording.cfg")
-	recorder.preferences.directory = "user://recordings"
+	recorder.preferences.directory = "user://recordings/battle_recording_regression"
 	button = controls.button
 	check(is_instance_valid(recorder), "recorder instantiated by actual UI scene")
 	check(button.is_connected("button_up", world.control._on_record_button_up), "left signal wired")
@@ -83,7 +83,7 @@ func run() -> void:
 		await settle(0.5)
 		world.control.apply_portrait_layout()
 		recorder.recording_finished.connect(func(path:String, frames:int):
-			outputs.append({"path":ProjectSettings.globalize_path(path), "frames":frames, "fps":recorder._output_fps, "audio_samples":recorder._audio.samples_written, "audio_peak":recorder._audio.peak, "game_time":recorder._game_time, "tail":recorder._sim_tail_left, "scale":Engine.time_scale}))
+			outputs.append({"path":ProjectSettings.globalize_path(path), "outputs":recorder.last_outputs.duplicate(), "frames":frames, "fps":recorder._output_fps, "audio_samples":recorder._audio.samples_written, "audio_peak":recorder._audio.peak, "game_time":recorder._game_time, "tail":recorder._sim_tail_left, "scale":Engine.time_scale}))
 		var audio_bus:int = AudioServer.get_bus_index(&"GameplayRecord")
 		var effects_before:int = AudioServer.get_bus_effect_count(audio_bus)
 		var game_tone:AudioStreamPlayer = make_tone(440.0, &"GameplayRecord")

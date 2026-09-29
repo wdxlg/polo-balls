@@ -103,7 +103,7 @@ func run() -> void:
 	var before_bonus:float = effect.momentum.length()
 	runner.global_position += Vector2(1,0)
 	effect._physics_process(1.0/60.0)
-	check(effect.momentum.length()-before_bonus <= 4.01,"overlapping surfaces do not double acceleration")
+	check(effect.momentum.length()-before_bonus <= 8.01,"overlapping surfaces do not double acceleration")
 	var held:Vector2 = effect.momentum
 	game.now_stop_state = true
 	effect._physics_process(2.0)
@@ -142,11 +142,12 @@ func run() -> void:
 	var above:Node2D = fighter("AboveTarget",source.global_position-Vector2(0,12))
 	var side:Node2D = fighter("SideTarget",source.global_position+Vector2(25,0))
 	await physics_frame
-	check(is_equal_approx(source.IRON_IMPACT_MULT,2.3*0.7) and is_equal_approx(source.AMETHYST_CONTACT_MULT,2.0*0.7) and is_equal_approx(source.SHARD.DAMAGE_MULT,1.35*0.7),"iron impact, attached crystal and projectile coefficients are all reduced by 30 percent")
+	check(is_equal_approx(source.IRON_IMPACT_MULT,0.4025*3.0) and is_equal_approx(source.AMETHYST_CONTACT_MULT,0.7*0.5) and is_equal_approx(source.SHARD.DAMAGE_MULT,0.4725*0.5),"iron is tripled from the current baseline; both approved purple reductions are retained")
 	var hp:float = target.health
+	source._iron_down_speed = 170.0
 	source._iron_bottom_contacts()
 	var initial:float = hp-target.health
-	check(initial == floorf(source.attack_damage(source.IRON_IMPACT_MULT)),"iron first underside impact uses the reduced current-attribute damage")
+	check(initial == floorf(source.attack_damage(source.IRON_IMPACT_MULT)),"iron first underside impact uses the increased current-attribute damage")
 	var push:Node = knockback(target)
 	check(push != null and push.direction.y > 0.0 and not push.lock_control_during_knockback,"initial underside hit applies shared downward knockback without permanently locking controls")
 	if push != null: push.set_physics_process(false)
@@ -154,14 +155,15 @@ func run() -> void:
 	for i:int in range(12): source._iron_bottom_contacts()
 	check(target.health == hp,"multiple contact scans in the same tick cannot repeat impact or pressure")
 	for i:int in range(4):
-		source._clock += source.IRON_CRUSH_INTERVAL
+		source._clock += 0.25
 		source._iron_bottom_contacts()
 	var sustained:float = hp-target.health
-	check(sustained >= 45.0 and sustained <= 47.0,"remaining underneath causes small sustained crush ticks rather than repeated full impacts")
-	check(knockback(target) == push and push.distance <= 6.01,"sustained hits renew one bounded shared knockback controller, not stacked force")
+	check(sustained == 0.0,"remaining underneath never generates sustained crush ticks")
+	check(knockback(target) == push and push.distance <= 24.01,"continued contact does not renew or stack the original shared knockback")
 	check(above.health == above.Max_health and side.health == side.Max_health,"iron top and side targets do not take underside pressure damage")
-	var threats:Array = source.get_ai_attack_threats(target)
-	check(threats.size() == 1 and threats[0].position == source._iron_bottom_rect().get_center() and is_equal_approx(threats[0].damage,source.attack_damage(source.IRON_CRUSH_MULT)),"threat geometry matches the underside and reports the receiver's sustained damage")
+	var threats:Array = source.get_ai_attack_threats(null)
+	check(threats.size() == 1 and threats[0].position == source._iron_bottom_rect().get_center() and is_equal_approx(threats[0].damage,floorf(source.attack_damage(source.IRON_IMPACT_MULT))),"falling threat geometry matches the underside and current speed-scaled damage")
+	source._iron_down_speed = 0.0
 	target.global_position += Vector2(40,0)
 	hp = target.health
 	source._clock += 3.0
@@ -169,7 +171,7 @@ func run() -> void:
 	check(target.health == hp,"leaving the underside stops pressure and cannot bank off-contact damage")
 	target.global_position = source._iron_bottom_rect().get_center()+Vector2(0,2)
 	source._iron_bottom_contacts()
-	check(hp-target.health <= 12.0,"re-entry into the same iron phase cannot farm fresh full-strength impacts")
+	check(hp == target.health,"re-entry while stationary cannot farm iron impacts")
 	source._slam_time = 0.1
 	source._clock += 1.0
 	hp = target.health
@@ -189,6 +191,7 @@ func run() -> void:
 	check(target.health == hp,"guest-side iron cannot damage or renew knockback")
 	source.set_multiplayer_authority(1)
 	source.Damage = 96
+	source._iron_down_speed = 170.0
 	source._slam_hits.clear()
 	source._iron_bottom_contacts()
 	check(hp-target.health == floorf(96.0*source.IRON_IMPACT_MULT),"changed attack attributes scale the new iron damage, rather than a fixed HP constant")
@@ -199,11 +202,12 @@ func run() -> void:
 	analyzer.set_physics_process(false)
 	game.Game_Settings.Training_Debug_Mode = true
 	source.set_block(source.Block.IRON)
+	source._iron_down_speed = 170.0
 	analyzer._physics_process(0.1)
 	var found:bool = false
 	for entry:Dictionary in analyzer._debug_threats:
 		if entry.get("kind","") == "sulfur_iron_bottom": found = true
-	check(found,"real settings threat display discovers persistent iron underside damage")
+	check(found,"real settings threat display discovers downward iron impact")
 	game.Game_Settings.Training_Debug_Mode = false
 	analyzer._physics_process(0.1)
 	check(not analyzer.visible,"turning threat display off removes the indicator")

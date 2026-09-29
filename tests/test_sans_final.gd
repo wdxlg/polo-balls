@@ -63,9 +63,39 @@ func run() -> void:
 	check(world.map_outside_mask_parts[0].material != old_mask,"temporary black outside material installed")
 	check(phase.base_rect.size == world.return_map_world_rect(world.map_group["Map10x10"]).size,"exact native 10x10 dimensions")
 	check(phase.base_rect.has_point(a.global_position) and phase.base_rect.has_point(ally.global_position),"all teams transferred")
+	var floor_regions:Array=world.map_island_rects(phase.temp_map)
+	check(floor_regions.size()==1 and floor_regions[0]==phase.arena_rect,"empty runtime tilemap exposes real arena floor")
+	check(world.map_contains_point(a.global_position,world.current_map_island_rects()),"participant inside arena is not misclassified out of bounds")
+	for mask:Polygon2D in world.map_outside_mask_parts:
+		if mask.visible: check(not Geometry2D.is_point_in_polygon(mask.to_local(phase.arena_rect.get_center()),mask.polygon),"opaque outside mask excludes battle center")
+	check(not world.versus_label.visible and not world._center_watermark_root.visible,"surrounding HUD is hidden from countdown entry")
+	world.versus_label.show()
+	phase._update_hud()
+	check(not world.versus_label.visible,"ongoing HUD refresh cannot reshow VS during battle")
 	check(a.Team == "Team0" and ally.Team == "Team1","teams unchanged")
 	phase._process(0.0)
 	check(phase.timer_label.text.contains(":"),"seconds:hundredths HUD")
+	check(phase.black.get_parent()==phase.blackout_root and phase.blackout_root.get_parent()==phase,"black backdrop is outside the foreground HUD layer")
+	check(phase.black.z_index<0 and not phase.black.z_as_relative,"black backdrop cannot cover normal character graphics")
+	check(phase.timer_label.get_parent()==phase.overlay and phase.overlay.layer==128,"countdown text remains above actors")
+	check(phase.blackout_root.get_global_transform_with_canvas().is_equal_approx(Transform2D.IDENTITY),"backdrop tracks screen independently of camera pan and zoom")
+	phase._spawn_scroll(0)
+	var scroll_count:int=phase.hazards.size()
+	phase._spawn_scroll(2)
+	check(phase.hazards.size()==scroll_count,"same-wall second scroll is rejected while first train exists")
+	phase._spawn_scroll(1)
+	check(phase.hazards.size()==scroll_count+3,"opposite wall can have its own train")
+	phase._dispatch({"kind":"corridor"})
+	check(phase.pending_corridor and phase.hazards.size()==6,"stage transition waits for visible rolling bones instead of deleting them")
+	phase.pending_corridor=false;phase._clear_hazards()
+	phase._gesture(0)
+	check(sans._visual_mode==sans.SansVisual.GRAVITY_DOWN and phase.gesture_left>0.0,"countdown attack selects actual hand animation")
+	var gesture_before:float=phase.gesture_left
+	game.now_stop_state=true;phase._physics_process(0.1)
+	check(phase.gesture_left==gesture_before,"countdown hand gesture freezes with timeline pause")
+	game.now_stop_state=false;phase._physics_process(gesture_before+0.01)
+	check(sans._visual_mode==sans.SansVisual.IDLE,"finished hand animation returns to swaying idle")
+	phase.elapsed=0.0;phase.event_cursor=0
 	var time:float = phase.elapsed
 	game.now_stop_state = true
 	phase._physics_process(5.0)
@@ -82,11 +112,22 @@ func run() -> void:
 	check(a.get_external_directional_gravity().length() < 1000.0,"slam force drops back to jumpable gravity")
 	check(sans.graphics.z_index > world.versus_label.z_index,"Sans graphics really render above VS")
 	phase._update_hud()
-	check(world.versus_label.visible,"VS is retained, not hidden as a layering workaround")
+	check(not world.versus_label.visible and not world.interaction_label.visible,"map surrounding titles stay hidden throughout final battle")
 	check(is_equal_approx(phase.hazards[0].active_duration,0.14),"short per-instance spike lifetime")
 	check(phase.background.z_index == -2,"black backdrop precedes outside-mask capture")
-	phase._physics_process(13.1)
+	# Advance opening events, then physically let the last scrolling train leave.
+	phase._physics_process(12.5)
+	for moving:Node in phase.hazards:
+		if is_instance_valid(moving) and moving.get_script()==phase.BONE and moving.travel_speed>0.0:
+			moving.global_position=phase.base_rect.position-Vector2(10000,0)
+			moving._physics_process(0.02)
+	phase._physics_process(0.6)
 	check(phase.arena_rect.size.x > phase.base_rect.size.x,"right boundary extends")
+	check(world.map_island_rects(phase.temp_map)[0]==phase.arena_rect,"floor geometry follows corridor extension without stale cache")
+	var corridor_probe:Vector2=phase.arena_rect.end-Vector2(4,4)
+	check(world.map_contains_point(corridor_probe,world.current_map_island_rects()),"extended corridor remains legal floor")
+	for mask:Polygon2D in world.map_outside_mask_parts:
+		if mask.visible: check(not Geometry2D.is_point_in_polygon(mask.to_local(corridor_probe),mask.polygon),"black mask does not cover extended corridor")
 	check(phase.hazards.size() == 40,"sparse arc only; grouped bones not spawned yet")
 	var stationary:Node2D = phase.hazards[0]
 	var origin:Vector2 = stationary.global_position
@@ -102,6 +143,8 @@ func run() -> void:
 	check(stationary.is_queued_for_deletion(),"previous arc removed at group transition")
 	phase._physics_process(4.0)
 	check(world.now_choose_map == "Map50x50","second blackout restores original map")
+	phase._update_hud()
+	check(not world.versus_label.visible and not world._center_watermark_root.visible,"surrounding HUD remains hidden after map return until final ends")
 	check(a.global_position == old_a and ally.global_position == old_ally,"all participant positions restored")
 	check(not world.map_group.has("SansFinal10x10"),"temporary map removed")
 	check(world.map_outside_mask_parts[0].material == old_mask,"original clipping material restored")

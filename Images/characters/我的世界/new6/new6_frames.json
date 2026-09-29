@@ -1,0 +1,47 @@
+{
+  "bedrock_samples_commit": "46ba6ea985fb5a92d79a9419198f10dda14c199d",
+  "native_sources_sha256": {
+    "models/entity/sheep.geo.json": "235fc82d217b13a93ad0323c6b8a1cf312aefffe2212839b6e9f8daa2ba185b7",
+    "animations/sheep.animation.json": "0fd8537cc3d2620a5b8be6dd2c05a5dd95a2096917e960cd6ec62f88804dbd10",
+    "animations/quadruped.animation.json": "35c47c56eb92146526972dff707d80cad9011c6cbbb07009d0d4954b018d60c0",
+    "textures/entity/sheep/sheep.tga": "15307393a12a984adfcad8cbd9a5666d1d1e775d36ec4cbac3193208b70ea86d",
+    "textures/entity/boat/boat_oak.png": "2d66414bd0242fbe0cde4ef42ccb2d1b9ff3cb9dc261f483b530070116f17f8b"
+  },
+  "sheep": {
+    "atlas": "sheep_frames.png",
+    "sha256": "584c3192a96d522e960697f94e84f6622dbe44beadfa5d1920171d0f99e22fc8",
+    "clips": {
+      "wool_walk": {
+        "frames": 8,
+        "fps": 10
+      },
+      "wool_idle": {
+        "frames": 8,
+        "fps": 4
+      },
+      "sheared_walk": {
+        "frames": 8,
+        "fps": 10
+      },
+      "sheared_idle": {
+        "frames": 8,
+        "fps": 4
+      }
+    }
+  },
+  "boat": {
+    "atlas": "boat_frames.png",
+    "sha256": "b1b4a6aa09180d1dedf6b70e29d1de633a7d65cd1e652c0392d4ae2c37f64628",
+    "clips": {
+      "idle": {
+        "frames": 8,
+        "fps": 5
+      },
+      "row": {
+        "frames": 8,
+        "fps": 9
+      }
+    }
+  },
+  "notes": "Sheep: native geo+anims+skin; bind_pose_rotation honored; walk=quadruped.walk, idle=grazing.v2. Boat: no vanilla boat.geo.json exists (engine mesh); hull boxes fitted so every face net is fully inside opaque native-texture texels (verified); paddles decoded exactly from texture; rowing matches vanilla behavior."
+}

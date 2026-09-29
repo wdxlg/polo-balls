@@ -1,4 +1,5 @@
 extends Area2D
+const PROJECTILE_CONTACT = preload("res://scripts/projectile_contact.gd")
 
 const TOOLS = preload("res://scripts/characters/投稿角色工具.gd")
 
@@ -63,7 +64,7 @@ func _damage_new_overlaps() -> void:
 		var target:ball = area.get_parent() as ball
 		if target == null or not is_instance_valid(target):
 			continue
-		if not TOOLS.is_enemy(source_owner,target):
+		if PROJECTILE_CONTACT.ignores(target) or not TOOLS.is_enemy(source_owner,target):
 			continue
 		var target_id:int = target.get_instance_id()
 		if _hit_ids.has(target_id):

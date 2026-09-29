@@ -1,0 +1,6 @@
+WARNING: res://scenes/ball.tscn:6 - ext_resource, invalid UID: uid://c5swo3m3c1w3t - using text path instead: res://shaders/set_rgb_color.gdshader
+   at: load (scene/resources/resource_format_text.cpp:501)
+WARNING: Case mismatch opening requested file 'res://shaders/set_rgb_color.gdshader', stored as 'res://shaders/Set_RGB_Color.gdshader' in the filesystem. This file will not open when exported to other case-sensitive platforms.
+   at: open_internal (drivers/windows/file_access_windows.cpp:192)
+WARNING: 214 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2536)

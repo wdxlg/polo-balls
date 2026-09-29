@@ -1,0 +1,47 @@
+{
+  "creator": {
+    "sha1": "d1c3c66face8215ff2f9635f4d7c168fdea34d88",
+    "source_channels": 1,
+    "events": 519,
+    "counts": {
+      "kick": 239,
+      "snare": 331,
+      "hat": 187,
+      "pitched": 412,
+      "sustain": 149,
+      "rest": 0,
+      "strong": 373
+    },
+    "silence_rms": 0.004361137872314274
+  },
+  "precipice": {
+    "sha1": "a069bdaa24c0d9b9c0a2907113c5716ae5775846",
+    "source_channels": 1,
+    "events": 1283,
+    "counts": {
+      "kick": 925,
+      "snare": 464,
+      "hat": 467,
+      "pitched": 1071,
+      "sustain": 226,
+      "rest": 0,
+      "strong": 926
+    },
+    "silence_rms": 0.0038044603416189024
+  },
+  "relic": {
+    "sha1": "f6c8af3b270a609b12eddd4a56fe2139662782e8",
+    "source_channels": 1,
+    "events": 688,
+    "counts": {
+      "kick": 404,
+      "snare": 114,
+      "hat": 70,
+      "pitched": 684,
+      "sustain": 245,
+      "rest": 0,
+      "strong": 407
+    },
+    "silence_rms": 0.005403344476781944
+  }
+}

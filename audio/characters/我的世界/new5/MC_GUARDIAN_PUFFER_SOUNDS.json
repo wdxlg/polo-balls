@@ -1,0 +1,34 @@
+{
+  "source": "Mojang Java 1.21.4 asset index",
+  "license": "Mojang/Microsoft Minecraft EULA; not an open-source license",
+  "assets": [
+    {
+      "path": "audio/characters/我的世界/new5/pufferfish_sting1.ogg",
+      "url": "https://resources.download.minecraft.net/8c/8c77e39c3958afba611d8deb5e9fad14565754a7",
+      "sha1": "8c77e39c3958afba611d8deb5e9fad14565754a7",
+      "size": 17671,
+      "asset_key": "minecraft/sounds/entity/pufferfish/sting1.ogg"
+    },
+    {
+      "path": "audio/characters/我的世界/new5/pufferfish_sting2.ogg",
+      "url": "https://resources.download.minecraft.net/a3/a36831c90b82b2c640d5d5aa5e68d95c2a33e66a",
+      "sha1": "a36831c90b82b2c640d5d5aa5e68d95c2a33e66a",
+      "size": 17258,
+      "asset_key": "minecraft/sounds/entity/pufferfish/sting2.ogg"
+    },
+    {
+      "path": "audio/characters/我的世界/new5/pufferfish_blow_out1.ogg",
+      "url": "https://resources.download.minecraft.net/f2/f2c8022f3dcd8ea20a491fc348ffe3943d94d9ef",
+      "sha1": "f2c8022f3dcd8ea20a491fc348ffe3943d94d9ef",
+      "size": 9741,
+      "asset_key": "minecraft/sounds/entity/pufferfish/blow_out1.ogg"
+    },
+    {
+      "path": "audio/characters/我的世界/new5/pufferfish_blow_out2.ogg",
+      "url": "https://resources.download.minecraft.net/50/50ec7ecc3244655688e27bf8169a94fd0c12e7ce",
+      "sha1": "50ec7ecc3244655688e27bf8169a94fd0c12e7ce",
+      "size": 9194,
+      "asset_key": "minecraft/sounds/entity/pufferfish/blow_out2.ogg"
+    }
+  ]
+}

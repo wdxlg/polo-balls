@@ -80,14 +80,22 @@ func _physics_process(delta:float) -> void:
 		_apply_yellow_movement_damage(delta)
 	elif phase == LightPhase.RED:
 		_apply_red_movement_damage()
-	if _phase_left <= 0.0:
-		match phase:
-			LightPhase.GREEN:
-				_set_phase(LightPhase.YELLOW)
-			LightPhase.YELLOW:
-				_set_phase(LightPhase.RED)
-			LightPhase.RED:
-				_set_phase(LightPhase.GREEN)
+	if _phase_left <= 0.0 and not is_player_controlled():
+		_advance_light_phase()
+
+func controlled_attack_action() -> void:
+	# 左键：原绿-黄-红循环逐段切换，仍须等待当前灯色的最低持续时间。
+	if is_player_controlled() and is_multiplayer_authority() and health > 0 and is_combat_runtime_active() and _phase_left <= 0.0:
+		_advance_light_phase()
+
+func _advance_light_phase() -> void:
+	match phase:
+		LightPhase.GREEN:
+			_set_phase(LightPhase.YELLOW)
+		LightPhase.YELLOW:
+			_set_phase(LightPhase.RED)
+		LightPhase.RED:
+			_set_phase(LightPhase.GREEN)
 
 # state_machine 真正移动角色时也再读取一次灯色速度，避免 Node 物理处理顺序造成一帧甚至持续失配。
 func tick_physics(state:State,delta:float) -> void:

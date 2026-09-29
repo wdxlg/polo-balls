@@ -135,14 +135,14 @@ func _draw_moss(_center:Vector2) -> void:
 	for patch:Dictionary in actor.patches:
 		var p:Vector2 = to_local(patch.point)
 		var size:float = actor.CELL-1.0
-		for layer:int in range(int(patch.layers)):
-			var offset:Vector2 = Vector2(0,-3.0*layer)
-			draw_texture_rect(MOSS,Rect2(p+offset-Vector2.ONE*size*0.5,Vector2.ONE*size),false,Color(1,1,1,0.85))
-			draw_line(p+offset+Vector2(-size*0.5,size*0.5),p+offset+Vector2(size*0.5,size*0.5),Color(0.25,0.42,0.12),1.0)
-	# Ground-level ghosts are previews only: no collision, damage, particles or sound.
+		# Layer count remains gameplay data. Draw only one ground moss tile; a
+		# second/third layer changes the overhead azalea, never stacks the floor.
+		draw_texture_rect(MOSS,Rect2(p-Vector2.ONE*size*0.5,Vector2.ONE*size),false,Color(1,1,1,0.85))
+		draw_line(p+Vector2(-size*0.5,size*0.5),p+Vector2(size*0.5,size*0.5),Color(0.25,0.42,0.12),1.0)
+	# One ground-level ghost previews each candidate, regardless of its new layer.
 	if actor._growth_winding:
 		for entry:Dictionary in actor._growth_pending:
-			var p:Vector2 = to_local(entry.point)+Vector2(0,-3.0*int(entry.layer))
+			var p:Vector2 = to_local(entry.point)
 			var size:float = actor.CELL-1.0
 			draw_texture_rect(MOSS,Rect2(p-Vector2.ONE*size*0.5,Vector2.ONE*size),false,Color(1,1,1,actor.placement_preview_alpha))
 func _draw_sword(center:Vector2) -> void:

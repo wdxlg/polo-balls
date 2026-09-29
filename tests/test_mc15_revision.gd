@@ -26,6 +26,21 @@ func spawn(path:String,point:Vector2,team:String = "Team0",master:Node = null) -
 func freeze_move(unit:Node2D) -> void:
 	unit.Speed = 0
 	unit.default_properties["Speed"] = 0
+func safety_geometry_snapshot(frame:Node) -> Array:
+	var result:Array = []
+	if frame == null or not is_instance_valid(frame):
+		return result
+	for body:Node in frame.find_children("*","StaticBody2D",true,false):
+		var shape_node:CollisionShape2D = body.get_node_or_null("CollisionShape2D") as CollisionShape2D
+		if not is_instance_valid(shape_node) or not shape_node.shape is RectangleShape2D:
+			continue
+		result.append([body.global_position,float(body.collision_layer),float(body.collision_mask),(shape_node.shape as RectangleShape2D).size])
+	result.sort_custom(func(a:Array,b:Array) -> bool:
+		var pa:Vector2 = a[0]; var pb:Vector2 = b[0]
+		if pa.x != pb.x: return pa.x < pb.x
+		return pa.y < pb.y
+	)
+	return result
 func obstacle(point:Vector2,size:Vector2) -> StaticBody2D:
 	var body := StaticBody2D.new()
 	var shape := CollisionShape2D.new()
@@ -71,7 +86,7 @@ func run() -> void:
 	var cell:Vector2 = world.map_visual_cell_size(layer)
 	var view_size:Vector2 = world.get_viewport_rect().size
 	var safety:Node = world._map_safety_frame
-	var safety_id:int = safety.get_instance_id()
+	var safety_collision:Array = safety_geometry_snapshot(safety)
 	print("MC15_GEOMETRY physical=",physical," cell=",cell)
 	camera.global_position = physical.get_center()
 	camera.zoom = Vector2.ONE*world._base_camera_zoom_value()
@@ -91,9 +106,9 @@ func run() -> void:
 	camera.zoom = Vector2.ONE*world._base_camera_zoom_value()
 	var outer:Rect2 = world.return_map_visual_rect(layer)
 	check(outer.position.is_equal_approx(physical.position-cell) and outer.size.is_equal_approx(physical.size+cell*2),"grass visual border extends exactly one map cell on each side")
-	check(world.return_map_world_rect(layer) == physical and world._map_safety_frame.get_instance_id() == safety_id,"physical rect and safety collision body are unchanged")
+	check(world.return_map_world_rect(layer) == physical and safety_geometry_snapshot(world._map_safety_frame) == safety_collision,"physical rect and safety collision geometry are unchanged")
 	var after:Dictionary = world.get_world_2d().direct_space_state.intersect_ray(query)
-	check(not after.is_empty() and after.position.is_equal_approx(before.position) and after.rid == before.rid,"actual wall collision is still at the same position and RID")
+	check(not after.is_empty() and after.position.is_equal_approx(before.position) and after.collider is StaticBody2D,"actual wall collision remains at the same map-boundary position")
 	var tiles:Node2D = world.map_background_tiles
 	check(tiles.parts.size() == 5 and tiles.parts[0].texture.resource_path.ends_with("grass_block_top.png"),"five lightweight repeated sprites render original grass-top texture")
 	var correct:bool = true
@@ -108,13 +123,13 @@ func run() -> void:
 	world.refresh_top_text_layout()
 	check(world.interaction_label.position.y+world.interaction_label.size.y <= outer.position.y,"top text stays above expanded visual border")
 	check(world._center_watermark_root.global_position.y>outer.end.y,"creator watermark stays below wood ring rather than overlapping it")
-	check(world.map_background_shadow.footprint == outer.grow(world.map_border_width),"grass shadow starts beyond full external black stroke")
+	check(world.map_background_shadow.footprint == outer and world.map_background_shadow.spread == cell,"grass shadow starts at ring and fades beyond full external black stroke")
 	check(not line.antialiased and line.begin_cap_mode == Line2D.LINE_CAP_BOX,"pixel-exact outer border with filled square corners")
 	await capture("GRASS")
 	var field:Node2D = load("res://scripts/effects/我的世界/蠹虫石砖场.gd").new()
 	world.add_child(field)
 	field.setup(world,layer)
-	check(field._field_shadow.visible and field._field_shadow.footprint == physical,"stone overlay has its own exposed inner outline shadow")
+	check(field._inner_shadow.visible and field._inner_shadow.global_position.is_equal_approx(physical.position) and (field._inner_shadow.surface.material.get_shader_parameter("footprint_size") as Vector2).is_equal_approx(physical.size),"stone overlay has its own exposed inner outline shadow")
 	check(field._inner_shadow.z_index == -5 and field._inner_shadow.get_index() == 0,"gap shadow sits after background and before stone chunks")
 	for y:int in range(3,7):
 		for x:int in range(3,7):
@@ -125,7 +140,7 @@ func run() -> void:
 	await capture("STONE")
 	game.set_runtime_game_setting("Map_Background","blue",false)
 	await process_frame
-	check(not field._field_shadow.visible and world.map_background_shadow.visible,"blue stone uses common outer shadow without doubled opacity")
+	check(field._inner_shadow.visible and world.map_background_shadow.visible,"blue stone keeps internal gap shadow and uses common outer shadow")
 	check(field._inner_shadow.visible,"internal gap shadows also enabled on blue background")
 	await capture("STONE_BLUE")
 	# Capture identical blue hole without shadow to verify actual GPU pixels, not only node flags.
@@ -153,7 +168,7 @@ func run() -> void:
 	await process_frame
 	game.set_runtime_game_setting("Map_Background","grass",false)
 	await process_frame
-	check(is_instance_valid(world.control.map_background_option) and world.control.map_background_option.item_count == 2 and world.control.map_background_option.selected == 1,"real settings dropdown contains both themes and synchronizes current selection")
+	check(is_instance_valid(world.control.map_background_option) and world.control.map_background_option.item_count == 6 and world.control.map_background_option.selected == 1,"real settings dropdown contains all six themes and synchronizes current selection")
 	check(game.ui_t("MAP_BACKGROUND_GRASS") != "MAP_BACKGROUND_GRASS" and world.control.map_background_option.get_item_text(1) == game.ui_t("MAP_BACKGROUND_GRASS"),"dropdown resolves actual translated words rather than showing raw keys")
 	var old_locale:String = game.current_locale
 	var only_game:bool = game.Game_Settings.Only_In_Game_Translation

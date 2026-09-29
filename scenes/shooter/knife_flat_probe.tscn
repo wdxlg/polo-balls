@@ -1,7 +1,7 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://scripts/shooter/knife.gd" id="1_iqwu3"]
-[ext_resource type="Shader" path="res://shaders/Set_RGB_Color.gdshader" id="2_t8ol5"]
+[ext_resource type="Shader" path="res://shaders/set_rgb_color.gdshader" id="2_t8ol5"]
 [ext_resource type="Texture2D" path="res://Images/shooter/Knife.png" id="3_8ke8q"]
 [ext_resource type="Script" path="res://scripts/character_auto_fit.gd" id="4_33vey"]
 [ext_resource type="Script" path="res://classes/health_bar.gd" id="5_ki785"]

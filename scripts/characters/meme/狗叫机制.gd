@@ -63,6 +63,7 @@ var _contact_cooldown_left:float = 0.0
 var _wave_left:float = 0.0
 var _howling:bool = false
 var _pending_howl:bool = false
+var _manual_howl_requested:bool = false
 var _ready_configured:bool = false
 var _wave_visual_manager:Node2D = null
 var _short_audio_turn:int = 0
@@ -310,7 +311,7 @@ func _physics_process(delta:float) -> void:
 		return
 
 	if _pending_howl:
-		if not _any_short_bark_playing():
+		if not _any_short_bark_playing() and (not _manual_actor_controlled() or _manual_howl_requested):
 			_start_howl()
 		return
 
@@ -354,7 +355,15 @@ func _on_short_bark_finished() -> void:
 		return
 	if _damage_source == null or not is_instance_valid(_damage_source) or not _damage_source.is_multiplayer_authority():
 		return
-	_start_howl()
+	if not _manual_actor_controlled() or _manual_howl_requested: _start_howl()
+
+func _manual_actor_controlled() -> bool:
+	return is_instance_valid(_actor) and _actor is ball and (_actor as ball).is_player_controlled()
+func request_manual_howl() -> void:
+	if not _manual_actor_controlled() or not _ready_configured or not _enabled or not _pending_howl or _howling: return
+	if not is_instance_valid(_damage_source) or not _damage_source.is_multiplayer_authority() or not _damage_source.is_combat_runtime_active(): return
+	_manual_howl_requested=true
+	if not _any_short_bark_playing(): _start_howl()
 
 
 # 返回当前是否仍有任意一声短叫在播放。
@@ -380,6 +389,7 @@ func _start_howl() -> void:
 	if _howling:
 		return
 	_pending_howl = false
+	_manual_howl_requested = false
 	_howling = true
 	_wave_left = 0.06
 	if damage_area != null:
@@ -396,6 +406,7 @@ func _stop_howl(_reschedule:bool) -> void:
 		return
 	_howling = false
 	_pending_howl = false
+	_manual_howl_requested = false
 	_wave_left = 0.0
 	_sound_count = 0
 

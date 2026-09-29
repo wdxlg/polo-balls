@@ -63,6 +63,13 @@ func run() -> void:
 	check(guest_unit.block_slots.is_empty() and empty_frames_visible(guest_unit),"guest initially sees BOTH empty frames before receiving any block")
 	host_unit.acquire_block(CUBE.Block.ICE)
 	check(await until(func(): return guest_unit.block_slots == PackedInt32Array([CUBE.Block.ICE])),"one-slot snapshot replicates atomically")
+	host_unit._actual_speed = 170.0
+	check(await until(func(): return is_equal_approx(guest_unit._actual_speed,170.0)),"authority ice impact speed replicates to the remote threat consumer")
+	check(is_equal_approx(guest_unit._mode_damage(CUBE.Block.ICE),guest_unit.attack_damage(0.625)),"remote ice damage uses the same linear current-attribute formula")
+	host_unit._actual_speed = 340.0
+	check(await until(func(): return is_equal_approx(guest_unit._actual_speed,340.0) and is_equal_approx(guest_unit._mode_damage(CUBE.Block.ICE),guest_unit.attack_damage(1.25))),"faster ice motion changes remote damage instead of retaining 90")
+	host_unit._actual_speed = 0.0
+	check(await until(func(): return guest_unit._actual_speed==0.0 and guest_unit._mode_damage(CUBE.Block.ICE)==0.0),"stopped ice clears stale remote impact damage")
 	check(guest_unit._block_frames.get_child(0).get_node("BlockIcon").visible and guest_unit._block_frames.get_child(1).is_visible_in_tree() and not guest_unit._block_frames.get_child(1).get_node("BlockIcon").visible,"guest fills LEFT first without hiding the RIGHT empty frame")
 	host_unit.acquire_block(CUBE.Block.MAGMA)
 	check(await until(func(): return guest_unit.block_slots == host_unit.block_slots and guest_unit.block_slots.size() == 2),"both traits replicate together, not as racing previous/latest fields")
@@ -93,6 +100,16 @@ func run() -> void:
 	check(await until(func(): return guest_unit.get_collision_exceptions().has(guest_victim)),"guest receives matching target collision lease")
 	host_unit.acquire_block(CUBE.Block.IRON)
 	check(await until(func(): return guest_unit.block_slots == PackedInt32Array([CUBE.Block.HONEY,CUBE.Block.IRON]) and guest_unit.get_collision_exceptions().has(guest_victim)),"moving honey left does not clear its replicated pair lease")
+	host_unit._pull_touching_enemies(1.0)
+	check(await until(func(): return guest_unit.honey_target_paths.is_empty() and not guest_unit.get_collision_exceptions().has(guest_victim)),"one-second timeout releases the replicated pair without evicting honey")
+	host_unit._pull_touching_enemies(0.1)
+	check(host_unit.honey_target_paths.is_empty(),"continued contact does not immediately regrab after timeout")
+	host_victim.global_position = center+Vector2(100,0)
+	host_unit._pull_touching_enemies(0.1)
+	host_victim.global_position = center+Vector2(5,0)
+	host_unit._pull_touching_enemies(0.1)
+	check(await until(func(): return guest_unit.get_collision_exceptions().has(guest_victim)),"separation and a fresh contact replicate a new timed grab")
+	check(guest_unit.KNOCKBACK_EFFECT_SCRIPT.pull_velocity(guest_victim).is_zero_approx(),"replicated grab state does not create a second non-authoritative pull")
 	host_unit.acquire_block(CUBE.Block.ICE)
 	check(await until(func(): return not guest_unit.has_block(CUBE.Block.HONEY) and not guest_unit.get_collision_exceptions().has(guest_victim)),"eviction clears the remote honey collision lease")
 	host_victim.queue_free()
@@ -104,6 +121,11 @@ func run() -> void:
 	check(await until(func(): return guest_unit.block_slots == host_unit.block_slots and guest_unit.crystal_layout == host_unit.crystal_layout and guest_unit._native_model.crystals_ready()),"two-slot amethyst + iron replicates random crystal layout and independent growth")
 	check(guest_unit._native_model.block_mode == CUBE.Block.IRON and guest_unit._native_model.crystal_layer.visible,"guest shows iron inside while retained amethyst protrusions remain visible")
 	check(guest_unit.player_control_action_ids().size() == 4,"remote manual action inventory retains slam/change/volley/surge")
+	host_unit._iron_down_speed = 170.0
+	check(await until(func(): return is_equal_approx(guest_unit._iron_down_speed,170.0)),"authority descent speed replicates for iron threat damage")
+	check(is_equal_approx(guest_unit._iron_damage_multiplier(),CUBE.IRON_IMPACT_MULT),"guest iron threat uses the same speed formula")
+	host_unit._iron_down_speed = 0.0
+	check(await until(func(): return guest_unit._iron_down_speed == 0.0 and not guest_unit._iron_bottom_active()),"stationary iron loses its damage threat on both peers")
 	var before_layout:PackedVector3Array = guest_unit.crystal_layout.duplicate()
 	guest_unit._roll_crystal_layout()
 	guest_unit.controlled_crystal_volley()

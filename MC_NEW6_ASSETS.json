@@ -1,0 +1,144 @@
+{
+ "arbitration": {
+  "boat": "no vanilla boat.geo.json exists anywhere (absent from bedrock-samples and all mirrors; the boat mesh is engine-side). Hull boxes were fitted so every face net lands fully inside opaque native-texture texels (verified by script); paddles decoded exactly from texture alpha maps. Rowing motion matches vanilla behavior.",
+  "orientation": "avaritia strips verified pixel-for-pixel to share vanilla bow orientation (drawn-string diagonal identical), so the same +135 texture offset applies.",
+  "sheep_skin_alpha": "bedrock sheep.tga alpha is an emissive-style channel, NOT cutout opacity (skin-zone average alpha 55-107). Forced to 255; the white patches on body/head are Mojang-authentic texels."
+ },
+ "avaritia": {
+  "branch": "1.12.2",
+  "commit": "d8cca83114cf831883b9a4c7734dd2d03ea6f485",
+  "files": {
+   "src/main/resources/assets/avaritia/textures/items/tools/infinity_bow/idle.png": {
+    "sha256": "c65fd6999ac37dfa1ccf5570c28b1796aa7140bb3a2a16e5a0e37753f9e8f065",
+    "stored_as": "Images/characters/我的世界/new6/av_bow_idle.png"
+   },
+   "src/main/resources/assets/avaritia/textures/items/tools/infinity_bow/pull_0.png": {
+    "sha256": "416ff09668b31d7f238f6b7beabf3b1e6ea3d3a39bdfa010c5ef155d737aa9c1",
+    "stored_as": "Images/characters/我的世界/new6/av_bow_pull0.png"
+   },
+   "src/main/resources/assets/avaritia/textures/items/tools/infinity_bow/pull_1.png": {
+    "sha256": "49415f17f66597b975c4e55582c530d021c256ce72a628f32d5a4b907130c82f",
+    "stored_as": "Images/characters/我的世界/new6/av_bow_pull1.png"
+   },
+   "src/main/resources/assets/avaritia/textures/items/tools/infinity_bow/pull_2.png": {
+    "sha256": "0ff970d3e7e99a62891ab9d71a61c0ddad4731ceb5c0eab3c7b6c8ec815db519",
+    "stored_as": "Images/characters/我的世界/new6/av_bow_pull2.png"
+   }
+  },
+  "license_note": "Avaritia mod assets (Morpheus1101/Avaritia); used per longbow design requirement",
+  "mcmeta": "each strip is 16x144 = 9 frames, animated in-game; mcmeta ping-pong timing recorded in bake notes",
+  "repo": "Morpheus1101/Avaritia"
+ },
+ "baked_outputs": {
+  "Images/characters/我的世界/new6/boat_frames.png": {
+   "clips": {
+    "idle": {
+     "fps": 5
+    },
+    "row": {
+     "fps": 9
+    }
+   },
+   "frames_per_clip": 8,
+   "sha256": "b1b4a6aa09180d1dedf6b70e29d1de633a7d65cd1e652c0392d4ae2c37f64628"
+  },
+  "Images/characters/我的世界/new6/boat_preview.png": {
+   "sha256": "3b1deb2d3891f0013eba6f2fd3d5269007f4d6b09d93889066773dc8dc317861"
+  },
+  "Images/characters/我的世界/new6/sheep_frames.png": {
+   "clips": {
+    "sheared_idle": {
+     "fps": 4
+    },
+    "sheared_walk": {
+     "fps": 10
+    },
+    "wool_idle": {
+     "fps": 4
+    },
+    "wool_walk": {
+     "fps": 10
+    }
+   },
+   "frames_per_clip": 8,
+   "sha256": "176b15febdb3a79589e533da12506cf037dc5f2a1d73cb9a46da45fb8163660a"
+  },
+  "Images/characters/我的世界/new6/sheep_preview.png": {
+   "sha256": "0bc9b761f285d7432cbb0257937d9e93ec339da00b88121ea60154ed645d45f8"
+  },
+  "Images/characters/我的世界/new6/av_bow_preview.png": {
+   "sha256": "46932916ea8f0917ac587ba972fd2a149e3d5afaef0e06dac8cd741517a9d56e",
+   "derived_from": "av_bow_idle.png frame 0 (16x16), single-frame default texture for select preview / drag ghost / shadow feet scan"
+  }
+ },
+ "bake_repo_files": [
+  "scripts/training/mc_new6_assets/bake_new6.py",
+  "scripts/training/mc_new6_assets/export_new6.py",
+  "scripts/training/mc_new6_assets/source/models_entity_sheep.geo.json",
+  "scripts/training/mc_new6_assets/source/animations_sheep.animation.json",
+  "scripts/training/mc_new6_assets/source/animations_quadruped.animation.json",
+  "scripts/training/mc_new6_assets/source/textures_entity_sheep_sheep.tga",
+  "scripts/training/mc_new6_assets/source/textures_entity_boat_boat_oak.png"
+ ],
+ "bake_transform": {
+  "boat": "native 128x64 oak texture; fitted hull boxes + exact-decoded paddles; idle bob + row cycle",
+  "sheep": "native sheep.geo.json + sheep.animation.json + quadruped.animation.json; bind_pose_rotation honored; wool variant merges sheared leg-lowers/face over hidden wool stubs; walk = quadruped.walk legs +-80 deg; idle = grazing.v2; 8 fps per clip"
+ },
+ "bedrock_samples": {
+  "commit": "46ba6ea985fb5a92d79a9419198f10dda14c199d",
+  "files": {
+   "animations/quadruped.animation.json": {
+    "sha256": "35c47c56eb92146526972dff707d80cad9011c6cbbb07009d0d4954b018d60c0"
+   },
+   "animations/sheep.animation.json": {
+    "sha256": "0fd8537cc3d2620a5b8be6dd2c05a5dd95a2096917e960cd6ec62f88804dbd10"
+   },
+   "models/entity/sheep.geo.json": {
+    "sha256": "235fc82d217b13a93ad0323c6b8a1cf312aefffe2212839b6e9f8daa2ba185b7"
+   },
+   "textures/entity/boat/boat_oak.png": {
+    "sha256": "2d66414bd0242fbe0cde4ef42ccb2d1b9ff3cb9dc261f483b530070116f17f8b"
+   },
+   "textures/entity/sheep/sheep.tga": {
+    "sha256": "15307393a12a984adfcad8cbd9a5666d1d1e775d36ec4cbac3193208b70ea86d"
+   },
+   "textures/items/tipped_arrow_slowfalling.png": {
+    "sha256": "5fb433e86dc241ed93954119ab15aca187fa2cbb4511c042c29a7141140845ec",
+    "stored_as": "Images/characters/我的世界/new6/heaven_rain.png"
+   },
+   "textures/items/tipped_arrow_swift.png": {
+    "sha256": "d1ea846c563282bb72aa1dca4f839494615a58b5b9b203b7374bf23655046ff4",
+    "stored_as": "Images/characters/我的世界/new6/heaven_swift.png"
+   }
+  },
+  "repo": "Mojang/bedrock-samples"
+ },
+ "deleted_custom_art": [
+  "bow.png",
+  "bow_pulling_1.png",
+  "bow_pulling_2.png",
+  "longbow.png",
+  "longbow_pulling.png",
+  "sheep_wool.png",
+  "sheep_shorn.png",
+  "wool_puff.png",
+  "oak_boat.png",
+  "heavenfall_arrow.png"
+ ],
+ "repo_vanilla_reuse": {
+  "Images/characters/默认/盔甲架/Bow.png": "bow idle (pre-existing repo asset, same source as 弓箭盔甲架)",
+  "Images/characters/默认/盔甲架/Bow_Pulling_0/1/2.png": "bow draw stages",
+  "minecart native_particles.gd": "all one-shot FX cells (crit/magic/smoke)"
+ },
+ "sounds": "kept from previous new6 import: 8 OGG in audio/characters/我的世界/new6/ (mcsounds sheep + wood)",
+ "mcsounds_hits": {
+  "event": "entity.generic.hurt",
+  "source": "mcsounds damage/hit1-3 (classic punch)",
+  "files": {
+   "audio/characters/我的世界/new6/hit1.ogg": "d3c5958cbbe957e4c2b33304458663e254e7da8124bce61066c6b4fcd8b4d03c",
+   "audio/characters/我的世界/new6/hit2.ogg": "4962653496440cc27ebac4d0e08d2eca78580671a184041736fe8ee5a22b88d0",
+   "audio/characters/我的世界/new6/hit3.ogg": "cfba56fe35f7a444211209c389062298193c579a7414e7b87120cb00917fdc43"
+  }
+ },
+ "bake_v2_margin": "sheep world-scale 3.4->2.9, boat 3.0->2.55 (15% cell margin; fixes graze-head clipping at cell bottom)"
+}

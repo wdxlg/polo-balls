@@ -36,6 +36,7 @@ static func emitter(parent: Node) -> Node2D:
 # new6 统一受击反馈：50 及以下原版通用受伤音，50 以上暴击音；
 # 音量用项目 hit_audio_gain.damage_gain 随伤害 +0~+6dB，低伤害不降音量。
 static func hit_sfx(src: ball, point: Vector2, amount: float) -> void:
+	if preload("res://scripts/effects/我的世界/mc_hit_feedback.gd").manages(src): return # Already emitted from final HP loss.
 	if not is_instance_valid(src) or not src.is_multiplayer_authority():
 		return
 	var event: String = "entity.player.attack.crit" if amount > 50.0 else "entity.generic.hurt"

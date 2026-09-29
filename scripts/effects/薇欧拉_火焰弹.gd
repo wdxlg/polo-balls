@@ -1,4 +1,5 @@
 extends Node2D
+const PROJECTILE_CONTACT = preload("res://scripts/projectile_contact.gd")
 
 const FIRE_FIELD_SCRIPT = preload("res://scripts/effects/薇欧拉_火场.gd")
 const WAR_GODDESS_BURN_SCRIPT:Script = preload("res://scripts/status/战争女神_灼烧.gd")
@@ -22,6 +23,7 @@ var burn_tick_interval:float = 0.5
 var burn_tick_damage:float = 5.0
 var fire_field_config:Dictionary = {}
 var _finished:bool = false
+var _pass_through_direction:Vector2 = Vector2.ZERO
 
 var _visual_root:Node2D = null
 var _arrow_main:Sprite2D = null
@@ -42,6 +44,7 @@ func setup(owner_node:Node,target_node:Node2D,start_position:Vector2,config:Dict
     fire_field_config = config.get("fire_field",{}) as Dictionary
 
 func _ready() -> void:
+    add_to_group("AllayExtendedProjectile")
     z_as_relative = false
     z_index = 75
     add_to_group("BattleTransient")
@@ -60,13 +63,21 @@ func _physics_process(delta:float) -> void:
         queue_free()
         return
     var to_target:Vector2 = target.global_position - global_position
+    var intangible_target:bool = PROJECTILE_CONTACT.ignores(target)
+    if intangible_target:
+        # Never clamp movement to an intangible target's center or turn back into it.
+        if _pass_through_direction.is_zero_approx():
+            _pass_through_direction = to_target.normalized() if not to_target.is_zero_approx() else Vector2.RIGHT.rotated(rotation)
+        to_target = _pass_through_direction * maxf(speed * delta + 1.0,1.0)
     var distance_value:float = to_target.length()
     if distance_value <= 0.001:
+        if _owner() != null and _owner().is_multiplayer_authority() and target.has_method("try_full_projectile_dodge") and bool(target.call("try_full_projectile_dodge",self)): return
         _explode(global_position)
         return
     var dir:Vector2 = to_target / distance_value
     var step_distance:float = minf(speed * delta,distance_value)
     var next_position:Vector2 = global_position + dir * step_distance
+    if get_tree().has_group("MinecraftAllay") and load("res://scripts/characters/我的世界/allay/capture.gd").sweep(self,global_position,next_position): return
     var hit:Dictionary = _raycast_impact(global_position,next_position)
     if not hit.is_empty():
         var impact_position:Vector2 = hit.get("position",next_position) as Vector2
@@ -76,7 +87,8 @@ func _physics_process(delta:float) -> void:
         return
     global_position = next_position
     rotation = dir.angle()
-    if step_distance >= distance_value - 0.001:
+    if not intangible_target and step_distance >= distance_value - 0.001:
+        if _owner() != null and _owner().is_multiplayer_authority() and target.has_method("try_full_projectile_dodge") and bool(target.call("try_full_projectile_dodge",self)): return
         _explode(target.global_position)
         return
     _animate_fire_arrow()
@@ -90,7 +102,18 @@ func _raycast_impact(from_position:Vector2,to_position:Vector2) -> Dictionary:
     params.collide_with_areas = true
     var owner_node:Node = _owner()
     params.exclude = _collect_owner_collision_rids(owner_node)
-    return get_world_2d().direct_space_state.intersect_ray(params)
+    for _attempt:int in range(32):
+        var hit:Dictionary=get_world_2d().direct_space_state.intersect_ray(params)
+        if hit.is_empty(): return hit
+        var node:Node=hit.get("collider")
+        while is_instance_valid(node) and not node is ball: node=node.get_parent()
+        if not PROJECTILE_CONTACT.ignores(node):
+            if owner_node == null or not owner_node.is_multiplayer_authority() or not is_instance_valid(node) or not node.has_method("try_full_projectile_dodge") or not bool(node.call("try_full_projectile_dodge",self)): return hit
+        var excluded:Array[RID]=params.exclude
+        _append_collision_rids_recursive(node,excluded)
+        params.exclude=excluded
+    return {}
+
 
 func _collect_owner_collision_rids(owner_node:Node) -> Array[RID]:
     var result:Array[RID] = []

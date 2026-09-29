@@ -1,0 +1,232 @@
+{
+  "java_version": "1.21.1",
+  "asset_index": {
+    "id": "17",
+    "sha1": "76d7a97b9e0778fda3b14e474f012450ca0de1bb",
+    "size": 449557,
+    "totalSize": 824921227,
+    "url": "https://piston-meta.mojang.com/v1/packages/76d7a97b9e0778fda3b14e474f012450ca0de1bb/17.json"
+  },
+  "sounds_definition": {
+    "url": "https://resources.download.minecraft.net/09/09eab141cce7550f9a74c65db0e9abbb342cf50f",
+    "sha1": "09eab141cce7550f9a74c65db0e9abbb342cf50f"
+  },
+  "events": {
+    "block.glass.place": [
+      {
+        "path": "res://audio/characters/我的世界/snow_golem/4e094ed8dfa98656d8fec52a7d20c5ee6098b6ad.ogg",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "path": "res://audio/characters/我的世界/snow_golem/9c92f697142ae320584bf64c0d54381d59703528.ogg",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "path": "res://audio/characters/我的世界/snow_golem/8f23c02475d388b23e5faa680eafe6b991d7a9d4.ogg",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "path": "res://audio/characters/我的世界/snow_golem/363545a76277e5e47538b2dd3a0d6aa4f7a87d34.ogg",
+        "volume": 1.0,
+        "pitch": 1.0
+      }
+    ],
+    "block.glass.break": [
+      {
+        "path": "res://audio/characters/我的世界/snow_golem/7274a2231ed4544a37e599b7b014e589e5377094.ogg",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "path": "res://audio/characters/我的世界/snow_golem/87c47bda3645c68f18a49e83cbf06e5302d087ff.ogg",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "path": "res://audio/characters/我的世界/snow_golem/ad7d770b7fff3b64121f75bd60cecfc4866d1cd6.ogg",
+        "volume": 1.0,
+        "pitch": 1.0
+      }
+    ],
+    "block.wood.place": [
+      {
+        "path": "res://audio/characters/我的世界/snow_golem/9bc2a84d0aa98113fc52609976fae8fc88ea6333.ogg",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "path": "res://audio/characters/我的世界/snow_golem/98102533e6085617a2962157b4f3658f59aea018.ogg",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "path": "res://audio/characters/我的世界/snow_golem/45b2aef7b5049e81b39b58f8d631563fadcc778b.ogg",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "path": "res://audio/characters/我的世界/snow_golem/dc66978374a46ab2b87db6472804185824868095.ogg",
+        "volume": 1.0,
+        "pitch": 1.0
+      }
+    ],
+    "entity.player.hurt_freeze": [
+      {
+        "path": "res://audio/characters/我的世界/snow_golem/e7b80d7e20d07be914d7361b5ff71a3c3193ef4c.ogg",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "path": "res://audio/characters/我的世界/snow_golem/67cee209f2c06f4bc08d7e165fa7371557d4e261.ogg",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "path": "res://audio/characters/我的世界/snow_golem/c2d7c39f05beb02e6e6ea7bc703925fa3b965b76.ogg",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "path": "res://audio/characters/我的世界/snow_golem/50b8c5f86880ac8ae12edf9e5ca21c857c187589.ogg",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "path": "res://audio/characters/我的世界/snow_golem/3240aaa8b43d759b40c41b7f6c0d7dcc5ef7a77f.ogg",
+        "volume": 1.0,
+        "pitch": 1.0
+      }
+    ]
+  },
+  "files": [
+    {
+      "file": "audio/characters/我的世界/snow_golem/4e094ed8dfa98656d8fec52a7d20c5ee6098b6ad.ogg",
+      "asset_key": "minecraft/sounds/dig/stone1.ogg",
+      "url": "https://resources.download.minecraft.net/4e/4e094ed8dfa98656d8fec52a7d20c5ee6098b6ad",
+      "sha1": "4e094ed8dfa98656d8fec52a7d20c5ee6098b6ad",
+      "sha256": "97f2a8a73b6f577b85c1a162c31810c7aff1ad1f34564dfdacebb64b26d1c7c6"
+    },
+    {
+      "file": "audio/characters/我的世界/snow_golem/9c92f697142ae320584bf64c0d54381d59703528.ogg",
+      "asset_key": "minecraft/sounds/dig/stone2.ogg",
+      "url": "https://resources.download.minecraft.net/9c/9c92f697142ae320584bf64c0d54381d59703528",
+      "sha1": "9c92f697142ae320584bf64c0d54381d59703528",
+      "sha256": "98a5c3197845526e6ca9e8a669ffda843cfae3f5c7ac842ee6aac8896bae03b2"
+    },
+    {
+      "file": "audio/characters/我的世界/snow_golem/8f23c02475d388b23e5faa680eafe6b991d7a9d4.ogg",
+      "asset_key": "minecraft/sounds/dig/stone3.ogg",
+      "url": "https://resources.download.minecraft.net/8f/8f23c02475d388b23e5faa680eafe6b991d7a9d4",
+      "sha1": "8f23c02475d388b23e5faa680eafe6b991d7a9d4",
+      "sha256": "19273f0e7e25b459ea29511dcbc4f7f209c04cea2fd1c34a16250737469ca51c"
+    },
+    {
+      "file": "audio/characters/我的世界/snow_golem/363545a76277e5e47538b2dd3a0d6aa4f7a87d34.ogg",
+      "asset_key": "minecraft/sounds/dig/stone4.ogg",
+      "url": "https://resources.download.minecraft.net/36/363545a76277e5e47538b2dd3a0d6aa4f7a87d34",
+      "sha1": "363545a76277e5e47538b2dd3a0d6aa4f7a87d34",
+      "sha256": "b164e7324510480abac9518090e48439123ea05ebc48970e48fc59406729a197"
+    },
+    {
+      "file": "audio/characters/我的世界/snow_golem/7274a2231ed4544a37e599b7b014e589e5377094.ogg",
+      "asset_key": "minecraft/sounds/random/glass1.ogg",
+      "url": "https://resources.download.minecraft.net/72/7274a2231ed4544a37e599b7b014e589e5377094",
+      "sha1": "7274a2231ed4544a37e599b7b014e589e5377094",
+      "sha256": "ac96668c1b15115e362b2d7d033c46df1575535da06cbcb8bed2fa3b740ab446"
+    },
+    {
+      "file": "audio/characters/我的世界/snow_golem/87c47bda3645c68f18a49e83cbf06e5302d087ff.ogg",
+      "asset_key": "minecraft/sounds/random/glass2.ogg",
+      "url": "https://resources.download.minecraft.net/87/87c47bda3645c68f18a49e83cbf06e5302d087ff",
+      "sha1": "87c47bda3645c68f18a49e83cbf06e5302d087ff",
+      "sha256": "7288bb874add42719964c87a232c2897f3e965e33ca55652b4744b4fad87fcea"
+    },
+    {
+      "file": "audio/characters/我的世界/snow_golem/ad7d770b7fff3b64121f75bd60cecfc4866d1cd6.ogg",
+      "asset_key": "minecraft/sounds/random/glass3.ogg",
+      "url": "https://resources.download.minecraft.net/ad/ad7d770b7fff3b64121f75bd60cecfc4866d1cd6",
+      "sha1": "ad7d770b7fff3b64121f75bd60cecfc4866d1cd6",
+      "sha256": "062c3175b3ab2b7e44b52a10bb9ff60eb6c01f5b19f165e90df0ab0c215b07d6"
+    },
+    {
+      "file": "audio/characters/我的世界/snow_golem/9bc2a84d0aa98113fc52609976fae8fc88ea6333.ogg",
+      "asset_key": "minecraft/sounds/dig/wood1.ogg",
+      "url": "https://resources.download.minecraft.net/9b/9bc2a84d0aa98113fc52609976fae8fc88ea6333",
+      "sha1": "9bc2a84d0aa98113fc52609976fae8fc88ea6333",
+      "sha256": "cb6071c83a7f19ee555e9d661dc9e564c77ad9fcf2d1a6848aab21bc3b1c0289"
+    },
+    {
+      "file": "audio/characters/我的世界/snow_golem/98102533e6085617a2962157b4f3658f59aea018.ogg",
+      "asset_key": "minecraft/sounds/dig/wood2.ogg",
+      "url": "https://resources.download.minecraft.net/98/98102533e6085617a2962157b4f3658f59aea018",
+      "sha1": "98102533e6085617a2962157b4f3658f59aea018",
+      "sha256": "59edca84840951f2d6f0ad9ff5fd439a6dc916b2cc50164569b94ee107b4bc3f"
+    },
+    {
+      "file": "audio/characters/我的世界/snow_golem/45b2aef7b5049e81b39b58f8d631563fadcc778b.ogg",
+      "asset_key": "minecraft/sounds/dig/wood3.ogg",
+      "url": "https://resources.download.minecraft.net/45/45b2aef7b5049e81b39b58f8d631563fadcc778b",
+      "sha1": "45b2aef7b5049e81b39b58f8d631563fadcc778b",
+      "sha256": "cf6be2314c08ea3fd311bdaebe14d0c73ca189bbbda09f96d26a3dea7e711cf6"
+    },
+    {
+      "file": "audio/characters/我的世界/snow_golem/dc66978374a46ab2b87db6472804185824868095.ogg",
+      "asset_key": "minecraft/sounds/dig/wood4.ogg",
+      "url": "https://resources.download.minecraft.net/dc/dc66978374a46ab2b87db6472804185824868095",
+      "sha1": "dc66978374a46ab2b87db6472804185824868095",
+      "sha256": "de868b3119b03ad42cbe502805e895a5fd8565f059f991f542b4ee68d6556bfe"
+    },
+    {
+      "file": "audio/characters/我的世界/snow_golem/e7b80d7e20d07be914d7361b5ff71a3c3193ef4c.ogg",
+      "asset_key": "minecraft/sounds/entity/player/hurt/freeze_hurt1.ogg",
+      "url": "https://resources.download.minecraft.net/e7/e7b80d7e20d07be914d7361b5ff71a3c3193ef4c",
+      "sha1": "e7b80d7e20d07be914d7361b5ff71a3c3193ef4c",
+      "sha256": "ac3d80eb20517c375979a4d5a1e3eb88ffaffcce1d7098e4217b42a430cc0c15"
+    },
+    {
+      "file": "audio/characters/我的世界/snow_golem/67cee209f2c06f4bc08d7e165fa7371557d4e261.ogg",
+      "asset_key": "minecraft/sounds/entity/player/hurt/freeze_hurt2.ogg",
+      "url": "https://resources.download.minecraft.net/67/67cee209f2c06f4bc08d7e165fa7371557d4e261",
+      "sha1": "67cee209f2c06f4bc08d7e165fa7371557d4e261",
+      "sha256": "3001adba064219a47a5f6795f9627299d80b2700e02a418b692928c0d2c8189d"
+    },
+    {
+      "file": "audio/characters/我的世界/snow_golem/c2d7c39f05beb02e6e6ea7bc703925fa3b965b76.ogg",
+      "asset_key": "minecraft/sounds/entity/player/hurt/freeze_hurt3.ogg",
+      "url": "https://resources.download.minecraft.net/c2/c2d7c39f05beb02e6e6ea7bc703925fa3b965b76",
+      "sha1": "c2d7c39f05beb02e6e6ea7bc703925fa3b965b76",
+      "sha256": "780f1e2a828d6ff762b3834c2781998f525fd572aef629b175ffd500c528de7d"
+    },
+    {
+      "file": "audio/characters/我的世界/snow_golem/50b8c5f86880ac8ae12edf9e5ca21c857c187589.ogg",
+      "asset_key": "minecraft/sounds/entity/player/hurt/freeze_hurt4.ogg",
+      "url": "https://resources.download.minecraft.net/50/50b8c5f86880ac8ae12edf9e5ca21c857c187589",
+      "sha1": "50b8c5f86880ac8ae12edf9e5ca21c857c187589",
+      "sha256": "1f0ff5d0c196bb83095581d9fb8cb85cbedd78076d7adbeb8885666901332e9f"
+    },
+    {
+      "file": "audio/characters/我的世界/snow_golem/3240aaa8b43d759b40c41b7f6c0d7dcc5ef7a77f.ogg",
+      "asset_key": "minecraft/sounds/entity/player/hurt/freeze_hurt5.ogg",
+      "url": "https://resources.download.minecraft.net/32/3240aaa8b43d759b40c41b7f6c0d7dcc5ef7a77f",
+      "sha1": "3240aaa8b43d759b40c41b7f6c0d7dcc5ef7a77f",
+      "sha256": "6c32a5d12dae31638272c9e3d333a8ce829843f8074d48869236e4f9073fa1dc"
+    }
+  ],
+  "mapping": {
+    "freeze": [
+      "entity.player.hurt_freeze"
+    ],
+    "ice_break": [
+      "block.glass.break"
+    ],
+    "mini_birth": [
+      "block.snow.place",
+      "block.wood.place"
+    ]
+  },
+  "notes": "Freeze uses the vanilla powder-snow freeze damage cue (entity.player.hurt_freeze, five icy crackle clips) so it stands out from the same-frame snowball impact; block.glass.place was a dig/stone thud and was inaudible in practice. Ice break keeps the vanilla glass material sound; birth combines snow and pumpkin/wood placement. Existing verified block.snow.place files are reused. There is no fabricated entity.snow_golem.spawn event.",
+  "copyright": "Minecraft audio belongs to Mojang/Microsoft; Minecraft EULA applies."
+}

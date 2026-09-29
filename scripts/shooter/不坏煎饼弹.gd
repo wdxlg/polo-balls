@@ -57,6 +57,10 @@ func tick_physics(state:State,delta:float) -> void:
 		super.tick_physics(state,delta)
 		return
 
+	# Resolve contact with a note before this projectile's pre-movement overlap damage.
+	if get_tree().has_group("MinecraftAllay") and load("res://scripts/characters/我的世界/allay/capture.gd").sweep(self,global_position,global_position):
+		return
+
 	_rot_elapsed += maxf(delta,0.0)
 	_rot_ratio = clampf(_rot_elapsed / maxf(full_rot_time,0.1),0.0,1.0)
 	_update_rot_state()

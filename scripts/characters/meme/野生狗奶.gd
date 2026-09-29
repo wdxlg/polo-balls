@@ -152,12 +152,20 @@ func tick_physics(state:State,delta:float) -> void:
 		if _time_elapsed >= maxf(time_acceleration_duration,0.05):
 			_finish_time_acceleration()
 	else:
-		_cycle_left -= maxf(delta,0.0)
-		if _cycle_left <= 0.0 and is_combat_runtime_active():
+		_cycle_left = maxf(_cycle_left - maxf(delta,0.0),0.0)
+		if _cycle_left <= 0.0 and is_combat_runtime_active() and not is_player_controlled():
 			_begin_time_acceleration()
 
 	super.tick_physics(state,delta)
 
+
+func controlled_attack_action() -> void:
+	# 加速期内的回血、衰老脉冲和倍率仍按原逻辑运行；仅由玩家决定下一轮何时开始。
+	if not is_player_controlled() or not is_multiplayer_authority() or health <= 0 or not is_combat_runtime_active():
+		return
+	if _time_active or _cycle_left > 0.0 or dizziness or is_damage_output_disabled():
+		return
+	_begin_time_acceleration()
 
 func _begin_time_acceleration() -> void:
 	if _time_active or health <= 0:

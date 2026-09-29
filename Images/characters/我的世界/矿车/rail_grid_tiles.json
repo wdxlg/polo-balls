@@ -1,0 +1,23 @@
+{
+  "cell_texture_size": [
+    16,
+    16
+  ],
+  "mask_bits": {
+    "right": 1,
+    "down": 2,
+    "left": 4,
+    "up": 8
+  },
+  "rows": {
+    "ordinary": 0,
+    "powered": 1
+  },
+  "source_sha256": {
+    "rail_normal.png": "422e8d4258d4827101cece0700c65310a19ce3206f77d62597b0f5184bb968d4",
+    "rail_normal_turned.png": "e52e8365e1c1f2df8e2513e36d85295987f30ba4946e7ece7922c40513e6bb14",
+    "rail_golden_powered.png": "7735150f0a1aa1f908d89da8f548413cff5e426136e08cfbd826fbd982e86169"
+  },
+  "output_sha256": "ea18b64b8f9a16cfed0d6671b6966cc6981d9361306069dca81758100164bcf2",
+  "notice": "Mojang/Microsoft source art, subject to Minecraft EULA. Powered corners and junctions are derived arena UI representations, not claimed vanilla block types."
+}

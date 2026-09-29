@@ -1,0 +1,49 @@
+Godot Engine v4.7.2.stable.steam.ed1daf0bf - https://godotengine.org
+
+PASS: real throw still uses its normal windup
+PASS: release still aims at the enemy's current position, without homing
+PASS: enemy distance no longer truncates the outgoing flight
+PASS: missing the enemy continues outbound instead of planting at its old position
+PASS: spear passes the old aim coordinate and preserves its original direction
+PASS: passing the aim creates neither ground seek nor ground impact effects
+PASS: a full-range miss starts ordinary loyalty return
+PASS: miss returns from the actual range endpoint, without overshoot or ground adjustment
+PASS: range return has no dirt mound or buried-weapon crop
+PASS: missed spear comes back into the original hand/inventory
+PASS: actor farther along the original ray is hit after the old target coordinate was passed
+PASS: return flight still cannot apply another direct hit
+PASS: actual four-direction obstacle contact lodges the spear: (1.0, 0.0)
+PASS: wall lodging results from real flight/contact, not near-destination attraction
+PASS: wall/obstacle lodging keeps the complete airborne item appearance
+PASS: existing wall-local anchoring survives the behavior restoration
+PASS: removed supporting obstacle retires its lodged spear
+PASS: actual four-direction obstacle contact lodges the spear: (-1.0, 0.0)
+PASS: wall lodging results from real flight/contact, not near-destination attraction
+PASS: wall/obstacle lodging keeps the complete airborne item appearance
+PASS: existing wall-local anchoring survives the behavior restoration
+PASS: removed supporting obstacle retires its lodged spear
+PASS: actual four-direction obstacle contact lodges the spear: (0.0, -1.0)
+PASS: wall lodging results from real flight/contact, not near-destination attraction
+PASS: wall/obstacle lodging keeps the complete airborne item appearance
+PASS: existing wall-local anchoring survives the behavior restoration
+PASS: removed supporting obstacle retires its lodged spear
+PASS: actual four-direction obstacle contact lodges the spear: (0.0, 1.0)
+PASS: wall lodging results from real flight/contact, not near-destination attraction
+PASS: wall/obstacle lodging keeps the complete airborne item appearance
+PASS: existing wall-local anchoring survives the behavior restoration
+PASS: removed supporting obstacle retires its lodged spear
+PASS: wall beyond maximum flight range is not attracted/snapped to, even when nearby
+PASS: range miss returns consistently at different frame sizes: 0.03333333333333
+PASS: range miss returns consistently at different frame sizes: 0.00833333333333
+PASS: range miss returns consistently at different frame sizes: 0.75
+PASS: charged empty flight keeps enchantment but does not fabricate a ground impact/lightning trigger
+PASS: returning enchantment is fully visible, without old ground masks
+PASS: old explicit ground-lodgement caller now takes the return path
+PASS: already-present old ground pole is converted to return on its next live tick
+PASS: old ground snapshots do not recreate planted replicas
+PASS: the restored rule never emits ground particle bursts
+PASS: pause still freezes outgoing flight rather than prematurely returning/lodging
+PASS: legacy pole return cannot duplicate or replace another active weapon
+PASS: a lodging call without a real supporting obstacle cannot create a new pole
+DROWNED_WALL_ONLY_RESULT checks=45 failures=0
+TRIDENT_AIM_STICK_EXIT=0

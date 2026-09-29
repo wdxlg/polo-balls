@@ -1,4 +1,5 @@
 extends Node2D
+const PROJECTILE_API = preload("res://classes/projectile_interactions.gd")
 
 const WIRE_TEXTURE_PATH:String = "res://Images/characters/三角洲/盾狗/刺网.png"
 const WIRE_SLOW_BUFF_NAME:String = "三角洲铁丝网减速"
@@ -486,16 +487,9 @@ func _target_from_ref(value:Variant)->ball:
 
 
 func _process_projectile_durability()->void:
-	# V245：不再依赖并不存在的统一 Shooter 组。
-	# ball 型投射物从 Ball 组按 Ball_Type 识别；非 ball 投射物从 BattleTransient/明确组识别。
 	var candidates:Dictionary={}
-	for node:Node in get_tree().get_nodes_in_group("Ball"):
-		if _is_projectile_node(node):
-			candidates[node.get_instance_id()]=node
-	for group_name:String in ["BattleTransient","ArmsDealerProjectile","HunterPellet","CouPenguinRock","TimeTravelerClock","BomberBomb","MagnetElectricBall"]:
-		for node:Node in get_tree().get_nodes_in_group(group_name):
-			if _is_projectile_node(node):
-				candidates[node.get_instance_id()]=node
+	for node:Node in PROJECTILE_API.candidates(get_tree()):
+		candidates[node.get_instance_id()]=node
 
 	for id_variant:Variant in candidates.keys():
 		var id:int=int(id_variant)
@@ -513,20 +507,8 @@ func _process_projectile_durability()->void:
 
 
 func _is_projectile_node(node:Node)->bool:
-	if node==null or not is_instance_valid(node):
-		return false
-	if node is ball:
-		var projectile_ball:=node as ball
-		if projectile_ball.Type==ball.Ball_Type.Shooter or projectile_ball.Type==ball.Ball_Type.Shooter_with_Health:
-			return true
-	var script_resource:Script=node.get_script() as Script
-	if script_resource!=null and script_resource.resource_path.begins_with("res://scripts/shooter/"):
-		return true
-	return false
+	return PROJECTILE_API.live(node)
 
-
-# hitbox.gd 在攻击 Hitbox 真正碰到本刺网的受击 Area 时调用。
-# 返回后不会触发 hurtbox.on_hurt，因此刺网只掉耐久、绝不阻挡/吸收原攻击。
 func receive_attack_hitbox(attacker:ball,incoming_hit:hitbox)->void:
 	if attacker==null or not is_instance_valid(attacker):
 		return

@@ -14,6 +14,7 @@ var _finished:bool = false
 
 
 func _ready() -> void:
+	add_to_group("AllayExtendedProjectile")
 	add_to_group("BattleTransient")
 	add_to_group("MagicHornBullet")
 	if direction.length_squared() <= 0.000001:
@@ -65,6 +66,7 @@ func _physics_process(delta:float) -> void:
 
 	var start:Vector2 = global_position
 	var finish:Vector2 = start + direction * step_distance
+	if get_tree().has_group("MinecraftAllay") and load("res://scripts/characters/我的世界/allay/capture.gd").sweep(self,start,finish): return
 	var hit:Dictionary = _raycast_motion(start,finish,master)
 	if hit.is_empty():
 		global_position = finish

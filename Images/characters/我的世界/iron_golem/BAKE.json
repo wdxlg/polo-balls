@@ -1,0 +1,255 @@
+{
+  "villager_0": {
+    "bounds": [
+      36,
+      47,
+      114,
+      198
+    ],
+    "unique_frames": 23,
+    "clips": {
+      "idle": [
+        1,
+        1,
+        true
+      ],
+      "walk": [
+        16,
+        1,
+        true
+      ],
+      "carry": [
+        1,
+        1,
+        true
+      ],
+      "carry_walk": [
+        16,
+        1,
+        true
+      ],
+      "throw": [
+        10,
+        0.36,
+        false
+      ]
+    },
+    "profession": "toolsmith"
+  },
+  "golem_0": {
+    "bounds": [
+      184,
+      141,
+      264,
+      279
+    ],
+    "unique_frames": 39,
+    "clips": {
+      "idle": [
+        1,
+        1,
+        true
+      ],
+      "walk": [
+        16,
+        1,
+        true
+      ],
+      "charge": [
+        8,
+        0.38,
+        false
+      ],
+      "swing": [
+        24,
+        0.48,
+        false
+      ]
+    },
+    "canvas": [
+      448,
+      384
+    ],
+    "foot_y": 275,
+    "shoulder_anchors": {
+      "arm0": [
+        -9,
+        31,
+        0
+      ],
+      "arm1": [
+        9,
+        31,
+        0
+      ]
+    },
+    "arm_scale_curve": {
+      "peak": 2.1,
+      "grow_until": 0.18,
+      "hold_until": 0.36,
+      "recover_until": 1.0
+    }
+  },
+  "golem_1": {
+    "bounds": [
+      184,
+      141,
+      264,
+      279
+    ],
+    "unique_frames": 39,
+    "clips": {
+      "idle": [
+        1,
+        1,
+        true
+      ],
+      "walk": [
+        16,
+        1,
+        true
+      ],
+      "charge": [
+        8,
+        0.38,
+        false
+      ],
+      "swing": [
+        24,
+        0.48,
+        false
+      ]
+    },
+    "canvas": [
+      448,
+      384
+    ],
+    "foot_y": 275,
+    "shoulder_anchors": {
+      "arm0": [
+        -9,
+        31,
+        0
+      ],
+      "arm1": [
+        9,
+        31,
+        0
+      ]
+    },
+    "arm_scale_curve": {
+      "peak": 2.1,
+      "grow_until": 0.18,
+      "hold_until": 0.36,
+      "recover_until": 1.0
+    }
+  },
+  "golem_2": {
+    "bounds": [
+      184,
+      141,
+      264,
+      279
+    ],
+    "unique_frames": 39,
+    "clips": {
+      "idle": [
+        1,
+        1,
+        true
+      ],
+      "walk": [
+        16,
+        1,
+        true
+      ],
+      "charge": [
+        8,
+        0.38,
+        false
+      ],
+      "swing": [
+        24,
+        0.48,
+        false
+      ]
+    },
+    "canvas": [
+      448,
+      384
+    ],
+    "foot_y": 275,
+    "shoulder_anchors": {
+      "arm0": [
+        -9,
+        31,
+        0
+      ],
+      "arm1": [
+        9,
+        31,
+        0
+      ]
+    },
+    "arm_scale_curve": {
+      "peak": 2.1,
+      "grow_until": 0.18,
+      "hold_until": 0.36,
+      "recover_until": 1.0
+    }
+  },
+  "golem_3": {
+    "bounds": [
+      184,
+      141,
+      264,
+      279
+    ],
+    "unique_frames": 39,
+    "clips": {
+      "idle": [
+        1,
+        1,
+        true
+      ],
+      "walk": [
+        16,
+        1,
+        true
+      ],
+      "charge": [
+        8,
+        0.38,
+        false
+      ],
+      "swing": [
+        24,
+        0.48,
+        false
+      ]
+    },
+    "canvas": [
+      448,
+      384
+    ],
+    "foot_y": 275,
+    "shoulder_anchors": {
+      "arm0": [
+        -9,
+        31,
+        0
+      ],
+      "arm1": [
+        9,
+        31,
+        0
+      ]
+    },
+    "arm_scale_curve": {
+      "peak": 2.1,
+      "grow_until": 0.18,
+      "hold_until": 0.36,
+      "recover_until": 1.0
+    }
+  }
+}

@@ -659,6 +659,7 @@ func _spawn_projectile(aim_dir:Vector2) -> void:
 		shot_damage *= NON_SNIPER_DAMAGE_SCALE
 
 	projectile.set("Master_name",Master_name)
+	projectile.set_meta("allay_launch_sound",load("res://scripts/characters/我的世界/allay/return_audio.gd").gun_sound(gun_type))
 	projectile.set("Team",Team)
 	projectile.set("projectile_kind",1 if gun_type == GUN_ROCKET else 0)
 	projectile.set("damage_amount",shot_damage)

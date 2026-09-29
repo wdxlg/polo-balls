@@ -1,0 +1,20 @@
+{
+  "pigstep": {
+    "sha1": "9ffb1791e8aba8f266a673abec1846c3bf8fb8cc",
+    "channels": 1,
+    "sample_rate": 48000,
+    "events": 520
+  },
+  "otherside": {
+    "sha1": "a5effd79795773422bb4de85841838f3ad9c216d",
+    "channels": 1,
+    "sample_rate": 48000,
+    "events": 784
+  },
+  "cat": {
+    "sha1": "d1eb3d2e39bf1f6289cfcbca44e1c9bb508b20f0",
+    "channels": 1,
+    "sample_rate": 44100,
+    "events": 513
+  }
+}

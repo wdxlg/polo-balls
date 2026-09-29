@@ -1,0 +1,20 @@
+{
+  "game": "Minecraft Java Edition",
+  "version": "1.21.11",
+  "client_url": "https://piston-data.mojang.com/v1/objects/ba2df812c2d12e0219c489c4cd9a5e1f0760f5bd/client.jar",
+  "client_sha1": "ba2df812c2d12e0219c489c4cd9a5e1f0760f5bd",
+  "assets": [
+    {
+      "jar_path": "assets/minecraft/textures/item/stone_spear.png",
+      "file": "stone_spear.png",
+      "sha256": "5f71419de94284e12b3fc75afdf135af80c1be3c1f053754077fcd53f70f26c9"
+    },
+    {
+      "jar_path": "assets/minecraft/textures/item/stone_spear_in_hand.png",
+      "file": "stone_spear_in_hand.png",
+      "sha256": "1934f2b64dead8dd501c55362e332e22ecac62d4123702fe3b6bf40919405634"
+    }
+  ],
+  "license": "Minecraft assets copyright Mojang/Microsoft. Unmodified extracted bytes; extraction does not grant redistribution rights.",
+  "audio": "Reuses existing original wooden-spear stab and MC player hurt/crit variants; project provenance unchanged."
+}

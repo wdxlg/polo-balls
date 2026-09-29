@@ -36,6 +36,10 @@ func run() -> void:
 	var parameters:VBoxContainer = world.control.settings_category_boxes.parameters
 	var recording_panel:VBoxContainer = world.control.settings_category_boxes.recording
 	check(chooser != null and chooser.get_parent().get_parent() == parameters, "framing option lives in Settings > Parameters")
+	var background_row:Node = parameters.get_node_or_null("MapBackgroundRow")
+	var framing_row:Node = chooser.get_parent() if chooser != null else null
+	var framing_hint:Node = parameters.get_node_or_null("CompositionFeedback")
+	check(background_row != null and framing_row != null and framing_row.get_index() == background_row.get_index() + 1 and framing_hint != null and framing_hint.get_index() == framing_row.get_index() + 1, "framing selector and hint sit immediately below background settings")
 	check(recording_panel.find_child("RecordingComposition", true, false) == null, "recording-only settings have no framing selector")
 	if chooser != null:
 		chooser.select(1)

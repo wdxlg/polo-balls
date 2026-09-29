@@ -83,7 +83,7 @@ func run() -> void:
 	world._anchor_versus_to_screen()
 	var before:Rect2 = screen_box(world.versus_label)
 	print("VS_SCREEN_METRIC initial logical=",world.get_viewport_rect().size," physical=",root.size," canvas=",root.get_canvas_transform()," final=",root.get_final_transform()," title=",before)
-	check(before.position.distance_to(Vector2(12,240)) < 1.0 and absf(before.size.x - (world.get_viewport_rect().size.x - 24.0)) < 1.0,"title sits lower in the logical viewport, not at the map top")
+	check(before.position.distance_to(Vector2(24,240)) < 1.0 and absf(before.size.x - (world.get_viewport_rect().size.x - 48.0)) < 1.0,"title keeps 24px side safety inside the logical viewport")
 	world.camera_2d.global_position += Vector2(70.0,-45.0)
 	world.toolbar_zoom_multiplier = 1.55
 	world._apply_camera_zoom()
@@ -100,7 +100,7 @@ func run() -> void:
 	world._anchor_versus_to_screen()
 	print("VS_SCREEN_METRIC resized logical=",world.get_viewport_rect().size," physical=",root.size," final=",root.get_final_transform()," title=",screen_box(world.versus_label))
 	var resized:Rect2 = screen_box(world.versus_label)
-	check(resized.position.distance_to(before.position) < 1.0 and absf(resized.size.x - (world.get_viewport_rect().size.x - 24.0)) < 1.0,"window resize keeps title inside the centered portrait viewport")
+	check(resized.position.distance_to(before.position) < 1.0 and absf(resized.size.x - (world.get_viewport_rect().size.x - 48.0)) < 1.0,"window resize keeps the new side safety inside the portrait viewport")
 
 	var mirror:Node = load("res://scripts/ui/battle_record_locale.gd").new()
 	world.add_child(mirror)
@@ -113,6 +113,7 @@ func run() -> void:
 			var copy:RichTextLabel = copies[locale].text
 			var rect:Rect2 = screen_box(copy)
 			check(rect.position.y >= 0.0 and absf(rect.end.y-before.end.y) < 1.0 and rect.end.y < world.get_viewport_rect().size.y*0.30 and rect.position.x >= 0.0,"recording "+locale+" VS keeps its bottom edge within the lowered viewport header")
+			check(rect.position.x >= before.position.x - 0.5 and rect.end.x <= before.end.x + 0.5,"recording "+locale+" VS respects both side safety margins")
 			check(copy.get_theme_color("font_outline_color") == Color.BLACK and copy.get_theme_constant("outline_size") == world.versus_label.get_theme_constant("outline_size") and copy.text.contains("[b]VS[/b]"),"recording "+locale+" retains the thicker black outline and VS")
 	mirror.finish()
 	mirror.queue_free()

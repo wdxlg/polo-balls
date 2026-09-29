@@ -39,9 +39,15 @@ func Attack() -> void:
     Attacking = false
 
 
-# 狗叫是自动机制而不是手动技能键，因此不进入 Skill 状态。
+# 狗叫由碰撞蓄力；普通 Skill 状态并不负责播放它。
 func Skill() -> void:
     Using_Skill = false
+
+func player_control_action_ids() -> Array[StringName]:
+    return [&"controlled_attack_action"] # No duplicate bindings for empty Attack/Skill placeholders.
+func controlled_attack_action() -> void:
+    if is_player_controlled() and is_multiplayer_authority() and is_instance_valid(bark_mechanic):
+        bark_mechanic.call("request_manual_howl")
 
 
 # 继续使用 ball 通用移动/控制；根据移动与持续犬吠状态切换现有狗图片。

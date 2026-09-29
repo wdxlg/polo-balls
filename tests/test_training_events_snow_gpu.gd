@@ -6,7 +6,10 @@ var hidden_layers:Dictionary = {}
 func grab(name:String = "",settle_frames:int = 2) -> Image:
 	for i:int in range(settle_frames):
 		await process_frame
-		await RenderingServer.frame_post_draw
+		if done: return Image.new()
+		# Explicit GPU draw: a paused/occluded window may not emit another post_draw.
+		# This renders the actual viewport without advancing combat or melt time.
+		RenderingServer.force_draw(false)
 	var image:Image = root.get_texture().get_image()
 	if not name.is_empty(): image.save_png(capture_dir+"/"+name+".png")
 	return image
@@ -85,27 +88,28 @@ func run() -> void:
 			if rect.size.x>96 and (not wall.has_area() or rect.position.y<wall.position.y): wall = rect
 		check(wall.has_area(),style+" exposes real rendered wall geometry")
 		if not wall.has_area(): continue
-		var x_center:float = FIELD.point_at(FIELD.cell_at(wall.get_center())).x
-		var floor_y:float = ceil((wall.end.y+24.0)/FIELD.CELL)*FIELD.CELL
+		var cell_size:Vector2 = field.grid_size
+		var x_center:float = field.snow_point_at(field.snow_cell_at(wall.get_center())).x
+		var floor_y:float = field.snow_point_at(field.snow_cell_at(Vector2(x_center,wall.end.y+cell_size.y))).y
 		camera.global_position = Vector2(x_center,floor_y+8)
 		camera.reset_smoothing()
-		actor.global_position = Vector2(x_center,floor_y+24)
+		actor.global_position = Vector2(x_center,floor_y+cell_size.y)
 		var wall_rects:Array[Rect2] = []
 		var floor_rects:Array[Rect2] = []
 		for i:int in range(-3,4):
-			var cell:Vector2i = FIELD.cell_at(Vector2(x_center+i*24,wall.get_center().y))
-			var square:=Rect2(FIELD.point_at(cell)-Vector2.ONE*12,Vector2.ONE*24)
+			var cell:Vector2i = field.snow_cell_at(Vector2(x_center+i*cell_size.x,wall.get_center().y))
+			var square:Rect2 = field.snow_tile_at(cell)
 			var clipped:Rect2 = square.intersection(wall)
 			if clipped.has_area():
 				wall_rects.append(clipped)
-				field.add_environment_patch(conditions,{"cell":cell,"decorative":true,"rects":[clipped]})
+				field.add_environment_patch(conditions,{"cell":cell,"decorative":true,"tile":square,"rects":[clipped]})
 			for row:int in range(3):
-				var floor_cell:Vector2i = FIELD.cell_at(Vector2(x_center+i*24,floor_y+row*24))
-				var footprint:=Rect2(FIELD.point_at(floor_cell)-Vector2.ONE*12,Vector2.ONE*24)
+				var floor_cell:Vector2i = field.snow_cell_at(Vector2(x_center+i*cell_size.x,floor_y+row*cell_size.y))
+				var footprint:Rect2 = field.snow_tile_at(floor_cell)
 				var footprint_list:Array[Rect2] = [footprint]
 				if not conditions.GEOMETRY.subtract(footprint_list,conditions._ground).is_empty(): continue
 				floor_rects.append(footprint)
-				field.add_environment_patch(conditions,{"cell":floor_cell,"decorative":false,"rects":[footprint]})
+				field.add_environment_patch(conditions,{"cell":floor_cell,"decorative":false,"tile":footprint,"rects":[footprint]})
 		game.now_stop_state = true
 		actor.image.hide()
 		field.hide()
@@ -152,7 +156,7 @@ func run() -> void:
 		check(tested>50 and float(retained)/maxi(tested,1)>0.85,style+" real golem pixels remain above ground snow")
 		var snapshot:Dictionary = field.environment_patches.duplicate(true)
 		field.advance(120)
-		check(field.environment_patches==snapshot,style+" pause preserves permanent rendered snow")
+		check(field.environment_patches==snapshot,style+" pause preserves the age of rendered snow")
 		game.now_stop_state = false
 	await check_local_replica_style(field)
 	await capture_random_weather(camera,field)
@@ -238,6 +242,7 @@ func capture_random_weather(camera:Camera2D,_field:Node2D) -> void:
 	check(field.environment_patches.is_empty() and not is_instance_valid(view.mesh_node),"actual first GPU frame has no preplaced ground or 3D wall snow")
 	game.now_stop_state = false
 	conditions.advance(1.0)
+	field.advance(1.0)
 	game.now_stop_state = true
 	var first:Image = await grab("weather_01_falling")
 	var whole:=Rect2(Vector2.ZERO,Vector2(root.size))
@@ -246,6 +251,7 @@ func capture_random_weather(camera:Camera2D,_field:Node2D) -> void:
 	check(falling_pixels>700 and field.environment_patches.is_empty(),"native Minecraft snowfall is visibly falling before any ground or wall accumulation")
 	game.now_stop_state = false
 	conditions.advance(0.25)
+	field.advance(0.25)
 	game.now_stop_state = true
 	var moved:Image = await grab("weather_02_moved")
 	check(changed_in(whole,first,moved,Transform2D.IDENTITY)>700,"original weather flakes actually move across rendered frames")
@@ -262,11 +268,14 @@ func capture_random_weather(camera:Camera2D,_field:Node2D) -> void:
 	for i:int in range(1,49):
 		game.now_stop_state = false
 		conditions.advance(0.1)
+		field.advance(0.1)
 		game.now_stop_state = true
 		if save_onset: await grab("onset/frame_%03d" % i,1)
 	check(field.environment_patches.size()>0 and view.weather_time>4.7,"after a bare start, actual elapsed battle time gradually deposits permanent snow")
 	game.now_stop_state = false
-	for i:int in range(36): conditions.advance(1.0)
+	for i:int in range(36):
+		conditions.advance(1.0)
+		field.advance(1.0)
 	game.now_stop_state = true
 	await grab("random_weather_production")
 	var retained:Dictionary = field.environment_patches.duplicate(true)
@@ -280,10 +289,17 @@ func capture_random_weather(camera:Camera2D,_field:Node2D) -> void:
 	world.day_night_cycle.reset_to_noon()
 	setting("Environment","none")
 	await grab("weather_disabled")
-	check(not view.weather_enabled and not is_instance_valid(view.mesh_node) and not is_instance_valid(view._overlay_renderer),"None removes falling weather and all attached 3D snow meshes")
+	check(not view.weather_enabled and field.environment_patches==retained,"None stops falling weather but retains accumulated snow to melt")
+	game.now_stop_state = false
+	conditions.advance(view.WEATHER_FADE_SECONDS)
+	field.advance(field.full_snow_lifetime+field.snow_fade_duration+0.1)
+	game.now_stop_state = true
+	await grab("weather_melted_after_off")
+	check(field.environment_patches.is_empty() and not is_instance_valid(view.mesh_node),"natural expiry also releases all remaining raised snow meshes")
+	var retained_weather_time:float = view.weather_time
 	setting("Environment","snow")
 	await grab("weather_reenabled_empty")
-	check(field.environment_patches.is_empty() and view.weather_time==0.0,"re-enabling weather returns to an actually empty GPU scene")
+	check(field.environment_patches.is_empty() and view.weather_time==retained_weather_time and view.weather_fade==0.0,"re-enabling starts transparent without rewinding old snowflake positions")
 
 func check_shared_weather_view(view:Node2D) -> void:
 	var capture:=SubViewport.new()
@@ -295,12 +311,14 @@ func check_shared_weather_view(view:Node2D) -> void:
 	root.add_child(capture)
 	capture.canvas_transform = Transform2D(0.0,Vector2(0.9,0.9),0.0,Vector2(capture.size)*0.5-center*0.9)
 	view.weather_enabled = false
+	view.weather_fade = 0.0 # Explicit bare-image fixture, not a gameplay toggle.
 	view.queue_redraw()
 	for i:int in range(3):
 		await process_frame
 		await RenderingServer.frame_post_draw
 	var empty:Image = capture.get_texture().get_image()
 	view.weather_enabled = true
+	view.weather_fade = 1.0
 	view.queue_redraw()
 	for i:int in range(3):
 		await process_frame

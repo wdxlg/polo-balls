@@ -1,0 +1,7 @@
+fix(evoker): only a few CRIT sparks per fang closure
+
+用户反馈闭合时 12 颗太多：改成每口 4 颗，仍按圆面散布、是否命中都发射，
+一排数十张嘴同时闭合时不再糊成一片火花。出土碎屑与限流、伤害时序不变。
+
+tests/test_evoker_fang_particles.gd 复跑 headless 25/25、真实 D3D12 GPU 26/26
+（GPU 差分像素 闭合 893→419，截图 4 颗星芒清晰可辨）。

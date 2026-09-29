@@ -1,0 +1,22 @@
+{
+  "source": "Mojang official Minecraft Java Edition client JAR",
+  "version": "1.21.4",
+  "metadata_url": "https://piston-meta.mojang.com/v1/packages/d152a3712859b294a2dff641f99a7fe219cd3aec/1.21.4.json",
+  "client_url": "https://piston-data.mojang.com/v1/objects/a7e5a6024bfd3cd614625aa05629adf760020304/client.jar",
+  "client_sha1": "a7e5a6024bfd3cd614625aa05629adf760020304",
+  "verification": "Downloaded client JAR SHA-1 matched official Mojang metadata before extraction. PNG bytes are unmodified.",
+  "assets": [
+    {
+      "filename": "experience_bar_background.png",
+      "jar_path": "assets/minecraft/textures/gui/sprites/hud/experience_bar_background.png",
+      "sha256": "1a465d395131f10fff6695fd7ca3243ef5fd2cccb0a496581a8c1d84c358a6d6"
+    },
+    {
+      "filename": "experience_bar_progress.png",
+      "jar_path": "assets/minecraft/textures/gui/sprites/hud/experience_bar_progress.png",
+      "sha256": "a94235503f186fd84ac66ce4b09a4ba9796bc4b8efb9ad43dcc3486698fc26dd"
+    }
+  ],
+  "rights": "Minecraft textures belong to Mojang/Microsoft. These assets are not newly authored or licensed by this project.",
+  "usage": "Original PNG files retained byte-for-byte. Runtime copies/tiles their columns at 1:1 into 182x5 rows with one segment per drafted character. The rows use integer physical-screen-pixel scaling, never horizontal stretching of source cells. The recomposed segment layout is not an unmodified vanilla HUD layout."
+}

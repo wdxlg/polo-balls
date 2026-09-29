@@ -1,4 +1,5 @@
 extends ball
+const U=preload("res://scripts/characters/我的世界/new5/utils.gd")
 
 const TOOLS = preload("res://scripts/characters/投稿角色工具.gd")
 const TRAINER_AUDIO = preload("res://scripts/audio/训犬师音效.gd")
@@ -89,6 +90,7 @@ func _disable_inherited_body_hitbox() -> void:
 
 func _ready() -> void:
 	Type = Ball_Type.Creature
+	manual_controllable_subentity = true
 	Can_Attack = false
 	Can_Skill = false
 	Has_Collision_Damage = false
@@ -193,11 +195,24 @@ func is_hunting() -> bool:
 	return mode == DogMode.HUNT and hunt_target != null and is_instance_valid(hunt_target)
 
 func assign_hunt_target(target:ball) -> void:
-	if target == null or not is_instance_valid(target) or not TOOLS.is_enemy(self,target):
+	if is_player_controlled() or target == null or not is_instance_valid(target) or not TOOLS.is_enemy(self,target):
 		return
 	hunt_target = target
 	_hunt_left = hunt_timeout
 	mode = DogMode.HUNT
+
+func controlled_attack_action() -> void:
+	if not is_player_controlled() or not is_multiplayer_authority() or health<=0 or _post_attack_return_required or not has_player_control_aim(): return
+	var point:Vector2=player_control_aim_world_position()
+	var nearest:float=INF
+	var chosen:ball=null
+	for raw:Node in get_tree().get_nodes_in_group("Ball"):
+		if not (raw is ball) or raw==self or not TOOLS.is_enemy(self,raw): continue
+		var distance:float=raw.global_position.distance_to(point)
+		if distance<=U.radius(raw)+6.0 and distance<nearest:
+			chosen=raw as ball
+			nearest=distance
+	if chosen!=null and _target_in_bite_trigger_range(chosen): _try_bite(chosen)
 
 func _physics_process(delta:float) -> void:
 	if health <= 0:
@@ -223,6 +238,18 @@ func _physics_process(delta:float) -> void:
 		else:
 			mode = DogMode.RETURN
 			_follow_smoothed_target_ready = false
+	if is_player_controlled():
+		# The base StateMachine still moves this ball; only replace the dog's
+		# separate steering/attack AI. Already open bite hitboxes keep advancing.
+		if _post_attack_return_required and global_position.distance_to(owner_trainer.global_position)<=maxf(post_attack_return_radius,1.0):
+			_post_attack_return_required=false
+			mode=DogMode.FOLLOW
+		if mode==DogMode.HUNT:
+			_hunt_left=maxf(0.0,_hunt_left-delta)
+			if _hunt_left<=0.0: _finish_hunt(false)
+		Speed=follow_speed
+		direction=Vector2.ZERO if dizziness or not bool(Game.Game_Settings.get("Ball_Can_Move",true)) else player_control_direction
+		return
 	match mode:
 		DogMode.HUNT:
 			_process_hunt(delta)

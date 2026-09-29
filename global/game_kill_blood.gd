@@ -158,4 +158,9 @@ func _spawn_global_kill_blood_visual_now(origin:Vector2,base_direction:Vector2,s
 	effect.name = "GlobalKillBloodBurst"
 	scene_root.add_child(effect)
 	# 通用人物击杀使用中等力度。若叶睦拳头/吉他会走角色自己的两个专属 profile。
-	effect.call("configure",origin,base_direction,2,seed_value,7,10.0,220.0,context)
+	# V430 性能：大规模战斗时按 World 视觉密度减少血液粒子数量（7 -> 最低 3），人数回落自动恢复。
+	var projectile_count:int = 7
+	if scene_root.has_method("get_large_battle_visual_density"):
+		var density:float = clampf(float(scene_root.call("get_large_battle_visual_density")),0.15,1.0)
+		projectile_count = maxi(int(ceil(7.0 * density)),3)
+	effect.call("configure",origin,base_direction,2,seed_value,projectile_count,10.0,220.0,context)

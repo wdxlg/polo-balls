@@ -1,0 +1,43 @@
+Godot Engine v4.7.2.stable.steam.ed1daf0bf - https://godotengine.org
+
+PASS: direct thrown damage reduced by exactly fifty percent
+PASS: contact bolt damage reduced thirty percent; stun unchanged
+PASS: periodic lightning damage reduced thirty percent; stun unchanged
+PASS: uncharged trident has no enchantment or electric arcs
+PASS: real uncharged sweep deals half-strength direct damage
+PASS: uncharged hit cannot summon a contact bolt
+PASS: uncharged return still cannot deal a second hit
+PASS: held charge uses exact native bone-frame mask
+PASS: independent native item layers cover all eight animated poses
+PASS: enchantment uses byte-exact Mojang glint texture
+PASS: enchantment animation and branched shaft arcs are both active
+PASS: shaft electricity reroutes rather than orbiting in fixed rings
+PASS: held enchantment resyncs in the same rendered native animation frame
+PASS: held mask and electricity mirror with native character facing
+PASS: pause freezes native glint and arc rerouting
+PASS: first charged enemy hit starts one fixed-point warning
+PASS: contact lightning uses the selected 0.15 second warning
+PASS: direct hit stays immediate without premature lightning damage
+PASS: Creeper warning thunder plays before either impact sound
+PASS: warning holds the collision point while returning trident moves away
+PASS: pause cannot consume the contact warning or deal its deferred damage
+PASS: first actual impact frame ring exactly equals the attack radius even after time-step overshoot
+PASS: charged hit applies unchanged direct damage plus reduced contact lightning
+PASS: charged contact bolt actually stuns the victim
+PASS: contact bolt preserves team immunity and radius limit
+PASS: actual impact layers native Creeper impact sound and retained trident thunder once
+PASS: return, repeated contact and repeated impact cannot add another bolt or damage
+PASS: contact bolt never follows returning trident back to owner
+PASS: short contact stun expires instead of using periodic 0.65 second stun
+PASS: charged projectile actually lodges in the obstacle
+PASS: charged obstacle collision starts one short lightning warning
+PASS: obstacle blocks direct damage and its lightning does not hurt before warning
+PASS: obstacle contact bolt deals reduced area damage and unchanged short stun
+PASS: contact bolt does not replace later periodic warning
+PASS: periodic bolt uses the reduced stronger lightning multiplier
+PASS: an empty range completion still invents no impact bolt
+PASS: each fresh throw resets its first-impact guard
+PASS: non-authority replica cannot originate a damaging contact bolt
+PASS: permanent charged item still cleans up when owner dies
+MC16_CHARGED_IMPACT_RESULT checks=43 failures=4
+MC16_REWORK_EXIT=1

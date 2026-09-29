@@ -1,4 +1,5 @@
 extends Node2D
+const PROJECTILE_CONTACT = preload("res://scripts/projectile_contact.gd")
 
 # Sans 骨头墙攻击（V171）：
 # - V171：重新按 Atlas 实际像素边界计算头/杆中心：12px 头部 region 的几何中心为 x=5.5，
@@ -288,6 +289,7 @@ func _physics_process(_delta:float) -> void:
 
 
 func _is_enemy(target:ball) -> bool:
+	if PROJECTILE_CONTACT.ignores(target): return false
 	if target == null or target == source or target.health <= 0:
 		return false
 	if target.has_method("is_combat_targetable") and not target.is_combat_targetable():

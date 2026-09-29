@@ -1,0 +1,326 @@
+{
+  "edition": "Minecraft Java Edition",
+  "version": "26.2",
+  "release_manifest": "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json",
+  "client_url": "https://piston-data.mojang.com/v1/objects/2dc72797acbc1b63fc16a11c4ac393605f453754/client.jar",
+  "client_sha1": "2dc72797acbc1b63fc16a11c4ac393605f453754",
+  "asset_index_url": "https://piston-meta.mojang.com/v1/packages/52695890153d94cf946455da532806db8c530831/32.json",
+  "asset_index_sha1": "52695890153d94cf946455da532806db8c530831",
+  "sounds_json_sha1": "9ac006d5537ed0fa4a7bcd1eccfc505155847686",
+  "source_files": {
+    "Images/characters/我的世界/sulfur_cube/source/sulfur_cube_outer.png": {
+      "jar_entry": "assets/minecraft/textures/entity/sulfur_cube/sulfur_cube_outer.png",
+      "sha1": "2b56557097de4209705863f6f97f95e1b7819e3d",
+      "size": 579
+    },
+    "Images/characters/我的世界/sulfur_cube/source/sulfur_cube_inner.png": {
+      "jar_entry": "assets/minecraft/textures/entity/sulfur_cube/sulfur_cube_inner.png",
+      "sha1": "0701410b6064a6406fd45e27b4520853b5d97b01",
+      "size": 551
+    },
+    "Images/characters/我的世界/sulfur_cube/source/oak_log.png": {
+      "jar_entry": "assets/minecraft/textures/block/oak_log.png",
+      "sha1": "d4470abd918d8c26f106e9357a3f1b3c2bee9ec2",
+      "size": 191
+    },
+    "Images/characters/我的世界/sulfur_cube/source/oak_log_top.png": {
+      "jar_entry": "assets/minecraft/textures/block/oak_log_top.png",
+      "sha1": "57913658259b04949ee905991dd4706f8859f792",
+      "size": 206
+    },
+    "Images/characters/我的世界/sulfur_cube/source/blue_ice.png": {
+      "jar_entry": "assets/minecraft/textures/block/blue_ice.png",
+      "sha1": "d88f8a4fe8030e4cadc88b1a925e4ace2d4e0413",
+      "size": 183
+    },
+    "Images/characters/我的世界/sulfur_cube/source/magma.png": {
+      "jar_entry": "assets/minecraft/textures/block/magma.png",
+      "sha1": "72e4a688a08b93bd52bbf90c8881cd56942f397a",
+      "size": 416
+    },
+    "Images/characters/我的世界/sulfur_cube/source/honeycomb_block.png": {
+      "jar_entry": "assets/minecraft/textures/block/honeycomb_block.png",
+      "sha1": "e827be7ffad56bce9fc338baf3d10905a97001fd",
+      "size": 196
+    },
+    "Images/characters/我的世界/sulfur_cube/source/iron_block.png": {
+      "jar_entry": "assets/minecraft/textures/block/iron_block.png",
+      "sha1": "9b069395bdc14e56502bfe3381157415e21f109e",
+      "size": 169
+    },
+    "Images/characters/我的世界/sulfur_cube/source/tnt_side.png": {
+      "jar_entry": "assets/minecraft/textures/block/tnt_side.png",
+      "sha1": "926f82cb645af4734ded45c26a13450eefedf926",
+      "size": 175
+    },
+    "Images/characters/我的世界/sulfur_cube/source/tnt_top.png": {
+      "jar_entry": "assets/minecraft/textures/block/tnt_top.png",
+      "sha1": "5e1fec883315a69acc112bac0e0aade6e47a6481",
+      "size": 189
+    },
+    "Images/characters/我的世界/sulfur_cube/source/tnt_bottom.png": {
+      "jar_entry": "assets/minecraft/textures/block/tnt_bottom.png",
+      "sha1": "876e84689ae1158d2281b9c540c2fb8f5ca86933",
+      "size": 101
+    },
+    "Images/characters/我的世界/sulfur_cube/sulfur_cube_goo.png": {
+      "jar_entry": "assets/minecraft/textures/particle/sulfur_cube_goo.png",
+      "sha1": "4dc0592ec992573696170a2a329c419690b8726d",
+      "size": 185
+    },
+    "Images/characters/我的世界/sulfur_cube/explosion_0.png": {
+      "jar_entry": "assets/minecraft/textures/particle/explosion_0.png",
+      "sha1": "d80ac7fdaaa384db7392583a23bc18a6ec2c0dc7",
+      "size": 92
+    },
+    "Images/characters/我的世界/sulfur_cube/explosion_1.png": {
+      "jar_entry": "assets/minecraft/textures/particle/explosion_1.png",
+      "sha1": "861b1428acbda9f1618bd3590b538fe87cdbb7c2",
+      "size": 98
+    },
+    "Images/characters/我的世界/sulfur_cube/explosion_2.png": {
+      "jar_entry": "assets/minecraft/textures/particle/explosion_2.png",
+      "sha1": "f725e3592e22e2a7035fb476eaf2ec2cd1f86026",
+      "size": 98
+    },
+    "Images/characters/我的世界/sulfur_cube/explosion_3.png": {
+      "jar_entry": "assets/minecraft/textures/particle/explosion_3.png",
+      "sha1": "171bc9b0ce50725128ba9222956879a99505b509",
+      "size": 105
+    },
+    "Images/characters/我的世界/sulfur_cube/explosion_4.png": {
+      "jar_entry": "assets/minecraft/textures/particle/explosion_4.png",
+      "sha1": "d8220085ed6ca9bb2bd6452e93ef941fa89f2fca",
+      "size": 110
+    },
+    "Images/characters/我的世界/sulfur_cube/explosion_5.png": {
+      "jar_entry": "assets/minecraft/textures/particle/explosion_5.png",
+      "sha1": "e2a1560d1772ab3d56c8df4c42061d061ebf258d",
+      "size": 111
+    },
+    "Images/characters/我的世界/sulfur_cube/explosion_6.png": {
+      "jar_entry": "assets/minecraft/textures/particle/explosion_6.png",
+      "sha1": "b6cd14e7708d4cb6c1fe48d68176b58da5d6cc6b",
+      "size": 127
+    },
+    "Images/characters/我的世界/sulfur_cube/explosion_7.png": {
+      "jar_entry": "assets/minecraft/textures/particle/explosion_7.png",
+      "sha1": "42b587435c6a5f4afe35664fa23941bbb2b54040",
+      "size": 132
+    },
+    "audio/characters/我的世界/sulfur_cube/absorb1.ogg": {
+      "asset_index_entry": "minecraft/sounds/mob/sulfur_cube/absorb1.ogg",
+      "sha1": "2489bce72f76c93ab050a7e479bffc40a4db6e8b",
+      "size": 8752,
+      "url": "https://resources.download.minecraft.net/24/2489bce72f76c93ab050a7e479bffc40a4db6e8b"
+    },
+    "audio/characters/我的世界/sulfur_cube/absorb2.ogg": {
+      "asset_index_entry": "minecraft/sounds/mob/sulfur_cube/absorb2.ogg",
+      "sha1": "cb5760fac5c65e7defb496bbe4ee85eac4d0ce67",
+      "size": 8696,
+      "url": "https://resources.download.minecraft.net/cb/cb5760fac5c65e7defb496bbe4ee85eac4d0ce67"
+    },
+    "audio/characters/我的世界/sulfur_cube/eject1.ogg": {
+      "asset_index_entry": "minecraft/sounds/mob/sulfur_cube/eject1.ogg",
+      "sha1": "c228fb1654bdf0e5844be6ecf2c268a681f734ed",
+      "size": 8301,
+      "url": "https://resources.download.minecraft.net/c2/c228fb1654bdf0e5844be6ecf2c268a681f734ed"
+    },
+    "audio/characters/我的世界/sulfur_cube/jump1.ogg": {
+      "asset_index_entry": "minecraft/sounds/mob/sulfur_cube/jump1.ogg",
+      "sha1": "6257df7f395baec226d61db8de63cee7f455dacf",
+      "size": 11514,
+      "url": "https://resources.download.minecraft.net/62/6257df7f395baec226d61db8de63cee7f455dacf"
+    },
+    "audio/characters/我的世界/sulfur_cube/jump2.ogg": {
+      "asset_index_entry": "minecraft/sounds/mob/sulfur_cube/jump2.ogg",
+      "sha1": "c9f1def5efdb2185ed59f052eb60e55e41aad754",
+      "size": 13139,
+      "url": "https://resources.download.minecraft.net/c9/c9f1def5efdb2185ed59f052eb60e55e41aad754"
+    },
+    "audio/characters/我的世界/sulfur_cube/squish1.ogg": {
+      "asset_index_entry": "minecraft/sounds/mob/sulfur_cube/squish1.ogg",
+      "sha1": "105f9bdf4ceeae158f2f0aceb8438633880a4828",
+      "size": 11259,
+      "url": "https://resources.download.minecraft.net/10/105f9bdf4ceeae158f2f0aceb8438633880a4828"
+    },
+    "audio/characters/我的世界/sulfur_cube/squish2.ogg": {
+      "asset_index_entry": "minecraft/sounds/mob/sulfur_cube/squish2.ogg",
+      "sha1": "707ab003ff060570ca9710d75703740dde83abed",
+      "size": 11553,
+      "url": "https://resources.download.minecraft.net/70/707ab003ff060570ca9710d75703740dde83abed"
+    },
+    "audio/characters/我的世界/sulfur_cube/hurt1.ogg": {
+      "asset_index_entry": "minecraft/sounds/mob/sulfur_cube/hit1.ogg",
+      "sha1": "fad52353ed8c5784deefa245bf34d3ec82b7a6a3",
+      "size": 7524,
+      "url": "https://resources.download.minecraft.net/fa/fad52353ed8c5784deefa245bf34d3ec82b7a6a3"
+    },
+    "audio/characters/我的世界/sulfur_cube/hurt2.ogg": {
+      "asset_index_entry": "minecraft/sounds/mob/sulfur_cube/hit2.ogg",
+      "sha1": "3abf71274718ebc1a0a418c47cfa6c6e7f1b2b55",
+      "size": 7429,
+      "url": "https://resources.download.minecraft.net/3a/3abf71274718ebc1a0a418c47cfa6c6e7f1b2b55"
+    },
+    "audio/characters/我的世界/sulfur_cube/death.ogg": {
+      "asset_index_entry": "minecraft/sounds/mob/sulfur_cube/death.ogg",
+      "sha1": "8a357c42afd3a5952d83dbffe7a5e9eea29f7c75",
+      "size": 27566,
+      "url": "https://resources.download.minecraft.net/8a/8a357c42afd3a5952d83dbffe7a5e9eea29f7c75"
+    },
+    "audio/characters/我的世界/sulfur_cube/bounce.ogg": {
+      "asset_index_entry": "minecraft/sounds/mob/sulfur_cube/ball/bounce1.ogg",
+      "sha1": "5fb37335481341315823f3cf460360945a586bee",
+      "size": 6881,
+      "url": "https://resources.download.minecraft.net/5f/5fb37335481341315823f3cf460360945a586bee"
+    },
+    "audio/characters/我的世界/sulfur_cube/wood_hit.ogg": {
+      "asset_index_entry": "minecraft/sounds/mob/sulfur_cube/ball/bouncy_hit1.ogg",
+      "sha1": "0a0478aa15e89274831ff7b8639151a3e0a4b19b",
+      "size": 7959,
+      "url": "https://resources.download.minecraft.net/0a/0a0478aa15e89274831ff7b8639151a3e0a4b19b"
+    },
+    "audio/characters/我的世界/sulfur_cube/ice_hit.ogg": {
+      "asset_index_entry": "minecraft/sounds/mob/sulfur_cube/ball/fastsliding_hit1.ogg",
+      "sha1": "45ea925fb5530280e1dfa924187fc6c868b0f5b6",
+      "size": 11391,
+      "url": "https://resources.download.minecraft.net/45/45ea925fb5530280e1dfa924187fc6c868b0f5b6"
+    },
+    "audio/characters/我的世界/sulfur_cube/magma_hit.ogg": {
+      "asset_index_entry": "minecraft/sounds/mob/sulfur_cube/ball/hot_hit1.ogg",
+      "sha1": "1da079429501b49dcac45c0d87556e22bfbe5fb5",
+      "size": 5006,
+      "url": "https://resources.download.minecraft.net/1d/1da079429501b49dcac45c0d87556e22bfbe5fb5"
+    },
+    "audio/characters/我的世界/sulfur_cube/honey_hit.ogg": {
+      "asset_index_entry": "minecraft/sounds/mob/sulfur_cube/ball/sticky_hit1.ogg",
+      "sha1": "4aad3e09ab048f67f737eb9519ded75e588d9ffc",
+      "size": 8226,
+      "url": "https://resources.download.minecraft.net/4a/4aad3e09ab048f67f737eb9519ded75e588d9ffc"
+    },
+    "audio/characters/我的世界/sulfur_cube/iron_hit.ogg": {
+      "asset_index_entry": "minecraft/sounds/mob/sulfur_cube/ball/slowflat_hit1.ogg",
+      "sha1": "798ff098c0fb3146ec295294ddd301f9c4dbf0bf",
+      "size": 10285,
+      "url": "https://resources.download.minecraft.net/79/798ff098c0fb3146ec295294ddd301f9c4dbf0bf"
+    },
+    "audio/characters/我的世界/sulfur_cube/tnt_hit.ogg": {
+      "asset_index_entry": "minecraft/sounds/mob/sulfur_cube/ball/explosive_hit1.ogg",
+      "sha1": "27dc3d2bc6387289dd331e21aac43064493bfc53",
+      "size": 6364,
+      "url": "https://resources.download.minecraft.net/27/27dc3d2bc6387289dd331e21aac43064493bfc53"
+    },
+    "audio/characters/我的世界/sulfur_cube/fuse.ogg": {
+      "asset_index_entry": "minecraft/sounds/random/fuse.ogg",
+      "sha1": "b9a550ba1e028c027557572aeb928b760864efe4",
+      "size": 28874,
+      "url": "https://resources.download.minecraft.net/b9/b9a550ba1e028c027557572aeb928b760864efe4"
+    },
+    "audio/characters/我的世界/sulfur_cube/explosion.ogg": {
+      "asset_index_entry": "minecraft/sounds/random/explode1.ogg",
+      "sha1": "fa85b9e7e54c36c9f9d0249ca739444b5e3bb66c",
+      "size": 23161,
+      "url": "https://resources.download.minecraft.net/fa/fa85b9e7e54c36c9f9d0249ca739444b5e3bb66c"
+    },
+    "audio/characters/我的世界/sulfur_cube/impact_hurt1.ogg": {
+      "asset_index_entry": "minecraft/sounds/damage/hit1.ogg",
+      "sha1": "c43077ac1f9ceda7e9e1c152f839baf207833aa8",
+      "size": 7484,
+      "url": "https://resources.download.minecraft.net/c4/c43077ac1f9ceda7e9e1c152f839baf207833aa8"
+    },
+    "audio/characters/我的世界/sulfur_cube/impact_hurt2.ogg": {
+      "asset_index_entry": "minecraft/sounds/damage/hit2.ogg",
+      "sha1": "65bf3f80ca720c55b99925ba3a515d2f932b15b1",
+      "size": 7031,
+      "url": "https://resources.download.minecraft.net/65/65bf3f80ca720c55b99925ba3a515d2f932b15b1"
+    },
+    "audio/characters/我的世界/sulfur_cube/impact_hurt3.ogg": {
+      "asset_index_entry": "minecraft/sounds/damage/hit3.ogg",
+      "sha1": "b334c8ab1abc3ffa233bd612074bc8032c9b160f",
+      "size": 8576,
+      "url": "https://resources.download.minecraft.net/b3/b334c8ab1abc3ffa233bd612074bc8032c9b160f"
+    },
+    "audio/characters/我的世界/sulfur_cube/impact_crit1.ogg": {
+      "asset_index_entry": "minecraft/sounds/entity/player/attack/crit1.ogg",
+      "sha1": "caa8f5d2de3c3fa53eca358967e930a45cafca18",
+      "size": 8946,
+      "url": "https://resources.download.minecraft.net/ca/caa8f5d2de3c3fa53eca358967e930a45cafca18"
+    },
+    "audio/characters/我的世界/sulfur_cube/impact_crit2.ogg": {
+      "asset_index_entry": "minecraft/sounds/entity/player/attack/crit2.ogg",
+      "sha1": "3a27444995a679ffa6b87daf3fde2a02451629ef",
+      "size": 10257,
+      "url": "https://resources.download.minecraft.net/3a/3a27444995a679ffa6b87daf3fde2a02451629ef"
+    },
+    "audio/characters/我的世界/sulfur_cube/impact_crit3.ogg": {
+      "asset_index_entry": "minecraft/sounds/entity/player/attack/crit3.ogg",
+      "sha1": "0366f0465a1b6a3f186b495b4578c7b1c8929943",
+      "size": 8878,
+      "url": "https://resources.download.minecraft.net/03/0366f0465a1b6a3f186b495b4578c7b1c8929943"
+    }
+  },
+  "derived_files": {
+    "Images/characters/我的世界/sulfur_cube/empty.png": {
+      "source_textures": [
+        "source/sulfur_cube_inner.png",
+        "source/sulfur_cube_outer.png"
+      ],
+      "method": "nearest-neighbour scaling and alpha compositing of native front-facing model UVs",
+      "sha256": "a7a32b7bea5111ead0c96f3957b01e45ba171deabaee16d53816dbfb111e8a6d"
+    },
+    "Images/characters/我的世界/sulfur_cube/wood.png": {
+      "source_textures": [
+        "source/sulfur_cube_inner.png",
+        "source/sulfur_cube_outer.png",
+        "source/oak_log.png"
+      ],
+      "method": "nearest-neighbour scaling and alpha compositing of native front-facing model UVs",
+      "sha256": "bf477cc26a628b1e113e218f7b645806aa60917f80c8118babbde8fe05607c82"
+    },
+    "Images/characters/我的世界/sulfur_cube/ice.png": {
+      "source_textures": [
+        "source/sulfur_cube_inner.png",
+        "source/sulfur_cube_outer.png",
+        "source/blue_ice.png"
+      ],
+      "method": "nearest-neighbour scaling and alpha compositing of native front-facing model UVs",
+      "sha256": "cc3db90b9acbad7a71d4391637874b6dea305a0f16fb4eb60d24136361eef0ac"
+    },
+    "Images/characters/我的世界/sulfur_cube/magma.png": {
+      "source_textures": [
+        "source/sulfur_cube_inner.png",
+        "source/sulfur_cube_outer.png",
+        "source/magma.png"
+      ],
+      "method": "nearest-neighbour scaling and alpha compositing of native front-facing model UVs",
+      "sha256": "f664ff419f3794877feaea84d8cc78fb73f8940f8ea16defe6ea9324ea792b47"
+    },
+    "Images/characters/我的世界/sulfur_cube/honey.png": {
+      "source_textures": [
+        "source/sulfur_cube_inner.png",
+        "source/sulfur_cube_outer.png",
+        "source/honeycomb_block.png"
+      ],
+      "method": "nearest-neighbour scaling and alpha compositing of native front-facing model UVs",
+      "sha256": "66bf0c54289ca4498156fe30a819751e2f68bb9c0a887438ed4baf48d89072d2"
+    },
+    "Images/characters/我的世界/sulfur_cube/iron.png": {
+      "source_textures": [
+        "source/sulfur_cube_inner.png",
+        "source/sulfur_cube_outer.png",
+        "source/iron_block.png"
+      ],
+      "method": "nearest-neighbour scaling and alpha compositing of native front-facing model UVs",
+      "sha256": "57d80a9fa30b9ba304bed03a6597897235516ff2174439849e7069d20d66ca12"
+    },
+    "Images/characters/我的世界/sulfur_cube/tnt.png": {
+      "source_textures": [
+        "source/sulfur_cube_inner.png",
+        "source/sulfur_cube_outer.png",
+        "source/tnt_side.png"
+      ],
+      "method": "nearest-neighbour scaling and alpha compositing of native front-facing model UVs",
+      "sha256": "685bbaeab5bd9b85173dac71dd504a9bdfe941293ffe76eae7562ee12733e417"
+    }
+  }
+}

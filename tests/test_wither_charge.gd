@@ -28,7 +28,6 @@ func run() -> void:
 	wither.summoned = true
 	wither._head_shot_left.fill(999.0)
 	wither._global_shot_left = 999.0
-	wither._rose_left = 999.0
 	wither._charge_left = 999.0
 	var crate:StaticBody2D = obstacle(Vector2(-145,0),true)
 	var second:StaticBody2D = obstacle(Vector2(15,0),false)
@@ -72,7 +71,7 @@ func run() -> void:
 	for i:int in range(12):
 		if wither._charge_remaining <= 0.0: break
 		wither.tick_physics(wither.State.Move,0.4)
-	check(is_equal_approx(before-enemy.health,32.0),"charge damages a crossed enemy once, even behind destroyed props")
+	check(is_equal_approx(before-enemy.health,100.0),"charge damages a crossed enemy once, even behind destroyed props")
 	check(wither._charge_remaining <= 0.0 and absf(wither.global_position.x-start.x-expected)<0.1,"charge stops at the current map wall with body clearance")
 	check(boundary.visible and boundary.collision_layer == 1,"map boundary survives the whole pass")
 	check(wither.get_ai_attack_threats(enemy).is_empty(),"damage segment disappears at the actual stop")

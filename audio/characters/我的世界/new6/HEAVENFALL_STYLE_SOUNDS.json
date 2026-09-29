@@ -1,0 +1,117 @@
+{
+  "minecraft_version": "1.21.11",
+  "asset_index_url": "https://piston-meta.mojang.com/v1/packages/a63b2bea5bcbba70c87df110b64ab6f2d71d446f/29.json",
+  "notes": "Derived layered edits of Mojang originals; original assets and derivatives are not CC0. Existing large/small crack sounds remain unchanged. Rebuild: pip install numpy scipy soundfile; python HEAVENFALL_STYLE_BUILD.py.",
+  "sources": [
+    {
+      "asset": "minecraft/sounds/random/bow.ogg",
+      "sha1": "4a6c47aa4f8c2cfe3237b250ed19b8714d611fd2",
+      "url": "https://resources.download.minecraft.net/4a/4a6c47aa4f8c2cfe3237b250ed19b8714d611fd2",
+      "cache_file": "random_bow.ogg"
+    },
+    {
+      "asset": "minecraft/sounds/mob/endermen/portal.ogg",
+      "sha1": "15eb7f0940b43b5422524c8f20db44b72b310233",
+      "url": "https://resources.download.minecraft.net/15/15eb7f0940b43b5422524c8f20db44b72b310233",
+      "cache_file": "mob_endermen_portal.ogg"
+    },
+    {
+      "asset": "minecraft/sounds/mob/endermen/portal2.ogg",
+      "sha1": "e513adbd9b3ea95b7c2d5726c8ae7a5f497e0328",
+      "url": "https://resources.download.minecraft.net/e5/e513adbd9b3ea95b7c2d5726c8ae7a5f497e0328",
+      "cache_file": "mob_endermen_portal2.ogg"
+    },
+    {
+      "asset": "minecraft/sounds/block/respawn_anchor/charge1.ogg",
+      "sha1": "0e0d263eeae9e4289916c92f830e282a5d45f720",
+      "url": "https://resources.download.minecraft.net/0e/0e0d263eeae9e4289916c92f830e282a5d45f720",
+      "cache_file": "block_respawn_anchor_charge1.ogg"
+    },
+    {
+      "asset": "minecraft/sounds/block/respawn_anchor/charge2.ogg",
+      "sha1": "76ba0d2dec5567374c31d2d788183c440efebe9a",
+      "url": "https://resources.download.minecraft.net/76/76ba0d2dec5567374c31d2d788183c440efebe9a",
+      "cache_file": "block_respawn_anchor_charge2.ogg"
+    },
+    {
+      "asset": "minecraft/sounds/block/respawn_anchor/deplete1.ogg",
+      "sha1": "a084cc73ae04f6d4aaec3b33865dc05709c17603",
+      "url": "https://resources.download.minecraft.net/a0/a084cc73ae04f6d4aaec3b33865dc05709c17603",
+      "cache_file": "block_respawn_anchor_deplete1.ogg"
+    },
+    {
+      "asset": "minecraft/sounds/block/respawn_anchor/deplete2.ogg",
+      "sha1": "f39c3b69a7d8f3fac8797a9145c8b93cac94fc67",
+      "url": "https://resources.download.minecraft.net/f3/f39c3b69a7d8f3fac8797a9145c8b93cac94fc67",
+      "cache_file": "block_respawn_anchor_deplete2.ogg"
+    },
+    {
+      "asset": "minecraft/sounds/block/amethyst/break1.ogg",
+      "sha1": "97b47b7a62f22addf6ff1db0c57b2fce22504098",
+      "url": "https://resources.download.minecraft.net/97/97b47b7a62f22addf6ff1db0c57b2fce22504098",
+      "cache_file": "block_amethyst_break1.ogg"
+    },
+    {
+      "asset": "minecraft/sounds/block/amethyst/break2.ogg",
+      "sha1": "fc857c1990d4bc7c157f4f8367ca4af0bd6168a2",
+      "url": "https://resources.download.minecraft.net/fc/fc857c1990d4bc7c157f4f8367ca4af0bd6168a2",
+      "cache_file": "block_amethyst_break2.ogg"
+    }
+  ],
+  "event_design": {
+    "shoot": "0.24s accelerated bow with restrained amethyst and respawn-anchor edge",
+    "rain_shoot": "0.16s faster bow with lighter amethyst edge",
+    "teleport": "0.24s enderman portal plus reversed respawn-anchor transient; no arrow",
+    "wave": "0.46s respawn-anchor charge/deplete with amethyst rim; no explosion"
+  },
+  "derived_outputs": [
+    {
+      "file": "heaven_shot1.ogg",
+      "duration_seconds": 0.24,
+      "sha256": "6c08ee2c25db70d846bd27f9ea56d9a168829bcd8995e4c0219c5b825f6002df",
+      "decoded_peak": 0.7472296357154846
+    },
+    {
+      "file": "heaven_rain_shot1.ogg",
+      "duration_seconds": 0.16,
+      "sha256": "9c2087533d737280fb72527293b1fe8719041f96ec50f6b4501bbc8e9f6ae630",
+      "decoded_peak": 0.6890096664428711
+    },
+    {
+      "file": "heaven_transit1.ogg",
+      "duration_seconds": 0.24,
+      "sha256": "5f3c2129effaa4e1a67e0327b0e65696a239596732d9871d368a73e3c35169d8",
+      "decoded_peak": 0.6996572017669678
+    },
+    {
+      "file": "heaven_wave1.ogg",
+      "duration_seconds": 0.46,
+      "sha256": "5e1d37ae053d306fbe616cfafa9e639776397fc960faebd36c33a92769c7515b",
+      "decoded_peak": 0.7605162858963013
+    },
+    {
+      "file": "heaven_shot2.ogg",
+      "duration_seconds": 0.24,
+      "sha256": "f1a575e8b209dbcaccb557af3bae2f32089c36815c051351cc2e40d61681f984",
+      "decoded_peak": 0.7682778835296631
+    },
+    {
+      "file": "heaven_rain_shot2.ogg",
+      "duration_seconds": 0.16,
+      "sha256": "36098ac0eaa658e8450f94703e46db13c6990f24d13bdcd94ea359b0c77e23eb",
+      "decoded_peak": 0.7123261094093323
+    },
+    {
+      "file": "heaven_transit2.ogg",
+      "duration_seconds": 0.24,
+      "sha256": "ec7f5ea41bce611efdf9f42e20a1756237dc921e16d35a026e414fa28ce2e05c",
+      "decoded_peak": 0.7193530797958374
+    },
+    {
+      "file": "heaven_wave2.ogg",
+      "duration_seconds": 0.46,
+      "sha256": "efefc2c38125ed7ee384f90b11d473de624e8e1cad68eb9dfe942b72e42c9dc6",
+      "decoded_peak": 0.7174419164657593
+    }
+  ]
+}

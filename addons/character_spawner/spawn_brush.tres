@@ -1,0 +1,17 @@
+[gd_resource type="TileSet" format=3 uid="uid://dxtps5f4hlmb3"]
+
+[sub_resource type="Gradient" id="Gradient_spawn"]
+offsets = PackedFloat32Array(0, 0.15, 0.85, 1)
+colors = PackedColorArray(0.1, 0.45, 0.38, 1, 0.3, 0.94, 0.7, 0.8, 0.3, 0.94, 0.7, 0.8, 0.1, 0.45, 0.38, 1)
+
+[sub_resource type="GradientTexture2D" id="Texture_spawn"]
+gradient = SubResource("Gradient_spawn")
+width = 16
+height = 16
+
+[sub_resource type="TileSetAtlasSource" id="Atlas_spawn"]
+texture = SubResource("Texture_spawn")
+0:0/0 = 0
+
+[resource]
+sources/0 = SubResource("Atlas_spawn")

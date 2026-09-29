@@ -1,4 +1,5 @@
 extends ball
+const PROJECTILE_API = preload("res://classes/projectile_interactions.gd")
 
 const PIG_NORMAL_TEXTURE:Texture2D = preload("res://Images/characters/meme/寸头没事沙漠溜达猪/沙漠寸头没事瞎溜达猪.png")
 const PIG_POUNCE_TEXTURE:Texture2D = preload("res://Images/characters/meme/寸头没事沙漠溜达猪/猪飞扑.png")
@@ -84,7 +85,6 @@ var _pounce_visual_active:bool = false
 var _active_outside_guests:Array[Node] = []
 var _guest_cleanup_running:bool = false
 
-var _projectiles:Dictionary = {}
 var _projectile_last_positions:Dictionary = {}
 var _projectile_measured_velocity:Dictionary = {}
 
@@ -126,7 +126,6 @@ func _exit_tree() -> void:
 		var node_added_cb:=Callable(self,"_on_scene_node_added")
 		if get_tree().node_added.is_connected(node_added_cb):
 			get_tree().node_added.disconnect(node_added_cb)
-	_projectiles.clear()
 	_projectile_last_positions.clear()
 	_projectile_measured_velocity.clear()
 
@@ -556,69 +555,33 @@ func _node_from_instance_id(id:int) -> Node:
 
 
 func _on_scene_node_added(node:Node) -> void:
-	_register_projectile_node(node)
-	call_deferred("_register_projectile_node",node)
 	_adopt_new_guest_projectile(node)
 
 
 func _seed_projectile_registry() -> void:
-	if not is_inside_tree() or get_tree().current_scene == null:
-		return
-	_seed_projectile_registry_recursive(get_tree().current_scene)
+	if is_inside_tree(): PROJECTILE_API.ensure(get_tree())
 
 
-func _seed_projectile_registry_recursive(node:Node) -> void:
-	_register_projectile_node(node)
-	for child:Node in node.get_children():
-		_seed_projectile_registry_recursive(child)
-
-
-func _register_projectile_node(node:Node) -> void:
-	if node == null or not is_instance_valid(node) or node == self or not node is Node2D:
-		return
-	if _looks_like_projectile(node):
-		_projectiles[node.get_instance_id()] = node
+func _register_projectile_node(_node:Node) -> void:
+	# Compatibility for guest adoption; the shared weak registry owns discovery.
+	if is_inside_tree(): PROJECTILE_API.ensure(get_tree())
 
 
 func _looks_like_projectile(node:Node) -> bool:
-	if node == null or not is_instance_valid(node):
-		return false
-	if node is ball:
-		var projectile_ball:ball = node as ball
-		return projectile_ball.Type == ball.Ball_Type.Shooter or projectile_ball.Type == ball.Ball_Type.Shooter_with_Health
-	for group_name:String in ["Shooter","HunterPellet","PigOutsideGuestProjectile","ArmsDealerProjectile","CouPenguinRock"]:
-		if node.is_in_group(group_name):
-			return true
-	var script_value:Variant = node.get_script()
-	if script_value is Script and (script_value as Script).resource_path.begins_with("res://scripts/shooter/"):
-		return true
-	if node.scene_file_path.begins_with("res://scenes/shooter/"):
-		return true
-	var has_speed:bool = "velocity" in node or "linear_velocity" in node or "Speed" in node or "speed" in node or "travel_speed" in node or "move_speed" in node
-	var has_damage:bool = "damage_amount" in node or "Damage" in node or "impact_damage" in node or "enemy_damage" in node or "friendly_damage" in node
-	return node is Node2D and has_speed and has_damage
-
+	return PROJECTILE_API.live(node)
 
 func _projectile_candidates() -> Array[Node2D]:
 	var result:Array[Node2D] = []
-	var stale:Array[int] = []
-	for raw_id:Variant in _projectiles.keys():
-		var id:int = int(raw_id)
-		var value:Variant = _projectiles[id]
-		if typeof(value) != TYPE_OBJECT or not is_instance_valid(value):
-			stale.append(id)
-			continue
-		var node:Node2D = value as Node2D
-		if node == null or not node.is_inside_tree():
-			stale.append(id)
-			continue
-		result.append(node)
-	for id:int in stale:
-		_projectiles.erase(id)
-		_projectile_last_positions.erase(id)
-		_projectile_measured_velocity.erase(id)
+	var present:Dictionary = {}
+	for node:Node in PROJECTILE_API.candidates(get_tree()):
+		if node is Node2D:
+			result.append(node)
+			present[node.get_instance_id()] = true
+	for id:Variant in _projectile_last_positions.keys():
+		if not present.has(id):
+			_projectile_last_positions.erase(id)
+			_projectile_measured_velocity.erase(id)
 	return result
-
 
 func _update_projectile_registry(delta:float) -> void:
 	var safe_delta:float = maxf(delta,0.0001)
@@ -634,46 +597,12 @@ func _update_projectile_registry(delta:float) -> void:
 
 
 func _projectile_motion(node:Node) -> Vector2:
-	if node == null or not is_instance_valid(node):
-		return Vector2.ZERO
-	var id:int = node.get_instance_id()
-	if _projectile_measured_velocity.has(id):
-		var measured:Vector2 = _projectile_measured_velocity[id] as Vector2
-		if measured.length_squared() > 16.0:
-			return measured
-	for property_name:String in ["velocity","linear_velocity","_velocity"]:
-		if property_name in node:
-			var value:Variant = node.get(property_name)
-			if value is Vector2 and (value as Vector2).length_squared() > 16.0:
-				return value as Vector2
-	if "direction" in node:
-		var direction_value:Variant = node.get("direction")
-		if direction_value is Vector2 and (direction_value as Vector2).length_squared() > 0.001:
-			var speed_value:float = 0.0
-			for speed_name:String in ["Speed","speed","travel_speed","move_speed"]:
-				if speed_name in node:
-					speed_value = maxf(float(node.get(speed_name)),0.0)
-					if speed_value > 0.0:
-						break
-			if speed_value > 0.0:
-				return (direction_value as Vector2).normalized()*speed_value
-	return Vector2.ZERO
-
+	var motion:Vector2 = PROJECTILE_API.velocity_of(node)
+	if not motion.is_zero_approx(): return motion
+	return _projectile_measured_velocity.get(node.get_instance_id(),Vector2.ZERO) if is_instance_valid(node) else Vector2.ZERO
 
 func _projectile_is_friendly(projectile:Node2D) -> bool:
-	if projectile == null or Team.is_empty():
-		return false
-	for team_name:String in ["Team","team"]:
-		if team_name in projectile:
-			var projectile_team:String = str(projectile.get(team_name))
-			if not projectile_team.is_empty() and projectile_team == Team:
-				return true
-	if "Master" in projectile:
-		var master_value:Variant = projectile.get("Master")
-		if typeof(master_value) == TYPE_OBJECT and is_instance_valid(master_value) and master_value is ball:
-			return (master_value as ball).Team == Team
-	return false
-
+	return not PROJECTILE_API.hostile(self,projectile)
 
 func _node_collision_radius(node:Node) -> float:
 	if node == null or not is_instance_valid(node):

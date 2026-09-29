@@ -1,0 +1,102 @@
+{
+  "source": "User-provided animation frames",
+  "conversion": "1024x1024 to 32x32 exact nearest neighbour; same canvas and alpha; no crop",
+  "frames": [
+    {
+      "original": "explosion_0.png",
+      "sha256": "40f41a4a2e885bae475c71a1be94bff9f44e1d8d8937968bef22f181acadeb47",
+      "derived": "explosion_00.png",
+      "derived_sha256": "9e2773753f9312024df61b42f8081ec74cfc032fa6ede3522959a5b9761796b9"
+    },
+    {
+      "original": "explosion_1.png",
+      "sha256": "2e5f2e99ad7591d61a1ddcbccb27576fec689493551277a8d99fe4fcba32aeaa",
+      "derived": "explosion_01.png",
+      "derived_sha256": "fbb53f5e1dfcea09faab784d346980ce5aefcbf45b25ddd251bd873b9d0e9fd7"
+    },
+    {
+      "original": "explosion_2.png",
+      "sha256": "f2ae6e1d609fa454601dc5bbe8e65135cc2a00a95e3f3c4b9ed1c32944c21e09",
+      "derived": "explosion_02.png",
+      "derived_sha256": "8347dd82bb3caed7994870333938b79badaa94d8bd7e641066b6fdf422756c0c"
+    },
+    {
+      "original": "explosion_3.png",
+      "sha256": "b908f4ad7ddec814847e2921c1786076f9f5dc4c8405103b3113854f4634f1a5",
+      "derived": "explosion_03.png",
+      "derived_sha256": "5cab885d1bc19cb9db5f308c52ba0fa519672895d0f1841cc2141180641e2bc6"
+    },
+    {
+      "original": "explosion_4.png",
+      "sha256": "19740873df0c3879d8b8482b51fb95035b7398ab57292b9b98c779290d492e2d",
+      "derived": "explosion_04.png",
+      "derived_sha256": "15107d3fbcec2e6b4fe839d1b40f93513ed60d2c1d0cb14b53a3c9b167e4cf3c"
+    },
+    {
+      "original": "explosion_5.png",
+      "sha256": "9a4f4b656b1d3877606db0250feaae4eb9af0037549828d72aec70f224f2f4e4",
+      "derived": "explosion_05.png",
+      "derived_sha256": "7de59221a5b4ef48e0c8e3c17f17c66416428f6cd0e34089043e7f5cdee3feb8"
+    },
+    {
+      "original": "explosion_6.png",
+      "sha256": "cfbe2d5a54ae6775d6a285899783ff1b24ccaf6e5ed8472a1652da263259d87a",
+      "derived": "explosion_06.png",
+      "derived_sha256": "3d795151d6178f927b6bdadfc4b28ad8c4fa9612b74863f71886075dc40db89e"
+    },
+    {
+      "original": "explosion_7.png",
+      "sha256": "a7fbc312e8eabe67d8d1ec1efc33e024a7a7daf081b8bb1cb12f5a0d30af5b16",
+      "derived": "explosion_07.png",
+      "derived_sha256": "f59f7740e4117df78a6602045748820fc06f8b308dd7b99da1ffe70223db726b"
+    },
+    {
+      "original": "explosion_8.png",
+      "sha256": "11a14bcec465afbbf20d7bef82466b62978f1d78cf39624e485f69cf70231f9b",
+      "derived": "explosion_08.png",
+      "derived_sha256": "6c46f23da3cdfbcabc82ee94e03896afef614e67dabae1ae48f0529158def91a"
+    },
+    {
+      "original": "explosion_9.png",
+      "sha256": "d574658581821097a41a124e9b212f15e8a6dc644645a85c4b8028c35e61d2c3",
+      "derived": "explosion_09.png",
+      "derived_sha256": "99d0efca39b49a9c935930b3d2a2e3ed7acff876554ba1d078d4034182999d54"
+    },
+    {
+      "original": "explosion_10.png",
+      "sha256": "9fb5cf050d0122b7935f02657cf3e1e3ac0931b7306993946bfd6cb8f8a9f959",
+      "derived": "explosion_10.png",
+      "derived_sha256": "47ac3dbb91b8db26a7f28ffaa9c4d962dc69faceae008febd17c952ccf1d4e93"
+    },
+    {
+      "original": "explosion_11.png",
+      "sha256": "6866f62151e982cdb789536646aed3cded9ababf8378498aef69b3110f4246a6",
+      "derived": "explosion_11.png",
+      "derived_sha256": "b81a8c8a5f13103acdc85143d3d17464029121ff4f6786a3238a449ae1aa8fdb"
+    },
+    {
+      "original": "explosion_12.png",
+      "sha256": "eb7aa7d0d4a5e296c2185a59f9e92277836f7351690ec4c957cb449d406d6f48",
+      "derived": "explosion_12.png",
+      "derived_sha256": "30305c8997e292c701cc7ec271206c34b77a46b9c8c6adfc011e59fa28646ca8"
+    },
+    {
+      "original": "explosion_13.png",
+      "sha256": "47de69b5025d923d6d810bda09dcac4d74a3c102df1d78946024ce730dc22f04",
+      "derived": "explosion_13.png",
+      "derived_sha256": "edf206d6f62038f697def065424662ea9ff043c9bc8f65250335b13e0cecf1f2"
+    },
+    {
+      "original": "explosion_14.png",
+      "sha256": "255409cc67b0e219c8104e2542f8e49035dd742231e5e99529a0e36f03b47875",
+      "derived": "explosion_14.png",
+      "derived_sha256": "38ac69158653fc904d618fbcccd245f7dede32ef9450d9bd06b10c22ebbaa9e2"
+    },
+    {
+      "original": "explosion_15.png",
+      "sha256": "a6a9af8485a19a1e0015de93f77dfaf9558290c04628a14a23394be9136ddf85",
+      "derived": "explosion_15.png",
+      "derived_sha256": "56b95fc8cf0921d76f805fb19c4f777ca6d0190ac23b0cefce17d7e474682aef"
+    }
+  ]
+}

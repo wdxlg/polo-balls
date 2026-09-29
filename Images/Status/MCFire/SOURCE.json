@@ -1,0 +1,26 @@
+{
+  "origin": "Minecraft Java 1.21.4 assets (mirror)",
+  "license": "Mojang/Microsoft Minecraft EULA, not permissively licensed",
+  "files": [
+    {
+      "file": "fire_0.png",
+      "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/fire_0.png",
+      "sha256": "9d6d68cbf19f2f9aaed72086069faaedb78b9d8384b55b663fbebb2d02afeb48"
+    },
+    {
+      "file": "fire_1.png",
+      "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/fire_1.png",
+      "sha256": "0593f9a4ac647db8c300713907edda488e3d442a0cb458af300dcf5a707a4431"
+    },
+    {
+      "file": "fire_0.png.mcmeta",
+      "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/fire_0.png.mcmeta",
+      "sha256": "658d67c1b3206e23a401d04ec196512b72702b7b8c6fa0200c6c66250529bbbb"
+    },
+    {
+      "file": "fire_1.png.mcmeta",
+      "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/fire_1.png.mcmeta",
+      "sha256": "802acdb8f55f30146d5ed18414b21ba35650d4e550f81825ea104131c12dc4fc"
+    }
+  ]
+}

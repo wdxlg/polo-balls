@@ -99,9 +99,16 @@ func _process(delta:float) -> void:
 		_set_frenzy_move_speed(frenzy_fast_speed)
 
 	_frenzy_left = maxf(_frenzy_left - delta,0.0)
-	if _frenzy_left > 0.0:
+	if _frenzy_left > 0.0 or is_player_controlled():
 		return
+	_try_frenzy_fist(false)
 
+func controlled_attack_action() -> void:
+	if not is_player_controlled() or not is_multiplayer_authority() or health <= 0 or not is_combat_runtime_active() or dizziness or is_damage_output_disabled() or not has_player_control_aim() or _frenzy_left > 0.0:
+		return
+	_try_frenzy_fist(true)
+
+func _try_frenzy_fist(manual:bool) -> void:
 	# 每次先在人物周围一个小圆盘内挑选“拳头根部”，再随机决定该拳头比例。
 	# 若该拳头自己的最近攻击范围内没有敌人，本次就不挥拳；不会隔着一大段距离自动攻击。
 	var fist_anchor:Vector2 = _random_fist_anchor()
@@ -111,6 +118,9 @@ func _process(delta:float) -> void:
 	)
 	var target:ball = _nearest_enemy_to_fist(fist_anchor,fist_trigger_radius * scale_value)
 	if target == null or not is_instance_valid(target):
+		return
+	# 玩家只点中鼠标附近、而且真实拳头仍能触及的目标，不按最近敌人自动出拳。
+	if manual and target.global_position.distance_to(player_control_aim_world_position()) > maxf(20.0,fist_trigger_radius * scale_value):
 		return
 
 	_frenzy_left = frenzy_punch_interval * _frenzy_rng.randf_range(0.80,1.18)
@@ -129,6 +139,8 @@ func _random_fist_anchor() -> Vector2:
 
 func _current_fist_forward() -> Vector2:
 	# 优先使用人物当前真实移动/追敌方向；站立时回退到当前水平视觉朝向。
+	if is_player_controlled() and has_player_control_aim():
+		return player_control_aim_direction(Vector2.RIGHT)
 	var move_dir:Vector2 = player_control_direction if is_player_controlled() else direction
 	if move_dir.length_squared() > 0.0001:
 		return move_dir.normalized()

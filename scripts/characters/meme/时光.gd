@@ -63,9 +63,19 @@ func tick_physics(state:State,delta:float) -> void:
 
 	_process_rank_progress(delta)
 	_place_left -= delta
-	if _place_left <= 0.0:
+	if _place_left <= 0.0 and not is_player_controlled():
 		var placed:bool = _attempt_place()
 		_place_left = _current_place_interval() if placed else 0.25
+
+
+func controlled_attack_action() -> void:
+	# 左键：在鼠标所指的合法交叉点落子；保持段位、禁着与原落子间隔。
+	if not is_player_controlled() or not is_multiplayer_authority() or health <= 0 or not is_combat_runtime_active():
+		return
+	if _place_left > 0.0 or not has_player_control_aim():
+		return
+	var placed:bool = _attempt_place(player_control_aim_world_position(),true)
+	_place_left = _current_place_interval() if placed else 0.25
 
 
 func _process_rank_progress(delta:float) -> void:
@@ -170,10 +180,16 @@ func _rank_key(value:int) -> String:
 		_:return "九段"
 
 
-func _attempt_place() -> bool:
+func _attempt_place(aim_world_position:Vector2 = Vector2.ZERO,use_aim:bool = false) -> bool:
 	if not _refresh_board_geometry():
 		return false
-	var move:Dictionary = _choose_random_legal_move(_next_color)
+	var move:Dictionary = {}
+	if use_aim:
+		if not _map_rect.has_point(aim_world_position):
+			return false
+		move = _simulate_move(_world_to_cell(aim_world_position),_next_color)
+	else:
+		move = _choose_random_legal_move(_next_color)
 	if move.is_empty():
 		return false
 

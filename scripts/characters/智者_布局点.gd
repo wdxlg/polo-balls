@@ -1,5 +1,7 @@
 extends Area2D
 
+const PROPERTY_INDEX = preload("res://classes/property_index.gd")
+
 # 智者逐步放下的布局点。
 # 仅做重叠检测：collision_layer = 0，所以永远不是地形，不挡角色/子弹。
 
@@ -148,12 +150,11 @@ func get_ai_hazard_info(receiver:ball) -> Dictionary:
 		return {}
 	var start_multiplier:float = 1.0
 	var step_multiplier:float = 0.9
-	for info:Dictionary in wise_owner.get_property_list():
-		var name:String = str(info.get("name",""))
-		if name == "point_damage_start_multiplier":
-			start_multiplier = float(wise_owner.get("point_damage_start_multiplier"))
-		elif name == "point_damage_step_multiplier":
-			step_multiplier = float(wise_owner.get("point_damage_step_multiplier"))
+	# V431 性能：属性存在性改用按脚本缓存的属性名集合，不再遍历 get_property_list()。
+	if PROPERTY_INDEX.has_property(wise_owner,"point_damage_start_multiplier"):
+		start_multiplier = float(wise_owner.get("point_damage_start_multiplier"))
+	if PROPERTY_INDEX.has_property(wise_owner,"point_damage_step_multiplier"):
+		step_multiplier = float(wise_owner.get("point_damage_step_multiplier"))
 	var multiplier:float = maxf(start_multiplier + step_multiplier * float(layout_index-1),0.0)
 	var amount:float = wise_owner.attack_damage(multiplier)
 	return {

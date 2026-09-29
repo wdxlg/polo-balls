@@ -41,6 +41,8 @@ var _created_columns:int = 0
 var _running:bool = false
 var _shutting_down:bool = false
 var _bar_serial:int = 0
+var _manual_column_requested:bool = false
+var _manual_column_ready:bool = true
 
 
 func _ready() -> void:
@@ -76,6 +78,14 @@ func _exit_tree() -> void:
 	_running=false
 	_cleanup_all_bars_local()
 
+func request_manual_column() -> void:
+	var investor:ball = _get_investor()
+	if investor == null or not investor.is_player_controlled() or not investor.is_multiplayer_authority():
+		return
+	if investor.health <= 0 or not investor.is_combat_runtime_active() or not _manual_column_ready:
+		return
+	_manual_column_requested = true
+
 
 func _run_market() -> void:
 	if _running or _shutting_down:
@@ -106,6 +116,14 @@ func _run_market() -> void:
 				break
 			continue
 
+		if investor.is_player_controlled():
+			if not _manual_column_requested or not _manual_column_ready:
+				await get_tree().physics_frame
+				continue
+		else:
+			_manual_column_requested = false
+		_manual_column_requested = false
+		_manual_column_ready = false
 		var spawn_x:float
 		if _created_columns < _column_count:
 			spawn_x = _inner_rect.position.x + _column_step * (float(_created_columns) + 0.5)
@@ -123,6 +141,7 @@ func _run_market() -> void:
 			break
 		if not (await investor.wait_for_combat_time(maxf(column_interval,0.05))):
 			break
+		_manual_column_ready = true
 
 	# 正常结束（投资者真正死亡/离场）和 shutdown 都必须清理。
 	if is_inside_tree():
@@ -443,7 +462,7 @@ func _cleanup_all_bars_local() -> void:
 
 	# V43：列表可能因为 Reset、RPC、死亡回溯的时序与实际 World 子节点短暂失步。
 	# 再按 owner id 扫一次专用组，确保属于本投资者的孤儿长条也能被清掉。
-	if get_tree() == null:
+	if not is_inside_tree():
 		return
 	for node:Node in get_tree().get_nodes_in_group("InvestorStockBar"):
 		if node == null or not is_instance_valid(node):

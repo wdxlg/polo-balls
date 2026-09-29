@@ -1,0 +1,1921 @@
+{
+  "source_commit": "736072450c26a7c67f07b1661f29d9a5ebaa14b1",
+  "java_version": "1.21.5",
+  "license_notice": "Mojang/Microsoft copyrighted originals and derived renders. Minecraft EULA applies; no separate distribution/commercial rights granted.",
+  "frame_size": [
+    192,
+    240
+  ],
+  "warden_frames": [
+    {
+      "clip": "idle",
+      "index": 0,
+      "slot": 0,
+      "x": 0,
+      "y": 0,
+      "file": "warden_idle_00.png",
+      "bounds": [
+        46,
+        51,
+        149,
+        217
+      ],
+      "pixel_sha256": "8746c2247f75aef415eab5ac2ba2bba6264a82882fc3042b6876eb6c1d0055ac"
+    },
+    {
+      "clip": "idle",
+      "index": 1,
+      "slot": 1,
+      "x": 192,
+      "y": 0,
+      "file": "warden_idle_01.png",
+      "bounds": [
+        46,
+        51,
+        149,
+        217
+      ],
+      "pixel_sha256": "4fd70d39d7e4666c5d5c69ee1de99c777cd326ac193dd252adc284f367ead0fd"
+    },
+    {
+      "clip": "idle",
+      "index": 2,
+      "slot": 2,
+      "x": 384,
+      "y": 0,
+      "file": "warden_idle_02.png",
+      "bounds": [
+        45,
+        52,
+        149,
+        217
+      ],
+      "pixel_sha256": "11ba6f4aac2ea2274f43bba5d56294de2903ab3b838477fe928c32384d150d1c"
+    },
+    {
+      "clip": "idle",
+      "index": 3,
+      "slot": 3,
+      "x": 576,
+      "y": 0,
+      "file": "warden_idle_03.png",
+      "bounds": [
+        45,
+        54,
+        149,
+        217
+      ],
+      "pixel_sha256": "b52e71d7b81104abb374a0b34ec649f7abad350aba3655a9ee953023f9369b3a"
+    },
+    {
+      "clip": "idle",
+      "index": 4,
+      "slot": 4,
+      "x": 768,
+      "y": 0,
+      "file": "warden_idle_04.png",
+      "bounds": [
+        45,
+        56,
+        150,
+        217
+      ],
+      "pixel_sha256": "42765922d91a6d5e9a4ab33ac5b1c4cf2e08ef01bbc55e53e92e5f23fdd5f548"
+    },
+    {
+      "clip": "idle",
+      "index": 5,
+      "slot": 5,
+      "x": 960,
+      "y": 0,
+      "file": "warden_idle_05.png",
+      "bounds": [
+        45,
+        56,
+        149,
+        217
+      ],
+      "pixel_sha256": "1e3a00daab809b059c1845cb702231b2c247ddd168bd26bd622887b5567e7a46"
+    },
+    {
+      "clip": "idle",
+      "index": 6,
+      "slot": 6,
+      "x": 1152,
+      "y": 0,
+      "file": "warden_idle_06.png",
+      "bounds": [
+        45,
+        55,
+        149,
+        217
+      ],
+      "pixel_sha256": "b828e7e19a2983a8f3b8e7f160d4870e609094627bf132ae12bfa11864fafcd1"
+    },
+    {
+      "clip": "idle",
+      "index": 7,
+      "slot": 7,
+      "x": 1344,
+      "y": 0,
+      "file": "warden_idle_07.png",
+      "bounds": [
+        46,
+        55,
+        149,
+        217
+      ],
+      "pixel_sha256": "f7f0a065ce5445500ce040e3b9063ee4587f52928c2a4ab6c1254b98d8297c1f"
+    },
+    {
+      "clip": "idle",
+      "index": 8,
+      "slot": 8,
+      "x": 1536,
+      "y": 0,
+      "file": "warden_idle_08.png",
+      "bounds": [
+        45,
+        55,
+        149,
+        217
+      ],
+      "pixel_sha256": "b9dbba7878c57c132e5451f1a5a1e17aa26b5094499c1930e2093452ad84beaf"
+    },
+    {
+      "clip": "idle",
+      "index": 9,
+      "slot": 9,
+      "x": 1728,
+      "y": 0,
+      "file": "warden_idle_09.png",
+      "bounds": [
+        45,
+        53,
+        150,
+        217
+      ],
+      "pixel_sha256": "e5b52334ef765aadf9150c68a49a0db7a223a48c88a83c71e7dfaa5591affd5c"
+    },
+    {
+      "clip": "idle",
+      "index": 10,
+      "slot": 10,
+      "x": 1920,
+      "y": 0,
+      "file": "warden_idle_10.png",
+      "bounds": [
+        45,
+        52,
+        150,
+        217
+      ],
+      "pixel_sha256": "ddedf6da937372d07a9dbecf5da483df72c2656cd9eadb9fed96a4170a931d29"
+    },
+    {
+      "clip": "idle",
+      "index": 11,
+      "slot": 11,
+      "x": 2112,
+      "y": 0,
+      "file": "warden_idle_11.png",
+      "bounds": [
+        45,
+        53,
+        149,
+        217
+      ],
+      "pixel_sha256": "c473bb99b549607b3efe65bf86dc947abf2a7c14e6ef2d46f05aaa2a71962899"
+    },
+    {
+      "clip": "walk",
+      "index": 0,
+      "slot": 12,
+      "x": 0,
+      "y": 240,
+      "file": "warden_walk_00.png",
+      "bounds": [
+        38,
+        60,
+        146,
+        215
+      ],
+      "pixel_sha256": "a3895f69a4e8ce4b7138ae4f8054eec427dfd593f1ba1378da2b135d02c747f3"
+    },
+    {
+      "clip": "walk",
+      "index": 1,
+      "slot": 13,
+      "x": 192,
+      "y": 240,
+      "file": "warden_walk_01.png",
+      "bounds": [
+        41,
+        59,
+        146,
+        216
+      ],
+      "pixel_sha256": "997975993bdfbfe47b7095c0eaa5b10847f960eefc4bbfd5b723ad4151eba04a"
+    },
+    {
+      "clip": "walk",
+      "index": 2,
+      "slot": 14,
+      "x": 384,
+      "y": 240,
+      "file": "warden_walk_02.png",
+      "bounds": [
+        43,
+        50,
+        148,
+        216
+      ],
+      "pixel_sha256": "e76714956298ce8781ad1973850dbf3ff339aad646a5ad17dd1129b6518ab0d9"
+    },
+    {
+      "clip": "walk",
+      "index": 3,
+      "slot": 15,
+      "x": 576,
+      "y": 240,
+      "file": "warden_walk_03.png",
+      "bounds": [
+        39,
+        47,
+        156,
+        217
+      ],
+      "pixel_sha256": "db29ca28fcc1c924397ddbef4b72db720aa306f255400eb9af86e1a489568839"
+    },
+    {
+      "clip": "walk",
+      "index": 4,
+      "slot": 16,
+      "x": 768,
+      "y": 240,
+      "file": "warden_walk_04.png",
+      "bounds": [
+        36,
+        46,
+        160,
+        217
+      ],
+      "pixel_sha256": "39395d0bb6528e198b037638d2c6d7129237854cd1f205ab3b833e85ac314b08"
+    },
+    {
+      "clip": "walk",
+      "index": 5,
+      "slot": 17,
+      "x": 960,
+      "y": 240,
+      "file": "warden_walk_05.png",
+      "bounds": [
+        35,
+        46,
+        164,
+        217
+      ],
+      "pixel_sha256": "31b0b2c7b73eab5e597fb98b308b0bcb3896113ae213e8bb5d55c21a814fff8b"
+    },
+    {
+      "clip": "walk",
+      "index": 6,
+      "slot": 18,
+      "x": 1152,
+      "y": 240,
+      "file": "warden_walk_06.png",
+      "bounds": [
+        35,
+        46,
+        165,
+        216
+      ],
+      "pixel_sha256": "8a05b325420c7c50fa81492869e65e82501b3c56b720f86f74f9a433eb11adc8"
+    },
+    {
+      "clip": "walk",
+      "index": 7,
+      "slot": 19,
+      "x": 1344,
+      "y": 240,
+      "file": "warden_walk_07.png",
+      "bounds": [
+        37,
+        49,
+        161,
+        217
+      ],
+      "pixel_sha256": "b998080f22c608c2f88fec3da9a07806426c807deffd150ccbc09fee5c751463"
+    },
+    {
+      "clip": "walk",
+      "index": 8,
+      "slot": 20,
+      "x": 1536,
+      "y": 240,
+      "file": "warden_walk_08.png",
+      "bounds": [
+        40,
+        50,
+        160,
+        217
+      ],
+      "pixel_sha256": "29488d202fa6aa02222fca099caafb4924017f1e224b3eef5cd79dbd5a8587b9"
+    },
+    {
+      "clip": "walk",
+      "index": 9,
+      "slot": 21,
+      "x": 1728,
+      "y": 240,
+      "file": "warden_walk_09.png",
+      "bounds": [
+        44,
+        52,
+        153,
+        217
+      ],
+      "pixel_sha256": "3fc1eb000947ed9f5d7c439572193d077761272b3f357c1a970a1a5a0fba71f5"
+    },
+    {
+      "clip": "walk",
+      "index": 10,
+      "slot": 22,
+      "x": 1920,
+      "y": 240,
+      "file": "warden_walk_10.png",
+      "bounds": [
+        44,
+        59,
+        152,
+        216
+      ],
+      "pixel_sha256": "2484c7e9ec9149d84a83ce482d57c76897824e92c92525b5159c88992e8a29a2"
+    },
+    {
+      "clip": "walk",
+      "index": 11,
+      "slot": 23,
+      "x": 2112,
+      "y": 240,
+      "file": "warden_walk_11.png",
+      "bounds": [
+        41,
+        60,
+        150,
+        217
+      ],
+      "pixel_sha256": "3ab27ac3390866615bf045613eff4b437e0bf26968f2e2fff837969a19094574"
+    },
+    {
+      "clip": "walk",
+      "index": 12,
+      "slot": 24,
+      "x": 0,
+      "y": 480,
+      "file": "warden_walk_12.png",
+      "bounds": [
+        33,
+        65,
+        149,
+        217
+      ],
+      "pixel_sha256": "a55e9dbfcb47c2e3280c9e0b2b72d4d3cd0d3d452cc3461768f2d1018e5ad874"
+    },
+    {
+      "clip": "walk",
+      "index": 13,
+      "slot": 25,
+      "x": 192,
+      "y": 480,
+      "file": "warden_walk_13.png",
+      "bounds": [
+        31,
+        68,
+        148,
+        217
+      ],
+      "pixel_sha256": "77baab669e94beefda1d373d99c6934b24744f6913bad28e2c34058b190aa38a"
+    },
+    {
+      "clip": "walk",
+      "index": 14,
+      "slot": 26,
+      "x": 384,
+      "y": 480,
+      "file": "warden_walk_14.png",
+      "bounds": [
+        30,
+        70,
+        146,
+        216
+      ],
+      "pixel_sha256": "82ba97be2985a6ca3091abd10274e600d02f61174374273f23175f46e8d9915a"
+    },
+    {
+      "clip": "walk",
+      "index": 15,
+      "slot": 27,
+      "x": 576,
+      "y": 480,
+      "file": "warden_walk_15.png",
+      "bounds": [
+        31,
+        69,
+        145,
+        216
+      ],
+      "pixel_sha256": "0151303e7622d6ccdbcf03ef0d936bfdfe19e6ee81cb560cc38ef2a87b731e50"
+    },
+    {
+      "clip": "emerge",
+      "index": 0,
+      "slot": 28,
+      "x": 768,
+      "y": 480,
+      "file": "warden_emerge_00.png",
+      "bounds": [
+        54,
+        236,
+        63,
+        240
+      ],
+      "pixel_sha256": "079063cff225074e15788fc16f617800847b70c82f19f99a7f41c9e85a061377"
+    },
+    {
+      "clip": "emerge",
+      "index": 1,
+      "slot": 29,
+      "x": 960,
+      "y": 480,
+      "file": "warden_emerge_01.png",
+      "bounds": [
+        87,
+        228,
+        117,
+        240
+      ],
+      "pixel_sha256": "18db8569a90cb45fc78ce9a4dce92f968004768f4cc7a1ef969d6bb98d9794cb"
+    },
+    {
+      "clip": "emerge",
+      "index": 2,
+      "slot": 30,
+      "x": 1152,
+      "y": 480,
+      "file": "warden_emerge_02.png",
+      "bounds": [
+        75,
+        206,
+        116,
+        240
+      ],
+      "pixel_sha256": "17440175fcf727a693d373dbc104ec6857885a20d7c89dbd2ed1751e54a4e127"
+    },
+    {
+      "clip": "emerge",
+      "index": 3,
+      "slot": 31,
+      "x": 1344,
+      "y": 480,
+      "file": "warden_emerge_03.png",
+      "bounds": [
+        30,
+        150,
+        135,
+        240
+      ],
+      "pixel_sha256": "a6cbe279d293759703500de63b7e7bb46d126a50f2db43b896e43d3fd122811f"
+    },
+    {
+      "clip": "emerge",
+      "index": 4,
+      "slot": 32,
+      "x": 1536,
+      "y": 480,
+      "file": "warden_emerge_04.png",
+      "bounds": [
+        40,
+        124,
+        154,
+        240
+      ],
+      "pixel_sha256": "14ec630a11928e044103db40caac46ba4904b4c65b3f379070a498225d685cb2"
+    },
+    {
+      "clip": "emerge",
+      "index": 5,
+      "slot": 33,
+      "x": 1728,
+      "y": 480,
+      "file": "warden_emerge_05.png",
+      "bounds": [
+        55,
+        147,
+        165,
+        240
+      ],
+      "pixel_sha256": "cf7a2074284398647fdb369e1265c370c1a997d5479dfdceda72d8f1613843f5"
+    },
+    {
+      "clip": "emerge",
+      "index": 6,
+      "slot": 34,
+      "x": 1920,
+      "y": 480,
+      "file": "warden_emerge_06.png",
+      "bounds": [
+        29,
+        129,
+        172,
+        240
+      ],
+      "pixel_sha256": "eaca0886dacdd71fef9d89255177b7e672e31edbd200146faf9054720b795316"
+    },
+    {
+      "clip": "emerge",
+      "index": 7,
+      "slot": 35,
+      "x": 2112,
+      "y": 480,
+      "file": "warden_emerge_07.png",
+      "bounds": [
+        12,
+        166,
+        168,
+        240
+      ],
+      "pixel_sha256": "fc4eb2bd321936b94b2edbd9be641d7d651c4fa6204a80aaeb504f086bf68d8b"
+    },
+    {
+      "clip": "emerge",
+      "index": 8,
+      "slot": 36,
+      "x": 0,
+      "y": 720,
+      "file": "warden_emerge_08.png",
+      "bounds": [
+        12,
+        160,
+        164,
+        240
+      ],
+      "pixel_sha256": "9929cdd00eeb72e20662d9c19e7a23515baf0d564d654aad57b7917cb1baf5b7"
+    },
+    {
+      "clip": "emerge",
+      "index": 9,
+      "slot": 37,
+      "x": 192,
+      "y": 720,
+      "file": "warden_emerge_09.png",
+      "bounds": [
+        14,
+        155,
+        159,
+        240
+      ],
+      "pixel_sha256": "837ab5a0b99d0acffdb3ee85ef334f308dc40e18b429257574b47b2472b7d647"
+    },
+    {
+      "clip": "emerge",
+      "index": 10,
+      "slot": 38,
+      "x": 384,
+      "y": 720,
+      "file": "warden_emerge_10.png",
+      "bounds": [
+        12,
+        153,
+        152,
+        240
+      ],
+      "pixel_sha256": "7d77c8805cd04dcf5909618ba0ec84cda2dee8a7d0e4963adc2b6d54c7a85f80"
+    },
+    {
+      "clip": "emerge",
+      "index": 11,
+      "slot": 39,
+      "x": 576,
+      "y": 720,
+      "file": "warden_emerge_11.png",
+      "bounds": [
+        16,
+        154,
+        150,
+        240
+      ],
+      "pixel_sha256": "45e6ff0ef1085067f49a8b9714369d3cec634f65310c1d79393c5271f3c244ba"
+    },
+    {
+      "clip": "emerge",
+      "index": 12,
+      "slot": 40,
+      "x": 768,
+      "y": 720,
+      "file": "warden_emerge_12.png",
+      "bounds": [
+        13,
+        151,
+        141,
+        240
+      ],
+      "pixel_sha256": "6d54e8827b16aecee80aec926d5e2a9191329a79aecaf7eebf57b2a254828920"
+    },
+    {
+      "clip": "emerge",
+      "index": 13,
+      "slot": 41,
+      "x": 960,
+      "y": 720,
+      "file": "warden_emerge_13.png",
+      "bounds": [
+        21,
+        141,
+        134,
+        240
+      ],
+      "pixel_sha256": "7c12fe8b5fe8f7cfec2cbc02465a85323bb26a147bc4920fdfcac8b68a6792c4"
+    },
+    {
+      "clip": "emerge",
+      "index": 14,
+      "slot": 42,
+      "x": 1152,
+      "y": 720,
+      "file": "warden_emerge_14.png",
+      "bounds": [
+        20,
+        139,
+        137,
+        240
+      ],
+      "pixel_sha256": "a8d2206d2b5f6ce272a663c72879174645c46b89aa77c4717860de0a0071d8c3"
+    },
+    {
+      "clip": "emerge",
+      "index": 15,
+      "slot": 43,
+      "x": 1344,
+      "y": 720,
+      "file": "warden_emerge_15.png",
+      "bounds": [
+        16,
+        135,
+        133,
+        227
+      ],
+      "pixel_sha256": "1c0e77c3f3d01480b558fe499e2e83d3ea3a2b4015428e0c61b44419bebff3fb"
+    },
+    {
+      "clip": "emerge",
+      "index": 16,
+      "slot": 44,
+      "x": 1536,
+      "y": 720,
+      "file": "warden_emerge_16.png",
+      "bounds": [
+        15,
+        126,
+        134,
+        226
+      ],
+      "pixel_sha256": "6acf398aebfa843b70aa3cc80e7cc7fd35ee48a607f19158dc7f3b1aa9b20b67"
+    },
+    {
+      "clip": "emerge",
+      "index": 17,
+      "slot": 45,
+      "x": 1728,
+      "y": 720,
+      "file": "warden_emerge_17.png",
+      "bounds": [
+        16,
+        131,
+        129,
+        229
+      ],
+      "pixel_sha256": "4a88c9dfebb5242e159615e9ad6211a4d5cb39107c76eec389cda0711a6e4155"
+    },
+    {
+      "clip": "emerge",
+      "index": 18,
+      "slot": 46,
+      "x": 1920,
+      "y": 720,
+      "file": "warden_emerge_18.png",
+      "bounds": [
+        14,
+        132,
+        128,
+        232
+      ],
+      "pixel_sha256": "bc640a6f1ab7a2422568a8d911e3358b138b69a02acafd11e99fb660bb72451f"
+    },
+    {
+      "clip": "emerge",
+      "index": 19,
+      "slot": 47,
+      "x": 2112,
+      "y": 720,
+      "file": "warden_emerge_19.png",
+      "bounds": [
+        10,
+        135,
+        134,
+        232
+      ],
+      "pixel_sha256": "7d84320eb90dbb9407d57e15eab8787f876c932d4ef49c87f77dc394b5a357ce"
+    },
+    {
+      "clip": "emerge",
+      "index": 20,
+      "slot": 48,
+      "x": 0,
+      "y": 960,
+      "file": "warden_emerge_20.png",
+      "bounds": [
+        8,
+        134,
+        132,
+        236
+      ],
+      "pixel_sha256": "a5f56fc05e46d39127a128b13cf510515d0501aa08eed49abbaa273fdd51b477"
+    },
+    {
+      "clip": "emerge",
+      "index": 21,
+      "slot": 49,
+      "x": 192,
+      "y": 960,
+      "file": "warden_emerge_21.png",
+      "bounds": [
+        12,
+        120,
+        130,
+        225
+      ],
+      "pixel_sha256": "49ec2a66ff1892691f3845416e013ea7ee7e5b9093c4054b2976d554315bd247"
+    },
+    {
+      "clip": "emerge",
+      "index": 22,
+      "slot": 50,
+      "x": 384,
+      "y": 960,
+      "file": "warden_emerge_22.png",
+      "bounds": [
+        29,
+        75,
+        140,
+        217
+      ],
+      "pixel_sha256": "a5fb27c365939fcbb942117ad16d5c3d7ddb64eea1e320051f124e654dceacc2"
+    },
+    {
+      "clip": "emerge",
+      "index": 23,
+      "slot": 51,
+      "x": 576,
+      "y": 960,
+      "file": "warden_emerge_23.png",
+      "bounds": [
+        46,
+        54,
+        149,
+        217
+      ],
+      "pixel_sha256": "e655b7f383a42390aa2c8823e49d319a685a52864267e44e6af2ad8b801c0b16"
+    },
+    {
+      "clip": "attack",
+      "index": 0,
+      "slot": 52,
+      "x": 768,
+      "y": 960,
+      "file": "warden_attack_00.png",
+      "bounds": [
+        46,
+        51,
+        149,
+        217
+      ],
+      "pixel_sha256": "8746c2247f75aef415eab5ac2ba2bba6264a82882fc3042b6876eb6c1d0055ac"
+    },
+    {
+      "clip": "attack",
+      "index": 1,
+      "slot": 53,
+      "x": 960,
+      "y": 960,
+      "file": "warden_attack_01.png",
+      "bounds": [
+        2,
+        50,
+        182,
+        217
+      ],
+      "pixel_sha256": "0f67ddc960e0952489225d52df31e02bd5950193d0ac5ce64a985bf680705fc2"
+    },
+    {
+      "clip": "attack",
+      "index": 2,
+      "slot": 54,
+      "x": 1152,
+      "y": 960,
+      "file": "warden_attack_02.png",
+      "bounds": [
+        10,
+        54,
+        163,
+        217
+      ],
+      "pixel_sha256": "ace91c32eb39489ec3d6e6aae222a0d701da8fb339c8cec73804df7c2b7fe7c9"
+    },
+    {
+      "clip": "attack",
+      "index": 3,
+      "slot": 55,
+      "x": 1344,
+      "y": 960,
+      "file": "warden_attack_03.png",
+      "bounds": [
+        33,
+        54,
+        145,
+        217
+      ],
+      "pixel_sha256": "2b7b8360ec60d9a435fb65a66a18d883d4ba2bc6aca4568f95935537e00203c1"
+    },
+    {
+      "clip": "attack",
+      "index": 4,
+      "slot": 56,
+      "x": 1536,
+      "y": 960,
+      "file": "warden_attack_04.png",
+      "bounds": [
+        42,
+        60,
+        140,
+        217
+      ],
+      "pixel_sha256": "f8c74708fec41447d3cdbf1cca52b36ab8b3b179aa0e5334acf786ac1c63f630"
+    },
+    {
+      "clip": "attack",
+      "index": 5,
+      "slot": 57,
+      "x": 1728,
+      "y": 960,
+      "file": "warden_attack_05.png",
+      "bounds": [
+        38,
+        68,
+        138,
+        217
+      ],
+      "pixel_sha256": "938f95db6887410273f07ce3e28647909681d39d4c4f89d5ca8be364de2120b8"
+    },
+    {
+      "clip": "attack",
+      "index": 6,
+      "slot": 58,
+      "x": 1920,
+      "y": 960,
+      "file": "warden_attack_06.png",
+      "bounds": [
+        38,
+        70,
+        140,
+        217
+      ],
+      "pixel_sha256": "3075fe0a914033f5243ba90b4a73a6064d2b62e1bbb4e1fdf8f4e029957d91d5"
+    },
+    {
+      "clip": "attack",
+      "index": 7,
+      "slot": 59,
+      "x": 2112,
+      "y": 960,
+      "file": "warden_attack_07.png",
+      "bounds": [
+        42,
+        65,
+        143,
+        217
+      ],
+      "pixel_sha256": "b637ba864b637466838afc10689672cabac9f1a4fd14910079a3de268d342d7b"
+    },
+    {
+      "clip": "attack",
+      "index": 8,
+      "slot": 60,
+      "x": 0,
+      "y": 1200,
+      "file": "warden_attack_08.png",
+      "bounds": [
+        42,
+        56,
+        147,
+        217
+      ],
+      "pixel_sha256": "24d4841364bbc5d086980fed56781a22a9694395a706e0e4f7591b4087349fdc"
+    },
+    {
+      "clip": "attack",
+      "index": 9,
+      "slot": 61,
+      "x": 192,
+      "y": 1200,
+      "file": "warden_attack_09.png",
+      "bounds": [
+        46,
+        53,
+        149,
+        217
+      ],
+      "pixel_sha256": "635dc49d0ca679671b3e3160e09eab25e38b95f254b75ae9a7975b6649981e3a"
+    },
+    {
+      "clip": "sonic",
+      "index": 0,
+      "slot": 62,
+      "x": 384,
+      "y": 1200,
+      "file": "warden_sonic_00.png",
+      "bounds": [
+        46,
+        51,
+        149,
+        217
+      ],
+      "pixel_sha256": "8746c2247f75aef415eab5ac2ba2bba6264a82882fc3042b6876eb6c1d0055ac"
+    },
+    {
+      "clip": "sonic",
+      "index": 1,
+      "slot": 63,
+      "x": 576,
+      "y": 1200,
+      "file": "warden_sonic_01.png",
+      "bounds": [
+        44,
+        54,
+        147,
+        217
+      ],
+      "pixel_sha256": "faf80610e4f12e315330c82318fd8ed237d2d31c9d6efcfc7cee50aed5ea0b47"
+    },
+    {
+      "clip": "sonic",
+      "index": 2,
+      "slot": 64,
+      "x": 768,
+      "y": 1200,
+      "file": "warden_sonic_02.png",
+      "bounds": [
+        39,
+        62,
+        146,
+        217
+      ],
+      "pixel_sha256": "737362b6dc35fbdf12b52d0a92f493caf10c8d3fac53a4ed73aace81ff2c0934"
+    },
+    {
+      "clip": "sonic",
+      "index": 3,
+      "slot": 65,
+      "x": 960,
+      "y": 1200,
+      "file": "warden_sonic_03.png",
+      "bounds": [
+        31,
+        77,
+        144,
+        217
+      ],
+      "pixel_sha256": "afcc8b318f09c5a07796a6ff9ffc1ec8a93835578a0ea10aa14d9dfef2dddd45"
+    },
+    {
+      "clip": "sonic",
+      "index": 4,
+      "slot": 66,
+      "x": 1152,
+      "y": 1200,
+      "file": "warden_sonic_04.png",
+      "bounds": [
+        24,
+        92,
+        142,
+        217
+      ],
+      "pixel_sha256": "9bfe54900b633193eaf1ac2cacecec20b52673bb2d691ee882fe12e948d879ba"
+    },
+    {
+      "clip": "sonic",
+      "index": 5,
+      "slot": 67,
+      "x": 1344,
+      "y": 1200,
+      "file": "warden_sonic_05.png",
+      "bounds": [
+        19,
+        111,
+        139,
+        217
+      ],
+      "pixel_sha256": "3af39a55bbe1200690d6e55fb542475db923015c8d256b6979deef2d73afe7c1"
+    },
+    {
+      "clip": "sonic",
+      "index": 6,
+      "slot": 68,
+      "x": 1536,
+      "y": 1200,
+      "file": "warden_sonic_06.png",
+      "bounds": [
+        16,
+        113,
+        136,
+        217
+      ],
+      "pixel_sha256": "ea9ee877f90858db2fbcc93d539f7383228f72f0c9f5030925a1a9fd19c3e7d4"
+    },
+    {
+      "clip": "sonic",
+      "index": 7,
+      "slot": 69,
+      "x": 1728,
+      "y": 1200,
+      "file": "warden_sonic_07.png",
+      "bounds": [
+        16,
+        116,
+        134,
+        217
+      ],
+      "pixel_sha256": "cd8329e92266d3248da4ea8628b8ded04d777231a37076e6fcd0515a6e9bd912"
+    },
+    {
+      "clip": "sonic",
+      "index": 8,
+      "slot": 70,
+      "x": 1920,
+      "y": 1200,
+      "file": "warden_sonic_08.png",
+      "bounds": [
+        16,
+        118,
+        134,
+        217
+      ],
+      "pixel_sha256": "bf7731f0d13e73e962fcfc2b750895cb1adcb3529b3545c1e4f10c5e80e49896"
+    },
+    {
+      "clip": "sonic",
+      "index": 9,
+      "slot": 71,
+      "x": 2112,
+      "y": 1200,
+      "file": "warden_sonic_09.png",
+      "bounds": [
+        18,
+        122,
+        134,
+        217
+      ],
+      "pixel_sha256": "a66c077b1a2987b9bea9379d6975d89e0c16c0709b9d963ea676b054596c7ffe"
+    },
+    {
+      "clip": "sonic",
+      "index": 10,
+      "slot": 72,
+      "x": 0,
+      "y": 1440,
+      "file": "warden_sonic_10.png",
+      "bounds": [
+        19,
+        125,
+        133,
+        217
+      ],
+      "pixel_sha256": "831443c46f03c43ae74b8c84c5e15c812cc3c73cd01cb58e194792ef8358a9b6"
+    },
+    {
+      "clip": "sonic",
+      "index": 11,
+      "slot": 73,
+      "x": 192,
+      "y": 1440,
+      "file": "warden_sonic_11.png",
+      "bounds": [
+        20,
+        127,
+        133,
+        217
+      ],
+      "pixel_sha256": "a9919552f823ce5113bc3435743d8a4539f3a8e77d3e94a87bddd2f99e1f8a7d"
+    },
+    {
+      "clip": "sonic",
+      "index": 12,
+      "slot": 74,
+      "x": 384,
+      "y": 1440,
+      "file": "warden_sonic_12.png",
+      "bounds": [
+        18,
+        127,
+        132,
+        221
+      ],
+      "pixel_sha256": "2c1113fa7272854cdffd713fc8a59feaf29890d3401408784f6396e8e6e8d619"
+    },
+    {
+      "clip": "sonic",
+      "index": 13,
+      "slot": 75,
+      "x": 576,
+      "y": 1440,
+      "file": "warden_sonic_13.png",
+      "bounds": [
+        15,
+        120,
+        133,
+        219
+      ],
+      "pixel_sha256": "34f50bc53176aead7870ee89d787ff067ca65b6685f434142051e449e47fcebe"
+    },
+    {
+      "clip": "sonic",
+      "index": 14,
+      "slot": 76,
+      "x": 768,
+      "y": 1440,
+      "file": "warden_sonic_14.png",
+      "bounds": [
+        20,
+        81,
+        192,
+        217
+      ],
+      "pixel_sha256": "f85845f2d6b8c9604b0224edf69841833efa1eb65674c487879e496dfaa4c2f5"
+    },
+    {
+      "clip": "sonic",
+      "index": 15,
+      "slot": 77,
+      "x": 960,
+      "y": 1440,
+      "file": "warden_sonic_15.png",
+      "bounds": [
+        57,
+        74,
+        190,
+        217
+      ],
+      "pixel_sha256": "e0af768d207fa47f50e7147c8a6472f14a3d96fba5f93a36d5e2aab14e8ccedd"
+    },
+    {
+      "clip": "sonic",
+      "index": 16,
+      "slot": 78,
+      "x": 1152,
+      "y": 1440,
+      "file": "warden_sonic_16.png",
+      "bounds": [
+        56,
+        89,
+        188,
+        217
+      ],
+      "pixel_sha256": "8d462403ba4ae8d24dbf1f7a8076cc8672ab0f46bb6a94b3ce9377d3146538a4"
+    },
+    {
+      "clip": "sonic",
+      "index": 17,
+      "slot": 79,
+      "x": 1344,
+      "y": 1440,
+      "file": "warden_sonic_17.png",
+      "bounds": [
+        56,
+        89,
+        188,
+        217
+      ],
+      "pixel_sha256": "b1ff54a8837dc2ac94fb9872a01c3bc0e9f8cc2035b2207255820c5191f5ae8b"
+    },
+    {
+      "clip": "sonic",
+      "index": 18,
+      "slot": 80,
+      "x": 1536,
+      "y": 1440,
+      "file": "warden_sonic_18.png",
+      "bounds": [
+        57,
+        84,
+        189,
+        217
+      ],
+      "pixel_sha256": "2fbdd9fce39d76abd75da937d16b9b597c3fd140f9bf081cafa594093b203faf"
+    },
+    {
+      "clip": "sonic",
+      "index": 19,
+      "slot": 81,
+      "x": 1728,
+      "y": 1440,
+      "file": "warden_sonic_19.png",
+      "bounds": [
+        58,
+        78,
+        190,
+        217
+      ],
+      "pixel_sha256": "525bb0982de7871edaa54c266e8df069ce0bb4a0d28e7f491e12a06674166afe"
+    },
+    {
+      "clip": "sonic",
+      "index": 20,
+      "slot": 82,
+      "x": 1920,
+      "y": 1440,
+      "file": "warden_sonic_20.png",
+      "bounds": [
+        57,
+        69,
+        192,
+        217
+      ],
+      "pixel_sha256": "5913af20df4f922aafcc29de63a074c29a09ca3955937ff9b6a2741b33f71729"
+    },
+    {
+      "clip": "sonic",
+      "index": 21,
+      "slot": 83,
+      "x": 2112,
+      "y": 1440,
+      "file": "warden_sonic_21.png",
+      "bounds": [
+        43,
+        58,
+        192,
+        217
+      ],
+      "pixel_sha256": "78f16a64c643949549fb8077f80aca405032603379f6f1b624f65b6645234e80"
+    },
+    {
+      "clip": "sonic",
+      "index": 22,
+      "slot": 84,
+      "x": 0,
+      "y": 1680,
+      "file": "warden_sonic_22.png",
+      "bounds": [
+        44,
+        53,
+        185,
+        217
+      ],
+      "pixel_sha256": "0f376ee404634746c6be59668585cc78a6abd1e0769767c99d13fefd6a1c73aa"
+    },
+    {
+      "clip": "sonic",
+      "index": 23,
+      "slot": 85,
+      "x": 192,
+      "y": 1680,
+      "file": "warden_sonic_23.png",
+      "bounds": [
+        45,
+        53,
+        149,
+        217
+      ],
+      "pixel_sha256": "85b5df4838b94a60f958b7496284c324122a988fb865a72e8894d9be8b61ed54"
+    },
+    {
+      "clip": "dig",
+      "index": 0,
+      "slot": 86,
+      "x": 384,
+      "y": 1680,
+      "file": "warden_dig_00.png",
+      "bounds": [
+        46,
+        51,
+        149,
+        217
+      ],
+      "pixel_sha256": "6487d691b5ef0ee505540d9a6ae54fd57691eb517e28cd18257c629e821290ed"
+    },
+    {
+      "clip": "dig",
+      "index": 1,
+      "slot": 87,
+      "x": 576,
+      "y": 1680,
+      "file": "warden_dig_01.png",
+      "bounds": [
+        18,
+        81,
+        147,
+        220
+      ],
+      "pixel_sha256": "1880bcd70a5a289bc5eee670bdcabba90b0a169159dcce068af8886621c69642"
+    },
+    {
+      "clip": "dig",
+      "index": 2,
+      "slot": 88,
+      "x": 768,
+      "y": 1680,
+      "file": "warden_dig_02.png",
+      "bounds": [
+        7,
+        154,
+        133,
+        240
+      ],
+      "pixel_sha256": "edccd042f60e626f8b0ab98a4bbe1d0d09ed92c7ea1c7551b836fee3dc109c04"
+    },
+    {
+      "clip": "dig",
+      "index": 3,
+      "slot": 89,
+      "x": 960,
+      "y": 1680,
+      "file": "warden_dig_03.png",
+      "bounds": [
+        18,
+        162,
+        134,
+        240
+      ],
+      "pixel_sha256": "568ba9d9ff74ee79a74dd22c31afa3d76c5dd0b40e6c0cc035465c998030e320"
+    },
+    {
+      "clip": "dig",
+      "index": 4,
+      "slot": 90,
+      "x": 1152,
+      "y": 1680,
+      "file": "warden_dig_04.png",
+      "bounds": [
+        37,
+        91,
+        134,
+        240
+      ],
+      "pixel_sha256": "515d4b47190e675249fabfa11e1e11feb3780d0c99ce1e54218a64baae581746"
+    },
+    {
+      "clip": "dig",
+      "index": 5,
+      "slot": 91,
+      "x": 1344,
+      "y": 1680,
+      "file": "warden_dig_05.png",
+      "bounds": [
+        1,
+        169,
+        134,
+        240
+      ],
+      "pixel_sha256": "77d2e6b38278eee76893ae1b8271e1b3f2c49f889079c376ea13e1b830ff66cf"
+    },
+    {
+      "clip": "dig",
+      "index": 6,
+      "slot": 92,
+      "x": 1536,
+      "y": 1680,
+      "file": "warden_dig_06.png",
+      "bounds": [
+        0,
+        152,
+        150,
+        240
+      ],
+      "pixel_sha256": "3b11070880ead1c376ea89d4c5bf974ac7ae13f4814c20fac16f20305779cf2a"
+    },
+    {
+      "clip": "dig",
+      "index": 7,
+      "slot": 93,
+      "x": 1728,
+      "y": 1680,
+      "file": "warden_dig_07.png",
+      "bounds": [
+        0,
+        124,
+        174,
+        228
+      ],
+      "pixel_sha256": "77dc4eef73cbf1ad6d33618fbb568370d2789a82876aab37514162d912c2d73f"
+    },
+    {
+      "clip": "dig",
+      "index": 8,
+      "slot": 94,
+      "x": 1920,
+      "y": 1680,
+      "file": "warden_dig_08.png",
+      "bounds": [
+        37,
+        66,
+        148,
+        228
+      ],
+      "pixel_sha256": "c60a74c6cf567f658cb9cb0c165e8f53a46672d4d03dab4d032f088ec08e5ec9"
+    },
+    {
+      "clip": "dig",
+      "index": 9,
+      "slot": 95,
+      "x": 2112,
+      "y": 1680,
+      "file": "warden_dig_09.png",
+      "bounds": [
+        8,
+        109,
+        134,
+        229
+      ],
+      "pixel_sha256": "f5d4fc758658b69c2f6738fade5db69282b3baac0a05eb81d11a2348fa7ff471"
+    },
+    {
+      "clip": "dig",
+      "index": 10,
+      "slot": 96,
+      "x": 0,
+      "y": 1920,
+      "file": "warden_dig_10.png",
+      "bounds": [
+        33,
+        174,
+        142,
+        240
+      ],
+      "pixel_sha256": "8551da085bf57b9f1f08a8d686c6e9a47ee90428ad31241dd6d95b9df0483ef0"
+    },
+    {
+      "clip": "dig",
+      "index": 11,
+      "slot": 97,
+      "x": 192,
+      "y": 1920,
+      "file": "warden_dig_11.png",
+      "bounds": [
+        22,
+        178,
+        134,
+        240
+      ],
+      "pixel_sha256": "9b5de9d763713c2edcc7d3d0513fb8f4063d8d50641db78b1cab11a3336f8df9"
+    },
+    {
+      "clip": "dig",
+      "index": 12,
+      "slot": 98,
+      "x": 384,
+      "y": 1920,
+      "file": "warden_dig_12.png",
+      "bounds": [
+        30,
+        184,
+        134,
+        240
+      ],
+      "pixel_sha256": "ed4404976bc3ca18218f8f4e0426da1b8c63f0be894270d3c532c5ff7740f32a"
+    },
+    {
+      "clip": "dig",
+      "index": 13,
+      "slot": 99,
+      "x": 576,
+      "y": 1920,
+      "file": "warden_dig_13.png",
+      "bounds": [
+        32,
+        170,
+        134,
+        240
+      ],
+      "pixel_sha256": "0e3bed8c8373ec49c3ff768222a23e8dd28c8be95bcd9b8e351551404e40bc11"
+    },
+    {
+      "clip": "dig",
+      "index": 14,
+      "slot": 100,
+      "x": 768,
+      "y": 1920,
+      "file": "warden_dig_14.png",
+      "bounds": [
+        30,
+        155,
+        131,
+        240
+      ],
+      "pixel_sha256": "f2b694f8b84aab29ac645baa1a3b0b5914272c656bd8bf74814ccd989c49deb0"
+    },
+    {
+      "clip": "dig",
+      "index": 15,
+      "slot": 101,
+      "x": 960,
+      "y": 1920,
+      "file": "warden_dig_15.png",
+      "bounds": [
+        22,
+        170,
+        130,
+        240
+      ],
+      "pixel_sha256": "b3344da56e7d0195646430ebc8f5b53a1b4202093c54fbd74dfd37b19b6a288f"
+    },
+    {
+      "clip": "dig",
+      "index": 16,
+      "slot": 102,
+      "x": 1152,
+      "y": 1920,
+      "file": "warden_dig_16.png",
+      "bounds": [
+        50,
+        206,
+        123,
+        240
+      ],
+      "pixel_sha256": "fc7ccad4f1673164ca0cc02345880d3693fdbe976ce54e95b988a450b5a6cde0"
+    },
+    {
+      "clip": "dig",
+      "index": 17,
+      "slot": 103,
+      "x": 1344,
+      "y": 1920,
+      "file": "warden_dig_17.png",
+      "bounds": [
+        60,
+        238,
+        124,
+        240
+      ],
+      "pixel_sha256": "f6696386e4c6d5b466c99779f27457bf4dc27222ddebafd02668838879af0597"
+    },
+    {
+      "clip": "dig",
+      "index": 18,
+      "slot": 104,
+      "x": 1536,
+      "y": 1920,
+      "file": "warden_dig_18.png",
+      "bounds": null,
+      "pixel_sha256": "dd493585bde88d5307e760b29cdd3a721ad9fa8fa5cb16618c77889c0d6be401"
+    },
+    {
+      "clip": "dig",
+      "index": 19,
+      "slot": 105,
+      "x": 1728,
+      "y": 1920,
+      "file": "warden_dig_19.png",
+      "bounds": null,
+      "pixel_sha256": "dd493585bde88d5307e760b29cdd3a721ad9fa8fa5cb16618c77889c0d6be401"
+    },
+    {
+      "clip": "sniff",
+      "index": 0,
+      "slot": 106,
+      "x": 1920,
+      "y": 1920,
+      "file": "warden_sniff_00.png",
+      "bounds": [
+        46,
+        51,
+        149,
+        217
+      ],
+      "pixel_sha256": "8746c2247f75aef415eab5ac2ba2bba6264a82882fc3042b6876eb6c1d0055ac"
+    },
+    {
+      "clip": "sniff",
+      "index": 1,
+      "slot": 107,
+      "x": 2112,
+      "y": 1920,
+      "file": "warden_sniff_01.png",
+      "bounds": [
+        48,
+        48,
+        145,
+        217
+      ],
+      "pixel_sha256": "29a629c1a93bc03553ecfe9855ae6c9015bfdd144bdcba9169263436b58b917e"
+    },
+    {
+      "clip": "sniff",
+      "index": 2,
+      "slot": 108,
+      "x": 0,
+      "y": 2160,
+      "file": "warden_sniff_02.png",
+      "bounds": [
+        54,
+        47,
+        133,
+        217
+      ],
+      "pixel_sha256": "34355f4902b0a9015ffe831eb9d645a11add01018e2276caf64ff560b9d34fb3"
+    },
+    {
+      "clip": "sniff",
+      "index": 3,
+      "slot": 109,
+      "x": 192,
+      "y": 2160,
+      "file": "warden_sniff_03.png",
+      "bounds": [
+        63,
+        49,
+        135,
+        217
+      ],
+      "pixel_sha256": "a3c943b43fc53a858ae0adb2c378eced658aef584aa4afa61c1906d167a0451f"
+    },
+    {
+      "clip": "sniff",
+      "index": 4,
+      "slot": 110,
+      "x": 384,
+      "y": 2160,
+      "file": "warden_sniff_04.png",
+      "bounds": [
+        59,
+        51,
+        139,
+        217
+      ],
+      "pixel_sha256": "4e69185e296805fcdb56ddce82b11119b7679dc79d7f23622449b2f22b7cbc1a"
+    },
+    {
+      "clip": "sniff",
+      "index": 5,
+      "slot": 111,
+      "x": 576,
+      "y": 2160,
+      "file": "warden_sniff_05.png",
+      "bounds": [
+        53,
+        57,
+        142,
+        217
+      ],
+      "pixel_sha256": "ad789c5dc286dd6f4512e089b269328918cbfa2234a6f6c82df5deb14b8d2274"
+    },
+    {
+      "clip": "sniff",
+      "index": 6,
+      "slot": 112,
+      "x": 768,
+      "y": 2160,
+      "file": "warden_sniff_06.png",
+      "bounds": [
+        47,
+        52,
+        144,
+        217
+      ],
+      "pixel_sha256": "08208e8cb2e2801d795452fbdf1279300730e540e69de317206acebc9c0aa84b"
+    },
+    {
+      "clip": "sniff",
+      "index": 7,
+      "slot": 113,
+      "x": 960,
+      "y": 2160,
+      "file": "warden_sniff_07.png",
+      "bounds": [
+        37,
+        60,
+        151,
+        217
+      ],
+      "pixel_sha256": "25e3035f528b2c94bb6694b679918aa325cc76f76cd01c51b44856bf56a5f758"
+    },
+    {
+      "clip": "sniff",
+      "index": 8,
+      "slot": 114,
+      "x": 1152,
+      "y": 2160,
+      "file": "warden_sniff_08.png",
+      "bounds": [
+        36,
+        52,
+        154,
+        217
+      ],
+      "pixel_sha256": "d4e9ac55ad25a441a7fe35acd887b8b5ab2f7ac54ef6fa4d3480ad0f21d7a204"
+    },
+    {
+      "clip": "sniff",
+      "index": 9,
+      "slot": 115,
+      "x": 1344,
+      "y": 2160,
+      "file": "warden_sniff_09.png",
+      "bounds": [
+        44,
+        52,
+        147,
+        217
+      ],
+      "pixel_sha256": "4fd54dab405463a4acc70d7f431c7e4cd7a08d72681110db9d0b580f8695d21a"
+    },
+    {
+      "clip": "sniff",
+      "index": 10,
+      "slot": 116,
+      "x": 1536,
+      "y": 2160,
+      "file": "warden_sniff_10.png",
+      "bounds": [
+        44,
+        59,
+        150,
+        217
+      ],
+      "pixel_sha256": "8e345e0b69e18f85cbfd23265bd80dcfcf4ba1fbdd446b30165bc9345bb4ede1"
+    },
+    {
+      "clip": "sniff",
+      "index": 11,
+      "slot": 117,
+      "x": 1728,
+      "y": 2160,
+      "file": "warden_sniff_11.png",
+      "bounds": [
+        46,
+        51,
+        149,
+        217
+      ],
+      "pixel_sha256": "1973c06241c449ed7676f69d74bbb5d6918bf64626b9f5d0266d84befb3e16c9"
+    }
+  ],
+  "adapter_notes": "Native Warden bones and keyframes (including Catmull-Rom), resampled to 2D state durations. Native entity movement constants with a synthetic one-second stride. Fixed emissive-layer composite, fixed camera/lighting. Moss/crafting/shrieker block-face projection is an arena icon adapter; it is not an exported block mesh. No vanilla rendering engine is embedded.",
+  "outputs": {
+    "Images/characters/我的世界/frontier/bone_meal.png": "4e44ac3735fe264d695e448441896f754292958f8c3ce71ddb27a598a2946261",
+    "Images/characters/我的世界/frontier/grass.png": "8d109d7f46dc9fe22d32c4375da4707aa7a80c14336a0f158e7e68fe519ad8fc",
+    "Images/characters/我的世界/frontier/moss_block.png": "876ceec9261d17891497926c704d25a3d0231bf6722bd0972d4edeeb3899cd77",
+    "Images/characters/我的世界/frontier/moss_tile.png": "0556f3d0f2ee7407e7d6761dd1f75cca330a83f5c19a506200531cec8a531052",
+    "Images/characters/我的世界/frontier/planks.png": "6a3494fc450899887a54a558f23868b9136a8da92c4b818756a3add5fb6fc9f3",
+    "Images/characters/我的世界/frontier/sculk_inner.png": "0d5ac39af0973bdbfceb6f7afe2094d3ac34be873046e3ce68f6c8e04351cf54",
+    "Images/characters/我的世界/frontier/sculk_top.png": "841c642085a3efc35ad85c3bf7a1aacbf14371953df5f8025e904406b5351785",
+    "Images/characters/我的世界/frontier/shrieker_block.png": "4bb6f049145d0e5b331ce146e102490e10e42192791a83f47ac637168d26b52f",
+    "Images/characters/我的世界/frontier/sonic.png": "d494f9117e9efc4b1736d3c5a877e9209d792546b6da71948e254394b6cc786b",
+    "Images/characters/我的世界/frontier/stick.png": "ed1fa033e9f46514cf2bdfce1cef503027614de6875d5fe3e117cd9d754acb8a",
+    "Images/characters/我的世界/frontier/table_block.png": "4d586f29435aa77005592e3b715acab996163d6506ebea7a45bcbd404777345a",
+    "Images/characters/我的世界/frontier/table_top.png": "a6689bb645bdb2e6c21776b1d09547fd370ab8b26ff3b3d13740bb870f7eed3b",
+    "Images/characters/我的世界/frontier/warden_attack_00.png": "58c799a6a08c0ac4d3c46d202d64681ab72653e40796e978417c467ec4e50ad0",
+    "Images/characters/我的世界/frontier/warden_attack_01.png": "abd99f082a3db05ede3636dabc37e58936edfd39e7211785635cb79857fdd3e8",
+    "Images/characters/我的世界/frontier/warden_attack_02.png": "568608e7fbd5676264e122c5823c053921e443a2794ab4ea1478f58364582207",
+    "Images/characters/我的世界/frontier/warden_attack_03.png": "6e9107eecea9b2fd6e399c3075ff602a082c10b33ef8bba1e48115860c4ee2d1",
+    "Images/characters/我的世界/frontier/warden_attack_04.png": "e801c61442f8a1341a928f6f41231542c57afdaf99cd4ef846ddff01193ec40c",
+    "Images/characters/我的世界/frontier/warden_attack_05.png": "a2f6d59514c86873537299f56a6e9914b4403300c13f11bc70315171fcbe15d8",
+    "Images/characters/我的世界/frontier/warden_attack_06.png": "6cd63e25174b2d56ba7ffa4cff4e99535eb4f5da43889fffaf77c33a072d910e",
+    "Images/characters/我的世界/frontier/warden_attack_07.png": "d7b95c1529e589a544e82b3b3d0b492dece913115b831a11cd27dfc8c6bbbd46",
+    "Images/characters/我的世界/frontier/warden_attack_08.png": "b367e64728c1f6b8e0d7772b7ad0c01893a74aaa9a97f910abc8dc781a3f604e",
+    "Images/characters/我的世界/frontier/warden_attack_09.png": "6d4784c3549f7a81d1219aa7a88bf258bed575c5be9aef6ddf121efbe4ec922a",
+    "Images/characters/我的世界/frontier/warden_dig_00.png": "d0b9da2f36c3be9f1aac0f8906237a9b6e320fa76a8816de272206301b5f01b7",
+    "Images/characters/我的世界/frontier/warden_dig_01.png": "c69dab7184f05201aa5709eebec53dd69f1df91456c1ca0483631d345d24d180",
+    "Images/characters/我的世界/frontier/warden_dig_02.png": "c185d6eee515757edce737f2eecc0422fc8f5de7b9f7b42e0684a1abc77d4cfa",
+    "Images/characters/我的世界/frontier/warden_dig_03.png": "cb2f0fc9504d55c1ede076a183bf3d9c5ee64b84f0a2d0551060dad4ba748356",
+    "Images/characters/我的世界/frontier/warden_dig_04.png": "7de2b5a8848b822c5f5767afb9c06efc09f8f487c078d75653fa5c84e4cff2e7",
+    "Images/characters/我的世界/frontier/warden_dig_05.png": "4ba1b16078b8a73eb1a80e4ffff54767637e08ce2b0490df3a70369c8369667f",
+    "Images/characters/我的世界/frontier/warden_dig_06.png": "46e1efdadbe9baabe52b9fa1b962a05b0548294b4dda9546100a3397798b1685",
+    "Images/characters/我的世界/frontier/warden_dig_07.png": "3a7803f21ff4572fc16a261aaaa3ea8fb8d51b6491714a25b419d86acf060c4e",
+    "Images/characters/我的世界/frontier/warden_dig_08.png": "89926b2685e9d3358d1d76e45ccd08702015bd0616c2949867228372ca0aed79",
+    "Images/characters/我的世界/frontier/warden_dig_09.png": "91fda4a428adab08225070704b508e52d800aad19a7d5c2b5b54ab20cac1f8e5",
+    "Images/characters/我的世界/frontier/warden_dig_10.png": "56474e481c1ea0c73583dbcf05f8074a5c513eae479ea1a103b6b73918f19c51",
+    "Images/characters/我的世界/frontier/warden_dig_11.png": "c08dce491ee55288217eccfc911db829e6c1bf75b892e4273db9efa2697d6d6a",
+    "Images/characters/我的世界/frontier/warden_dig_12.png": "f7f815bf4bb9a1106fa15ef6642cbf1f1e960a7ea1f19079bbf1f77d77e2b979",
+    "Images/characters/我的世界/frontier/warden_dig_13.png": "120d8c598986a134cff5f308db77ba35bfbb43ff86c560561460020b212cd597",
+    "Images/characters/我的世界/frontier/warden_dig_14.png": "15fb48f62aacef163ee0be68d4ddc6324a70ccb9fd733f359f1b4e5e1f1e871e",
+    "Images/characters/我的世界/frontier/warden_dig_15.png": "6db08c58c32ce64a259ae7bf7632da93cc7ee0de1c9b63039586d5453576dab8",
+    "Images/characters/我的世界/frontier/warden_dig_16.png": "ddfcbe183dc69dd2efe24869848126f4d27df510ad3e0cac64b91f8c1a94748a",
+    "Images/characters/我的世界/frontier/warden_dig_17.png": "1cd7a6476459ecde2ea0e8847524472d441b0a315aed02dd639f0941156640f2",
+    "Images/characters/我的世界/frontier/warden_dig_18.png": "0c0535cfeb48ece2f4dc4686d70888622be25b92044307047ac4d732f7b58b3d",
+    "Images/characters/我的世界/frontier/warden_dig_19.png": "0c0535cfeb48ece2f4dc4686d70888622be25b92044307047ac4d732f7b58b3d",
+    "Images/characters/我的世界/frontier/warden_emerge_00.png": "5669855b143ba5fdf18f8abe9e66e424722b3b66282836f38b53f89cb1cff2f8",
+    "Images/characters/我的世界/frontier/warden_emerge_01.png": "c32047ed7c6fe89042dda1815508820a77ef7d0900ed1d01e7636b8083d9dbda",
+    "Images/characters/我的世界/frontier/warden_emerge_02.png": "9bb9421281aa0927d7c091d4c343ee3d5f0bc68cd70a3451a889a38155940096",
+    "Images/characters/我的世界/frontier/warden_emerge_03.png": "e174f6f000c00bd5b7f789ea76ce36e6e296b30e246d1f72055a446c34fe4aab",
+    "Images/characters/我的世界/frontier/warden_emerge_04.png": "7d61687e0f5ff02bd4b7e147ac4d3285761e23c5d015f20a7a5d527550c14fd8",
+    "Images/characters/我的世界/frontier/warden_emerge_05.png": "f071d2b8b4112878d060e1a4664d86552b7b85d4d33f2cad7479ee2fa45736fd",
+    "Images/characters/我的世界/frontier/warden_emerge_06.png": "38d28fc4ec12def3f53e0bd258e7377509df2fb097a57270a664e30a082f7228",
+    "Images/characters/我的世界/frontier/warden_emerge_07.png": "2f02dd08f274d3377ac3859d6d03290a33c3ba1deb5549202d4d1fac57fa2ca7",
+    "Images/characters/我的世界/frontier/warden_emerge_08.png": "1bd8905cdbcd896ff25cf3920dd79a24d8d9bd9f8eb485590a177fbb7baaa764",
+    "Images/characters/我的世界/frontier/warden_emerge_09.png": "23afd1d1cf06ea1562e48d41860f0461f72f8ef35f864701ec2f09781ff744e6",
+    "Images/characters/我的世界/frontier/warden_emerge_10.png": "88320d4b2b5f4b98a1c61054631026506a4274d1d8f94e26db25912dc7f7d0e8",
+    "Images/characters/我的世界/frontier/warden_emerge_11.png": "ca4dd460e78b91768b8a9b1c061fe8a1122b5a3bf02d5c05ccaac0c874103bd5",
+    "Images/characters/我的世界/frontier/warden_emerge_12.png": "103cf5491d7aa4eef3c083b002c43cb319b701d8b3c29b551c493fe5469ddb35",
+    "Images/characters/我的世界/frontier/warden_emerge_13.png": "563688646e0ab99771871b341822157e83d0dbec88f9d48d74ff1669ebb7f4fd",
+    "Images/characters/我的世界/frontier/warden_emerge_14.png": "cc311a592a6b40a9044b37582dd797493ed3131170bee7813d615da22d42ace4",
+    "Images/characters/我的世界/frontier/warden_emerge_15.png": "331427f14701f43cec754912e239bb03ecec21042c5df4c338f9fd3b839ce077",
+    "Images/characters/我的世界/frontier/warden_emerge_16.png": "fed67821c5e6053dda1da1203e5e8a6e1338b652ddcfd8bce28584dcf68894eb",
+    "Images/characters/我的世界/frontier/warden_emerge_17.png": "3efa420e7c729f7bf5f380f29d41487e5e1529eb6872e318d28fa75ecfad2901",
+    "Images/characters/我的世界/frontier/warden_emerge_18.png": "4a65c34cf3ffa72b22e17a4120b005e44b7afdaa48d1e6af07c2c87afa3ff270",
+    "Images/characters/我的世界/frontier/warden_emerge_19.png": "a348cc840061a8f77aa3ca302d96f7c857bc68c67bd908ceb3f85686cc62b0c9",
+    "Images/characters/我的世界/frontier/warden_emerge_20.png": "c8cb602ea7ac7beb54629ea2dc7cdec970f43a04405e18cb11400ec054899331",
+    "Images/characters/我的世界/frontier/warden_emerge_21.png": "d51bb02bc5432e7f2c3a729e96abc81cc44f906b9f7e49bf2e7865cd7072ce13",
+    "Images/characters/我的世界/frontier/warden_emerge_22.png": "1eadf5f75410b198eb6d4da8f6bc12654bb7c0a46e4ad6ae588b8d41c98c4bb7",
+    "Images/characters/我的世界/frontier/warden_emerge_23.png": "1f9fb464902b15a07fc9fa593c84a8261a2ed135fd0f00d5dceac16ddf6d45f4",
+    "Images/characters/我的世界/frontier/warden_frames.png": "7dd488d2cb2ebcec219616dd05c31cb37aeba13732734f87f6e49edd9ff3f1f9",
+    "Images/characters/我的世界/frontier/warden_idle_00.png": "58c799a6a08c0ac4d3c46d202d64681ab72653e40796e978417c467ec4e50ad0",
+    "Images/characters/我的世界/frontier/warden_idle_01.png": "e2321d5611e57cb37cf2ebfe12ffa9d6f81193ae4f1538bb455ac0beacf70f86",
+    "Images/characters/我的世界/frontier/warden_idle_02.png": "3a189de61d65a705667396daea319127961ac764230b7e080174051c2fcaa4bd",
+    "Images/characters/我的世界/frontier/warden_idle_03.png": "6902346ca7c224cd943cd2b5a50929cb0168685111f4466b2f5576e545b0ee7a",
+    "Images/characters/我的世界/frontier/warden_idle_04.png": "aa22f103e2c1b10e392b5d0818083fec74fbc9910f51a7fbb54cfc04249d4453",
+    "Images/characters/我的世界/frontier/warden_idle_05.png": "53b3794a63867cff053ee3ab32aad72f328b75096d7086768c5f676ee675c2aa",
+    "Images/characters/我的世界/frontier/warden_idle_06.png": "dc1f0be629f3921260e432fe93321d8544f1ef9283656f1a8ccfbdaac4754522",
+    "Images/characters/我的世界/frontier/warden_idle_07.png": "a8b49f5cb912571bdee914ce15ffb5c7180272255ee4c65896500f90ccf0f032",
+    "Images/characters/我的世界/frontier/warden_idle_08.png": "c3b77d9be10f951b92ece35c8289da45da8115b6549ccbaa212c7419a3f610ca",
+    "Images/characters/我的世界/frontier/warden_idle_09.png": "9436e1f9f0755027b815a31465728ad1da9f547177e976f91f69a1b8de8d5d61",
+    "Images/characters/我的世界/frontier/warden_idle_10.png": "7a4f0f3b8bbf46d2dbfdbf85451080208f5c39c4ba4f93f2a2669a9f7a17acdf",
+    "Images/characters/我的世界/frontier/warden_idle_11.png": "f85df2d7e23786d964c31b82aa5cd563f53d94668b546d293f47b55d74e9e193",
+    "Images/characters/我的世界/frontier/warden_preview.png": "58c799a6a08c0ac4d3c46d202d64681ab72653e40796e978417c467ec4e50ad0",
+    "Images/characters/我的世界/frontier/warden_sniff_00.png": "58c799a6a08c0ac4d3c46d202d64681ab72653e40796e978417c467ec4e50ad0",
+    "Images/characters/我的世界/frontier/warden_sniff_01.png": "5cb6b4aeabdecc65bd9d8d3a13620740a9c0b90c7937cad9c77f6f991d5382b4",
+    "Images/characters/我的世界/frontier/warden_sniff_02.png": "3a20a183492dbc2113332c0e9b01f720f050d05539f95a82b7b4486c4ef96592",
+    "Images/characters/我的世界/frontier/warden_sniff_03.png": "53fc6a3a4d3cd55dbe95bb5bb11a1cbe59d9ec919a2b85caed2abb30de237885",
+    "Images/characters/我的世界/frontier/warden_sniff_04.png": "bfbe60a1bafe2649dba22b5989461f106b61540f394c0e1920f885c3506be968",
+    "Images/characters/我的世界/frontier/warden_sniff_05.png": "1c089c6e33ec6f695fb77a9740d5484f48c63173e1990b64d3d08ddcfea2c9a2",
+    "Images/characters/我的世界/frontier/warden_sniff_06.png": "b1d6d6859d1be0a4cfafa2f23f2b7feb775921d6c6ece8d824ca1d3872c5559f",
+    "Images/characters/我的世界/frontier/warden_sniff_07.png": "606068ba399d8bcc47090c3b76b5f607e332867d12f5331f57e13a786254015c",
+    "Images/characters/我的世界/frontier/warden_sniff_08.png": "554a5471de5933f7c4c9b8ac9c85bd9845eca0ecc253335edff5aea127331325",
+    "Images/characters/我的世界/frontier/warden_sniff_09.png": "95caeac40c1cecd083fabf26a9c67cd66f9a23bd37f5e82db572898c61563f24",
+    "Images/characters/我的世界/frontier/warden_sniff_10.png": "c2d50322b4594018d0370558bc21f35564b639703e6c23f2590782bb80e0ad93",
+    "Images/characters/我的世界/frontier/warden_sniff_11.png": "63bc2cc4f2f06c0732967ff031b65513017c92a9956f26046406ab65e8ff9dc9",
+    "Images/characters/我的世界/frontier/warden_sonic_00.png": "58c799a6a08c0ac4d3c46d202d64681ab72653e40796e978417c467ec4e50ad0",
+    "Images/characters/我的世界/frontier/warden_sonic_01.png": "eb7f0664b4f7a86ac19e20f431a8894831312860fe71b314da206d32c8ae0431",
+    "Images/characters/我的世界/frontier/warden_sonic_02.png": "eecae0373b6ba2c76e3d8d9c60f1e33aaf5e2935983c915624f23628ad4c5d19",
+    "Images/characters/我的世界/frontier/warden_sonic_03.png": "4bee5c5d1a0acdd1780bc3c511d47f5640e314727d77692842386f5af0111440",
+    "Images/characters/我的世界/frontier/warden_sonic_04.png": "e925a7c33b3cbc77ef5137957614110e111945006206418f71debf6b429c2bb2",
+    "Images/characters/我的世界/frontier/warden_sonic_05.png": "e05bcd477a219d0dcbcd138c54cc0c8b252567908279ebf36666e6a6e5952791",
+    "Images/characters/我的世界/frontier/warden_sonic_06.png": "23fb99d3ae0339d585ad24e868059309d45f1e7432c8c6b373fe8d37b4d7d68c",
+    "Images/characters/我的世界/frontier/warden_sonic_07.png": "f06a1fa661b389ece5bd22a95e136e86ffda280d47dda97c15b6a8043d75b531",
+    "Images/characters/我的世界/frontier/warden_sonic_08.png": "8523962a23095a67b504a146fec63b72cef947fcf573908356656322fa2788a0",
+    "Images/characters/我的世界/frontier/warden_sonic_09.png": "b9494eb8aaaa85cf1fdc2e23523690a651a433ec922e4f1d62b92fcfe6f5ff3d",
+    "Images/characters/我的世界/frontier/warden_sonic_10.png": "0e3e1b1f05c75069148c6415121395b697186bf501ffd5c541d67d7a32998288",
+    "Images/characters/我的世界/frontier/warden_sonic_11.png": "77502f3e27fd86395312b62af632b1249ebf47cb8f5ebf4d34e28de90db22d59",
+    "Images/characters/我的世界/frontier/warden_sonic_12.png": "45fc5516d58225ce56f34234f6ffa6d2012442c7b7819ee6ca2545bf4764289a",
+    "Images/characters/我的世界/frontier/warden_sonic_13.png": "1ff8b83fc013d309bbcc535fc8508d883cc4711d71bdcd38e5906353a453396b",
+    "Images/characters/我的世界/frontier/warden_sonic_14.png": "f07b995a57a2d89bfb01544d062bd50e4940909a2d035be53e305ac0abe3a912",
+    "Images/characters/我的世界/frontier/warden_sonic_15.png": "694740ca89044cd159fbfb253781ab85f471c5cb38fd95c9f62f60be0e0eba52",
+    "Images/characters/我的世界/frontier/warden_sonic_16.png": "e3cfdab625c2d17671e2c0d636c095d98a1a146fef3d801309b7358ebaa99d99",
+    "Images/characters/我的世界/frontier/warden_sonic_17.png": "3bce0dd76ae57093522a393bafdb21d41d426c9b85935f664843e4763c63272d",
+    "Images/characters/我的世界/frontier/warden_sonic_18.png": "0d9493537a615dbdc4ec8adc1b4bfd027ffd64759b030f535e12ff59790c6744",
+    "Images/characters/我的世界/frontier/warden_sonic_19.png": "269b5d49c215ae548471d7a30cb08ba444d67bd4fbf41a9ce777cbfc52fb93b4",
+    "Images/characters/我的世界/frontier/warden_sonic_20.png": "caaae56a534617cab71d3c85cace92508ab88f682a8aa1caab7c3e2973ba8c75",
+    "Images/characters/我的世界/frontier/warden_sonic_21.png": "257d6b0c843d72758738cb989ffdd32323d4af3383baca8ab48742ce1f6f63e0",
+    "Images/characters/我的世界/frontier/warden_sonic_22.png": "777cf66ef72bf76f251ffd0eb0ffbe8a1d227c0c0effb222f48177b307a5c0e7",
+    "Images/characters/我的世界/frontier/warden_sonic_23.png": "d314239778e439be3f0101f981237c4cc226aef5d36baa64af657fe2e6485086",
+    "Images/characters/我的世界/frontier/warden_walk_00.png": "326e39849996e4286e867ebefdecfe42b1acc9b83e79936ec6fe7556c148901b",
+    "Images/characters/我的世界/frontier/warden_walk_01.png": "79ee56ea1e5071d4f01191da3022f67474d0dd571aff5756cd88470207baed3a",
+    "Images/characters/我的世界/frontier/warden_walk_02.png": "9d3c1c56aaa3d95e17da907ad3bd482e16e2c8850d2b716e612b8cba846580b9",
+    "Images/characters/我的世界/frontier/warden_walk_03.png": "51bf39f04d66187fdbdfff794223bb002fd45c90739422893e8946bc49795af2",
+    "Images/characters/我的世界/frontier/warden_walk_04.png": "f35a247068c4734327016a204f203b13c98085bf7d3e1486d0506f9a6fd9bcc9",
+    "Images/characters/我的世界/frontier/warden_walk_05.png": "8501d45f91c920071fb95bcb384537bd5ea0ac0732137d16d79550f64eb954b3",
+    "Images/characters/我的世界/frontier/warden_walk_06.png": "9c720305e64f161b8862f9bb398ee2f410eb7e2aae30b9ba1ca12a94c7913379",
+    "Images/characters/我的世界/frontier/warden_walk_07.png": "8fd23667e0e8c03f0a9ecfadc29585b4e1da45b6bb07cbaa7cc3381a04f02f6f",
+    "Images/characters/我的世界/frontier/warden_walk_08.png": "87d08faa380712780c65659c0fe4ce721bcde58bcaf9f9bb1dc65289e4f14663",
+    "Images/characters/我的世界/frontier/warden_walk_09.png": "46b7e7e9b0d98ca1a72816d0c878e236e60b16ff82ab7bb22a5188b8fd845bc5",
+    "Images/characters/我的世界/frontier/warden_walk_10.png": "ff045b02ddf47738929e756d9aa02d46dc0aff2206ed0b4bdf69a7e55bd7f5a1",
+    "Images/characters/我的世界/frontier/warden_walk_11.png": "fcbe5b3234af6c52394920be3437a558abf5c297c158b8e3288fd34aac73f48c",
+    "Images/characters/我的世界/frontier/warden_walk_12.png": "538c697a340f8328c6d37db94742e9b38601db2dd5a8af07314ac361dd9b02e0",
+    "Images/characters/我的世界/frontier/warden_walk_13.png": "fdaeef7b4edb79cb30ca2ca82a53e32670e8e948c690694db612f5e962455174",
+    "Images/characters/我的世界/frontier/warden_walk_14.png": "20c5776768c7f5d717b617951d2b46317539d0fb7b7a6672959bcbe2cf69778a",
+    "Images/characters/我的世界/frontier/warden_walk_15.png": "705f4e46bed6b19d7f48968940c83ec5f7d41c957135db68c7418d500d4b103e",
+    "Images/characters/我的世界/frontier/wood_sword.png": "af0f711c51bb28d6d2c677791cbbb5f6e0a797518e959392c3d0d9027eb17243",
+    "Images/characters/我的世界/frontier/warden_frames.tres": "8c1fd466b3cc2f754a0451f1e06b2eef9b76de885feb14f81b469e737d5b603b",
+    "audio/characters/我的世界/frontier/bonemeal.ogg": "4cc97ce9d74904e2f68758b5cc449321338acba8200a87b0e0388d732eb5fc2d",
+    "audio/characters/我的世界/frontier/break.ogg": "232f9beec1cb73323d61ab365770e5bb68384b2ed31cd589f85dbf4c3aac5775",
+    "audio/characters/我的世界/frontier/compost.ogg": "656f99135d9d821687de35d887439cc26f0d1fe6ab6e64d1a3baf3f694f73b82",
+    "audio/characters/我的世界/frontier/craft.ogg": "aeea0842bd682f39f1e03f18bb867ac9dd15e6ecd082125dc659c37821f87e7c",
+    "audio/characters/我的世界/frontier/emerge.ogg": "166d968221e73699fcbf238874c24e8e2351279aab54096696c98f7e87f7ee21",
+    "audio/characters/我的世界/frontier/minecart.ogg": "7a144aa9a852446a6e9041360509a10df5439b568e1d7ed3e3219020110de687",
+    "audio/characters/我的世界/frontier/moss.ogg": "7c04a8f8a26b18973626ead317ceb62c3de9cfc8e859e9dfde01ddbdf15c9574",
+    "audio/characters/我的世界/frontier/shrieker.ogg": "f4ab7da115bd6a391840540dbc5444bb6cbc1543fa4f37bf611c9431babcb428",
+    "audio/characters/我的世界/frontier/sonic_boom.ogg": "9edc2796b7e9ef97d61bd814a8a6b3e78e25cd8f410a733a2010416a95acceb6",
+    "audio/characters/我的世界/frontier/sonic_charge.ogg": "fe13e644c941a587c3272b8648afa241d97b71d40af3816310fdc97b4e88bc15",
+    "audio/characters/我的世界/frontier/warden_dig.ogg": "4f91f31b9a4dec543f0a7468d9c1f1263ea1246a3ba8a64ea507608878c25d57",
+    "audio/characters/我的世界/frontier/warden_hit.ogg": "543c1c670013e5d7170907a1fa4707a37c8aba0b786eed7e3471d13a007e2c95",
+    "audio/characters/我的世界/frontier/warden_hurt.ogg": "0e31ae0015e02bf697b0b257891b7ca0c7aa92241acf1077e44ab1edde4e1933"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "source": "Two user-provided snoring MP3 clips from project root; moved unchanged, not Minecraft assets.",
+  "usage": "Random one per successful Z burst start, not one per Z.",
+  "clips": [
+    {
+      "original_root_path": "_-_打呼噜_[cut_2sec].mp3",
+      "runtime_path": "res://audio/characters/默认/ding_sleep/snore_start_1.mp3",
+      "sha256": "bf9e238edb233a4623d50e02913dbe32a9a2f22d29dc1cda7ad83540eb71ab6e"
+    },
+    {
+      "original_root_path": "_-_打呼噜_[cut_2sec] (1).mp3",
+      "runtime_path": "res://audio/characters/默认/ding_sleep/snore_start_2.mp3",
+      "sha256": "4e8caa74ae392f1699d383ab4f3bd27b09c0c64d5e8e25af8a6334f75bfd9e2c"
+    }
+  ]
+}

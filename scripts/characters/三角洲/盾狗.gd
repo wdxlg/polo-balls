@@ -1,4 +1,5 @@
 extends ball
+const PROJECTILE_API = preload("res://classes/projectile_interactions.gd")
 const WIRE_SCRIPT = preload("res://scripts/effects/三角洲_铁丝网.gd")
 const SHIELD_DOG_TEXTURE_PATH:String = "res://Images/characters/三角洲/盾狗/深蓝.png"
 const SHIELD_DOG_WIRE_TEXTURE_PATH:String = "res://Images/characters/三角洲/盾狗/刺网.png"
@@ -328,32 +329,8 @@ func _is_world_position_in_front(world_pos:Vector2)->bool:
 
 
 func _is_blockable_projectile_source(source:Node)->bool:
-	if source==null or not is_instance_valid(source):
-		return false
+	return PROJECTILE_API.live(source)
 
-	# V245：用户定义“子弹”=所有投射物。优先识别项目明确的投射物类型/目录/组。
-	if source.is_in_group("ArmsDealerProjectile") or source.is_in_group("HunterPellet"):
-		return true
-	if source.is_in_group("CouPenguinRock") or source.is_in_group("TimeTravelerClock"):
-		return true
-	if source.is_in_group("BomberBomb") or source.is_in_group("MagnetElectricBall"):
-		return true
-
-	if source is ball:
-		var projectile_ball:=source as ball
-		if projectile_ball.Type==Ball_Type.Shooter or projectile_ball.Type==Ball_Type.Shooter_with_Health:
-			return true
-
-	var script_resource:Script=source.get_script() as Script
-	if script_resource!=null:
-		var script_path:String=script_resource.resource_path
-		if script_path.begins_with("res://scripts/shooter/"):
-			return true
-
-	return false
-
-
-# 给“source 不是弹体本身”的特殊投射物使用。返回 true 表示本次正面投射物命中已被盾牌完全吃掉。
 func try_block_projectile_hit(projectile:Node,impact_position:Vector2,raw_damage:float=0.0)->bool:
 	if not front_blocks_bullets or health<=0:
 		return false

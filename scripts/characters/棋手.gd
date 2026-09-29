@@ -67,11 +67,21 @@ func _get_or_create_board_controller() -> Node:
 func tick_physics(state:State,delta:float) -> void:
 	if is_multiplayer_authority() and _registered and state != State.Die and health > 0:
 		_place_left -= delta
-		if _place_left <= 0.0:
+		if _place_left <= 0.0 and not is_player_controlled():
 			if _board_controller != null and is_instance_valid(_board_controller):
 				_board_controller.call("request_place",self)
 			_place_left = maxf(place_interval,0.2)
 	super.tick_physics(state,delta)
+
+
+func controlled_attack_action() -> void:
+	# 左键：在鼠标所指的空交叉点落子；地图与棋盘格合法性仍由控制器判定。
+	if not is_player_controlled() or not is_multiplayer_authority() or health <= 0 or not is_combat_runtime_active() or not _registered:
+		return
+	if _place_left > 0.0 or not has_player_control_aim() or _board_controller == null or not is_instance_valid(_board_controller):
+		return
+	if bool(_board_controller.call("request_place",self,player_control_aim_world_position(),true)):
+		_place_left = maxf(place_interval,0.2)
 
 
 func play_chess_place_sfx(position_value:Vector2) -> void:

@@ -1,6 +1,7 @@
 extends ball
 
 const DEATH_RETURN_TIMELINE = preload("res://scripts/characters/动漫/死亡回归时间轴.gd")
+const WHIP_SCRIPT = preload("res://scripts/characters/动漫/菜月昴惯性鞭.gd")
 const DEAD_SAVE_EFFECT = preload("res://scripts/effects/动漫/菜月昴死档效果.gd")
 const NORMAL_TEXTURE:Texture2D = preload("res://Images/characters/动漫/菜月昴/昴.png")
 const RETURN_TEXTURE:Texture2D = preload("res://Images/characters/动漫/菜月昴/死亡回归.png")
@@ -26,6 +27,19 @@ const RETURN_SCREAMS:Array[AudioStream] = [
 	preload("res://audio/characters/菜月昴/叫14.MP3"),
 ]
 
+@export_category("菜月昴 - 惯性鞭与间歇手臂")
+@export var whip_damage:float = 5.0
+@export var whip_interval:float = 1.1
+@export var whip_reach:float = 85.0
+@export var whip_swing_duration:float = 0.65
+@export var whip_knockback:float = 38.0
+@export var hand_hidden_duration:float = 6.0
+@export var hand_active_duration:float = 3.0
+var _whip:Node2D
+var _hand_window_left:float = 6.0
+var _hand_window_active:bool = false
+var _fist_phase:float = -1.0
+var _fist_locked_world:Vector2 = Vector2.ZERO
 @export_category("菜月昴 - 盘旋拳")
 @export_range(0.25,4.0,0.05) var fist_spawn_interval:float = 1.10
 @export_range(12.0,90.0,1.0) var fist_rest_radius:float = 38.0
@@ -54,7 +68,7 @@ const RETURN_SCREAMS:Array[AudioStream] = [
 
 @export_category("菜月昴 - 死亡回归")
 @export_range(0.04,0.25,0.01) var rewind_snapshot_interval:float = 0.10
-@export_range(0.0,0.95,0.01) var rewind_shrink_ratio_per_return:float = 0.18
+@export_range(0.0,0.95,0.01) var rewind_shrink_ratio_per_return:float = 0.5
 @export_range(0.5,2.0,0.1) var rewind_min_seconds:float = 0.50
 @export_range(5.0,175.0,1.0) var return_direction_step_degrees:float = 47.0
 @export_range(0.25,6.0,0.05) var return_visual_duration:float = 1.80
@@ -87,6 +101,7 @@ var _fist_last_owner_global_position:Vector2 = Vector2.ZERO
 var _fist_chain_initialized:bool = false
 var _timeline:Node = null
 var _returning:bool = false
+var _return_request_epoch:int = 0
 var _opening_direction:Vector2 = Vector2.RIGHT
 var _normal_image_scale:Vector2 = Vector2.ONE
 var _normal_image_offset:Vector2 = Vector2.ZERO
@@ -114,6 +129,11 @@ func _ready() -> void:
 	_setup_return_presentation()
 	_ensure_fist_visual()
 	_ensure_death_return_timeline()
+	_whip = WHIP_SCRIPT.new()
+	_whip.name = "惯性鞭"
+	add_child(_whip)
+	_hand_window_left = hand_hidden_duration
+	_set_fist_visible(false)
 
 func has_collision_damage() -> bool:
 	return false
@@ -138,7 +158,34 @@ func tick_physics(state:State,delta:float) -> void:
 	if not is_combat_runtime_active() or is_damage_output_disabled():
 		_update_fist_rest_visual(delta)
 		return
-	_update_fist_logic(delta)
+	if is_instance_valid(_whip): _whip.advance(delta)
+	_hand_window_left -= maxf(delta,0.0)
+	if _hand_window_left <= 0.0:
+		_hand_window_active = not _hand_window_active
+		_hand_window_left = maxf(hand_active_duration if _hand_window_active else hand_hidden_duration,0.1)
+		if not _hand_window_active: _finish_fist_cycle()
+	_set_fist_visible(_hand_window_active)
+	if _hand_window_active: _update_fist_logic(delta)
+
+func controlled_attack_action() -> void:
+	# 左键惯性鞭；鞭的冷却与摆动仍由原子实体推进，不再 AI 自行找敌。
+	if not is_player_controlled() or not is_multiplayer_authority() or _returning or health <= 0 or not is_combat_runtime_active() or not has_player_control_aim():
+		return
+	if is_instance_valid(_whip):
+		_whip.call("request_manual_swing",player_control_aim_world_position())
+
+func controlled_skill_action() -> void:
+	# 右键盘旋拳：只在可见之手窗口、原出拳间隔和触发距离内出拳。
+	if not is_player_controlled() or not is_multiplayer_authority() or _returning or health <= 0 or not is_combat_runtime_active() or not has_player_control_aim():
+		return
+	if not _hand_window_active or _fist_busy or _fist_ready_timer < fist_spawn_interval:
+		return
+	var aim:Vector2 = player_control_aim_world_position()
+	if global_position.distance_to(aim) > fist_trigger_radius:
+		return
+	_fist_busy = true
+	_fist_target_id = 0
+	_perform_fist_attack_at_point(aim)
 
 func on_actual_health_damage_received(actual_health_damage:float,health_before:float) -> void:
 	super.on_actual_health_damage_received(actual_health_damage,health_before)
@@ -157,6 +204,7 @@ func _trigger_return_by_death() -> void:
 	# 修改 CollisionShape2D/Area2D，产生 flushing queries 报错。
 	# 先把自己暂时保活并停掉物理处理，再把真正的整场回归延迟到安全的 deferred 阶段。
 	_returning = true
+	_return_request_epoch = int(get_tree().current_scene.get_meta("death_return_generation",0))
 	_fist_busy = false
 	_fist_target_id = 0
 	set_physics_process(false)
@@ -180,6 +228,14 @@ func _perform_death_return_deferred() -> void:
 		set_physics_process(true)
 		return
 
+	var current_world:Node = get_tree().current_scene
+	while is_instance_valid(current_world) and current_world.has_meta("death_return_restoring"):
+		await get_tree().process_frame
+	if not is_instance_valid(current_world): return
+	if int(current_world.get_meta("death_return_generation",0)) != _return_request_epoch:
+		_returning = false
+		set_physics_process(true)
+		return # Another Subaru already removed this death from the timeline.
 	# V325：时间轴恢复现在会按每帧时间预算分片；这里必须 await 完整恢复，
 	# 避免角色在战场尚未恢复完时提前重新参与物理与攻击。
 	var result:Dictionary = await _timeline.call("perform_death_return")
@@ -188,20 +244,7 @@ func _perform_death_return_deferred() -> void:
 		set_physics_process(true)
 		return
 	var count:int = int(result.get("return_count",1))
-	var rotated:Vector2 = _opening_direction.rotated(deg_to_rad(return_direction_step_degrees * float(count)))
-	if rotated.length_squared() <= 0.000001:
-		rotated = Vector2.RIGHT.rotated(deg_to_rad(return_direction_step_degrees * float(count)))
-	direction = rotated.normalized()
-	velocity = direction * maxf(Speed,0.0)
-	Repel = Vector2.ZERO
-	Attacking = false
-	Using_Skill = false
-	if state_machine != null:
-		state_machine.current_state = State.Move
-		state_machine.last_state_dis.Attack = 0.0
-		state_machine.last_state_dis.Skill = 0.0
 	set_physics_process(true)
-	_reset_fist_after_return()
 	_returning = false
 	_trigger_dead_save_if_needed(count)
 	_broadcast_return_presentation(count)
@@ -353,14 +396,15 @@ func _update_fist_logic(delta:float) -> void:
 	_ensure_fist_visual()
 	_fist_orbit_angle = wrapf(_fist_orbit_angle + deg_to_rad(fist_orbit_degrees_per_second) * delta,-PI,PI)
 	if _fist_busy:
+		_advance_fist_attack(delta)
 		return
 	_fist_ready_timer += maxf(delta,0.0)
 	_set_fist_visible(true)
 	_update_fist_rest_visual(delta)
-	if _fist_ready_timer < fist_spawn_interval:
+	if _fist_ready_timer < fist_spawn_interval or is_player_controlled():
 		return
 	var target:ball = _find_fist_target()
-	if target != null:
+	if target != null and global_position.distance_to(target.global_position) <= fist_trigger_radius:
 		_fist_busy = true
 		_fist_target_id = target.get_instance_id()
 		_perform_fist_attack(target)
@@ -390,40 +434,62 @@ func _find_fist_target() -> ball:
 	return best
 
 func _perform_fist_attack(target:ball) -> void:
-	if target == null or not is_instance_valid(target):
+	if target == null or not is_instance_valid(target) or not _hand_window_active:
 		_finish_fist_cycle()
 		return
-	var start_local:Vector2 = _fist_head.position if _fist_head != null and is_instance_valid(_fist_head) else _current_fist_rest_position()
-	# 只在出拳开始时锁定敌人的位置。之后敌人移动不会被拳头追踪。
-	var locked_target_world:Vector2 = target.global_position
-	var to_locked_point:Vector2 = locked_target_world - global_position
-	var attack_dir:Vector2 = to_locked_point.normalized() if to_locked_point.length_squared() > 0.000001 else direction.normalized()
-	if attack_dir.length_squared() <= 0.000001:
-		attack_dir = Vector2.RIGHT
-	# V332：目标是世界坐标，Line2D/拳头位置是 _fist_root 的本地坐标。
-	# 必须做世界 -> 本地转换；直接使用世界坐标差会在角色/父节点存在缩放时把伸长距离再次缩短。
-	# 不减目标半径、不读取 fist_attack_reach，拳头中心直接伸到“出拳瞬间敌人中心”的固定世界位置。
-	var attack_local:Vector2 = _fist_root.to_local(locked_target_world) if _fist_root != null and is_instance_valid(_fist_root) else to_local(locked_target_world)
+	_perform_fist_attack_at_point(target.global_position)
+
+func _perform_fist_attack_at_point(point:Vector2) -> void:
+	_fist_locked_world = global_position+global_position.direction_to(point)*minf(global_position.distance_to(point),fist_attack_reach)
+	_fist_phase = 0.0
 	_fist_hit_targets.clear()
 	_set_fist_strike_active(true)
 	_set_fist_visible(true)
 	_play_fist_sfx(PUNCH_SWING_SFX)
-	var tween:Tween = create_tween()
-	# V333：攻击时先把待机弯曲形态直接拉直，再沿锁定方向伸到敌人“出拳瞬间”的固定位置。
-	tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tween.tween_method(_set_fist_attack_local_position,start_local,attack_local,maxf(fist_extend_time,0.05))
-	tween.tween_callback(Callable(self,"_begin_fist_return").bind(attack_local))
-	# 收回比伸出更利落，并在缩短过程中逐渐重新弯回待机的自然 S 形，而不是最后一帧突然折弯。
-	tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
-	tween.tween_method(_set_fist_return_progress,0.0,1.0,maxf(fist_return_time * 0.78,0.05))
-	tween.tween_callback(_finish_fist_cycle)
+
+func _advance_fist_attack(delta:float) -> void:
+	_fist_phase += maxf(delta,0.0)
+	var rest:PackedVector2Array = _rest_arm_controls()
+	_ensure_fist_chain_state(rest)
+	var old_tip:Vector2 = to_global(_fist_chain_points[-1])
+	var out_time:float = maxf(fist_extend_time,0.05)+0.12
+	var back_time:float = maxf(fist_return_time,0.05)+0.15
+	var weight:float = 1.0 if _fist_phase <= out_time else clampf(1.0-(_fist_phase-out_time)/back_time,0.0,1.0)
+	var tip:Vector2 = to_local(_fist_locked_world)
+	var dt:float = minf(maxf(delta,0.0),0.05)
+	for i:int in range(rest.size()):
+		var ratio:float = float(i)/float(maxi(rest.size()-1,1))
+		var desired:Vector2 = rest[i].lerp(rest[0].lerp(tip,ratio),weight)
+		# Distal joints react later; the arm stays curved instead of snapping straight.
+		var k:float = lerpf(1600.0,850.0,ratio)
+		_fist_chain_velocities[i] += (desired-_fist_chain_points[i])*k*dt
+		_fist_chain_velocities[i] *= exp(-lerpf(60.0,40.0,ratio)*dt)
+		_fist_chain_points[i] += _fist_chain_velocities[i]*dt
+	_apply_fist_geometry(_fist_chain_points[-1],_fist_chain_points)
+	if _fist_strike_active: _sweep_fist(old_tip,to_global(_fist_chain_points[-1]))
+	if _fist_phase > out_time: _set_fist_strike_active(false)
+	if _fist_phase >= out_time+back_time: _finish_fist_cycle()
+
+func _sweep_fist(start:Vector2,end:Vector2) -> void:
+	var ray := PhysicsRayQueryParameters2D.create(global_position,end,1,[get_rid()])
+	if not get_world_2d().direct_space_state.intersect_ray(ray).is_empty(): return
+	var shape := CapsuleShape2D.new()
+	shape.radius = maxf(fist_hand_hit_radius*global_scale.x,1.0)
+	shape.height = start.distance_to(end)+shape.radius*2.0
+	var query := PhysicsShapeQueryParameters2D.new()
+	query.shape = shape
+	query.transform = Transform2D((end-start).angle()-PI*0.5,(start+end)*0.5)
+	query.collision_mask = 2
+	query.exclude = [get_rid()]
+	for result:Dictionary in get_world_2d().direct_space_state.intersect_shape(query,32):
+		if result.collider is ball: _on_fist_area_entered(result.collider.self_hurtbox)
 
 func _begin_fist_return(attack_local:Vector2) -> void:
 	_set_fist_strike_active(false)
 	_fist_return_from = attack_local
 
 func _on_fist_area_entered(area:Area2D) -> void:
-	if not _fist_strike_active or not is_multiplayer_authority() or is_damage_output_disabled():
+	if not _hand_window_active or _returning or not is_combat_runtime_active() or not _fist_strike_active or not is_multiplayer_authority() or is_damage_output_disabled():
 		return
 	if not area is hurtbox:
 		return
@@ -440,6 +506,8 @@ func _on_fist_area_entered(area:Area2D) -> void:
 		and target.Team == Team
 	):
 		return
+	var sight := PhysicsRayQueryParameters2D.create(global_position,target.global_position,1,[get_rid()])
+	if not get_world_2d().direct_space_state.intersect_ray(sight).is_empty(): return
 	var target_id:int = target.get_instance_id()
 	if _fist_hit_targets.has(target_id):
 		return
@@ -463,6 +531,7 @@ func _on_fist_area_entered(area:Area2D) -> void:
 			)
 
 func _finish_fist_cycle() -> void:
+	_fist_phase = -1.0
 	_set_fist_strike_active(false)
 	_fist_busy = false
 	_fist_target_id = 0
@@ -472,7 +541,7 @@ func _finish_fist_cycle() -> void:
 	_ensure_fist_chain_state(rest)
 	if not _fist_chain_points.is_empty():
 		_apply_fist_geometry(_fist_chain_points[_fist_chain_points.size() - 1],_fist_chain_points)
-	_set_fist_visible(true)
+	_set_fist_visible(_hand_window_active)
 
 func _reset_fist_after_return() -> void:
 	_set_fist_strike_active(false)

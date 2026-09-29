@@ -38,10 +38,20 @@ func _ready() -> void:
 func tick_physics(state:State,delta:float) -> void:
 	if is_multiplayer_authority():
 		_ground_bomb_timer_left -= delta
-		if _ground_bomb_timer_left <= 0.0:
+		if _ground_bomb_timer_left <= 0.0 and not is_player_controlled():
 			_ground_bomb_timer_left += maxf(ground_bomb_interval,0.05)
 			_place_ground_bomb()
 	super.tick_physics(state,delta)
+
+
+func controlled_attack_action() -> void:
+	# 左键放置原有地面炸弹；撞上敌人时的附着炸弹仍是碰撞被动。
+	if not is_player_controlled() or not is_multiplayer_authority() or health <= 0 or not is_combat_runtime_active():
+		return
+	if _ground_bomb_timer_left > 0.0:
+		return
+	_ground_bomb_timer_left = maxf(ground_bomb_interval,0.05)
+	_place_ground_bomb()
 
 
 func when_collide(speed:float,collision:KinematicCollision2D) -> void:

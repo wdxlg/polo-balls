@@ -12,6 +12,7 @@ const TERRAIN_HIT_SFX = [
 	preload("res://audio/characters/骷髅/箭击中4.ogg"),
 ]
 const BLAZE_ROD_BLOCK_SFX:AudioStream = preload("res://audio/sfx/防御/BlockAtt.ogg")
+const NEW6_FX = preload("res://scripts/characters/我的世界/new6/fx_burst.gd")
 
 enum ArrowMode { FLYING, STUCK_TERRAIN, EMBEDDED_ENEMY }
 
@@ -32,6 +33,15 @@ var _force_no_friendly_fire:bool = false
 # 弓箭盔甲架使用“普通箭”模式：只造成一次普通伤害，不插入角色、不进入处决控制器；
 # 插墙后也只是视觉残留，触碰没有伤害，等待 terrain_lifetime 后自动消失。
 var _plain_arrow_mode:bool = false
+var _new6_hit_sfx:bool = false
+var _new6_max_dist:float = 0.0
+var _new6_travelled:float = 0.0
+# Opt-in for the new6 bow only; skeleton/armor-stand arrows keep their old motion.
+var _ballistic_enabled:bool = false
+var _ballistic_gravity:float = 0.0
+var _damage_per_speed:float = 0.0
+var _afterimage_speed:float = 0.0
+var _afterimage_elapsed:float = 0.0
 var _embed_parent_ref:WeakRef
 var _embed_target_id:int = 0
 var _embed_local_pose:Transform2D
@@ -73,6 +83,8 @@ func configure(
 	_terrain_lifetime = maxf(terrain_lifetime,0.25)
 	rotation = _direction.angle()
 	_plain_arrow_mode = false
+	_ballistic_enabled = false
+	_afterimage_elapsed = 0.0
 	_configured = true
 
 
@@ -100,7 +112,32 @@ func configure_plain(
 	_plain_arrow_mode = true
 
 
+func configure_ballistics(gravity:float,damage_per_speed:float,afterimage_speed:float) -> void:
+	_ballistic_enabled = true
+	_ballistic_gravity = maxf(gravity,0.0)
+	_damage_per_speed = maxf(damage_per_speed,0.0)
+	_afterimage_speed = maxf(afterimage_speed,1.0)
+	_afterimage_elapsed = 0.0
+	_direct_damage = _speed * _damage_per_speed
+
+
 func _physics_process(delta:float) -> void:
+	if is_queued_for_deletion():
+		return
+	if not _ballistic_enabled or _mode != ArrowMode.FLYING:
+		_step_flight(delta)
+		return
+	# Short swept segments follow the parabola without tunnelling at high speed.
+	var remaining:float = maxf(delta,0.0)
+	while remaining > 0.000001:
+		var step:float = minf(remaining,1.0 / 120.0)
+		_step_flight(step)
+		remaining -= step
+		if is_queued_for_deletion() or _mode != ArrowMode.FLYING or not _configured:
+			break
+
+
+func _step_flight(delta:float) -> void:
 	if _mode == ArrowMode.STUCK_TERRAIN:
 		_terrain_left -= maxf(delta,0.0)
 		if _terrain_left <= 0.0:
@@ -108,13 +145,45 @@ func _physics_process(delta:float) -> void:
 		return
 	if _mode != ArrowMode.FLYING or not is_multiplayer_authority() or not _configured:
 		return
+	var dt:float = maxf(delta,0.0)
 	var start:Vector2 = global_position
-	var finish:Vector2 = start + _direction * _speed * maxf(delta,0.0)
+	var initial_velocity:Vector2 = _direction * _speed
+	var acceleration:Vector2 = Vector2.DOWN * _ballistic_gravity if _ballistic_enabled else Vector2.ZERO
+	var motion:Vector2 = initial_velocity * dt + acceleration * (0.5 * dt * dt)
+	var expires:bool = false
+	if _new6_max_dist > 0.0:
+		var remaining_distance:float = maxf(_new6_max_dist - _new6_travelled,0.0)
+		if remaining_distance <= 0.000001:
+			queue_free()
+			return
+		if motion.length() >= remaining_distance:
+			# Sweep the final in-range segment before expiring; never hit beyond it.
+			var fraction:float = remaining_distance / maxf(motion.length(),0.000001)
+			motion *= fraction
+			dt *= fraction
+			expires = true
+	var finish:Vector2 = start + motion
+	if get_tree().has_group("MinecraftAllay") and load("res://scripts/characters/我的世界/allay/capture.gd").sweep(self,start,finish): return
 	var hit:Dictionary = _raycast_motion(start,finish)
+	var impact:Vector2 = hit.get("position",finish)
+	var travelled:float = start.distance_to(impact)
+	_new6_travelled += travelled if _new6_max_dist > 0.0 else 0.0
+	if _ballistic_enabled:
+		var hit_fraction:float = 1.0 if hit.is_empty() else clampf(travelled / maxf(motion.length(),0.000001),0.0,1.0)
+		var velocity_now:Vector2 = initial_velocity + acceleration * dt * hit_fraction
+		_speed = velocity_now.length()
+		if _speed > 0.000001:
+			_direction = velocity_now / _speed
+			rotation = _direction.angle()
+		# Re-evaluate at impact, not just at release: rising loses damage, falling gains it.
+		_direct_damage = _speed * _damage_per_speed
+	global_position = impact
 	if hit.is_empty():
-		global_position = finish
+		if _ballistic_enabled:
+			_update_afterimage(dt)
+		if expires:
+			queue_free()
 		return
-	global_position = hit.get("position",finish)
 	var collider:Variant = hit.get("collider",null)
 	if _is_blaze_rod(collider):
 		_block_on_blaze_rod(collider,global_position)
@@ -126,12 +195,50 @@ func _physics_process(delta:float) -> void:
 		_apply_damage(target,_direct_damage)
 		if _plain_arrow_mode:
 			# 普通箭只命中一次；不插在敌人身上，因此也永远不会创建 MinecraftArrowWoundController。
+			if _new6_hit_sfx:
+				var src:ball = _source_ball()
+				if src != null:
+					NEW6_FX.hit_sfx(src,global_position,_direct_damage)
 			_configured = false
 			queue_free()
 		else:
 			_request_embed_in_enemy(target)
 		return
 	_stick_to_terrain(collider)
+
+
+func _update_afterimage(delta:float) -> void:
+	if _speed < _afterimage_speed:
+		_afterimage_elapsed = 0.0
+		return
+	var source:ball = _source_ball()
+	if source != null and not source.allows_character_motion_effects():
+		return
+	var density:float = source.get_large_battle_visual_density() if source != null else 1.0
+	var interval:float = 0.025 / clampf(density,0.15,1.0)
+	_afterimage_elapsed += delta
+	if _afterimage_elapsed < interval:
+		return
+	_afterimage_elapsed = fmod(_afterimage_elapsed,interval)
+	var sprite:Sprite2D = get_node_or_null("ArrowSprite") as Sprite2D
+	var world:Node = get_tree().current_scene
+	if sprite == null or world == null:
+		return
+	var ghost:Sprite2D = Sprite2D.new()
+	ghost.texture = sprite.texture
+	ghost.texture_filter = sprite.texture_filter
+	ghost.centered = sprite.centered
+	ghost.offset = sprite.offset
+	ghost.modulate = Color(1.0,1.0,1.0,0.42)
+	ghost.z_index = z_index - 1
+	_runtime_container(world).add_child(ghost)
+	ghost.global_transform = sprite.global_transform
+	ghost.add_to_group("BattleTransient")
+	ghost.add_to_group("BowArrowAfterimage")
+	# Bind to the ghost, not the arrow: impact must not cancel cleanup.
+	var fade:Tween = ghost.create_tween()
+	fade.tween_property(ghost,"modulate:a",0.0,0.16)
+	fade.tween_callback(ghost.queue_free)
 
 
 func _raycast_motion(start:Vector2,finish:Vector2) -> Dictionary:
@@ -268,8 +375,8 @@ func _apply_damage(target:ball,amount:float) -> void:
 		outgoing = minf(outgoing,nonlethal_cap)
 	if outgoing > 0.0:
 		var applied:bool = target.receive_positional_damage(outgoing,global_position,false,source if source != null else self)
-		if applied:
-			# 与女巫药水瓶身命中共用项目现有 Minecraft 受伤反馈。
+		# Native MC sources are handled by the victim; foreign adapters retain legacy audio.
+		if applied and not preload("res://scripts/effects/我的世界/mc_hit_feedback.gd").manages(source if source != null else self):
 			MC_DAMAGE_SFX.play(target,global_position)
 	if _knockback_distance > 0.0:
 		target.apply_knockback(
@@ -316,10 +423,18 @@ func _complete_stick_to_obstacle(obstacle_id:int) -> void:
 
 
 func _play_terrain_hit_sfx(at_position:Vector2) -> void:
+	var source:ball = _source_ball()
+	if _new6_hit_sfx and source != null and source.has_method("play_arrow_terrain_hit"):
+		# The persistent bow owns the RPC; never send RPCs from transient arrows.
+		source.call("play_arrow_terrain_hit",at_position)
+		return
 	if TERRAIN_HIT_SFX.is_empty() or get_tree() == null or get_tree().current_scene == null:
 		return
 	var player := AudioStreamPlayer2D.new()
 	player.stream = TERRAIN_HIT_SFX.pick_random()
+	player.add_to_group("MCArrowTerrainSFX")
+	player.add_to_group("BattleTransient")
+	player.set_meta("mc_sound_event","entity.arrow.hit")
 	player.volume_db = 1.2
 	player.pitch_scale = randf_range(0.97,1.03)
 	player.max_distance = 1200.0

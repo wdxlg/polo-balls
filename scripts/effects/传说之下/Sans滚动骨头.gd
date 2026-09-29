@@ -1,4 +1,5 @@
 extends Node2D
+const PROJECTILE_CONTACT = preload("res://scripts/projectile_contact.gd")
 
 # Sans Boss 特殊化：墙面滚动骨头（V49）
 # - 骨头根部始终插在地图墙线上；骨头本体朝场内伸出。
@@ -122,7 +123,7 @@ func _physics_process(delta:float) -> void:
 	global_position += travel_direction * step
 	_distance_moved += step
 
-	if _distance_moved >= travel_distance:
+	if _should_retire():
 		queue_free()
 		return
 
@@ -152,7 +153,26 @@ func _physics_process(delta:float) -> void:
 		source.call("apply_sans_frame_hit",target,target.global_position,karma_amount)
 
 
+func screen_bounds() -> Rect2:
+	var transform:Transform2D=get_global_transform_with_canvas()
+	var half_width:float=7.0*visual_scale
+	var result:Rect2=Rect2(transform*Vector2(-half_width,-bone_length),Vector2.ZERO)
+	for point:Vector2 in [Vector2(half_width,-bone_length),Vector2(-half_width,0.0),Vector2(half_width,0.0)]:
+		result=result.expand(transform*point)
+	return result
+func _past_screen_exit() -> bool:
+	var bounds:Rect2=screen_bounds()
+	var screen:Rect2=get_viewport_rect().grow(2.0)
+	var direction:Vector2=get_canvas_transform().basis_xform(travel_direction)
+	if absf(direction.x)>=absf(direction.y):
+		return bounds.position.x>screen.end.x if direction.x>0.0 else bounds.end.x<screen.position.x
+	return bounds.position.y>screen.end.y if direction.y>0.0 else bounds.end.y<screen.position.y
+func _should_retire() -> bool:
+	# Reaching the old map-distance limit is not enough while still visible.
+	return _distance_moved>=travel_distance and _past_screen_exit()
+
 func _is_enemy(target:ball) -> bool:
+	if PROJECTILE_CONTACT.ignores(target): return false
 	if target == null or target == source or target.health <= 0:
 		return false
 	if target.has_method("is_combat_targetable") and not target.is_combat_targetable():

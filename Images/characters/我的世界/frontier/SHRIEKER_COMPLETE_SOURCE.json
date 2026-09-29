@@ -1,0 +1,11 @@
+{
+  "issue": "Original arena icon projected a transparent corner-only top texture onto the bottom slab, omitted the raised rim, and covered only a tiny 10x10 inner patch. This left the Shrieker top apparently untextured.",
+  "source": "Pinned Minecraft Bedrock 1.21.5 assets in scripts/training/mc_frontier_assets/resource_pack/textures/blocks/; reference model: Minecraft Java block/template_sculk_shrieker.json",
+  "source_commit": "736072450c26a7c67f07b1661f29d9a5ebaa14b1",
+  "method": "Retain the original 128x128 orthographic camera, lighting and nearest-pixel rasterizer. Project the lower slab at height 0-8 with the full animated inner top and side UV 8-16; project the hollow upper frame at 8-15 with the transparent corner top, outer faces and two interior-facing walls. Preserve transparent pixels and z-buffer occlusion.",
+  "untouched_original": "shrieker_block.png",
+  "untouched_original_sha256": "4bb6f049145d0e5b331ce146e102490e10e42192791a83f47ac637168d26b52f",
+  "output": "shrieker_block_complete.png",
+  "output_sha256": "81ee639263e55036ee3babf4f7fbb6a8cd378f96d0c27a0b191cdd7c1d150d4a",
+  "license_notice": "Derived from Mojang/Microsoft Minecraft textures. Minecraft EULA applies; no separate distribution or commercial rights granted."
+}

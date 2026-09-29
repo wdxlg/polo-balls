@@ -1,0 +1,209 @@
+{
+  "bedrock_commit": "736072450c26a7c67f07b1661f29d9a5ebaa14b1",
+  "java_version": "1.21.5",
+  "java_asset_index_url": "https://piston-meta.mojang.com/v1/packages/2b11bad5dd93d7eae4e86aaafd8029d0dc79bfb8/24.json",
+  "license_notice": "Mojang/Microsoft copyrighted originals and derived renders. Minecraft EULA applies; no separate distribution/commercial rights granted.",
+  "files": [
+    {
+      "path": "LICENSE.md",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/LICENSE.md",
+      "git_sha1": "ed3f1b782fb19fbc5d69f5b1343b056fc23c61fd"
+    },
+    {
+      "path": "resource_pack/models/entity/warden.geo.json",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/models/entity/warden.geo.json",
+      "git_sha1": "467b4cb77dfffa4698122d1d62991f624101e9f9"
+    },
+    {
+      "path": "resource_pack/animations/warden.animation.json",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/animations/warden.animation.json",
+      "git_sha1": "ae68865c5cbe47fd309a3a41a8a2238007e2285d"
+    },
+    {
+      "path": "resource_pack/entity/warden.entity.json",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/entity/warden.entity.json",
+      "git_sha1": "a10bb8ed55f59fe757b3a2b6b5311e8f7c614244"
+    },
+    {
+      "path": "resource_pack/animation_controllers/warden.animation_controllers.json",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/animation_controllers/warden.animation_controllers.json",
+      "git_sha1": "2cb3efd69965a4bd9984d4046ca86d09077e3beb"
+    },
+    {
+      "path": "resource_pack/render_controllers/warden.render_controllers.json",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/render_controllers/warden.render_controllers.json",
+      "git_sha1": "abb6fabce5829936ae7344cc8b55851fcba4ad02"
+    },
+    {
+      "path": "resource_pack/textures/entity/warden/warden.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/entity/warden/warden.png",
+      "git_sha1": "0922fd4f7d7904a99594afed552395391fa59494"
+    },
+    {
+      "path": "resource_pack/textures/entity/warden/warden_bioluminescent_layer.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/entity/warden/warden_bioluminescent_layer.png",
+      "git_sha1": "e91977cd730d4f8e65b61ca3d9ddf110333187f7"
+    },
+    {
+      "path": "resource_pack/textures/entity/warden/warden_heart.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/entity/warden/warden_heart.png",
+      "git_sha1": "4cc449100755ed84ad253840de6473c34f597b60"
+    },
+    {
+      "path": "resource_pack/textures/blocks/moss_block.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/blocks/moss_block.png",
+      "git_sha1": "c949c37c8904986fcf0e90ccfa82385869846023"
+    },
+    {
+      "path": "resource_pack/textures/blocks/sculk_shrieker_side.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/blocks/sculk_shrieker_side.png",
+      "git_sha1": "f6848107689e9295e99402519247b9b86caa9fb0"
+    },
+    {
+      "path": "resource_pack/textures/blocks/sculk_shrieker_top.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/blocks/sculk_shrieker_top.png",
+      "git_sha1": "9532e850328b001c57aca8ec1f8f92d2b365adda"
+    },
+    {
+      "path": "resource_pack/textures/blocks/sculk_shrieker_can_summon_inner_top.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/blocks/sculk_shrieker_can_summon_inner_top.png",
+      "git_sha1": "7109feb5c33baf255045f7be181c078f4ec99235"
+    },
+    {
+      "path": "resource_pack/textures/blocks/sculk_shrieker_bottom.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/blocks/sculk_shrieker_bottom.png",
+      "git_sha1": "a3bf18fee5f4dff722188310a8a8d8cf3eef0739"
+    },
+    {
+      "path": "resource_pack/textures/blocks/crafting_table_top.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/blocks/crafting_table_top.png",
+      "git_sha1": "d69a0b00c840f8b0b897031c49259a97061aeb66"
+    },
+    {
+      "path": "resource_pack/textures/blocks/crafting_table_side.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/blocks/crafting_table_side.png",
+      "git_sha1": "022edff564d7b1b3be0e70cefd5fa4e3e8897276"
+    },
+    {
+      "path": "resource_pack/textures/blocks/planks_oak.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/blocks/planks_oak.png",
+      "git_sha1": "ebe737f434d4390dd89788744ec147c058ba88bd"
+    },
+    {
+      "path": "resource_pack/textures/blocks/grass_carried.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/blocks/grass_carried.png",
+      "git_sha1": "619a1d6ec120026cc9078ad84b8f27034be91f70"
+    },
+    {
+      "path": "resource_pack/textures/items/wood_sword.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/items/wood_sword.png",
+      "git_sha1": "d60a7741d0939e1111975ad116a46cfdde962ca7"
+    },
+    {
+      "path": "resource_pack/textures/items/stick.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/items/stick.png",
+      "git_sha1": "78434e314b29bcfb0538e79bfb14ac6f817fb4ec"
+    },
+    {
+      "path": "resource_pack/textures/items/dye_powder_white.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/items/dye_powder_white.png",
+      "git_sha1": "3407154579cc598153d17a5a1ffb455bee88332f"
+    },
+    {
+      "path": "resource_pack/textures/particle/sonic_explosion.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/particle/sonic_explosion.png",
+      "git_sha1": "8d44a83f800deddc88421419ef4fb66b37492d14"
+    },
+    {
+      "path": "java_sounds/shrieker.ogg",
+      "source_key": "minecraft/sounds/block/sculk_shrieker/shriek1.ogg",
+      "url": "https://resources.download.minecraft.net/55/556028a3bbc4dba60b0d05c85530ca588c9086e8",
+      "sha1": "556028a3bbc4dba60b0d05c85530ca588c9086e8",
+      "cue": "shrieker"
+    },
+    {
+      "path": "java_sounds/emerge.ogg",
+      "source_key": "minecraft/sounds/mob/warden/emerge.ogg",
+      "url": "https://resources.download.minecraft.net/1d/1dc49c965c586bdfe2f8d990c141384a47dcda44",
+      "sha1": "1dc49c965c586bdfe2f8d990c141384a47dcda44",
+      "cue": "emerge"
+    },
+    {
+      "path": "java_sounds/sonic_charge.ogg",
+      "source_key": "minecraft/sounds/mob/warden/sonic_charge1.ogg",
+      "url": "https://resources.download.minecraft.net/5b/5bf38da0a281f7f9f0db9109f2155e4484abe404",
+      "sha1": "5bf38da0a281f7f9f0db9109f2155e4484abe404",
+      "cue": "sonic_charge"
+    },
+    {
+      "path": "java_sounds/sonic_boom.ogg",
+      "source_key": "minecraft/sounds/mob/warden/sonic_boom1.ogg",
+      "url": "https://resources.download.minecraft.net/2f/2f812473b307c7586e3760ed8c4b800b8802e2c7",
+      "sha1": "2f812473b307c7586e3760ed8c4b800b8802e2c7",
+      "cue": "sonic_boom"
+    },
+    {
+      "path": "java_sounds/warden_hit.ogg",
+      "source_key": "minecraft/sounds/mob/warden/attack_impact_1.ogg",
+      "url": "https://resources.download.minecraft.net/93/93d5a2d83f36efd582d31630801cd96c70c60715",
+      "sha1": "93d5a2d83f36efd582d31630801cd96c70c60715",
+      "cue": "warden_hit"
+    },
+    {
+      "path": "java_sounds/warden_hurt.ogg",
+      "source_key": "minecraft/sounds/mob/warden/hurt_1.ogg",
+      "url": "https://resources.download.minecraft.net/48/48d5f752564c3f6b9f04157f1faf134a831ee1c9",
+      "sha1": "48d5f752564c3f6b9f04157f1faf134a831ee1c9",
+      "cue": "warden_hurt"
+    },
+    {
+      "path": "java_sounds/warden_dig.ogg",
+      "source_key": "minecraft/sounds/mob/warden/dig.ogg",
+      "url": "https://resources.download.minecraft.net/a2/a21e17aa9da8aae598db112329ef0e08cd272b77",
+      "sha1": "a21e17aa9da8aae598db112329ef0e08cd272b77",
+      "cue": "warden_dig"
+    },
+    {
+      "path": "java_sounds/moss.ogg",
+      "source_key": "minecraft/sounds/block/moss/break1.ogg",
+      "url": "https://resources.download.minecraft.net/a0/a0f85922a40f928d450f846340e63071d3c65293",
+      "sha1": "a0f85922a40f928d450f846340e63071d3c65293",
+      "cue": "moss"
+    },
+    {
+      "path": "java_sounds/break.ogg",
+      "source_key": "minecraft/sounds/random/break.ogg",
+      "url": "https://resources.download.minecraft.net/8a/8abcbed843fff26146330dde170862e64b8491ab",
+      "sha1": "8abcbed843fff26146330dde170862e64b8491ab",
+      "cue": "break"
+    },
+    {
+      "path": "java_sounds/craft.ogg",
+      "source_key": "minecraft/sounds/random/anvil_use.ogg",
+      "url": "https://resources.download.minecraft.net/f7/f789417f40eee40b4d8ae6422d78f0ce06a94211",
+      "sha1": "f789417f40eee40b4d8ae6422d78f0ce06a94211",
+      "cue": "craft"
+    },
+    {
+      "path": "java_sounds/minecart.ogg",
+      "source_key": "minecraft/sounds/minecart/base.ogg",
+      "url": "https://resources.download.minecraft.net/18/1838caa64fbc7b6ac410af7ce816352d7909ad68",
+      "sha1": "1838caa64fbc7b6ac410af7ce816352d7909ad68",
+      "cue": "minecart"
+    },
+    {
+      "path": "java_sounds/bonemeal.ogg",
+      "source_key": "minecraft/sounds/item/bonemeal/bonemeal1.ogg",
+      "url": "https://resources.download.minecraft.net/36/36bc5d9141cf26819f795772caaf69bbe213fc1e",
+      "sha1": "36bc5d9141cf26819f795772caaf69bbe213fc1e",
+      "cue": "bonemeal"
+    },
+    {
+      "path": "java_sounds/compost.ogg",
+      "source_key": "minecraft/sounds/block/composter/ready1.ogg",
+      "url": "https://resources.download.minecraft.net/6c/6c605ff79d8c1e30e52127138627e49ed2190e73",
+      "sha1": "6c605ff79d8c1e30e52127138627e49ed2190e73",
+      "cue": "compost"
+    }
+  ]
+}

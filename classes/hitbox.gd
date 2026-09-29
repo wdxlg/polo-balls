@@ -76,7 +76,7 @@ func try_hit_hurtbox(hurt:hurtbox) -> bool:
 		return false
 
 	var attacker:ball = _combat_owner_from_hitbox()
-	if attacker == null:
+	if attacker == null or attacker.is_queued_for_deletion() or bool(attacker.get_meta("allay_captured",false)):
 		return false
 
 	# V245 盾狗铁丝网：环境受击区只接收“攻击命中通知”，绝不成为 ball 战斗目标。
@@ -134,6 +134,10 @@ func try_hit_hurtbox(hurt:hurtbox) -> bool:
 		and not source_team.is_empty()
 		and source_team == target_team
 	):
+		return false
+
+	# 皓宸复制品链（任务10）：复制品及其投射物/召唤物永不伤害皓宸一方，与队友伤害设置无关。
+	if target.has_method(&"is_guarded_from_friendly_copy") and bool(target.call(&"is_guarded_from_friendly_copy",self)):
 		return false
 
 	var target_id:int = target.get_instance_id()

@@ -44,7 +44,7 @@ func _ready() -> void:
 
 func attack_damage(multiplier:float = 1.0) -> float:
 	return maxf(snow_attack,0.0)*maxf(multiplier,0.0)
-func is_damage_output_disabled() -> bool: return environment!="snow"
+func is_damage_output_disabled() -> bool: return false # Residual snow/cold stays valid after weather is switched off.
 func is_combat_runtime_active() -> bool:
 	if get_tree()==null or get_tree().paused or Game.now_stop_state or Engine.time_scale<=0.000001: return false
 	return bool(world.is_combat_runtime_active()) if world.has_method("is_combat_runtime_active") else true
@@ -68,7 +68,20 @@ func refresh_layout(force:bool = false) -> void:
 		environment = choice
 		if is_instance_valid(field) and not field.is_queued_for_deletion():
 			field.wall_view.set_weather(false)
-			field.clear_environment()
+			var map:Node = world._current_map_node()
+			if is_instance_valid(map):
+				var key:String = str(world.now_choose_map)
+				var walls:Array[Rect2] = _wall_regions(map)
+				if is_multiplayer_authority():
+					field.refresh_grid(true)
+					if key!=_map_key:
+						field.clear_environment()
+						_seed = -1
+					field.reconcile_environment(world.map_island_rects(map),walls)
+				_map_key = key
+				if field.wall_view.visual_walls!=walls:
+					field.wall_view.visual_walls = walls.duplicate()
+					field.wall_view.request_update()
 		_ground_candidates.clear()
 		_wall_candidates.clear()
 		return
@@ -79,15 +92,12 @@ func refresh_layout(force:bool = false) -> void:
 	if replaced: field = FIELD.ensure(self,world)
 	field.environment_source = self
 	field.wall_view.set_weather(true)
-	if force or replaced or previous!=choice: field.wall_view.reset_weather(_weather_seed())
+	if force or replaced: field.wall_view.reset_weather(_weather_seed())
 	if not field._development_start_offsets.is_empty(): return # Same field moves existing snow with the maps.
 	var map_node:Node = world._current_map_node()
 	if not is_instance_valid(map_node): return
+	field.refresh_grid(true)
 	var ground:Array[Rect2] = world.map_island_rects(map_node)
-	if not ground.is_empty():
-		var weather_region:Rect2 = ground[0]
-		for region:Rect2 in ground: weather_region = weather_region.merge(region)
-		field.wall_view.weather_bounds = weather_region.grow(FIELD.CELL*8.0)
 	var walls:Array[Rect2] = _wall_regions(map_node)
 	if field.wall_view.visual_walls!=walls:
 		field.wall_view.visual_walls = walls.duplicate()
@@ -95,7 +105,7 @@ func refresh_layout(force:bool = false) -> void:
 	if not is_multiplayer_authority(): return # Only rendering follows local theme; clients never generate gameplay.
 	var key:String = str(world.now_choose_map)
 	var seed_value:int = _weather_seed()
-	var restart:bool = force or replaced or previous!=choice or key!=_map_key or seed_value!=_seed
+	var restart:bool = force or replaced or key!=_map_key or seed_value!=_seed
 	if restart:
 		field.clear_environment()
 		field.wall_view.reset_weather(seed_value)
@@ -103,7 +113,10 @@ func refresh_layout(force:bool = false) -> void:
 		_map_key = key
 		_rng.seed = _seed
 		_snow_left = FIRST_SNOW_DELAY
-	if restart or ground!=_ground or walls!=_walls:
+	elif previous!=choice:
+		# Reversing weather preserves its current opacity/time; only generation restarts.
+		_snow_left = FIRST_SNOW_DELAY
+	if restart or previous!=choice or ground!=_ground or walls!=_walls:
 		_ground = ground.duplicate()
 		_walls = walls.duplicate()
 		field.reconcile_environment(_ground,_walls)
@@ -132,19 +145,23 @@ func _wall_regions(map_node:Node) -> Array[Rect2]:
 func _rebuild_candidates() -> void:
 	_ground_candidates.clear()
 	_wall_candidates.clear()
+	if _ground.is_empty(): return
+	# Exactly the same actual map-block grid is used by golem trails.
+	field.refresh_grid()
+	var size:Vector2 = field.grid_size
+	var origin:Vector2 = field.grid_origin
 	var candidates:Dictionary = {}
-	# Geometry coverage, not the union's outer rectangle: holes/portal gaps stay empty.
 	var total_area:float = 0.0
 	for rect:Rect2 in _ground: total_area += rect.get_area()
-	var stride:int = maxi(1,int(ceil(sqrt(total_area/(FIELD.CELL*FIELD.CELL*MAX_CANDIDATES)))))
+	var stride:int = maxi(1,int(ceil(sqrt(total_area/(size.x*size.y*MAX_CANDIDATES)))))
 	for rect:Rect2 in _ground:
-		var low:=Vector2i((rect.position/FIELD.CELL-Vector2.ONE*0.5).ceil())
-		var high:=Vector2i((rect.end/FIELD.CELL+Vector2.ONE*0.5).floor())
-		for y:int in range(low.y,high.y+1,stride):
-			for x:int in range(low.x,high.x+1,stride):
-				var cell:=Vector2i(x,y)
+		var low:=Vector2i(((rect.position-origin)/size).floor())
+		var high:=Vector2i(((rect.end-origin)/size).ceil())
+		for y:int in range(low.y,high.y,stride):
+			for x:int in range(low.x,high.x,stride):
+				var footprint:=Rect2(origin+Vector2(x,y)*size,size)
+				var cell:=Vector2i((footprint.get_center()/size).floor())
 				if candidates.has(cell): continue
-				var footprint:=Rect2(FIELD.point_at(cell)-Vector2.ONE*FIELD.CELL*0.5,Vector2.ONE*FIELD.CELL)
 				if not GEOMETRY.subtract([footprint],_ground).is_empty(): continue
 				var touches_wall:bool = false
 				for wall:Rect2 in _walls:
@@ -152,21 +169,21 @@ func _rebuild_candidates() -> void:
 						touches_wall = true
 						break
 				if touches_wall: continue
-				candidates[cell] = {"cell":cell,"decorative":false,"rects":[footprint]}
+				candidates[cell] = {"cell":cell,"decorative":false,"tile":footprint,"rects":[footprint]}
 	for record:Dictionary in candidates.values():
 		if not field.environment_patches.has(record.cell): _ground_candidates.append(record)
 	var wall_cells:Dictionary = {}
 	for rect:Rect2 in _walls:
-		var low:=Vector2i((rect.position/FIELD.CELL-Vector2.ONE*0.5).floor())
-		var high:=Vector2i((rect.end/FIELD.CELL+Vector2.ONE*0.5).ceil())
-		for y:int in range(low.y,high.y+1):
-			for x:int in range(low.x,high.x+1):
-				var cell:=Vector2i(x,y)
+		var low:=Vector2i(((rect.position-origin)/size).floor())
+		var high:=Vector2i(((rect.end-origin)/size).ceil())
+		for y:int in range(low.y,high.y):
+			for x:int in range(low.x,high.x):
+				var footprint:=Rect2(origin+Vector2(x,y)*size,size)
+				var cell:=Vector2i((footprint.get_center()/size).floor())
 				if candidates.has(cell): continue
-				var footprint:=Rect2(FIELD.point_at(cell)-Vector2.ONE*FIELD.CELL*0.5,Vector2.ONE*FIELD.CELL)
 				var clipped:Rect2 = footprint.intersection(rect)
-				if clipped.size.x<1.0 or clipped.size.y<1.0: continue
-				if not wall_cells.has(cell): wall_cells[cell] = {"cell":cell,"decorative":true,"rects":[]}
+				if clipped.size.x<0.01 or clipped.size.y<0.01: continue
+				if not wall_cells.has(cell): wall_cells[cell] = {"cell":cell,"decorative":true,"tile":footprint,"rects":[]}
 				wall_cells[cell].rects.append(clipped)
 	for record:Dictionary in wall_cells.values():
 		if not field.environment_patches.has(record.cell): _wall_candidates.append(record)
@@ -182,12 +199,13 @@ func _shuffle(values:Array) -> void:
 
 func _spawn_from(candidates:Array[Dictionary]) -> bool:
 	if not is_instance_valid(field) or field.is_queued_for_deletion() or field.environment_patches.size()>=MAX_PATCHES: return false
+	if candidates.is_empty(): _rebuild_candidates() # Melted positions can receive fresh snow indefinitely.
 	var attempts:int = 0
 	while not candidates.is_empty() and attempts<32:
 		attempts += 1
 		var record:Dictionary = candidates.pop_back()
 		if field.environment_patches.has(record.cell): continue
-		if not bool(record.decorative) and not field.can_place(null,record.cell,false): continue
+		if not bool(record.decorative) and not field.can_place_environment(record): continue
 		return field.add_environment_patch(self,record)
 	return false
 
@@ -206,7 +224,7 @@ func draw_selected_event() -> String:
 
 func advance(delta:float) -> void:
 	if not is_finite(delta) or delta<=0.0 or not is_combat_runtime_active(): return
-	if environment=="snow" and is_instance_valid(field) and not field.is_queued_for_deletion():
+	if is_instance_valid(field) and not field.is_queued_for_deletion():
 		field.wall_view.advance_weather(delta) # Local appearance also runs on guests; never sends damage/RPCs.
 	if not is_multiplayer_authority(): return
 	if environment=="snow" and is_instance_valid(field) and not field.is_queued_for_deletion():
@@ -227,4 +245,4 @@ func _physics_process(delta:float) -> void:
 	advance(delta)
 
 func _on_setting_changed(key:String,_value:Variant) -> void:
-	if key=="Environment": refresh_layout(true)
+	if key=="Environment": refresh_layout()

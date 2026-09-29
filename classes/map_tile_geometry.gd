@@ -8,6 +8,21 @@ static func invalidate(layer:TileMapLayer) -> void:
 
 static func from_layer(layer:TileMapLayer) -> Dictionary:
 	if layer == null or layer.tile_set == null: return {"regions":[],"walls":[],"cells":{}}
+	# Runtime Sans arena has no painted cells. Its moving rectangle IS its floor.
+	# Do not cache this by transform: narrowing/extension updates metadata each tick.
+	if layer.has_meta(&"sans_final_rect"):
+		var rect:Rect2=layer.get_meta(&"sans_final_rect")
+		var regions:Array[Rect2]=[]
+		var walls:Array[Rect2]=[]
+		if rect.has_area():
+			regions.append(rect)
+			var cell:Vector2=Vector2(layer.tile_set.tile_size)
+			walls.assign([
+				Rect2(rect.position-cell,Vector2(rect.size.x+2.0*cell.x,cell.y)),
+				Rect2(Vector2(rect.end.x,rect.position.y),Vector2(cell.x,rect.size.y)),
+				Rect2(Vector2(rect.position.x-cell.x,rect.end.y),Vector2(rect.size.x+2.0*cell.x,cell.y)),
+				Rect2(Vector2(rect.position.x-cell.x,rect.position.y),Vector2(cell.x,rect.size.y))])
+		return {"regions":regions,"walls":walls,"cells":{},"stamp":layer.global_transform}
 	var id:int = layer.get_instance_id()
 	var stamp:Transform2D = layer.global_transform
 	if _cache.has(id) and _cache[id].stamp == stamp: return _cache[id]

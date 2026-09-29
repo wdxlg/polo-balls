@@ -50,35 +50,35 @@ func _run() -> void:
 	var wood:Dictionary = {"char":"木剑"}
 	var cow:Dictionary = {"char":"牛"}
 	var pair:Dictionary = data_for([diamond],[wood])
-	check(Naming.title(pair,"zh") == "Mc小球:钻石剑 vs 木剑","Chinese exact requested title")
+	check(Naming.title(pair,"zh") == "钻石剑 vs 木剑","Chinese exact requested title")
 	check(Naming.title(pair,"en") == "Diamond Sword vs Wooden Sword","English uses translated names without a prefix")
 	var counted:Dictionary = data_for([diamond,diamond,diamond],[wood,wood])
-	check(Naming.title(counted,"zh") == "Mc小球:3个钻石剑 vs 2个木剑","Chinese number-before-name quantities")
+	check(Naming.title(counted,"zh") == "3个钻石剑 vs 2个木剑","Chinese number-before-name quantities")
 	check(Naming.title(counted,"en") == "Diamond Sword * 3 vs Wooden Sword * 2","English name-star-number quantities")
 	var mixed:Dictionary = data_for([cow,diamond,cow,cow],[wood,cow])
-	check(Naming.title(mixed,"zh") == "Mc小球:3个牛 + 钻石剑 vs 木剑 + 牛","mixed team aggregates only duplicate names, preserving order")
+	check(Naming.title(mixed,"zh") == "3个牛 + 钻石剑 vs 木剑 + 牛","mixed team aggregates only duplicate names, preserving order")
 	check(Naming.title(mixed,"en") == "Cow * 3 + Diamond Sword vs Wooden Sword + Cow","English mixed team retains single names without times one")
-	check(Naming.title(data_for([cow],[cow]),"zh") == "Mc小球:牛 vs 牛","opposing sides never merged together")
+	check(Naming.title(data_for([cow],[cow]),"zh") == "牛 vs 牛","opposing sides never merged together")
 	var large:Array = []
 	for i:int in range(100): large.append(cow)
-	check(Naming.title(data_for(large,[wood]),"zh") == "Mc小球:100个牛 vs 木剑","large Chinese count remains compact")
+	check(Naming.title(data_for(large,[wood]),"zh") == "100个牛 vs 木剑","large Chinese count remains compact")
 	check(Naming.title(data_for(large,[wood]),"en") == "Cow * 100 vs Wooden Sword","large English count remains compact")
 	var random:Dictionary = {"char":"牛","random_choice":true}
 	var randoms:Dictionary = data_for([random,random,random],[random,random])
-	check(Naming.title(randoms,"zh") == "Mc小球:3个随机人物 vs 2个随机人物","random provenance retained with Chinese quantities")
+	check(Naming.title(randoms,"zh") == "3个随机人物 vs 2个随机人物","random provenance retained with Chinese quantities")
 	check(Naming.title(randoms,"en") == "Random Character * 3 vs Random Character * 2","random provenance retained with English quantities")
-	check(Naming.title(data_for([cow,random,random],[wood]),"zh") == "Mc小球:牛 + 2个随机人物 vs 木剑","manual and random choices remain distinct")
+	check(Naming.title(data_for([cow,random,random],[wood]),"zh") == "牛 + 2个随机人物 vs 木剑","manual and random choices remain distinct")
 	check(Naming.title(data_for([random],[wood]),"en") == "Random Character vs Wooden Sword","single random choice has no redundant count")
 	for mode:String in ["manual","rotation","timed","boss"]:
 		var special:Dictionary = pair.duplicate(true)
 		special.settings = {"Training_Mode_Type":mode,"Training_Mode":true,"Rotation_Match_Type":"challenge","Training_Timed_Duration":60,"Training_Boss_Wheel_Battle":true,"Training_Boss_Multiplier":3}
-		check(Naming.title(special,"zh") == "Mc小球:钻石剑 vs 木剑" and Naming.title(special,"en") == "Diamond Sword vs Wooden Sword","mode does not add a prefix or turn boss HP multiplier into headcount: " + mode)
+		check(Naming.title(special,"zh") == "钻石剑 vs 木剑" and Naming.title(special,"en") == "Diamond Sword vs Wooden Sword","mode does not add a prefix or turn boss HP multiplier into headcount: " + mode)
 	var armor:Dictionary = pair.duplicate(true)
 	armor.armor_test = true
 	armor.armor_role = "烈焰人"
-	check(Naming.title(armor,"zh") == "Mc小球新角色:烈焰人","armor introduction Chinese title uses selected new-role name only")
+	check(Naming.title(armor,"zh") == "烈焰人","armor introduction Chinese title uses selected new-role name only")
 	check(Naming.title(armor,"en") == "Blaze","armor English title is just the translated role name")
-	check(Naming.filename(armor,"zh","STAMP",scratch)=="Mc小球新角色：烈焰人.mp4","armor Windows filename keeps the new-role prefix and safe colon")
+	check(Naming.filename(armor,"zh","STAMP",scratch)=="烈焰人.mp4","armor filename is the role name alone")
 	check(Naming.filename(armor,"en","STAMP",scratch)=="Blaze.mp4","armor English filename has no Chinese prefix or dummy matchup")
 	var saved_armor:String = JSON.stringify(armor)
 	Naming.title(armor,"en")
@@ -88,13 +88,13 @@ func _run() -> void:
 	var long_armor:Dictionary = armor.duplicate(true)
 	long_armor.armor_role = "Role".repeat(60)
 	var short_root:String = "C:/"+"a".repeat(199)
-	check(Naming.filename(long_armor,"zh","STAMP",short_root).begins_with("Mc小球新角色："),"tight paths preserve the entire longer introduction prefix")
-	check(Naming.filename(long_armor,"zh","STAMP","C:/"+"a".repeat(205)).is_empty(),"reject path budget too short to retain new-role prefix and identity hash")
+	check(Naming.filename(long_armor,"zh","STAMP",short_root).begins_with("Role"),"tight paths retain role text and an identity hash")
+	check(Naming.filename(long_armor,"zh","STAMP","C:/"+"a".repeat(208)).is_empty(),"reject path budget too short to retain role text and identity hash")
 	var empty_armor:Dictionary = armor.duplicate(true)
 	empty_armor.armor_role = ""
 	check(Naming.title(empty_armor,"en")=="New Character","missing selected role never promotes the armor stand to the new character")
 
-	check(Naming.title(data_for([]),"zh") == "Mc小球:自由对战" and Naming.title(data_for([]),"en") == "Free Battle","empty matchup has localized fallback")
+	check(Naming.title(data_for([]),"zh") == "自由对战" and Naming.title(data_for([]),"en") == "Free Battle","empty matchup has localized fallback")
 	var empty_group:Dictionary = data_for([])
 	empty_group.groups = [{"team":"","members":[]}]
 	check(Naming.title(empty_group,"en") == "Free Battle","empty group does not create a dangling separator")
@@ -113,13 +113,13 @@ func _run() -> void:
 	check(JSON.stringify(counted) == immutable,"formatting never modifies the snapshot")
 	var zh:String = Naming.filename(counted,"zh","STAMP",scratch)
 	var en:String = Naming.filename(counted,"en","STAMP",scratch)
-	check(zh == "Mc小球：3个钻石剑 vs 2个木剑.mp4","Chinese filename uses Windows-safe colon without timestamp")
+	check(zh == "3个钻石剑 vs 2个木剑.mp4","Chinese filename has no branding prefix or timestamp")
 	check(en == "Diamond Sword ＊ 3 vs Wooden Sword ＊ 2.mp4","English filename uses Windows-safe stars without timestamp")
-	check(Naming.title(counted,"en").contains(" * ") and Naming.title(counted,"zh").begins_with("Mc小球:"),"embedded media title retains the exact ASCII punctuation")
+	check(Naming.title(counted,"en").contains(" * ") and not Naming.title(counted,"zh").begins_with("Mc小球"),"embedded media title retains the exact ASCII punctuation")
 	touch(zh)
 	touch(en)
 	var existing:String = FileAccess.get_file_as_string(scratch.path_join(en))
-	check(Naming.filename(counted,"zh","OTHER",scratch) == "Mc小球：3个钻石剑 vs 2个木剑 (2).mp4","duplicate Chinese recording uses a collision-only number")
+	check(Naming.filename(counted,"zh","OTHER",scratch) == "3个钻石剑 vs 2个木剑 (2).mp4","duplicate Chinese recording uses a collision-only number")
 	check(Naming.filename(counted,"en","OTHER",scratch) == "Diamond Sword ＊ 3 vs Wooden Sword ＊ 2 (2).mp4","duplicate English recording uses a collision-only number")
 	check(FileAccess.get_file_as_string(scratch.path_join(en)) == existing,"old recording is never overwritten by name selection")
 	for suffix:String in [".video.mp4",".audio.f32"]:
@@ -140,7 +140,8 @@ func _run() -> void:
 	for invalid:String in ["<",">",":",'"',"/","\\","|","?","*","\n","\r","\t"]: valid = valid and not safe.contains(invalid)
 	check(valid,"illegal filename characters sanitized without discarding safe Unicode")
 	for reserved:String in ["CON","NUL","PRN","AUX","COM1","LPT9"]:
-		check(Naming.filename(data_for([{"char":reserved}]),"en","STAMP",scratch) == "_" + reserved + ".mp4","prefix-free English names cannot become Windows devices: " + reserved)
+		for language:String in ["zh","en"]:
+			check(Naming.filename(data_for([{"char":reserved}]),language,"STAMP",scratch) == "_" + reserved + ".mp4","prefix-free names cannot become Windows devices: " + language + reserved)
 	var long_data:Dictionary = data_for([{"char":"VeryLongName".repeat(40)}],[wood])
 	var long_name:String = Naming.filename(long_data,"en","STAMP",scratch)
 	check(long_name.length() <= 164 and long_name.contains("~") and long_name.ends_with(".mp4"),"long name retains bounded hash suffix")
@@ -148,16 +149,16 @@ func _run() -> void:
 	other_long.groups[0].members[0].char += "Different"
 	check(Naming.filename(other_long,"en","STAMP",scratch) != long_name,"different truncated matchups keep different hashes")
 	check(Naming.filename(pair,"en","STAMP","C:/" + "a".repeat(225)).is_empty(),"overlong output directory fails safely")
-	check(Naming.filename(pair,"zh","STAMP","C:/" + "a".repeat(206)).is_empty(),"Chinese path budget cannot truncate the required Mc prefix")
-	check(Naming.filename(pair,"zh","STAMP","C:/" + "a".repeat(205)).begins_with("Mc小球："),"tight but valid Chinese path retains the complete prefix")
+	check(Naming.filename(pair,"zh","STAMP","C:/" + "a".repeat(208)).is_empty(),"path too short for role text plus identity hash is rejected")
+	check(not Naming.filename(pair,"zh","STAMP","C:/" + "a".repeat(207)).is_empty(),"tight valid Chinese path no longer reserves unused branding space")
 	# Exercise snapshot source selection and deep copies, not just made-up title data.
 	var fake := SnapshotWorld.new()
 	game.Game_Settings.Training_Mode_Type = "manual"
 	fake._battle_setup = [{"id":1,"team":"A","char":"牛"},{"id":2,"team":"A","char":"牛"},{"id":3,"team":"B","char":"木剑"}]
 	var initial:Dictionary = Naming.snapshot(fake,false)
-	check(Naming.title(initial,"zh") == "Mc小球:2个牛 vs 木剑","initial real schema is counted by team")
+	check(Naming.title(initial,"zh") == "2个牛 vs 木剑","initial real schema is counted by team")
 	fake._battle_setup[0].char = "钻石剑"
-	check(Naming.title(initial,"zh") == "Mc小球:2个牛 vs 木剑","later lineup changes do not rename the frozen recording")
+	check(Naming.title(initial,"zh") == "2个牛 vs 木剑","later lineup changes do not rename the frozen recording")
 	fake._last_battle_setup = fake._battle_setup.duplicate(true)
 	fake._battle_setup.clear()
 	check(Naming.title(Naming.snapshot(fake,true),"en") == "Diamond Sword + Cow vs Wooden Sword","simulated fallback uses the initial saved setup")
@@ -166,7 +167,7 @@ func _run() -> void:
 	check(Naming.title(Naming.snapshot(fake,false),"en") == "Cow * 2 vs Wooden Sword","live-world fallback retains team quantities")
 	game.Game_Settings.Training_Mode_Type = "rotation"
 	fake._rotation_rosters = {"left":[cow,cow],"right":[wood]}
-	check(Naming.title(Naming.snapshot(fake,false),"zh") == "Mc小球:2个牛 vs 木剑","rotation roster uses the same count syntax")
+	check(Naming.title(Naming.snapshot(fake,false),"zh") == "2个牛 vs 木剑","rotation roster uses the same count syntax")
 	fake._rotation_saved_rosters = fake._rotation_rosters.duplicate(true)
 	fake._rotation_rosters = {"left":[],"right":[]}
 	check(Naming.title(Naming.snapshot(fake,true),"en") == "Cow * 2 vs Wooden Sword","saved rotation roster uses translated count syntax")

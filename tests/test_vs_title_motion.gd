@@ -160,6 +160,49 @@ func run() -> void:
 		print("VS_MOTION_RECORD_FRAME ",i," zh_changed=",changed_pixels(copy_base,sample)," en_changed=",changed_pixels(copy_base_en,sample_en)," ",mask_metrics(sample))
 	check(max_copy_changed == 0,"Chinese recorded VS pixels remain stable through camera motion")
 	check(max_copy_changed_en == 0,"English recorded VS pixels remain stable through camera motion")
+	# FOLLOW/FOLLOW_OVERVIEW use zoomed recording canvases. Cross the former
+	# "arena fills title header" threshold and back; neither language may blink.
+	var title_id:int = world.versus_label.get_instance_id()
+	var original_zoom:float = world.toolbar_zoom_multiplier
+	var zoom_overlaps:int = 0
+	world.camera_2d.global_position = center
+	world.camera_2d.offset = Vector2.ZERO
+	for zoom:float in [1.0,1.5,2.0,2.8,4.0,2.0,1.0]:
+		world.toolbar_zoom_multiplier = zoom
+		world._apply_camera_zoom()
+		world.camera_2d.force_update_scroll()
+		sub.canvas_transform = Transform2D.IDENTITY.scaled(Vector2.ONE*0.5)*world.get_viewport().get_canvas_transform()
+		sub_en.canvas_transform = sub.canvas_transform
+		mirror.sync()
+		var title_bottom:float = (mirror.screen_roots["zh"].transform * (world.versus_label.get_global_transform_with_canvas() * Vector2(0.0,world.versus_label.size.y))).y
+		var arena_top:float = (sub.canvas_transform * world.return_map_visual_rect(world._current_map_node()).position).y
+		if arena_top <= title_bottom + maxf(world.map_border_width*0.5,12.0):
+			zoom_overlaps += 1
+		var zh_holder:Node2D = mirror.copies[title_id]["zh"].holder
+		var en_holder:Node2D = mirror.copies[title_id]["en"].holder
+		check(world.versus_label.is_visible_in_tree() and zh_holder.is_visible_in_tree() and en_holder.is_visible_in_tree(),"both recorded VS titles remain visible at zoom "+str(zoom))
+		var zh_frame:PackedByteArray = await capture_white_title(sub)
+		var en_frame:PackedByteArray = await capture_white_title(sub_en)
+		var zh_common:int = 0
+		var en_common:int = 0
+		for i:int in range(copy_base.size()):
+			if copy_base[i] != 0 and zh_frame[i] != 0: zh_common += 1
+			if copy_base_en[i] != 0 and en_frame[i] != 0: en_common += 1
+		print("VS_ZOOM_FRAME zoom=",zoom," arena_top=",arena_top," title_bottom=",title_bottom," zh_common=",zh_common," en_common=",en_common)
+		check(zh_common > 15 and en_common > 15,"actual bilingual video pixels retain the VS glyphs at zoom "+str(zoom))
+	check(zoom_overlaps >= 2,"zoom trajectory crosses the old hide/show threshold and returns")
+	for locale:String in ["zh","en"]:
+		var copy:RichTextLabel = mirror.copies[title_id][locale].text
+		var transform:Transform2D = copy.get_global_transform_with_canvas()
+		var left:Vector2 = transform * Vector2.ZERO
+		var right:Vector2 = transform * Vector2(copy.size.x,0.0)
+		var padding:float = world.versus_screen_side_padding_px * float(sub.size.x) / world.get_viewport_rect().size.x
+		check(left.x >= padding - 1.0 and right.x <= float(sub.size.x) - padding + 1.0,"recorded "+locale+" VS keeps inset margins on both sides")
+	world.versus_label.visible = false
+	mirror.sync()
+	check(not mirror.copies[title_id]["zh"].holder.visible and not mirror.copies[title_id]["en"].holder.visible,"intentional source hiding still hides both mirrors")
+	world.versus_label.visible = true
+	world.toolbar_zoom_multiplier = original_zoom
 	mirror.finish()
 	mirror.queue_free()
 	sub.queue_free()

@@ -130,7 +130,7 @@ func tick_physics(state:State,delta:float) -> void:
 	_hiss_cooldown_left = maxf(_hiss_cooldown_left - delta,0.0)
 	_hiss_empower_left = maxf(_hiss_empower_left - delta,0.0)
 
-	if is_multiplayer_authority():
+	if is_multiplayer_authority() and not is_player_controlled():
 		if _hiss_cooldown_left <= 0.0 and _has_target_in_range(hiss_detect_range):
 			_do_hiss()
 
@@ -138,6 +138,18 @@ func tick_physics(state:State,delta:float) -> void:
 			_do_scratch()
 
 	super.tick_physics(state,delta)
+
+
+func controlled_attack_action() -> void:
+	# 左键抓挠；保留攻击间隔与近距离敌人检测。
+	if is_player_controlled() and is_multiplayer_authority() and health > 0 and not _reviving and is_combat_runtime_active() and _scratch_cooldown_left <= 0.0:
+		_do_scratch()
+
+
+func controlled_skill_action() -> void:
+	# 右键哈气；强化抓挠与击退效果沿用原实现。
+	if is_player_controlled() and is_multiplayer_authority() and health > 0 and not _reviving and is_combat_runtime_active() and _hiss_cooldown_left <= 0.0:
+		_do_hiss()
 
 
 func _on_hitbox_on_hit(hurt:hurtbox) -> void:

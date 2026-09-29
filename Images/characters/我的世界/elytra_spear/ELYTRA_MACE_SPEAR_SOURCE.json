@@ -1,0 +1,7 @@
+{
+  "source": "User-provided 重锤下界合金长矛.png (1280x1280 RGB)",
+  "source_sha256": "382bb1dc10b6c32fe9f54f4e79e16254f8753dc06edddd0317fec4f0974954c0",
+  "processing": "Remove opaque near-white screenshot background and white edge contamination; downsample with BOX to a 128x128 transparent RGBA texture. No redrawing or AI generation.",
+  "output": "elytra_mace_spear.png",
+  "output_sha256": "4cbcd795627a721b8816d622b272c512b1c3cb9dbdeec256354d488e9e799d37"
+}

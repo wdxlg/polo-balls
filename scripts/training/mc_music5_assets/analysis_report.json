@@ -1,0 +1,47 @@
+{
+  "pigstep": {
+    "sha1": "9ffb1791e8aba8f266a673abec1846c3bf8fb8cc",
+    "source_channels": 1,
+    "events": 520,
+    "counts": {
+      "kick": 277,
+      "snare": 243,
+      "hat": 371,
+      "pitched": 386,
+      "sustain": 72,
+      "rest": 0,
+      "strong": 382
+    },
+    "silence_rms": 0.005569093040855278
+  },
+  "otherside": {
+    "sha1": "a5effd79795773422bb4de85841838f3ad9c216d",
+    "source_channels": 1,
+    "events": 784,
+    "counts": {
+      "kick": 438,
+      "snare": 458,
+      "hat": 347,
+      "pitched": 734,
+      "sustain": 163,
+      "rest": 0,
+      "strong": 583
+    },
+    "silence_rms": 0.0061632851041420154
+  },
+  "cat": {
+    "sha1": "d1eb3d2e39bf1f6289cfcbca44e1c9bb508b20f0",
+    "source_channels": 1,
+    "events": 513,
+    "counts": {
+      "kick": 221,
+      "snare": 337,
+      "hat": 137,
+      "pitched": 473,
+      "sustain": 159,
+      "rest": 0,
+      "strong": 361
+    },
+    "silence_rms": 0.005620676866860423
+  }
+}

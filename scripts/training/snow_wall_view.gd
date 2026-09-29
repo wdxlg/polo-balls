@@ -5,12 +5,15 @@ const WALL_RENDERER = preload("res://scripts/effects/我的世界/地图立体�
 const NATIVE_SNOW:Texture2D = preload("res://Images/effects/我的世界/雪环境/snow.png")
 const NATIVE_WEATHER:Texture2D = preload("res://Images/effects/我的世界/雪环境/snowfall.png")
 # Vanilla snow_height2.json: [0,0,0] -> [16,2,16]; side UVs [0,14,16,16].
+const WEATHER_FADE_SECONDS:float = 0.9
 const LAYER_HEIGHT:float = 2.0/16.0
 const SIDE_UV:Vector2 = Vector2(14.0/16.0,1.0)
 const WEATHER_LAYERS:Array[Vector3] = [Vector3(0.9,28,0.34),Vector3(1.4,43,0.50),Vector3(2.0,66,0.62)]
 var field:Node2D
 var visual_walls:Array[Rect2] = []
-var weather_bounds:Rect2
+# A bounded, constant-cost world quad covers every supported pan/zoom and each
+# shared World2D viewport independently; never derive precipitation from the map.
+var weather_bounds:Rect2 = Rect2(-1000000,-1000000,2000000,2000000)
 var weather_enabled:bool = false
 var weather_time:float = 0.0
 var weather_fade:float = 0.0
@@ -33,7 +36,7 @@ func _ready() -> void:
 	# Weather is above the battlefield, below CanvasLayer UI. Wall meshes themselves
 	# stay in the existing background pass (-4), not in this foreground CanvasItem.
 	z_as_relative = false
-	z_index = 8
+	z_index = RenderingServer.CANVAS_ITEM_Z_MAX-1 # Above overhead clouds; below day/night tint and CanvasLayer UI.
 	RenderingServer.frame_pre_draw.connect(_before_draw)
 
 func request_update() -> void:
@@ -43,9 +46,7 @@ func request_update() -> void:
 func set_weather(enabled:bool) -> void:
 	if weather_enabled==enabled: return
 	weather_enabled = enabled
-	if not enabled:
-		weather_time = 0.0
-		weather_fade = 0.0
+	# Toggle only the target; preserve opacity and flake positions on reversal.
 	queue_redraw()
 
 func reset_weather(seed_value:int) -> void:
@@ -57,18 +58,18 @@ func reset_weather(seed_value:int) -> void:
 	request_update()
 
 func advance_weather(delta:float) -> void:
-	if not weather_enabled or not is_finite(delta) or delta<=0.0: return
+	if (not weather_enabled and weather_fade<=0.0) or not is_finite(delta) or delta<=0.0: return
 	# Controller supplies combat delta on every peer, including guests. No wall-clock
 	# TIME shader: pause/zero speed/replay cannot silently advance precipitation.
 	weather_time += delta
-	weather_fade = minf(1.0,weather_fade+delta/0.9)
+	weather_fade = move_toward(weather_fade,1.0 if weather_enabled else 0.0,delta/WEATHER_FADE_SECONDS)
 	queue_redraw()
 
 func _draw() -> void:
-	if not weather_enabled or weather_fade<=0.0 or not weather_bounds.has_area(): return
+	if weather_fade<=0.0 or not weather_bounds.has_area(): return
 	# Tile the untouched vanilla 64x256 weather texture, not hand-drawn snow dots.
-	# World-space sheets cover the arena and its immediate air, so shared World2D
-	# recording/overview viewports see the same moving snow without a screen overlay.
+	# Three world-space sheets cover the entire visible sky, including separate
+	# recording/overview cameras. Geometry stays three quads, not particles per pixel.
 	for i:int in range(WEATHER_LAYERS.size()):
 		var layer:Vector3 = WEATHER_LAYERS[i]
 		var motion:=Vector2(6.0+float(i)*3.0,layer.y)*weather_time
@@ -113,14 +114,20 @@ func _sync_geometry() -> void:
 	for cell:Vector2i in field.environment_patches:
 		var record:Dictionary = field.environment_patches[cell]
 		if not bool(record.decorative): continue
+		var alpha:float = field.snow_alpha(record)
+		if alpha<=0.0: continue
 		var offset:Vector2 = field._development_environment_offsets.get(cell,Vector2.ZERO)
 		for piece:Dictionary in projected_pieces(cell,record):
 			var rect:Rect2 = Rect2(piece.rect.position+offset,piece.rect.size)
-			if seen.has(rect): continue
-			seen[rect] = true
-			pieces.append({"rect":rect,"corner":piece.corner+offset})
+			if seen.has(rect):
+				var previous:int = int(seen[rect])
+				pieces[previous].alpha = maxf(float(pieces[previous].alpha),alpha)
+				continue
+			seen[rect] = pieces.size()
+			pieces.append({"rect":rect,"corner":piece.corner+offset,"tile_size":piece.tile_size,"alpha":alpha})
 	wall_piece_count = pieces.size()
-	_clear_meshes()
+	var reusable:bool = is_instance_valid(mesh_node) and ((is_instance_valid(shared) and renderer==shared) or (not is_instance_valid(shared) and renderer==_overlay_renderer and is_instance_valid(_overlay_renderer)))
+	if not reusable or pieces.is_empty(): _clear_meshes()
 	if pieces.is_empty():
 		_clear_overlay()
 		renderer = null
@@ -137,22 +144,46 @@ func _sync_geometry() -> void:
 			add_child(_overlay_renderer)
 			var world:Node = field.get_parent()
 			var light:Vector2 = world.map_wall_light_direction if world.has_method("_current_map_node") else Vector2(1,-1)
-			_overlay_renderer.configure_surface_overlay(Vector2.ONE*field.CELL,light)
+			_overlay_renderer.configure_surface_overlay(pieces[0].tile_size,light)
 			_overlay_renderer.z_index = int(world.map_border_segment_root.z_index)+1 if world.has_method("_current_map_node") and is_instance_valid(world.map_border_segment_root) else 1
 		renderer = _overlay_renderer
 	snow_base_height = float(renderer.block_height)
-	snow_thickness = field.CELL*LAYER_HEIGHT
+	snow_thickness = 0.0
 	var surface:=SurfaceTool.new()
 	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
 	for piece:Dictionary in pieces:
-		renderer.append_world_cuboid(surface,surface,surface,piece.rect,piece.corner,Vector2.ONE*field.CELL,snow_base_height,snow_thickness,SIDE_UV)
+		# A perceptual opacity ease avoids a bright lit surface staying clipped
+		# white through most of a short fade; full-opacity lighting stays unchanged.
+		var alpha:float = float(piece.alpha)
+		surface.set_color(Color(1,1,1,alpha*alpha))
+		var tile_size:Vector2 = piece.tile_size
+		var thickness:float = minf(tile_size.x,tile_size.y)*LAYER_HEIGHT
+		snow_thickness = maxf(snow_thickness,thickness)
+		renderer.append_world_cuboid(surface,surface,surface,piece.rect,piece.corner,tile_size,snow_base_height,thickness,SIDE_UV)
 	var mesh:ArrayMesh = surface.commit()
-	var material:StandardMaterial3D = renderer._new_material(NATIVE_SNOW)
+	var material:StandardMaterial3D = mesh_node.mesh.surface_get_material(0) if reusable else renderer._new_material(NATIVE_SNOW)
 	material.emission_enabled = false
+	material.vertex_color_use_as_albedo = true
+	# Lit surfaces fade continuously, just like the 2D snow. Back-face culling
+	# prevents rear cube faces from adding opacity back into a half-faded tile.
+	material.cull_mode = BaseMaterial3D.CULL_BACK
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	var shadow_material:StandardMaterial3D = _ground_shadow.material_override if reusable and is_instance_valid(_ground_shadow) else material.duplicate()
+	shadow_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_HASH
 	mesh.surface_set_material(0,material)
+	if reusable:
+		mesh_node.mesh = mesh
+		if is_instance_valid(_floor_shadow):
+			_floor_shadow.mesh = mesh
+			_floor_shadow.material_override = shadow_material
+		if is_instance_valid(_ground_shadow):
+			_ground_shadow.mesh = mesh
+			_ground_shadow.material_override = shadow_material
+		return
 	mesh_node = MeshInstance3D.new()
 	mesh_node.name = "NativeSnowHeight2OnWallTops"
 	mesh_node.mesh = mesh
+	mesh_node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mesh_node.layers = renderer.mesh_node.layers
 	renderer.viewport.add_child(mesh_node)
 	# Same actual mesh casts onto summit's floor pass and the old maps' catcher.
@@ -163,12 +194,14 @@ func _sync_geometry() -> void:
 		_floor_shadow = MeshInstance3D.new()
 		_floor_shadow.name = "SnowLayerShadowForFloorPass"
 		_floor_shadow.mesh = mesh
+		_floor_shadow.material_override = shadow_material
 		_floor_shadow.layers = floor_layer
 		_floor_shadow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
 		mesh_node.add_child(_floor_shadow)
 	_ground_shadow = MeshInstance3D.new()
 	_ground_shadow.name = "SnowLayerShadowForGroundCatcher"
 	_ground_shadow.mesh = mesh
+	_ground_shadow.material_override = shadow_material
 	_ground_shadow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
 	renderer.shadow_viewport.add_child(_ground_shadow)
 
@@ -197,9 +230,10 @@ func _exit_tree() -> void:
 
 func projected_pieces(cell:Vector2i,record:Dictionary) -> Array[Dictionary]:
 	var result:Array[Dictionary] = []
-	var size:Vector2 = Vector2.ONE*field.CELL
+	var tile:Rect2 = field.environment_tile(record)
+	var size:Vector2 = tile.size
 	for original:Rect2 in record.rects:
-		var center:Vector2 = field.point_at(cell)
+		var center:Vector2 = tile.get_center()
 		if visual_walls.is_empty(): continue # No support: no floating decorative snow.
 		# Background style is local. The same replicated record is placed on this
 		# peer's real wall support; this never changes authoritative ground cells.
@@ -211,9 +245,9 @@ func projected_pieces(cell:Vector2i,record:Dictionary) -> Array[Dictionary]:
 			if distance<best:
 				nearest = wall
 				best = distance
-		if best>pow(field.CELL*2.0,2): continue
+		if best>pow(maxf(size.x,size.y)*2.0,2): continue
 		if nearest.size.x>=nearest.size.y: center.y = nearest.get_center().y
 		else: center.x = nearest.get_center().x
 		var rectangle:Rect2 = Rect2(center-size*0.5,size).intersection(nearest)
-		if rectangle.has_area(): result.append({"rect":rectangle,"corner":center-size*0.5})
+		if rectangle.has_area(): result.append({"rect":rectangle,"corner":center-size*0.5,"tile_size":size})
 	return result

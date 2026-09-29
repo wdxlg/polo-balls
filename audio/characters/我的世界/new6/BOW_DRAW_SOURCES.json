@@ -1,0 +1,19 @@
+{
+  "minecraft_version": "1.21.1",
+  "asset_index_url": "https://piston-meta.mojang.com/v1/packages/76d7a97b9e0778fda3b14e474f012450ca0de1bb/17.json",
+  "usage": "Vanilla crossbow loading sounds used for the new6 bow draw; vanilla has no separate normal-bow draw event. Files are unmodified.",
+  "sounds": [
+    {
+      "path": "audio/characters/我的世界/new6/crossbow_loading_start.ogg",
+      "url": "https://resources.download.minecraft.net/07/070f6bd78bcbf7a504a340870c713bfddbe030d6",
+      "sha1": "070f6bd78bcbf7a504a340870c713bfddbe030d6",
+      "asset": "minecraft/sounds/item/crossbow/loading_start.ogg"
+    },
+    {
+      "path": "audio/characters/我的世界/new6/crossbow_loading_middle1.ogg",
+      "url": "https://resources.download.minecraft.net/2f/2f1f5a923c19c6864b3a63f2310b24586eafa7a5",
+      "sha1": "2f1f5a923c19c6864b3a63f2310b24586eafa7a5",
+      "asset": "minecraft/sounds/item/crossbow/loading_middle1.ogg"
+    }
+  ]
+}

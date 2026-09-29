@@ -1,0 +1,47 @@
+{
+  "source_game": "Minecraft Java 1.21.4",
+  "definition": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/particles/firework.json",
+  "license": "Mojang/Microsoft Minecraft assets, Minecraft EULA applies; unchanged game textures via versioned mirror.",
+  "files": [
+    {
+      "file": "spark_0.png",
+      "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/particle/spark_0.png",
+      "sha256": "683d658fee68ad73d507efd7018bc87e570e38c6a6ca7f4a7a4e85c432a340de"
+    },
+    {
+      "file": "spark_1.png",
+      "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/particle/spark_1.png",
+      "sha256": "b69253471906f5adb443b724d89579d34a46fc2c5dd37c1ad1146e2ae8ca9bb1"
+    },
+    {
+      "file": "spark_2.png",
+      "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/particle/spark_2.png",
+      "sha256": "2ebcaa2486b0de8f4fef2caf7400deb5f61e5d6aba430716538d92275f507192"
+    },
+    {
+      "file": "spark_3.png",
+      "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/particle/spark_3.png",
+      "sha256": "336bbd8bf661eb032917113e9dbf0ac04653aef202a5b397d5df15f7feb3b460"
+    },
+    {
+      "file": "spark_4.png",
+      "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/particle/spark_4.png",
+      "sha256": "cf9ab0778ff604422b3f6663d66afff001dbf75c453c58bb773a6004af381ff6"
+    },
+    {
+      "file": "spark_5.png",
+      "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/particle/spark_5.png",
+      "sha256": "aaa694f62b5474cf8001692b567270b3a6f860c41acb5242e3e95cab154326c6"
+    },
+    {
+      "file": "spark_6.png",
+      "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/particle/spark_6.png",
+      "sha256": "e6dd439db2474db73a3d6dc5a1496af033e1058f02b0d8738205c469c505d9b9"
+    },
+    {
+      "file": "spark_7.png",
+      "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/particle/spark_7.png",
+      "sha256": "aaa694f62b5474cf8001692b567270b3a6f860c41acb5242e3e95cab154326c6"
+    }
+  ]
+}

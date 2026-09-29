@@ -313,9 +313,11 @@ func _perform_agent_reset() -> void:
 
 
 func _has_property(node:Object,name:String) -> bool:
-	for info:Dictionary in node.get_property_list():
-		if str(info.get("name","")) == name: return true
-	return false
+	# V431 性能：按脚本缓存属性名集合（classes/property_index.gd），不再逐次 get_property_list()。
+	return PROPERTY_INDEX.has_property(node,name)
+
+
+const PROPERTY_INDEX = preload("res://classes/property_index.gd")
 
 
 func _zero_obs() -> Array[float]:

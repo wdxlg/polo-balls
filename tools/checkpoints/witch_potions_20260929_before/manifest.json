@@ -1,0 +1,10 @@
+{
+  "head": "5debfb42d94bacd4690fdf4888870bc1414846d0",
+  "files": {
+    "scripts/characters/我的世界/女巫.gd": "23aacfa472ec2da4fd441510d62dc5f23f68e0c2c24b5846cc79c55ba8f2544d",
+    "scripts/effects/我的世界/女巫药水.gd": "a7cf907f0007dfc66c68aea9a75c449dcf4f388b67494c6b81d29e1643bf971e",
+    "scripts/effects/我的世界/女巫药水效果.gd": "8dfd5b137eada428dbcf57f6c118c64043958fc1fab245eeaa5d3d0da6919f59",
+    "scripts/effects/我的世界/女巫药水区域.gd": "dcb584495db9c5afee7af4a47c5f323de0518167def688b28b179c708781dfd1",
+    "MCP_CONTEXT.md": "556ee3ddf57caf4be96dac6e633bf2a3c5a081efe128a0dde9961a192300281f"
+  }
+}

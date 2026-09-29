@@ -1,6 +1,7 @@
 """Decode physics beacons and native offline PCM; a 40ms/step load must not slow the film."""
 import array,json,math,os,subprocess
 from pathlib import Path
+from recording_filename_check import filename_matches_title
 root=Path(os.environ['APPDATA'])/'Godot/app_userdata/polo_balls/recordings/offline_test'
 m=json.loads((root/'manifest.json').read_text(encoding='utf-8'))
 ffmpeg='C:/ffmpeg/bin/ffmpeg.exe';ffprobe='C:/ffmpeg/bin/ffprobe.exe';checks=0;results=[]
@@ -9,12 +10,13 @@ def check(ok,label):
  checks+=1
  if not ok:raise AssertionError(label)
  print('PASS:',label)
-log=Path('tests/record_offline_gpu.log').read_text(encoding='utf-8')
+log=Path(os.environ.get('BATTLE_RECORD_GPU_LOG','tests/record_offline_gpu.log')).read_text(encoding='utf-8')
 check(m['failures']==0 and f"RECORDING_OFFLINE: {m['checks']} checks / 0 failures" in log and 'SCRIPT ERROR' not in log,'latest offline GPU tests pass')
 for run in m['runs']:
- audio={};flashes={}
+ audio={};flashes={};titles={}
  for lang,path in run['outputs'].items():
-  streams=json.loads(subprocess.check_output([ffprobe,'-v','error','-count_frames','-show_streams','-of','json',path]))['streams']
+  info=json.loads(subprocess.check_output([ffprobe,'-v','error','-count_frames','-show_streams','-show_format','-of','json',path]));streams=info['streams']
+  titles[lang]=info.get('format',{}).get('tags',{}).get('title','')
   v=next(x for x in streams if x['codec_type']=='video');a=next(x for x in streams if x['codec_type']=='audio')
   check((v['width'],v['height'],v['avg_frame_rate'],int(v['nb_read_frames']))==(1080,1920,'60/1',run['frames']),f'{run["delay_ms"]}ms {lang} all full-HD frames encoded')
   check(abs(float(v['duration'])-run['video'])<.001,'container duration equals fixed game-frame count, not wall time')
@@ -55,9 +57,9 @@ for run in m['runs']:
   was=active
  edges=flashes['zh'];sync=[b-f for b,f in zip(beeps,edges)]
  check(len(beeps)==len(edges) and sync and max(abs(t) for t in sync)<.045,'physics-triggered sound and flash stay synchronized in the exported file')
- paths=run['outputs'];check(Path(paths['en']).name.removeprefix('英文_')==Path(paths['zh']).name.removeprefix('中文_'),'only Chinese language prefix differs in filenames')
+ paths=run['outputs'];check(all(filename_matches_title(paths[lang],lang,titles[lang]) for lang in ['zh','en']),'localized filenames match full title metadata and collision numbering')
  results.append({'delay_ms':run['delay_ms'],'wall_seconds':run['wall'],'video_seconds':run['video'],'physics_seconds':run['physics'],'frames':run['frames'],'flash_times':flashes['zh'],'ui_rejection_db':suppression,'audio_samples':run['audio_samples'],'audio_identical':True,'beep_times':beeps,'sync_offsets_seconds':sync})
 check(results[1]['wall_seconds']>2*results[1]['video_seconds'],'slow compute demonstration verified against a real wall clock')
 report={'checks':checks,'failures':0,'gpu_checks':m['checks'],'runs':results}
-Path('tests/recording_offline_validation.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
+Path(os.environ.get('BATTLE_RECORD_MEDIA_REPORT','tests/recording_offline_validation.json')).write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
 print(json.dumps(report));print(f'OFFLINE_MEDIA: {checks} checks / 0 failures')

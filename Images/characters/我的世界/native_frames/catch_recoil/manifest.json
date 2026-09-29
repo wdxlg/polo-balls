@@ -1,0 +1,11 @@
+{
+  "duration": 0.36,
+  "frames": 19,
+  "native_throw_max_x": 49.88852135968379,
+  "catch_peak_grip": [
+    63.7528592950421,
+    75.43915186712691
+  ],
+  "extra_arm_rotation_x": -70.0,
+  "description": "Native right-arm bone recoil; early impact peak, eased neutral recovery"
+}

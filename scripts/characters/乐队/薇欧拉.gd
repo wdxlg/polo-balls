@@ -1,5 +1,6 @@
 extends ball
 
+const PROPERTY_INDEX = preload("res://classes/property_index.gd")
 const TEXT_PROJECTILE_SCRIPT = preload("res://scripts/effects/薇欧拉_文字弹.gd")
 const FIRE_PROJECTILE_SCRIPT = preload("res://scripts/effects/薇欧拉_火焰弹.gd")
 const KEYBOARD_SUPPORT_SCENE:PackedScene = preload("res://scenes/characters/人物/键盘侠.tscn")
@@ -500,8 +501,9 @@ func _resolve_recording_damage_attacker(source:Node) -> ball:
 	var property_names:Array[String] = [
 		"Master","master","source","Source","owner_ball","Owner","creator","shooter"
 	]
-	for property_info:Dictionary in source.get_property_list():
-		var property_name:String = str(property_info.get("name",""))
+	# V431 性能：按脚本缓存的属性名集合保持与 get_property_list() 相同的声明顺序，
+	# 因此“第一个命中的持有者属性”结果不变。
+	for property_name:String in PROPERTY_INDEX.names(source):
 		if not property_name in property_names:
 			continue
 		var raw:Variant = source.get(property_name)

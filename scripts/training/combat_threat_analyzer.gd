@@ -1,5 +1,7 @@
 extends Node2D
 
+const PROPERTY_INDEX = preload("res://classes/property_index.gd")
+
 # ============================================================
 # 通用战斗威胁抽象层
 # ============================================================
@@ -1401,19 +1403,13 @@ func _is_hostile_ball(entity:ball) -> bool:
 
 
 func _property_names(node:Object) -> Dictionary:
-	var result:Dictionary = {}
-	if node == null or not is_instance_valid(node):
-		return result
-	for info:Dictionary in node.get_property_list(): result[str(info.get("name",""))]=true
-	return result
+	# V431 性能：每次扫描对全场每个角色 get_property_list() 是分析器最大的开销；
+	# 现在按脚本共享只读属性名集合（本文件只读取 props，不修改）。
+	return PROPERTY_INDEX.names(node)
 
 
 func _has_property(node:Object,name:String) -> bool:
-	if node == null or not is_instance_valid(node):
-		return false
-	for info:Dictionary in node.get_property_list():
-		if str(info.get("name","")) == name: return true
-	return false
+	return PROPERTY_INDEX.has_property(node,name)
 
 
 func _draw() -> void:

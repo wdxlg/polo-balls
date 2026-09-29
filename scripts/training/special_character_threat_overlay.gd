@@ -386,7 +386,8 @@ func _variant_vec2(value:Variant,fallback:Vector2) -> Vector2:
 
 
 func _has_property(object:Object,property_name:String) -> bool:
-	for info:Dictionary in object.get_property_list():
-		if str(info.get("name","")) == property_name:
-			return true
-	return false
+	# V431 性能：按脚本缓存属性名集合（classes/property_index.gd），不再逐次 get_property_list()。
+	return PROPERTY_INDEX.has_property(object,property_name)
+
+
+const PROPERTY_INDEX = preload("res://classes/property_index.gd")

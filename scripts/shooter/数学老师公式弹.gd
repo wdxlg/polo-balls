@@ -33,6 +33,7 @@ var path_end_distance:float = 720.0
 
 
 func configure(owner_node:Node,config:Dictionary,is_authority:bool) -> void:
+	add_to_group("AllayExtendedProjectile")
 	owner_teacher = owner_node
 	authoritative_logic = is_authority
 	travel_origin = config.get("origin",global_position)
@@ -67,6 +68,7 @@ func _physics_process(delta:float) -> void:
 	var previous:Vector2 = global_position
 	traveled_x += travel_speed * delta
 	var next_pos:Vector2 = travel_origin + forward * traveled_x + lateral * _curve_y(traveled_x)
+	if get_tree().has_group("MinecraftAllay") and load("res://scripts/characters/我的世界/allay/capture.gd").sweep(self,previous,next_pos): return
 	var motion:Vector2 = next_pos - previous
 	var facing_angle:float = motion.angle() if motion.length_squared() > 0.000001 else rotation
 

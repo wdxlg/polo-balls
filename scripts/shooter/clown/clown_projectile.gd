@@ -1,4 +1,5 @@
 extends ball
+const PROJECTILE_CONTACT = preload("res://scripts/projectile_contact.gd")
 
 # 小丑专用投射物 V9.3：
 # 0 玩具锤 / 1 狙击弹 / 2 火箭 / 3 回旋镖
@@ -154,6 +155,7 @@ func tick_physics(state:State,delta:float) -> void:
 
 	var before_move:Vector2 = global_position
 	super(state,delta)
+	if is_queued_for_deletion() or bool(get_meta("allay_captured",false)): return
 
 	# 狙击弹速度很高，额外做一次“上一帧位置 -> 当前帧位置”的线段扫掠，
 	# 避免只靠 Area2D 离散重叠时从小球中间穿过去。
@@ -209,6 +211,7 @@ func _swept_sniper_hit(start:Vector2,finish:Vector2) -> void:
 		if not node is ball:
 			continue
 		var target:ball = node as ball
+		if PROJECTILE_CONTACT.ignores(target): continue
 		if not bool(Master.call("_can_damage_ball",target)):
 			continue
 
@@ -238,7 +241,7 @@ func _on_hitbox_on_hit(hurt:hurtbox) -> void:
 	if exploded:
 		return
 	var target:ball = _hurtbox_target_ball(hurt)
-	if target == null:
+	if target == null or PROJECTILE_CONTACT.ignores(target):
 		return
 	if not is_instance_valid(Master):
 		return
@@ -260,6 +263,7 @@ func _on_hitbox_on_hit(hurt:hurtbox) -> void:
 
 
 func _try_boomerang_hit(target:ball,damage_space:Variant = null) -> bool:
+	if PROJECTILE_CONTACT.ignores(target): return false
 	if target == null or not is_instance_valid(target):
 		return false
 	if not is_instance_valid(Master):
@@ -314,6 +318,7 @@ func _swept_boomerang_hit(start:Vector2,finish:Vector2) -> void:
 		if not node is ball:
 			continue
 		var target:ball = node as ball
+		if PROJECTILE_CONTACT.ignores(target): continue
 		if not bool(Master.call("_can_damage_ball",target)):
 			continue
 
@@ -379,6 +384,7 @@ func _damage_target(
 	ignore_armor:bool,
 	damage_space:Variant = null
 ) -> void:
+	if PROJECTILE_CONTACT.ignores(target): return
 	if not is_instance_valid(Master):
 		return
 	if not Master.has_method("_clown_damage_target"):

@@ -1,0 +1,48 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/我的世界/皓宸.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/皓宸/皓宸.png" id="3_face"]
+
+[sub_resource type="SceneReplicationConfig" id="HaochenEnergyState"]
+properties/0/path = NodePath(".:charge_energy")
+properties/0/spawn = true
+properties/0/replication_mode = 1
+properties/1/path = NodePath(".:movement_ratio")
+properties/1/spawn = true
+properties/1/replication_mode = 1
+properties/2/path = NodePath(".:charge_phase")
+properties/2/spawn = true
+properties/2/replication_mode = 2
+properties/3/path = NodePath(".:leader_label")
+properties/3/spawn = true
+properties/3/replication_mode = 2
+properties/4/path = NodePath(".:completed_copies")
+properties/4/spawn = true
+properties/4/replication_mode = 2
+
+[node name="皓宸" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+Type_Tags = PackedStringArray("我的世界", "特殊", "召唤")
+Max_health = 400
+Damage = 24
+Speed = 120.0
+Health_Restore = 0
+Has_Collision_Damage = false
+Can_Attack = false
+Can_Skill = false
+motion_blur_enabled = false
+
+[node name="Image" parent="Graphics" index="0"]
+texture = ExtResource("3_face")
+texture_filter = 1
+
+[node name="CharacterAutoFit" parent="."]
+visual_size_multiplier = 0.5
+collision_min_size = Vector2(80, 80)
+
+[node name="HaochenEnergySync" type="MultiplayerSynchronizer" parent="."]
+replication_interval = 0.1
+replication_config = SubResource("HaochenEnergyState")
+
+[editable path="Health_Bar"]

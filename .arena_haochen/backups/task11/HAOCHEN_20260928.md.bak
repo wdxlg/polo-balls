@@ -1,0 +1,107 @@
+# 皓宸 2026-09-28 验证记录
+
+引擎：`E:/steam/steamapps/common/Godot Engine/godot.windows.opt.tools.64.exe`（4.7.2.stable.steam），用 `Start-Process -Wait` 并加 `--log-file`（GUI 版直接重定向拿不到输出）。
+
+| 测试 | 模式 | 结果 |
+|---|---|---|
+| `tests/test_haochen.gd` | headless | 46/46 通过（含新增：施放起手播放原版 prepare_summon、施放中不逐帧重播） |
+| `tests/test_haochen_reuse.gd` | headless | 14/14 通过（骰子旧复制契约、苦力怕条几何不变） |
+| `tests/test_haochen_network.gd` | headless，真实双 ENet 端 | 20/20 + 最终清理 21/21 通过 |
+| `tests/test_haochen_visual_audio.gd` | 窗口/GPU | 11/11 通过（真实灰度像素、共享条像素、原版粒子可见、GameplayRecord 实际 PCM） |
+| `tests/verify_combat_classification_registry.py` | 静态 | 皓宸相关无缺失/过期；退出码 1 来自其他工作未登记的 5 个 JJK 脚本和 `mc_hit_feedback.gd` |
+
+本轮改动：`haochen/audio.gd` 新增 `copy_start` 事件；`皓宸.gd::_begin_copy` 在确认施放后调用一次；`SOURCE.json` 登记原始文件与 sha256；`test_haochen.gd` 新增 2 项断言。
+
+边界：未跑完整对局穷举，也未跑多角色组合实战；ENet 测试是同一进程内的双端，不是两台机器。
+
+局部恢复：本轮修改前的 4 个文件备份在 `.arena_haochen/backup_before_copy_start/`（不入库）。提交情况见最终报告。
+
+## 第二轮：头像笑脸 + 复制连线粒子
+
+| 测试 | 模式 | 结果 |
+|---|---|---|
+| `tests/test_haochen.gd` | headless | 53/53（新增：蓄能笑脸、离开恢复普通脸、施放中保持笑脸、连线端点、端点跟随移动的被复制者、原版粒子位于连线上并流入皓宸、完成后恢复普通脸） |
+| `tests/test_haochen_network.gd` | 双 ENet 端 | 23/23 + 最终 24/24（新增：客户端收到权威连线端点、双端同时笑脸、客户端本地绘制连线粒子） |
+| `tests/test_haochen_reuse.gd` / `test_haochen_visual_audio.gd` | headless / GPU | 14/14、11/11 |
+| `tests/test_haochen_face_link_gpu.gd`（新增） | GPU | 3/3：头像 64px 满格（2 倍战场比例）、普通脸 0 个红色嘴部像素 / 笑脸 130 个、两人之间 100 个紫色粒子像素 |
+
+真实渲染截图（本机 user:// 目录）：`haochen_face_normal_gpu.png`、`haochen_face_laugh_gpu.png`、`haochen_copy_link_gpu.png`。
+
+边界：未跑完整对局实战；GPU 测试在独立 SubViewport 中，只验证头像和粒子本身。
+
+## 第三轮：体型减半 + 粒子在实战中可见
+
+用户反馈“人物太大、特效完全没看到”。在真实 World/地图/相机的主窗口截图中确认：自动适配把头像最长边拉到标准 205（≈ 苦力怕宽度两倍）；蓄能期间完全没有粒子，施放 0.65 秒的连线只有零星小点。修复见 `docs/HAOCHEN.md`（AutoFit 0.5、碰撞 90×84、蓄能粒子流、连线加密加大）。
+
+| 测试 | 模式 | 结果 |
+|---|---|---|
+| `tests/test_haochen_real_battle_gpu.gd`（新增） | GPU 主窗口、真实 World 物理 | 5/5：最长边 102.5、碰撞 90×84、真实蓄能时敌人→皓宸粒子流、施放时连线 ≥30 颗（实测 54）、真实物理完成复制 |
+| `test_haochen` / `reuse` / `network` / `visual_audio` / `face_link_gpu` | — | 53/53、14/14、23+24、11/11、3/3 |
+
+截图：本机 user:// 下 `haochen_real_{charging,copying,after}.png` 及 `_crop` 版本。边界：仍非完整多人对局。
+
+## 第四轮：完整头部正面 + 灵魂粒子
+
+用户指出头像缺少刘海等突出部分、特效不合适且少。头像改为原版外层 9/8 倍渲染（见 `docs/HAOCHEN.md`）；按用户选择，全部特效改为原版灵魂粒子，并补齐蓄能身上、满条爆发、复制品出现三个时刻。
+
+| 测试 | 结果 |
+|---|---|
+| `test_haochen` | 55/55（新增：蓄能时身上与供能敌人都产生灵魂粒子；灵魂粒子按 soul_0..10 原版顺序；连线粒子为灵魂粒子） |
+| `test_haochen_real_battle_gpu` | 7/7：最长边 102.5、碰撞随完整头像形状约 90×75、蓄能身上灵魂≥3、供能敌人灵魂流入移动中的皓宸、连线≥12、满条爆发≥10、完成复制 |
+| `test_haochen_face_link_gpu` | 3/3（两人之间灵魂像素 326） |
+| `reuse` / `network` / `visual_audio` | 14/14、23+24、11/11 |
+
+素材：官方 1.21.11 client.jar（SHA-1 ba2df812…，下载后校验）中 11 帧 soul 纹理逐字节拷贝，逐帧 SHA-1 与 jar 条目一致。边界：仍非完整多人对局。
+
+## 第五轮：复制品误伤、升腾粒子、蓄能音效、出现音效、血量 800
+
+用户反馈：复制品有时打皓宸；召唤粒子与召唤音效不好看；获得能量期间应有音效；血量改 800。用户在预览中选定：出现粒子“灵魂升腾”、蓄能音 `particle.soul_escape`、出现音 `entity.illusioner.mirror_move`。
+
+| 测试 | 模式 | 结果 |
+|---|---|---|
+| `tests/test_haochen_copy_friendly_sweep.gd`（新增） | headless，全角色 × 两种同队伤害模式 | 修复前 43 个违规来源；修复后 142 个场景共生成 284 个复制品，**0 个**复制品/投射物/召唤物/AOE/后代伤害皓宸，2/2 |
+| `tests/test_haochen_task8.gd`（新增） | GPU | 15/15：血量 800（场景与默认属性）、蓄能期间持续播放 13 个 soul_escape 变体且音高在 0.85–1.15、停止蓄能后不再播放、出现音为 mirror_move、20 个升腾灵魂错开出现（0.7 秒时仍在出现）、只用青白帧 7..10、晚出现的灵魂跟随走开的复制品、宽 22–28 px、结束后全部释放（防误伤由上面的 sweep 验证） |
+| `tests/test_haochen_real_battle_gpu.gd` | GPU 主窗口、真实 World | 9/9（新增：真实战斗中复制品身上可见升腾灵魂 5 个、出现音为 mirror_move） |
+| `test_haochen` / `reuse` / `network` / `visual_audio` / `face_link_gpu` | — | 55/55、14/14、23+24、11/11、3/3 |
+
+实战截图复核：初版从第 5 帧开始，灰色复制品上的棕色帧呈深色团块，于是改为只用第 7..10 帧后重测。截图为本机 user:// 下 `haochen_real_{after,rise}.png`。
+素材：15 个 ogg 从 Mojang 官方资源 CDN 下载，sha1 与 asset index 29 一致，已记录进 `SOURCE.json`（含 sha256）。
+已知：曾有一次 Godot 退出时崩溃（0xC0000005，测试已全部打印通过），重跑正常，属偶发引擎退出问题，与皓宸逻辑无关。
+
+## 第六轮：复制品体型减半 + 出现特效“像素拼身”
+
+用户要求复制品大小减半、出现特效改为“粒子先汇聚成人物再散开”。在动画预览中选定 B“像素拼身”，范围选“身体整体减半（血条保持可读）”。
+
+| 测试 | 模式 | 结果 |
+|---|---|---|
+| `tests/test_haochen_task9.gd`（新增） | GPU | 22/22：真实蓄能→施放知道被复制者与 0.5 体型；苦力怕当前帧变 259 个灰度像素；拼成的人形正好是一半大小；早期仍在飞入；复制品出现前已拼好；出现时闪白并散开；复制品根缩放、碰撞体、受击区、图像都减半，血条保持原大小；拼成的人形与真实复制品位置尺寸一致；碎片自动释放；无源时回退灵魂汇聚；取消施放时散开不闪白；**全角色 143/143 都能用自身像素拼身** |
+| `test_haochen_copy_friendly_sweep` | headless | 284 个半尺寸复制品，0 误伤；尺寸检查 0 异常（3/3） |
+| `test_haochen_network` | 双 ENet 端 | 27/27 + 28/28（新增：客户端请求带 source_name/body_scale、客户端本地绘制汇聚、半尺寸同步到客户端、客户端血条反向放大） |
+| `test_haochen_real_battle_gpu` | GPU 主窗口 | 11/11（新增：实战中像素在出生点汇聚、复制品为原角色一半、出现时像素散开） |
+| `test_haochen` / `reuse` / `task8` / `visual_audio` / `face_link_gpu` | — | 55/55、14/14、8/8（灵魂升腾部分移至 task9 后删除）、11/11、3/3 |
+
+截图复核过程：初版以世界坐标定最小像素格（3px），但 ball 根节点默认 scale 0.2、相机放大，苦力怕只剩 10 块；改为按屏幕像素（2.2px）后为 259 块。汇聚起点、散开速度、重力也改为按人物大小缩放（原先固定距离远超人物尺寸，看起来像满屏灰尘）。飞行中像素放大偏白，以便在草地上可见。截图：本机 user:// 下 `haochen_t9_{1_gathering,2_assembled,3_scatter,4_scatter_late}.png`。
+血条：首版在 _ready 前记录基准，覆盖了 MC 生物自己的 0.9 倍血条；改为只在入树就绪后按其自身缩放反向放大。
+其他：全角色遍历中出现的 slime.gd / world.gd `set_status_image` 报错来自他人未提交代码，与本改动无关。
+
+## 第七轮：复制品不打友军 + 复制品 UI 一起缩小（2026-09-28 任务 10）
+
+用户：“它的复制的东西还是会攻击友军。还有复制的ui也应该一起缩小”。改动前 HEAD `d752d42`。
+
+复现（扩展全角色遍历：复制品旁放一个 Team0 队友假人，记录复制品链对它的伤害与锁定）：修复前队友伤害开启时 34 个角色的复制品伤到队友（溅射/AOE/自身碰撞/投射物，如不坏煎饼、黑帮老大、兔子、炸弹客、恶魂、宿傩…），关闭时仍有 2 个（伪军头子子弹、恶魂火球）；复制品从不主动把队友当目标（公共索敌已排除同队），但 `new5/utils.gd::enemy()` 在开启队友伤害时把队友当敌人，宿傩复制品会锁定队友。
+
+修复：见 `docs/HAOCHEN.md`“复制品也永不伤害/锁定皓宸一方”。UI：删除 `投稿角色工具.gd::apply_character_copy_health_bar_scale`，血条/状态图标随根节点缩小一半。
+
+| 测试 | 模式 | 结果 |
+|---|---|---|
+| `tests/test_haochen_task10.gd`（新增） | headless | 88/88：真实施放的复制品经档案进入守卫组；队友伤害开/关两种下，复制品、其“Ball”默认阵营召唤物、记在皓宸名下的伤害，对队友/队友召唤物/皓宸的 positional、raw/普通 spatial、流血、hitbox 接触全部被拒；复制品/召唤物/流血仍伤敌人；普通队友照原规则；公共索敌助手不选皓宸一方；无阵营时仍不伤皓宸、外人不受保护；血条无反向放大、屏幕上一半大小，状态图标一半 |
+| `test_haochen_copy_friendly_sweep` | headless | 4/4：142 角色×2 模式=284 个真实复制品，**队友 0 伤害 0 锁定**（修复前 36），皓宸 0 伤害，尺寸与血条减半 0 异常 |
+| `test_haochen_task9` | GPU | 23/23（血条改为随复制品减半，新增状态图标减半） |
+| `test_haochen_network` | 双 ENet 端 | 27/27 + 28/28（客户端血条不再反向放大、随复制品减半） |
+| `test_haochen` / `reuse` / `task8` / `real_battle_gpu` / `visual_audio` / `face_link_gpu` | — | 55/55、14/14、8/8、11/11、11/11、3/3 |
+| 公共回归 `test_manual_control_roster_extensions` / `test_slime_family_victory` / `test_void_projectile_contacts` | headless | 71/71、63/63、68/68 |
+
+已知：`test_mc_bat` 12/17（初始血量 5×30、吸血成长、吸血鬼属性、分裂数量），蝙蝠正在被他人改动（大量未跟踪的 `Images/characters/我的世界/蝙蝠/` 资源）；场上无皓宸/复制品时新钩子第一步 `has_group` 即返回，与本改动无关。task8 首次运行 8/8 后引擎退出崩溃 0xC0000005（既往偶发），重跑干净。
+截图：本机 user:// `haochen_t10_ui.png`（原苦力怕 430 血与复制品 215 血标记，后者一半大小）。
+
+入库：仅皓宸专属及本轮前干净的文件；`classes/ball.gd`、`classes/hitbox.gd` 含他人未提交修改，本轮 4 处钩子留在工作区不入库（`new5/utils.gd`、`ai_original_base.gd` 用 `has_method` 调用，缺少钩子时安全退化）。局部恢复：`.arena_haochen/backups/task10/*.bak`（修改前副本）。

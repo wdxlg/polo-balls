@@ -1,0 +1,8 @@
+{
+  "source_url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/misc/enchanted_item_glint.png",
+  "sha256": "99cf0defcbe422c8b91a42886f469d89cfbaba157371d8142d01ba7e8055a631",
+  "source_commit": "736072450c26a7c67f07b1661f29d9a5ebaa14b1",
+  "mask_frames": 115,
+  "method": "native geometry ID/depth render; same original poses and 2/3 scale; existing frames untouched",
+  "license": "Minecraft EULA applies; see ../README.md"
+}

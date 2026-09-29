@@ -94,7 +94,15 @@ func _first_physics_hit() -> Dictionary:
 	query.collide_with_areas = false
 	query.collide_with_bodies = true
 	query.exclude = _friendly_body_rids()
-	return world_2d.direct_space_state.intersect_ray(query)
+	for _attempt:int in range(32):
+		var hit:Dictionary=world_2d.direct_space_state.intersect_ray(query)
+		if hit.is_empty(): return hit
+		var candidate:Node=hit.get("collider")
+		if not is_instance_valid(candidate) or not candidate.has_method("try_full_projectile_dodge") or not bool(candidate.call("try_full_projectile_dodge",self)): return hit
+		var excluded:Array[RID]=query.exclude
+		excluded.append(candidate.get_rid())
+		query.exclude=excluded
+	return {}
 
 func _friendly_body_rids() -> Array[RID]:
 	var out:Array[RID] = []

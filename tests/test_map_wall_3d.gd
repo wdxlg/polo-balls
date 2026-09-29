@@ -69,6 +69,8 @@ func _run() -> void:
 	var world:Node = load("res://scenes/world.tscn").instantiate()
 	world.tree_entered.connect(func(): current_scene = world,CONNECT_ONE_SHOT)
 	root.add_child(world)
+	# Pure map fixture: unrelated character prewarm must not race teardown.
+	if is_instance_valid(world._mc_prewarmer): world._mc_prewarmer.free()
 	world.day_night_cycle.advancing = false # 本测试手动指定太阳方向，冻结自动昼夜。
 	world.now_choose_map = "Map10x10"
 	world.refresh_map_presentation()

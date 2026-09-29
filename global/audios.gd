@@ -33,14 +33,17 @@ var _active_audio_speed_scale:float = 1.0
 # 100 人混战时每物理帧会有 80+ 次碰撞/命中声请求，旧实现每次 new AudioStreamPlayer + queue_free，
 # 树里同时挂着 1100+ 个播放器，音频线程混音 50~70 ms/帧、主线程每帧遍历追踪表也随之膨胀。
 # 同一音源同时叠加超过几层后人耳已无法分辨，因此：同源最多 MAX_VOICES_PER_SOURCE 路，
-# 全局动态播放器最多 MAX_DYNAMIC_VOICES 路，超出的请求直接丢弃；播放完的播放器回收复用。
+# 全局动态播放器最多 MAX_DYNAMIC_VOICES 路；饱和时优先替换同源最旧播放，而不是丢掉新命中。
+# 同帧超额请求仍合并，避免密集碰撞反复重启解码器；播放完的播放器回收复用。
 const MAX_VOICES_PER_SOURCE:int = 6
 const MAX_DYNAMIC_VOICES:int = 64
 const META_DYNAMIC_SOURCE_KEY:StringName = &"_audios_dynamic_source_key"
+const META_DYNAMIC_START_FRAME:StringName = &"_audios_dynamic_start_frame"
 var _dynamic_free_players:Array[AudioStreamPlayer] = []
 var _dynamic_active_count:int = 0
 var _dynamic_active_by_source:Dictionary = {}
 var _dynamic_active_players:Dictionary = {}
+var _dynamic_last_start_frame_by_source:Dictionary = {}
 var _dynamic_reclaim_frame:int = -1
 
 const PREWARMED_PLAYBACK_STREAM = preload("res://classes/prewarmed_audio_stream.gd")
@@ -260,13 +263,23 @@ func _play_sfx_player(source:AudioStreamPlayer,params:Dictionary = {},random:boo
 # 这样每次碰撞拥有完全独立的 playback voice，不受源 Player 的 playing / max_polyphony 影响。
 func _acquire_dynamic_player(source:AudioStreamPlayer) -> AudioStreamPlayer:
 	var source_key:String = _settings_key(source)
+	var frame:int = Engine.get_process_frames()
 	var per_source:int = int(_dynamic_active_by_source.get(source_key,0))
 	if per_source >= MAX_VOICES_PER_SOURCE or _dynamic_active_count >= MAX_DYNAMIC_VOICES:
 		# stop() / stream_paused 不会发 finished；被外部停掉的播放器在这里补回收，再重新判断上限。
 		_reclaim_stopped_dynamic_players()
 		per_source = int(_dynamic_active_by_source.get(source_key,0))
 		if per_source >= MAX_VOICES_PER_SOURCE or _dynamic_active_count >= MAX_DYNAMIC_VOICES:
-			return null
+			# 长音效（含安静的尾段）也一直占用名额。直接拒绝会使持续射击在前六声之后
+			# 成段无声。跨帧的新命中应替换旧播放；同帧已有起音则无需再次抢占。
+			if int(_dynamic_last_start_frame_by_source.get(source_key,-1)) == frame:
+				return null
+			var oldest:AudioStreamPlayer = _find_dynamic_voice_to_replace(source_key,per_source >= MAX_VOICES_PER_SOURCE)
+			if oldest == null:
+				return null
+			oldest.stop()
+			_release_dynamic_player(oldest)
+			per_source = int(_dynamic_active_by_source.get(source_key,0))
 	var sfx:AudioStreamPlayer = null
 	while not _dynamic_free_players.is_empty() and sfx == null:
 		var candidate:AudioStreamPlayer = _dynamic_free_players.pop_back()
@@ -283,10 +296,36 @@ func _acquire_dynamic_player(source:AudioStreamPlayer) -> AudioStreamPlayer:
 	sfx.mix_target = source.mix_target
 	sfx.stream_paused = false
 	sfx.set_meta(META_DYNAMIC_SOURCE_KEY,source_key)
+	sfx.set_meta(META_DYNAMIC_START_FRAME,frame)
 	_dynamic_active_by_source[source_key] = per_source + 1
 	_dynamic_active_count += 1
 	_dynamic_active_players[sfx.get_instance_id()] = source_key
+	_dynamic_last_start_frame_by_source[source_key] = frame
 	return sfx
+
+
+func _find_dynamic_voice_to_replace(source_key:String,same_source_only:bool) -> AudioStreamPlayer:
+	# Dictionary 保持插入顺序；回收会 erase、复用会重新插入，因此最先遇到的是最旧播放。
+	# 全局满时也优先替换同源，尽量不打断其它种类音效。暂停或本帧刚起音的播放不抢占。
+	var frame:int = Engine.get_process_frames()
+	var oldest_other:AudioStreamPlayer = null
+	for raw_id:Variant in _dynamic_active_players:
+		var same_source:bool = str(_dynamic_active_players[raw_id]) == source_key
+		if same_source_only and not same_source:
+			continue
+		var id:int = int(raw_id)
+		if not is_instance_id_valid(id):
+			continue
+		var player:AudioStreamPlayer = instance_from_id(id) as AudioStreamPlayer
+		if player == null or player.stream_paused:
+			continue
+		if int(player.get_meta(META_DYNAMIC_START_FRAME,-1)) == frame:
+			continue
+		if same_source:
+			return player
+		if oldest_other == null:
+			oldest_other = player
+	return oldest_other
 
 
 func _release_dynamic_player(sfx:AudioStreamPlayer) -> void:
@@ -296,10 +335,12 @@ func _release_dynamic_player(sfx:AudioStreamPlayer) -> void:
 		return
 	var source_key:String = str(sfx.get_meta(META_DYNAMIC_SOURCE_KEY))
 	sfx.remove_meta(META_DYNAMIC_SOURCE_KEY)
+	sfx.remove_meta(META_DYNAMIC_START_FRAME)
 	_dynamic_active_players.erase(sfx.get_instance_id())
 	var remaining:int = int(_dynamic_active_by_source.get(source_key,0)) - 1
 	if remaining <= 0:
 		_dynamic_active_by_source.erase(source_key)
+		_dynamic_last_start_frame_by_source.erase(source_key)
 	else:
 		_dynamic_active_by_source[source_key] = remaining
 	_dynamic_active_count = maxi(_dynamic_active_count - 1,0)
@@ -319,15 +360,18 @@ func _reclaim_stopped_dynamic_players() -> void:
 			var lost_key:String = str(_dynamic_active_players[raw_id])
 			_dynamic_active_players.erase(raw_id)
 			var remaining:int = int(_dynamic_active_by_source.get(lost_key,0)) - 1
-			if remaining <= 0: _dynamic_active_by_source.erase(lost_key)
-			else: _dynamic_active_by_source[lost_key] = remaining
+			if remaining <= 0:
+				_dynamic_active_by_source.erase(lost_key)
+				_dynamic_last_start_frame_by_source.erase(lost_key)
+			else:
+				_dynamic_active_by_source[lost_key] = remaining
 			_dynamic_active_count = maxi(_dynamic_active_count - 1,0)
 			continue
 		var player:AudioStreamPlayer = instance_from_id(id) as AudioStreamPlayer
 		if player == null:
 			continue
-		# 暂停中的播放器 playing 仍为 true，不会被误回收。
-		if not player.playing:
+		# 暂停时 playing 也可能为 false，必须显式排除，不能把待恢复的播放当成空闲。
+		if not player.playing and not player.stream_paused:
 			_release_dynamic_player(player)
 
 

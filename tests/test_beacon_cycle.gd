@@ -1,5 +1,6 @@
 extends "res://scripts/training/test_mc_new5.gd"
 const PROFILE=preload("res://scripts/characters/我的世界/wither/beacon_profile.gd")
+const SOUNDS=preload("res://scripts/characters/我的世界/wither/audio.gd")
 const ARTIFACTS:String="user://beacon_emitter/"
 var beacon:Node2D
 var wither:Node2D
@@ -11,6 +12,11 @@ func advance(dt:float) -> void:
 	beacon.clock+=dt
 	beacon.step_mob(dt)
 	beacon._process(0)
+func sound_count(event:String) -> int:
+	var result:int=0
+	for node:Node in world.get_children():
+		if node is AudioStreamPlayer2D and node.stream==SOUNDS.STREAMS[event]: result+=1
+	return result
 func reset_cycle() -> void:
 	beacon.global_position=center+Vector2(0,87.4)
 	beacon.fall_speed=0
@@ -28,6 +34,7 @@ func reset_cycle() -> void:
 func run() -> void:
 	game=root.get_node("Game")
 	saved=game.Game_Settings.duplicate(true)
+	game.Game_Settings.Development_Mode=false
 	game.Game_Settings.Training_Mode=false
 	game.Game_Settings.Training_Mode_Type="manual"
 	game.Game_Settings.Ball_Can_Move=true
@@ -61,6 +68,9 @@ func run() -> void:
 	beacon.global_position=center
 	advance(.5)
 	check(beacon.landed and beacon._activated,"vanilla block lands as a real character")
+	check(not beacon.image.visible and beacon._summon_fx.star.visible and beacon._summon_fx.trail.emitting,"landed Nether Star continues its visible flight and leaves particles before morphing")
+	advance(1.4)
+	check(beacon.image.visible and not beacon._summon_fx.star.visible and not beacon._summon_fx.trail.emitting,"Nether Star trembles, transforms and settles into the block without abandoning physical support")
 	check(beacon.image.texture.resource_path.ends_with("beacon_block/beacon_block.png"),"body uses glass-shell, obsidian-base and inner-core block render")
 	var model:Dictionary=JSON.parse_string(FileAccess.get_file_as_string("res://Images/characters/我的世界/wither/beacon_block/beacon.json"))
 	check(model.elements.size()==3,"original block has all three elements, not the flat core texture")
@@ -81,10 +91,12 @@ func run() -> void:
 	advance(.01)
 	var launch_buff:String=beacon.last_buff
 	check(beacon.warning_left==0 and absf(beacon.firing_left-PROFILE.FIRING)<.0001 and beacon.damage_ticks==0 and enemy.health==hp_before_launch and beacon.BUFFS.has(launch_buff) and launch_buff!="jump_boost" and wither._buff==launch_buff and is_equal_approx(wither._buff_left,6.0),"firing grants only an allowed primary effect before the first damage pulse")
+	check(sound_count("beacon_activate")>0 and sound_count("beacon_power")>0 and beacon._beacon_hum.playing and beacon._beacon_hum.stream.loop,"emission starts activation, power selection and looping ambient together")
 	# A non-default sentinel detects any accidental second application at finish.
 	wither._buff_left=2.0
 	advance(PROFILE.FIRING+.01)
 	check(beacon.beams_fired==1 and beacon.firing_left==0 and beacon.last_buff==launch_buff and wither._buff==launch_buff and is_equal_approx(wither._buff_left,2.0),"ending the beam neither rerolls nor refreshes the launch effect")
+	check(not beacon._beacon_hum.playing and sound_count("beacon_deactivate")>0,"emission end stops the hum and plays deactivation")
 	for dt:float in [1.0/60.0,1.0/30.0,PROFILE.WARNING+PROFILE.FIRING]:
 		reset_cycle()
 		var remaining:float=PROFILE.WARNING+PROFILE.FIRING+.00001

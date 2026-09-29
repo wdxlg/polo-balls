@@ -399,7 +399,8 @@ func _start_transition_visual(request:Dictionary) -> void:
 				str(request.get("team","")),
 				bool(request.get("can_spawn",false)),
 				visual_seed,
-				str(request.get("source_name",""))
+				str(request.get("source_name","")),
+				int(request.get("battle_spawn_ticket",0))
 			)
 		)
 	else:
@@ -428,6 +429,10 @@ func _begin_break(
 	visual_seed:int,
 	source_name:String
 ) -> void:
+	var battle_spawn_ticket:int = 0
+	if can_spawn and is_instance_valid(_world) and not source_name.is_empty():
+		var source:ball = _world.get_node_or_null(NodePath(source_name)) as ball
+		if is_instance_valid(source): battle_spawn_ticket = _world.begin_battle_spawn(source,self)
 	_tile_states[coord] = StoneState.BROKEN
 	_queue_coord_redraw(coord)
 	if can_spawn:
@@ -441,6 +446,7 @@ func _begin_break(
 		"sound_index": sound_index,
 		"visual_seed": visual_seed,
 		"source_name": source_name,
+		"battle_spawn_ticket": battle_spawn_ticket,
 	})
 
 
@@ -450,7 +456,8 @@ func _finish_break(
 	team:String,
 	can_spawn:bool,
 	spawn_seed:int,
-	source_name:String
+	source_name:String,
+	battle_spawn_ticket:int = 0
 ) -> void:
 	if not is_instance_valid(self):
 		return
@@ -459,8 +466,9 @@ func _finish_break(
 	if _transition_sprites.get(coord,null) == sprite:
 		_transition_sprites.erase(coord)
 	if can_spawn:
-		_spawn_silverfish_at(coord,team,spawn_seed,source_name)
+		_spawn_silverfish_at(coord,team,spawn_seed,source_name,battle_spawn_ticket)
 		_pending_spawn_count = maxi(_pending_spawn_count - 1,0)
+	if battle_spawn_ticket > 0 and is_instance_valid(_world): _world.finish_battle_spawn(battle_spawn_ticket)
 
 
 func _clear_old_transition_sprite(coord:Vector2i) -> void:
@@ -568,7 +576,7 @@ func _source_presentation_side_key(source_ball:ball,resolved_team:String) -> Str
 	return ""
 
 
-func _spawn_silverfish_at(coord:Vector2i,team:String,seed_value:int,source_name:String) -> void:
+func _spawn_silverfish_at(coord:Vector2i,team:String,seed_value:int,source_name:String,battle_spawn_ticket:int = 0) -> void:
 	if _world == null or not is_instance_valid(_world):
 		return
 	if _count_active_silverfish() >= MAX_ACTIVE_SILVERFISH:
@@ -583,6 +591,9 @@ func _spawn_silverfish_at(coord:Vector2i,team:String,seed_value:int,source_name:
 		spawned.free()
 		return
 	var new_silverfish:ball = spawned as ball
+	if battle_spawn_ticket > 0 and not _world.apply_battle_spawn_identity(new_silverfish,battle_spawn_ticket):
+		new_silverfish.free()
+		return # Reset/rematch invalidated this delayed hatch.
 
 	# 阵营继续使用 Team + forced_combat_team + Master/Master_name 三重保险。
 	# V82 额外把“比赛阵营”和“顶部 VS 阵营”在生成前写成稳定 metadata：
@@ -606,6 +617,8 @@ func _spawn_silverfish_at(coord:Vector2i,team:String,seed_value:int,source_name:
 		new_silverfish.set_meta(&"forced_combat_team",resolved_team)
 
 	var victory_side_key:String = _source_victory_side_key(source_ball,resolved_team)
+	var identity:Dictionary = new_silverfish.get_meta("battle_lifecycle_identity",{})
+	if not identity.is_empty(): victory_side_key = str(identity.get("victory",victory_side_key))
 	var presentation_side_key:String = _source_presentation_side_key(source_ball,resolved_team)
 	if not victory_side_key.is_empty():
 		new_silverfish.set_meta(&"battle_continuation_victory_side_key",victory_side_key)

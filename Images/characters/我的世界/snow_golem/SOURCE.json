@@ -1,0 +1,789 @@
+{
+  "source": "Mojang/bedrock-samples",
+  "bedrock_commit": "736072450c26a7c67f07b1661f29d9a5ebaa14b1",
+  "source_files": [
+    {
+      "file": "scripts/training/mc_snow_golem_assets/resource_pack/models/entity/snow_golem.v1.0.geo.json",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/models/entity/snow_golem.v1.0.geo.json",
+      "bytes": 1592,
+      "sha256": "79021cd69d095d7785e145449fc822cfb4893a06452d4bd7f99b3c73b4a0614c",
+      "fresh_network_fetch": true
+    },
+    {
+      "file": "scripts/training/mc_snow_golem_assets/resource_pack/animations/snow_golem.animations.v1.0.json",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/animations/snow_golem.animations.v1.0.json",
+      "bytes": 772,
+      "sha256": "56f0efcd04bafc0165b4603703dfd5b2babf1fdd46f9f579c4fc777c96c3bb3f",
+      "fresh_network_fetch": true
+    },
+    {
+      "file": "scripts/training/mc_snow_golem_assets/resource_pack/textures/entity/snow_golem.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/entity/snow_golem.png",
+      "bytes": 703,
+      "sha256": "8233b8e8135b080cfbb3190b3e064fd346397f719ef25f3d661357f5d291a2f9",
+      "fresh_network_fetch": true
+    },
+    {
+      "file": "scripts/training/mc_snow_golem_assets/resource_pack/textures/blocks/snow.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/blocks/snow.png",
+      "bytes": 233,
+      "sha256": "d13cd31720a666ce44f956cd43326e49dd91b6320927a55125b7084b5b58a0da",
+      "fresh_network_fetch": true
+    },
+    {
+      "file": "scripts/training/mc_snow_golem_assets/resource_pack/textures/blocks/pumpkin_face_off.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/blocks/pumpkin_face_off.png",
+      "bytes": 306,
+      "sha256": "8993e19661e39829ec6e126ea3fe97e5e63725c268d0776c3c71ff824087f1aa",
+      "fresh_network_fetch": true
+    },
+    {
+      "file": "scripts/training/mc_snow_golem_assets/resource_pack/textures/blocks/pumpkin_side.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/blocks/pumpkin_side.png",
+      "bytes": 259,
+      "sha256": "4794db787370fd96d9b767600e6b8a678e49683ce2be12b2668ee8e8c11b7cb0",
+      "fresh_network_fetch": true
+    },
+    {
+      "file": "scripts/training/mc_snow_golem_assets/resource_pack/textures/blocks/pumpkin_top.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/blocks/pumpkin_top.png",
+      "bytes": 313,
+      "sha256": "d454f99259a049130e4be02ec3c7a59ccac2d6754c9f5fc1283259e200f05e41",
+      "fresh_network_fetch": true
+    },
+    {
+      "file": "scripts/training/mc_snow_golem_assets/LICENSE.minecraft.md",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/LICENSE.md",
+      "bytes": 222,
+      "sha256": "ca18c0dede68ce24ea1cd6f9df0813579b6f9f979787983a50baec99345f975d",
+      "fresh_network_fetch": true
+    }
+  ],
+  "canvas": [
+    160,
+    224
+  ],
+  "foot_y": 202,
+  "direction_count": 16,
+  "direction_convention": "0=right, increasing clockwise on screen; no runtime horizontal mirror; whole original model yaw, not only head poses",
+  "camera": "Original 30-degree azimuth/12-degree elevation preserved; ground projection inverted to obtain true screen heading.",
+  "frames": [
+    {
+      "index": 0,
+      "screen_degrees": 0.0,
+      "model_yaw_degrees": -119.99999999999999,
+      "projected_forward": [
+        1.0,
+        2.6102854542732295e-17
+      ],
+      "pumpkin": {
+        "path": "Images/characters/我的世界/snow_golem/faces/pumpkin_00.png",
+        "sha256": "80d7a8f44dced57ebc4a6bd292ef36454b57dc69cecbacdc1ce6dad289eaa51f",
+        "bounds": [
+          52,
+          52,
+          108,
+          205
+        ]
+      },
+      "bare": {
+        "path": "Images/characters/我的世界/snow_golem/faces/bare_00.png",
+        "sha256": "b322e4415b368225053a53a707c425c679e52a4fac6f534d3c51b8f4a4012ae0",
+        "bounds": [
+          52,
+          61,
+          108,
+          205
+        ]
+      },
+      "head": {
+        "path": "Images/characters/我的世界/snow_golem/heads/pumpkin_00.png",
+        "sha256": "df97747d4f8b9967dee161fe91954cf839fc58030e421385078ac351c59c5615",
+        "crop": [
+          53,
+          51,
+          107,
+          114
+        ],
+        "center_from_canvas_center": [
+          0.0,
+          -29.5
+        ]
+      }
+    },
+    {
+      "index": 1,
+      "screen_degrees": 22.5,
+      "model_yaw_degrees": -56.654052740990664,
+      "projected_forward": [
+        0.9238795325112868,
+        0.3826834323650898
+      ],
+      "pumpkin": {
+        "path": "Images/characters/我的世界/snow_golem/faces/pumpkin_01.png",
+        "sha256": "acbb6eebc4414ed2c73dcf37720a2a4f3df1dd46bfdcc18f9e0a124f82f361e3",
+        "bounds": [
+          32,
+          50,
+          128,
+          207
+        ]
+      },
+      "bare": {
+        "path": "Images/characters/我的世界/snow_golem/faces/bare_01.png",
+        "sha256": "b7475db70456e446f953a5ac03c3099f524a3c7336967fad70517066874b93ad",
+        "bounds": [
+          32,
+          60,
+          128,
+          207
+        ]
+      },
+      "head": {
+        "path": "Images/characters/我的世界/snow_golem/heads/pumpkin_01.png",
+        "sha256": "dd7c0e6efd1b4652674a2ff19dbd0909ba92f91758a07c47e078728a4f152d9c",
+        "crop": [
+          45,
+          49,
+          115,
+          115
+        ],
+        "center_from_canvas_center": [
+          0.0,
+          -30.0
+        ]
+      }
+    },
+    {
+      "index": 2,
+      "screen_degrees": 45.0,
+      "model_yaw_degrees": -41.74513356975523,
+      "projected_forward": [
+        0.7071067811865477,
+        0.7071067811865475
+      ],
+      "pumpkin": {
+        "path": "Images/characters/我的世界/snow_golem/faces/pumpkin_02.png",
+        "sha256": "29447de0f41aad554a17b98dcaeb2bf46c06483f094993e4b2b6e4122c75a96b",
+        "bounds": [
+          28,
+          51,
+          131,
+          206
+        ]
+      },
+      "bare": {
+        "path": "Images/characters/我的世界/snow_golem/faces/bare_02.png",
+        "sha256": "4faeb10458a5577dc3d47a62d0afcd2a1587fb2d5485e912211747a4f5e16562",
+        "bounds": [
+          28,
+          60,
+          131,
+          206
+        ]
+      },
+      "head": {
+        "path": "Images/characters/我的世界/snow_golem/heads/pumpkin_02.png",
+        "sha256": "66755c80c0a9c9fb2e4d7afa8c04d3f8486f4a537364f039a0b58eca7c556ef2",
+        "crop": [
+          49,
+          50,
+          111,
+          114
+        ],
+        "center_from_canvas_center": [
+          0.0,
+          -30.0
+        ]
+      }
+    },
+    {
+      "index": 3,
+      "screen_degrees": 67.5,
+      "model_yaw_degrees": -34.922158853254196,
+      "projected_forward": [
+        0.3826834323650896,
+        0.9238795325112868
+      ],
+      "pumpkin": {
+        "path": "Images/characters/我的世界/snow_golem/faces/pumpkin_03.png",
+        "sha256": "f552f1a7a133cded04f929c15f6aed275a259245a0b3ea27029aa31b4b69143a",
+        "bounds": [
+          28,
+          52,
+          132,
+          206
+        ]
+      },
+      "bare": {
+        "path": "Images/characters/我的世界/snow_golem/faces/bare_03.png",
+        "sha256": "fadabfa873c8c02de565284bb8982d4887acf1e8a46fb81f34eb06c0bc7aa853",
+        "bounds": [
+          28,
+          61,
+          132,
+          206
+        ]
+      },
+      "head": {
+        "path": "Images/characters/我的世界/snow_golem/heads/pumpkin_03.png",
+        "sha256": "e30f72f136af74283295695923fc5e1919d7e278995b5f0ad439335a8ff3a252",
+        "crop": [
+          51,
+          51,
+          109,
+          114
+        ],
+        "center_from_canvas_center": [
+          0.0,
+          -29.5
+        ]
+      }
+    },
+    {
+      "index": 4,
+      "screen_degrees": 90.0,
+      "model_yaw_degrees": -29.999999999999996,
+      "projected_forward": [
+        -3.5770398684254584e-17,
+        1.0
+      ],
+      "pumpkin": {
+        "path": "Images/characters/我的世界/snow_golem/faces/pumpkin_04.png",
+        "sha256": "ae6a212636c378f60612a43e2e46a41d0c4fba2033345f92d62e1e46dc26f991",
+        "bounds": [
+          28,
+          52,
+          132,
+          205
+        ]
+      },
+      "bare": {
+        "path": "Images/characters/我的世界/snow_golem/faces/bare_04.png",
+        "sha256": "8639b3ecbebd6839145afe5c58d4dcfc39bd98668dfa13260583d99ea9bd7ccf",
+        "bounds": [
+          28,
+          61,
+          132,
+          205
+        ]
+      },
+      "head": {
+        "path": "Images/characters/我的世界/snow_golem/heads/pumpkin_04.png",
+        "sha256": "a03706233223360a64ba8ea7b115bf63f11bf27d3f60d27923a6d180541f3e50",
+        "crop": [
+          53,
+          51,
+          107,
+          114
+        ],
+        "center_from_canvas_center": [
+          0.0,
+          -29.5
+        ]
+      }
+    },
+    {
+      "index": 5,
+      "screen_degrees": 112.5,
+      "model_yaw_degrees": -25.077841146745797,
+      "projected_forward": [
+        -0.3826834323650896,
+        0.9238795325112867
+      ],
+      "pumpkin": {
+        "path": "Images/characters/我的世界/snow_golem/faces/pumpkin_05.png",
+        "sha256": "f970e42e8ad08085ae1a3f9edb7447831033959959fb022a9f1dc03f833a75fa",
+        "bounds": [
+          28,
+          52,
+          132,
+          206
+        ]
+      },
+      "bare": {
+        "path": "Images/characters/我的世界/snow_golem/faces/bare_05.png",
+        "sha256": "8602004d2cbfd99a0bd5b181dd3f2b09a135d4321e67ec9fd416600464de2d61",
+        "bounds": [
+          28,
+          61,
+          132,
+          206
+        ]
+      },
+      "head": {
+        "path": "Images/characters/我的世界/snow_golem/heads/pumpkin_05.png",
+        "sha256": "23f6526df1af47552d3ae37a5f77e258fc39a9c391c4e9e4985c332d7d09c3d0",
+        "crop": [
+          51,
+          51,
+          109,
+          114
+        ],
+        "center_from_canvas_center": [
+          0.0,
+          -29.5
+        ]
+      }
+    },
+    {
+      "index": 6,
+      "screen_degrees": 135.0,
+      "model_yaw_degrees": -18.254866430244764,
+      "projected_forward": [
+        -0.7071067811865474,
+        0.7071067811865476
+      ],
+      "pumpkin": {
+        "path": "Images/characters/我的世界/snow_golem/faces/pumpkin_06.png",
+        "sha256": "66f48e67a72c8577d9a35f660e972bef8fcb9889ad87159e1f0be303504f7777",
+        "bounds": [
+          29,
+          51,
+          132,
+          206
+        ]
+      },
+      "bare": {
+        "path": "Images/characters/我的世界/snow_golem/faces/bare_06.png",
+        "sha256": "a3c1c68dcc66e17152955bd43767ca720c806a7207474a3d8b3cfaf5e56ff617",
+        "bounds": [
+          29,
+          60,
+          132,
+          206
+        ]
+      },
+      "head": {
+        "path": "Images/characters/我的世界/snow_golem/heads/pumpkin_06.png",
+        "sha256": "e07bfd4b5e42cdbc07fb3f4a3d08a3eb92d816a30e102061c95337ee99e7fac8",
+        "crop": [
+          49,
+          50,
+          111,
+          114
+        ],
+        "center_from_canvas_center": [
+          0.0,
+          -30.0
+        ]
+      }
+    },
+    {
+      "index": 7,
+      "screen_degrees": 157.5,
+      "model_yaw_degrees": -3.3459472590093338,
+      "projected_forward": [
+        -0.9238795325112867,
+        0.3826834323650899
+      ],
+      "pumpkin": {
+        "path": "Images/characters/我的世界/snow_golem/faces/pumpkin_07.png",
+        "sha256": "24b7f1bb1a7e5519a2d9baa6ae97821c1e6cf0b53fd917b228a59ac900170cbd",
+        "bounds": [
+          32,
+          50,
+          128,
+          207
+        ]
+      },
+      "bare": {
+        "path": "Images/characters/我的世界/snow_golem/faces/bare_07.png",
+        "sha256": "0d11bc5ebdcf5cff6bbdd86fa5709c9f511bb77c1657951554868efa02400d3e",
+        "bounds": [
+          32,
+          60,
+          128,
+          207
+        ]
+      },
+      "head": {
+        "path": "Images/characters/我的世界/snow_golem/heads/pumpkin_07.png",
+        "sha256": "70d2b07f978b7c946f21a9a5310ff128dc347042ebd0d99ddd2d37c63c23d2f6",
+        "crop": [
+          45,
+          49,
+          115,
+          115
+        ],
+        "center_from_canvas_center": [
+          0.0,
+          -30.0
+        ]
+      }
+    },
+    {
+      "index": 8,
+      "screen_degrees": 180.0,
+      "model_yaw_degrees": 59.99999999999997,
+      "projected_forward": [
+        -1.0,
+        1.3547243593235132e-16
+      ],
+      "pumpkin": {
+        "path": "Images/characters/我的世界/snow_golem/faces/pumpkin_08.png",
+        "sha256": "43a9220b25b1d89b3db256301bb43631311a4786186008b2f624ad858090c598",
+        "bounds": [
+          52,
+          52,
+          108,
+          205
+        ]
+      },
+      "bare": {
+        "path": "Images/characters/我的世界/snow_golem/faces/bare_08.png",
+        "sha256": "e8bc17707bb7641d8e2b16d3ce466a53399bd6b0b2aba03412f489c0ae912e0e",
+        "bounds": [
+          52,
+          61,
+          108,
+          205
+        ]
+      },
+      "head": {
+        "path": "Images/characters/我的世界/snow_golem/heads/pumpkin_08.png",
+        "sha256": "f2d7a59faba4cff3ef86880b79c84672f5c5e444bcb47f35fea3162ff3312ca6",
+        "crop": [
+          53,
+          51,
+          107,
+          114
+        ],
+        "center_from_canvas_center": [
+          0.0,
+          -29.5
+        ]
+      }
+    },
+    {
+      "index": 9,
+      "screen_degrees": 202.5,
+      "model_yaw_degrees": 123.34594725900932,
+      "projected_forward": [
+        -0.9238795325112868,
+        -0.3826834323650895
+      ],
+      "pumpkin": {
+        "path": "Images/characters/我的世界/snow_golem/faces/pumpkin_09.png",
+        "sha256": "1aebb087b877c67aba5ebdf81c71ed6120bdcbd169d999c964d009fdf630b42c",
+        "bounds": [
+          32,
+          50,
+          128,
+          207
+        ]
+      },
+      "bare": {
+        "path": "Images/characters/我的世界/snow_golem/faces/bare_09.png",
+        "sha256": "ff54146129aff44938535ee8b178e04dc916b93a93144b60e3db6b383f4791e7",
+        "bounds": [
+          32,
+          60,
+          128,
+          207
+        ]
+      },
+      "head": {
+        "path": "Images/characters/我的世界/snow_golem/heads/pumpkin_09.png",
+        "sha256": "3e179c01c9ac0773b9368cacdd29624dbb8387cd42f8769ff2b7688d9775ee0d",
+        "crop": [
+          45,
+          49,
+          115,
+          115
+        ],
+        "center_from_canvas_center": [
+          0.0,
+          -30.0
+        ]
+      }
+    },
+    {
+      "index": 10,
+      "screen_degrees": 225.0,
+      "model_yaw_degrees": 138.2548664302448,
+      "projected_forward": [
+        -0.7071067811865474,
+        -0.7071067811865477
+      ],
+      "pumpkin": {
+        "path": "Images/characters/我的世界/snow_golem/faces/pumpkin_10.png",
+        "sha256": "ea38a0b8ada4c303c185f80d3cbda0e6c6be48958d5e7f3b94359f3963806290",
+        "bounds": [
+          28,
+          51,
+          131,
+          206
+        ]
+      },
+      "bare": {
+        "path": "Images/characters/我的世界/snow_golem/faces/bare_10.png",
+        "sha256": "22e27ff2aed973688dd3fb09a23461e0e5fe1089bacb7ce930f5f2efe0b0b9dc",
+        "bounds": [
+          28,
+          60,
+          131,
+          206
+        ]
+      },
+      "head": {
+        "path": "Images/characters/我的世界/snow_golem/heads/pumpkin_10.png",
+        "sha256": "e0b09bca2ed5244db1435403b43287eb0d07c182115e78b27dee9f8f0cf09d13",
+        "crop": [
+          49,
+          50,
+          111,
+          114
+        ],
+        "center_from_canvas_center": [
+          0.0,
+          -30.0
+        ]
+      }
+    },
+    {
+      "index": 11,
+      "screen_degrees": 247.5,
+      "model_yaw_degrees": 145.0778411467458,
+      "projected_forward": [
+        -0.3826834323650902,
+        -0.9238795325112865
+      ],
+      "pumpkin": {
+        "path": "Images/characters/我的世界/snow_golem/faces/pumpkin_11.png",
+        "sha256": "40893f702e7dee51c82174eb11186a3cf3c04229ba53a15a530dd74a4f368a75",
+        "bounds": [
+          28,
+          52,
+          132,
+          206
+        ]
+      },
+      "bare": {
+        "path": "Images/characters/我的世界/snow_golem/faces/bare_11.png",
+        "sha256": "c669f2de776de74d454e826724da2f5dd7beabfedc5f5e0814c4c0d0e915f849",
+        "bounds": [
+          28,
+          61,
+          132,
+          206
+        ]
+      },
+      "head": {
+        "path": "Images/characters/我的世界/snow_golem/heads/pumpkin_11.png",
+        "sha256": "fcd5940df83af7872a11ac14ca9f04a0b8b2259a512ed60a8d03b9267ad47dc6",
+        "crop": [
+          51,
+          51,
+          109,
+          114
+        ],
+        "center_from_canvas_center": [
+          0.0,
+          -29.5
+        ]
+      }
+    },
+    {
+      "index": 12,
+      "screen_degrees": 270.0,
+      "model_yaw_degrees": 150.0,
+      "projected_forward": [
+        3.5770398684254584e-17,
+        -1.0
+      ],
+      "pumpkin": {
+        "path": "Images/characters/我的世界/snow_golem/faces/pumpkin_12.png",
+        "sha256": "b9ef0b4df752965038fd1709b978b08582dee211c3b0b951b94c025fed9691a0",
+        "bounds": [
+          28,
+          52,
+          132,
+          205
+        ]
+      },
+      "bare": {
+        "path": "Images/characters/我的世界/snow_golem/faces/bare_12.png",
+        "sha256": "cd9fa391fa6e7b63dff6a82e558aaed5423ca01d8a1f7e3c372e53acae84daa5",
+        "bounds": [
+          28,
+          61,
+          132,
+          205
+        ]
+      },
+      "head": {
+        "path": "Images/characters/我的世界/snow_golem/heads/pumpkin_12.png",
+        "sha256": "da6c3234a53aa1f4ae7c96394bfeac4cb2a41a51a4c23a36f8fee64a6c39ebd5",
+        "crop": [
+          53,
+          51,
+          107,
+          114
+        ],
+        "center_from_canvas_center": [
+          0.0,
+          -29.5
+        ]
+      }
+    },
+    {
+      "index": 13,
+      "screen_degrees": 292.5,
+      "model_yaw_degrees": 154.92215885325422,
+      "projected_forward": [
+        0.3826834323650899,
+        -0.9238795325112867
+      ],
+      "pumpkin": {
+        "path": "Images/characters/我的世界/snow_golem/faces/pumpkin_13.png",
+        "sha256": "94f8f4a51cfb86e2d20c449ce0144842804db0f390d5415be3db7dab1aa678b4",
+        "bounds": [
+          28,
+          52,
+          132,
+          206
+        ]
+      },
+      "bare": {
+        "path": "Images/characters/我的世界/snow_golem/faces/bare_13.png",
+        "sha256": "0f5e0e94bbd201a0d510646addc3ee66bc1a0970cf835a13eda6678587ff8f5e",
+        "bounds": [
+          28,
+          61,
+          132,
+          206
+        ]
+      },
+      "head": {
+        "path": "Images/characters/我的世界/snow_golem/heads/pumpkin_13.png",
+        "sha256": "914f89702d84e2f5c4f9f3efdfd65de0d5536eb813dcbbd84c8a4514e5c5de8d",
+        "crop": [
+          51,
+          51,
+          109,
+          114
+        ],
+        "center_from_canvas_center": [
+          0.0,
+          -29.5
+        ]
+      }
+    },
+    {
+      "index": 14,
+      "screen_degrees": 315.0,
+      "model_yaw_degrees": 161.74513356975524,
+      "projected_forward": [
+        0.7071067811865472,
+        -0.7071067811865478
+      ],
+      "pumpkin": {
+        "path": "Images/characters/我的世界/snow_golem/faces/pumpkin_14.png",
+        "sha256": "444d0f7a54d001ad8b72f03a4fe8d315c13ddbfaa11d5a1768738f6ac50188b5",
+        "bounds": [
+          29,
+          51,
+          132,
+          206
+        ]
+      },
+      "bare": {
+        "path": "Images/characters/我的世界/snow_golem/faces/bare_14.png",
+        "sha256": "b3f79549ab8bc97cb365f7e6e2e085861d978d8c3c2759e67151a48819073013",
+        "bounds": [
+          29,
+          60,
+          132,
+          206
+        ]
+      },
+      "head": {
+        "path": "Images/characters/我的世界/snow_golem/heads/pumpkin_14.png",
+        "sha256": "bd4581b56b4af54a6439460e05c6fffb878626340a9e5643af587da78d35aadc",
+        "crop": [
+          49,
+          50,
+          111,
+          114
+        ],
+        "center_from_canvas_center": [
+          0.0,
+          -30.0
+        ]
+      }
+    },
+    {
+      "index": 15,
+      "screen_degrees": 337.5,
+      "model_yaw_degrees": 176.65405274099064,
+      "projected_forward": [
+        0.9238795325112866,
+        -0.3826834323650904
+      ],
+      "pumpkin": {
+        "path": "Images/characters/我的世界/snow_golem/faces/pumpkin_15.png",
+        "sha256": "54db2ad973b1af245a16605b38544a2311c674a76dc461d62d788b5ef4535fa8",
+        "bounds": [
+          32,
+          50,
+          128,
+          207
+        ]
+      },
+      "bare": {
+        "path": "Images/characters/我的世界/snow_golem/faces/bare_15.png",
+        "sha256": "662ec06d56526f18f27e2badb0ff5e8fdd5ebca19d1b178657ed506a41e5cb2d",
+        "bounds": [
+          32,
+          60,
+          128,
+          207
+        ]
+      },
+      "head": {
+        "path": "Images/characters/我的世界/snow_golem/heads/pumpkin_15.png",
+        "sha256": "beaf19de96829a82ec3cbe7c9c74d4e71cb4ca12cbe5b161b59988cd0b709b7d",
+        "crop": [
+          45,
+          49,
+          115,
+          115
+        ],
+        "center_from_canvas_center": [
+          0.0,
+          -30.0
+        ]
+      }
+    }
+  ],
+  "preview": {
+    "path": "Images/UI/rotation_frames/snow_golem.png",
+    "sha256": "f552f1a7a133cded04f929c15f6aed275a259245a0b3ea27029aa31b4b69143a"
+  },
+  "wood_break_event": {
+    "url": "https://resources.download.minecraft.net/09/09eab141cce7550f9a74c65db0e9abbb342cf50f",
+    "sha1": "09eab141cce7550f9a74c65db0e9abbb342cf50f",
+    "break": {
+      "sounds": [
+        "dig/wood1",
+        "dig/wood2",
+        "dig/wood3",
+        "dig/wood4"
+      ],
+      "subtitle": "subtitles.block.generic.break"
+    },
+    "place": {
+      "sounds": [
+        "dig/wood1",
+        "dig/wood2",
+        "dig/wood3",
+        "dig/wood4"
+      ],
+      "subtitle": "subtitles.block.generic.place"
+    }
+  },
+  "renderer_sha256": "30eb36e9184998c1bfaef8a234a555ef8f4043181e2b4397efb29f9d4acbb524",
+  "copyright": "Mojang/Microsoft Minecraft assets. Original files and texels, rendered into 2D direction views. No redistribution license is asserted; see LICENSE.minecraft.md.",
+  "supersedes": "Runtime three-look poses in MC_SNOW_GOLEM_ASSETS.json; existing sounds/snow/ice resources remain unchanged."
+}

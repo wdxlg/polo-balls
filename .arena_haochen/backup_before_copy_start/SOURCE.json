@@ -1,0 +1,78 @@
+{
+  "character": "皓宸 / Haochen",
+  "temporary_appearance": {
+    "path": "res://Images/characters/我的世界/唤魔者/唤魔者.png",
+    "provenance": "Existing project Minecraft Evoker portrait, reused without modification as user-authorized temporary art. Not an original Haochen skin."
+  },
+  "charge_start": {
+    "path": "res://audio/characters/我的世界/haochen/charge_start.wav",
+    "original_path": "1_今天搬哪个_(Vocals).wav",
+    "selection": "Explicitly supplied/selected by user for charging start. Moved unchanged; not claimed to be Mojang audio.",
+    "duration_seconds": 2.5541950113378684,
+    "format": "PCM16 stereo44100Hz",
+    "license": "User-provided project asset; no claim of free redistribution."
+  },
+  "other_audio": "Existing original Minecraft Evoker, Enderman teleport and stone-step clips reused in place; no synthesized/re-encoded substitutes.",
+  "particle_implementation": "res://scripts/effects/我的世界/末影粒子.gd",
+  "particle_textures": "Existing Minecraft generic_0..7 portal atlas, unmodified; only engine position/tint/scale parameters differ.",
+  "minecraft_rights": "Minecraft assets belong to Mojang/Microsoft; not represented as freely redistributable.",
+  "minecraft_eula": "https://www.minecraft.net/en-us/eula",
+  "verified_files": {
+    "Images/characters/我的世界/唤魔者/唤魔者.png": {
+      "size": 14642,
+      "sha256": "aeffa645b50e50fe46c523db70828fadfcf5da94d8569e00906324eec022459e"
+    },
+    "audio/characters/我的世界/haochen/charge_start.wav": {
+      "size": 450604,
+      "sha256": "ff7c374a1ab80a8c7181c11dbb6792d45cec341ea2df9bb5e586b9668eb8e08e"
+    },
+    "audio/characters/末影人/enderman.teleport_1.ogg": {
+      "size": 11343,
+      "sha256": "1c49b72d40de158d74c4c0250dc4b2882f6a2ef56ac2248ebec8e5a068fa601e"
+    },
+    "audio/characters/末影人/enderman.teleport_2.ogg": {
+      "size": 8158,
+      "sha256": "e9e763114c674e500c37880fbdf5fa5bdca524f1a79f60ed90755de48bf4faf5"
+    },
+    "audio/characters/我的世界/sulfur_cube/revision/step__stone1.ogg": {
+      "size": 8657,
+      "sha256": "c2df259556168a4ad44ddb739a4e952bf6594c67d2712dc3d9fcde2fbcccf840"
+    },
+    "audio/characters/我的世界/sulfur_cube/revision/step__stone2.ogg": {
+      "size": 7689,
+      "sha256": "f1d9fbcec8ae90466640b48440700e3d75499d73bdc89297939ebc6dc84a896f"
+    },
+    "audio/characters/唤魔者/evoker.ambient_1.ogg": {
+      "size": 9126,
+      "sha256": "7b073018bc2eaebcbf4aee662bd11d2cd9177afda6b0f547088882dbbec0672d"
+    },
+    "audio/characters/唤魔者/evoker.ambient_2.ogg": {
+      "size": 7158,
+      "sha256": "dbc1cbbe7ab2f540a9e94ce5e7cd84697131d9fc5ffd132f94bfc4359d91474f"
+    },
+    "audio/characters/唤魔者/evoker.ambient_3.ogg": {
+      "size": 11692,
+      "sha256": "90092a96def463cb5dcd183cb8ba8987d4c97693959806b71c3056eba1c4fbc9"
+    },
+    "audio/characters/唤魔者/evoker.ambient_4.ogg": {
+      "size": 13370,
+      "sha256": "2357295a55273e6377a382bb25c731745ac3c61882d6e550315f32bdaaae46a5"
+    },
+    "audio/characters/唤魔者/evoker.hurt_1.ogg": {
+      "size": 5565,
+      "sha256": "748a24e8121d5dc7e6569f41df579919964f0c16866c3271da63b9b4fa128ae3"
+    },
+    "audio/characters/唤魔者/evoker.hurt_2.ogg": {
+      "size": 5462,
+      "sha256": "7a7c920c7c35bc0a8d45039dfa33c12f39765296026d19aa70b4921ede96ea07"
+    },
+    "audio/characters/唤魔者/evoker.death_1.ogg": {
+      "size": 7279,
+      "sha256": "ee3852b6d89b9ec3f80023902f74e175539821944f6fc043c3899025567f9b1f"
+    },
+    "audio/characters/唤魔者/evoker.death_2.ogg": {
+      "size": 7987,
+      "sha256": "b24660e51006c4b22583629f08b9a9ee8f3427f19c8c7ed73bf8d2e737804f2b"
+    }
+  }
+}

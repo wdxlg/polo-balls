@@ -6,7 +6,7 @@ const NEW_ROLE_KEYWORDS:Dictionary = {
 	"史莱姆":"分裂", "守卫者":"激光", "恶魂":"不分敌我", "粘性活塞":"黏住",
 	"钓鱼竿":"收回", "蜘蛛":"蛛网", "溺尸":"电网", "悦灵":"音符",
 	"仙人掌":"长高", "唱片机":"声道", "凋灵":"信标", "羊":"吃草",
-	"木船":"载人", "弓":"箭速", "天堂陨落长弓":"裂隙", "钻石长矛":"虚影",
+	"木船":"搭载", "弓":"箭速", "天堂陨落长弓":"裂隙", "钻石长矛":"虚影",
 	"铁傀儡":"村民", "硫方怪":"TNT", "鞘翅重锤":"连砸",
 	"鞘翅长矛":"贯穿", "鞘翅重锤长矛":"连砸",
 }
@@ -26,8 +26,6 @@ func run() -> void:
 	var roles_checked:int = 0
 	var new_roles_checked:int = 0
 	var summaries:Dictionary = world.get_script().get_script_constant_map().get("ARMOR_TEST_ROLE_SUMMARIES",{})
-	var number_pattern := RegEx.new()
-	number_pattern.compile("[0-9０-９%％]")
 	for filename:String in files:
 		if not filename.ends_with(".tscn"): continue
 		var role:String = filename.get_basename()
@@ -40,7 +38,7 @@ func run() -> void:
 				break
 		check(not script_path.is_empty(),role+" scene has a Minecraft role script")
 		if script_path.is_empty(): continue
-		var summary:String = str(summaries.get(script_path,"")).strip_edges()
+		var summary:String = game.t(str(summaries.get(script_path,""))).strip_edges()
 		var has_custom:bool = false
 		if summary.is_empty():
 			has_custom = FileAccess.get_file_as_string(script_path).contains("func get_armor_test_effect_summary(")
@@ -48,7 +46,7 @@ func run() -> void:
 		if NEW_ROLE_KEYWORDS.has(role):
 			new_roles_checked += 1
 			check(summary.contains(str(NEW_ROLE_KEYWORDS[role])),role+" introduces its own mechanic")
-			check(summary.length() <= 90 and number_pattern.search(summary) == null,role+" introduction is concise and number-free")
+			check(summary.length() <= 220,role+" introduction is concise without dropping combat mechanics")
 		roles_checked += 1
 	check(roles_checked >= 42,"all current roster scenes are checked")
 	check(new_roles_checked == NEW_ROLE_KEYWORDS.size(),"all formerly missing roles are present")

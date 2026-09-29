@@ -1,0 +1,32 @@
+{
+  "copyright": "Mojang Studios / Microsoft. Minecraft assets; Minecraft EULA applies. Not original artwork.",
+  "texture_commit": "46ba6ea985fb5a92d79a9419198f10dda14c199d",
+  "sound_version": "Java 1.21.4 official asset index",
+  "processing": "Textures unmodified; worn wings use mirrored AtlasTexture region (34,2,12,20).",
+  "files": [
+    {
+      "path": "Images/characters/我的世界/elytra_mace/elytra.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/46ba6ea985fb5a92d79a9419198f10dda14c199d/resource_pack/textures/models/armor/elytra.png",
+      "sha1": "752e3d62a6694fcc0c2afe5b06a6e2020cff844d",
+      "sha256": "2f9be0c2c2c2273662489d06c72e63c34f48b1aee57259f27c27429499cb4d13"
+    },
+    {
+      "path": "Images/characters/我的世界/elytra_mace/fireworks.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/46ba6ea985fb5a92d79a9419198f10dda14c199d/resource_pack/textures/items/fireworks.png",
+      "sha1": "3a1cc89e2b2d41bd7a784b5274f6f36f7ca29ede",
+      "sha256": "33eff346d4de6c0cf8a39fc2117a2392da85c58356f7d011c7f0f5bbf8f3c79b"
+    },
+    {
+      "path": "audio/characters/我的世界/elytra_mace/launch.ogg",
+      "url": "https://resources.download.minecraft.net/9d/9d1ba828a27b2a6b5be6b97e4d6b554db885cb08",
+      "sha1": "9d1ba828a27b2a6b5be6b97e4d6b554db885cb08",
+      "sha256": "25dc188ddaeab5589f532e53e47d5882681a47a8c7a76078765cf670aacbda8e"
+    },
+    {
+      "path": "audio/characters/我的世界/elytra_mace/elytra_loop.ogg",
+      "url": "https://resources.download.minecraft.net/75/75c3df1293a7a559a780b47d2f9e630e7b0a46ff",
+      "sha1": "75c3df1293a7a559a780b47d2f9e630e7b0a46ff",
+      "sha256": "efb0bd08ff7df12dbad2e2d0931da7bb229c5bfb919db8396e8245dfad8eee18"
+    }
+  ]
+}

@@ -1,6 +1,8 @@
 extends ball
+const PROJECTILE_API = preload("res://classes/projectile_interactions.gd")
 
 const ELECTRIC_BALL_SCENE:PackedScene = preload("res://scenes/shooter/磁铁_电球.tscn")
+const PROPERTY_INDEX = preload("res://classes/property_index.gd")
 
 @export_category("磁铁 - 外观")
 @export var attraction_texture:Texture2D
@@ -85,30 +87,29 @@ func _set_character_texture(texture:Texture2D) -> void:
 
 
 func _apply_magnetic_field(delta:float) -> void:
-	# 不依赖某一种子弹脚本。Ball 型投射物、军火商/猎人这类 Area2D 弹丸、
-	# 以及其它带 direction + speed 的 BattleTransient 都可以进入磁场。
 	var candidates:Dictionary = {}
-	for group_name:String in ["Ball","ArmsDealerProjectile","HunterPellet","BattleTransient","MagnetElectricBall"]:
-		for node:Node in get_tree().get_nodes_in_group(group_name):
-			if node != null and is_instance_valid(node):
-				candidates[node.get_instance_id()] = node
+	for node:Node in PROJECTILE_API.candidates(get_tree()):
+		candidates[node.get_instance_id()] = node
 
 	for key:Variant in candidates:
 		var projectile:Node = candidates[key]
 		if projectile == null or not is_instance_valid(projectile) or projectile == self:
+			continue
+		# V431 性能：先做最便宜的“是不是 Node2D / 在不在影响半径内”过滤，再做分组与属性判定。
+		# 这些判定都没有副作用，顺序调整不改变结果；地图上绝大多数节点都在半径之外。
+		if not projectile is Node2D:
+			continue
+		var projectile_2d:Node2D = projectile as Node2D
+		var center_to_projectile:Vector2 = projectile_2d.global_position - global_position
+		var distance:float = center_to_projectile.length()
+		if distance > influence_radius:
 			continue
 		var projectile_id:int = projectile.get_instance_id()
 		if _orbiting_projectiles.has(projectile_id):
 			continue
 		if projectile.has_meta("_magnet_orbit_owner") and int(projectile.get_meta("_magnet_orbit_owner",0)) != get_instance_id():
 			continue
-		if not _is_magnetic_projectile(projectile) or not projectile is Node2D:
-			continue
-
-		var projectile_2d:Node2D = projectile as Node2D
-		var center_to_projectile:Vector2 = projectile_2d.global_position - global_position
-		var distance:float = center_to_projectile.length()
-		if distance > influence_radius:
+		if not _is_magnetic_projectile(projectile):
 			continue
 
 		if _pulling:
@@ -301,97 +302,29 @@ func _node_from_instance_id(instance_id_value:int) -> Node:
 
 
 func _is_magnetic_projectile(projectile:Node) -> bool:
-	if projectile == null or not is_instance_valid(projectile) or projectile == self:
-		return false
-	if projectile.is_in_group("MagnetElectricBall"):
-		return true
-	if projectile is ball:
-		var projectile_ball:ball = projectile as ball
-		# 只吸真正的 Shooter / Shooter_with_Health，不会把人物或召唤生物本身吸走。
-		return projectile_ball.Type == ball.Ball_Type.Shooter or projectile_ball.Type == ball.Ball_Type.Shooter_with_Health
-	if projectile.is_in_group("ArmsDealerProjectile") or projectile.is_in_group("HunterPellet"):
-		return true
-	# 兜底给未来新增的 BattleTransient：只要它本身是会飞的 Node2D，
-	# 并暴露方向与速度字段，就自动兼容磁场，不需要再把脚本路径写死。
-	if projectile.is_in_group("BattleTransient"):
-		return _has_direction_property(projectile) and _has_speed_property(projectile)
-	return false
-
+	return projectile != self and PROJECTILE_API.supports(projectile,"redirect")
 
 func _has_direction_property(projectile:Node) -> bool:
-	return _object_has_property(projectile,"direction") or _object_has_property(projectile,"travel_direction") or _object_has_property(projectile,"velocity")
-
+	return PROJECTILE_API.supports(projectile,"redirect")
 
 func _has_speed_property(projectile:Node) -> bool:
-	return _object_has_property(projectile,"Speed") or _object_has_property(projectile,"speed") or _object_has_property(projectile,"projectile_speed") or _object_has_property(projectile,"velocity")
-
+	return PROJECTILE_API.supports(projectile,"redirect")
 
 func _projectile_direction(projectile:Node) -> Vector2:
-	for property_name:String in ["direction","travel_direction"]:
-		if _object_has_property(projectile,property_name):
-			var value:Variant = projectile.get(property_name)
-			if typeof(value) == TYPE_VECTOR2:
-				return value
-	if _object_has_property(projectile,"velocity"):
-		var velocity_value:Variant = projectile.get("velocity")
-		if typeof(velocity_value) == TYPE_VECTOR2:
-			var velocity_vector:Vector2 = velocity_value
-			if velocity_vector.length_squared() > 0.000001:
-				return velocity_vector.normalized()
-	return Vector2.ZERO
-
+	return PROJECTILE_API.direction_of(projectile)
 
 func _set_projectile_direction(projectile:Node,new_direction:Vector2) -> void:
-	var normalized:Vector2 = new_direction.normalized() if new_direction.length_squared() > 0.000001 else Vector2.RIGHT
-	if _object_has_property(projectile,"direction"):
-		projectile.set("direction",normalized)
-	if _object_has_property(projectile,"travel_direction"):
-		projectile.set("travel_direction",normalized)
-	if _object_has_property(projectile,"velocity"):
-		var velocity_value:Variant = projectile.get("velocity")
-		if typeof(velocity_value) == TYPE_VECTOR2:
-			var old_velocity:Vector2 = velocity_value
-			projectile.set("velocity",normalized * old_velocity.length())
-	if projectile is Node2D:
-		(projectile as Node2D).global_rotation = normalized.angle()
-
+	PROJECTILE_API.set_direction(projectile,new_direction)
 
 func _projectile_speed(projectile:Node) -> float:
-	for property_name:String in ["Speed","speed","projectile_speed"]:
-		if _object_has_property(projectile,property_name):
-			var value:Variant = projectile.get(property_name)
-			if typeof(value) == TYPE_INT or typeof(value) == TYPE_FLOAT:
-				return maxf(float(value),0.0)
-	if _object_has_property(projectile,"velocity"):
-		var velocity_value:Variant = projectile.get("velocity")
-		if typeof(velocity_value) == TYPE_VECTOR2:
-			var velocity_vector:Vector2 = velocity_value
-			return velocity_vector.length()
-	return 0.0
-
+	return PROJECTILE_API.speed_of(projectile)
 
 func _set_projectile_speed(projectile:Node,new_speed:float) -> void:
-	var safe_speed:float = maxf(new_speed,0.0)
-	var wrote_scalar_speed:bool = false
-	for property_name:String in ["Speed","speed","projectile_speed"]:
-		if _object_has_property(projectile,property_name):
-			projectile.set(property_name,safe_speed)
-			wrote_scalar_speed = true
-	# 军火商弹丸有 max_speed；排斥加速后同步抬高上限，避免下一物理帧又被拉回旧速度。
-	if _object_has_property(projectile,"max_speed"):
-		var old_max:float = float(projectile.get("max_speed"))
-		if safe_speed > old_max:
-			projectile.set("max_speed",safe_speed)
-	if not wrote_scalar_speed and _object_has_property(projectile,"velocity"):
-		var direction_value:Vector2 = _projectile_direction(projectile)
-		projectile.set("velocity",direction_value * safe_speed)
-
+	PROJECTILE_API.set_speed(projectile,new_speed)
 
 func _object_has_property(object:Object,property_name:String) -> bool:
-	for info:Dictionary in object.get_property_list():
-		if str(info.get("name","")) == property_name:
-			return true
-	return false
+	# V431 性能：按脚本缓存属性名集合，不再每次 get_property_list()。
+	return PROPERTY_INDEX.has_property(object,property_name)
 
 
 func _ensure_electric_ball() -> void:

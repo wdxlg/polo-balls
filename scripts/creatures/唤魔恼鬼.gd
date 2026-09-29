@@ -35,6 +35,9 @@ func tick_physics(state:State,delta:float) -> void:
 			if _windup <= 0.0: _launch_dash()
 		elif _charging:
 			direction = _dash_direction
+		elif is_player_controlled():
+			# Independent flight follows WASD; attacking still requires an explicit click.
+			direction = player_control_direction
 		else:
 			_roam_wait -= delta
 			if _roam_wait <= 0.0 or global_position.distance_to(_roam_point) < 9.0:
@@ -49,6 +52,22 @@ func tick_physics(state:State,delta:float) -> void:
 			if _attack_wait <= 0.0 and target != null and global_position.distance_to(target.global_position) <= attack_range:
 				begin_dash(target)
 	super.tick_physics(state,delta)
+func controlled_attack_action() -> void:
+	if not is_player_controlled() or not is_multiplayer_authority() or not mc_live(): return
+	if dizziness or is_damage_output_disabled() or _retired or _attack_wait>0.0 or _windup>0.0 or _charging: return
+	var point:Vector2 = player_control_aim_world_position(global_position)
+	var chosen:ball
+	var best:float = INF
+	for raw:Node in get_tree().get_nodes_in_group("Ball"):
+		if not (raw is ball) or not mc_enemy(raw): continue
+		var target:ball = raw as ball
+		if global_position.distance_to(target.global_position) > attack_range: continue
+		var radius:float = target.get_crowd_separation_radius_world()+16.0
+		var distance:float = point.distance_squared_to(target.global_position)
+		if distance <= radius*radius and distance < best:
+			best = distance
+			chosen = target
+	if chosen != null: begin_dash(chosen)
 func begin_dash(target:ball) -> void:
 	if not mc_enemy(target): return
 	_dash_target = weakref(target)
@@ -68,7 +87,12 @@ func _launch_dash() -> void:
 func move(speed:float,delta:float) -> void:
 	var from:Vector2 = global_position
 	var ratio:float = maxf(speed,0.0)/maxf(float(default_properties.get("Speed",speed)),1.0)
+	var saved_input:Vector2 = player_control_direction
+	if is_player_controlled() and (_charging or _windup>0.0):
+		# The committed dash owns its own trajectory; WASD resumes after it ends.
+		player_control_direction = _dash_direction if _charging else Vector2.ZERO
 	super.move(dash_speed*ratio if _charging else speed,delta)
+	if is_player_controlled(): player_control_direction = saved_input
 	# 能穿内部墙，但不离开战场的可见外边界。
 	var arena:Rect2 = mc_arena_rect().grow(-10.0)
 	var bounded:Vector2 = global_position.clamp(arena.position,arena.end)
@@ -100,7 +124,7 @@ func _check_dash_hit(from:Vector2,to:Vector2) -> void:
 		var area:Variant = hit.get("collider")
 		if area is hurtbox and area.get_parent() == target:
 			_dash_hit = true
-			target.receive_positional_damage(attack_damage(),global_position,false,self)
+			mc_damage_with_impact(target,attack_damage(),global_position)
 			return
 func _finish_dash() -> void:
 	_charging = false

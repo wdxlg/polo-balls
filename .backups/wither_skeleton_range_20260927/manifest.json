@@ -1,0 +1,10 @@
+{
+  "head": "e4ce732748f53beb4679069dfe72843ab943ed35",
+  "files": {
+    "scripts/characters/我的世界/wither_skeleton/wither_skeleton.gd": "e6154d613f3a781f2634531cf0f2762f575ed478e533e61ca86c43857c489df6",
+    "tests/test_wither_skeleton.gd": "f0a7b11ca920127a3394f1050c101acd4406647397a2d84bd474a013c3aa02e7",
+    "tests/preview_wither_skeleton.gd": "c72471225bbe3ae10c98c0cb37d4152bf45e775e1a8a5695c4ecebe4cb730c9b",
+    "docs/WITHER_SKELETON.md": "a0189bb78d47bbe0f437dd25897193181d76c9bf2837571831762717a78ecc51",
+    "MCP_CONTEXT.md": "793c4edf6843e47b68c4a98a4a8c68b8aed8b7cdbfa9af469175293847121f38"
+  }
+}

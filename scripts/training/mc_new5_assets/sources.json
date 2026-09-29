@@ -1,0 +1,122 @@
+{
+  "repository": "Mojang/bedrock-samples",
+  "commit": "736072450c26a7c67f07b1661f29d9a5ebaa14b1",
+  "license": "Minecraft EULA; Mojang retains copyright. Not permissive open-source assets.",
+  "files": [
+    {
+      "path": "models/entity/slime.geo.json",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/models/entity/slime.geo.json",
+      "sha256": "2406656a9a60b5b650096f7f6d97806d91b8e7e20860717601f4d2df9324cfde"
+    },
+    {
+      "path": "models/entity/slime_armor.geo.json",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/models/entity/slime_armor.geo.json",
+      "sha256": "42dec2fd30200782001663417fac1d3945a088714ef096b22986db7c47227015"
+    },
+    {
+      "path": "models/entity/guardian.geo.json",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/models/entity/guardian.geo.json",
+      "sha256": "300bb0b5a087b5f75f76040a1afa26ad8b1a3b3d9000645bc729231e6be55bff"
+    },
+    {
+      "path": "models/entity/ghast.geo.json",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/models/entity/ghast.geo.json",
+      "sha256": "15142c9b384b65b947153d8960ae157964ac852b20e6601b68d90ada187dd4f2"
+    },
+    {
+      "path": "models/entity/fishing_hook.geo.json",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/models/entity/fishing_hook.geo.json",
+      "sha256": "cc44ad3ab12e6447480ac227c7b5d0e96708f5795ed23fa8e0572a4be254934d"
+    },
+    {
+      "path": "models/entity/fireball.geo.json",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/models/entity/fireball.geo.json",
+      "sha256": "b5c31c005c8a0183355927d3fbe8d4b8cfdd048d55f8d9474ea394145f518820"
+    },
+    {
+      "path": "animations/guardian.animation.json",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/animations/guardian.animation.json",
+      "sha256": "d8e2c959c7a3a0146c6273a6243c9a81ff4a2a528b96f28b2b5c2f01b5919bdf"
+    },
+    {
+      "path": "animations/ghast.animation.json",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/animations/ghast.animation.json",
+      "sha256": "a00bfdcc9b0c2c248fee780b1ca1c125491fec6a21e80d3a2f41aa9fe6f03a74"
+    },
+    {
+      "path": "textures/entity/slime/slime.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/entity/slime/slime.png",
+      "sha256": "48251f1a8a4ee083bfed0011c9457b50ffda68a9158d40379cb4c01150d7eba0"
+    },
+    {
+      "path": "textures/entity/guardian.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/entity/guardian.png",
+      "sha256": "aeab9927500d6c8ab520565e219b253093d601d4ba10ab82047123b102ef514b"
+    },
+    {
+      "path": "textures/entity/guardian_beam.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/entity/guardian_beam.png",
+      "sha256": "d242929c6994540074532bfca288ec08cce3fe5571f1aafc51d5ef2b2551e053"
+    },
+    {
+      "path": "textures/entity/ghast/ghast.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/entity/ghast/ghast.png",
+      "sha256": "79f5d39c267f7904ca15d7d3ae6f7260cc2cb6eec698a8ebfe0a42edd00c1455"
+    },
+    {
+      "path": "textures/entity/ghast/ghast_shooting.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/entity/ghast/ghast_shooting.png",
+      "sha256": "8007bfe28024f57e385e4e01d743d2870b56d0eab9c780e202e95bd19afeef76"
+    },
+    {
+      "path": "textures/items/fishing_rod_uncast.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/items/fishing_rod_uncast.png",
+      "sha256": "968713b58178b98cf14a47db33fcf9221df2859ef851e946483d3dff606eeda7"
+    },
+    {
+      "path": "textures/items/fishing_rod_cast.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/items/fishing_rod_cast.png",
+      "sha256": "84df4275746ed63461a0265e83c1b8c6eb9b638cdf52b10a984991e1d308400e"
+    },
+    {
+      "path": "textures/items/iron_sword.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/items/iron_sword.png",
+      "sha256": "1d1faeae22cbb8db31db1380c25dfeb4b68ca649f6cc72bd974720823152bec3"
+    },
+    {
+      "path": "textures/items/fireball.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/items/fireball.png",
+      "sha256": "16864c5fa2f911e58d79b44204788f64443b1561addec9ea1ad424b9d6c537b4"
+    },
+    {
+      "path": "textures/blocks/piston_side.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/blocks/piston_side.png",
+      "sha256": "db6de24097a5ef445330836fa702868aada3da4411d4f34a7176c2a0c7cbe6fe"
+    },
+    {
+      "path": "textures/blocks/piston_top_sticky.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/blocks/piston_top_sticky.png",
+      "sha256": "615dd7d33d398c29d9186733a82f5356fc36d9fa821276a6ebe1daed34c9dfa3"
+    },
+    {
+      "path": "textures/blocks/piston_inner.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/blocks/piston_inner.png",
+      "sha256": "1308b12d0eaba7c8a5bf7bcf2a7bc18cd00e219bded5c6830d396688b6ee3480"
+    },
+    {
+      "path": "textures/blocks/piston_bottom.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/blocks/piston_bottom.png",
+      "sha256": "306842ef44fcb5eaefbc5dd8b7dd595928bd334b05df870f8329ba79d8036d38"
+    },
+    {
+      "path": "textures/blocks/end_rod.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/blocks/end_rod.png",
+      "sha256": "94f20a6cd82eed61af0597d690f26411f83693ef943f2c0d31d9fa5a5721128e"
+    },
+    {
+      "path": "textures/entity/fishhook.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/entity/fishhook.png",
+      "sha256": "cb6b6686e3ae9639fcb88b5f2d376dc1f31e9a6e063e791ef2c2da602b15e1a3"
+    }
+  ]
+}

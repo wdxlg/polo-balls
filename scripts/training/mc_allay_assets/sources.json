@@ -1,0 +1,209 @@
+{
+  "bedrock_commit": "736072450c26a7c67f07b1661f29d9a5ebaa14b1",
+  "java_version": "1.21.1",
+  "asset_index": {
+    "id": "17",
+    "sha1": "76d7a97b9e0778fda3b14e474f012450ca0de1bb",
+    "size": 449557,
+    "totalSize": 824921227,
+    "url": "https://piston-meta.mojang.com/v1/packages/76d7a97b9e0778fda3b14e474f012450ca0de1bb/17.json"
+  },
+  "copyright": "Minecraft assets belong to Mojang/Microsoft; Minecraft EULA applies. No permissive asset license is claimed.",
+  "adaptation": "Official geometry, texture and Catmull-Rom animation baked to orthographic frames. Original particle PNGs unmodified; blue tint applied at runtime. Audio bytes unchanged and SHA-1 verified.",
+  "render_crop": [
+    42,
+    73,
+    117,
+    156
+  ],
+  "files": [
+    {
+      "file": "scripts/training/mc_allay_assets/resource_pack/models/entity/allay.geo.json",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/models/entity/allay.geo.json",
+      "sha256": "61b7a5efcd93972c0aed8b965599dcb42a885dda2214f4f809e38de107a9163a"
+    },
+    {
+      "file": "scripts/training/mc_allay_assets/resource_pack/animations/allay.animation.json",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/animations/allay.animation.json",
+      "sha256": "4af0103837f3d21e6c058a274e85ac130797985e13acf3adb0a828a9acfed542"
+    },
+    {
+      "file": "scripts/training/mc_allay_assets/resource_pack/entity/allay.entity.json",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/entity/allay.entity.json",
+      "sha256": "f69c1c83f09e33470a5a96aa25998558175393e274a17cdd75f76c48940239a9"
+    },
+    {
+      "file": "scripts/training/mc_allay_assets/resource_pack/textures/entity/allay/allay.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/entity/allay/allay.png",
+      "sha256": "1131667b54f5039b3b27e2383c8eb2403ac84f5f86d91ba5aafc021effcd2cc4"
+    },
+    {
+      "file": "Images/characters/我的世界/allay/note.png",
+      "url": "https://piston-data.mojang.com/v1/objects/30c73b1c5da787909b2f73340419fdf13b9def88/client.jar",
+      "sha256": "c27d235f5a4ece974a6bc7c95dd7ce3541ccd67963eb6df72cdba58217740e9f",
+      "archive_entry": "assets/minecraft/textures/particle/note.png",
+      "archive_sha1": "30c73b1c5da787909b2f73340419fdf13b9def88"
+    },
+    {
+      "file": "Images/characters/我的世界/allay/generic_0.png",
+      "url": "https://piston-data.mojang.com/v1/objects/30c73b1c5da787909b2f73340419fdf13b9def88/client.jar",
+      "sha256": "040799acfd2e753632cef5642ab07e0182a973cc990cbfcb6bf7d201f10cfa03",
+      "archive_entry": "assets/minecraft/textures/particle/generic_0.png",
+      "archive_sha1": "30c73b1c5da787909b2f73340419fdf13b9def88"
+    },
+    {
+      "file": "audio/characters/我的世界/allay/627589684101a92869557aaedd8fcb8516ada1a4.ogg",
+      "url": "https://resources.download.minecraft.net/62/627589684101a92869557aaedd8fcb8516ada1a4",
+      "sha256": "4e76d6c5fdf05d644d392b03614c40794a405200c1c7c45b8947c2b11e42d9f9",
+      "asset_key": "minecraft/sounds/mob/allay/idle_with_item1.ogg",
+      "sha1": "627589684101a92869557aaedd8fcb8516ada1a4"
+    },
+    {
+      "file": "audio/characters/我的世界/allay/8274b6fc1041d4a27c879a6a43d618c8d7f9f71a.ogg",
+      "url": "https://resources.download.minecraft.net/82/8274b6fc1041d4a27c879a6a43d618c8d7f9f71a",
+      "sha256": "d0d401c5d9c1e4007bbd9b857cbdc08c74c972901fc33378a7d60ab7a8d4efa5",
+      "asset_key": "minecraft/sounds/mob/allay/idle_with_item2.ogg",
+      "sha1": "8274b6fc1041d4a27c879a6a43d618c8d7f9f71a"
+    },
+    {
+      "file": "audio/characters/我的世界/allay/068150649374a1d09acd5367c9d766e3e3348359.ogg",
+      "url": "https://resources.download.minecraft.net/06/068150649374a1d09acd5367c9d766e3e3348359",
+      "sha256": "98f25b4a466e217d2349cff41bee4380b6a84c0e9d2d0b5906bd7b684de4712e",
+      "asset_key": "minecraft/sounds/mob/allay/idle_with_item3.ogg",
+      "sha1": "068150649374a1d09acd5367c9d766e3e3348359"
+    },
+    {
+      "file": "audio/characters/我的世界/allay/c3247cd403ee8356d8809f77b58378fefcd857e5.ogg",
+      "url": "https://resources.download.minecraft.net/c3/c3247cd403ee8356d8809f77b58378fefcd857e5",
+      "sha256": "395b1670474b11a85e96fd9ff4248e855045038c416d28d33c5faa5fc88de66c",
+      "asset_key": "minecraft/sounds/mob/allay/idle_with_item4.ogg",
+      "sha1": "c3247cd403ee8356d8809f77b58378fefcd857e5"
+    },
+    {
+      "file": "audio/characters/我的世界/allay/2f5a4f4b76d5233b59a017adff9a82b3405e843a.ogg",
+      "url": "https://resources.download.minecraft.net/2f/2f5a4f4b76d5233b59a017adff9a82b3405e843a",
+      "sha256": "78cc9ef91551b4baa9103a15290eac0e43833781381a2b199752f76658d58425",
+      "asset_key": "minecraft/sounds/mob/allay/idle_without_item1.ogg",
+      "sha1": "2f5a4f4b76d5233b59a017adff9a82b3405e843a"
+    },
+    {
+      "file": "audio/characters/我的世界/allay/b0d0aecd1c7335b3c299bdd92d0e57d2e639a077.ogg",
+      "url": "https://resources.download.minecraft.net/b0/b0d0aecd1c7335b3c299bdd92d0e57d2e639a077",
+      "sha256": "b3219352ac0792fa4616a38f8e4f183a1e62fe220ace2aa579be03f6e2c69b0c",
+      "asset_key": "minecraft/sounds/mob/allay/idle_without_item2.ogg",
+      "sha1": "b0d0aecd1c7335b3c299bdd92d0e57d2e639a077"
+    },
+    {
+      "file": "audio/characters/我的世界/allay/96ba43f8d85eb36f2214a5d2234eb2b59de5efd1.ogg",
+      "url": "https://resources.download.minecraft.net/96/96ba43f8d85eb36f2214a5d2234eb2b59de5efd1",
+      "sha256": "fccf38e8c099337ee47400798a2752f6b4d0ff7bfc7edb08d7978df716e2eae6",
+      "asset_key": "minecraft/sounds/mob/allay/idle_without_item3.ogg",
+      "sha1": "96ba43f8d85eb36f2214a5d2234eb2b59de5efd1"
+    },
+    {
+      "file": "audio/characters/我的世界/allay/1f838023c8cfe5feb98089526c657d2fcdca6767.ogg",
+      "url": "https://resources.download.minecraft.net/1f/1f838023c8cfe5feb98089526c657d2fcdca6767",
+      "sha256": "793a5de8cfae26cfbfe7cb50eaf3ec852f316d32c8256d4b40fd7c5c3183705f",
+      "asset_key": "minecraft/sounds/mob/allay/idle_without_item4.ogg",
+      "sha1": "1f838023c8cfe5feb98089526c657d2fcdca6767"
+    },
+    {
+      "file": "audio/characters/我的世界/allay/476ed5783a1e2256e98d6aef2c275e7b9fcfe9a2.ogg",
+      "url": "https://resources.download.minecraft.net/47/476ed5783a1e2256e98d6aef2c275e7b9fcfe9a2",
+      "sha256": "b02e1e4ae5cc6556e075df041ba4f32aadaf612faac15dcedf098c9c7811d4a1",
+      "asset_key": "minecraft/sounds/mob/allay/death1.ogg",
+      "sha1": "476ed5783a1e2256e98d6aef2c275e7b9fcfe9a2"
+    },
+    {
+      "file": "audio/characters/我的世界/allay/de400349b09de19a1890bfb0242ed7a8cf1cd975.ogg",
+      "url": "https://resources.download.minecraft.net/de/de400349b09de19a1890bfb0242ed7a8cf1cd975",
+      "sha256": "2350ffe8fda5193288bde2d6bd9837cfa4ea06bb28856933391c7ab90203f16f",
+      "asset_key": "minecraft/sounds/mob/allay/death2.ogg",
+      "sha1": "de400349b09de19a1890bfb0242ed7a8cf1cd975"
+    },
+    {
+      "file": "audio/characters/我的世界/allay/d2b828c3e293a79503066437b747ab478fcf0182.ogg",
+      "url": "https://resources.download.minecraft.net/d2/d2b828c3e293a79503066437b747ab478fcf0182",
+      "sha256": "830477860c2f4aaf6d3ee379081e0f7e635ffd3d800258f2decf9b4aca3ba17c",
+      "asset_key": "minecraft/sounds/mob/allay/hurt1.ogg",
+      "sha1": "d2b828c3e293a79503066437b747ab478fcf0182"
+    },
+    {
+      "file": "audio/characters/我的世界/allay/ebf587cdec36f56f65d35399254616f13a299e2e.ogg",
+      "url": "https://resources.download.minecraft.net/eb/ebf587cdec36f56f65d35399254616f13a299e2e",
+      "sha256": "0305179bdf9144d0736106d83587d6cc0bc8d11bc544b2bfd4687489ad6046e1",
+      "asset_key": "minecraft/sounds/mob/allay/hurt2.ogg",
+      "sha1": "ebf587cdec36f56f65d35399254616f13a299e2e"
+    },
+    {
+      "file": "audio/characters/我的世界/allay/62df046cd04e3575a1c71969f537227eb0841c0c.ogg",
+      "url": "https://resources.download.minecraft.net/62/62df046cd04e3575a1c71969f537227eb0841c0c",
+      "sha256": "df969a32ae746bb96f8e5433564add65ec29deec1da7c8ed99fd37aa997c408f",
+      "asset_key": "minecraft/sounds/mob/allay/item_given1.ogg",
+      "sha1": "62df046cd04e3575a1c71969f537227eb0841c0c"
+    },
+    {
+      "file": "audio/characters/我的世界/allay/c53004e94dd5e1938d7d1d24aab2d7047f4f7277.ogg",
+      "url": "https://resources.download.minecraft.net/c5/c53004e94dd5e1938d7d1d24aab2d7047f4f7277",
+      "sha256": "cf051083ed63e19ec1b859cf6e8a9482aaf853350f50e49d2f6f9af5b8d7e3c4",
+      "asset_key": "minecraft/sounds/mob/allay/item_given2.ogg",
+      "sha1": "c53004e94dd5e1938d7d1d24aab2d7047f4f7277"
+    },
+    {
+      "file": "audio/characters/我的世界/allay/a3a44e2f8890a2a57705bbe886b8960e4c2d3e53.ogg",
+      "url": "https://resources.download.minecraft.net/a3/a3a44e2f8890a2a57705bbe886b8960e4c2d3e53",
+      "sha256": "103e7ade8dbc3f6a044207733d7d79a4d74baaec9c95985e9c18a47daaa17230",
+      "asset_key": "minecraft/sounds/mob/allay/item_given3.ogg",
+      "sha1": "a3a44e2f8890a2a57705bbe886b8960e4c2d3e53"
+    },
+    {
+      "file": "audio/characters/我的世界/allay/5def13c4e70335dcd666ab1b15488185e6b6bbc6.ogg",
+      "url": "https://resources.download.minecraft.net/5d/5def13c4e70335dcd666ab1b15488185e6b6bbc6",
+      "sha256": "e7387d832fa2cd92a686830187d4ec6bd2dc2e9868f66d5504bf8d0d3223eb94",
+      "asset_key": "minecraft/sounds/mob/allay/item_given4.ogg",
+      "sha1": "5def13c4e70335dcd666ab1b15488185e6b6bbc6"
+    },
+    {
+      "file": "audio/characters/我的世界/allay/d3b4c71ecbda0ffc6580cfe8a196110d6f9289e2.ogg",
+      "url": "https://resources.download.minecraft.net/d3/d3b4c71ecbda0ffc6580cfe8a196110d6f9289e2",
+      "sha256": "ca9d3b36721f8bb7903807e506287d74933b3be6a134ee8dcc7bdd85a3003aef",
+      "asset_key": "minecraft/sounds/mob/allay/item_taken1.ogg",
+      "sha1": "d3b4c71ecbda0ffc6580cfe8a196110d6f9289e2"
+    },
+    {
+      "file": "audio/characters/我的世界/allay/049e77e98d26b42cb05252cceb5270c466ab2c81.ogg",
+      "url": "https://resources.download.minecraft.net/04/049e77e98d26b42cb05252cceb5270c466ab2c81",
+      "sha256": "f6cc321fbd40bea9c77a7b232fbe15eea5507e5d719623bf68e6e5bd1b672f67",
+      "asset_key": "minecraft/sounds/mob/allay/item_taken2.ogg",
+      "sha1": "049e77e98d26b42cb05252cceb5270c466ab2c81"
+    },
+    {
+      "file": "audio/characters/我的世界/allay/0ac1cdec8185ba8aa4b6f9233106c65412332673.ogg",
+      "url": "https://resources.download.minecraft.net/0a/0ac1cdec8185ba8aa4b6f9233106c65412332673",
+      "sha256": "2b9454539e864777c4f5a9f70e60646981e172fae6e27fe8743f498b5fc05fce",
+      "asset_key": "minecraft/sounds/mob/allay/item_taken3.ogg",
+      "sha1": "0ac1cdec8185ba8aa4b6f9233106c65412332673"
+    },
+    {
+      "file": "audio/characters/我的世界/allay/dcf9bc5b8e43c7dee2d0f09fbc4ac6535850a7ff.ogg",
+      "url": "https://resources.download.minecraft.net/dc/dcf9bc5b8e43c7dee2d0f09fbc4ac6535850a7ff",
+      "sha256": "35bb76cc0180f06199f38c998a0675d7c441b63dc6f4dec9ac46d51ca5e7a330",
+      "asset_key": "minecraft/sounds/mob/allay/item_taken4.ogg",
+      "sha1": "dcf9bc5b8e43c7dee2d0f09fbc4ac6535850a7ff"
+    },
+    {
+      "file": "audio/characters/我的世界/allay/e56a9f248acfc53fd12e64a9d54ef14f2a7de5fb.ogg",
+      "url": "https://resources.download.minecraft.net/e5/e56a9f248acfc53fd12e64a9d54ef14f2a7de5fb",
+      "sha256": "334b04891dffc5b197121a891a193c8d88fe6c289e4c7b0fad370683725b858c",
+      "asset_key": "minecraft/sounds/mob/allay/item_thrown1.ogg",
+      "sha1": "e56a9f248acfc53fd12e64a9d54ef14f2a7de5fb"
+    },
+    {
+      "file": "audio/characters/我的世界/allay/6b6bae253b1032ce3f3b4fb5816a9a819cac7b59.ogg",
+      "url": "https://resources.download.minecraft.net/6b/6b6bae253b1032ce3f3b4fb5816a9a819cac7b59",
+      "sha256": "76af99978d769012f2c8bac72a2f772357ab5767c9eaaf245425976419600a60",
+      "asset_key": "minecraft/sounds/note/harp2.ogg",
+      "sha1": "6b6bae253b1032ce3f3b4fb5816a9a819cac7b59"
+    }
+  ]
+}

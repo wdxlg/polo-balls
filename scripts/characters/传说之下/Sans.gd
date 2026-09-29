@@ -1,4 +1,5 @@
 extends ball
+const WALL_SLOTS = preload("res://scripts/effects/传说之下/sans_wall_slots.gd")
 
 # Sans V49
 # - 1 HP / 1 点逐物理帧伤害。
@@ -141,6 +142,10 @@ const ATTACK_GLOW_FACES = [Rect2(5,556,34,32), Rect2(44,556,34,32)]
 # 原图再下一排只画头顶/汗珠，作为独立覆盖层，不替换眼睛/嘴巴。
 const SWEAT_TOP_OVERLAYS = [Rect2(5,593,32,32), Rect2(42,593,32,32), Rect2(79,593,32,32)]
 
+# Original atlas pieces, animated locally; no actor/collision movement.
+@export_range(0.0,4.0,0.1) var idle_sway_pixels:float = 2.0
+@export_range(0.8,4.0,0.1) var idle_sway_period:float = 2.0
+var _idle_sway_elapsed:float = 0.0
 const SANS_VISUAL_SCALE:float = 2.62
 # Face 仍使用固定头部基准；V153 身体动画已经改为统一脚底锚点。
 const SANS_NECK_POINT:Vector2 = Vector2(0.0,-17.4)
@@ -443,6 +448,7 @@ func set_character_visual_flip_h(_flipped:bool) -> void:
 
 
 func _process(delta:float) -> void:
+	if Game.now_stop_state or get_tree().paused: return
 	if _death_sequence_started or _death_visual_started_local:
 		return
 	var safe_delta:float = maxf(delta,0.0)
@@ -552,6 +558,7 @@ func _apply_body_region(region:Rect2,_mode:int) -> void:
 	# V163：左挥绝不是左右镜像，只是 Right Strike 的帧序倒放。
 	# Sans 的基类还可能通过主 Shader 的 `sprite_flip_h` 做角色朝向镜像，
 	# 所以这里同时锁死原生 flip_h 与实例 Shader 参数，避免 5→0 倒放时再次被镜像并产生大幅横移。
+	_sans_body.skew = 0.0
 	_sans_body.flip_h = false
 	_sans_body.flip_v = false
 	_sans_body.set_instance_shader_parameter("sprite_flip_h",0.0)
@@ -637,7 +644,7 @@ func _update_sweat_visual() -> void:
 		_sweat_frame = next_index
 		var region:Rect2 = SWEAT_TOP_OVERLAYS[next_index]
 		_sans_sweat.texture = _atlas_texture(region)
-		_position_face_like(_sans_sweat,region)
+	_position_face_like(_sans_sweat,SWEAT_TOP_OVERLAYS[next_index])
 
 
 func _update_attack_eye_glow(face_region:Rect2,phase:int) -> void:
@@ -695,6 +702,7 @@ func _visual_animation_frames(mode:int) -> Array:
 func _update_sans_visual(delta:float) -> void:
 	if _sans_body == null or not is_instance_valid(_sans_body):
 		return
+	if Game.now_stop_state or get_tree().paused: delta = 0.0
 	_visual_elapsed += delta
 	if _visual_mode == SansVisual.IDLE:
 		_apply_body_region(BODY_IDLE,_visual_mode)
@@ -715,6 +723,27 @@ func _update_sans_visual(delta:float) -> void:
 				_visual_frame = display_index
 				_apply_body_region(frames[display_index],_visual_mode)
 	_update_face_visual()
+	_apply_idle_sway(delta)
+
+func _apply_idle_sway(delta:float) -> void:
+	if _visual_mode != SansVisual.IDLE or _death_sequence_started or _death_visual_started_local:
+		return
+	_idle_sway_elapsed = fposmod(_idle_sway_elapsed+maxf(delta,0.0),maxf(idle_sway_period,0.8))
+	var phase:float = TAU*_idle_sway_elapsed/maxf(idle_sway_period,0.8)
+	var sway:float = sin(phase)*idle_sway_pixels
+	# Lean the upper body by two source pixels, keeping the foot anchor stationary.
+	var foot_local:Vector2 = BODY_IDLE_FEET-BODY_IDLE.size*0.5
+	var feet_before:Vector2 = _sans_body.transform*foot_local
+	var neck_before:Vector2 = _face_bottom_world_point()
+	var neck_local:Vector2 = _sans_body.transform.affine_inverse()*neck_before
+	_sans_body.skew = atan(sway/BODY_IDLE.size.y)
+	_sans_body.position += feet_before-_sans_body.transform*foot_local
+	var head_offset:Vector2 = _sans_body.transform*neck_local-neck_before
+	# A tiny independent head nod, not whole-sprite scaling or world-space bobbing.
+	head_offset.y += (1.0-cos(phase*2.0))*0.18*idle_sway_pixels*SANS_VISUAL_SCALE
+	_sans_face.position += head_offset
+	if _sans_sweat != null and _sans_sweat.visible: _sans_sweat.position += head_offset
+	if _sans_eye_glow != null and _sans_eye_glow.visible: _sans_eye_glow.position += head_offset
 
 func _reset_dodge_stretch() -> void:
 	if _dodge_stretch_tween != null and _dodge_stretch_tween.is_valid():
@@ -1133,7 +1162,7 @@ func _has_active_own_wall_bone_effect() -> bool:
 	# V62：滚动骨头开始前必须等这个 Sans 之前的地刺/整墙骨头完全退场。
 	# 否则即使滚动技能内部只有一种图案，同一面墙仍可能和上一发普通骨墙叠在一起。
 	for raw:Node in get_tree().get_nodes_in_group("BattleTransient"):
-		if raw == null or not is_instance_valid(raw) or str(raw.name) != "Sans骨头攻击":
+		if raw == null or not is_instance_valid(raw) or raw.is_queued_for_deletion() or raw.get_script() != BONE_ATTACK_SCRIPT:
 			continue
 		var effect_source:Variant = raw.get("source")
 		if effect_source == self:
@@ -1339,9 +1368,16 @@ func _run_rolling_opposite_walls(serial:int,map_rect:Rect2) -> void:
 
 
 func _finish_rolling_bone_sequence(serial:int) -> void:
-	if serial != _rolling_bone_sequence_serial:
-		return
-	_rolling_bone_active = false
+	var token:String=str(get_path())+":rolling:"+str(serial)
+	while serial==_rolling_bone_sequence_serial and is_inside_tree():
+		var alive:bool=false
+		for effect:Node in get_tree().get_nodes_in_group("SansWallAttack"):
+			if is_instance_valid(effect) and not effect.is_queued_for_deletion() and str(effect.get_meta("sans_wall_token",""))==token:
+				alive=true
+				break
+		if not alive: break
+		await get_tree().physics_frame
+	if serial == _rolling_bone_sequence_serial: _rolling_bone_active = false
 
 
 func _cancel_rolling_bones() -> void:
@@ -1359,9 +1395,9 @@ func _spawn_wall_rolling_bone_networked(
 	size_scale:float
 ) -> void:
 	if multiplayer.has_multiplayer_peer():
-		_rpc_spawn_rolling_bone.rpc(root_position,inward,travel_direction,distance,speed,bone_length,size_scale)
+		_rpc_spawn_rolling_bone.rpc(root_position,inward,travel_direction,distance,speed,bone_length,size_scale,str(get_path())+":rolling:"+str(_rolling_bone_sequence_serial))
 	else:
-		_rpc_spawn_rolling_bone(root_position,inward,travel_direction,distance,speed,bone_length,size_scale)
+		_rpc_spawn_rolling_bone(root_position,inward,travel_direction,distance,speed,bone_length,size_scale,str(get_path())+":rolling:"+str(_rolling_bone_sequence_serial))
 
 
 @rpc("authority","call_local","reliable")
@@ -1372,8 +1408,11 @@ func _rpc_spawn_rolling_bone(
 	distance:float,
 	speed:float,
 	bone_length:float,
-	size_scale:float
+	size_scale:float,
+	attack_token:String=""
 ) -> void:
+	var wall_side:int=WALL_SLOTS.side_from_inward(inward)
+	if not WALL_SLOTS.available(self,wall_side,attack_token): return
 	var parent:Node = get_tree().current_scene
 	if parent == null:
 		return
@@ -1381,6 +1420,7 @@ func _rpc_spawn_rolling_bone(
 	if effect == null:
 		return
 	effect.name = "Sans滚动骨头"
+	WALL_SLOTS.register(effect,self,wall_side,attack_token if not attack_token.is_empty() else str(effect.get_instance_id()))
 	effect.add_to_group("BattleTransient")
 	parent.add_child(effect)
 	effect.call(
@@ -2209,7 +2249,11 @@ func _summon_bone_attack(target:ball) -> void:
 	var map_rect:Rect2 = _current_map_world_rect()
 	if map_rect.size.x <= 1.0 or map_rect.size.y <= 1.0:
 		return
-	var side:int = _attack_rng.randi_range(WallSide.TOP,WallSide.LEFT)
+	var free_sides:Array[int]=[]
+	for wall_side:int in range(4):
+		if WALL_SLOTS.available(self,wall_side): free_sides.append(wall_side)
+	if free_sides.is_empty(): return
+	var side:int=free_sides[_attack_rng.randi_range(0,free_sides.size()-1)]
 	var attack_rect:Rect2 = _make_bone_attack_rect(target,map_rect,side)
 	_play_direction_gesture_for_side(side)
 	if multiplayer.has_multiplayer_peer():
@@ -2282,6 +2326,7 @@ func _make_bone_attack_rect(target:ball,map_rect:Rect2,side:int) -> Rect2:
 
 @rpc("authority","call_local","reliable")
 func _rpc_spawn_bone_attack(attack_rect:Rect2,side:int) -> void:
+	if not WALL_SLOTS.available(self,side): return
 	var parent:Node = get_tree().current_scene
 	if parent == null:
 		return
@@ -2289,6 +2334,7 @@ func _rpc_spawn_bone_attack(attack_rect:Rect2,side:int) -> void:
 	if effect == null:
 		return
 	effect.name = "Sans骨头攻击"
+	WALL_SLOTS.register(effect,self,side,str(effect.get_instance_id()))
 	effect.add_to_group("BattleTransient")
 	parent.add_child(effect)
 	effect.call(

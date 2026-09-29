@@ -1,7 +1,7 @@
 extends Node2D
 ## The exact attached native cluster model, frozen at launch then translated.
 const CRYSTAL = preload("res://scripts/effects/我的世界/sulfur_amethyst_crystal.gd")
-const DAMAGE_MULT:float = 0.945 # Previous 1.35 * 0.70
+const DAMAGE_MULT:float = 0.23625 # 2026-09-27: halve current flying-crystal damage again (0.4725 * 0.5).
 const SPEED:float = 270.0
 const RADIUS:float = 3.0
 const LIFETIME:float = 1.25
@@ -69,13 +69,15 @@ func _physics_process(delta:float) -> void:
 			if hit.is_empty(): break
 			var collider:Variant = hit.get("collider",null)
 			if collider is ball and owner.call("mc_enemy",collider):
-				owner.call("_damage_with_impact",collider,owner.attack_damage(DAMAGE_MULT),hit.get("position",end))
+				if owner.call("_damage_with_impact",collider,owner.attack_damage(DAMAGE_MULT),hit.get("position",end)):
+					owner.call("_emit_sound",&"amethyst_break",hit.get("position",end))
 				queue_free()
 				return
 			if collider is CollisionObject2D and collider is ball:
 				var rid:RID = (collider as CollisionObject2D).get_rid()
 				if not excludes.has(rid): excludes.append(rid)
 				continue
+			owner.call("_emit_sound",&"amethyst_break",hit.get("position",end))
 			queue_free() # Terrain/obstacle, not a projectile that passes through walls.
 			return
 	global_position = end

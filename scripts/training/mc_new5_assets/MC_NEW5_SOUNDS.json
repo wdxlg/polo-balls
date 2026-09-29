@@ -1,0 +1,861 @@
+{
+  "source": "https://o.xbottle.top/mcsounds/",
+  "license": "Minecraft audio, Mojang retains copyright; not royalty-free.",
+  "events": {
+    "entity.slime.jump": [
+      {
+        "path": "mob/slime/big1",
+        "file_hash": "eff4b27c4de6d4e6c8fd88adfaf2a7d486ce7886",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/ef/eff4b27c4de6d4e6c8fd88adfaf2a7d486ce7886",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.slime.jump",
+        "file": "eff4b27c4de6d4e6c8fd88adfaf2a7d486ce7886.ogg"
+      },
+      {
+        "path": "mob/slime/big2",
+        "file_hash": "791edfe35bc72bb3d836ae1ecd5270d441777844",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/79/791edfe35bc72bb3d836ae1ecd5270d441777844",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.slime.jump",
+        "file": "791edfe35bc72bb3d836ae1ecd5270d441777844.ogg"
+      },
+      {
+        "path": "mob/slime/big3",
+        "file_hash": "5cde6592ea7457b2bc11169b996cc491790608fd",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/5c/5cde6592ea7457b2bc11169b996cc491790608fd",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.slime.jump",
+        "file": "5cde6592ea7457b2bc11169b996cc491790608fd.ogg"
+      },
+      {
+        "path": "mob/slime/big4",
+        "file_hash": "96fd44f6a57b46075ad2553d2b68263aa5800f31",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/96/96fd44f6a57b46075ad2553d2b68263aa5800f31",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.slime.jump",
+        "file": "96fd44f6a57b46075ad2553d2b68263aa5800f31.ogg"
+      }
+    ],
+    "entity.slime.squish": [
+      {
+        "path": "mob/slime/big1",
+        "file_hash": "eff4b27c4de6d4e6c8fd88adfaf2a7d486ce7886",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/ef/eff4b27c4de6d4e6c8fd88adfaf2a7d486ce7886",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.slime.squish",
+        "file": "eff4b27c4de6d4e6c8fd88adfaf2a7d486ce7886.ogg"
+      },
+      {
+        "path": "mob/slime/big2",
+        "file_hash": "791edfe35bc72bb3d836ae1ecd5270d441777844",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/79/791edfe35bc72bb3d836ae1ecd5270d441777844",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.slime.squish",
+        "file": "791edfe35bc72bb3d836ae1ecd5270d441777844.ogg"
+      },
+      {
+        "path": "mob/slime/big3",
+        "file_hash": "5cde6592ea7457b2bc11169b996cc491790608fd",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/5c/5cde6592ea7457b2bc11169b996cc491790608fd",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.slime.squish",
+        "file": "5cde6592ea7457b2bc11169b996cc491790608fd.ogg"
+      },
+      {
+        "path": "mob/slime/big4",
+        "file_hash": "96fd44f6a57b46075ad2553d2b68263aa5800f31",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/96/96fd44f6a57b46075ad2553d2b68263aa5800f31",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.slime.squish",
+        "file": "96fd44f6a57b46075ad2553d2b68263aa5800f31.ogg"
+      }
+    ],
+    "entity.slime.hurt": [
+      {
+        "path": "mob/slime/big1",
+        "file_hash": "eff4b27c4de6d4e6c8fd88adfaf2a7d486ce7886",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/ef/eff4b27c4de6d4e6c8fd88adfaf2a7d486ce7886",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.slime.hurt",
+        "file": "eff4b27c4de6d4e6c8fd88adfaf2a7d486ce7886.ogg"
+      },
+      {
+        "path": "mob/slime/big2",
+        "file_hash": "791edfe35bc72bb3d836ae1ecd5270d441777844",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/79/791edfe35bc72bb3d836ae1ecd5270d441777844",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.slime.hurt",
+        "file": "791edfe35bc72bb3d836ae1ecd5270d441777844.ogg"
+      },
+      {
+        "path": "mob/slime/big3",
+        "file_hash": "5cde6592ea7457b2bc11169b996cc491790608fd",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/5c/5cde6592ea7457b2bc11169b996cc491790608fd",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.slime.hurt",
+        "file": "5cde6592ea7457b2bc11169b996cc491790608fd.ogg"
+      },
+      {
+        "path": "mob/slime/big4",
+        "file_hash": "96fd44f6a57b46075ad2553d2b68263aa5800f31",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/96/96fd44f6a57b46075ad2553d2b68263aa5800f31",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.slime.hurt",
+        "file": "96fd44f6a57b46075ad2553d2b68263aa5800f31.ogg"
+      }
+    ],
+    "entity.slime.death": [
+      {
+        "path": "mob/slime/big1",
+        "file_hash": "eff4b27c4de6d4e6c8fd88adfaf2a7d486ce7886",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/ef/eff4b27c4de6d4e6c8fd88adfaf2a7d486ce7886",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.slime.death",
+        "file": "eff4b27c4de6d4e6c8fd88adfaf2a7d486ce7886.ogg"
+      },
+      {
+        "path": "mob/slime/big2",
+        "file_hash": "791edfe35bc72bb3d836ae1ecd5270d441777844",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/79/791edfe35bc72bb3d836ae1ecd5270d441777844",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.slime.death",
+        "file": "791edfe35bc72bb3d836ae1ecd5270d441777844.ogg"
+      },
+      {
+        "path": "mob/slime/big3",
+        "file_hash": "5cde6592ea7457b2bc11169b996cc491790608fd",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/5c/5cde6592ea7457b2bc11169b996cc491790608fd",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.slime.death",
+        "file": "5cde6592ea7457b2bc11169b996cc491790608fd.ogg"
+      },
+      {
+        "path": "mob/slime/big4",
+        "file_hash": "96fd44f6a57b46075ad2553d2b68263aa5800f31",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/96/96fd44f6a57b46075ad2553d2b68263aa5800f31",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.slime.death",
+        "file": "96fd44f6a57b46075ad2553d2b68263aa5800f31.ogg"
+      }
+    ],
+    "entity.slime.attack": [
+      {
+        "path": "mob/slime/attack1",
+        "file_hash": "c79241eee16ad345aba39b93f6e35d46c679fb25",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/c7/c79241eee16ad345aba39b93f6e35d46c679fb25",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.slime.attack",
+        "file": "c79241eee16ad345aba39b93f6e35d46c679fb25.ogg"
+      },
+      {
+        "path": "mob/slime/attack2",
+        "file_hash": "5fb99bb93fb8a88844a7026b5ac3c906f053761e",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/5f/5fb99bb93fb8a88844a7026b5ac3c906f053761e",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.slime.attack",
+        "file": "5fb99bb93fb8a88844a7026b5ac3c906f053761e.ogg"
+      }
+    ],
+    "entity.slime.jump_small": [
+      {
+        "path": "mob/slime/small1",
+        "file_hash": "b8dac8173742660aa660232450f635945f3fdc1f",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/b8/b8dac8173742660aa660232450f635945f3fdc1f",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.slime.jump_small",
+        "file": "b8dac8173742660aa660232450f635945f3fdc1f.ogg"
+      },
+      {
+        "path": "mob/slime/small2",
+        "file_hash": "16797c4ad9d87a3ff939a4816d29acb189590dca",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/16/16797c4ad9d87a3ff939a4816d29acb189590dca",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.slime.jump_small",
+        "file": "16797c4ad9d87a3ff939a4816d29acb189590dca.ogg"
+      },
+      {
+        "path": "mob/slime/small3",
+        "file_hash": "78c8e3e8fc96d3b576eddf850c010b97e5959de4",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/78/78c8e3e8fc96d3b576eddf850c010b97e5959de4",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.slime.jump_small",
+        "file": "78c8e3e8fc96d3b576eddf850c010b97e5959de4.ogg"
+      },
+      {
+        "path": "mob/slime/small4",
+        "file_hash": "98c23d73be7bd53350cd4b1b830705f98465fa03",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/98/98c23d73be7bd53350cd4b1b830705f98465fa03",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.slime.jump_small",
+        "file": "98c23d73be7bd53350cd4b1b830705f98465fa03.ogg"
+      },
+      {
+        "path": "mob/slime/small5",
+        "file_hash": "e46d37992739a282c1aee677fa874bb5646e947e",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/e4/e46d37992739a282c1aee677fa874bb5646e947e",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.slime.jump_small",
+        "file": "e46d37992739a282c1aee677fa874bb5646e947e.ogg"
+      }
+    ],
+    "entity.slime.squish_small": [
+      {
+        "path": "mob/slime/small1",
+        "file_hash": "b8dac8173742660aa660232450f635945f3fdc1f",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/b8/b8dac8173742660aa660232450f635945f3fdc1f",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.slime.squish_small",
+        "file": "b8dac8173742660aa660232450f635945f3fdc1f.ogg"
+      },
+      {
+        "path": "mob/slime/small2",
+        "file_hash": "16797c4ad9d87a3ff939a4816d29acb189590dca",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/16/16797c4ad9d87a3ff939a4816d29acb189590dca",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.slime.squish_small",
+        "file": "16797c4ad9d87a3ff939a4816d29acb189590dca.ogg"
+      },
+      {
+        "path": "mob/slime/small3",
+        "file_hash": "78c8e3e8fc96d3b576eddf850c010b97e5959de4",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/78/78c8e3e8fc96d3b576eddf850c010b97e5959de4",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.slime.squish_small",
+        "file": "78c8e3e8fc96d3b576eddf850c010b97e5959de4.ogg"
+      },
+      {
+        "path": "mob/slime/small4",
+        "file_hash": "98c23d73be7bd53350cd4b1b830705f98465fa03",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/98/98c23d73be7bd53350cd4b1b830705f98465fa03",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.slime.squish_small",
+        "file": "98c23d73be7bd53350cd4b1b830705f98465fa03.ogg"
+      },
+      {
+        "path": "mob/slime/small5",
+        "file_hash": "e46d37992739a282c1aee677fa874bb5646e947e",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/e4/e46d37992739a282c1aee677fa874bb5646e947e",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.slime.squish_small",
+        "file": "e46d37992739a282c1aee677fa874bb5646e947e.ogg"
+      }
+    ],
+    "entity.slime.hurt_small": [
+      {
+        "path": "mob/slime/small1",
+        "file_hash": "b8dac8173742660aa660232450f635945f3fdc1f",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/b8/b8dac8173742660aa660232450f635945f3fdc1f",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.slime.hurt_small",
+        "file": "b8dac8173742660aa660232450f635945f3fdc1f.ogg"
+      },
+      {
+        "path": "mob/slime/small2",
+        "file_hash": "16797c4ad9d87a3ff939a4816d29acb189590dca",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/16/16797c4ad9d87a3ff939a4816d29acb189590dca",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.slime.hurt_small",
+        "file": "16797c4ad9d87a3ff939a4816d29acb189590dca.ogg"
+      },
+      {
+        "path": "mob/slime/small3",
+        "file_hash": "78c8e3e8fc96d3b576eddf850c010b97e5959de4",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/78/78c8e3e8fc96d3b576eddf850c010b97e5959de4",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.slime.hurt_small",
+        "file": "78c8e3e8fc96d3b576eddf850c010b97e5959de4.ogg"
+      },
+      {
+        "path": "mob/slime/small4",
+        "file_hash": "98c23d73be7bd53350cd4b1b830705f98465fa03",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/98/98c23d73be7bd53350cd4b1b830705f98465fa03",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.slime.hurt_small",
+        "file": "98c23d73be7bd53350cd4b1b830705f98465fa03.ogg"
+      },
+      {
+        "path": "mob/slime/small5",
+        "file_hash": "e46d37992739a282c1aee677fa874bb5646e947e",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/e4/e46d37992739a282c1aee677fa874bb5646e947e",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.slime.hurt_small",
+        "file": "e46d37992739a282c1aee677fa874bb5646e947e.ogg"
+      }
+    ],
+    "entity.slime.death_small": [
+      {
+        "path": "mob/slime/small1",
+        "file_hash": "b8dac8173742660aa660232450f635945f3fdc1f",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/b8/b8dac8173742660aa660232450f635945f3fdc1f",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.slime.death_small",
+        "file": "b8dac8173742660aa660232450f635945f3fdc1f.ogg"
+      },
+      {
+        "path": "mob/slime/small2",
+        "file_hash": "16797c4ad9d87a3ff939a4816d29acb189590dca",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/16/16797c4ad9d87a3ff939a4816d29acb189590dca",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.slime.death_small",
+        "file": "16797c4ad9d87a3ff939a4816d29acb189590dca.ogg"
+      },
+      {
+        "path": "mob/slime/small3",
+        "file_hash": "78c8e3e8fc96d3b576eddf850c010b97e5959de4",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/78/78c8e3e8fc96d3b576eddf850c010b97e5959de4",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.slime.death_small",
+        "file": "78c8e3e8fc96d3b576eddf850c010b97e5959de4.ogg"
+      },
+      {
+        "path": "mob/slime/small4",
+        "file_hash": "98c23d73be7bd53350cd4b1b830705f98465fa03",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/98/98c23d73be7bd53350cd4b1b830705f98465fa03",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.slime.death_small",
+        "file": "98c23d73be7bd53350cd4b1b830705f98465fa03.ogg"
+      },
+      {
+        "path": "mob/slime/small5",
+        "file_hash": "e46d37992739a282c1aee677fa874bb5646e947e",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/e4/e46d37992739a282c1aee677fa874bb5646e947e",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.slime.death_small",
+        "file": "e46d37992739a282c1aee677fa874bb5646e947e.ogg"
+      }
+    ],
+    "entity.ghast.ambient": [
+      {
+        "path": "mob/ghast/moan1",
+        "file_hash": "5271efaf10e123ce7d03a574ebb8a593c7e8c826",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/52/5271efaf10e123ce7d03a574ebb8a593c7e8c826",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.ghast.ambient",
+        "file": "5271efaf10e123ce7d03a574ebb8a593c7e8c826.ogg"
+      },
+      {
+        "path": "mob/ghast/moan2",
+        "file_hash": "0e208ff8b70b022978b4ea57cfa2ac6672680112",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/0e/0e208ff8b70b022978b4ea57cfa2ac6672680112",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.ghast.ambient",
+        "file": "0e208ff8b70b022978b4ea57cfa2ac6672680112.ogg"
+      },
+      {
+        "path": "mob/ghast/moan3",
+        "file_hash": "5eeb380f700bf402638e09482ff55ae926bde71e",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/5e/5eeb380f700bf402638e09482ff55ae926bde71e",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.ghast.ambient",
+        "file": "5eeb380f700bf402638e09482ff55ae926bde71e.ogg"
+      },
+      {
+        "path": "mob/ghast/moan4",
+        "file_hash": "8edd840599bbd1e35f7fa3857d8a9f7d43e697d6",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/8e/8edd840599bbd1e35f7fa3857d8a9f7d43e697d6",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.ghast.ambient",
+        "file": "8edd840599bbd1e35f7fa3857d8a9f7d43e697d6.ogg"
+      },
+      {
+        "path": "mob/ghast/moan5",
+        "file_hash": "083557d2eb1a78315ca5f18c384ab3ee693e53ed",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/08/083557d2eb1a78315ca5f18c384ab3ee693e53ed",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.ghast.ambient",
+        "file": "083557d2eb1a78315ca5f18c384ab3ee693e53ed.ogg"
+      },
+      {
+        "path": "mob/ghast/moan6",
+        "file_hash": "161d5566c38f3cec70a776995bdf58a52852aa79",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/16/161d5566c38f3cec70a776995bdf58a52852aa79",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.ghast.ambient",
+        "file": "161d5566c38f3cec70a776995bdf58a52852aa79.ogg"
+      },
+      {
+        "path": "mob/ghast/moan7",
+        "file_hash": "aad0209b6d3f6ca32cf80aae78d11bffef3d974e",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/aa/aad0209b6d3f6ca32cf80aae78d11bffef3d974e",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.ghast.ambient",
+        "file": "aad0209b6d3f6ca32cf80aae78d11bffef3d974e.ogg"
+      }
+    ],
+    "entity.ghast.warn": [
+      {
+        "path": "mob/ghast/charge",
+        "file_hash": "3066a05ff74bb537d38e2172c257f28f1b3f6e53",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/30/3066a05ff74bb537d38e2172c257f28f1b3f6e53",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.ghast.warn",
+        "file": "3066a05ff74bb537d38e2172c257f28f1b3f6e53.ogg"
+      }
+    ],
+    "entity.ghast.shoot": [
+      {
+        "path": "mob/ghast/fireball4",
+        "file_hash": "e2aae5ec9916c6c4ae328520f4d72a50afff5aed",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/e2/e2aae5ec9916c6c4ae328520f4d72a50afff5aed",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.ghast.shoot",
+        "file": "e2aae5ec9916c6c4ae328520f4d72a50afff5aed.ogg"
+      }
+    ],
+    "entity.ghast.hurt": [
+      {
+        "path": "mob/ghast/scream1",
+        "file_hash": "b846fade34b2a51499e24134c5c0536bb8c4d49b",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/b8/b846fade34b2a51499e24134c5c0536bb8c4d49b",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.ghast.hurt",
+        "file": "b846fade34b2a51499e24134c5c0536bb8c4d49b.ogg"
+      },
+      {
+        "path": "mob/ghast/scream2",
+        "file_hash": "8d8d8ed31959f603aae9d3d79356d208abeeecf7",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/8d/8d8d8ed31959f603aae9d3d79356d208abeeecf7",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.ghast.hurt",
+        "file": "8d8d8ed31959f603aae9d3d79356d208abeeecf7.ogg"
+      },
+      {
+        "path": "mob/ghast/scream3",
+        "file_hash": "d7e153c51e1e5cd4838a7bd694e4b42edeab340f",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/d7/d7e153c51e1e5cd4838a7bd694e4b42edeab340f",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.ghast.hurt",
+        "file": "d7e153c51e1e5cd4838a7bd694e4b42edeab340f.ogg"
+      },
+      {
+        "path": "mob/ghast/scream4",
+        "file_hash": "d955376c8e19a267b1449fc369b87b25dede4fcf",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/d9/d955376c8e19a267b1449fc369b87b25dede4fcf",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.ghast.hurt",
+        "file": "d955376c8e19a267b1449fc369b87b25dede4fcf.ogg"
+      },
+      {
+        "path": "mob/ghast/scream5",
+        "file_hash": "6853ff1b496995fd4acf8b0bb60bb28b4f9dabac",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/68/6853ff1b496995fd4acf8b0bb60bb28b4f9dabac",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.ghast.hurt",
+        "file": "6853ff1b496995fd4acf8b0bb60bb28b4f9dabac.ogg"
+      }
+    ],
+    "entity.ghast.death": [
+      {
+        "path": "mob/ghast/death",
+        "file_hash": "3d7d2c5a95f0829dbec7f2fefbf16660e38ceec6",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/3d/3d7d2c5a95f0829dbec7f2fefbf16660e38ceec6",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.ghast.death",
+        "file": "3d7d2c5a95f0829dbec7f2fefbf16660e38ceec6.ogg"
+      }
+    ],
+    "entity.guardian.ambient": [
+      {
+        "path": "mob/guardian/guardian_idle1",
+        "file_hash": "9ada20da7c229e7598261d8a60c66e3dbc496507",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/9a/9ada20da7c229e7598261d8a60c66e3dbc496507",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.guardian.ambient",
+        "file": "9ada20da7c229e7598261d8a60c66e3dbc496507.ogg"
+      },
+      {
+        "path": "mob/guardian/guardian_idle2",
+        "file_hash": "f2cb23554501f00e0e714be37e02ac83eb906b83",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/f2/f2cb23554501f00e0e714be37e02ac83eb906b83",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.guardian.ambient",
+        "file": "f2cb23554501f00e0e714be37e02ac83eb906b83.ogg"
+      },
+      {
+        "path": "mob/guardian/guardian_idle3",
+        "file_hash": "ec7cb9a6aaba2f1d801039075c4e6a08176cd737",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/ec/ec7cb9a6aaba2f1d801039075c4e6a08176cd737",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.guardian.ambient",
+        "file": "ec7cb9a6aaba2f1d801039075c4e6a08176cd737.ogg"
+      },
+      {
+        "path": "mob/guardian/guardian_idle4",
+        "file_hash": "dfec4843eafefcca5b1aea40fe1639604ab7774a",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/df/dfec4843eafefcca5b1aea40fe1639604ab7774a",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.guardian.ambient",
+        "file": "dfec4843eafefcca5b1aea40fe1639604ab7774a.ogg"
+      }
+    ],
+    "entity.guardian.attack": [
+      {
+        "path": "mob/guardian/attack_loop",
+        "file_hash": "d7505745c0c75b19934cd7cb304607badbbf7e80",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/d7/d7505745c0c75b19934cd7cb304607badbbf7e80",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.guardian.attack",
+        "file": "d7505745c0c75b19934cd7cb304607badbbf7e80.ogg"
+      }
+    ],
+    "entity.guardian.hurt": [
+      {
+        "path": "mob/guardian/guardian_hit1",
+        "file_hash": "08979d1090cc231f2ac106eddabbeebfaf6161ec",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/08/08979d1090cc231f2ac106eddabbeebfaf6161ec",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.guardian.hurt",
+        "file": "08979d1090cc231f2ac106eddabbeebfaf6161ec.ogg"
+      },
+      {
+        "path": "mob/guardian/guardian_hit2",
+        "file_hash": "b86bf2360315b92c4585f790bf9e73747407ee4b",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/b8/b86bf2360315b92c4585f790bf9e73747407ee4b",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.guardian.hurt",
+        "file": "b86bf2360315b92c4585f790bf9e73747407ee4b.ogg"
+      },
+      {
+        "path": "mob/guardian/guardian_hit3",
+        "file_hash": "23991e171a938d4fb87016ad13c37ca5bc9c04be",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/23/23991e171a938d4fb87016ad13c37ca5bc9c04be",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.guardian.hurt",
+        "file": "23991e171a938d4fb87016ad13c37ca5bc9c04be.ogg"
+      },
+      {
+        "path": "mob/guardian/guardian_hit4",
+        "file_hash": "1c20908d9029ed3dc441a1c77e6cfeb862f56cb8",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/1c/1c20908d9029ed3dc441a1c77e6cfeb862f56cb8",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.guardian.hurt",
+        "file": "1c20908d9029ed3dc441a1c77e6cfeb862f56cb8.ogg"
+      }
+    ],
+    "entity.guardian.death": [
+      {
+        "path": "mob/guardian/guardian_death",
+        "file_hash": "ef1c704a54dce8806a45814d0aca75b8f244620a",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/ef/ef1c704a54dce8806a45814d0aca75b8f244620a",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.guardian.death",
+        "file": "ef1c704a54dce8806a45814d0aca75b8f244620a.ogg"
+      }
+    ],
+    "entity.guardian.flop": [
+      {
+        "path": "mob/guardian/flop1",
+        "file_hash": "1330faec2b5a6ed7dbb3932e4002966a854df137",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/13/1330faec2b5a6ed7dbb3932e4002966a854df137",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.guardian.flop",
+        "file": "1330faec2b5a6ed7dbb3932e4002966a854df137.ogg"
+      },
+      {
+        "path": "mob/guardian/flop2",
+        "file_hash": "43bd3b146f2647c02261c662c1fa2604303fe991",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/43/43bd3b146f2647c02261c662c1fa2604303fe991",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.guardian.flop",
+        "file": "43bd3b146f2647c02261c662c1fa2604303fe991.ogg"
+      },
+      {
+        "path": "mob/guardian/flop3",
+        "file_hash": "24d54ac72d33f31ab903a14581f2c294d6622c0b",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/24/24d54ac72d33f31ab903a14581f2c294d6622c0b",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.guardian.flop",
+        "file": "24d54ac72d33f31ab903a14581f2c294d6622c0b.ogg"
+      },
+      {
+        "path": "mob/guardian/flop4",
+        "file_hash": "b479c2b39fadb1211c87bc4857d2b15d269f63bc",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/b4/b479c2b39fadb1211c87bc4857d2b15d269f63bc",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.guardian.flop",
+        "file": "b479c2b39fadb1211c87bc4857d2b15d269f63bc.ogg"
+      }
+    ],
+    "block.piston.extend": [
+      {
+        "path": "tile/piston/out",
+        "file_hash": "3901af42f72bbf980a1c7b05bc9a0022d6620c8f",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/39/3901af42f72bbf980a1c7b05bc9a0022d6620c8f",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/block.piston.extend",
+        "file": "3901af42f72bbf980a1c7b05bc9a0022d6620c8f.ogg"
+      }
+    ],
+    "block.piston.contract": [
+      {
+        "path": "tile/piston/in",
+        "file_hash": "089c6bbbbbc25235352d41b844cf7bb7b7136f71",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/08/089c6bbbbbc25235352d41b844cf7bb7b7136f71",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/block.piston.contract",
+        "file": "089c6bbbbbc25235352d41b844cf7bb7b7136f71.ogg"
+      }
+    ],
+    "entity.fishing_bobber.throw": [
+      {
+        "path": "entity/bobber/castfast",
+        "file_hash": "101a748961ca243023a09cf65b686f397f3d11d9",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/10/101a748961ca243023a09cf65b686f397f3d11d9",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.fishing_bobber.throw",
+        "file": "101a748961ca243023a09cf65b686f397f3d11d9.ogg"
+      }
+    ],
+    "entity.fishing_bobber.retrieve": [
+      {
+        "path": "entity/bobber/retrieve1",
+        "file_hash": "990232db6a8b7edfb8e7fd0e167b79c2eef9c37d",
+        "volume": 1,
+        "pitch": 2.4,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/99/990232db6a8b7edfb8e7fd0e167b79c2eef9c37d",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.fishing_bobber.retrieve",
+        "file": "990232db6a8b7edfb8e7fd0e167b79c2eef9c37d.ogg"
+      },
+      {
+        "path": "entity/bobber/retrieve2",
+        "file_hash": "d07f7fc78faef5c32fd7dd1dc908f7dc98240259",
+        "volume": 1,
+        "pitch": 2.4,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/d0/d07f7fc78faef5c32fd7dd1dc908f7dc98240259",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.fishing_bobber.retrieve",
+        "file": "d07f7fc78faef5c32fd7dd1dc908f7dc98240259.ogg"
+      }
+    ],
+    "entity.fishing_bobber.splash": [
+      {
+        "path": "random/splash",
+        "file_hash": "ceddbe3cb01ed6f356d455a1960d13d96afb5363",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/ce/ceddbe3cb01ed6f356d455a1960d13d96afb5363",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.fishing_bobber.splash",
+        "file": "ceddbe3cb01ed6f356d455a1960d13d96afb5363.ogg"
+      }
+    ],
+    "entity.player.attack.sweep": [
+      {
+        "path": "entity/player/attack/sweep1",
+        "file_hash": "89741b2005ca27c98454e0cc000afe33b5af86fb",
+        "volume": 0.7,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/89/89741b2005ca27c98454e0cc000afe33b5af86fb",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.player.attack.sweep",
+        "file": "89741b2005ca27c98454e0cc000afe33b5af86fb.ogg"
+      },
+      {
+        "path": "entity/player/attack/sweep2",
+        "file_hash": "5350ba0ce6e2d5deeb53849704ce4702c0ee4a85",
+        "volume": 0.7,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/53/5350ba0ce6e2d5deeb53849704ce4702c0ee4a85",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.player.attack.sweep",
+        "file": "5350ba0ce6e2d5deeb53849704ce4702c0ee4a85.ogg"
+      },
+      {
+        "path": "entity/player/attack/sweep3",
+        "file_hash": "8740a15ba2100a68975842c571d40edf970f5bef",
+        "volume": 0.7,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/87/8740a15ba2100a68975842c571d40edf970f5bef",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.player.attack.sweep",
+        "file": "8740a15ba2100a68975842c571d40edf970f5bef.ogg"
+      },
+      {
+        "path": "entity/player/attack/sweep4",
+        "file_hash": "98dfc1ea33b18d387dfbed5cbdc919250538c42e",
+        "volume": 0.7,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/98/98dfc1ea33b18d387dfbed5cbdc919250538c42e",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.player.attack.sweep",
+        "file": "98dfc1ea33b18d387dfbed5cbdc919250538c42e.ogg"
+      },
+      {
+        "path": "entity/player/attack/sweep5",
+        "file_hash": "bf3558e6fb0cacdf87d0d35f1a470acbe5842af4",
+        "volume": 0.7,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/bf/bf3558e6fb0cacdf87d0d35f1a470acbe5842af4",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.player.attack.sweep",
+        "file": "bf3558e6fb0cacdf87d0d35f1a470acbe5842af4.ogg"
+      },
+      {
+        "path": "entity/player/attack/sweep6",
+        "file_hash": "2b9277d2e4542d106bca65e63092c6fcaadf40ea",
+        "volume": 0.7,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/2b/2b9277d2e4542d106bca65e63092c6fcaadf40ea",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.player.attack.sweep",
+        "file": "2b9277d2e4542d106bca65e63092c6fcaadf40ea.ogg"
+      },
+      {
+        "path": "entity/player/attack/sweep7",
+        "file_hash": "dcbf16528e0835b5638c782cede362aa8743fccd",
+        "volume": 0.7,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/dc/dcbf16528e0835b5638c782cede362aa8743fccd",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.player.attack.sweep",
+        "file": "dcbf16528e0835b5638c782cede362aa8743fccd.ogg"
+      }
+    ],
+    "entity.generic.explode": [
+      {
+        "path": "random/explode1",
+        "file_hash": "fa85b9e7e54c36c9f9d0249ca739444b5e3bb66c",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/fa/fa85b9e7e54c36c9f9d0249ca739444b5e3bb66c",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.generic.explode",
+        "file": "fa85b9e7e54c36c9f9d0249ca739444b5e3bb66c.ogg"
+      },
+      {
+        "path": "random/explode2",
+        "file_hash": "e55daa373e577f611565d57ec53cd28dcf472f99",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/e5/e55daa373e577f611565d57ec53cd28dcf472f99",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.generic.explode",
+        "file": "e55daa373e577f611565d57ec53cd28dcf472f99.ogg"
+      },
+      {
+        "path": "random/explode3",
+        "file_hash": "3a92d0fd263265719532041f6f2ea44c7ba2f2e2",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/3a/3a92d0fd263265719532041f6f2ea44c7ba2f2e2",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.generic.explode",
+        "file": "3a92d0fd263265719532041f6f2ea44c7ba2f2e2.ogg"
+      },
+      {
+        "path": "random/explode4",
+        "file_hash": "09835e0c3138faf6047506a2b6f1da087c082d2e",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/09/09835e0c3138faf6047506a2b6f1da087c082d2e",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/entity.generic.explode",
+        "file": "09835e0c3138faf6047506a2b6f1da087c082d2e.ogg"
+      }
+    ],
+    "block.slime_block.hit": [
+      {
+        "path": "mob/slime/small1",
+        "file_hash": "b8dac8173742660aa660232450f635945f3fdc1f",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/b8/b8dac8173742660aa660232450f635945f3fdc1f",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/block.slime_block.hit",
+        "file": "b8dac8173742660aa660232450f635945f3fdc1f.ogg"
+      },
+      {
+        "path": "mob/slime/small2",
+        "file_hash": "16797c4ad9d87a3ff939a4816d29acb189590dca",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/16/16797c4ad9d87a3ff939a4816d29acb189590dca",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/block.slime_block.hit",
+        "file": "16797c4ad9d87a3ff939a4816d29acb189590dca.ogg"
+      },
+      {
+        "path": "mob/slime/small3",
+        "file_hash": "78c8e3e8fc96d3b576eddf850c010b97e5959de4",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/78/78c8e3e8fc96d3b576eddf850c010b97e5959de4",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/block.slime_block.hit",
+        "file": "78c8e3e8fc96d3b576eddf850c010b97e5959de4.ogg"
+      },
+      {
+        "path": "mob/slime/small4",
+        "file_hash": "98c23d73be7bd53350cd4b1b830705f98465fa03",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/98/98c23d73be7bd53350cd4b1b830705f98465fa03",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/block.slime_block.hit",
+        "file": "98c23d73be7bd53350cd4b1b830705f98465fa03.ogg"
+      },
+      {
+        "path": "mob/slime/small5",
+        "file_hash": "e46d37992739a282c1aee677fa874bb5646e947e",
+        "volume": 1,
+        "pitch": 1,
+        "source": "https://mc-sounds-static-v3.imbottle.com/ogg/e4/e46d37992739a282c1aee677fa874bb5646e947e",
+        "site_event": "https://o.xbottle.top/mcsounds_api/v3/sounds/details/block.slime_block.hit",
+        "file": "e46d37992739a282c1aee677fa874bb5646e947e.ogg"
+      }
+    ]
+  }
+}

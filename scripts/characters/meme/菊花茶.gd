@@ -774,12 +774,11 @@ func _spawn_gravity_speed_lines(initial_direction:Vector2,visual_duration:float)
 
 
 func _object_has_property(object:Object,property_name:StringName) -> bool:
-	if object == null:
-		return false
-	for entry:Dictionary in object.get_property_list():
-		if StringName(str(entry.get("name",""))) == property_name:
-			return true
-	return false
+	# V431 性能：按脚本缓存属性名集合（classes/property_index.gd），不再逐次 get_property_list()。
+	return PROPERTY_INDEX.has_property(object,String(property_name))
+
+
+const PROPERTY_INDEX = preload("res://classes/property_index.gd")
 
 func _resolve_gravity_direction() -> Vector2:
 	# “当前移动方向”优先读取玩家输入/上一帧真实 velocity；AI direction 只做静止时兜底。

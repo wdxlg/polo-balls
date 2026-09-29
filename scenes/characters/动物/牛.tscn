@@ -84,6 +84,8 @@ animations = [{
 
 [node name="牛" unique_id=841248523 instance=ExtResource("1_base")]
 script = ExtResource("2_cow")
+motion_blur_enabled = true
+motion_stretch_enabled = true
 Has_Collision_Damage = true
 Type_Tags = PackedStringArray("近战", "爆发", "续航", "成长")
 Negative_Tags = PackedStringArray("畜生", "牛马")

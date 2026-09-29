@@ -1,0 +1,258 @@
+{
+  "commit": "46ba6ea985fb5a92d79a9419198f10dda14c199d",
+  "files": [
+    {
+      "path": "animations/iron_golem.animation.json",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/46ba6ea985fb5a92d79a9419198f10dda14c199d/resource_pack/animations/iron_golem.animation.json",
+      "sha256": "e2481811ca038c69685302973439ebdae62ff8fb6e8eca9f7f80c37b7156d7c0"
+    },
+    {
+      "path": "animations/villager.animation.json",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/46ba6ea985fb5a92d79a9419198f10dda14c199d/resource_pack/animations/villager.animation.json",
+      "sha256": "291ee066110528bed721208f204a184a2bc69514c7ed7c1316ba3e4d4cef34d7"
+    },
+    {
+      "path": "models/entity/iron_golem.geo.json",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/46ba6ea985fb5a92d79a9419198f10dda14c199d/resource_pack/models/entity/iron_golem.geo.json",
+      "sha256": "635d687a2e3ed34a447f721f3279a3a4e5169bff7d8eb68316f7cbda690980bd"
+    },
+    {
+      "path": "models/entity/villager.geo.json",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/46ba6ea985fb5a92d79a9419198f10dda14c199d/resource_pack/models/entity/villager.geo.json",
+      "sha256": "21e69d8ce3abcdac543362f38e2deb08dd03fc1390954f15350422fa765325df"
+    },
+    {
+      "path": "textures/entity/iron_golem/iron_golem.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/46ba6ea985fb5a92d79a9419198f10dda14c199d/resource_pack/textures/entity/iron_golem/iron_golem.png",
+      "sha256": "5b000bb62afa071c6519876ee77fdf8a649d618374686c999edf9ddd38886f3b"
+    },
+    {
+      "path": "textures/entity/iron_golem/cracked_low.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/46ba6ea985fb5a92d79a9419198f10dda14c199d/resource_pack/textures/entity/iron_golem/cracked_low.png",
+      "sha256": "bff455de919242fde463f04ba18b13a1696a8b626f44c3d21b8a1b421276cae0"
+    },
+    {
+      "path": "textures/entity/iron_golem/cracked_medium.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/46ba6ea985fb5a92d79a9419198f10dda14c199d/resource_pack/textures/entity/iron_golem/cracked_medium.png",
+      "sha256": "70c3d0e377d8ee77bd9480ee15dfb68956e5a2ddaea7a6407ff9b19d2b71a00b"
+    },
+    {
+      "path": "textures/entity/iron_golem/cracked_high.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/46ba6ea985fb5a92d79a9419198f10dda14c199d/resource_pack/textures/entity/iron_golem/cracked_high.png",
+      "sha256": "63f042cb0f4c5ef3c27618e5d945ddbdfed8d897505d2df38b20304dfad47df0"
+    },
+    {
+      "path": "textures/entity/villager/villager.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/46ba6ea985fb5a92d79a9419198f10dda14c199d/resource_pack/textures/entity/villager/villager.png",
+      "sha256": "84297924b04c55268af91b53cc03e32da1a98ba1c972fe5404f2cc8211a240a2"
+    },
+    {
+      "path": "textures/items/iron_ingot.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/46ba6ea985fb5a92d79a9419198f10dda14c199d/resource_pack/textures/items/iron_ingot.png",
+      "sha256": "247f59e08365383582ca519c378cf2d7d966a021bd929a686f62f7cc622cd6d0"
+    },
+    {
+      "path": "models/entity/villager_v2.geo.json",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/46ba6ea985fb5a92d79a9419198f10dda14c199d/resource_pack/models/entity/villager_v2.geo.json",
+      "sha256": "33271db5b87d3be5656fad93d08f4175bca9afc1692e91885445b0c856b46dcb"
+    },
+    {
+      "path": "textures/entity/villager2/villager.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/46ba6ea985fb5a92d79a9419198f10dda14c199d/resource_pack/textures/entity/villager2/villager.png",
+      "sha256": "8e085403ad169cc63558201c8379f5bb5282aa79127375d5f9d8cf0059d7399b"
+    },
+    {
+      "path": "textures/entity/villager2/biomes/biome_plains.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/46ba6ea985fb5a92d79a9419198f10dda14c199d/resource_pack/textures/entity/villager2/biomes/biome_plains.png",
+      "sha256": "19c0f1d9b48cf19237d764b0d04b371118b8711568f18f0667ce53a6cc7e8692"
+    },
+    {
+      "path": "textures/entity/villager2/professions/toolsmith.tga",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/46ba6ea985fb5a92d79a9419198f10dda14c199d/resource_pack/textures/entity/villager2/professions/toolsmith.tga",
+      "sha256": "0839f065cda14e8b779e6b4f1926a60d81a3cdc9a659c743f7a35f5819611597"
+    },
+    {
+      "path": "textures/entity/villager2/levels/level_stone.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/46ba6ea985fb5a92d79a9419198f10dda14c199d/resource_pack/textures/entity/villager2/levels/level_stone.png",
+      "sha256": "3d74f25a112baa39a423b86aed0bf43fdd0451082fa9b8c20b94597d649c5076"
+    },
+    {
+      "path": "entity/villager_v2.entity.json",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/46ba6ea985fb5a92d79a9419198f10dda14c199d/resource_pack/entity/villager_v2.entity.json",
+      "sha256": "d7f2f4e25f2ff8b16676eea9852b19eb489c905fd8097a795deaa7bcc57b9faf"
+    },
+    {
+      "path": "render_controllers/villager_v2.render_controllers.json",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/46ba6ea985fb5a92d79a9419198f10dda14c199d/resource_pack/render_controllers/villager_v2.render_controllers.json",
+      "sha256": "7c472dd4bf7a36e7e363ae80f9c147eee2bd76dfec1e7bac6020f1ee0bd2132d"
+    }
+  ],
+  "audio_index": "https://piston-meta.mojang.com/v1/packages/76d7a97b9e0778fda3b14e474f012450ca0de1bb/17.json",
+  "audio": {
+    "minecraft/sounds/mob/irongolem/throw.ogg": {
+      "sha1": "607d51883e137d5d423dde865232ab1ee78f2694",
+      "url": "https://resources.download.minecraft.net/60/607d51883e137d5d423dde865232ab1ee78f2694"
+    },
+    "minecraft/sounds/mob/irongolem/damage1.ogg": {
+      "sha1": "5a3407cf5481a839159f7ebd1d32e245ae888cfc",
+      "url": "https://resources.download.minecraft.net/5a/5a3407cf5481a839159f7ebd1d32e245ae888cfc"
+    },
+    "minecraft/sounds/mob/irongolem/damage2.ogg": {
+      "sha1": "3fb232d67903ea25b9beeefaa11d21183f397aee",
+      "url": "https://resources.download.minecraft.net/3f/3fb232d67903ea25b9beeefaa11d21183f397aee"
+    },
+    "minecraft/sounds/mob/irongolem/repair.ogg": {
+      "sha1": "74f0b9d3c982cd29f648c7c78b9ee3a02b010f8c",
+      "url": "https://resources.download.minecraft.net/74/74f0b9d3c982cd29f648c7c78b9ee3a02b010f8c"
+    },
+    "minecraft/sounds/mob/irongolem/hit1.ogg": {
+      "sha1": "942937fcad0fefd61e019678e3710f3f077757d4",
+      "url": "https://resources.download.minecraft.net/94/942937fcad0fefd61e019678e3710f3f077757d4"
+    },
+    "minecraft/sounds/mob/irongolem/hit2.ogg": {
+      "sha1": "bb92fd6971430a515f508a6734392511385826e1",
+      "url": "https://resources.download.minecraft.net/bb/bb92fd6971430a515f508a6734392511385826e1"
+    },
+    "minecraft/sounds/mob/irongolem/hit3.ogg": {
+      "sha1": "27c78cd09f7fd1770a41d78247ccf57c77dbc773",
+      "url": "https://resources.download.minecraft.net/27/27c78cd09f7fd1770a41d78247ccf57c77dbc773"
+    },
+    "minecraft/sounds/mob/irongolem/hit4.ogg": {
+      "sha1": "a2dbb90f23b0babe7c569ceca28db49d0c112714",
+      "url": "https://resources.download.minecraft.net/a2/a2dbb90f23b0babe7c569ceca28db49d0c112714"
+    },
+    "minecraft/sounds/mob/irongolem/death.ogg": {
+      "sha1": "770b3f1feb05b9b941d858eb72b9d04ffc5d52c9",
+      "url": "https://resources.download.minecraft.net/77/770b3f1feb05b9b941d858eb72b9d04ffc5d52c9"
+    },
+    "minecraft/sounds/mob/irongolem/walk1.ogg": {
+      "sha1": "4e3e9f37c1e0c12c2993d25c28b89e2f0797ba5a",
+      "url": "https://resources.download.minecraft.net/4e/4e3e9f37c1e0c12c2993d25c28b89e2f0797ba5a"
+    },
+    "minecraft/sounds/mob/irongolem/walk2.ogg": {
+      "sha1": "356fdb6192cf96aa5d5d9c76413f412f6a4d66a4",
+      "url": "https://resources.download.minecraft.net/35/356fdb6192cf96aa5d5d9c76413f412f6a4d66a4"
+    },
+    "minecraft/sounds/mob/irongolem/walk3.ogg": {
+      "sha1": "e0672d288b09996f7c7e1a0ca696de82b7a02d18",
+      "url": "https://resources.download.minecraft.net/e0/e0672d288b09996f7c7e1a0ca696de82b7a02d18"
+    },
+    "minecraft/sounds/mob/irongolem/walk4.ogg": {
+      "sha1": "88ae6c906f8f94add2fe904b59c94e844bbcef9a",
+      "url": "https://resources.download.minecraft.net/88/88ae6c906f8f94add2fe904b59c94e844bbcef9a"
+    },
+    "minecraft/sounds/mob/villager/idle1.ogg": {
+      "sha1": "a772db3c8ac37dfeb3a761854fb96297257930ab",
+      "url": "https://resources.download.minecraft.net/a7/a772db3c8ac37dfeb3a761854fb96297257930ab"
+    },
+    "minecraft/sounds/mob/villager/idle2.ogg": {
+      "sha1": "5df4a02b1ebc550514841fddb7d64b9c497d40b4",
+      "url": "https://resources.download.minecraft.net/5d/5df4a02b1ebc550514841fddb7d64b9c497d40b4"
+    },
+    "minecraft/sounds/mob/villager/idle3.ogg": {
+      "sha1": "9a7fe638bb8b3b1060b3830c63c3ce3d03cdbe1f",
+      "url": "https://resources.download.minecraft.net/9a/9a7fe638bb8b3b1060b3830c63c3ce3d03cdbe1f"
+    },
+    "minecraft/sounds/mob/villager/hit1.ogg": {
+      "sha1": "101e3535d3f482acb6d1d0259d53d12b25979788",
+      "url": "https://resources.download.minecraft.net/10/101e3535d3f482acb6d1d0259d53d12b25979788"
+    },
+    "minecraft/sounds/mob/villager/hit2.ogg": {
+      "sha1": "1d20194a6b2f883be478830f129e017257374629",
+      "url": "https://resources.download.minecraft.net/1d/1d20194a6b2f883be478830f129e017257374629"
+    },
+    "minecraft/sounds/mob/villager/hit3.ogg": {
+      "sha1": "242114e81d0f4858d91fe06b7e78b86eec3127cd",
+      "url": "https://resources.download.minecraft.net/24/242114e81d0f4858d91fe06b7e78b86eec3127cd"
+    },
+    "minecraft/sounds/mob/villager/hit4.ogg": {
+      "sha1": "1882f71dee4f377dde08a517adc5f3c585d2d526",
+      "url": "https://resources.download.minecraft.net/18/1882f71dee4f377dde08a517adc5f3c585d2d526"
+    },
+    "minecraft/sounds/mob/villager/death.ogg": {
+      "sha1": "97c65b93b9bff839786e23d8cb7c98ef3be4fe2d",
+      "url": "https://resources.download.minecraft.net/97/97c65b93b9bff839786e23d8cb7c98ef3be4fe2d"
+    },
+    "minecraft/sounds/mob/villager/yes1.ogg": {
+      "sha1": "be73a79fb1ab966887a8b88bed9aa6b3d9173d71",
+      "url": "https://resources.download.minecraft.net/be/be73a79fb1ab966887a8b88bed9aa6b3d9173d71"
+    },
+    "minecraft/sounds/mob/villager/yes2.ogg": {
+      "sha1": "32317250b0c0ee18ed1e0c4ae3364fa796433b0a",
+      "url": "https://resources.download.minecraft.net/32/32317250b0c0ee18ed1e0c4ae3364fa796433b0a"
+    },
+    "minecraft/sounds/mob/villager/yes3.ogg": {
+      "sha1": "893e37d8d608cccd9c2404e785597c6a7c5f3593",
+      "url": "https://resources.download.minecraft.net/89/893e37d8d608cccd9c2404e785597c6a7c5f3593"
+    },
+    "minecraft/sounds/random/bow.ogg": {
+      "sha1": "87edc11141fb5a045f2ed830b545aaa73f96ee99",
+      "url": "https://resources.download.minecraft.net/87/87edc11141fb5a045f2ed830b545aaa73f96ee99"
+    },
+    "minecraft/sounds/step/stone1.ogg": {
+      "sha1": "4a2e3795ffd4d3aab0834b7e41903af3a8f7d197",
+      "url": "https://resources.download.minecraft.net/4a/4a2e3795ffd4d3aab0834b7e41903af3a8f7d197"
+    },
+    "minecraft/sounds/step/stone2.ogg": {
+      "sha1": "22a383d9c22342305a4f16fec0bb479a885f8da2",
+      "url": "https://resources.download.minecraft.net/22/22a383d9c22342305a4f16fec0bb479a885f8da2"
+    },
+    "minecraft/sounds/step/stone3.ogg": {
+      "sha1": "a533e7ae975e62592de868e0d0572778614bd587",
+      "url": "https://resources.download.minecraft.net/a5/a533e7ae975e62592de868e0d0572778614bd587"
+    },
+    "minecraft/sounds/step/stone4.ogg": {
+      "sha1": "d5218034051a13322d7b5efc0b5a9af739615f04",
+      "url": "https://resources.download.minecraft.net/d5/d5218034051a13322d7b5efc0b5a9af739615f04"
+    },
+    "minecraft/sounds/step/stone5.ogg": {
+      "sha1": "48dd05ab2e4626d74206c2b09a628a3d59ce15e9",
+      "url": "https://resources.download.minecraft.net/48/48dd05ab2e4626d74206c2b09a628a3d59ce15e9"
+    },
+    "minecraft/sounds/step/stone6.ogg": {
+      "sha1": "c4810a3de80cb57f9cdf8deaacfd36cb619cdf0b",
+      "url": "https://resources.download.minecraft.net/c4/c4810a3de80cb57f9cdf8deaacfd36cb619cdf0b"
+    },
+    "minecraft/sounds/damage/fallsmall.ogg": {
+      "sha1": "09236e1a725cec0229b8c564f5b3e4fe05cd7a5f",
+      "url": "https://resources.download.minecraft.net/09/09236e1a725cec0229b8c564f5b3e4fe05cd7a5f",
+      "event": "entity.generic.small_fall"
+    },
+    "minecraft/sounds/damage/fallbig.ogg": {
+      "sha1": "1d183c36f596e85c4fb564ff2667332211e49659",
+      "url": "https://resources.download.minecraft.net/1d/1d183c36f596e85c4fb564ff2667332211e49659",
+      "event": "entity.generic.big_fall"
+    }
+  },
+  "adaptation": "Official Bedrock skeletons and skins baked to orthographic frames. Walk and upswing adapted from native bone tracks; anticipation and villager item handling are new gameplay timing, not claimed as original gameplay. Crack overlays native; rage is runtime red tint. No AI-painted art or synthetic audio.",
+  "villager_variant": {
+    "profession": "toolsmith",
+    "biome": "plains",
+    "trade_level": "stone (novice)",
+    "geometry": "models/entity/villager_v2.geo.json",
+    "texture_layers": [
+      "textures/entity/villager2/villager.png",
+      "textures/entity/villager2/biomes/biome_plains.png",
+      "textures/entity/villager2/professions/toolsmith.tga",
+      "textures/entity/villager2/levels/level_stone.png"
+    ]
+  },
+  "golem_charge_adaptation": {
+    "gameplay": "0.12-1.2s predictive charge; current visual-facing melee; damage and launch scale with charge",
+    "animation": "Original arm0/arm1 bones grow to 2.1x on upswing and gradually recover; gameplay adaptation, not vanilla animation",
+    "swing_frames": 24,
+    "swing_duration": 0.48,
+    "canvas": [
+      448,
+      384
+    ],
+    "preview_canvas": [
+      160,
+      224
+    ],
+    "original_sources_unchanged": true,
+    "shoulder_attachment": "Bake-only arm pivots at inner shoulders (-9,31,0)/(9,31,0); no arm-only translation while charging; native source geometry unchanged."
+  },
+  "villager_footsteps": "Native block.stone.step used as default villager walking surface; vanilla has no entity.villager.step event.",
+  "landing_audio": "Official Java 1.21.1 entity.generic.small_fall (actual peak <100) and entity.generic.big_fall (>=100). Unmodified damage/fallsmall.ogg and damage/fallbig.ogg, SHA1 verified. No mace sound assets used."
+}

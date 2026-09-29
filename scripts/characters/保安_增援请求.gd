@@ -12,6 +12,17 @@ var spawn_position:Vector2 = Vector2.ZERO
 var disembark_distance:float = 24.0
 
 
+# Confirmed arrivals survive their caller, but not reset or round retirement.
+var _battle_spawn_ticket:int = 0
+var _lifecycle_world:Node = null
+func bind_battle_source(source:ball) -> void:
+	_lifecycle_world = source.get_tree().current_scene
+	_battle_spawn_ticket = _lifecycle_world.begin_battle_spawn(source,self)
+func _exit_tree() -> void:
+	if _battle_spawn_ticket > 0 and is_instance_valid(_lifecycle_world):
+		_lifecycle_world.finish_battle_spawn(_battle_spawn_ticket)
+	_battle_spawn_ticket = 0
+
 func _ready() -> void:
 	add_to_group("GuardReinforcementRequest")
 	call_deferred("_wait_and_arrive")
@@ -32,6 +43,10 @@ func _wait_and_arrive() -> void:
 
 	var guard:ball = guard_scene.instantiate() as ball
 	if guard == null:
+		queue_free()
+		return
+	if _battle_spawn_ticket > 0 and (not is_instance_valid(_lifecycle_world) or not _lifecycle_world.apply_battle_spawn_identity(guard,_battle_spawn_ticket)):
+		guard.free()
 		queue_free()
 		return
 	guard.set("spawn_initial_squad",false)

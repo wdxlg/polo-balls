@@ -113,7 +113,7 @@ func run() -> void:
 	if recorder.last_outputs.size()==2:
 		var zh:String = str(recorder.last_outputs.zh)
 		var en:String = str(recorder.last_outputs.en)
-		check(zh.get_file().begins_with("Mc小球新角色：烈焰人" if armor else "Mc小球：烈焰人 vs 骷髅") and zh.ends_with(".mp4"),"Chinese movie uses the new-character name")
+		check(zh.get_file().begins_with("烈焰人" if armor else "烈焰人 vs 骷髅") and zh.ends_with(".mp4"),"Chinese movie uses the new-character name")
 		check(en.get_file().begins_with("Blaze") and (not en.get_file().contains("vs") if armor else en.get_file().contains("vs Skeleton")) and en.ends_with(".mp4"),"English movie is the English role name alone")
 		check(FileAccess.file_exists(zh) and FileAccess.file_exists(en),"both output paths exist on disk")
 	var result:Dictionary = {"mode":args[1],"checks":checks,"failures":failures,"frames":recorder._frame_index,"end_frame":ended_at_frame,"tail_start_frame":tail_start_frame,"peak_bytes":peak_bytes,"duration_from_frames":float(recorder._frame_index)/60.0,"outputs":recorder.last_outputs.duplicate(),"error":recorder.get_last_error()}

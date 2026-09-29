@@ -64,6 +64,9 @@ func _process(delta:float) -> void:
 	# 单帧最多补 4 波，防止卡顿恢复后一次生成过多雨滴。
 	_rain_elapsed += delta
 	var interval:float = maxf(rain_interval,0.01)
+	if is_player_controlled():
+		_rain_elapsed = minf(_rain_elapsed,interval)
+		return
 	var spawned_waves:int = 0
 	while _rain_elapsed >= interval and spawned_waves < 4:
 		_rain_elapsed -= interval
@@ -71,6 +74,16 @@ func _process(delta:float) -> void:
 		spawned_waves += 1
 	if spawned_waves >= 4:
 		_rain_elapsed = minf(_rain_elapsed,interval)
+
+func controlled_attack_action() -> void:
+	# 左键：按原雨滴节奏降下一波雨，雨伞格挡仍是被动。
+	if not is_player_controlled() or not is_multiplayer_authority() or health <= 0 or not is_combat_runtime_active():
+		return
+	var interval:float = maxf(rain_interval,0.01)
+	if _rain_elapsed < interval:
+		return
+	_rain_elapsed -= interval
+	_spawn_rain_wave()
 
 func _setup_umbrella_audio() -> void:
 	_umbrella_hit_audio_1 = AudioStreamPlayer2D.new()

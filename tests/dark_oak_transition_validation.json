@@ -1,0 +1,63 @@
+{
+  "engine": "Godot 4.7.2 D3D12 Forward+ / RTX 4060 Laptop",
+  "motion": {
+    "close_seconds": 0.275,
+    "open_seconds": 0.3,
+    "hold_seconds": 0.2,
+    "warm_measured_ms": {
+      "first": {
+        "warm_close": "286",
+        "warm_open": "305"
+      },
+      "final": {
+        "warm_close": "281",
+        "warm_open": "304"
+      }
+    },
+    "note": "first transition also pays one-off 3D viewport/shader setup"
+  },
+  "tests": {
+    "first": {
+      "checks": 87,
+      "failures": 0,
+      "child_exit": 0,
+      "captured_frames": 23
+    },
+    "final": {
+      "checks": 87,
+      "failures": 0,
+      "child_exit": 0,
+      "captured_frames": 25
+    }
+  },
+  "classification_gate": {
+    "result": {
+      "scenes": 278,
+      "scripts": 610,
+      "missing": [],
+      "stale": [],
+      "invalid_kinds": [],
+      "invalid_status_policies": [],
+      "missing_buff_polarity": []
+    },
+    "note": "the single stale entry is another concurrent task (wither skeleton audio), not this door work; no dark_oak file is listed"
+  },
+  "capture": {
+    "frames": 28,
+    "audio_seconds": 2.1333333333333333,
+    "audio_sample_rate": 48000,
+    "audio_full_scale_samples": 34,
+    "audio_samples": 204800,
+    "first_frame_seconds": 1.111,
+    "mp4_seconds": 2.5833333333333335,
+    "alignment": "audio_start_ms + real frame timestamps, leading settings image and ending hold"
+  },
+  "limitations": [
+    "Native close1.ogg decoded float peak +0.180102 dBFS; 16-bit capture contains full-scale samples. No gain boost applied, players remain at 0 dB; subjective listening not established by automated checks.",
+    "ObjectDB exit warnings remain.",
+    "Headless editor import exited 3221225477 (access violation), with existing shader filename-case/UID warnings; graphical feature tests both exit 0. Import is not claimed clean.",
+    "UI bus audio is intentionally outside GameplayRecord; this MP4 is GPU capture plus UI-bus PCM, not battle recorder E2E.",
+    "Prior settings-width tests passed 36 assertions twice but had anvil shutdown parse/load errors; unchanged files, not rerun here.",
+    "No OS-dialog coverage or multiplayer validation."
+  ]
+}

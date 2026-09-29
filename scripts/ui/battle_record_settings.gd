@@ -57,8 +57,8 @@ func setup(target:Node) -> void:
 	tail_spin.value_changed.connect(_tail_changed)
 	tail_spin.get_line_edit().add_theme_font_size_override("font_size", 9)
 	tail_row.add_child(tail_spin)
-	# The recording panel already lives under SettingsStack. Put the camera option in
-	# its sibling Parameters category, not among recording-only directory/tail options.
+	# Camera framing belongs in Parameters, directly below the background selector,
+	# not at the end of the page or among recording-only directory/tail options.
 	var parameter_box:VBoxContainer = null
 	var recording_box:Node = get_parent()
 	if recording_box != null and recording_box.get_parent() != null:
@@ -74,6 +74,12 @@ func setup(target:Node) -> void:
 	layout_row.add_child(layout_label)
 	composition_select = OptionButton.new()
 	composition_select.name = "RecordingComposition"
+	# Match the compact parameter rows; popup entries retain their full text.
+	composition_select.fit_to_longest_item = false
+	composition_select.clip_text = true
+	composition_select.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	composition_select.custom_minimum_size = Vector2(0,24)
+	composition_select.add_theme_font_size_override("font_size",9)
 	composition_select.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	composition_select.add_item("完整地图 · 竖屏排版", recorder.preferences.FULL)
 	composition_select.add_item("交战跟拍 · 自动推拉", recorder.preferences.FOLLOW)
@@ -84,9 +90,15 @@ func setup(target:Node) -> void:
 	layout_row.add_child(composition_select)
 	composition_feedback = Label.new()
 	composition_feedback.name = "CompositionFeedback"
+	composition_feedback.add_theme_font_size_override("font_size",9)
 	composition_feedback.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	composition_feedback.text = "选择后立即改变游戏内画面；录像沿用同一取景。"
 	composition_container.add_child(composition_feedback)
+	if parameter_box != null:
+		var background_row:Node = parameter_box.get_node_or_null("MapBackgroundRow")
+		if background_row != null:
+			parameter_box.move_child(layout_row,background_row.get_index() + 1)
+			parameter_box.move_child(composition_feedback,layout_row.get_index() + 1)
 	feedback = Label.new()
 	feedback.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	feedback.text = "「设置」选择文件夹，或直接输入路径后按回车。设置会记住；录制中不能更改。"

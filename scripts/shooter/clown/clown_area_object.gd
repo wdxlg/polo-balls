@@ -1,4 +1,5 @@
 extends Area2D
+const PROJECTILE_CONTACT = preload("res://scripts/projectile_contact.gd")
 
 # 小丑场景物件：
 # 0 香蕉皮：延迟激活，任何真实角色（自己/队友/敌人）都能踩。
@@ -192,6 +193,7 @@ func _try_trigger_area(area:Area2D) -> void:
 
 
 func _try_trigger_target(target:ball,damage_space:Variant = null) -> void:
+	if object_mode==ObjectMode.CONFETTI and PROJECTILE_CONTACT.ignores(target): return
 	if target == null or not is_instance_valid(target):
 		return
 	if target.health <= 0:

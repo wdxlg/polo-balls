@@ -1,0 +1,18 @@
+fix(evoker): fang closure sparks and ring-only emergence debris
+
+尖牙闭合瞬间按原版 EvokerFangs 固定发射 12 颗 CRIT 粒子，复用世界级
+CombatImpactLayer 批量层（新增只做视觉的 add_visual_critical_burst 与
+mc_combat_abilities.critical_burst），中性灰白、圆面散布，不再堆成一点；
+是否命中都发射，与原版一致，且不参与伤害判定。
+
+出土时复用重锤的落地小方块碎屑，关闭爆圈与射线，只取环形外圈采样
+（新增 block_source_inner_radius_scale/block_exclusion_radius，默认 0 时
+既有调用者行为不变），上升仅 2–4 像素；一份技能共享账本限流 4 个碎屑
+批次，避免整圈尖牙同时喷土。伤害数值、命中与音效时序未改。
+
+验证：tests/test_evoker_fang_particles.gd headless 25/25、真实 D3D12 GPU
+26/26（含 GPU 像素差分与截图）；回归 warden 落地碎屑 140/140、地表采样 0
+失败、溺水者上墙 45/45、碎裂契约 18/18、唤魔者受击音频 16/16、图腾
+41/17/13。test_mc16_charged_impact 的 4 项三叉戟光泽/落插失败与 test_
+drowned_surface_rules 的 SKIP 均为既有状态，未在本任务内处理。
+详见 tests/EVOKER_FANG_PARTICLES.md。
