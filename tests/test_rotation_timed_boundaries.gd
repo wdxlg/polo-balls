@@ -38,7 +38,7 @@ func run() -> void:
 	game.Game_Settings.Training_Mode_Type="timed";world.control.hide();world.control.team.hide()
 	world._timed_running=true;world._timed_time_left=10
 	var blue:Node=timed_actor(1,"Team0");var red:Node=timed_actor(2,"Team1");var third:Node=timed_actor(3,"Team2")
-	world._timed_damage_by_setup={1:5.0,2:5.0,3:2.0}
+	world._timed_damage_by_setup={1:2.0,2:2.0,3:5.0}
 	world.refresh_versus_text();world.duel_top_hud._refresh_pair();world.duel_top_hud._update_clock(0);world.duel_top_hud._process(0)
 	check(world.duel_top_hud.sides.size()!=2 and world.duel_top_hud.visible and world.duel_top_hud.clock_text()=="00:10","three-player timed match retains same HUD central clock")
 	await capture("timed_three")
@@ -51,9 +51,9 @@ func run() -> void:
 	Engine.time_scale=1;world._update_special_training_modes(1)
 	check(world._timed_time_left==9,"countdown resumes once with actual game delta")
 	world._timed_time_left=0;world._finish_timed_training()
-	check(world._timed_overtime and red.health>0 and third.health>0,"highest-score tie does not kill lower scores prematurely")
-	world._on_timed_training_damage_resolved(blue,red,1)
-	check(world._timed_finished and world._timed_winner_setup==1,"first actual damage lead settles inside same damage callback")
+	check(world._timed_overtime and red.health>0 and third.health>0,"lowest-damage-taken tie does not kill higher scores prematurely")
+	red.health-=1
+	check(world._timed_finished and world._timed_winner_setup==1,"first actual HP loss breaking the tie settles inside the same health write")
 	check(red.health==0 and third.health==0 and blue.health>0,"multiplayer-count verdict kills every losing setup, keeps winner")
 	world.reset();await process_frame;await process_frame
 	var door:CanvasLayer=load("res://scripts/ui/dark_oak_transition.gd").ensure(self)

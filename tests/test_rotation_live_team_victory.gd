@@ -125,7 +125,7 @@ func run() -> void:
 		blue1=normal_actor(501,"A",-40);blue2=normal_actor(502,"A",-15);red1=normal_actor(503,"B",35)
 		game.Game_Settings.Training_Mode_Type=mode
 		if mode=="timed":
-			world._timed_running=true;world._timed_damage_by_setup={501:100.0,502:5.0,503:3.0}
+			world._timed_running=true;world._timed_damage_by_setup={501:3.0,502:5.0,503:100.0}
 			world._finish_timed_training();await process_frame;world.duel_top_hud._process(0.2)
 		else:
 			world._boss_started=true;world._boss_intro_playing=false

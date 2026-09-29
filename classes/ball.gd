@@ -611,6 +611,12 @@ func current_health_damage_request_amount() -> int:
 			if new_health == 0 and health == 0 and requested_health_damage > old_health:
 				focus_damage = float(requested_health_damage)
 			_notify_damage_camera_feedback(focus_damage)
+			# 计时模式按“受到的实际生命伤害”计分：所有扣血路径（含环境/自伤/无来源）都经过这里，
+			# 且取角色钩子（无敌/格挡回血）之后的确认损失。World 自己判断模式、权威端与主战人物。
+			if confirmed_loss > 0.0 and Game.is_timed_training_mode():
+				var timed_world:World = _cached_world if _cached_world != null and is_instance_valid(_cached_world) else null
+				if timed_world == null and is_inside_tree(): timed_world = get_tree().current_scene as World
+				if timed_world != null: timed_world.on_timed_health_loss(self,confirmed_loss)
 		_current_health_damage_request_amount = 0
 
 		# 兜底：有些伤害来源会在状态机本帧更新之后才把生命写成 0。

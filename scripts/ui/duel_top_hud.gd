@@ -871,6 +871,7 @@ func _resolve_portrait(raw_name:String,node:Node) -> Texture2D:
 
 func _refresh_values() -> void:
 	for side:Dictionary in sides:
+		# 计时模式：受到的实际生命伤害（与头顶数字同一份权威分数）。
 		side.damage=float(world._timed_damage_by_setup.get(int(side.get("setup_id",-1)),0.0))
 		var hp:float = 0.0
 		var max_hp:float = 0.0
@@ -1096,7 +1097,7 @@ func _outlined_text(canvas:CanvasItem,left_baseline:Vector2,text:String,alignmen
 
 func side_value_text(side:Dictionary) -> String:
 	if bool(_data().timed_mode):
-		return ("造成伤害：" if _toast_locale()=="zh" else "Damage: ")+str(roundi(float(side.get("damage",0.0))))
+		return ("受到伤害：" if _toast_locale()=="zh" else "Damage taken: ")+str(roundi(float(side.get("damage",0.0))))
 	return "%d / %d" % [ceili(float(side.hp)),roundi(float(side.max_hp))]
 func clock_text() -> String:
 	var data=_data()

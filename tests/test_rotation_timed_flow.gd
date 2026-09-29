@@ -96,21 +96,30 @@ func run() -> void:
 	check(world.duel_top_hud.timed_mode and world.duel_top_hud.sides.size()==2,"timed duel keeps existing top HUD")
 	var left:Dictionary=world.duel_top_hud.sides[0]
 	check(left.damage==123.0 and is_equal_approx(left.reduction,0.35),"top HUD reads real accumulated damage and retains armor")
-	check("123" in world.duel_top_hud.side_value_text(left) and not "/" in world.duel_top_hud.side_value_text(left),"life text replaced with dealt-damage value")
+	check("123" in world.duel_top_hud.side_value_text(left) and not "/" in world.duel_top_hud.side_value_text(left),"life text replaced with damage-taken value")
+	check(("受到伤害" in world.duel_top_hud.side_value_text(left)) or ("Damage taken" in world.duel_top_hud.side_value_text(left)),"top HUD labels the value as damage taken")
 	world._update_special_training_modes(1.0);world.duel_top_hud._update_clock(0)
 	check(world.duel_top_hud.clock_text()=="00:09" and not world.timed_training_label.visible,"one upper countdown replaces lower map timer")
+	# Scores are damage TAKEN: any actual HP loss (here a sourceless direct write) counts, via ball.health setter.
+	var taken_before:float=world._timed_damage_by_setup[1]
+	blue.health-=7
+	check(is_equal_approx(world._timed_damage_by_setup[1],taken_before+7.0) and is_equal_approx(world._timed_damage_by_setup[2],23.0),"sourceless actual HP loss adds to the victim's own damage-taken score only")
+	check(world._timed_damage_labels.has(1) and world._timed_damage_labels[1].text==str(int(round(world._timed_damage_by_setup[1]))),"head number shows the damage-taken score")
+	var healed_score:float=world._timed_damage_by_setup[1]
+	blue.health+=5
+	check(world._timed_damage_by_setup[1]==healed_score,"healing does not reduce or add damage taken")
 	await capture("timed_damage")
 	world._timed_damage_by_setup={1:50.0,2:50.0};world._timed_time_left=0;world._finish_timed_training()
 	world.duel_top_hud._update_clock(0)
 	check(world._timed_overtime and not world._timed_finished and world.is_combat_runtime_active(),"tied timeout enters active overtime instead of pausing or killing")
 	check(world.duel_top_hud.clock_text() in ["加赛","OT"] and red.health>0,"upper countdown announces overtime and retains tied fighters")
-	world._on_timed_training_damage_resolved(blue,red,1.0);world._update_special_training_modes(0.016)
-	check(world._timed_finished and world._timed_winner_setup==1 and not world._timed_overtime,"first score lead in overtime settles once")
+	red.health-=1;world._update_special_training_modes(0.016)
+	check(world._timed_finished and world._timed_winner_setup==1 and not world._timed_overtime,"overtime: first real HP loss breaking the lowest tie settles once (least damage taken wins)")
 	check(red.health==0 and not red._totem_used and red.state_machine.current_state==2,"timed loser dies directly without triggering totem")
 	check(not game.now_stop_state and not paused and world.is_combat_runtime_active(),"time-up does not pause the winner or the world")
 	check(blue.process_mode!=Node.PROCESS_MODE_DISABLED,"winner is not disabled on verdict")
 	var score:float=world._timed_damage_by_setup[1]
-	world._on_timed_training_damage_resolved(blue,red,9.0)
+	blue.health-=9
 	check(world._timed_damage_by_setup[1]==score,"final score cannot keep accumulating after verdict")
 	var pos:Vector2=blue.global_position
 	blue.Speed=80;blue.direction=Vector2.RIGHT;blue.state_machine.set_physics_process(true)

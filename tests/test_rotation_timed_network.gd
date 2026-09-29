@@ -67,7 +67,7 @@ func host_case() -> void:
 	ack("stale_sent");check(await until(func():return flag("stale")),"client rejected duplicate snapshot")
 	world._timed_damage_by_setup={1:50.0,2:50.0};world._timed_time_left=0.0;world._finish_timed_training()
 	check(await until(func():return flag("overtime")),"overtime received without local verdict")
-	world._timed_damage_by_setup[1]=51.0;world._finish_timed_training()
+	world._timed_damage_by_setup[2]=51.0;world._finish_timed_training()
 	check(await until(func():return flag("winner")),"final verdict reached client")
 	world.reset();await process_frame;await process_frame
 	game.Game_Settings.Training_Mode_Type="rotation";game.Game_Settings.Rotation_Match_Type="duel";game.Game_Settings.Training_Wheel_Battle=false
@@ -97,11 +97,11 @@ func guest_case() -> void:
 	check(world._timed_winner_setup!=99 and world._timed_time_left==5.0,"duplicate/old sequence cannot rewrite final state")
 	ack("stale")
 	check(await until(func():return world._timed_overtime),"remote receives overtime")
-	world._finish_timed_training();world._on_timed_training_damage_resolved(null,null,100)
+	world._finish_timed_training();world.on_timed_health_loss(null,100)
 	check(not world._timed_finished and world._timed_damage_by_setup[1]==50,"client cannot settle or add points")
 	ack("overtime")
 	check(await until(func():return world._timed_finished and world._timed_winner_setup==1),"winner is authority-selected")
-	check(world._timed_damage_by_setup[1]==51 and not paused and not game.now_stop_state,"final score frozen without client pause")
+	check(world._timed_damage_by_setup[2]==51 and not paused and not game.now_stop_state,"final score frozen without client pause")
 	ack("winner");await until(func():return flag("rotation"))
 	world.reset();await process_frame;await process_frame
 	game.Game_Settings.Training_Mode_Type="rotation";game.Game_Settings.Rotation_Match_Type="duel";game.Game_Settings.Training_Wheel_Battle=false

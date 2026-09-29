@@ -773,6 +773,8 @@ var _timed_received_sequence:int = -1
 # 没有这个闸门时会被误判为“仍有两名角色”，从而把刚重置的计时器立刻再次启动。
 var _timed_start_armed:bool = false
 var _timed_time_left:float = 0.0
+# 计时模式分数：每个参战 setup 本局【受到】的全部实际生命伤害（敌人/召唤物/环境/自伤都算），最少者胜。
+# 变量名沿用旧名，duel_top_hud 与联机快照共用同一份数据。
 var _timed_damage_by_setup:Dictionary = {}
 var _timed_name_by_setup:Dictionary = {}
 var _timed_damage_labels:Dictionary = {}
@@ -1476,8 +1478,6 @@ func _ready() -> void:
 		Game.language_changed.connect(_on_language_changed)
 	if not Game.game_setting_changed.is_connected(_on_training_game_setting_changed):
 		Game.game_setting_changed.connect(_on_training_game_setting_changed)
-	if not Game.training_damage_resolved.is_connected(_on_timed_training_damage_resolved):
-		Game.training_damage_resolved.connect(_on_timed_training_damage_resolved)
 	if not get_tree().node_added.is_connected(_on_training_scene_node_added):
 		get_tree().node_added.connect(_on_training_scene_node_added)
 	# 场景中可能已有在 World._ready() 之前进入树的投射物，延后一帧做一次兼容同步。
@@ -1499,8 +1499,6 @@ func _exit_tree() -> void:
 		get_tree().node_added.disconnect(_on_training_scene_node_added)
 	if Game.game_setting_changed.is_connected(_on_training_game_setting_changed):
 		Game.game_setting_changed.disconnect(_on_training_game_setting_changed)
-	if Game.training_damage_resolved.is_connected(_on_timed_training_damage_resolved):
-		Game.training_damage_resolved.disconnect(_on_timed_training_damage_resolved)
 
 var start_path:String = "res://scenes/"
 var particle_path:String = "res://scenes/particle/"
@@ -8420,21 +8418,20 @@ func _resolve_timed_source_setup_id(source:Node) -> int:
 	return -1
 
 
-func _on_timed_training_damage_resolved(source:Node,target:Node,actual_health_damage:float) -> void:
-	if not Game.is_timed_training_mode() or not is_multiplayer_authority() or _timed_finished or actual_health_damage <= 0.0:
+## 计时模式计分入口：ball.health setter 在确认实际生命损失后调用（所有扣血路径都经过它）。
+## 分数 = 该参战 setup 受到的全部实际生命伤害，不区分来源（敌人、召唤物、环境、自伤、无来源扣血）。
+## 只统计主战人物/延续单位本身；召唤物与杂物自己掉血不计。只由权威端累加，客机只收快照。
+func on_timed_health_loss(target:ball,actual_health_loss:float) -> void:
+	if not Game.is_timed_training_mode() or not is_multiplayer_authority() or not _timed_running or _timed_finished or actual_health_loss <= 0.0:
 		return
-	# 计分只统计对真正参战人物造成的伤害；打自己的伤害、召唤物/杂物不刷分。
-	if not target is ball or not _is_primary_battle_character(target as ball):
+	if target == null or not is_instance_valid(target) or not _is_primary_battle_character(target):
 		return
-	var setup_id:int = _resolve_timed_source_setup_id(source)
+	var setup_id:int = _resolve_timed_source_setup_id(target)
 	if setup_id < 0:
 		return
-	var target_setup_id:int = int(target.get_meta("battle_setup_id",-1))
-	if target_setup_id == setup_id:
-		return
-	_timed_damage_by_setup[setup_id] = float(_timed_damage_by_setup.get(setup_id,0.0)) + actual_health_damage
+	_timed_damage_by_setup[setup_id] = float(_timed_damage_by_setup.get(setup_id,0.0)) + actual_health_loss
 	_update_timed_damage_label(setup_id)
-	if _timed_overtime: _finish_timed_training() # Settle the first actual lead, not a later physics tick.
+	if _timed_overtime: _finish_timed_training() # Settle as soon as a tie for the lowest score breaks.
 
 
 func _update_timed_damage_label(setup_id:int) -> void:
@@ -8466,12 +8463,21 @@ func _receive_timed_match(sequence:int,remaining:float,scores:Dictionary,running
 func _finish_timed_training() -> void:
 	if _timed_finished or not is_multiplayer_authority(): return
 	_timed_time_left=0.0
-	var best_score:float=-1.0
-	var winners:Array[int]=[]
+	# 受到伤害最少者胜。候选：仍在布阵名单中（或有在场人物）且家族存活/等待训练复活的 setup；
+	# 已删除的布阵、已彻底阵亡的人物不能凭“少挨打”获胜。无人符合时退回全部分数参与。
+	var candidates:Array = []
 	for raw_id:Variant in _timed_damage_by_setup.keys():
+		var candidate_id:int = int(raw_id)
+		var listed:bool = not _find_battle_setup_entry(candidate_id).is_empty() or _battle_setup_character_exists(candidate_id)
+		var alive:bool = _battle_family_alive(candidate_id) or _battle_setup_character_exists(candidate_id) or _training_respawn_pending.has(candidate_id)
+		if listed and alive: candidates.append(raw_id)
+	if candidates.is_empty(): candidates = _timed_damage_by_setup.keys()
+	var best_score:float=INF
+	var winners:Array[int]=[]
+	for raw_id:Variant in candidates:
 		var setup_id:int=int(raw_id)
 		var score:float=float(_timed_damage_by_setup[raw_id])
-		if score>best_score+0.001:
+		if score<best_score-0.001:
 			best_score=score
 			winners=[setup_id]
 		elif absf(score-best_score)<=0.001: winners.append(setup_id)
