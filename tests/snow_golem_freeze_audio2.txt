@@ -1,3 +1,0 @@
-﻿# started 2026-09-20T17:52:03
-test_mc_snow_golem_build_revision.gd          exit=         errs=0    10.8s
-# finished 2026-09-20T17:52:14

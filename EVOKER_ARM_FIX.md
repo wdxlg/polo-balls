@@ -1,9 +1,0 @@
-# 唤魔者庆祝手臂修复
-
-问题位于离线动画烘焙：celebrate同时执行evoker.casting与humanoid.celebrating，角度累加导致手臂朝身体内扭转。官方controller的casting和celebrating是独立状态。
-
-修正bake_native_mobs.py：celebrate只执行humanoid.celebrating，单独隐藏折叠手臂模型。重生成evoker_022.png至evoker_037.png，共16张；保留原有资源引用、画布、脚底锚点和播放时长。manifest更新唯一帧数和16张文件SHA256。idle与cast样本重渲染像素逐字节相同，没有修改正常施法或其它角色帧。
-
-验证：16个采样相位的两侧手臂角度/折叠模型隐藏检查通过；GPU专项test_evoker_arms.gd 6/6，检查全帧双臂边界、施法/庆祝切换、动画及暂停；test_mc_three.gd 52/52。实际GPU截图tests/evoker_arms_fixed.png。
-
-test_mc_native_animation.gd的1353项断言通过，但退出阶段另出现预热依赖脚本加载错误，未将该进程记为完全无错误。既有shader路径大小写、ObjectDB退出警告仍存在。

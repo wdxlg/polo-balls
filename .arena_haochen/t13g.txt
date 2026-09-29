@@ -1,3 +1,0 @@
-﻿
-gpu exit=0 :: WANDERING_TRADER_GPU checks=2 failures=0
-ALLDONE

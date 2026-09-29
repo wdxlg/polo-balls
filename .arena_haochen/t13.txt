@@ -1,4 +1,0 @@
-﻿
-import exit=0
-.arena_haochen/t13_wt1.log exit=0 :: WANDERING_TRADER checks=51 failures=0
-ALLDONE

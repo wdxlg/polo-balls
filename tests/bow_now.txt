@@ -1,3 +1,0 @@
-﻿# started 2026-09-20T17:31:49
-test_mc_bow_ballistics.gd                     exit=         errs=0    10.5s
-# finished 2026-09-20T17:31:59

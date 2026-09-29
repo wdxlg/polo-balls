@@ -1,6 +1,0 @@
-﻿
-test_duel_top_hud exit=1 :: DUEL_HUD_RESULT checks=82 failures=1 :: ERROR: DUEL_HUD_FAIL with the toolbar layout the world clock still follows below the HUD panels || DUEL_HUD_RESULT checks=82 failures=1
-test_vs_screen_title exit=0 :: VS_SCREEN_RESULT checks=27 failures=0 :: VS_SCREEN_RESULT checks=27 failures=0
-test_day_night_cycle exit=0 :: PASS: empty rematch leaves current time alone | PASS: clear/reset restores noon without leftover darkness | DAY_NIGHT checks=33 failures=0 :: DAY_NIGHT checks=33 failures=0
-test_day_night_visual exit=1 :: PASS: nether floor participates in real GPU day/night | PASS: end floor participates in real GPU day/night | DAY_NIGHT_VISUAL checks=44 failures=1 :: ERROR: DAY_NIGHT_VISUAL FAIL: 06:30 clock text actually visible at top right || DAY_NIGHT_VISUAL checks=44 failures=1
-ALLDONE

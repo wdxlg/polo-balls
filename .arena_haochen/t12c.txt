@@ -1,7 +1,0 @@
-﻿
-.arena_haochen/t12c_duel1.log exit=0 :: DUEL_HUD_RESULT checks=82 failures=0 :: DUEL_HUD_RESULT checks=82 failures=0
-.arena_haochen/t12c_duel2.log exit=0 :: DUEL_HUD_RESULT checks=82 failures=0 :: DUEL_HUD_RESULT checks=82 failures=0
-.arena_haochen/t12c_dnv1.log exit=-1073741819 :: DAY_NIGHT_VISUAL checks=44 failures=3 :: ERROR: DAY_NIGHT_VISUAL FAIL: 00:00 clock text actually visible at top right || ERROR: DAY_NIGHT_VISUAL FAIL: 06:30 clock text actually visible at top right || ERROR: DAY_NIGHT_VISUAL FAIL: 08:00 clock text actually visible at top right
-.arena_haochen/t12c_dnv2.log exit=1 :: DAY_NIGHT_VISUAL checks=44 failures=3 :: ERROR: DAY_NIGHT_VISUAL FAIL: 00:00 clock text actually visible at top right || ERROR: DAY_NIGHT_VISUAL FAIL: 06:30 clock text actually visible at top right || ERROR: DAY_NIGHT_VISUAL FAIL: 08:00 clock text actually visible at top right
-.arena_haochen/t12c_dnvbase.log exit=1 :: DAY_NIGHT_VISUAL checks=44 failures=3 :: ERROR: DAY_NIGHT_VISUAL FAIL: 00:00 clock text actually visible at top right || ERROR: DAY_NIGHT_VISUAL FAIL: 06:30 clock text actually visible at top right || ERROR: DAY_NIGHT_VISUAL FAIL: 08:00 clock text actually visible at top right
-ALLDONE

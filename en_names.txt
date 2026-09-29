@@ -1,7 +1,0 @@
-AI_ROSTER_AND_RED_MIST.md :: Z=8：在人物上方、血条和地图边框下方。 |  | 静态实机预览：`scripts/training/ai_mist_preview.png`。实际游戏中刀光与预警会随时间播放。 | 这是按原作风格方向制作的自定义特效，不是原作动画逐帧移植
-MC_ALLAY_CHARACTER.md :: /我的世界/悦灵.tscn` | 主脚本：`res://scripts/characters/我的世界/allay/allay.gd` |  | 角色目录由项目自动索引；重新进入游戏后可在“我的世界”分类选择。 |  | ## 原版素材（替换了第一版
-MC_WARDEN_SOUND.md :: 倍）、unbroken 18/18、burst 19/19。运行期间有并发新增的音符盒/唱片机场景与cactus_note图片缺失/未导入错误，未修改这些无关文件；不能据此宣称完整项目启动无错误。相关Warden生产脚本诊断无错误/
-scenes/characters/我的世界/仙人掌.tscn :: type="Script" path="res://scripts/characters/我的世界/cactus_note/cactus.gd" id="2_script"] | [ext_resource type="Texture2
-scenes/characters/我的世界/唱片机.tscn :: D" path="res://Images/characters/我的世界/cactus_note/jukebox.png" id="3_visual"] |  | [sub_resource type="RectangleShape2D" 
-scenes/characters/我的世界/唱片机.tscn :: type="Script" path="res://scripts/characters/我的世界/cactus_note/note_block.gd" id="2_script"] | [ext_resource type="Text
-scenes/characters/我的世界/雾中人.tscn :: type="Script" path="res://scripts/characters/我的世界/fog_man/actor.gd" id="2"] | [ext_resource type="Texture2D" path="

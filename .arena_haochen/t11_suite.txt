@@ -1,8 +1,0 @@
-﻿
-test_haochen exit=0 :: HAOCHEN checks=55 failures=0 :: HAOCHEN checks=55 failures=0
-test_haochen_network exit=0 :: HAOCHEN_NETWORK checks=27 failures=0 | HAOCHEN_NETWORK_FINAL checks=28 failures=0 :: HAOCHEN_NETWORK checks=27 failures=0 || HAOCHEN_NETWORK_FINAL checks=28 failures=0
-test_haochen_task8 exit=0 :: HAOCHEN_TASK8 checks=8 failures=0 :: HAOCHEN_TASK8 checks=8 failures=0
-test_haochen_task10 exit=0 :: HAOCHEN_TASK10 checks=88 failures=0 :: HAOCHEN_TASK10 checks=88 failures=0
-test_haochen_visual_audio exit=1 :: HAOCHEN_VISUAL_AUDIO checks=11 failures=1 :: ERROR: FAIL: the supplied phrase is not silently trimmed or re-encoded || HAOCHEN_VISUAL_AUDIO checks=11 failures=1
-test_haochen_real_battle_gpu exit=0 :: HAOCHEN_REAL_BATTLE checks=11 failures=0 :: HAOCHEN_REAL_BATTLE checks=11 failures=0
-ALLDONE

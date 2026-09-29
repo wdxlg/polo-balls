@@ -47,7 +47,7 @@ func _run_offline_game() -> void:
 		return
 	var engine_path:String = _engine_path()
 	if not FileAccess.file_exists(engine_path):
-		_show_message("找不到项目配套的离线录制引擎：\n" + engine_path + "\n请查看 tools/offline_engine/README.md；不会退回原版运行。")
+		_show_message("找不到项目配套的离线录制引擎：\n" + engine_path + "\n请用 tools/offline_engine/build.ps1 重建；不会退回原版运行。")
 		return
 	if _game_pid > 0 and OS.is_process_running(_game_pid):
 		_show_message("右键录制版游戏仍在运行（PID %d）。请切换到现有游戏窗口，或先关闭它再启动新对局。" % _game_pid)
