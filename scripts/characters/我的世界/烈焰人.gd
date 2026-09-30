@@ -513,7 +513,11 @@ func _is_enemy(target:ball) -> bool:
 	if preload("res://scripts/characters/我的世界/haochen/copy_friendly_guard.gd").skips_target(self,target): return false # 皓宸复制品及其产物不把己方选为目标
 	if target == null or not is_instance_valid(target) or target == self or target.health <= 0 or not target.is_combat_targetable():
 		return false
-	if not Game.Game_Settings.Have_Team_Damage and not Team.is_empty() and Team == target.Team:
+	# 与世界统一的最近敌人规则一致：全局友伤开关只决定命中是否掉血，不决定锁谁。
+	# 烈焰人从不把同队或自己的召唤物当目标（火焰棒碰撞也走这里）。
+	if not Can_Target_Teammates and not Team.is_empty() and Team == target.Team:
+		return false
+	if target.Master == self:
 		return false
 	return true
 

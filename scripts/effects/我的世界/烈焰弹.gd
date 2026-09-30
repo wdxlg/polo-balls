@@ -206,7 +206,8 @@ func _apply_burn(source:ball,target:ball,duration:float,tick_damage:float) -> vo
 func _can_damage(target:ball) -> bool:
 	if target == null or not is_instance_valid(target) or target.health <= 0 or not target.is_combat_targetable():
 		return false
-	if not Game.Game_Settings.Have_Team_Damage and not _source_team.is_empty() and target.Team == _source_team:
+	# 烈焰人没有友伤：火球爆炸与附带燃烧不伤发射者同队，不受全局友伤开关影响。
+	if not _source_team.is_empty() and target.Team == _source_team:
 		return false
 	return true
 
