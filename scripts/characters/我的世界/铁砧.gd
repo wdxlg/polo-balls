@@ -355,30 +355,31 @@ func _advance_one(dt:float) -> void:
 		begin_slam()
 	match slam_phase:
 		SlamPhase.RISING:
-			var travel_dt:float = minf(dt,maxf(_jump_total_time-phase_elapsed,0.0))
+			var motion_dt:float = motion_scaled_delta(dt)
+			var travel_dt:float = minf(motion_dt,maxf(_jump_total_time-phase_elapsed,0.0))
 			_jump_step(travel_dt)
 			# Consume the rest of this physics step as falling, not as a dead frame.
-			if slam_phase==SlamPhase.FALLING and dt-travel_dt>0.000001:
-				_fall_step(dt-travel_dt)
+			if slam_phase==SlamPhase.FALLING and motion_dt-travel_dt>0.000001:
+				_fall_step(motion_dt-travel_dt)
 		SlamPhase.HOVER:
 			# Old saved/network state must not reintroduce the removed top delay.
 			_begin_drop()
-			_fall_step(dt)
+			_fall_step(motion_scaled_delta(dt))
 		SlamPhase.CHAIN_WAIT:
 			phase_elapsed += dt
 			if phase_elapsed>=chain_delay:
 				if not begin_slam(_target(),true): _cancel_slam()
 		SlamPhase.GROUND:
-			velocity = Vector2(_horizontal_step(dt,true),0.0)
+			velocity = Vector2(_horizontal_step(motion_scaled_delta(dt),true),0.0)
 			var bounds:Rect2 = map_bounds_for(global_position)
 			var at_bottom:bool = bounds.size.y>0.0 and global_position.y+body_half_size().y>=bounds.end.y-0.1
 			if not at_bottom and move_and_collide(Vector2(0,0.25),true,0.001,true)==null:
 				slam_phase = SlamPhase.FALLING
 				_fall_hits.clear()
 				_drop_connected = false
-				_fall_step(dt,true)
+				_fall_step(motion_scaled_delta(dt),true)
 		SlamPhase.FALLING:
-			_fall_step(dt)
+			_fall_step(motion_scaled_delta(dt))
 
 func cruising_velocity() -> float:
 	if _active_slam or dizziness or not bool(Game.Game_Settings.get("Ball_Can_Move",true)): return 0.0

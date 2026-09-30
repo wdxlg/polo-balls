@@ -254,19 +254,15 @@ func _tick_contacts() -> void:
 				var quad := PackedVector2Array([before[0],before[1],line.b,line.a])
 				hit = Geometry2D.is_point_in_polygon(p,quad) or GEOMETRY.touching(before[1],line.b,p,old,r+unit.silk_width)
 			if not hit: continue
-			var world:Node = get_tree().current_scene
-			if world!=null and world.has_method("new_buff"):
-				# Unique key per strand: same strand refreshes, DIFFERENT strands multiply.
-				world.new_buff(target,unit,"蜘蛛丝_"+str(line.id),Buff.new(2,maxf(unit.silk_tick*2.2,0.2),Buff.Buff_types.Speed,unit.silk_slow_multiplier,Buff.Algorithms.mul),"cover")
+			# Unique key per strand: same strand refreshes, DIFFERENT strands multiply.
+			target.set_motion_speed_factor("蜘蛛丝_"+str(unit.get_instance_id())+"_"+str(line.id),unit,unit.silk_slow_multiplier,maxf(unit.silk_tick*2.2,0.2))
 			unit.mc_damage_with_impact(target,unit.silk_damage,p)
 			if not is_instance_valid(target) or target.health<=0: break
 		if not is_instance_valid(target) or target.health<=0: continue
 		for web:Dictionary in webs.values():
 			if GEOMETRY.segment_distance(old,p,web.point)>unit.web_radius+r: continue
-			var world:Node = get_tree().current_scene
-			if world!=null and world.has_method("new_buff"):
-				# Refresh one strong slow per owner, not another stack every tick.
-				world.new_buff(target,unit,"蜘蛛网",Buff.new(2,maxf(unit.silk_tick*2.2,0.2),Buff.Buff_types.Speed,unit.web_slow_multiplier,Buff.Algorithms.mul),"cover")
+			# Refresh one strong slow per owner, not another stack every tick.
+			target.set_motion_speed_factor("蜘蛛网_"+str(unit.get_instance_id()),unit,unit.web_slow_multiplier,maxf(unit.silk_tick*2.2,0.2))
 			unit.mc_damage_with_impact(target,unit.web_damage,p)
 			if not is_instance_valid(target) or target.health<=0: break
 			if float(web.cooldowns.get(id,0.0))>_clock: continue
@@ -293,6 +289,12 @@ func receive_snapshot(packed:Array,points:Array) -> void:
 	queue_redraw()
 func _draw() -> void:
 	if not is_instance_valid(unit) or unit.health<=0: return
+	# The silk layer must be an identity top-level item. A stale inherited map
+	# transform would increasingly scale/offset long strands on larger maps.
+	if not global_transform.is_equal_approx(Transform2D.IDENTITY):
+		global_transform = Transform2D.IDENTITY
+		queue_redraw()
+		return
 	var draw_lines:Array = []
 	var draw_webs:Array = []
 	if unit.is_multiplayer_authority():
@@ -301,13 +303,16 @@ func _draw() -> void:
 	else:
 		draw_lines = _remote_lines
 		draw_webs = _remote_webs
+	# Endpoints are world coordinates even if a caller re-parented this item; draw
+	# them in this item's local space so a map transform cannot scale the silk away.
+	var local_transform:Transform2D = global_transform.affine_inverse()
 	for line:Array in draw_lines:
 		var endpoint:Vector2 = unit.silk_tail_position() if line[2] else line[1]
 		# One hard-edged pixel stroke: no smooth shadow/outline or round wall dots.
 		# Snap to the centre of the pixel that holds each end (floor, not round):
 		# unbiased on every side, so wall-sunk ends stay under the wall.
-		draw_line(Vector2(line[0]).floor()+Vector2(0.5,0.5),endpoint.floor()+Vector2(0.5,0.5),Color(0.91,0.94,0.96),1.0,false)
+		draw_line(local_transform*(Vector2(line[0]).floor()+Vector2(0.5,0.5)),local_transform*(endpoint.floor()+Vector2(0.5,0.5)),Color(0.91,0.94,0.96),1.0,false)
 	for point:Vector2 in draw_webs:
 		# Untouched vanilla 16x16 cobweb; no generated radial spokes/rings.
 		var diameter:float = unit.web_radius*2.0
-		draw_texture_rect(COBWEB_TEXTURE,Rect2(point-Vector2.ONE*unit.web_radius,Vector2.ONE*diameter),false)
+		draw_texture_rect(COBWEB_TEXTURE,Rect2(local_transform*point-Vector2.ONE*unit.web_radius,Vector2.ONE*diameter),false)

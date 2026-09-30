@@ -61,6 +61,7 @@
 | 雷电 | `mc_combat_abilities.gd::lightning(parent,point,seed,radius,warning,options)` | `tuning` 调表现，`on_impact` 只在权威端接伤害 |
 | 平面击退/眩晕 | `target.apply_knockback(dir,dist,speed,bounce,stun,{"source":caster,...})` / `apply_stun(duration,caster)` | 不复制 `knockback_effect.gd`，不裸写 `Repel` |
 | 可挣脱的非独占牵引 | `knockback_effect.gd::set_pull/release_pull/pull_velocity` | 每物理步刷新自己的速度贡献，不累加、不锁输入，来源失效自动剔除 |
+| 不改属性的实际运动减速 | `ball.set_motion_speed_factor(key,source,factor,left)` / `motion_speed_factor()` / `motion_scaled_delta(delta)` | 只缩放公共 move/stand 和自写强位移的真实速度，不改 `Speed`；按来源租约过期，同一目标多条限制取乘积 |
 | 真实身体击飞 | `scripts/effects/physical_airborne_effect.gd::launch(...)`；`landed_at` 或子类 `_on_landing` | 可选钩子 `on_forced_motion_collision(collision)` |
 | 地表方向加速 | `scripts/effects/surface_acceleration.gd::touch(target,surface)`；目标可选 `get_surface_acceleration_speed_limit(default)` | 沿真实位移积分，重叠取上限；默认额外上限为基础速度 ×1.5；走 `ball.surface_motion_velocity` |
 | 临时角色对免碰撞 | `classes/body_collision_exclusions.gd::acquire/release/are_excluded` | 按 holder 租约，不改层/掩码 |

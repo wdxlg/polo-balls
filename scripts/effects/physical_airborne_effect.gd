@@ -101,7 +101,7 @@ func advance(delta:float) -> void:
 		_apply_height()
 		return
 	_refresh_map_regions()
-	var remaining:float = maxf(delta,0.0)
+	var remaining:float = target.motion_scaled_delta(delta)
 	while remaining>0.000001 and not landed:
 		# Small swept steps include thin obstacles and the real trajectory's apex.
 		var dt:float = minf(remaining,minf(1.0/240.0,1.0/maxf(absf(_vertical_speed)+absf(horizontal_speed),1.0)))

@@ -4927,6 +4927,33 @@ func apply_transport_pose() -> bool:
 # Controllers clear their contribution on exit; ordinary physics still handles walls.
 var surface_motion_velocity:Vector2 = Vector2.ZERO
 
+# Actual-motion slow factors (cobweb etc.) multiply every composed velocity while
+# leaving the character's stats untouched. Entries self-expire and clean up on use.
+var _motion_speed_factors:Dictionary = {}
+
+func set_motion_speed_factor(key:StringName,source:Object,factor:float,left:float) -> void:
+	if not is_finite(factor) or not is_finite(left): return
+	if factor>=1.0 or left<=0.0 or not is_instance_valid(source):
+		_motion_speed_factors.erase(key)
+		return
+	_motion_speed_factors[key] = {"source":weakref(source),"factor":clampf(factor,0.0,1.0),"until":Engine.get_physics_frames()+int(ceilf(left*Engine.get_physics_ticks_per_second()))}
+
+func motion_speed_factor() -> float:
+	var result:float = 1.0
+	if _motion_speed_factors.is_empty(): return result
+	var now:int = Engine.get_physics_frames()
+	for key:Variant in _motion_speed_factors.keys():
+		var entry:Dictionary = _motion_speed_factors[key]
+		var source:Variant = entry.get("source",null)
+		if now>=int(entry.get("until",0)) or not (source is WeakRef) or not is_instance_valid(source.get_ref()):
+			_motion_speed_factors.erase(key)
+			continue
+		result *= float(entry.get("factor",1.0))
+	return result
+
+func motion_scaled_delta(delta:float) -> float:
+	return maxf(delta,0.0)*motion_speed_factor()
+
 func move(speed:float,delta:float):
 	if apply_transport_pose(): return
 
@@ -4952,6 +4979,7 @@ func move(speed:float,delta:float):
 		Repel
 	)
 	velocity += surface_motion_velocity + KNOCKBACK_EFFECT_SCRIPT.pull_velocity(self)
+	velocity *= motion_speed_factor()
 	_last_requested_velocity = velocity
 
 	# move_and_slide() 即使 velocity == 0，也会执行 safe_margin 的碰撞恢复。
@@ -5035,6 +5063,7 @@ func stand(delta:float):
 	# Stand 状态只有显式 Repel 才允许发生位移。
 	# hitbox/hurtbox 是 Area2D，不调用 move_and_slide() 也仍可正常攻击/受伤。
 	velocity = Repel + _crowd_separation_velocity + surface_motion_velocity + KNOCKBACK_EFFECT_SCRIPT.pull_velocity(self)
+	velocity *= motion_speed_factor()
 	_last_requested_velocity = velocity
 	if velocity.length_squared() <= MOTION_EPSILON_SQ:
 		velocity = Vector2.ZERO

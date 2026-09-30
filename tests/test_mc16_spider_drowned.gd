@@ -54,6 +54,12 @@ func reset_silk(net:Node) -> void:
 	net._previous.clear()
 	net._previous_lines.clear()
 	net._contact_left = 0.0
+	# Test reset removes only this spider's live motion leases; fixture geometry is reset independently.
+	for raw:Node in get_nodes_in_group("Ball"):
+		if not (raw is ball): continue
+		for key:Variant in (raw as ball)._motion_speed_factors.keys():
+			var source:Variant = (raw as ball)._motion_speed_factors[key].get("source",null)
+			if source is WeakRef and source.get_ref()==net.unit: (raw as ball)._motion_speed_factors.erase(key)
 func wall_touch(net:Node,point:Vector2) -> void:
 	net._contact_left = 0.0
 	net.touch_wall(point)
@@ -138,18 +144,23 @@ func run() -> void:
 	target.global_position = center
 	friend.global_position = center
 	target.Buff_Dic.clear()
+	target.Speed = 140.0
+	var speed_before:float = target.Speed
 	hp = target.health
+	spider._lunge_wait = 99.0 # Isolate the passive slow/movement assertion from the spider's own lunge.
 	net._tick_contacts()
-	var buffs:Dictionary = target.Buff_Dic.get(spider.get_instance_id(),{})
-	check(buffs.size()==3,"two strand slows plus one strong web slow are independently keyed")
+	check(target.Buff_Dic.get(spider.get_instance_id(),{}).is_empty(),"silk slow does not alter the Speed buff/stat layer")
+	check(target.Speed==speed_before,"silk contact leaves the visible Speed stat unchanged")
 	# ball.health is integer: each accepted hit rounds the requested new HP down.
 	check(is_equal_approx(hp-float(target.health),ceilf(spider.silk_damage)*2.0+ceilf(spider.web_damage)),"two strands plus web each deal fixed one-point damage")
-	var product:float = 1.0
-	for buff:Variant in buffs.values(): product *= float(buff.amount)
-	check(is_equal_approx(product,pow(spider.silk_slow_multiplier,2.0)*spider.web_slow_multiplier),"strand slows multiply with the strong web slow")
-	check(spider._lunge_left>0.0,"crossing web triggers spider hunt")
+	var product:float = pow(spider.silk_slow_multiplier,2.0)*spider.web_slow_multiplier
+	check(target._motion_speed_factors.size()==3,"two strand slows plus one strong web slow are independently keyed")
+	check(is_equal_approx(target.motion_speed_factor(),product),"strand actual-motion factors multiply with the strong web factor")
+	spider._lunge_wait = 0.0
+	check(spider.hunt_web_target(target),"crossing web triggers spider hunt")
 	net._tick_contacts()
-	check(target.Buff_Dic[spider.get_instance_id()].size()==3,"refresh does not infinitely stack strand/web slows")
+	target.global_position = center
+	check(target._motion_speed_factors.size()==3,"refresh does not infinitely stack strand/web actual-motion keys")
 	await physics_frame
 	check(not target.dizziness,"web contact slows instead of stunning")
 	# Freeze projectile/net processing again after yielding; hunt must strike once only.

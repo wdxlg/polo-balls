@@ -155,6 +155,29 @@ func run() -> void:
 	var losses:Array[float] = []
 	var gravity:float = unit.gravity_acceleration
 	unit.gravity_acceleration = 0.0
+	# A web-like actual-motion lease slows the physical fall itself; it must not
+	# change fall_speed as an inherited stat or permanently affect the next fall.
+	victim.global_position = center+Vector2(300,300)
+	second.global_position = center+Vector2(340,300)
+	friend.global_position = center+Vector2(380,300)
+	side.global_position = center+Vector2(420,300)
+	above.global_position = center+Vector2(460,300)
+	await physics_frame
+	await process_frame
+	press_reset(unit,center+Vector2(-120,-180))
+	unit.fall_speed = 360.0
+	var free_from:Vector2 = unit.global_position
+	unit.step_mob(0.1)
+	var free_distance:float = unit.global_position.y-free_from.y
+	unit.set_motion_speed_factor(&"fixture_cobweb",unit,0.25,0.10)
+	press_reset(unit,free_from)
+	unit.fall_speed = 360.0
+	unit.step_mob(0.1)
+	var slow_distance:float = unit.global_position.y-free_from.y
+	check(is_equal_approx(unit.motion_speed_factor(),0.25),"actual-motion control never rewrites inherited speed fields")
+	check(is_equal_approx(slow_distance,free_distance*0.25),"falling anvil is slowed by the actual movement factor")
+	unit.set_motion_speed_factor(&"fixture_cobweb",unit,1.0,0.0)
+	check(is_equal_approx(unit.motion_speed_factor(),1.0),"expired actual-motion factor restores the next fall")
 	for hz:int in [30,60,120]:
 		press_reset(unit,center+Vector2(-120,-100))
 		unit.fall_speed = 360.0
