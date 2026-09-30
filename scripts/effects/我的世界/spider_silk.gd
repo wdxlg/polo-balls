@@ -91,16 +91,14 @@ func development_rebase(change:Vector2) -> void:
 	for i:int in range(_remote_webs.size()): _remote_webs[i] += change
 	queue_redraw()
 func wall_attachment_point(contact:Vector2,normal:Vector2,surface:Node2D,tail:Vector2) -> Vector2:
-	# A body/head contact is not the silk endpoint. Extend the current abdomen
-	# strand into the touched wall, preserving its direction when fixing it.
+	# Use the physics contact's actual surface position; only the required wall
+	# sink travels along the strand. Never move sideways to the abdomen point.
 	var n:Vector2 = normal.normalized()
 	if n.length_squared()<0.5: return contact
-	# Intersect with the wall plane shifted inward, so the end continues along
-	# the strand into the wall instead of stepping sideways off it.
 	var sink:float = _wall_sink(surface)
-	var point:Vector2 = _surface_attachment(contact-n*sink,n,surface,tail)
+	var point:Vector2 = _surface_attachment(contact,n,surface,tail,sink)
 	if sink<=0.0 or _inside_surface(point,surface): return point
-	return _surface_attachment(contact,n,surface,tail) # Thin obstacle: stay on its face.
+	return contact # Thin obstacle: stay on the exact face contact.
 func _wall_sink(surface:Node2D) -> float:
 	var world:Node = get_tree().current_scene if is_inside_tree() else null
 	var map_wall:bool = surface!=null and surface.get_parent()!=null and surface.get_parent().has_meta(&"map_safety_frame")
@@ -112,23 +110,20 @@ func _wall_sink(surface:Node2D) -> float:
 		var width:float = float(world.get("map_border_width")) if "map_border_width" in world else 2.0
 		return maxf(width*0.5-1.0,0.0)-maxf(width,0.0)*0.25
 	return WALL_SINK
-func _surface_attachment(plane:Vector2,n:Vector2,surface:Node2D,tail:Vector2) -> Vector2:
-	if _valid(anchor):
-		var start:Vector2 = _point(anchor)
-		var axis:Vector2 = (tail-start).normalized()
-		var denominator:float = axis.dot(n)
-		if denominator < -0.05:
-			var distance:float = (plane-start).dot(n)/denominator
-			var candidate:Vector2 = start+axis*distance
-			# Near-parallel contacts must not create an anchor far along/beyond a wall.
-			var reach:float = maxf(GEOMETRY.radius(unit)*4.0,96.0)
-			if distance>0.0 and candidate.distance_to(tail)<=reach and candidate.distance_to(plane)<=reach:
-				if _on_wall_surface(candidate,n,surface): return candidate
-	# First anchor, grazing contact or a short obstacle: project the abdomen
-	# onto the real surface rather than reusing an unrelated collision point.
-	var projected:Vector2 = tail-n*(tail-plane).dot(n)
-	if _on_wall_surface(projected,n,surface): return projected
-	return plane
+func _surface_attachment(contact:Vector2,n:Vector2,surface:Node2D,tail:Vector2,sink:float) -> Vector2:
+	# The actual incoming segment direction is known from the requested motion
+	# (or the previous anchor), so the sink is wallward instead of projected
+	# sideways from the abdomen onto an unrelated part of a long wall.
+	var direction:Vector2 = Vector2.ZERO
+	if is_instance_valid(unit):
+		var requested:Variant = unit.get("_last_requested_velocity")
+		if requested is Vector2 and (requested as Vector2).length_squared()>unit.MOTION_EPSILON_SQ: direction = (requested as Vector2).normalized()
+	if direction.is_zero_approx() and _valid(anchor):
+		direction = (tail-_point(anchor)).normalized()
+	if direction.is_zero_approx() or direction.dot(n)>-0.05: return contact
+	var point:Vector2 = contact+direction*sink
+	if sink<=0.0 or _on_wall_surface(point,n,surface): return point
+	return contact
 func _on_wall_surface(point:Vector2,normal:Vector2,surface:Node2D) -> bool:
 	if surface==null: return true # Explicit geometric fixtures have no PhysicsBody.
 	# Start outside even when the point is already sunk into the wall.

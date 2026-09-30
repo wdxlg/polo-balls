@@ -79,6 +79,29 @@ func run() -> void:
 	check(stunned_at_touch,"the anchor was woven while the spider was still stunned")
 	if got: check(absf(net._point(net.anchor).x-(wall.global_position.x-6.0))<=4.0,"stunned anchor sits on the real wall face")
 
+	# A2. Long-wall contacts keep the collision's own Y position; only up to the
+	# tiny wall sink follows the incoming motion, never the abdomen row.
+	reset_silk(net)
+	spider._last_requested_velocity = Vector2(500.0,-120.0)
+	var contact_point:Vector2 = wall.global_position+Vector2(-6.0,43.0)
+	var attached:Vector2 = net.wall_attachment_point(contact_point,Vector2.LEFT,wall,contact_point+Vector2(-80.0,160.0))
+	check(attached.distance_to(contact_point)<=4.1,"silk end stays at the collision point, not beside the spider")
+	check(attached.y<=contact_point.y and contact_point.y-attached.y<=4.0,"the sink follows incoming motion, not the abdomen projection")
+
+	# A3. A real kinematic collision yields the same endpoint at its reported contact.
+	reset_silk(net)
+	spider.global_position = wall.global_position+Vector2(-70.0,43.0)
+	await physics_frame
+	reset_silk(net)
+	spider._last_requested_velocity = Vector2(500.0,-120.0)
+	var real_collision:KinematicCollision2D = spider.move_and_collide(Vector2(70.0,-20.0))
+	check(real_collision!=null,"fixture diagonal motion truly hits the old wall")
+	if real_collision!=null:
+		net._contact_left = 0.0
+		spider.when_collide(500.0,real_collision)
+		check(not net.anchor.is_empty(),"real diagonal collision weaves the silk endpoint")
+		check(net._point(net.anchor).distance_to(real_collision.get_position())<=4.1,"woven endpoint matches the real wall contact up to its sink")
+
 	# B. Damage output disabled + stunned: still weaves; debounce still counts down.
 	await prepare()
 	spider.apply_damage_disable(8.0)

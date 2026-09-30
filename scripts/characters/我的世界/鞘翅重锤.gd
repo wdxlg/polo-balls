@@ -367,7 +367,9 @@ func _step_glide(delta:float) -> void:
 	_glide_velocity = _glide_velocity.limit_length(maximum_flight_speed)
 	velocity = _glide_velocity+Repel
 	var start:Vector2 = global_position
-	var finish:Vector2 = start+velocity*delta
+	# The slow lease trims only this frame's physical displacement; glide speed,
+	# drag, steering, firework thrust and hit rewards keep their own values.
+	var finish:Vector2 = start+velocity*motion_scaled_delta(delta)
 	if velocity.y > 35.0 and _flight_mode == FlightMode.DIVE and not Attacking and not dizziness and not is_damage_output_disabled():
 		var steps:int = maxi(1,int(ceil(start.distance_to(finish)/4.0)))
 		for i:int in range(1,steps+1):
@@ -488,7 +490,7 @@ func _update_flight(delta:float) -> void:
 			_glide_velocity += _boost_direction*firework_acceleration*burn
 		_glide_velocity = _glide_velocity.limit_length(maximum_flight_speed)
 		velocity = _glide_velocity
-		global_position += velocity*dt
+		global_position += velocity*motion_scaled_delta(dt)
 		if _glide_velocity.y > 35.0:
 			var radius:float = base_landing_radius+landing_radius_gain*float(_chain_level-1)
 			for node:Node in get_tree().get_nodes_in_group("Ball"):

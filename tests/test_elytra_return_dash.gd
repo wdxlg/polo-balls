@@ -3,6 +3,7 @@ extends SceneTree
 class FlightArena extends Node2D:
 	var regions:Array[Rect2] = [Rect2(-240,-160,480,320)]
 	func current_map_island_rects() -> Array[Rect2]: return regions
+	func is_combat_runtime_active() -> bool: return true
 
 var arena:Node2D
 var game:Node
@@ -85,6 +86,9 @@ func run() -> void:
 		await check_dash(role)
 		await check_restrictions_and_manual(role)
 		await check_multi_hit_and_death(role)
+	for role:String in ["鞘翅重锤","鞘翅长矛","鞘翅重锤长矛"]:
+		await check_actual_motion_slow(role)
+		await check_spider_silk_motion_slow(role)
 	await check_map_scope()
 	await finish()
 
@@ -286,6 +290,85 @@ func check_restrictions_and_manual(role:String) -> void:
 	check(unit._map_return_aim(0.1).is_zero_approx() and not unit._returning_to_map,role+": auto-return does not seize the direction of a manually controlled flyer")
 	unit.free()
 	enemy.free()
+	await process_frame
+
+func check_actual_motion_slow(role:String) -> void:
+	var unit:Node2D = actor(role,Vector2.ZERO)
+	prepare_slow_fixture(unit)
+	unit.player_control_peer_id = 1
+	unit.player_control_direction = Vector2.RIGHT
+	unit.set_motion_speed_factor(&"fixture_web",unit,0.2,0.5)
+	var from:Vector2 = unit.global_position
+	var speed_before:float = unit.Speed
+	var flight_speed_before:float = unit._glide_velocity.length()
+	unit._step_glide(0.10)
+	check(is_equal_approx(unit.global_position.distance_to(from),flight_speed_before*0.10*0.2),role+": glide uses the actual-motion slow factor")
+	check(is_equal_approx(unit.Speed,speed_before) and is_equal_approx(unit._glide_velocity.length(),flight_speed_before),role+": slow leaves stats and flight momentum values alone")
+	unit.free()
+	if role!="鞘翅长矛":
+		unit = actor(role,Vector2.ZERO)
+		prepare_slow_fixture(unit)
+		unit.player_control_peer_id = 1
+		unit.player_control_direction = Vector2.RIGHT
+		unit.smash_gravity = 0.0
+		unit._begin_flight(1)
+		unit._glide_velocity = Vector2.RIGHT*600.0
+		unit.velocity = unit._glide_velocity
+		unit.set_motion_speed_factor(&"fixture_web",unit,0.2,0.5)
+		from = unit.global_position
+		unit._update_flight(0.10)
+		check(is_equal_approx(unit.global_position.distance_to(from),flight_speed_before*0.10*0.2),role+": rebound chain uses the same actual-motion slow factor")
+		check(is_equal_approx(unit.Speed,speed_before) and is_equal_approx(unit._glide_velocity.length(),flight_speed_before),role+": rebound slow leaves stats and momentum values alone")
+		unit.free()
+	await process_frame
+
+func prepare_slow_fixture(unit:Node2D) -> void:
+	unit.global_position = Vector2.ZERO
+	unit._glide_velocity = Vector2.RIGHT*600.0
+	unit.velocity = unit._glide_velocity
+	unit.Repel = Vector2.ZERO
+	unit.glide_gravity = 0.0
+	unit.glide_drag = 0.0
+	unit._rocket_cooldown = 100.0
+	unit._rocket_remaining = 0.0
+	unit._returning_to_map = false
+	unit._patrol_rect_refresh = 100.0
+	unit.Can_Attack = true
+	unit.Can_Skill = true
+	unit._face_flight_direction()
+
+func check_spider_silk_motion_slow(role:String) -> void:
+	var spider:Node2D = load("res://scenes/characters/我的世界/蜘蛛.tscn").instantiate()
+	spider.Team = "Team0"
+	arena.add_child(spider,true)
+	spider.global_position = Vector2(-160,-80)
+	spider.state_machine.set_physics_process(false)
+	spider.silk_network.set_physics_process(false)
+	var unit:Node2D = actor(role,Vector2.ZERO)
+	unit.Team = "Team1"
+	prepare_slow_fixture(unit)
+	unit.player_control_peer_id = 1
+	unit.player_control_direction = Vector2.RIGHT
+	var net:Node = spider.silk_network
+	net._contact_left = 0.0
+	net.touch_wall(Vector2(-60,-8))
+	net._contact_left = 0.0
+	net.touch_wall(Vector2(60,-8))
+	net.anchor = {}
+	unit.global_position = Vector2.ZERO+Vector2(0,-8)
+	net._previous.clear()
+	net._previous_lines.clear()
+	net._tick_contacts()
+	check(is_equal_approx(unit.motion_speed_factor(),spider.silk_slow_multiplier),role+": crossing spider silk leases the silk factor")
+	var from:Vector2 = unit.global_position
+	var speed_before:float = unit.Speed
+	var flight_speed_before:float = unit._glide_velocity.length()
+	unit._step_glide(0.10)
+	check(is_equal_approx(unit.global_position.distance_to(from),flight_speed_before*0.10*spider.silk_slow_multiplier),role+": spider silk slows the actual flight displacement")
+	check(unit.Buff_Dic.get(spider.get_instance_id(),{}).is_empty() and is_equal_approx(unit.Speed,speed_before),role+": spider silk still never edits flyer stats")
+	unit._motion_speed_factors.clear()
+	unit.free()
+	spider.free()
 	await process_frame
 
 func check_map_scope() -> void:
