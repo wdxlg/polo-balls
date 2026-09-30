@@ -57,6 +57,7 @@ func run() -> void:
 		return
 	var map_rect:Rect2 = world.return_map_world_rect(world.map_group["Map50x50"])
 	center = map_rect.get_center()
+	geometry = load("res://scripts/effects/我的世界/mc16_geometry.gd")
 	spider = spawn("res://scenes/characters/我的世界/蜘蛛.tscn",center+Vector2(0,-260))
 	var target:Node2D = dummy(center+Vector2(0,420))
 	await process_frame
@@ -79,28 +80,43 @@ func run() -> void:
 	check(stunned_at_touch,"the anchor was woven while the spider was still stunned")
 	if got: check(absf(net._point(net.anchor).x-(wall.global_position.x-6.0))<=4.0,"stunned anchor sits on the real wall face")
 
-	# A2. Long-wall contacts keep the collision's own Y position; only up to the
-	# tiny wall sink follows the incoming motion, never the abdomen row.
+	# A2. A drawn strand extends along its own line until it meets the wall shape;
+	# that meeting point is the endpoint, not the body contact sitting sideways on
+	# the same wall and never the abdomen row projection.
 	reset_silk(net)
-	spider._last_requested_velocity = Vector2(500.0,-120.0)
-	var contact_point:Vector2 = wall.global_position+Vector2(-6.0,43.0)
-	var attached:Vector2 = net.wall_attachment_point(contact_point,Vector2.LEFT,wall,contact_point+Vector2(-80.0,160.0))
-	check(attached.distance_to(contact_point)<=4.1,"silk end stays at the collision point, not beside the spider")
-	check(attached.y<=contact_point.y and contact_point.y-attached.y<=4.0,"the sink follows incoming motion, not the abdomen projection")
+	wall_touch(net,wall.global_position+Vector2(-180.0,90.0))
+	var tail_point:Vector2 = wall.global_position+Vector2(-80.0,40.0)
+	var body_contact:Vector2 = wall.global_position+Vector2(-6.0,100.0)
+	var attachment:Dictionary = net.wall_attachment(body_contact,Vector2.LEFT,wall,tail_point)
+	var extended:Vector2 = attachment.point
+	check(attachment.get("surface")==wall,"strand extension attaches to the wall the silk line actually meets")
+	check(net._point(net.anchor).is_equal_approx(wall.global_position+Vector2(-180.0,90.0)),"fixture keeps the first anchor as the extension base")
+	check(geometry.segment_distance(net._point(net.anchor),extended,tail_point)<=0.01,"endpoint lies exactly on the drawn strand line")
+	check(extended.distance_to(body_contact)>40.0,"extension leaves the sideways body contact behind")
+	check(extended.x>wall.global_position.x-6.0 and extended.x<=wall.global_position.x-2.0,"extension dips inside the real wall face (%.3f)" % (extended.x-wall.global_position.x))
 
-	# A3. A real kinematic collision yields the same endpoint at its reported contact.
+	# A3. A real kinematic collision weaves the endpoint where the strand's own
+	# extension meets the wall: along the incoming motion, pinned at the face.
 	reset_silk(net)
 	spider.global_position = wall.global_position+Vector2(-70.0,43.0)
+	spider.direction = Vector2.RIGHT
+	spider.set_character_visual_flip_h(true)
 	await physics_frame
 	reset_silk(net)
 	spider._last_requested_velocity = Vector2(500.0,-120.0)
 	var real_collision:KinematicCollision2D = spider.move_and_collide(Vector2(70.0,-20.0))
 	check(real_collision!=null,"fixture diagonal motion truly hits the old wall")
 	if real_collision!=null:
+		var tail_at_touch:Vector2 = spider.silk_tail_position()
 		net._contact_left = 0.0
 		spider.when_collide(500.0,real_collision)
 		check(not net.anchor.is_empty(),"real diagonal collision weaves the silk endpoint")
-		check(net._point(net.anchor).distance_to(real_collision.get_position())<=4.1,"woven endpoint matches the real wall contact up to its sink")
+		if not net.anchor.is_empty():
+			var woven:Vector2 = net._point(net.anchor)
+			var strand_dir:Vector2 = Vector2(500.0,-120.0).normalized()
+			check((woven-tail_at_touch).normalized().dot(strand_dir)>0.995,"woven endpoint continues the strand's incoming direction")
+			check(absf(woven.y-real_collision.get_position().y)>2.0,"woven endpoint leaves the raw body contact row")
+			check(woven.x>wall.global_position.x-6.0 and woven.x<=wall.global_position.x-6.0+4.01,"woven endpoint dips at most WALL_SINK into the wall face")
 
 	# B. Damage output disabled + stunned: still weaves; debounce still counts down.
 	await prepare()

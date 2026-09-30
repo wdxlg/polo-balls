@@ -90,15 +90,32 @@ func development_rebase(change:Vector2) -> void:
 		line[1] += change
 	for i:int in range(_remote_webs.size()): _remote_webs[i] += change
 	queue_redraw()
-func wall_attachment_point(contact:Vector2,normal:Vector2,surface:Node2D,tail:Vector2) -> Vector2:
-	# Use the physics contact's actual surface position; only the required wall
-	# sink travels along the strand. Never move sideways to the abdomen point.
+func wall_attachment(contact:Vector2,normal:Vector2,surface:Node2D,tail:Vector2) -> Dictionary:
+	# A wall touch extends the live strand along its own direction from the
+	# abdomen until that extension truly meets a wall shape; the meeting point is
+	# the endpoint. Only when the strand does not head wallward or reaches no
+	# wall shape nearby does the exact body contact serve as the endpoint.
 	var n:Vector2 = normal.normalized()
-	if n.length_squared()<0.5: return contact
-	var sink:float = _wall_sink(surface)
-	var point:Vector2 = _surface_attachment(contact,n,surface,tail,sink)
-	if sink<=0.0 or _inside_surface(point,surface): return point
-	return contact # Thin obstacle: stay on the exact face contact.
+	var direction:Vector2 = _strand_direction(tail)
+	if n.length_squared()>=0.5 and not direction.is_zero_approx() and direction.dot(n)<=-0.2:
+		var reach:float = maxf(2.0*tail.distance_to(contact)+WALL_SINK+16.0,96.0)
+		var exclude:Array[RID] = []
+		if is_instance_valid(unit): exclude = [unit.get_rid()]
+		var hit:Dictionary = GEOMETRY.wall_ray(self,tail,tail+direction*reach,exclude)
+		if not hit.is_empty():
+			return {"point":_sunk_endpoint(hit.position,direction,hit.normal,hit.collider as Node2D),"surface":hit.collider as Node2D}
+	return {"point":_contact_attachment(contact,n,surface,direction),"surface":surface}
+func _strand_direction(tail:Vector2) -> Vector2:
+	# The drawn strand runs from the previous anchor to the abdomen; continuing
+	# that exact line keeps the fixed segment continuous with the visible silk.
+	if not is_instance_valid(unit): return Vector2.ZERO
+	var direction:Vector2 = Vector2.ZERO
+	if _valid(anchor): direction = tail-_point(anchor)
+	if direction.length_squared()<=unit.MOTION_EPSILON_SQ:
+		var requested:Variant = unit.get("_last_requested_velocity")
+		if requested is Vector2: direction = requested
+	if direction.length_squared()<=unit.MOTION_EPSILON_SQ: return Vector2.ZERO
+	return direction.normalized()
 func _wall_sink(surface:Node2D) -> float:
 	var world:Node = get_tree().current_scene if is_inside_tree() else null
 	var map_wall:bool = surface!=null and surface.get_parent()!=null and surface.get_parent().has_meta(&"map_safety_frame")
@@ -110,20 +127,27 @@ func _wall_sink(surface:Node2D) -> float:
 		var width:float = float(world.get("map_border_width")) if "map_border_width" in world else 2.0
 		return maxf(width*0.5-1.0,0.0)-maxf(width,0.0)*0.25
 	return WALL_SINK
-func _surface_attachment(contact:Vector2,n:Vector2,surface:Node2D,tail:Vector2,sink:float) -> Vector2:
-	# The actual incoming segment direction is known from the requested motion
-	# (or the previous anchor), so the sink is wallward instead of projected
-	# sideways from the abdomen onto an unrelated part of a long wall.
-	var direction:Vector2 = Vector2.ZERO
-	if is_instance_valid(unit):
-		var requested:Variant = unit.get("_last_requested_velocity")
-		if requested is Vector2 and (requested as Vector2).length_squared()>unit.MOTION_EPSILON_SQ: direction = (requested as Vector2).normalized()
-	if direction.is_zero_approx() and _valid(anchor):
-		direction = (tail-_point(anchor)).normalized()
-	if direction.is_zero_approx() or direction.dot(n)>-0.05: return contact
+func _sunk_endpoint(hit_position:Vector2,direction:Vector2,hit_normal:Vector2,surface:Node2D) -> Vector2:
+	# Default: the end dips into the touched wall so the wall itself covers it.
+	var sink:float = _wall_sink(surface)
+	if sink<=0.0: return hit_position+direction*sink # Flat-theme border: stay inside its drawn stroke line.
+	var along:Vector2 = hit_position+direction*sink
+	if _inside_surface(along,surface) and _on_wall_surface(along,hit_normal,surface): return along
+	# Sinking along the strand would exit a thin obstacle or slide off an edge;
+	# sink straight into the actual face instead, never through the far side.
+	var inward:Vector2 = hit_position-hit_normal.normalized()*WALL_SINK
+	if _inside_surface(inward,surface): return inward
+	return hit_position
+func _contact_attachment(contact:Vector2,n:Vector2,surface:Node2D,direction:Vector2) -> Vector2:
+	# Fallback for degenerate geometry: the exact physics contact, dipped at
+	# most WALL_SINK into the wall along the strand. Thin obstacles keep the end
+	# exactly on their face instead of poking out the far side.
+	var sink:float = _wall_sink(surface)
+	if direction.is_zero_approx() or n.length_squared()<0.5 or direction.dot(n)>-0.05: return contact
 	var point:Vector2 = contact+direction*sink
-	if sink<=0.0 or _on_wall_surface(point,n,surface): return point
-	return contact
+	if sink<=0.0: return point
+	if not _on_wall_surface(point,n,surface) or not _inside_surface(point,surface): return contact
+	return point
 func _on_wall_surface(point:Vector2,normal:Vector2,surface:Node2D) -> bool:
 	if surface==null: return true # Explicit geometric fixtures have no PhysicsBody.
 	# Start outside even when the point is already sunk into the wall.

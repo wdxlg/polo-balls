@@ -82,25 +82,29 @@ func run() -> void:
 	var hp:float = target.health
 	a._tick_contacts()
 	check(target.health<hp,"excluding live silk from webs does not remove its damage")
-	check(not target.Buff_Dic.get(spider.get_instance_id(),{}).is_empty(),"live silk retains its slow")
+	check(absf(target.motion_speed_factor()-spider.silk_slow_multiplier)<0.001,"live silk applies its actual-motion slow, not a Speed stat")
 	check(not target.dizziness and spider._lunge_left==0.0,"live silk alone does not stun or trigger a web pounce")
-	# Exact geometry: freeze along the strand, rather than snapping to body contact.
+	# Fallback geometry: with no wall shape in reach (surface-less fixture) the
+	# exact contact stands, dipped along the strand by at most WALL_SINK.
 	reset_silk(a)
 	wall_touch(a,center+Vector2(-200,-80))
 	var tail:Vector2 = center+Vector2(100,20)
 	var contact:Vector2 = center+Vector2(150,0)
-	var point:Vector2 = a.wall_attachment_point(contact,Vector2.LEFT,null,tail)
-	check(absf(point.x-(contact.x+a.WALL_SINK))<0.001,"new endpoint lies on the touched wall plane, sunk into the wall")
-	check(geometry.segment_distance(a._point(a.anchor),point,tail)<0.001,"wall fixation preserves the pre-contact silk direction")
-	check(point.distance_to(contact)>20.0,"fixture distinguishes abdomen strand from body collision point")
+	var attachment:Dictionary = a.wall_attachment(contact,Vector2.LEFT,null,tail)
+	var point:Vector2 = attachment.point
+	var fallback_dir:Vector2 = (tail-(center+Vector2(-200,-80))).normalized()
+	check(point.is_equal_approx(contact+fallback_dir*a.WALL_SINK),"no reachable wall shape: exact contact, sunk along the strand only")
+	check(attachment.get("surface")==null,"surface-less fixture keeps a plain world-space anchor")
 	a._contact_left = 0.0
 	a.touch_wall(point)
-	check(geometry.segment_distance(a.lines(false)[0].a,a.lines(false)[0].b,tail)<0.001,"fixed segment uses the aligned endpoint without later replacement")
+	check(a.lines(false).size()==1 and a.lines(false)[0].b.is_equal_approx(point),"fixed segment keeps the attached endpoint without later replacement")
 	reset_silk(a)
 	wall_touch(a,center+Vector2(10,-200))
-	point = a.wall_attachment_point(center+Vector2(50,0),Vector2.LEFT,null,center+Vector2(20,0))
+	point = (a.wall_attachment(center+Vector2(50,0),Vector2.LEFT,null,center+Vector2(20,0))).point
 	check(point.distance_to(center+Vector2(50,0))<a.WALL_SINK+3.0,"grazing contact does not project an anchor hundreds of pixels away")
-	# Real finite wall: reject a plane intersection outside the physical shape.
+	# Real finite wall: a strand aimed past the shape cannot extend to it, so the
+	# validated body contact holds; a strand aimed AT the shape extends until it
+	# meets the wall, and that meeting point is the endpoint.
 	var wall := StaticBody2D.new()
 	wall.collision_layer = 1
 	wall.collision_mask = 0
@@ -116,18 +120,30 @@ func run() -> void:
 	await physics_frame
 	reset_silk(a)
 	wall_touch(a,center+Vector2(-200,-380))
-	point = a.wall_attachment_point(center+Vector2(144,-260),Vector2.LEFT,wall,center+Vector2(100,-240))
-	check(point.is_equal_approx(center+Vector2(144.0+a.WALL_SINK,-240)),"short wall falls back to a validated abdomen projection")
-	check(a._on_wall_surface(point,Vector2.LEFT,wall),"fallback really touches the same finite wall")
+	point = (a.wall_attachment(center+Vector2(144,-260),Vector2.LEFT,wall,center+Vector2(100,-240))).point
+	check(point.distance_to(center+Vector2(144,-260))<=a.WALL_SINK+0.01,"strand missing a short wall keeps the validated body contact")
+	check(a._on_wall_surface(point,Vector2.LEFT,wall),"missed-extension fallback still touches the same finite wall")
 	check(a._inside_surface(point,wall),"strand end sits inside the wall so the wall covers it")
+	reset_silk(a)
+	wall_touch(a,center+Vector2(0,-240))
+	attachment = a.wall_attachment(center+Vector2(144,-260),Vector2.LEFT,wall,center+Vector2(100,-240))
+	point = attachment.point
+	check(attachment.get("surface")==wall,"extension attaches to the wall the strand reaches")
+	check(point.is_equal_approx(center+Vector2(144.0+a.WALL_SINK,-240)),"strand extends horizontally until it meets the wall (%s)" % str(point-center))
+	check(geometry.segment_distance(center+Vector2(0,-240),point,center+Vector2(100,-240))<0.001,"extended endpoint stays on its own strand line")
+	check(a._inside_surface(point,wall),"extended strand end sinks inside the wall")
 	# A wall thinner than the sink keeps the end on its face instead of poking through.
 	rectangle.size = Vector2(3,60)
 	await physics_frame
 	await physics_frame
 	reset_silk(a)
 	wall_touch(a,center+Vector2(-200,-380))
-	point = a.wall_attachment_point(center+Vector2(148.5,-260),Vector2.LEFT,wall,center+Vector2(100,-240))
-	check(point.is_equal_approx(center+Vector2(148.5,-240)),"thin wall keeps the end on its face (%s)" % str(point-center))
+	point = (a.wall_attachment(center+Vector2(148.5,-260),Vector2.LEFT,wall,center+Vector2(100,-240))).point
+	check(point.is_equal_approx(center+Vector2(148.5,-260)),"thin wall fallback keeps the end on its face (%s)" % str(point-center))
+	reset_silk(a)
+	wall_touch(a,center+Vector2(0,-240))
+	point = (a.wall_attachment(center+Vector2(148.5,-260),Vector2.LEFT,wall,center+Vector2(100,-240))).point
+	check(point.is_equal_approx(center+Vector2(148.5,-240)),"thin wall: extension stops exactly on the face (%s)" % str(point-center))
 	# Actual CharacterBody move_and_slide collision, before reflected facing changes.
 	rectangle.size = Vector2(12,300)
 	wall.global_position = center+Vector2(200,-260)
@@ -150,7 +166,10 @@ func run() -> void:
 	if not a.segments.is_empty():
 		var line:Dictionary = a.lines(false)[0]
 		check(geometry.segment_distance(line.a,line.b,spider.silk_tail_position())<0.01,"real wall collision fixes silk collinearly with the abdomen endpoint")
-		check(absf(line.b.x-(wall.global_position.x-6.0+a.WALL_SINK))<0.1,"real anchor sinks into the wall surface, not at character center (%.2f)" % (line.b.x-wall.global_position.x))
+		check(a._inside_surface(line.b,wall),"real anchor end sits inside the wall so the wall covers it")
+		check(a._on_wall_surface(line.b,Vector2.LEFT,wall),"real anchor end touches the same wall")
+		var inward:float = (line.b-(wall.global_position+Vector2(-6.0,0))).dot(Vector2.RIGHT)
+		check(inward>0.0 and inward<=a.WALL_SINK+0.01,"real anchor dips at most WALL_SINK into the wall face (%.2f)" % inward)
 		var old_end:Vector2 = line.b
 		wall.global_position += Vector2(10,-15)
 		check(a.lines(false)[0].b.is_equal_approx(old_end+Vector2(10,-15)),"aligned endpoint follows a moving wall in local coordinates")
