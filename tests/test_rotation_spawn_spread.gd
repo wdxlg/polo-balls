@@ -70,6 +70,13 @@ func run() -> void:
 	probe.global_position = Vector2(map.end.x-e.end.x+6.0,map.get_center().y)
 	world._release_body_from_safety_wall(probe,map)
 	check(not free_before and wall_depth(probe,map) <= 0.0 and map.has_point(probe.global_position) and not probe.has_meta("map_rescue_animating"),"embedded body is released to the inside edge instantly (depth %.1f)" % wall_depth(probe,map))
+	# Wedged case: a body squeezed between another body and the wall must not be put back onto that body.
+	var blocker:Node = units("right")[2]; var wedged:Node = units("right")[3]
+	var eb:Rect2 = world._body_extents_from_origin(blocker); var ew:Rect2 = world._body_extents_from_origin(wedged)
+	blocker.global_position = Vector2(map.get_center().x,map.position.y-eb.position.y+1.0)
+	wedged.global_position = Vector2(map.get_center().x,map.position.y-ew.position.y-4.0)
+	world._release_body_from_safety_wall(wedged,map)
+	check(wall_depth(wedged,map) <= 0.0 and not body_rect(wedged).intersects(body_rect(blocker)),"a body wedged between a unit and the wall is released to a clear spot (depth %.1f)" % wall_depth(wedged,map))
 	var phased:Node = units("right")[1]
 	phased.set_collision_mask_value(1,false)
 	phased.global_position = Vector2(map.end.x-e.end.x+6.0,map.get_center().y+30.0)

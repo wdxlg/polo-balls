@@ -2941,7 +2941,9 @@ func _release_body_from_safety_wall(b:ball,map_rect:Rect2) -> void:
 			in_wall=true
 			break
 	if not in_wall: return
-	var target:Vector2=_map_safe_body_position(b,map_rect,b.global_position)
+	# Pulling straight back can land on the body that wedged it into the wall (e.g. a bat
+	# between a sheep and the wall), which shoves it straight back in; take a clear spot.
+	var target:Vector2=_map_free_body_position(b,map_rect,b.global_position,4)
 	if target.distance_squared_to(b.global_position)>0.0001: b.global_position=target
 
 func _animate_ball_back_inside_map(b:ball,target_position:Vector2,entry_seconds:float=-1.0) -> void:
