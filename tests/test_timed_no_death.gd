@@ -4,6 +4,15 @@ extends "res://tests/test_rotation_timed_flow.gd"
 # time-up still eliminates the losers. The world clock only moves down when the duel side panels show.
 func score(id:int) -> float:
 	return float(world._timed_damage_by_setup.get(id,0.0))
+func visible_top(actor:Node) -> float:
+	var s:Sprite2D=actor.image as Sprite2D
+	var r:Rect2=s.get_rect()
+	var im:Image=actor._get_cached_after_image_source_image(s.texture)
+	var u:Rect2i=im.get_used_rect()
+	var top:float=INF
+	for corner in [Vector2(u.position),Vector2(u.end)]:
+		top=minf(top,s.to_global(r.position+corner*r.size/Vector2(im.get_size())).y)
+	return top
 func prepare() -> void:
 	game.Game_Settings.Training_Mode_Type="timed";world.control.hide();world.control.team.hide()
 	world._timed_running=true;world._timed_finished=false;world._timed_overtime=false;world._timed_time_left=10
@@ -88,6 +97,26 @@ func run() -> void:
 	refresh_hud()
 	hud._update_world_clock(10.0);hud._update_world_clock(10.0)
 	check(hud.sides.size()==2 and hud.visible and hud._clock_down,"duel side panels shown: world clock moves below them")
+
+	# E. Head number: same glyph height as the normal HP number, sitting just above the visible head.
+	await fresh()
+	var i:int=0
+	for ch in ["苦力怕","铁傀儡","猎人"]:
+		var actor:Node=timed_actor(1+i,"Team%d"%i,world._get_character_scene_any(ch).resource_path);i+=1
+		for f in 3:await process_frame
+		world._layout_all_timed_damage_labels()
+		var label:Label=world._timed_damage_labels.get(i,null)
+		check(label!=null,ch+": has a head number")
+		if label==null:continue
+		var xf:Transform2D=label.get_global_transform()
+		var timed_font:float=label.get_theme_font_size("font_size")*xf.get_scale().y
+		var hp_label:Label=actor.health_bar.label
+		var hp_font:float=hp_label.get_theme_font_size("font_size")*hp_label.get_global_transform().get_scale().y
+		check(absf(timed_font-hp_font)/hp_font<0.15,"%s: head number glyph height %.1f matches the HP number %.1f"%[ch,timed_font,hp_font])
+		var bottom:Vector2=xf*Vector2(label.size.x*0.5,label.size.y)
+		var gap:float=visible_top(actor)-bottom.y
+		check(gap>=1.0 and gap<=4.0,"%s: number sits %.1f units above the visible head (not the padded texture top)"%[ch,gap])
+		check(absf(bottom.x-actor.global_position.x)<6.0,"%s: number is horizontally centred on the character"%ch)
 
 	print("TIMED_NO_DEATH_RESULT checks=%d failures=%d"%[checks,failures])
 	game.Game_Settings=saved;game.now_stop_state=false

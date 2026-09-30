@@ -8293,16 +8293,18 @@ func _configure_timed_character(character:ball,setup_id:int,char_name:String) ->
 
 	# Label 直接挂在 World，而不是人物节点下面：
 	# 这样字号不会继承人物/特殊角色的缩放，所有角色的数字大小完全一致。
+	# 字高与普通模式头顶血量数字一致；用高分辨率字号再整体缩小，镜头放大时也不发糊。
 	var label := Label.new()
 	label.name = "TimedDamageLabel_%d" % setup_id
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size",15)
+	label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+	label.add_theme_font_size_override("font_size",TIMED_LABEL_RENDER_FONT)
 	label.add_theme_color_override("font_color",Color.WHITE)
 	label.add_theme_color_override("font_outline_color",Color.BLACK)
-	label.add_theme_constant_override("outline_size",2)
-	label.size = Vector2(80.0,24.0)
+	label.add_theme_constant_override("outline_size",int(round(TIMED_LABEL_RENDER_FONT * 0.14)))
+	label.size = Vector2(TIMED_LABEL_RENDER_FONT * 6.0,TIMED_LABEL_RENDER_FONT * 1.4)
+	label.scale = Vector2.ONE * (TIMED_LABEL_WORLD_FONT / float(TIMED_LABEL_RENDER_FONT))
 	label.z_index = 1200
 	add_child(label)
 
@@ -8321,18 +8323,53 @@ func _on_timed_character_exiting(setup_id:int) -> void:
 	_timed_damage_label_character_ids.erase(setup_id)
 
 
+## 头顶数字的世界尺寸：字高对齐普通模式血量数字，底边离人物实际可见像素顶部 TIMED_LABEL_HEAD_GAP。
+const TIMED_LABEL_WORLD_FONT:float = 8.0
+const TIMED_LABEL_RENDER_FONT:int = 96
+const TIMED_LABEL_HEAD_GAP:float = 2.5
+var _timed_used_rect_cache:Dictionary = {} # Texture 实例 id -> 不透明像素范围（归一化 Rect2）
+
+
+## 贴图不透明像素范围（0..1 归一化）。MC 渲染帧等素材四周留白很大，只按贴图矩形会把数字推得很远。
+func _timed_texture_used_fraction(character:ball,texture:Texture2D) -> Rect2:
+	var full := Rect2(0.0,0.0,1.0,1.0)
+	if texture == null:
+		return full
+	var key:int = texture.get_instance_id()
+	if _timed_used_rect_cache.has(key):
+		return _timed_used_rect_cache[key]
+	var fraction:Rect2 = full
+	var source:Image = character._get_cached_after_image_source_image(texture) if character.has_method("_get_cached_after_image_source_image") else null
+	if source != null and source.get_width() > 0 and source.get_height() > 0:
+		var used:Rect2i = source.get_used_rect()
+		if used.size.x > 0 and used.size.y > 0:
+			var image_size := Vector2(source.get_size())
+			fraction = Rect2(Vector2(used.position) / image_size,Vector2(used.size) / image_size)
+	_timed_used_rect_cache[key] = fraction
+	return fraction
+
+
 func _timed_character_visual_anchor_global(character:ball) -> Vector2:
-	# 不能用 character.rect_size：它保存的是源贴图尺寸，很多 PNG 在游戏里会大幅缩放，
-	# 因此会出现同样的人物位置，数字却被推到几百像素外。
-	# 这里把“当前真正显示的 Sprite 矩形四角”变换到全局坐标，再取实际顶部。
+	# 不能用 character.rect_size：它保存的是源贴图尺寸，很多 PNG 在游戏里会大幅缩放。
+	# 这里取当前真正显示帧的不透明像素矩形，把四角变换到全局坐标，再取实际头顶。
 	var visual:Node2D = character.image
 	var rect := Rect2()
+	var texture:Texture2D = null
+	var flip_h:bool = false
+	var flip_v:bool = false
 	if visual is Sprite2D:
-		rect = (visual as Sprite2D).get_rect()
+		var sprite:Sprite2D = visual as Sprite2D
+		rect = sprite.get_rect()
+		flip_h = sprite.flip_h
+		flip_v = sprite.flip_v
+		if not sprite.region_enabled and sprite.hframes == 1 and sprite.vframes == 1:
+			texture = sprite.texture
 	elif visual is AnimatedSprite2D:
 		var animated:AnimatedSprite2D = visual as AnimatedSprite2D
+		flip_h = animated.flip_h
+		flip_v = animated.flip_v
 		if animated.sprite_frames != null and animated.sprite_frames.has_animation(animated.animation):
-			var texture:Texture2D = animated.sprite_frames.get_frame_texture(animated.animation,animated.frame)
+			texture = animated.sprite_frames.get_frame_texture(animated.animation,animated.frame)
 			if texture != null:
 				var frame_size := Vector2(texture.get_size())
 				var rect_pos:Vector2 = animated.offset
@@ -8341,6 +8378,10 @@ func _timed_character_visual_anchor_global(character:ball) -> Vector2:
 				rect = Rect2(rect_pos,frame_size)
 
 	if visual != null and is_instance_valid(visual) and rect.size.x > 0.001 and rect.size.y > 0.001:
+		var used:Rect2 = _timed_texture_used_fraction(character,texture)
+		if flip_h: used.position.x = 1.0 - used.end.x
+		if flip_v: used.position.y = 1.0 - used.end.y
+		rect = Rect2(rect.position + used.position * rect.size,used.size * rect.size)
 		var points:Array[Vector2] = [
 			rect.position,
 			rect.position + Vector2(rect.size.x,0.0),
@@ -8355,7 +8396,7 @@ func _timed_character_visual_anchor_global(character:ball) -> Vector2:
 			min_x = minf(min_x,world_point.x)
 			max_x = maxf(max_x,world_point.x)
 			min_y = minf(min_y,world_point.y)
-		return Vector2((min_x + max_x) * 0.5,min_y - 5.0)
+		return Vector2((min_x + max_x) * 0.5,min_y - TIMED_LABEL_HEAD_GAP)
 
 	# 极少数没有 Sprite 的对象使用固定兜底，不再读取素材原始尺寸。
 	return character.global_position + Vector2(0.0,-22.0)
@@ -8385,8 +8426,8 @@ func _layout_timed_damage_label(setup_id:int) -> void:
 	var label:Label = raw_label as Label
 	var anchor_global:Vector2 = _timed_character_visual_anchor_global(object as ball)
 	var anchor_local:Vector2 = to_local(anchor_global)
-	# 数字底边距离人物实际图像顶部约 5px，所有人物保持一致的视觉间距。
-	label.position = anchor_local - Vector2(label.size.x * 0.5,label.size.y)
+	# 数字底边对齐锚点（人物实际头顶上方 TIMED_LABEL_HEAD_GAP）；Label 整体缩放，按缩放后的尺寸居中。
+	label.position = anchor_local - Vector2(label.size.x * 0.5,label.size.y) * label.scale
 
 
 func _layout_all_timed_damage_labels() -> void:
