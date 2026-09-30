@@ -44,7 +44,7 @@ func run() -> void:
 	await process_frame;await process_frame
 	check(is_instance_valid(a) and a.health==1 and a.state_machine.current_state!=a.State.Die,"lethal hit during the timed fight leaves the fighter alive at 1 HP")
 	check(is_equal_approx(score(1),float(start_hp+500)),"the whole lethal hit counts as damage taken (%s)"%score(1))
-	check(is_equal_approx(float(a.timed_absorbed_health_loss),501.0),"the part below the floor is recorded as absorbed (%s)"%a.timed_absorbed_health_loss)
+	check(is_equal_approx(float(a.absorbed_health_loss),501.0),"the part below the floor is recorded as absorbed (%s)"%a.absorbed_health_loss)
 	a._last_combat_damage_health_before=-1.0
 	a.health-=40
 	check(a.health==1 and is_equal_approx(score(1),float(start_hp+540)),"hits at 1 HP keep counting their full damage")

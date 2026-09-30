@@ -286,12 +286,15 @@ func begin_bite(target:Variant) -> void:
 
 func drain_target(target:Variant) -> int:
 	if not mc_live() or dizziness or not mc_enemy(target): return 0
+	# Measure with health_loss_reading(): damage absorbed by infinite-health targets
+	# (and the timed no-death floor) is real damage dealt, so it feeds the bat too.
 	var before:int = int(target.health)
+	var before_reading:float = target.health_loss_reading()
 	var target_ref:WeakRef = weakref(target)
 	target.receive_positional_damage(attack_damage(),global_position,false,self)
 	var alive_target:Variant = target_ref.get_ref()
-	var after:int = int(alive_target.health) if is_instance_valid(alive_target) else 0
-	var actual:int = clampi(before-after,0,before)
+	var loss:float = before_reading - float(alive_target.health_loss_reading()) if is_instance_valid(alive_target) else float(before)
+	var actual:int = maxi(int(round(loss)),0)
 	if actual <= 0 or health <= 0 or _retired: return 0
 	# Both forms grow by actual HP damage; vampire retains its 2x healing.
 	Max_health += actual
