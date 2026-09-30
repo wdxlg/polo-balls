@@ -4,6 +4,8 @@ const PROJECTILE_CONTACT = preload("res://scripts/projectile_contact.gd")
 # 天堂箭矢：普通箭外观，飞行中轻微追踪；
 # 第一次撞到障碍物不再反弹，而是穿过去一次：穿越途中按真实路径边穿边留下快速闭合的
 # 空间裂隙（先开的先闭合）；若穿过的是地图外墙，箭在离开屏幕时直接消失。
+# 地图内部的空洞/隔墙同样由安全墙围成：沿直线还能回到地面时，整段空洞算作这一次穿透，
+# 回到地面后照常飞行、追踪和命中；前方射程内再也没有地面才是真正的外墙。
 # 命中人物、或被第二个障碍物拦下时，仍在终点落下一轮箭雨并沿射击方向撕开空间裂隙。
 const TEX: Texture2D = preload("res://Images/characters/我的世界/new6/天陨箭_纯白.png") # 普通箭剪影，纯白
 const GLOW_TEX: Texture2D = preload("res://Images/characters/我的世界/new6/天陨箭_光晕.png") # 身后同变换的加性白光晕
@@ -16,6 +18,8 @@ const FX = preload("res://scripts/characters/我的世界/new6/fx_burst.gd")
 # 与普通骷髅箭完全一致的外观参数（1024 贴图缩到约 16 世界像素，构图斜 45°）。
 const SPRITE_SCALE: float = 0.016
 const SPRITE_TILT: float = PI * 0.25
+const BASE_Z_INDEX: int = 8
+const REENTRY_CLEARANCE: float = 1.0
 const MAP_EXIT_Z_INDEX: int = 91 # 仅出地图的箭在遮罩 z=90 之后、血条/边框之前绘制。
 
 var _src_ref: WeakRef
@@ -39,6 +43,7 @@ var _pierce_active: bool = false
 var _pierce_rid: RID = RID()
 var _pierce_body: Object = null
 var _pierce_last_point: Vector2 = Vector2.ZERO
+var _pierce_reentry: Vector2 = Vector2.INF # 穿地图内部空洞时重新回到地面的点
 var _tear_ref: WeakRef
 var _leave_offscreen: bool = false
 var _rng := RandomNumberGenerator.new()
@@ -46,7 +51,7 @@ var _rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
 	add_to_group("BattleTransient")
-	z_index = 8
+	z_index = BASE_Z_INDEX
 	var glow := Sprite2D.new()
 	glow.name = "Glow"
 	glow.texture = GLOW_TEX
@@ -108,6 +113,20 @@ func _physics_process(delta: float) -> void:
 	if _leave_offscreen:
 		_advance_map_exit(step)
 		return
+	# 地图内部空洞：沿直线整段穿过（途中不转向、不命中），回到地面后本帧剩余距离照常飞行。
+	if _pierce_active and _pierce_reentry.is_finite():
+		var remaining: float = maxf((_pierce_reentry - global_position).dot(_dir), 0.0)
+		if step < remaining:
+			rotation = _dir.angle()
+			global_position += _dir * step
+			_travelled += step
+			_track_pierce(global_position)
+			return
+		global_position = _pierce_reentry
+		_travelled += remaining
+		step -= remaining
+		_finish_pierce()
+		z_index = BASE_Z_INDEX
 	# 正在穿墙时不再转向：路径就是裂隙的形状。
 	if not _pierce_active and is_instance_valid(src) and _homing_range > 0.0 and _homing_turn > 0.0:
 		var tgt: ball = _homing_target(src)
@@ -227,11 +246,14 @@ func _begin_pierce(hit: Dictionary) -> void:
 	_pierce_active = true
 	_pierce_rid = hit.get("rid", RID())
 	_pierce_body = hit.get("collider")
-	# 穿过地图外墙：箭不会留在世界里，离开屏幕就消失。
-	_leave_offscreen = _is_boundary(hit)
-	if _leave_offscreen:
-		z_index = MAP_EXIT_Z_INDEX
 	var entry: Vector2 = hit.get("position", global_position)
+	# 地图安全墙既围外圈也围内部空洞：先沿直线找回到地面的点，找得到就是内部空洞；
+	# 找不到才是穿过地图外墙，箭不会留在世界里，离开屏幕就消失。
+	var boundary: bool = _is_boundary(hit)
+	_pierce_reentry = _ground_reentry(entry) if boundary else Vector2.INF
+	_leave_offscreen = boundary and not _pierce_reentry.is_finite()
+	if boundary:
+		z_index = MAP_EXIT_Z_INDEX
 	_pierce_last_point = entry
 	var entry_delay: float = global_position.distance_to(entry) / _speed
 	var world: Node = get_tree().current_scene
@@ -245,6 +267,43 @@ func _begin_pierce(hit: Dictionary) -> void:
 	# 穿入点先开一个口，之后每一帧按实际路径往前长。
 	tear.call("configure", entry, _dir, _rng.randi(), _speed, entry_delay, _pierce_body)
 	_tear_ref = weakref(tear)
+
+
+func _ground_reentry(entry: Vector2) -> Vector2:
+	# 穿墙时不转向，路径是直线：取射程内第一块从前方进入的地面矩形。
+	var world: Node = get_tree().current_scene
+	if world == null or not world.has_method("current_map_island_rects"):
+		return Vector2.INF
+	var reach: float = maxf(_max_dist - _travelled, 0.0)
+	var best: float = INF
+	for rect: Rect2 in world.call("current_map_island_rects"):
+		var t: float = _ray_enters_rect(entry, _dir, rect)
+		if t <= reach and t < best:
+			best = t
+	# 多走 1px 真正站到地面上：停在远侧安全墙表面时，下一帧弹道会从墙面起算而被当成第二个障碍物。
+	return entry + _dir * (best + REENTRY_CLEARANCE) if is_finite(best) else Vector2.INF
+
+
+static func _ray_enters_rect(origin: Vector2, dir: Vector2, rect: Rect2) -> float:
+	# 射线进入矩形的距离；刚离开的那块地面（入口在其边上）和身后的矩形都不算。
+	var t_near: float = -INF
+	var t_far: float = INF
+	for axis: int in range(2):
+		var o: float = origin[axis]
+		var d: float = dir[axis]
+		var lo: float = rect.position[axis]
+		var hi: float = rect.end[axis]
+		if absf(d) < 0.000001:
+			if o <= lo or o >= hi:
+				return INF
+			continue
+		var t1: float = (lo - o) / d
+		var t2: float = (hi - o) / d
+		t_near = maxf(t_near, minf(t1, t2))
+		t_far = minf(t_far, maxf(t1, t2))
+	if t_near <= 0.25 or t_far <= t_near:
+		return INF
+	return t_near
 
 
 func _track_pierce(point: Vector2) -> void:
@@ -266,11 +325,14 @@ func _finish_pierce() -> void:
 	# also include that face when earlier frames already supplied many samples.
 	# 墙内消失（出屏）时 _pierce_exit_point 会沿飞行方向补到真实穿出面。
 	var endpoint: Vector2 = _pierce_exit_point()
+	_pierce_reentry = Vector2.INF
 	tear.call("add_sample", endpoint, _dir)
 	tear.call("finish")
 
 
 func _pierce_exit_point() -> Vector2:
+	if _pierce_reentry.is_finite():
+		return _pierce_reentry
 	if not _pierce_rid.is_valid() or not is_instance_valid(_pierce_body):
 		return _pierce_last_point
 	# A reverse ray finds the true exit of rectangles, circles, rotated/scaled
@@ -395,5 +457,7 @@ func relaunch_projectile(point:Vector2,_target:ball) -> void:
 	_pierce_body = null
 	_tear_ref = null
 	_leave_offscreen = false
+	_pierce_reentry = Vector2.INF
+	z_index = BASE_Z_INDEX
 	_travelled = 0.0
 	_interaction_stopped = false

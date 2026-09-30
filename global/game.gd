@@ -1,5 +1,6 @@
 extends Control
 const BATTLE_CONDITIONS_CATALOG = preload("res://scripts/training/battle_conditions_catalog.gd")
+const BATTLE_MUSIC_MODULE = preload("res://global/battle_music.gd")
 
 #设定
 # V126：多人端口固定为 27018。UI 中的输入框是“服务器地址/IP”，不是端口输入框。
@@ -11,6 +12,8 @@ const max_player := 10
 #========================================================
 signal language_changed(locale:String)
 signal game_setting_changed(setting:String, value:Variant)
+# 一场战斗的随机会话结束：重置、重打、轮放系列重开（仅房主/离线端触发）。
+signal battle_session_ended()
 # V126：统一给多人 UI 的连接状态/玩家列表/双向 RPC 自检使用。
 signal network_state_changed()
 # V127：局域网 / EasyTier / 蒲公英等虚拟局域网房间发现列表变化。
@@ -466,7 +469,7 @@ func release_character_control_for_death(target:Node) -> void:
 
 func _is_network_shared_setting(setting:String) -> bool:
 	# 语言显示域、水印和“跟随我控制的角色”属于每台机器自己的表现设置；其它玩法设置跟随房主房间。
-	return setting not in ["Only_In_Game_Translation","Show_Center_Watermark","Follow_Controlled_Character","Map_Background","Minecraft_Clouds","Show_Armor_Stand_Intro"]
+	return setting not in ["Only_In_Game_Translation","Show_Center_Watermark","Follow_Controlled_Character","Map_Background","Minecraft_Clouds","Show_Armor_Stand_Intro","Battle_Music"]
 
 func _shared_settings_snapshot() -> Dictionary:
 	var snapshot:Dictionary = {}
@@ -592,6 +595,7 @@ func begin_battle_random(seed_value:int) -> int:
 func end_battle_random() -> void:
 	_battle_random_active = false
 	_battle_random_counters.clear()
+	battle_session_ended.emit()
 
 
 func is_battle_random_active() -> bool:
@@ -657,6 +661,8 @@ func load_persistent_settings() -> void:
 
 	for key:String in BATTLE_CONDITIONS_CATALOG.SETTING_KEYS:
 		Game_Settings[key] = BATTLE_CONDITIONS_CATALOG.normalize_setting(key,Game_Settings.get(key))
+	# 登记表里已删除的曲目回落到“无”。
+	Game_Settings["Battle_Music"] = BATTLE_MUSIC_MODULE.normalize(Game_Settings.get("Battle_Music",BATTLE_MUSIC_MODULE.NONE))
 	# Migrate the old winner-stays checkbox once, without overriding a saved challenge choice.
 	if not config.has_section_key("game_settings","Rotation_Match_Type"):
 		Game_Settings["Rotation_Match_Type"] = "wheel" if bool(Game_Settings.get("Training_Wheel_Battle",false)) else "duel"
@@ -734,6 +740,8 @@ func _on_speed_slider_drag_ended(value_changed:bool) -> void:
 	Map_Background = "blue",
 	# Local visual preference, persisted by the existing settings path.
 	Minecraft_Clouds = true,
+	# 本机战斗音乐：曲目登记在 res://global/battle_music.gd，默认“无”。
+	Battle_Music = "none",
 	# V184：全局击杀血液。关闭时若叶睦/墨提斯自身的击杀血仍保留；开启时其它人物击杀也会生成血液。
 	Blood_Effects = false,
 	# 角色对话总开关。开启后，支持对话的角色会把台词显示在地图下方的阵营槽位。
@@ -977,6 +985,9 @@ func _ready() -> void:
 	# 导出 PCK 没有 CSV 原文件时，load_runtime_translations() 会自动继续使用编译表。
 	_localization.load_runtime_translations()
 	load_persistent_settings()
+	var battle_music:Node = BATTLE_MUSIC_MODULE.new()
+	battle_music.name = "BattleMusic"
+	add_child(battle_music)
 	_normal_max_physics_steps_per_frame = Engine.max_physics_steps_per_frame
 	# V420 性能：项目启动即应用普通对局的物理补步上限，不必等第一次流速变化。
 	_time_scale._apply_time_scale_overrides()

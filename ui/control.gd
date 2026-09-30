@@ -5,6 +5,7 @@ extends Control
 
 var team_set_button_tem := preload("res://ui/team_set_button.tscn")
 const MAP_BACKGROUND_THEMES = preload("res://scripts/effects/我的世界/地图背景主题.gd")
+const BATTLE_MUSIC = preload("res://global/battle_music.gd")
 @onready var team_box: VBoxContainer = $Team/Team/Team_Inner/VBoxContainer
 @onready var char_box: VBoxContainer = $Team/Char/Char_Inner/CharScroll/VBoxContainer
 @onready var char_scroll: ScrollContainer = $Team/Char/Char_Inner/CharScroll
@@ -744,6 +745,8 @@ var training_mode_label:Label
 var training_mode_option:OptionButton
 var map_background_label:Label
 var map_background_option:OptionButton
+var battle_music_label:Label
+var battle_music_option:OptionButton
 var rotation_mode_options:VBoxContainer
 var rotation_count_spins:Dictionary={}
 var rotation_round_panel:Control
@@ -1346,8 +1349,45 @@ func _sync_map_background_setting() -> void:
 func _on_map_background_selected(index:int) -> void:
 	Game.set_runtime_game_setting("Map_Background",str(map_background_option.get_item_metadata(index)))
 
+func _create_battle_music_setting(parent_box:VBoxContainer) -> void:
+	var row := HBoxContainer.new()
+	row.name = "BattleMusicRow"
+	row.custom_minimum_size = Vector2(0,24)
+	row.add_theme_constant_override("separation",3)
+	parent_box.add_child(row)
+	var title:Dictionary = _create_setting_title_from_template("SETTING_BATTLE_MUSIC",64.0)
+	row.add_child(title["panel"])
+	battle_music_label = title["label"]
+	battle_music_option = OptionButton.new()
+	battle_music_option.name = "BattleMusicOption"
+	battle_music_option.fit_to_longest_item = false
+	battle_music_option.clip_text = true
+	battle_music_option.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	battle_music_option.custom_minimum_size = Vector2(0,24)
+	battle_music_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	battle_music_option.add_theme_font_size_override("font_size",9)
+	for key:String in BATTLE_MUSIC.OPTIONS:
+		battle_music_option.add_item(Game.ui_t("BATTLE_MUSIC_" + key.to_upper()))
+		battle_music_option.set_item_metadata(battle_music_option.item_count - 1,key)
+	battle_music_option.item_selected.connect(_on_battle_music_selected)
+	row.add_child(battle_music_option)
+	Game.Set_Ui_sfx(battle_music_option)
+	_sync_battle_music_setting()
+func _sync_battle_music_setting() -> void:
+	if not is_instance_valid(battle_music_option): return
+	battle_music_label.text = Game.ui_t("SETTING_BATTLE_MUSIC")
+	for index:int in range(battle_music_option.item_count):
+		var key:String = str(battle_music_option.get_item_metadata(index))
+		battle_music_option.set_item_text(index,Game.ui_t("BATTLE_MUSIC_" + key.to_upper()))
+	var chosen:String = BATTLE_MUSIC.normalize(Game.Game_Settings.get(BATTLE_MUSIC.SETTING_KEY,BATTLE_MUSIC.NONE))
+	battle_music_option.select(maxi(BATTLE_MUSIC.OPTIONS.find(chosen),0))
+	battle_music_option.tooltip_text = Game.ui_t("BATTLE_MUSIC_" + chosen.to_upper())
+func _on_battle_music_selected(index:int) -> void:
+	Game.set_runtime_game_setting(BATTLE_MUSIC.SETTING_KEY,str(battle_music_option.get_item_metadata(index)))
+
 func _build_parameter_settings(parent_box:VBoxContainer) -> void:
 	_create_map_background_setting(parent_box)
+	_create_battle_music_setting(parent_box)
 	var door_preview:Button = preload("res://scripts/ui/dark_oak_transition_button.gd").new()
 	parent_box.add_child(door_preview)
 	if not Game.Game_Settings.has("Minecraft_Clouds"): Game.Game_Settings["Minecraft_Clouds"] = true
@@ -1398,6 +1438,7 @@ func _build_parameter_settings(parent_box:VBoxContainer) -> void:
 
 func _refresh_game_setting_toggle_visuals() -> void:
 	_sync_map_background_setting()
+	_sync_battle_music_setting()
 	if settings_stack == null or not is_instance_valid(settings_stack):
 		return
 	for row:Node in _collect_descendants(settings_stack):
@@ -1478,6 +1519,7 @@ func _refresh_settings_category_texts() -> void:
 	if settings_tab_buttons.has("recording"):
 		(settings_tab_buttons["recording"] as Button).text = "录制"
 	_sync_map_background_setting()
+	_sync_battle_music_setting()
 	if settings_tab_buttons.has("training"):
 		(settings_tab_buttons["training"] as Button).text = Game.ui_t("SETTINGS_CATEGORY_TRAINING")
 	if settings_tab_buttons.has("parameters"):
