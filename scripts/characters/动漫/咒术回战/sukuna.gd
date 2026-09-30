@@ -485,53 +485,69 @@ func accept_visual(data:Dictionary) -> void:
 	domain_seal_left = float(data.get("seal",0.0))
 
 func visual_particles(_dt:float) -> void:
-	if hp_lock_left >= 0.0 and _vrng.randf() < 0.5:
-		var a2:float = _vrng.randf() * TAU
-		vparts.emit(global_position + Vector2.from_angle(a2) * 40.0,Vector2.from_angle(a2) * -50.0 + Vector2(0,-20),0.45,2.0,Color(0.55,0.0,0.05,0.95),1,1.0)
-
-## 领域展延：脚下翻卷的紫黑色赛璐璐咒焰（在角色之下）；世界斩咏唱：身周向内收的红黑集中线。
-func visual_quads() -> void:
 	if amp_left > 0.0:
-		var q:Array = V.fire_q(26.0,0.7,0.0,1.0,3.0,2.6,0.08,"curse")
-		ovq("amp",V.Q.FIRE,0,global_position + Vector2(0,-8),q[0],0.0,q[1])
-	if chant_left >= 0.0:
-		var ql:Array = V.lines_q(140.0 if chant_locked else 90.0,Color(0.35,0.0,0.03,0.85),1.0,0.2,60.0,0.45,12.0,0.8)
-		ovq("chant",V.Q.LINES,0,global_position,ql[0],0.0,ql[1])
+		# 领域展延：身周翻涌的紫黑色咒力。
+		var a:float = _vrng.randf() * TAU
+		vparts.emit(global_position + Vector2.from_angle(a) * _vrng.randf_range(10,24),Vector2(cos(a) * 10.0,-_vrng.randf_range(30,70)),0.6,_vrng.randf_range(4,7),Color(0.55,0.15,0.8,0.8),0,1.0,-30.0)
+		if _vrng.randf() < 0.5: vparts.emit(global_position + Vector2.from_angle(a) * 18.0,Vector2(0,-40),0.7,6.0,Color(0.08,0.0,0.1,0.5),1,1.0,-20.0)
+	if hp_lock_left >= 0.0:
+		var a2:float = _vrng.randf() * TAU
+		vparts.emit(global_position + Vector2.from_angle(a2) * 40.0,Vector2.from_angle(a2) * -40.0 + Vector2(0,-20),0.5,2.5,Color(1.0,0.15,0.15),3,1.0)
+	if chant_left >= 0.0 and chant_locked:
+		var along:Vector2 = global_position + chant_dir * _vrng.randf_range(-600,600)
+		vparts.emit(along,chant_dir.orthogonal() * _vrng.randf_range(-60,60),0.35,2.0,Color(1,0.85,0.85),2,3.0)
 
 func draw_under(o:Node2D) -> void:
-	var t:float = floorf(_view_clock * 24.0) / 24.0
-	if hp_lock_left >= 0.0:
-		# 锁血：心跳般一拍一跳的赤红咒印（双环 + 六道刻痕，墨线描边）。
-		var beat:float = 1.0 if fmod(t,0.5) < 0.084 else 0.0
-		var c:Vector2 = global_position
-		var r:float = 26.0 + 3.0 * beat
-		var rot:float = floorf(t * 6.0) / 6.0 * 0.6
-		for pass_i:int in 2:
-			var col:Color = Color(0.05,0.0,0.0,0.9) if pass_i == 0 else Color(1.0,0.12,0.15,0.95)
-			var w:float = 4.5 if pass_i == 0 else 2.0
-			o.draw_arc(c,r,0.0,TAU,48,col,w,true)
-			o.draw_arc(c,r * 0.72,0.0,TAU,40,col,w * 0.7,true)
-			for i:int in 6:
-				var d:Vector2 = Vector2.from_angle(rot + TAU * i / 6.0)
-				o.draw_line(c + d * r * 0.72,c + d * r * 1.18,col,w,true)
-	if chant_left >= 0.0:
-		var width:float = world_slash_width * (1.6 if chant_empowered else 1.0)
-		if chant_locked:
-			# 世界斩预兆：贯穿全图的细黑裂缝，白芯按拍闪烁。
-			var a:Vector2 = global_position - chant_dir * 2400.0
-			var b:Vector2 = global_position + chant_dir * 2400.0
-			var on:bool = fmod(t,0.125) < 0.063
-			o.draw_line(a,b,Color(0,0,0,0.85),3.0 + width * 0.03,true)
-			if on: o.draw_line(a,b,Color(1.0,0.9,0.9,0.95),1.0,true)
-		else:
-			var tip:Vector2 = global_position + chant_dir * 90.0
-			o.draw_line(global_position,tip,Color(0,0,0,0.8),4.0,true)
-			o.draw_line(global_position,tip,Color(1.0,0.3,0.3,0.95),1.6,true)
+	var t:float = _view_clock
+	if chant_left >= 0.0 and chant_locked:
+		# 世界斩预兆：空间先出现一道细细的黑色裂缝。
+		var a:Vector2 = global_position - chant_dir * 2400.0
+		var b:Vector2 = global_position + chant_dir * 2400.0
+		o.draw_line(a,b,Color(0,0,0,0.55 + 0.25 * sin(t * 30.0)),2.5)
 
 func draw_overlay(o:Node2D) -> void:
 	if domain_seal_left > 0.0:
-		o.draw_line(global_position + Vector2(-12,19),global_position + Vector2(-12 + 24 * domain_seal_left / domain_seal_seconds,19),Color(0,0,0,0.9),3.5)
-		o.draw_line(global_position + Vector2(-12,19),global_position + Vector2(-12 + 24 * domain_seal_left / domain_seal_seconds,19),Color(0.6,0.75,1.0,0.95),1.5)
+		o.draw_line(global_position + Vector2(-12,19),global_position + Vector2(-12 + 24 * domain_seal_left / domain_seal_seconds,28),Color(0.6,0.75,1.0,0.9),1.5)
+
+## 展延光环、锁血法阵、世界斩预兆线都在角色之下；只把头顶的咒纹留在上层。
+func draw_under_add(o:Node2D) -> void:
+	var t:float = _view_clock
+	if amp_left > 0.0:
+		var p:float = 0.8 + 0.2 * sin(t * 10.0)
+		V.glow(o,global_position,32.0 * p,Color(0.6,0.15,0.9,0.5))
+		for fi:int in 3:
+			var fa:float = TAU * fi / 3.0 + t * 0.7
+			V.sprite(o,["k_flame02","k_flame04","k_flame06"][fi],global_position + Vector2.from_angle(fa) * 8.0 + Vector2(0,-10),34.0 * p,Color(0.65,0.25,1.0,0.55),sin(t * 3.0 + fi) * 0.2)
+		V.shock(o,global_position,20.0,4.0,Color(0.8,0.4,1.0,0.6 * p))
+	if hp_lock_left >= 0.0:
+		# 锁血：旋转的赤红咒纹法阵 + 心跳般的脉动。
+		var beat:float = pow(0.5 + 0.5 * sin(t * 9.0),6.0)
+		var c:Vector2 = global_position
+		V.glow(o,c,38.0 + 9.0 * beat,Color(1.0,0.05,0.08,0.45 + 0.3 * beat))
+		V.sprite(o,"k_magic01",c,68.0 + 6.0 * beat,Color(1.0,0.12,0.12,0.8),t * 1.2)
+		V.sprite(o,"k_magic05",c,52.0,Color(1.0,0.3,0.25,0.6),-t * 2.0)
+		o.draw_arc(c,26.0,0.0,TAU,48,Color(1.0,0.15,0.15,0.9),2.0,true)
+		V.shock(o,c,26.0 + 22.0 * (1.0 - beat),6.0 * beat,Color(1.0,0.2,0.2,beat))
+	if chant_left >= 0.0:
+		var width:float = world_slash_width * (1.6 if chant_empowered else 1.0)
+		if chant_locked:
+			var a3:Vector2 = global_position - chant_dir * 2400.0
+			var b3:Vector2 = global_position + chant_dir * 2400.0
+			var fl:float = 0.6 + 0.4 * sin(t * 40.0)
+			V.streak(o,a3,b3,width * 1.2,Color(1.0,0.1,0.15,0.25 * fl))
+			V.sprite_line(o,"k_trace04",a3,b3,width * 0.8,Color(1.0,0.3,0.35,0.4 * fl),true)
+			V.sprite(o,"k_flare01",global_position,260.0,Color(1.0,0.3,0.35,0.6 * fl),chant_dir.angle(),Vector2(1.0,0.2))
+			o.draw_line(a3,b3,Color(1.0,0.6,0.6,0.8 * fl),1.5,true)
+			V.glow(o,global_position,60.0,Color(1.0,0.1,0.15,0.5))
+		else:
+			var tip:Vector2 = global_position + chant_dir * 90.0
+			V.streak(o,global_position,tip,12.0,Color(1.0,0.2,0.2,0.6))
+			V.sparkle(o,tip,8.0,Color(1,0.6,0.6,0.9),t * 4.0)
+
+func draw_overlay_add(o:Node2D) -> void:
+	if hp_lock_left >= 0.0:
+		var beat:float = pow(0.5 + 0.5 * sin(_view_clock * 9.0),6.0)
+		V.sprite(o,"k_symbol01",global_position + Vector2(0,-24),10.0 + 5.0 * beat,Color(1.0,0.15,0.15,0.6 + 0.4 * beat))
 
 func get_armor_test_effect_summary() -> String:
 	if JJK.english():

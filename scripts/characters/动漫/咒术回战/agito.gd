@@ -144,8 +144,8 @@ func visual_particles(_dt:float) -> void:
 
 func draw_overlay(o:Node2D) -> void:
 	if _bite_visual > 0.0:
-		# 撕咬：上下两排獠牙合拢（墨线描边）。
-		var k:float = floorf(clampf(_bite_visual * 4.0,0.0,1.0) * 4.0) / 4.0
+		# 撕咬：上下两排獠牙合拢。
+		var k:float = clampf(_bite_visual * 4.0,0.0,1.0)
 		var d:Vector2 = direction.normalized() if direction.length_squared() > 0.01 else Vector2.RIGHT
 		var c:Vector2 = global_position + d * 30.0
 		var n:Vector2 = d.orthogonal()
@@ -155,32 +155,34 @@ func draw_overlay(o:Node2D) -> void:
 			for i:int in 4:
 				var x:float = -9.0 + i * 6.0
 				var root:Vector2 = c + d * x + n * sgn * (gap + 4.0)
-				var tip:Vector2 = c + d * x + n * sgn * gap * 0.2
-				o.draw_colored_polygon(PackedVector2Array([root - d * 4.2 + n * sgn * 1.2,root + d * 4.2 + n * sgn * 1.2,tip - n * sgn * 1.5]),Color(0,0,0,1))
-				o.draw_colored_polygon(PackedVector2Array([root - d * 3.0,root + d * 3.0,tip]),Color(0.97,0.94,0.86,1))
+				o.draw_colored_polygon(PackedVector2Array([root - d * 3.0,root + d * 3.0,c + d * x + n * sgn * gap * 0.2]),Color(0.95,0.92,0.85,k))
 
-## 光环与落雷预警在角色之下：淡绿色虚线环（逐拍转动）；落雷为收缩的警戒环 + 地面电弧。
-func draw_under(o:Node2D) -> void:
-	var t:float = floorf(_view_clock * 12.0) / 12.0
-	for i:int in 6:
-		var a:float = t * 0.5 + TAU * i / 6.0
-		o.draw_arc(global_position,aura_radius,a,a + 0.5,12,Color(0.0,0.12,0.03,0.25),3.5,true)
-		o.draw_arc(global_position,aura_radius,a,a + 0.5,12,Color(0.55,1.0,0.65,0.35),1.4,true)
+## 光环与落雷预警在角色之下。
+func draw_under_add(o:Node2D) -> void:
+	var t:float = _view_clock
+	V.sprite(o,"k_light03",global_position,aura_radius * 2.1,Color(0.35,1.0,0.5,0.035 + 0.015 * sin(t * 2.0)),t * 0.1)
+	V.sprite(o,"k_magic04",global_position,aura_radius * 2.0,Color(0.4,1.0,0.55,0.04),-t * 0.2)
+	V.ring(o,global_position,aura_radius - 30.0,aura_radius,Color(0.4,1.0,0.55,0.0),Color(0.4,1.0,0.55,0.07 + 0.03 * sin(t * 2.0)),64)
+	o.draw_arc(global_position,aura_radius,t * 0.6,t * 0.6 + 1.2,24,Color(0.6,1.0,0.7,0.3),1.5,true)
+	o.draw_arc(global_position,aura_radius,t * 0.6 + PI,t * 0.6 + PI + 1.2,24,Color(0.6,1.0,0.7,0.3),1.5,true)
 	if _thunder_left >= 0.0:
+		# 鵺落雷预警：收缩的警戒圈 + 地面电弧。
 		var k:float = clampf(1.0 - _thunder_left / maxf(thunder_delay,0.01),0.0,1.0)
-		var rr:float = thunder_radius * (1.0 - floorf(k * 8.0) / 8.0 * 0.9)
-		for pass_i:int in 2:
-			var col:Color = Color(0.0,0.03,0.1,0.85) if pass_i == 0 else Color(0.75,0.9,1.0,0.95)
-			var w:float = 4.0 if pass_i == 0 else 1.6
-			o.draw_arc(_thunder_at,thunder_radius,0.0,TAU,48,col,w,true)
-			o.draw_arc(_thunder_at,rr,0.0,TAU,48,col,w,true)
-		var brng:RandomNumberGenerator = RandomNumberGenerator.new()
-		brng.seed = int(t * 12.0) + 5
-		for i2:int in 2:
-			var a2:float = brng.randf() * TAU
-			var pts:PackedVector2Array = V.bolt(brng,_thunder_at + Vector2.from_angle(a2) * thunder_radius * 0.2,_thunder_at + Vector2.from_angle(a2 + 0.5) * thunder_radius,10.0,3)
-			o.draw_polyline(pts,Color(0.0,0.03,0.1,0.9 * k),4.0,true)
-			o.draw_polyline(pts,Color(0.8,0.95,1.0,k),1.6,true)
+		V.glow(o,_thunder_at,thunder_radius * 1.2,Color(0.5,0.7,1.0,0.2 + 0.3 * k))
+		V.sprite(o,"k_magic03",_thunder_at,thunder_radius * 2.3,Color(0.55,0.75,1.0,0.3 + 0.5 * k),t * 1.5)
+		V.anim(o,"a_pfx_sparkring",_thunder_at,thunder_radius * 2.0,t * 0.9,Color(0.7,0.85,1.0,0.5 * k),0.0,true)
+		o.draw_arc(_thunder_at,thunder_radius,0.0,TAU,48,Color(0.7,0.85,1.0,0.7),1.5,true)
+		o.draw_arc(_thunder_at,thunder_radius * (1.0 - k * 0.9),0.0,TAU,48,Color(0.8,0.9,1.0,0.9),2.0,true)
+		_vrng.seed = int(t * 20.0) + 5
+		for i:int in 2:
+			var a:float = _vrng.randf() * TAU
+			var pts:PackedVector2Array = V.bolt(_vrng,_thunder_at + Vector2.from_angle(a) * thunder_radius * 0.2,_thunder_at + Vector2.from_angle(a + 0.5) * thunder_radius,10.0,3)
+			V.draw_bolt(o,pts,1.0,Color(0.6,0.8,1.0,0.6 * k),Color(1,1,1,0.8 * k))
+
+func draw_overlay_add(o:Node2D) -> void:
+	if _bite_visual > 0.0:
+		var d:Vector2 = direction.normalized() if direction.length_squared() > 0.01 else Vector2.RIGHT
+		V.glow(o,global_position + d * 30.0,24.0,Color(1.0,0.15,0.15,clampf(_bite_visual * 4.0,0.0,1.0) * 0.6))
 
 func visual_state() -> Dictionary:
 	var data:Dictionary = super.visual_state()

@@ -8,7 +8,7 @@ var t:float = 0.0
 var size:Vector2 = Vector2(200,200)
 var strength:float = 20.0
 var thickness:float = 0.08
-var aberration:float = 1.0
+var aberration:float = 0.0
 var persistent:bool = false
 var follow:Callable
 var rot_angle:float = 0.0

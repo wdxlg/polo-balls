@@ -33,6 +33,7 @@ var _instant_done:bool = false
 var _vt:float = 0.0
 var _add:Node2D
 var _over:Node2D
+var _over_add:Node2D
 var _q:Dictionary = {}
 var _cracks:Array = []
 var _drng:RandomNumberGenerator = RandomNumberGenerator.new()
@@ -200,10 +201,7 @@ func end_remote(was_broken:bool) -> void:
 
 # ================================================================= 视觉（纯表现，不影响结算）
 func _setup_visuals() -> void:
-	_add = Node2D.new()
-	_add.name = "Embers"
-	add_child(_add)
-	_add.draw.connect(_draw_add)
+	_add = V.make_add_layer(self,_draw_add)
 	# 角色之上的覆盖层：伏魔御厨子的斩击、无量空处的结界亮边。
 	_over = Node2D.new()
 	_over.name = "DomainOverlay"
@@ -211,6 +209,7 @@ func _setup_visuals() -> void:
 	_over.z_index = 70
 	add_child(_over)
 	_over.draw.connect(_draw_over)
+	_over_add = V.make_add_layer(_over,_draw_over_add)
 	var r:RandomNumberGenerator = RandomNumberGenerator.new()
 	r.seed = id * 104729 + 3
 	for i2:int in 26:
@@ -232,21 +231,21 @@ func _qhide(qname:String) -> void:
 	var sp:Sprite2D = _q.get(qname)
 	if sp != null: sp.visible = false
 
-## 展开瞬间：冲击帧 + 集中线 + 震屏 + 扭曲。
+## 展开瞬间：后处理 + 震屏 + 扭曲。
 func _open_juice() -> void:
 	if not is_inside_tree(): return
 	match domain_kind:
 		"uv","uv_instant":
 			var inst:bool = domain_kind == "uv_instant"
-			V.impact(self,center,"uv",{"lines":0.8,"lines_color":Color(0.02,0.04,0.12),"vignette":0.4,"flash":Color(0.9,0.97,1.0,0.6),"flash_time":0.1},0.5 if inst else 0.9)
+			V.screen(self,center,0.6 if inst else 1.0,{"blur":0.012,"flash":Color(0.6,0.85,1.0,0.55),"flash_time":0.14,"invert":0.6 if inst else 0.0,"invert_time":0.07,"vignette":0.4},Vector3(0.03,0.35,1.0))
 			V.shake(self,10.0)
 			V.hitstop(self,1.0,center)
-			V.distort(self,0,center,Vector2.ONE * radius * 3.2,0.7,40.0,{"aberration":2.0})
+			V.distort(self,0,center,Vector2.ONE * radius * 3.2,0.7,40.0)
 		"shrine":
-			V.impact(self,center,"shrine",{"lines":0.8,"lines_color":Color(0.2,0.0,0.02),"tint":Color(1.0,0.4,0.4,0.25),"desat":0.2,"vignette":0.45},1.4)
+			V.screen(self,center,1.6,{"tint":Color(1.0,0.35,0.35,0.3),"desat":0.25,"vignette":0.4,"flash":Color(1.0,0.2,0.2,0.5),"flash_time":0.12},Vector3(0.05,0.9,1.0))
 			V.shake(self,12.0)
 			V.hitstop(self,1.0,center)
-			V.distort(self,0,center,Vector2.ONE * 1400.0,0.9,36.0,{"aberration":2.0})
+			V.distort(self,0,center,Vector2.ONE * 1400.0,0.9,36.0)
 
 func _process(delta:float) -> void:
 	if ended or Game.now_stop_state: return
@@ -255,6 +254,7 @@ func _process(delta:float) -> void:
 	queue_redraw()
 	if is_instance_valid(_add): _add.queue_redraw()
 	if is_instance_valid(_over): _over.queue_redraw()
+	if is_instance_valid(_over_add): _over_add.queue_redraw()
 
 func _update_quads() -> void:
 	match domain_kind:
@@ -262,41 +262,29 @@ func _update_quads() -> void:
 			var r:float = _uv_r()
 			var fade:float = minf(1.0,_vt / 0.3)
 			var flip:bool = flip_left > 0.0
-			# 无量空处本体：向外奔流的星光（无限信息）+ 色阶星云 + 中心奇点 + 白色光环墨线（着色器）
-			_qd("void",V.Q.VOID,0,1,center,Vector2.ONE * r * 2.0 / 0.93,{"alpha":fade,"c0":Color(1,1,1),"c1":Color(1.0,0.8,0.3) if flip else Color(0.5,0.8,1.0),"c2":Color(0.3,0.25,0.85),"c3":Color(0.0,0.0,0.04),"p0":Vector4(0.93,0.35,1.0,0.9)})
-			# 展开冲击环（角色之上，一闪而过）
-			var e:float = V.seg(floorf(_vt * 24.0) / 24.0,0.0,0.5)
+			# 无量空处本体：对数螺旋星云 + 奔向中心的无限信息流 + 中心之眼（着色器）
+			_qd("void",V.Q.VOID,0,1,center,Vector2.ONE * r * 2.0 * 1.08,{"alpha":fade,"c0":Color(0.92,0.96,1.0),"c1":Color(1.0,0.8,0.35) if flip else Color(0.45,0.72,1.0),"c2":Color(0.36,0.22,0.9),"c3":Color(0.0,0.0,0.03),"p0":Vector4(0.926,0.9,0.12,0.95),"p1":Vector4(1.0,1.0,1.0,0.0)})
+			# 展开冲击环
+			var e:float = V.seg(_vt,0.0,0.7)
 			if e < 1.0:
-				var q:Array = V.ring_q("cyan",radius * (0.2 + 0.9 * V.out_expo(e)),lerpf(radius * 0.08,3.0,e),1.0,0.3 + 0.5 * e,16.0,3.0)
-				_qd("open",V.Q.RING,1,2,center,q[0],q[1])
+				_qd("open",V.Q.RING,1,2,center,Vector2.ONE * radius * 2.9,V.pal("cyan",{"alpha":1.2 * (1.0 - V.seg(e,0.25,1.0)),"p0":Vector4(0.2 + 0.75 * V.out_expo(e / 0.6),0.05 * (1.0 - e) + 0.012,0.2 + 0.6 * e,0.0),"p1":Vector4(0.006,0.3,0.7,0.0)}))
 			else:
 				_qhide("open")
 		"shrine":
 			var fade2:float = minf(1.0,_vt / 0.5)
 			var rect:Rect2 = JJK.map_rect(self)
-			var rise:float = V.out_back(minf(1.0,_vt / 0.9),1.4)
-			var small:bool = shrunk and is_instance_valid(caster)
-			# 覆盖整张地图的暗红血池 + 满地随机闪现的「解」「捌」斩痕（着色器按格子每拍重掷）；缩小后只剩施术者周围一圈。
-			var fp:Dictionary = {"alpha":fade2,"c0":Color(1,0.97,0.97),"c1":Color(1.0,0.25,0.28),"c2":Color(0.45,0.02,0.06),"c3":Color(0.12,0.0,0.02),"p0":Vector4(0.5,110.0,0.22,0.0)}
-			if small:
-				fp["p0"] = Vector4(0.6,70.0,0.4,1.0)
-				_qd("floor",V.Q.FLOOR,0,0,caster.global_position,Vector2.ONE * 600.0,fp)
-			else:
-				_qd("floor",V.Q.FLOOR,0,0,rect.get_center(),rect.size,fp)
-			# 厨子背后的赤红尖刺光背（硬边 + 墨线，12fps 抖动）
-			var qb:Array = V.burst_q("red",230.0 * rise,0.9 * fade2,18.0,0.55,12.0,0.0,4.0,Vector2(0.18,0.2))
-			_qd("halo",V.Q.BURST,0,0,center + Vector2(0,-132) * 1.2 * rise,qb[0],qb[1])
-			# 两侧火盆与口中火（赛璐璐火焰）
-			for fi:int in 3:
-				var fx:float = [-100.0,100.0,0.0][fi]
-				var fy:float = [-58.0,-58.0,-84.0][fi]
-				var qf:Array = V.fire_q([30.0,30.0,22.0][fi] * rise,0.85,0.0,fade2,3.4,2.6,0.08,"red" if fi == 2 else "fire")
-				_qd("fire%d" % fi,V.Q.FIRE,0,2,center + Vector2(0,-6) + Vector2(fx,fy - 18.0) * 1.2 * rise,qf[0],qf[1])
-			if small:
-				var qe:Array = V.ring_q("red",300.0,6.0,fade2,0.2,20.0,2.5)
-				_qd("edge",V.Q.RING,1,2,caster.global_position,qe[0],qe[1])
-			else:
-				_qhide("edge")
+			if shrunk and is_instance_valid(caster):
+				_qhide("pool")
+				var cp:Vector2 = caster.global_position
+				_qd("storm",V.Q.STORM,0,2,cp,Vector2.ONE * 600.0,{"alpha":fade2,"c0":Color(1,0.97,0.97),"c1":Color(1.0,0.22,0.25),"c2":Color(1.0,0.25,0.3),"c3":Color(0,0,0),"p0":Vector4(80.0,18.0,0.3,2.0),"p1":Vector4(0.35,0.8,1.0,0)})
+				_qd("edge",V.Q.RING,1,2,cp,Vector2.ONE * 640.0,V.pal("red",{"alpha":0.9 * fade2,"p0":Vector4(0.935,0.03,0.25,0.0),"p1":Vector4(0.006,0.0,0.5,0.0)}))
+				return
+			_qhide("edge")
+			# 血池：覆盖整张地图的暗红水面，涟漪 + 焦散
+			_qd("pool",V.Q.POOL,0,1,rect.get_center(),rect.size,{"alpha":fade2,"c1":Color(0.95,0.2,0.22),"c2":Color(0.55,0.03,0.06),"c3":Color(0.2,0.0,0.02),"p0":Vector4(0.55,0.35,0.22,0.08)})
+			# 满图「解」「捌」：着色器里按格子随机落刀，白/红斩痕 + 黑缝
+			var area:Rect2 = _shrine_area()
+			_qd("storm",V.Q.STORM,0,2,area.get_center(),area.size,{"alpha":fade2,"c0":Color(1,0.97,0.97),"c1":Color(1.0,0.22,0.25),"c2":Color(1.0,0.25,0.3),"c3":Color(0,0,0),"p0":Vector4(110.0,18.0,0.18,2.2),"p1":Vector4(0.3,0.8,0.0,0)})
 
 func _uv_r() -> float:
 	# 瞳孔般张开：先快后慢，末端轻微回弹。
@@ -315,6 +303,17 @@ func _draw() -> void:
 
 func _draw_shrine_base() -> void:
 	var fade:float = minf(1.0,_vt / 0.5)
+	var pulse:float = 0.5 + 0.5 * sin(_vt * 3.2)
+	if shrunk and is_instance_valid(caster):
+		var cp:Vector2 = caster.global_position
+		draw_circle(cp,300.0,Color(0.4,0.0,0.03,(0.22 + 0.08 * pulse) * fade))
+		V.ring(self,cp,220.0,300.0,Color(0.5,0.0,0.05,0.0),Color(0.6,0.0,0.05,0.5 * fade),64)
+	# 厨子背后翻滚的黑烟
+	var rise0:float = V.out_back(minf(1.0,_vt / 0.9),1.4)
+	for i:int in 5:
+		var ph:float = fmod(_vt * 0.12 + i * 0.2,1.0)
+		var sx:float = (i - 2) * 70.0 + sin(_vt * 0.7 + i) * 12.0
+		V.sprite(self,"k_smoke07" if i % 2 == 0 else "k_smoke04",center + Vector2(sx,-80.0 - ph * 240.0) * rise0,(140.0 + ph * 170.0) * rise0,Color(0.06,0.0,0.02,0.5 * sin(ph * PI) * fade),_vt * 0.2 + i)
 	_draw_shrine_building(fade)
 
 ## 厨子：骨山 + 石阶 + 四柱 + 獠牙巨口 + 两重上翘飞檐 + 牛角。从地面升起，全部带墨线。
@@ -446,50 +445,83 @@ func _draw_shrine_building(fade:float) -> void:
 
 # ---------------------------------------------------------------- 叠加层（角色之下）
 func _draw_add() -> void:
-	if domain_kind != "shrine": return
-	# 升腾的火星（带暗描边的实心点）
+	match domain_kind:
+		"uv","uv_instant": _draw_uv_add()
+		"shrine": _draw_shrine_add()
+
+func _draw_uv_add() -> void:
+	var ci:CanvasItem = _add
+	var r:float = _uv_r()
+	# 展开瞬间的闪光（其余全部在着色器里）
+	var flash:float = 1.0 - V.seg(_vt,0.0,0.3)
+	if flash > 0.0:
+		V.core(ci,center,r * 0.3 * (1.0 + flash),Color(1,1,1,flash))
+		V.sprite(ci,"k_flare01",center,r * 4.0,Color(0.7,0.9,1.0,flash),0.0,Vector2(1.0,0.3))
+
+func _draw_shrine_add() -> void:
 	var ci:CanvasItem = _add
 	var fade:float = minf(1.0,_vt / 0.5)
 	var rise:float = V.out_back(minf(1.0,_vt / 0.9),1.4)
+	var s:float = 1.2 * rise
 	var base:Vector2 = center + Vector2(0,-6)
-	var ts:float = floorf(_vt * 12.0) / 12.0
+	var pulse:float = 0.5 + 0.5 * sin(_vt * 5.0)
+	# 背光与口中红光
+	V.glow(ci,base + Vector2(0,-110) * s,190.0 * rise,Color(0.9,0.05,0.08,(0.3 + 0.12 * pulse) * fade))
+	V.glow(ci,base + Vector2(0,-80) * s,40.0 * rise,Color(1.0,0.2,0.1,(0.55 + 0.4 * pulse) * fade))
+	V.sprite(ci,"k_magic04",base + Vector2(0,-110) * s,360.0 * rise,Color(0.9,0.08,0.1,0.28 * fade),_vt * 0.25)
+	# 两侧火盆
+	for tx:float in [-100.0,100.0]:
+		V.anim(ci,"a_fire",base + Vector2(tx,-58.0) * s,64.0 * rise,_vt * 1.2 + tx,Color(1.0,0.45,0.35,0.95 * fade),0.0,true,Vector2(1.0,1.5))
+	V.anim(ci,"a_fire",base + Vector2(0,-84.0) * s,44.0 * rise,_vt * 0.9,Color(1.0,0.25,0.2,0.7 * fade),0.0,true)
+	# 升腾的火星
 	for i:int in 16:
-		var ph:float = fmod(ts * 0.4 + i * 0.137,1.0)
-		var x:float = sin(i * 12.9) * 120.0 + sin(ts * 2.0 + i) * 6.0
-		var p:Vector2 = base + Vector2(x,-ph * 220.0) * rise
-		var s2:float = 2.4 * sin(ph * PI)
-		ci.draw_circle(p,s2 + 1.0,Color(0.15,0.0,0.0,fade))
-		ci.draw_circle(p,s2,Color(1.0,0.55,0.2,fade))
+		var ph:float = fmod(_vt * 0.4 + i * 0.137,1.0)
+		var x:float = sin(i * 12.9) * 120.0 + sin(_vt * 2.0 + i) * 6.0
+		V.core(ci,base + Vector2(x,-ph * 220.0) * rise,2.2,Color(1.0,0.35,0.15,sin(ph * PI) * fade))
 
 # ---------------------------------------------------------------- 覆盖层（角色之上）
-## 无量空处结界边：墨线 + 白/青（翻转时金）细环，沿边流动的亮段；耐久下降时出现黑底白芯裂痕。
 func _draw_over() -> void:
-	if not (domain_kind == "uv" or domain_kind == "uv_instant"): return
+	if not (domain_kind == "uv") : return
+	# 结界裂痕（耐久下降时出现）：黑色裂缝
 	var r:float = _uv_r()
-	var fade:float = minf(1.0,_vt / 0.3)
-	var hp:float = _hp_ratio() if domain_kind == "uv" else 1.0
-	var flip:bool = flip_left > 0.0
-	var col:Color = Color(1.0,0.82,0.3) if flip else Color(0.65,0.9,1.0)
-	var ts:float = floorf(_vt * 12.0) / 12.0
-	_over.draw_arc(center,r,0.0,TAU,160,Color(0,0,0,0.9 * fade),3.0 + 2.0 * hp,true)
-	_over.draw_arc(center,r,0.0,TAU,160,Color(col,fade),1.0 + 1.2 * hp,true)
-	for i:int in 6:
-		var a:float = ts * (0.8 if i % 2 == 0 else -0.55) + TAU * i / 6.0
-		_over.draw_arc(center,r,a,a + 0.3,16,Color(1,1,1,fade),2.4,true)
-	if flip:
-		for g:int in 24:
-			var ga:float = TAU * g / 24.0 - ts * 0.6
-			var gp:Vector2 = center + Vector2.from_angle(ga) * (r + 12.0)
-			_over.draw_circle(gp,4.0,Color(0.15,0.08,0.0,0.95))
-			_over.draw_circle(gp,2.4,Color(1.0,0.88,0.45,1.0))
-	if domain_kind == "uv" and hp < 0.999:
-		var n:int = int((1.0 - hp) * _cracks.size())
-		for i2:int in n:
-			var c:Array = _cracks[i2]
-			_drng.seed = int(c[2])
-			var a2:float = float(c[0])
-			var p0:Vector2 = center + Vector2.from_angle(a2) * r
-			var p1:Vector2 = center + Vector2.from_angle(a2 + _drng.randf_range(-0.08,0.08)) * r * (1.0 - float(c[1]))
-			var pts:PackedVector2Array = V.bolt(_drng,p0,p1,r * 0.03,4)
-			_over.draw_polyline(pts,Color(0,0,0,0.95),4.0,true)
-			_over.draw_polyline(pts,Color(1.0,0.95,0.95,0.9),1.2,true)
+	var hp:float = _hp_ratio()
+	var n:int = int((1.0 - hp) * _cracks.size())
+	for i:int in n:
+		var c:Array = _cracks[i]
+		_drng.seed = int(c[2])
+		var a:float = float(c[0])
+		var p0:Vector2 = center + Vector2.from_angle(a) * r
+		var p1:Vector2 = center + Vector2.from_angle(a + _drng.randf_range(-0.08,0.08)) * r * (1.0 - float(c[1]))
+		_over.draw_polyline(V.bolt(_drng,p0,p1,r * 0.03,4),Color(0,0,0,0.9),4.0,true)
+
+func _draw_over_add() -> void:
+	var ci:CanvasItem = _over_add
+	match domain_kind:
+		"uv","uv_instant":
+			var r:float = _uv_r()
+			var fade:float = minf(1.0,_vt / 0.3)
+			var hp:float = _hp_ratio() if domain_kind == "uv" else 1.0
+			var flip:bool = flip_left > 0.0
+			var col:Color = Color(1.0,0.8,0.3) if flip else Color(0.6,0.85,1.0)
+			# 结界外缘细亮线 + 沿边缘流动的光段
+			ci.draw_arc(center,r,0.0,TAU,160,Color(col,0.85 * fade),1.2 + 1.8 * hp,true)
+			for i:int in 6:
+				var a:float = _vt * (0.8 if i % 2 == 0 else -0.55) + TAU * i / 6.0
+				ci.draw_arc(center,r + 2.0,a,a + 0.35,16,Color(1,1,1,0.7 * fade),2.0,true)
+			# 结界翻转：金色符文环
+			if flip:
+				for g:int in 24:
+					var ga:float = TAU * g / 24.0 - _vt * 0.6
+					V.sparkle(ci,center + Vector2.from_angle(ga) * (r + 14.0),6.0,Color(1.0,0.85,0.4,0.9),ga)
+			# 耐久低时的裂纹光
+			if domain_kind == "uv" and hp < 0.999:
+				var n:int = int((1.0 - hp) * _cracks.size())
+				for i2:int in n:
+					var c:Array = _cracks[i2]
+					_drng.seed = int(c[2])
+					var a2:float = float(c[0])
+					var p0:Vector2 = center + Vector2.from_angle(a2) * r
+					var p1:Vector2 = center + Vector2.from_angle(a2 + _drng.randf_range(-0.08,0.08)) * r * (1.0 - float(c[1]))
+					ci.draw_polyline(V.bolt(_drng,p0,p1,r * 0.03,4),Color(1.0,0.9,0.9,0.7 * (0.6 + 0.4 * sin(_vt * 9.0 + i2))),1.3,true)
+		"shrine":
+			pass

@@ -304,7 +304,7 @@ static func dharma_wheel_glow(ci:CanvasItem,p:Vector2,R:float,rot:float,alpha:fl
 
 # ---------------------------------------------------------------- 程序化着色器面片（jjk_fxshader）
 const FXSHADER = preload("res://scripts/characters/动漫/咒术回战/jjk_fxshader.gdshader")
-enum Q { ORB, BURST, RING, LINES, BEAM, SLASH, FIRE, CRACK, VOID, FLOOR }
+enum Q { ORB, BEAM, RING, FIRE, CUT, VOID, POOL, FOCUS, SMOKE, STORM }
 static var _white:Texture2D
 
 static func white_tex() -> Texture2D:
@@ -356,12 +356,11 @@ const PAL:Dictionary = {
 	"purple":[Color(1.0,0.95,1.0),Color(0.85,0.55,1.0),Color(0.5,0.12,1.0),Color(0.06,0.0,0.12)],
 	"fire":[Color(1.0,0.97,0.75),Color(1.0,0.72,0.2),Color(0.95,0.28,0.04),Color(0.18,0.03,0.02)],
 	"blood":[Color(1.0,0.92,0.92),Color(1.0,0.2,0.25),Color(0.7,0.0,0.06),Color(0.0,0.0,0.0)],
-	"white":[Color(1,1,1),Color(0.93,0.93,0.96),Color(0.72,0.72,0.78),Color(0.0,0.0,0.0)],
+	"white":[Color(1,1,1),Color(0.85,0.9,1.0),Color(0.5,0.6,0.9),Color(0.0,0.0,0.0)],
 	"gold":[Color(1.0,0.98,0.85),Color(1.0,0.82,0.35),Color(0.85,0.5,0.1),Color(0.15,0.08,0.0)],
 	"cyan":[Color(0.95,1.0,1.0),Color(0.6,0.95,1.0),Color(0.2,0.6,1.0),Color(0.0,0.04,0.1)],
 	"green":[Color(0.95,1.0,0.95),Color(0.55,1.0,0.65),Color(0.15,0.75,0.35),Color(0.0,0.08,0.02)],
-	"curse":[Color(0.92,0.8,1.0),Color(0.62,0.25,0.95),Color(0.3,0.02,0.45),Color(0.03,0.0,0.05)],
-	"black":[Color(0.12,0.0,0.02),Color(0.0,0.0,0.0),Color(1.0,0.1,0.16),Color(0.0,0.0,0.0)],
+	"black":[Color(1.0,0.9,0.9),Color(1.0,0.15,0.2),Color(0.6,0.0,0.05),Color(0.0,0.0,0.0)],
 }
 
 static func pal(name:String,params:Dictionary = {}) -> Dictionary:
@@ -369,27 +368,6 @@ static func pal(name:String,params:Dictionary = {}) -> Dictionary:
 	var d:Dictionary = {"c0":p[0],"c1":p[1],"c2":p[2],"c3":p[3]}
 	d.merge(params,true)
 	return d
-
-## 面片参数构造：返回 [像素尺寸, 参数字典]，供 jjk_fx / 角色 ovq / 术式弹 / 领域共用。
-static func orb_q(pal_name:String,radius:float,a:float = 1.0,boil:float = 0.06,spikes:float = 0.0,spike_n:float = 9.0,swirl:float = 0.0,hollow:float = 0.0,crackle:float = 0.0,outline:float = 2.0,bands:Vector2 = Vector2(0.22,0.25)) -> Array:
-	return [Vector2.ONE * radius * 2.0 / 0.62,pal(pal_name,{"alpha":a,"p0":Vector4(0.62,boil,spikes,spike_n),"p1":Vector4(swirl,bands.x,bands.y,outline),"p2":Vector4(hollow,crackle,0.0,0.0)})]
-
-static func burst_q(pal_name:String,radius:float,a:float = 1.0,rays:float = 12.0,jag:float = 0.35,fps:float = 24.0,rot:float = 0.0,outline:float = 2.5,bands:Vector2 = Vector2(0.3,0.3)) -> Array:
-	return [Vector2.ONE * radius * 2.0,pal(pal_name,{"alpha":a,"p0":Vector4(0.95,rays,jag,fps),"p1":Vector4(0.0,bands.x,bands.y,outline),"p2":Vector4(rot,0,0,0)})]
-
-static func ring_q(pal_name:String,radius:float,thick:float,a:float = 1.0,breakup:float = 0.4,segs:float = 10.0,outline:float = 2.0,bands:Vector2 = Vector2(0.3,0.3)) -> Array:
-	var half:float = radius + thick * 1.5 + outline + 4.0
-	return [Vector2.ONE * half * 2.0,pal(pal_name,{"alpha":a,"p0":Vector4(radius / half,thick / half,breakup,segs),"p1":Vector4(0.0,bands.x,bands.y,outline)})]
-
-static func lines_q(radius:float,color:Color,a:float = 1.0,inner:float = 0.35,count:float = 70.0,width:float = 0.5,fps:float = 12.0,inward:float = 0.0) -> Array:
-	return [Vector2.ONE * radius * 2.0,{"alpha":a,"c2":color,"p0":Vector4(inner,count,width,fps),"p1":Vector4(1.0,inward,0,0)}]
-
-## 光束/拖尾：长度 L、半宽 hw（面片高度留出 1.5 倍给抖动）。
-static func beam_q(pal_name:String,L:float,hw:float,a:float = 1.0,head:float = 1.0,tail:float = 0.0,wobble:float = 0.08,outline:float = 3.0,bands:Vector2 = Vector2(0.28,0.3),flow:float = 6.0) -> Array:
-	return [Vector2(L,hw * 3.0),pal(pal_name,{"alpha":a,"p0":Vector4(head,1.0 / 1.5,wobble,outline),"p1":Vector4(tail,bands.x,bands.y,flow)})]
-
-static func fire_q(radius:float,intensity:float,shape:float = 1.0,a:float = 1.0,speed:float = 2.2,scale:float = 2.2,outline:float = 0.07,pal_name:String = "fire") -> Array:
-	return [Vector2.ONE * radius * 2.0,pal(pal_name,{"alpha":a,"p0":Vector4(intensity,speed,scale,outline),"p1":Vector4(shape,0.0,0,0)})]
 
 # ---------------------------------------------------------------- 演出（屏幕 / 镜头），全部纯视觉
 static func _world(node:Node) -> Node:
@@ -427,32 +405,6 @@ static func screen(node:Node,center:Vector2,life:float,peak:Dictionary,env:Vecto
 		s.name = "JJKScreenFX"
 		host.add_child(s)
 	s.call("add_entry",life,center,peak,env)
-
-## 动画冲击帧预设：[时长, dark, light, 阈值]，dark/light 为 null 的一段回到正常画面（夹一拍正常画面更有冲击）。
-const _K:Color = Color(0,0,0)
-const _W:Color = Color(1,1,1)
-const IMPACT:Dictionary = {
-	"hit":[[0.042,_K,_W],[0.042,_W,_K]],
-	"heavy":[[0.042,_W,_K],[0.042,_K,_W],[0.042,null,null],[0.084,_K,_W]],
-	"red":[[0.042,_K,Color(1.0,0.32,0.26)],[0.042,_W,_K],[0.042,null,null],[0.042,_K,_W]],
-	"black_flash":[[0.042,_K,Color(1.0,0.08,0.14),0.35],[0.042,Color(1.0,0.08,0.14),_K,0.35],[0.042,_K,_W,0.5],[0.042,null,null],[0.084,_K,Color(1.0,0.08,0.14),0.35]],
-	"purple":[[0.084,Color(0.08,0.0,0.16),Color(1.0,0.92,1.0),0.3],[0.042,_W,Color(0.28,0.0,0.45)],[0.042,null,null],[0.084,_K,Color(0.86,0.62,1.0)]],
-	"world":[[0.042,_W,_K,0.3],[0.084,_K,_W,0.55],[0.042,_W,_K,0.3],[0.042,null,null],[0.125,_K,_W,0.5]],
-	"cut":[[0.042,_W,_K,0.35],[0.042,_K,_W,0.55]],
-	"uv":[[0.084,_W,_K,0.3],[0.042,null,null],[0.084,_K,Color(0.62,0.86,1.0),0.4]],
-	"shrine":[[0.084,_K,Color(1.0,0.12,0.18),0.35],[0.042,Color(1.0,0.12,0.18),_K,0.35],[0.042,null,null],[0.084,_K,_W,0.5]],
-	"fire":[[0.042,Color(0.25,0.02,0.0),Color(1.0,0.85,0.4),0.35],[0.042,_W,_K],[0.042,null,null],[0.042,_K,Color(1.0,0.6,0.2)]],
-}
-
-## 冲击帧 + 可选附加全屏参数（集中线、闪光等）。extra_life 让附加参数在冲击帧之后继续淡出。
-static func impact(node:Node,center:Vector2,preset:String,extra:Dictionary = {},extra_life:float = 0.0) -> void:
-	var seq:Array = IMPACT.get(preset,IMPACT["hit"])
-	var total:float = 0.0
-	for f:Variant in seq: total += float((f as Array)[0])
-	var peak:Dictionary = extra.duplicate()
-	peak["frames"] = seq
-	var life:float = maxf(total,extra_life)
-	screen(node,center,life,peak,Vector3(0.0,total / life * 0.9,1.0))
 
 ## 大招过场特写。
 static func cutin(node:Node,face:Texture2D,title:String,subtitle:String,color:Color,from_right:bool = false,life:float = 1.25) -> void:
