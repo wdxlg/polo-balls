@@ -482,6 +482,15 @@ func _shared_settings_snapshot() -> Dictionary:
 			snapshot[key] = Game_Settings[key]
 	return snapshot
 
+func _normalize_character_setting(setting:String,value:Variant) -> Variant:
+	if setting == "Character_Placement_Mode": return "random" if str(value)=="random" else "custom"
+	var result:Array[String] = []
+	if value is Array or value is PackedStringArray:
+		for item:Variant in value:
+			if item is String and not item.is_empty() and not result.has(item): result.append(item)
+	return result
+
+
 func _apply_runtime_game_setting_local(setting:String,value:Variant,save_after:bool) -> void:
 	if not Game_Settings.has(setting):
 		return
@@ -491,6 +500,8 @@ func _apply_runtime_game_setting_local(setting:String,value:Variant,save_after:b
 		game_setting_changed.emit(setting,Game_Settings[setting])
 		if save_after: save_persistent_settings()
 		return
+	if setting in ["Character_Placement_Mode","Random_Character_Categories","Random_Character_Excluded"]:
+		value = _normalize_character_setting(setting,value)
 	if BATTLE_CONDITIONS_CATALOG.SETTING_KEYS.has(setting):
 		value = BATTLE_CONDITIONS_CATALOG.normalize_setting(setting,value)
 	if setting == BATTLE_MUSIC_MODULE.VOLUME_KEY:
@@ -673,6 +684,8 @@ func load_persistent_settings(path:String = "") -> void:
 
 
 	FEEDBACK_SETTINGS.normalize(Game_Settings)
+	for key:String in ["Character_Placement_Mode","Random_Character_Categories","Random_Character_Excluded"]:
+		Game_Settings[key] = _normalize_character_setting(key,Game_Settings[key])
 	for key:String in BATTLE_CONDITIONS_CATALOG.SETTING_KEYS:
 		Game_Settings[key] = BATTLE_CONDITIONS_CATALOG.normalize_setting(key,Game_Settings.get(key))
 	# 登记表里已删除的曲目回落到“无”。
@@ -782,6 +795,9 @@ func _on_speed_slider_drag_ended(value_changed:bool) -> void:
 	# 本机显示偏好；旧存档默认保留盔甲架对战的人物介绍。
 	Show_Armor_Stand_Intro = true,
 	# 训练玩法类型：manual / rotation / timed / boss。
+	Character_Placement_Mode = "custom",
+	Random_Character_Categories = [],
+	Random_Character_Excluded = [],
 	Training_Mode_Type = "manual",
 	Random_Events = false,
 	Random_Event_Selection = [],
@@ -1239,6 +1255,11 @@ func when_connect(id:int) -> void:
 	if multiplayer.is_server() and id != multiplayer.get_unique_id():
 		_receive_shared_settings.rpc_id(id,_shared_settings_snapshot())
 		_sync_control_assignments.rpc_id(id,_controlled_peer_paths.duplicate(true))
+		var world:Node = get_tree().current_scene
+		if world is World:
+			var draft:RefCounted = world.random_character_draft
+			random_character_state.rpc_id(id,"draw" if draft.playing else "slots",draft.active_results if draft.playing else draft.pending,draft._serial)
+			if draft.playing and draft._authority_finished: random_character_state.rpc_id(id,"finish",[],draft._serial)
 	network_state_changed.emit()
 
 
@@ -1301,6 +1322,9 @@ func create_ball_in_server(team_value:String,character_name:String,poi:Vector2,r
 	if world is not World:
 		return
 	
+	if world.random_character_draft.is_enabled():
+		world.random_character_draft.place(team_value,poi,rotation_round)
+		return
 	world.create_char(
 				team_value,
 				character_name,
@@ -1367,6 +1391,9 @@ func _delete_char_at_authority(position:Vector2) -> void:
 	var world_node:Node = get_tree().current_scene
 	if world_node is not World:
 		return
+
+	if world_node.random_character_draft.playing: return
+	if world_node.random_character_draft.remove_at(position): return
 
 	# V82：删除查询同时看 CharacterBody2D 与 Area2D，而且不再限定旧的 2/4/8 层。
 	# 角色的根碰撞、hurtbox/hitbox 只要任意一个真实 Shape 位于点击点，都可以找到 Ball 根节点。
@@ -2104,6 +2131,10 @@ func _input(event: InputEvent) -> void:
 		_placement._cancel_placement_press()
 		return
 
+	if world.random_character_draft.playing:
+		_placement._cancel_placement_press()
+		return
+
 	# C：鼠标指向一名普通角色后进入/退出直接控制。输入框正在编辑时不抢 C 键。
 	if event is InputEventKey and event.pressed and event.physical_keycode == KEY_C:
 		var focus:Control = get_viewport().gui_get_focus_owner()
@@ -2321,13 +2352,14 @@ func _process(delta: float) -> void:
 		if _placement.ghost_ball and is_instance_valid(_placement.ghost_ball):
 			_placement.ghost_ball.queue_free()
 			_placement.ghost_ball = null
-	elif not is_controlling_character() and _placement._position_inside_character_placement_area(world,_placement.mouse_poi) and world.now_choose_char != "" and world.return_can_create_char():
-		if _placement.ghost_ball and is_instance_valid(_placement.ghost_ball) and _placement.ghost_ball.name == world.now_choose_char:
+	elif not is_controlling_character() and _placement._position_inside_character_placement_area(world,_placement.mouse_poi) and (world.now_choose_char != "" or world.random_character_draft.is_enabled()) and world.return_can_create_char():
+		var cursor_name:String = "RandomCharacterCursor" if world.random_character_draft.is_enabled() else world.now_choose_char
+		if _placement.ghost_ball and is_instance_valid(_placement.ghost_ball) and _placement.ghost_ball.name == cursor_name:
 			_placement.ghost_ball.global_position = _placement.mouse_poi
 		else:
 			if _placement.ghost_ball and is_instance_valid(_placement.ghost_ball):
 				_placement.ghost_ball.queue_free()
-			_placement.ghost_ball = world.create_ghost_ball()
+			_placement.ghost_ball = world.random_character_draft.create_cursor() if world.random_character_draft.is_enabled() else world.create_ghost_ball()
 	elif _placement.ghost_ball and is_instance_valid(_placement.ghost_ball):
 		_placement.ghost_ball.queue_free()
 		_placement.ghost_ball = null
@@ -2383,6 +2415,8 @@ func stop_game(play_sfx:bool = true) -> void:
 	speed_text.show()
 	speed_slider.grab_focus()
 func continue_game() -> void:
+	var world:Node = get_tree().current_scene
+	if world is World and world.random_character_draft.playing: return
 	now_stop_state = false
 	
 	var tree = get_tree()
@@ -2488,3 +2522,26 @@ func free_node(node) -> void:
 	if not is_multiplayer_authority():return
 	
 	node.queue_free()
+
+
+@rpc("authority","call_remote","reliable")
+func random_character_state(action:String,data:Array,serial:int) -> void:
+	var world:Node = get_tree().current_scene
+	if world is not World: return
+	var draft:RefCounted = world.random_character_draft
+	if serial < draft.network_serial: return
+	draft.network_serial = serial
+	match action:
+		"slots": draft.receive_slots(data)
+		"draw": draft.play(data,serial)
+		"finish": draft.finish_from_authority(serial)
+		"cancel":
+			draft.cancel(false)
+			draft._serial = serial
+
+
+@rpc("any_peer","call_remote","reliable")
+func request_random_character_draw() -> void:
+	if not multiplayer.is_server() or not _remote_guest_admin_allowed(multiplayer.get_remote_sender_id()): return
+	var world:Node = get_tree().current_scene
+	if world is World: world.random_character_draft.start()

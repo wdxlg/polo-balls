@@ -10,6 +10,8 @@ var animation_scale:float = 1.0
 var _visuals:Dictionary = {}
 var _next_id:int = 1
 var _serial:int = 0
+var network_serial:int = -1
+var active_results:Array = []
 var _map:String = ""
 var _sync_queued:bool = false
 var _authority_finished:bool = false
@@ -63,7 +65,7 @@ func pool() -> Array[Dictionary]:
 		for excluded_key:Variant in saved_exclusions:
 			if excluded_key is String: excluded[str(excluded_key)] = true
 	_world._ensure_character_path_index()
-	var key:int = hash([enabled,excluded,_world._character_paths_by_folder,_world.PLACEABLE_OBSTACLE_SCENES])
+	var key:int = hash([enabled,excluded,_world._character_paths_by_folder])
 	if key==_pool_key: return _pool_cache
 	for category:String in categories():
 		if category not in enabled: continue
@@ -81,7 +83,7 @@ func pool() -> Array[Dictionary]:
 func can_place() -> bool:
 	return not playing and pending.size()<MAX_SLOTS and not pool().is_empty()
 
-func place(team:String,position:Vector2) -> bool:
+func place(team:String,position:Vector2,rotation_round:int=-1) -> bool:
 	if not _world.is_multiplayer_authority() or not can_place() or not position.is_finite(): return false
 	if not _world.can_place_character_at(position): return false
 	on_map_changed()
@@ -89,7 +91,7 @@ func place(team:String,position:Vector2) -> bool:
 		if str(_world._special_two_team_side(team,position)).is_empty(): return false
 	if team == "random": team = _world.control.return_random_team()
 	_map = str(_world.now_choose_map)
-	var slot:Dictionary = {"id":_next_id,"team":team,"x":position.x,"y":position.y}
+	var slot:Dictionary = {"id":_next_id,"team":team,"x":position.x,"y":position.y,"round":_world.rotation_selected_round if rotation_round<0 else clampi(rotation_round,0,999)}
 	_next_id += 1
 	pending.append(slot)
 	_add_visual(slot)
@@ -181,6 +183,7 @@ func play(results:Array,serial:int) -> void:
 	if playing or results.is_empty(): return
 	_serial = serial
 	playing = true
+	active_results = results.duplicate(true)
 	_authority_finished = false
 	_previous_pause = _world.get_tree().paused
 	_pause_owned = true
@@ -226,7 +229,7 @@ func play(results:Array,serial:int) -> void:
 		if not _valid(serial): return
 		if _world.is_multiplayer_authority():
 			# create_char 的冷资源加载可能异步；必须等它完成，不能提前开放战斗闸门。
-			await _world.create_char(str(record.team),str(record.char),Vector2(float(record.x),float(record.y)),str(record.scene_path))
+			await _world.create_char(str(record.team),str(record.char),Vector2(float(record.x),float(record.y)),int(record.get("round",0)),str(record.scene_path),serial)
 			if not _valid(serial): return
 		_remove_visual(int(record.id))
 	pending.clear()
@@ -278,6 +281,7 @@ func _release_pause() -> void:
 func cancel(broadcast:bool = true) -> void:
 	_serial += 1
 	playing = false
+	active_results.clear()
 	pending.clear()
 	for id:Variant in _visuals.keys(): _remove_visual(int(id))
 	if is_instance_valid(_layer): _layer.queue_free()

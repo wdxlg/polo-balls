@@ -1699,7 +1699,7 @@ const SCENES:Dictionary = {
   "root_script": "res://scripts/characters/默认/盔甲架.gd"
  },
  "res://scenes/characters/默认/石头.tscn": {
-  "entity_kind": "character",
+  "entity_kind": "obstacle",
   "attack_modes": [],
   "carriers": [],
   "damage_kinds": [],

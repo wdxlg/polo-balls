@@ -3,6 +3,14 @@ extends Node2D
 
 signal character_dialogue_battle_started(serial:int)
 
+var random_character_draft:RefCounted = preload("res://scripts/random_character_draft.gd").new(self)
+
+func is_placeable_obstacle(char_name:String,scene_path:String="") -> bool:
+	var path:String = scene_path if not scene_path.is_empty() else character_scene_path(char_name)
+	var info:Dictionary = preload("res://classes/combat_classification_catalog.gd").SCENES.get(path,{})
+	return str(info.get("entity_kind","")) == "obstacle"
+
+
 func character_scene_path(char_name:String) -> String:
 	_ensure_character_path_index()
 	char_name = _canonical_character_name(char_name)
@@ -1535,6 +1543,7 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
+	random_character_draft.cancel(false)
 	_cancel_rotation_presentation()
 	if get_viewport() != null and get_viewport().size_changed.is_connected(refresh_top_text_layout):
 		get_viewport().size_changed.disconnect(refresh_top_text_layout)
@@ -1716,6 +1725,7 @@ func _process(delta: float) -> void:
 			_restore_team_auto_character_colors()
 
 	if _presentation_map_name != now_choose_map:
+		random_character_draft.on_map_changed()
 		refresh_map_presentation()
 		_top_text_refresh_elapsed = top_text_refresh_interval
 
@@ -3698,6 +3708,17 @@ func clear_mouse_drag_offset() -> void:
 
 
 func set_menu() -> void:
+	if random_character_draft.playing: return
+	if control.visible and random_character_draft.is_enabled() and not random_character_draft.pending.is_empty():
+		if random_character_draft.pool().is_empty():
+			control.team.hide()
+			control.game_setting.show()
+			control._show_settings_category("training")
+			control._sync_character_mode_controls()
+			return
+		if is_multiplayer_authority(): random_character_draft.start()
+		elif Game.can_local_manage_world(): Game.request_random_character_draw.rpc_id(Game.Server_Id)
+		return
 	control.set_menu()
 
 	# V35：M 关闭顶部工具栏时终止当前拖动，但保留玩家已经调整好的缩放倍率。
@@ -3764,6 +3785,7 @@ func _clear_battle_transients() -> void:
 func reset() -> void:
 	if not is_multiplayer_authority():
 		return
+	random_character_draft.cancel()
 	if is_instance_valid(day_night_cycle): day_night_cycle.reset_to_noon()
 	if is_instance_valid(minecraft_clouds): minecraft_clouds.reset_drift()
 	if _development != null:
@@ -3928,6 +3950,7 @@ func forget_battle_setup_node(node:Node) -> void:
 
 @rpc("authority")
 func rematch_last_battle(exact_replay:bool = true) -> void:
+	if is_multiplayer_authority(): random_character_draft.cancel()
 	if not is_multiplayer_authority():
 		return
 	if is_instance_valid(day_night_cycle) and has_rematch_setup(): day_night_cycle.reset_to_noon()
@@ -4864,6 +4887,7 @@ func _add_map_border_segment(a:Vector2,b:Vector2) -> void:
 
 
 func refresh_map_presentation() -> void:
+	random_character_draft.on_map_changed()
 	if map_border_line == null or versus_label == null or interaction_label == null:
 		return
 	if not map_group.has(now_choose_map):
@@ -6354,6 +6378,7 @@ func return_random_char() -> String:
 # 特殊训练模式公共流程
 #========================================================
 func _should_freeze_special_training_prestart() -> bool:
+	if random_character_draft.blocks_combat(): return true
 	if _rotation_clearing_round: return true
 	# Boss 开场必须在“任何战斗逻辑运行之前”冻结，即使是 Rematch 这种没有重新打开
 	# Team 面板的启动路径也一样，因此 Boss 判断要早于 is_set_team()。
@@ -6430,6 +6455,11 @@ func _restore_special_prestart_nodes() -> void:
 
 
 func _on_training_game_setting_changed(setting:String,_value:Variant) -> void:
+	if setting == "Character_Placement_Mode" or setting == "Training_Mode_Type":
+		random_character_draft.cancel()
+		Game._placement._cancel_placement_press()
+	if setting in ["Random_Character_Categories","Random_Character_Excluded"]:
+		Game._placement._cancel_placement_press()
 	if FEEDBACK_TUNING.SPECS.has(setting) or setting == "Feedback_Reset":
 		_sync_feedback_settings()
 		if setting.begins_with("Feedback_Focus_") or setting.begins_with("Feedback_Hitstop_") or (setting=="Feedback_Reset" and str(_value)=="High_Damage_Feedback"):
@@ -6567,6 +6597,7 @@ func _reset_special_training_state() -> void:
 
 
 func _update_special_training_modes(delta:float) -> void:
+	if random_character_draft.blocks_combat(): return
 	if _development != null and _development.is_prebattle():
 		return
 	if _queue_battle_mode_active() and (not is_multiplayer_authority() or _rotation_transitioning or _rotation_finished): return
@@ -7841,13 +7872,13 @@ func _layout_rotation_label_widths() -> void:
 #========================================================
 # 计时模式
 #========================================================
-func _enqueue_timed_character(team:String,char_name:String,poi:Vector2) -> void:
+func _enqueue_timed_character(team:String,char_name:String,poi:Vector2,scene_path:String="") -> void:
 	if not _has_character_scene_any(char_name):
 		push_warning("计时模式无法加入角色: " + char_name)
 		return
 	var setup_id:int = _battle_setup_next_id
 	_battle_setup_next_id += 1
-	var entry:Dictionary = {"id":setup_id,"team":team,"char":char_name,"x":poi.x,"y":poi.y}
+	var entry:Dictionary = {"id":setup_id,"team":team,"char":char_name,"scene_path":scene_path if not scene_path.is_empty() else character_scene_path(char_name),"x":poi.x,"y":poi.y}
 	if _battle_setup.is_empty():
 		_battle_setup_map = now_choose_map
 	_battle_setup.append(entry.duplicate(true))
@@ -8287,6 +8318,7 @@ func _is_character_dialogue_enabled() -> bool:
 # 轮放 / 计时 / Boss：
 # - 仍保留各自正式开始条件。
 func is_combat_runtime_active() -> bool:
+	if random_character_draft.blocks_combat(): return false
 	var tree:SceneTree = get_tree()
 	if _development != null and _development.phase == _development.MERGING:
 		return false
@@ -9423,7 +9455,7 @@ func _remember_random_setup(setup_id:int,random_choice:bool) -> void:
 				break
 
 
-func create_char(team:String,char:String,poi:Vector2,rotation_round:int=-1):
+func create_char(team:String,char:String,poi:Vector2,rotation_round:int=-1,scene_path:String="",draft_serial:int=-1):
 	var requested_round:int=rotation_selected_round if rotation_round<0 else clampi(rotation_round,0,999)
 	var random_choice:bool = char == "random"
 	if char == "random":
@@ -9440,6 +9472,9 @@ func create_char(team:String,char:String,poi:Vector2,rotation_round:int=-1):
 				return
 			await get_tree().process_frame
 			if not is_inside_tree() or generation != _mc_placement_generation: return
+			if draft_serial >= 0 and not random_character_draft._valid(draft_serial):
+				_mc_pending_placements.erase(request)
+				return
 		_mc_pending_placements.pop_front()
 		var prepared:PackedScene = _mc_prewarmer.scenes.get(char)
 		if prepared != null: _character_scene_cache[prepared.resource_path] = prepared
@@ -9456,20 +9491,20 @@ func create_char(team:String,char:String,poi:Vector2,rotation_round:int=-1):
 		var rotation_side:String = _special_two_team_side(team, poi)
 		if rotation_side.is_empty():
 			return
-		_enqueue_rotation_character(team,char,poi,rotation_side,"",requested_round)
+		_enqueue_rotation_character(team,char,poi,rotation_side,scene_path,requested_round)
 		_remember_random_setup(placement_id,random_choice)
 		return
 	if Game.is_boss_training_mode() and Game.is_training_boss_wheel_battle_enabled() and not _restoring_battle_setup:
 		var wheel_side:String = _special_two_team_side(team, poi)
 		if wheel_side.is_empty():
 			return
-		_enqueue_rotation_character(team,char,poi,wheel_side)
+		_enqueue_rotation_character(team,char,poi,wheel_side,scene_path)
 		_remember_random_setup(placement_id,random_choice)
 		return
 	if team == "random":
 		team = control.return_random_team()
 	if Game.is_timed_training_mode() and not _restoring_battle_setup:
-		_enqueue_timed_character(team,char,poi)
+		_enqueue_timed_character(team,char,poi,scene_path)
 		_remember_random_setup(placement_id,random_choice)
 		return
 	if Game.is_boss_training_mode():
@@ -9491,6 +9526,7 @@ func create_char(team:String,char:String,poi:Vector2,rotation_round:int=-1):
 		"team": team,
 		"char": char,
 		"random_choice": random_choice,
+		"scene_path": scene_path if not scene_path.is_empty() else character_scene_path(char),
 		"x": poi.x,
 		"y": poi.y,
 	}
@@ -9838,6 +9874,8 @@ func create_character_preview(character_name:String,scene_path:String = "",attac
 	
 #全局使用
 func return_can_create_char() -> bool:
+	if random_character_draft.playing: return false
+	if random_character_draft.is_enabled() and not random_character_draft.can_place(): return false
 	return not(not Game.Game_Settings.Creating or not control.is_set_team())
 	
 func return_spawner() -> MultiplayerSpawner:

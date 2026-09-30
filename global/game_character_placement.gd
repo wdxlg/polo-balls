@@ -75,6 +75,7 @@ func _begin_placement_press(world:World,screen_position:Vector2) -> void:
 		if world.now_choose_char == "" and bool(_game.Game_Settings.get("Set_Random_Char_When_Didnt_Choose",true))
 		else world.now_choose_char
 	)
+	if world.random_character_draft.is_enabled(): character_name = "random"
 	if character_name.is_empty():
 		return
 	_placement_press_active = true

@@ -903,7 +903,127 @@ func _create_boss_specialization_row(parent_box:VBoxContainer) -> Control:
 	return row
 
 
+
+var character_mode_option:OptionButton
+var character_mode_label:Label
+var random_category_box:VBoxContainer
+var random_category_buttons:Dictionary = {}
+var random_category_hint:Label
+var random_exclude_hint:Label
+
+func _build_character_method_settings(parent_box:VBoxContainer) -> void:
+	var row := HBoxContainer.new()
+	row.name = "CharacterMethodRow"
+	row.custom_minimum_size = Vector2(0,24)
+	row.add_theme_constant_override("separation",3)
+	parent_box.add_child(row)
+	var title:Dictionary = _create_setting_title_from_template("SETTING_CHARACTER_METHOD",64.0)
+	row.add_child(title.panel)
+	character_mode_label = title.label
+	character_mode_option = OptionButton.new()
+	character_mode_option.name = "CharacterMethodOption"
+	character_mode_option.fit_to_longest_item = false
+	character_mode_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	character_mode_option.custom_minimum_size = Vector2(0,24)
+	character_mode_option.add_item(Game.ui_t("CHARACTER_METHOD_RANDOM"))
+	character_mode_option.add_item(Game.ui_t("CHARACTER_METHOD_CUSTOM"))
+	character_mode_option.item_selected.connect(_on_character_mode_selected)
+	row.add_child(character_mode_option)
+	Game.Set_Ui_sfx(character_mode_option)
+	random_category_box = VBoxContainer.new()
+	random_category_box.name = "RandomCharacterCategories"
+	random_category_box.add_theme_constant_override("separation",2)
+	parent_box.add_child(random_category_box)
+	random_category_hint = Label.new()
+	random_category_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	random_category_box.add_child(random_category_hint)
+	random_exclude_hint = Label.new()
+	random_exclude_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	random_category_box.add_child(random_exclude_hint)
+	_sync_character_mode_controls()
+
+func _on_character_mode_selected(index:int) -> void:
+	if Game.can_local_change_settings():
+		Game.set_runtime_game_setting("Character_Placement_Mode","random" if index==0 else "custom")
+	_sync_character_mode_controls()
+
+func _on_random_category_toggled(enabled:bool,category:String) -> void:
+	if Game.can_local_change_settings():
+		var selected:Array = Game.Game_Settings.Random_Character_Categories.duplicate()
+		if enabled and not selected.has(category): selected.append(category)
+		elif not enabled: selected.erase(category)
+		Game.set_runtime_game_setting("Random_Character_Categories",selected)
+	_sync_character_mode_controls()
+
+func _toggle_random_character_exclusion(button:Button) -> void:
+	if not Game.can_local_change_settings(): return
+	var world:World = get_tree().current_scene as World
+	if world == null or not world.random_character_draft.is_enabled(): return
+	var character_name:String = str(button.get_meta("choice_value",""))
+	if world.is_placeable_obstacle(character_name,world.character_scene_path(character_name)): return
+	var key:String = world.random_character_draft.picker_exclusion_key(character_name)
+	if key.is_empty(): return
+	var excluded:Array = Game.Game_Settings.Random_Character_Excluded.duplicate()
+	if excluded.has(key): excluded.erase(key)
+	else: excluded.append(key)
+	Game.set_runtime_game_setting("Random_Character_Excluded",excluded)
+	_sync_character_mode_controls()
+
+func _sync_random_character_picker() -> void:
+	var world:World = get_tree().current_scene as World
+	if world == null or not is_instance_valid(char_box): return
+	var draft:RefCounted = world.random_character_draft
+	var random_mode:bool = draft.is_enabled()
+	for child:Node in char_box.get_children():
+		if not child is Button or child.is_queued_for_deletion(): continue
+		var button:Button = child
+		var character_name:String = str(button.get_meta("choice_value",""))
+		button.button_group = null
+		button.toggle_mode = random_mode
+		button.set_pressed_no_signal(random_mode and draft.is_excluded(draft.picker_exclusion_key(character_name)))
+		button.disabled = random_mode and (not Game.can_local_change_settings() or world.is_placeable_obstacle(character_name,world.character_scene_path(character_name)))
+		button.self_modulate = Color.WHITE if random_mode or world.now_choose_char!=character_name else Color(0.671,0.671,0.671,0.675)
+	if is_instance_valid(now_char):
+		now_char.text = Game.ui_t("RANDOM_EXCLUDE_PICKER") if random_mode else Game.ui_t("UI_NOW_CHAR")+" "+(Game.ui_t(world.now_choose_char) if not world.now_choose_char.is_empty() else Game.ui_t("UI_NONE"))
+
+func _sync_character_mode_controls() -> void:
+	_sync_random_character_picker()
+	if not is_instance_valid(character_mode_option): return
+	var world:World = get_tree().current_scene as World
+	if world == null: return
+	var draft:RefCounted = world.random_character_draft
+	character_mode_label.text = Game.ui_t("SETTING_CHARACTER_METHOD")
+	character_mode_option.set_item_text(0,Game.ui_t("CHARACTER_METHOD_RANDOM"))
+	character_mode_option.set_item_text(1,Game.ui_t("CHARACTER_METHOD_CUSTOM"))
+	character_mode_option.select(0 if draft.is_enabled() else 1)
+	character_mode_option.disabled = not Game.can_local_change_settings()
+	random_category_box.visible = draft.is_enabled()
+	var categories:PackedStringArray = draft.categories()
+	for category:Variant in random_category_buttons.keys():
+		if not categories.has(str(category)):
+			random_category_buttons[category].hide()
+			random_category_buttons[category].queue_free()
+			random_category_buttons.erase(category)
+	for category:String in categories:
+		if not random_category_buttons.has(category):
+			var button := CheckButton.new()
+			button.text = Game.ui_t(category)
+			button.toggled.connect(_on_random_category_toggled.bind(category))
+			random_category_box.add_child(button)
+			random_category_box.move_child(button,random_category_buttons.size())
+			Game.Set_Ui_sfx(button)
+			random_category_buttons[category] = button
+		var button:CheckButton = random_category_buttons[category]
+		button.text = Game.ui_t(category)
+		button.set_pressed_no_signal(Game.Game_Settings.Random_Character_Categories.has(category))
+		button.disabled = not Game.can_local_change_settings()
+	var count:int = draft.pool().size()
+	random_category_hint.text = Game.ui_t("RANDOM_CATEGORY_READY")%count if count>0 else Game.ui_t("RANDOM_CATEGORY_EMPTY" if Game.Game_Settings.Random_Character_Categories.is_empty() else "RANDOM_POOL_EMPTY")
+	random_exclude_hint.text = Game.ui_t("RANDOM_EXCLUDE_HINT")
+	call_deferred("_refresh_settings_scroll_layout")
+
 func _build_training_settings(parent_box:VBoxContainer) -> void:
+	_build_character_method_settings(parent_box)
 	# 顶部先选训练玩法。当前玩法的附属选项紧跟在它下面，
 	# 然后留出明显的小间距，再进入“训练模式”等独立主选项。
 	var mode_row := HBoxContainer.new()
@@ -1549,6 +1669,7 @@ func _build_parameter_settings(parent_box:VBoxContainer) -> void:
 
 
 func _refresh_game_setting_toggle_visuals() -> void:
+	_sync_character_mode_controls()
 	_sync_feedback_options()
 	_sync_map_background_setting()
 	_sync_battle_music_setting()
@@ -1629,6 +1750,7 @@ func _show_settings_category(category:String) -> void:
 
 
 func _refresh_settings_category_texts() -> void:
+	_sync_character_mode_controls()
 	_sync_feedback_options()
 	if settings_tab_buttons.has("recording"):
 		(settings_tab_buttons["recording"] as Button).text = Game.ui_t("UI_SETTINGS_CATEGORY_RECORDING")
@@ -2120,6 +2242,7 @@ func _on_language_button_pressed() -> void:
 func _refresh_multiplayer_permissions_ui() -> void:
 	if not is_node_ready():
 		return
+	_sync_character_mode_controls()
 	var restricted_guest:bool = Game.is_network_guest() and not Game.guest_has_free_permissions()
 	# 受限房客顶部只保留“队伍 / 多人”。角色仍从队伍面板右侧选择并可正常放置。
 	if is_instance_valid(toolbar_game_setting_button): toolbar_game_setting_button.visible = not restricted_guest
@@ -2320,6 +2443,9 @@ func _refresh_team_button_colors() -> void:
 
 
 func set_team_button_callable_choose(but:Button) -> void:
+	if but.get_parent() == char_box and str(Game.Game_Settings.Character_Placement_Mode)=="random":
+		_toggle_random_character_exclusion(but)
+		return
 	var Type:String = "now_choose_team"
 	if but.get_parent() == map_box:Type = "now_choose_map"
 	elif but.get_parent() == char_box: Type = "now_choose_char"
@@ -2477,6 +2603,7 @@ func Create_char_buts() -> void:
 		new_but.set_meta("choice_value", character_name)
 		new_but.text = Game.ui_t(character_name)
 
+	_sync_random_character_picker()
 	_apply_character_search_filter(search_query)
 	Game.Set_Ui_sfx(char_box)
 	# 搜索会重建按钮；每次重建后重新把中键拖动绑定到新按钮。
