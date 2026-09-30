@@ -138,8 +138,9 @@ func _attach_silk(collision:KinematicCollision2D) -> void:
 	if not is_instance_valid(silk_network): return
 	var surface:Node2D = collision.get_collider() as Node2D
 	# Called before the common collision bounce changes direction/facing.
-	var attachment:Dictionary = silk_network.wall_attachment(collision.get_position(),collision.get_normal(),surface,silk_tail_position())
-	silk_network.touch_wall(attachment.point,attachment.surface)
+	var tail:Vector2 = silk_tail_position()
+	var attachment:Dictionary = silk_network.wall_attachment(collision.get_position(),collision.get_normal(),surface,tail)
+	silk_network.touch_wall(attachment.point,attachment.surface,tail)
 func when_collide(speed:float,collision:KinematicCollision2D) -> void:
 	if _is_wall_like_collision(collision):
 		if can_weave_silk(): _attach_silk(collision)

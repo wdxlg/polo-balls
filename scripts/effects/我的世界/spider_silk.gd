@@ -4,6 +4,7 @@ const GEOMETRY = preload("res://scripts/effects/我的世界/mc16_geometry.gd")
 const MAP_THEMES = preload("res://scripts/effects/我的世界/地图背景主题.gd")
 ## Strand ends sink this far into the touched wall, so the 3D wall covers them.
 const WALL_SINK:float = 4.0
+const HANDOFF_TIME:float = 0.12
 ## Absolute layer: above the ground tiles (-5, drawn earlier), below the 3D walls,
 ## wall shadows and 2D obstacles (-4 and up), so a sunk end is hidden by its wall.
 const SILK_Z:int = -5
@@ -20,6 +21,10 @@ var _previous_lines:Dictionary = {}
 var _remote_lines:Array = []
 var _remote_webs:Array = []
 var _sync_left:float = 0.0
+var _handoff_anchor:Dictionary = {}
+var _handoff_origin:Vector2 = Vector2.ZERO
+var _handoff_left:float = 0.0
+var _remote_snapshot_clock:float = 0.0
 func _ready() -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	set_as_top_level(true)
@@ -81,6 +86,7 @@ func development_rebase(change:Vector2) -> void:
 			anchor.local = point
 			anchor.ref = null
 	for web:Dictionary in webs.values(): web.point += change
+	_handoff_origin += change
 	# Sweep history describes an old arena. Never damage a target over the
 	# distance between two maps on the first combat tick after merging.
 	_previous.clear()
@@ -88,6 +94,9 @@ func development_rebase(change:Vector2) -> void:
 	for line:Array in _remote_lines:
 		line[0] += change
 		line[1] += change
+		if line.size()>=6:
+			line[3] += change
+			line[4] += change
 	for i:int in range(_remote_webs.size()): _remote_webs[i] += change
 	queue_redraw()
 func wall_attachment(contact:Vector2,normal:Vector2,surface:Node2D,tail:Vector2) -> Dictionary:
@@ -167,7 +176,7 @@ func _inside_surface(point:Vector2,surface:Node2D) -> bool:
 func _can_weave() -> bool:
 	if unit.has_method(&"can_weave_silk"): return unit.can_weave_silk()
 	return unit.mc_live() and not Game.now_stop_state
-func touch_wall(point:Vector2,surface:Node2D = null) -> bool:
+func touch_wall(point:Vector2,surface:Node2D = null,tail:Variant = null) -> bool:
 	if not _can_weave() or _contact_left>0.0: return false
 	if _valid(anchor) and _point(anchor).distance_to(point)<unit.silk_anchor_spacing: return false
 	_contact_left = 0.18
@@ -176,6 +185,14 @@ func touch_wall(point:Vector2,surface:Node2D = null) -> bool:
 		segments.append({"id":live_id,"start":anchor,"end":next})
 		live_id += 1
 	anchor = next
+	# Pin the real wall immediately, but extend the shared strand endpoint from
+	# the incoming abdomen instead of replacing it in one frame.
+	_handoff_anchor = {}
+	_handoff_left = 0.0
+	if tail is Vector2 and tail.is_finite() and tail.distance_to(point)>0.01:
+		_handoff_anchor = next
+		_handoff_origin = tail
+		_handoff_left = HANDOFF_TIME
 	unit.mc_cast_animation(0.25)
 	_sync_left = 0.0
 	queue_redraw()
@@ -184,24 +201,41 @@ func lines(include_live:bool = true) -> Array[Dictionary]:
 	var result:Array[Dictionary] = []
 	for segment:Dictionary in segments:
 		if _valid(segment.start) and _valid(segment.end):
-			result.append(_line(segment.id,_point(segment.start),_point(segment.end)))
-	if include_live and _valid(anchor): result.append(_line(live_id,_point(anchor),unit.silk_tail_position()))
+			if not include_live and (_handoff_active(segment.start) or _handoff_active(segment.end)): continue
+			result.append(_line(segment.id,_point(segment.start),_point(segment.end),segment.start,segment.end))
+	if include_live and _valid(anchor): result.append(_line(live_id,_point(anchor),unit.silk_tail_position(),anchor))
 	return result
-func _line(id:int,a:Vector2,b:Vector2) -> Dictionary:
-	return {"id":id,"key":str(unit.get_path())+":"+str(id),"a":a,"b":b,"caster":unit}
+func _handoff_active(a:Dictionary) -> bool:
+	return _handoff_left>0.0 and not a.is_empty() and is_same(a,_handoff_anchor)
+func _line(id:int,a:Vector2,b:Vector2,start_anchor:Dictionary = {},end_anchor:Dictionary = {}) -> Dictionary:
+	var start_moves:bool = _handoff_active(start_anchor)
+	var end_moves:bool = _handoff_active(end_anchor)
+	var weight:float = 1.0-_handoff_left/HANDOFF_TIME
+	return {"id":id,"key":str(unit.get_path())+":"+str(id),
+		"a":_handoff_origin.lerp(a,weight) if start_moves else a,
+		"b":_handoff_origin.lerp(b,weight) if end_moves else b,"caster":unit,
+		"target_a":a,"target_b":b,"handoff_left":_handoff_left if start_moves or end_moves else 0.0}
+func pack_lines() -> Array:
+	var packed:Array = []
+	for line:Dictionary in lines():
+		var entry:Array = [line.a,line.b,line.id==live_id]
+		if line.handoff_left>0.0: entry.append_array([line.target_a,line.target_b,line.handoff_left])
+		packed.append(entry)
+	return packed
 func _physics_process(delta:float) -> void: advance(delta)
 func advance(delta:float) -> void:
 	if not is_instance_valid(unit) or unit.health<=0:
 		hide()
 		return
 	if Game.now_stop_state or get_tree().paused or not unit.is_combat_runtime_active(): return
+	_clock += maxf(delta,0.0)
+	_handoff_left = maxf(_handoff_left-maxf(delta,0.0),0.0)
 	if not unit.is_multiplayer_authority():
 		queue_redraw()
 		return
 	# Weaving bookkeeping (debounce, anchors, crossings) runs under any control;
 	# only the damaging/slowing contact pass needs mc_live() (not damage-disabled).
 	if not _can_weave(): return
-	_clock += delta
 	_contact_left = maxf(_contact_left-delta,0.0)
 	for i:int in range(segments.size()-1,-1,-1):
 		if not _valid(segments[i].start) or not _valid(segments[i].end): segments.remove_at(i)
@@ -219,11 +253,9 @@ func advance(delta:float) -> void:
 	_sync_left -= delta
 	if multiplayer.has_multiplayer_peer() and _sync_left<=0.0:
 		_sync_left = 0.1
-		var packed:Array = []
-		for line:Dictionary in lines(): packed.append([line.a,line.b,line.id==live_id])
 		var points:Array = []
 		for web:Dictionary in webs.values(): points.append(web.point)
-		unit._sync_silk.rpc(packed,points)
+		unit._sync_silk.rpc(pack_lines(),points)
 	queue_redraw()
 func _update_crossings() -> void:
 	var own:Array[Dictionary] = lines(false) # Only completed wall-to-wall strands create webs.
@@ -305,7 +337,16 @@ func web_points() -> Array[Vector2]:
 func receive_snapshot(packed:Array,points:Array) -> void:
 	_remote_lines = packed
 	_remote_webs = points
+	_remote_snapshot_clock = _clock
 	queue_redraw()
+func remote_line_points(line:Array) -> Array:
+	var start:Vector2 = line[0]
+	var finish:Vector2 = unit.silk_tail_position() if line[2] else line[1]
+	if line.size()>=6 and float(line[5])>0.0:
+		var weight:float = clampf((_clock-_remote_snapshot_clock)/float(line[5]),0.0,1.0)
+		start = start.lerp(Vector2(line[3]),weight)
+		if not line[2]: finish = finish.lerp(Vector2(line[4]),weight)
+	return [start,finish]
 func _draw() -> void:
 	if not is_instance_valid(unit) or unit.health<=0: return
 	# The silk layer must be an identity top-level item. A stale inherited map
@@ -326,11 +367,11 @@ func _draw() -> void:
 	# them in this item's local space so a map transform cannot scale the silk away.
 	var local_transform:Transform2D = global_transform.affine_inverse()
 	for line:Array in draw_lines:
-		var endpoint:Vector2 = unit.silk_tail_position() if line[2] else line[1]
+		var endpoints:Array = remote_line_points(line)
 		# One hard-edged pixel stroke: no smooth shadow/outline or round wall dots.
 		# Snap to the centre of the pixel that holds each end (floor, not round):
 		# unbiased on every side, so wall-sunk ends stay under the wall.
-		draw_line(local_transform*(Vector2(line[0]).floor()+Vector2(0.5,0.5)),local_transform*(endpoint.floor()+Vector2(0.5,0.5)),Color(0.91,0.94,0.96),1.0,false)
+		draw_line(local_transform*(Vector2(endpoints[0]).floor()+Vector2(0.5,0.5)),local_transform*(Vector2(endpoints[1]).floor()+Vector2(0.5,0.5)),Color(0.91,0.94,0.96),1.0,false)
 	for point:Vector2 in draw_webs:
 		# Untouched vanilla 16x16 cobweb; no generated radial spokes/rings.
 		var diameter:float = unit.web_radius*2.0

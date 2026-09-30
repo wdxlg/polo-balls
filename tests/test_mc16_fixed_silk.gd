@@ -1,4 +1,42 @@
 extends "res://tests/test_mc16_spider_drowned.gd"
+var capture_camera:Camera2D
+func capture_silk(net:Node,wall:StaticBody2D,label:String) -> void:
+	var directory:String = ""
+	for argument:String in OS.get_cmdline_user_args():
+		if argument.begins_with("--silk-capture="): directory = argument.trim_prefix("--silk-capture=")
+	if directory.is_empty() or DisplayServer.get_name()=="headless": return
+	root.content_scale_size = Vector2i(960,640)
+	root.size = Vector2i(960,640)
+	if not is_instance_valid(capture_camera):
+		capture_camera = Camera2D.new()
+		world.add_child(capture_camera)
+		var face := Polygon2D.new()
+		face.polygon = PackedVector2Array([Vector2(-6,-150),Vector2(6,-150),Vector2(6,150),Vector2(-6,150)])
+		face.color = Color(0.18,0.2,0.24)
+		face.z_as_relative = false
+		face.z_index = -4
+		wall.add_child(face)
+	capture_camera.global_position = wall.global_position+Vector2(-160,0)
+	capture_camera.zoom = Vector2.ONE*1.4
+	capture_camera.make_current()
+	capture_camera.force_update_scroll()
+	net.queue_redraw()
+	await RenderingServer.frame_post_draw
+	var image:Image = root.get_texture().get_image()
+	check(not image.is_empty(),"GPU handoff frame is readable: "+label)
+	if image.is_empty(): return
+	var line:Dictionary = net.lines()[0]
+	var sample:Vector2 = root.get_canvas_transform()*((Vector2(line.a)+Vector2(line.b))*0.5)
+	var bright:bool = false
+	for y:int in range(-3,4):
+		for x:int in range(-3,4):
+			var pixel:Vector2i = Vector2i(sample)+Vector2i(x,y)
+			if pixel.x<0 or pixel.y<0 or pixel.x>=image.get_width() or pixel.y>=image.get_height(): continue
+			var color:Color = image.get_pixelv(pixel)
+			if color.r>0.8 and color.g>0.8 and color.b>0.8: bright = true
+	check(bright,"GPU draws silk at its reported contact geometry: "+label)
+	check(image.save_png(directory.path_join(label+".png"))==OK,"GPU handoff frame saved outside the project: "+label)
+	print("SILK_CAPTURE ",label," ",image.get_size())
 func fixed(net:Node,a:Vector2,b:Vector2) -> void:
 	reset_silk(net)
 	wall_touch(net,center+a)
@@ -124,6 +162,13 @@ func run() -> void:
 	check(point.distance_to(center+Vector2(144,-260))<=a.WALL_SINK+0.01,"strand missing a short wall keeps the validated body contact")
 	check(a._on_wall_surface(point,Vector2.LEFT,wall),"missed-extension fallback still touches the same finite wall")
 	check(a._inside_surface(point,wall),"strand end sits inside the wall so the wall covers it")
+	a._contact_left = 0.0
+	a.touch_wall(point,wall,center+Vector2(100,-240))
+	check(Vector2(a.lines()[0].b).is_equal_approx(center+Vector2(100,-240)),"short-wall fallback starts at the abdomen instead of snapping sideways")
+	a.advance(0.04)
+	check(geometry.segment_distance(center+Vector2(100,-240),point,a.lines()[0].b)<0.01,"short-wall fallback moves continuously toward its validated contact")
+	a.advance(0.1)
+	check(Vector2(a.lines()[0].b).is_equal_approx(point),"short-wall fallback settles on the actual wall")
 	reset_silk(a)
 	wall_touch(a,center+Vector2(0,-240))
 	attachment = a.wall_attachment(center+Vector2(144,-260),Vector2.LEFT,wall,center+Vector2(100,-240))
@@ -144,6 +189,11 @@ func run() -> void:
 	wall_touch(a,center+Vector2(0,-240))
 	point = (a.wall_attachment(center+Vector2(148.5,-260),Vector2.LEFT,wall,center+Vector2(100,-240))).point
 	check(point.is_equal_approx(center+Vector2(148.5,-240)),"thin wall: extension stops exactly on the face (%s)" % str(point-center))
+	a._contact_left = 0.0
+	a.touch_wall(point,wall,center+Vector2(100,-240))
+	check(Vector2(a.lines()[0].b).is_equal_approx(center+Vector2(100,-240)),"thin-wall handoff does not jump across the abdomen-to-wall gap")
+	a.advance(0.13)
+	check(Vector2(a.lines()[0].b).is_equal_approx(point),"thin-wall handoff never extends through the far face")
 	# Actual CharacterBody move_and_slide collision, before reflected facing changes.
 	rectangle.size = Vector2(12,300)
 	wall.global_position = center+Vector2(200,-260)
@@ -164,6 +214,48 @@ func run() -> void:
 		await physics_frame
 	check(a.segments.size()==1,"real collision creates one fixed segment, not duplicate attachments")
 	if not a.segments.is_empty():
+		var incoming_tail:Vector2 = spider.silk_tail_position()
+		var pinned:Vector2 = a._point(a.segments[0].end)
+		var initial:Dictionary = a.lines()[0]
+		check(initial.b.is_equal_approx(incoming_tail),"wall handoff starts at the incoming abdomen without an endpoint jump (%.2f px)" % Vector2(initial.b).distance_to(incoming_tail))
+		check(a.lines(false).is_empty(),"an extending strand cannot create a completed-wall cobweb yet")
+		await capture_silk(a,wall,"handoff_start")
+		a.advance(0.03)
+		var partial:Vector2 = a.lines()[0].b
+		check(partial.distance_to(incoming_tail)>0.01 and partial.distance_to(incoming_tail)<pinned.distance_to(incoming_tail)-0.01,"wall handoff extends progressively instead of replacing the whole endpoint")
+		check(geometry.segment_distance(incoming_tail,pinned,partial)<0.01,"handoff stays on the actual abdomen-to-wall extension")
+		var old_facing:bool = spider._visual_facing_flipped_h
+		spider.set_character_visual_flip_h(not old_facing)
+		check(a.lines()[0].b.is_equal_approx(partial),"reflected facing does not teleport the strand being attached")
+		spider.set_character_visual_flip_h(old_facing)
+		game.now_stop_state = true
+		a.advance(1.0)
+		check(a.lines()[0].b.is_equal_approx(partial),"pause freezes the wall handoff")
+		game.now_stop_state = false
+		await capture_silk(a,wall,"handoff_partial")
+		if a.has_method("pack_lines"):
+			var packet:Array = a.pack_lines()
+			b.receive_snapshot(packet,[])
+			var received:Array = b.remote_line_points(packet[0])
+			check(Vector2(received[1]).is_equal_approx(partial),"snapshot starts at the displayed handoff endpoint")
+			b._clock += 0.03
+			var continued:Array = b.remote_line_points(packet[0])
+			check(Vector2(continued[1]).distance_to(partial)>0.01 and Vector2(continued[1]).distance_to(pinned)>0.01,"replica continues the handoff between snapshots")
+			b._clock += 0.1
+			check(Vector2(b.remote_line_points(packet[0])[1]).is_equal_approx(pinned),"replica settles exactly on the real wall endpoint")
+			b.receive_snapshot(a.pack_lines(),[])
+			b._clock += 0.02
+			var before_rebase:Vector2 = b.remote_line_points(b._remote_lines[0])[1]
+			var rebase:Vector2 = Vector2(27,-19)
+			b.development_rebase(rebase)
+			check(Vector2(b.remote_line_points(b._remote_lines[0])[1]).is_equal_approx(before_rebase+rebase),"map merging rebases both the displayed handoff and its wall target")
+			var legacy:Array = [initial.a,pinned,false]
+			check(Vector2(b.remote_line_points(legacy)[1]).is_equal_approx(pinned),"legacy static snapshots still keep their exact endpoints")
+		else:
+			check(false,"wall handoff is represented in replica snapshots")
+		a.advance(0.1)
+		check(a.lines(false).size()==1,"the extended strand becomes completed only after reaching the wall")
+		await capture_silk(a,wall,"handoff_finished")
 		var line:Dictionary = a.lines(false)[0]
 		check(geometry.segment_distance(line.a,line.b,spider.silk_tail_position())<0.01,"real wall collision fixes silk collinearly with the abdomen endpoint")
 		check(a._inside_surface(line.b,wall),"real anchor end sits inside the wall so the wall covers it")
