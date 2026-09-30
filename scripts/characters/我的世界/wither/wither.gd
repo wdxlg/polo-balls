@@ -1,6 +1,6 @@
 extends "res://scripts/characters/我的世界/mc_mob_base.gd"
 const PROJECTILE_API = preload("res://classes/projectile_interactions.gd")
-## 直接旋转3秒 -> 骷髅/冲撞 -> 半血信标。所有伤害由权威端结算。
+## 旋转觉醒后发射头弹/冲撞；仅 Boss 特殊化半血召唤信标。权威端结算。
 const PREVIEW = preload("res://Images/characters/我的世界/wither/bedrock/wither_preview.png")
 const BODY = preload("res://Images/characters/我的世界/wither/wither_front.png")
 const LIVE_RIG = preload("res://scripts/characters/我的世界/wither/bedrock_rig.gd")
@@ -15,7 +15,10 @@ const ACTIVE_TOOLTIP = preload("res://scripts/ui/mc_active_effect_tooltip.gd")
 const EFFECTS = preload("res://scripts/effects/我的世界/mc_status_effects.gd")
 const OBSTACLES = preload("res://scripts/effects/我的世界/ghast_obstacle_damage.gd")
 const CHARGE_RESET = preload("res://scripts/characters/我的世界/wither/charge_reset.gd")
-const CHARGE_DAMAGE:float = 100.0
+const CHARGE_DAMAGE:float = 80.0
+const BOSS_CHARGE_DAMAGE:float = 100.0
+const AWAKENING_DAMAGE:float = 80.0
+const BOSS_AWAKENING_DAMAGE:float = 120.0
 const CHARGE_SPEED:float = 325.0 # 65% of the previous speed; preserve the deceleration curve.
 const CHARGE_VISUALS = preload("res://scripts/effects/我的世界/mc_visual_effects.gd")
 const CHARGE_SMOKE = preload("res://Images/characters/我的世界/wither/big_smoke_0.png")
@@ -31,6 +34,7 @@ const SHOT_HEAD_ORDER = [0,2,1] # Center, screen-left, screen-right.
 var summon_time:float = 0.0
 var summoned:bool = false
 var heart_dropped:bool = false
+var _boss_specialized:bool = false
 var beacon:ball
 var _head_shot_left:Array[float] = [1.0,1.0,1.0]
 var _global_shot_left:float = 0.0
@@ -61,6 +65,26 @@ var _next_shoot_head:int = 0
 var _remote_body_heading:Vector2 = Vector2.ZERO
 var _remote_look_position:Vector2 = Vector2.ZERO
 var _remote_aim_valid:bool = false
+
+func has_training_boss_specialization() -> bool:
+	return true
+
+func prepare_training_boss_specialization(_boss_multiplier:float) -> void:
+	# World has already applied generic scaling; only health is replaced.
+	Max_health = 1000
+	_boss_specialized = true
+
+func awakening_damage() -> float:
+	return BOSS_AWAKENING_DAMAGE if _boss_specialized else AWAKENING_DAMAGE
+
+func charge_damage() -> float:
+	return BOSS_CHARGE_DAMAGE if _boss_specialized else CHARGE_DAMAGE
+
+func skull_direct_damage() -> float:
+	return SKULL.BOSS_DIRECT_DAMAGE if _boss_specialized else SKULL.DIRECT_DAMAGE
+
+func skull_splash_damage() -> float:
+	return SKULL.BOSS_SPLASH_DAMAGE if _boss_specialized else SKULL.SPLASH_DAMAGE
 
 func _ready() -> void:
 	Has_Collision_Damage = false
@@ -144,7 +168,7 @@ func on_actual_health_damage_received(actual:float,before:float) -> void:
 	super.on_actual_health_damage_received(actual,before)
 	if actual > 0 and summoned and health > 0:
 		_emit_sound("hurt%d" % _mc_rng.randi_range(1,4),global_position)
-	if actual > 0 and summoned and not heart_dropped and health > 0 and health <= Max_health*0.5 and is_multiplayer_authority():
+	if _boss_specialized and actual > 0 and summoned and not heart_dropped and health > 0 and health <= Max_health*0.5 and is_multiplayer_authority():
 		heart_dropped = true
 		var child:ball = BEACON.instantiate() as ball
 		child.Master = self
@@ -174,7 +198,7 @@ func tick_physics(state:State,delta:float) -> void:
 			if image is Sprite2D:
 				(image as Sprite2D).visible = true
 			if multiplayer.has_multiplayer_peer(): _sync_event.rpc("awake",global_position)
-			_blast(global_position,AWAKENING_BLAST_RADIUS,45.0,null,false)
+			_blast(global_position,AWAKENING_BLAST_RADIUS,awakening_damage(),null,false)
 			_show_explosion(global_position,AWAKENING_BLAST_RADIUS)
 			_emit_sound("explode",global_position)
 		return
@@ -248,7 +272,7 @@ func tick_physics(state:State,delta:float) -> void:
 					if enemy.is_in_group("BuilderWall") or (enemy.has_method("is_builder_wall") and enemy.is_builder_wall()): continue
 					if Geometry2D.get_closest_point_to_segment(ball.body_point_seg(enemy,old,next),old,next).distance_to(ball.body_point(enemy,Geometry2D.get_closest_point_to_segment(ball.body_point_seg(enemy,old,next),old,next))) <= enemy.get_crowd_separation_radius_world()+42.0:
 						_charge_hits[enemy.get_instance_id()] = true
-						impact(enemy,CHARGE_DAMAGE,enemy.global_position,true)
+						impact(enemy,charge_damage(),enemy.global_position,true)
 						enemy.Repel += _charge_dir*60.0
 			# Builder walls inherit ball and cannot be mined by the static-body
 			# manager. They are obstacles, not another charge-damage combat target.
@@ -502,7 +526,7 @@ func _blast(center:Vector2,radius:float,damage:float,direct:ball,apply_effect:bo
 			var target:ball = node as ball
 			if ball.body_point(target,center).distance_to(center) > radius+target.get_crowd_separation_radius_world(): continue
 			if not mc_line_clear(center,ball.body_point(target,center)): continue
-			if impact(target,SKULL.DIRECT_DAMAGE if target == direct else damage,center,true) > 0 and apply_effect: apply_wither(target)
+			if impact(target,skull_direct_damage() if target == direct else damage,center,true) > 0 and apply_effect: apply_wither(target)
 func apply_beacon_buff(kind:String) -> void:
 	if not _buff.is_empty() and _buff != kind: EFFECTS.clear(self,_buff,self)
 	_buff = kind
@@ -563,11 +587,11 @@ func _summon_visual() -> void:
 func get_ai_attack_threats(_receiver:ball) -> Array:
 	if health <= 0: return []
 	if not summoned and summon_time > summon_duration-0.4:
-		return [{"shape":"circle","position":global_position,"radius":AWAKENING_BLAST_RADIUS,"damage":own_attack_damage(45.0),"danger_in":maxf(summon_duration-summon_time,0.0),"danger_duration":0.1,"source":self}]
+		return [{"shape":"circle","position":global_position,"radius":AWAKENING_BLAST_RADIUS,"damage":own_attack_damage(awakening_damage()),"danger_in":maxf(summon_duration-summon_time,0.0),"danger_duration":0.1,"source":self}]
 	if _charge_windup > 0 or _charge_remaining > 0:
 		var distance:float = _charge_wall_distance(global_position,_charge_dir) if _charge_windup>0 else _charge_remaining
 		if distance > 0.0:
-			return [{"shape":"segment","start":global_position,"end":global_position+_charge_dir*distance,"radius":42.0,"damage":own_attack_damage(CHARGE_DAMAGE),"danger_in":maxf(_charge_windup,0.0),"danger_duration":distance/CHARGE_SPEED,"source":self}]
+			return [{"shape":"segment","start":global_position,"end":global_position+_charge_dir*distance,"radius":42.0,"damage":own_attack_damage(charge_damage()),"danger_in":maxf(_charge_windup,0.0),"danger_duration":distance/CHARGE_SPEED,"source":self}]
 	return []
 func get_debug_attack_regions() -> Array: return get_ai_attack_threats(null)
 @rpc("authority","call_remote","unreliable_ordered")

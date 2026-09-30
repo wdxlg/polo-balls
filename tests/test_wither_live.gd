@@ -79,7 +79,7 @@ func run() -> void:
 		fired.queue_free()
 	var before:float = enemy.health
 	wither._blast(enemy.global_position,64.0,wither.SKULL.SPLASH_DAMAGE,enemy,true)
-	check(is_equal_approx(before-enemy.health,50.0),"one skull direct impact settles exactly 50 damage, not another splash")
+	check(is_equal_approx(before-enemy.health,30.0),"one normal skull direct impact settles exactly 30 damage, not another splash")
 	check(enemy.get_node_or_null("WitherStatus") != null,"skull applies visible Wither status")
 	var potion_particles:Array[Node] = get_nodes_in_group("WitherPotionParticle")
 	check(not potion_particles.is_empty(),"Wither impact emits Witch-style black potion particles immediately")
@@ -116,11 +116,12 @@ func run() -> void:
 	before = enemy.health
 	status._physics_process(3.4)
 	check(is_equal_approx(before-enemy.health,30.0),"three-second Wither ticks at t=1,2,3, never after expiry in a long frame")
+	wither.prepare_training_boss_specialization(1.0)
 	wither.health = 250
 	wither.on_actual_health_damage_received(1.0,251.0)
 	check(wither.heart_dropped and is_instance_valid(wither.beacon),"first half-health crossing summons one attackable beacon")
 	var beacon:Node2D = wither.beacon
-	check(beacon.health == 180,"beacon has its own health")
+	check(beacon.health == 350,"beacon has its own health")
 	beacon.landed = false
 	beacon.global_position = center+Vector2(20,-60)
 	var drop_y:float = beacon.global_position.y

@@ -27,6 +27,7 @@ func run() -> void:
 	check(await load("res://tests/mc_animation_test_cleanup.gd").wait_for_preloads(self),"preview resources finish loading")
 	center=world.return_map_world_rect(world.map_group["Map50x50"]).get_center()
 	await clear_units()
+	await check_boss_profiles()
 	var roster:Array[String]=world.return_all_character_names()
 	check(roster.has("凋灵") and not roster.has("凋零"),"selector indexes the canonical Wither mob as 凋灵 only")
 	var legacy_scene:PackedScene=world._get_character_scene_any("凋零")
@@ -72,7 +73,7 @@ func run() -> void:
 	advance(actor,1.49)
 	check(not actor.summoned and actor.summon_time<3,"no awakening before the full three seconds")
 	var threat:Array=actor.get_ai_attack_threats(null)
-	check(threat.size()==1 and threat[0].radius==72 and threat[0].damage==45,"last 0.4 seconds declares the smaller real awakening explosion")
+	check(threat.size()==1 and threat[0].radius==72 and threat[0].damage==80,"last 0.4 seconds declares the real 80-base awakening explosion")
 	var effects_before:int=get_nodes_in_group("MCExplosion").size()
 	advance(actor,.01)
 	check(actor.summoned and is_equal_approx(actor.summon_time,3) and actor.image.visible,"wakes exactly at 3 seconds")
@@ -144,3 +145,29 @@ func run() -> void:
 	print("WITHER_INTRO: %d checks / %d failures"%[checks,failures])
 	await clear_units()
 	finish(0 if failures==0 else 1)
+
+func check_boss_profiles() -> void:
+	world.process_mode=Node.PROCESS_MODE_DISABLED
+	for config:Dictionary in [
+		{"mode":"manual","boost":true,"special":true,"active":false,"health":500},
+		{"mode":"boss","boost":true,"special":false,"active":false,"health":1500},
+		{"mode":"boss","boost":false,"special":true,"active":false,"health":500},
+		{"mode":"boss","boost":true,"special":true,"active":true,"health":1000}]:
+		game.Game_Settings.Training_Mode_Type=config.mode
+		game.Game_Settings.Training_Boss_Multiplier=3.0
+		game.Game_Settings.Training_Boss_Specialization=config.special
+		var unit:Node2D=world._spawn_character_from_setup({"char":"凋灵","team":"Team0","x":center.x,"y":center.y,"boss_boost":config.boost})
+		check(unit!=null,"World spawns Wither for mode/specialization combination")
+		if unit==null: continue
+		check(unit._boss_specialized==config.active and unit.Max_health==config.health and unit.health==config.health,"World applies specialization only to the enabled Boss side before ready")
+		check(unit.Damage==(225 if config.mode=="boss" and config.boost else 75),"existing generic Boss attack scaling is preserved")
+		unit.summoned=true
+		unit.take_damage(unit.Max_health*0.5)
+		check(is_instance_valid(unit.beacon)==config.active,"real half-health settlement respects World specialization gate")
+		if is_instance_valid(unit.beacon):
+			check(unit.beacon.health==350 and unit.beacon.Max_health==350,"Boss multiplier does not inflate beacon health")
+			unit.beacon.free()
+		unit.free()
+		await process_frame
+	game.Game_Settings.Training_Mode_Type="manual"
+	world.process_mode=Node.PROCESS_MODE_INHERIT

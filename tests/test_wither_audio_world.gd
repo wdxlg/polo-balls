@@ -36,6 +36,7 @@ func run() -> void:
 	await clear_units()
 	var wither:Node2D = spawn("凋灵",Vector2(0,-100))
 	wither.summoned = true
+	wither.prepare_training_boss_specialization(1.0)
 	wither.health = 250
 	wither.on_actual_health_damage_received(1,251)
 	var beacon:Node2D = wither.beacon

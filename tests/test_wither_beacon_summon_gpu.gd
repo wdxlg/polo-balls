@@ -28,6 +28,7 @@ func run() -> void:
 	await physics_frame
 	wither = spawn("凋灵", Vector2(0, -155))
 	wither.summoned = true
+	wither.prepare_training_boss_specialization(1.0)
 	wither.health = 250
 	wither.on_actual_health_damage_received(1, 251)
 	beacon = wither.beacon

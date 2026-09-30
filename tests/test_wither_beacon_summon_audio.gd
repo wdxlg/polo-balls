@@ -43,6 +43,7 @@ func run() -> void:
 	await physics_frame
 	var wither:Node2D=spawn("凋灵",Vector2(0,-155))
 	wither.summoned=true
+	wither.prepare_training_boss_specialization(1.0)
 	wither.health=250
 	var heart_sound_before:int=sound_count("heart")
 	wither.on_actual_health_damage_received(1,251)

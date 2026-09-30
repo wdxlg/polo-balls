@@ -109,7 +109,7 @@ func run() -> void:
 	wither.summoned = false
 	wither.summon_time = wither.summon_duration-0.2
 	var threats:Array = wither.get_ai_attack_threats(enemy)
-	check(threats.size() == 1 and threats[0].radius == 72.0 and threats[0].damage == 45.0,"awakening warning uses the actual smaller 72-radius damage area")
+	check(threats.size() == 1 and threats[0].radius == 72.0 and threats[0].damage == 80.0,"awakening warning uses the actual 80-base damage and 72-radius area")
 	var before_visuals:int = get_nodes_in_group("MCExplosion").size()
 	wither._sync_event("awake",wither.global_position)
 	var synced_visuals:Array = get_nodes_in_group("MCExplosion")
@@ -120,13 +120,13 @@ func run() -> void:
 	check(old_only_distance > 72.0+enemy.get_crowd_separation_radius_world() and old_only_distance < 110.0+enemy.get_crowd_separation_radius_world(),"far target separates the old and new blast reach")
 	enemy.global_position = wither.global_position+Vector2(old_only_distance,0)
 	var before_far:float = enemy.health
-	wither._blast(wither.global_position,wither.AWAKENING_BLAST_RADIUS,45.0,null,false)
+	wither._blast(wither.global_position,wither.AWAKENING_BLAST_RADIUS,wither.awakening_damage(),null,false)
 	check(is_equal_approx(enemy.health,before_far),"an enemy outside the reduced blast takes no damage")
 	enemy.global_position = wither.global_position+Vector2(45,0)
 	var before_near:float = enemy.health
 	_step(wither,0.20)
 	var local_visuals:Array = get_nodes_in_group("MCExplosion")
-	check(wither.summoned and is_equal_approx(before_near-enemy.health,45.0),"the actual awakening blast still hits a nearby enemy once for 45")
+	check(wither.summoned and is_equal_approx(before_near-enemy.health,80.0),"the actual awakening blast hits a nearby enemy once for 80")
 	check(local_visuals.size() == before_visuals+2 and local_visuals.back().radius == 72.0,"host awakening visual matches its authority damage and the threat circle")
 	await clear_units()
 	finish(0 if failures == 0 else 1)

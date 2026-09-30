@@ -4,8 +4,10 @@ const FOLDER = "res://Images/characters/我的世界/wither/bedrock/"
 const BODY = preload("res://Images/characters/我的世界/wither/bedrock/wither.png")
 const SKULL_DIAMETER:float = 12.0
 const HIT_RADIUS:float = 6.0
-const DIRECT_DAMAGE:float = 50.0
-const SPLASH_DAMAGE:float = 25.0
+const DIRECT_DAMAGE:float = 30.0
+const SPLASH_DAMAGE:float = 20.0
+const BOSS_DIRECT_DAMAGE:float = 50.0
+const BOSS_SPLASH_DAMAGE:float = 25.0
 const TRAIL_VISUALS = preload("res://scripts/effects/我的世界/mc_visual_effects.gd")
 var _trail_distance:float = 0.0
 
@@ -143,7 +145,7 @@ func _physics_process(delta:float) -> void:
 		var direct:ball = collider as ball if collider is ball else null
 		var center:Vector2 = Vector2(hit.position)-heading*3.0
 		_emit_trail(source,start,Vector2(hit.position))
-		source.call("_blast",center,64.0,SPLASH_DAMAGE,direct,true)
+		source.call("_blast",center,64.0,source.call("skull_splash_damage"),direct,true)
 		source.call("_show_explosion",center,64.0)
 		source.call("_emit_sound","explode",center)
 		if source.multiplayer.has_multiplayer_peer(): source.call("_sync_skull_explosion",center)
@@ -168,4 +170,4 @@ func _emit_trail(source:ball,from:Vector2,to:Vector2) -> void:
 func get_ai_hazard_info(_receiver:ball = null) -> Dictionary:
 	var source:ball = _source()
 	if exploded or source == null: return {}
-	return {"shape":"circle","position":global_position,"velocity":heading*speed,"radius":HIT_RADIUS,"damage":source.call("own_attack_damage",DIRECT_DAMAGE),"source":source,"danger_duration":0.1,"kind":"wither_skull"}
+	return {"shape":"circle","position":global_position,"velocity":heading*speed,"radius":HIT_RADIUS,"damage":source.call("own_attack_damage",source.call("skull_direct_damage")),"source":source,"danger_duration":0.1,"kind":"wither_skull"}

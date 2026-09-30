@@ -102,10 +102,11 @@ func _run_behaviors() -> void:
         assert(shot.global_position.distance_to(mouths[[0,2,1][i]]) < 0.5,"each skull must leave the live corresponding head mouth")
         assert(shot.heading.dot((target_point-mouths[[0,2,1][i]]).normalized()) > 0.999,"skull trajectory must be recomputed from its real head origin")
     assert(wither._next_shoot_head == 0,"center-left-right muzzle sequence must wrap")
+    wither.prepare_training_boss_specialization(1.0)
     wither.health = 250
     wither.on_actual_health_damage_received(1.0,251.0)
     assert(wither.heart_dropped and is_instance_valid(wither.beacon), "first half-health crossing must create the heart")
-    assert(wither.beacon.health == 180)
+    assert(wither.beacon.health == 350)
     var first:Node = wither.beacon
     wither.on_actual_health_damage_received(1.0,251.0)
     assert(wither.beacon == first, "heart must not be created twice")

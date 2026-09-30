@@ -34,12 +34,13 @@ func run() -> void:
 	enemy.block = 0
 	wither.summoned = true
 	wither.image.visible = true
+	wither.prepare_training_boss_specialization(1.0)
 	wither.health = 250
 	wither.on_actual_health_damage_received(1.0,251.0)
 	var beacon:Node2D = wither.beacon
 	beacon.state_machine.set_physics_process(false)
 	beacon.global_position = center+Vector2(0,-30)
-	check(beacon is CharacterBody2D and beacon.is_combat_targetable() and beacon.health==180,"summoned beacon is an attackable 180HP CharacterBody")
+	check(beacon is CharacterBody2D and beacon.is_combat_targetable() and beacon.health==350,"summoned beacon is an attackable 350HP CharacterBody")
 	check(beacon.Master==wither and beacon.Team==wither.Team,"beacon retains summoner and team, not a separate selectable character")
 	var floor_body:StaticBody2D = slab(Vector2(0,100),Vector2(360,12))
 	await physics_frame

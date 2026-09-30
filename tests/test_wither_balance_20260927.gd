@@ -7,6 +7,8 @@ func run() -> void:
 	game = root.get_node("Game")
 	saved = game.Game_Settings.duplicate(true)
 	saved_stop = game.now_stop_state
+	game.Game_Settings.Training_Mode = false
+	game.Game_Settings.Training_Mode_Type = "manual"
 	game.Game_Settings.Have_Team_Damage = false
 	game.now_stop_state = false
 	AudioServer.set_bus_mute(0,true)
@@ -14,11 +16,24 @@ func run() -> void:
 	root.add_child(arena)
 	current_scene = arena
 	arena.process_mode = Node.PROCESS_MODE_DISABLED
-	evidence = OS.get_environment("ELYTRA_EVIDENCE_DIR")
-	if evidence.is_empty(): evidence = "user://wither_balance"
-	DirAccess.make_dir_recursive_absolute(evidence)
 	create_timer(80,true,false,true).timeout.connect(func(): failures+=1; finish())
-	var source:Node2D = actor("凋灵",Vector2(-180,0))
+	for specialized:bool in [false,true]:
+		var source:Node2D = load("res://scenes/characters/我的世界/凋灵.tscn").instantiate()
+		if specialized: source.prepare_training_boss_specialization(1.0)
+		source.Team = "Team0"
+		arena.add_child(source,true)
+		source.global_position = Vector2(-180,0)
+		await verify_profile(source,specialized)
+	print("WITHER_BALANCE_RESULT checks=",checks," failures=",failures)
+	finish()
+
+func verify_profile(source:Node2D,specialized:bool) -> void:
+	var direct_base:float = 50.0 if specialized else 30.0
+	var splash_base:float = 25.0 if specialized else 20.0
+	var charge_base:float = 100.0 if specialized else 80.0
+	var awakening_base:float = 120.0 if specialized else 80.0
+	check(source.Type_Tags.has("Boss") and source.has_training_boss_specialization(),"Wither is tagged Boss and implements specialization")
+	check(source.Max_health==(1000 if specialized else 500) and source.health==source.Max_health,"profile initializes full health before ready")
 	source.summoned = true
 	source._head_shot_left.fill(999.0)
 	source._global_shot_left = 999.0
@@ -38,10 +53,10 @@ func run() -> void:
 		var ally_hp:float = ally.health
 		var outside_hp:float = outside.health
 		var skull:Node2D = new_skull(source,Vector2(-80,0))
-		check(is_equal_approx(skull.get_ai_hazard_info().damage,50.0*factor),"head threat reads live 50-base damage at attack "+str(attack))
+		check(is_equal_approx(skull.get_ai_hazard_info().damage,direct_base*factor),"head threat reads profile damage at attack "+str(attack))
 		skull._physics_process(0.5)
-		check(skull.exploded and is_equal_approx(hp-direct.health,50.0*factor),"physical head collision settles 50 direct, not direct plus splash, at attack "+str(attack))
-		check(is_equal_approx(splash_hp-splash.health,25.0*factor),"same actual explosion settles 25 splash at attack "+str(attack))
+		check(skull.exploded and is_equal_approx(hp-direct.health,direct_base*factor),"physical head collision settles profile direct damage, not direct plus splash, at attack "+str(attack))
+		check(is_equal_approx(splash_hp-splash.health,splash_base*factor),"same actual explosion settles profile splash at attack "+str(attack))
 		check(ally.health==ally_hp and outside.health==outside_hp,"splash still excludes teammates and out-of-range bodies")
 		check(direct.get_node_or_null("WitherStatus")!=null and splash.get_node_or_null("WitherStatus")!=null,"accepted skull hits retain original Wither status")
 		check(not get_nodes_in_group("MCSmokeTrail").is_empty(),"actual balanced head retains native smoke trail")
@@ -57,13 +72,24 @@ func run() -> void:
 		source._charge_total_dist = 250.0
 		source._charge_hits.clear()
 		hp = direct.health
-		check(is_equal_approx(source.get_ai_attack_threats(direct)[0].damage,100.0*factor),"charge threat uses current 100-base damage at attack "+str(attack))
+		check(is_equal_approx(source.get_ai_attack_threats(direct)[0].damage,charge_base*factor),"charge threat uses profile damage at attack "+str(attack))
 		source.tick_physics(source.State.Stand,0.4)
-		check(is_equal_approx(hp-direct.health,100.0*factor),"real swept charge deals 100 base at attack "+str(attack))
+		check(is_equal_approx(hp-direct.health,charge_base*factor),"real swept charge deals profile damage at attack "+str(attack))
 		hp = direct.health
 		source.tick_physics(source.State.Stand,0.04)
 		check(direct.health==hp,"charge retains per-target hit de-duplication")
 		source._charge_remaining = 0.0
+		source._charge_left = 999.0
+		source.global_position = direct.global_position-Vector2(40,0)
+		source.summoned = false
+		source.summon_time = 2.9
+		hp = direct.health
+		check(is_equal_approx(source.get_ai_attack_threats(direct)[0].damage,awakening_base*factor),"awakening threat uses profile and live attack")
+		source.tick_physics(source.State.Stand,0.11)
+		check(source.summoned and is_equal_approx(hp-direct.health,awakening_base*factor),"real awakening settles profile damage exactly once")
+		hp = direct.health
+		source.tick_physics(source.State.Stand,0.01)
+		check(direct.health==hp,"awakening cannot repeat on following tick")
 		source.global_position = Vector2(-180,0)
 		direct.global_position = Vector2.ZERO
 		splash.global_position = Vector2(0,48)
@@ -71,12 +97,12 @@ func run() -> void:
 	source.Damage = 75
 	direct.Damage_reduction = 1.0
 	var hp:float = direct.health
-	source._blast(direct.global_position,64.0,25.0,direct,true)
+	source._blast(direct.global_position,64.0,splash_base,direct,true)
 	check(direct.health==hp,"head still respects recipient damage reduction")
 	direct.Damage_reduction = 0.0
 	hp = direct.health
-	source._blast(direct.global_position,source.AWAKENING_BLAST_RADIUS,45.0,null,false)
-	check(is_equal_approx(hp-direct.health,45.0),"awakening blast is a separate unchanged 45-base ability")
+	source._blast(direct.global_position,source.AWAKENING_BLAST_RADIUS,awakening_base,null,false)
+	check(is_equal_approx(hp-direct.health,awakening_base),"awakening is separate from skull direct and splash damage")
 	for cycle:int in range(8): source.tick_physics(source.State.Stand,4.0)
 	check(get_nodes_in_group("WitherFlower").is_empty(),"32 seconds of autonomous ticking never grows removed roses")
 	check(not source.has_method("_grow_rose") and not source.has_method("_try_grow_rose"),"rose spawning entry points are removed")
@@ -109,8 +135,21 @@ func run() -> void:
 		for locale:String in ["zh","en"]:
 			game.current_locale = locale
 			var summary:String = source.get_armor_test_effect_summary()
-			check(summary.contains("50") and summary.contains("25") and summary.contains("100") and not summary.to_lower().contains("rose") and not summary.contains("玫瑰"),"current "+locale+" skill description has new values and no flower")
+			check(summary.contains("30") and summary.contains("20") and summary.contains("80") and summary.contains("120") and summary.contains("350") and summary.contains("1000") and summary.contains("Boss") and not summary.to_lower().contains("rose") and not summary.contains("玫瑰"),"current "+locale+" skill description has new values and no flower")
 		game.current_locale = old_locale
 	else: check(false,"Wither supplies current bilingual ability descriptions")
-	print("WITHER_BALANCE_RESULT checks=",checks," failures=",failures)
-	finish()
+	source.health = source.Max_health
+	source.take_damage(source.Max_health*0.5-1.0)
+	check(not source.heart_dropped and not is_instance_valid(source.beacon),"no beacon above half health")
+	source.take_damage(1.0)
+	check(source.heart_dropped==specialized and is_instance_valid(source.beacon)==specialized,"only specialized Wither summons at exact half health")
+	if specialized:
+		var beacon:Node2D = source.beacon
+		check(beacon.Max_health==350 and beacon.health==350 and beacon.Master==source and beacon.Team==source.Team,"beacon starts with 350 health and correct ownership")
+		source.health = source.Max_health
+		source.take_damage(source.Max_health*0.5)
+		check(source.beacon==beacon,"healing then crossing half health cannot summon twice")
+		beacon.free()
+	for target:Node2D in [direct,splash,ally,outside]: target.free()
+	source.free()
+	await process_frame
