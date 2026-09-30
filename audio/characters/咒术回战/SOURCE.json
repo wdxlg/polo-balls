@@ -43,183 +43,139 @@
   }
  },
  "sounds": {
-  "black_flash": {
+  "v_gojo_intro": {
+   "kind": "voice",
    "layers": [
     {
-     "download": "https://www.myinstants.com/media/sounds/kokusen.mp3",
-     "desc": "myinstants: 「黒閃」",
-     "raw": "sources/jjk/audio_r3/kokusen.mp3",
-     "raw_sha256": "3deeff2203118f8791b77c193f8c08a68ee81d62934d7102957e4e99daa950e7",
-     "raw_seconds": 3.34,
-     "trim_start": 0.0,
-     "trim_seconds": 3.0,
+     "raw": "sources/jjk/audio/gojo_intro_voc.flac",
+     "source": "https://www.youtube.com/watch?v=REIVs_EddVY  [177.4s-181.5s] → htdemucs vocals",
+     "desc": "ファンパレ 五条悟（CV 中村悠一）「天上天下唯我独尊」",
+     "raw_sha256": "4f30393da05d8faf59e5b6bf771486494cf73acd921683fce287af6196f7946c",
+     "trim_start": 0.3,
+     "trim_seconds": 3.75,
      "delay": 0,
      "gain_db": 0
     }
    ],
-   "seconds": 3.0,
-   "filters": "afade=t=in:d=0.02,afade=t=out:st=2.700:d=0.3,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=44100",
-   "output": "audio/characters/咒术回战/black_flash.ogg",
-   "output_sha256": "87bce63c665ccc959ca4d98224688ff969f5f0721174dcb605f315a8cbd7c1c1",
+   "seconds": 3.75,
+   "filters": "highpass=f=90,lowpass=f=11500,afftdn=nf=-40,acompressor=threshold=-22dB:ratio=3:attack=5:release=90:makeup=2,afade=t=in:d=0.005,afade=t=out:st=3.500:d=0.25,loudnorm=I=-14:TP=-1.5:LRA=11,aresample=44100,alimiter=limit=0.84:level=false",
+   "output": "audio/characters/咒术回战/v_gojo_intro.ogg",
+   "output_sha256": "938b910fd491c1a7fa9f1e0e9fe3a57b349524865dfeb9bf6d4b27626693c844",
    "language": "ja",
-   "use": "黑闪 语音「黒閃」（动画原声）",
-   "round": "r3 2026-09-29"
+   "use": "五条悟登场「天上天下唯我独尊」"
   },
-  "gojo_intro": {
-   "page": "https://www.myinstants.com/en/search/?name=throughout-heaven-and-earth-i-alone-am-honored",
-   "download": "https://www.myinstants.com/media/sounds/throughout-heaven-and-earth-i-alone-am-honored.mp3",
-   "raw": "sources/jjk/throughout-heaven-and-earth-i-alone-am-honored.mp3",
-   "raw_sha256": "584fa8f53ffdcfd778b7827ca4edcad77cf389a4e4b365389d5c289df3a391b3",
-   "raw_seconds": 4.63,
-   "trim_start": 0.0,
-   "trim_seconds": 4.63,
-   "fade_out": 0.3,
-   "filters": "afade=t=in:d=0.02,afade=t=out:st=4.330:d=0.300,loudnorm=I=-16:TP=-1.5:LRA=11",
-   "output": "audio/characters/咒术回战/gojo_intro.ogg",
-   "output_sha256": "eaf2c8487b26dd49a67e05e21c06388386c30a13eb464cca947750faeebe11e1",
-   "use": "五条悟开场：天上天下唯我独尊"
-  },
-  "gojo_blue": {
+  "v_gojo_blue": {
+   "kind": "voice",
    "layers": [
     {
-     "download": "https://www.youtube.com/watch?v=otKdt4L4DOk",
-     "desc": "TV 动画 呪術廻戦 第20话 五条悟「術式順転『蒼』」",
-     "raw": "sources/jjk/audio_r3/otKdt4L4DOk.mp3",
-     "raw_sha256": "1b8f04bf02cf34aa7fc0eb6f175ae9bb114b4efeced0db3042b7738e64cafbf4",
-     "raw_seconds": 10.86,
-     "trim_start": 5.35,
-     "trim_seconds": 2.6,
+     "raw": "sources/jjk/audio/gojo_blue_voc.flac",
+     "source": "https://www.youtube.com/watch?v=REIVs_EddVY  [97.9s-102.5s] → htdemucs vocals",
+     "desc": "ファンパレ 五条悟「術式順転 出力最大 蒼」",
+     "raw_sha256": "7fd52685d4b4a76f15dc6dced9cd9077834417b7f42370a93ad239c9c7b0c978",
+     "trim_start": 0.2,
+     "trim_seconds": 4.3,
      "delay": 0,
      "gain_db": 0
     }
    ],
-   "seconds": 2.6,
-   "filters": "afade=t=in:d=0.02,afade=t=out:st=2.300:d=0.3,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=44100",
-   "output": "audio/characters/咒术回战/gojo_blue.ogg",
-   "output_sha256": "c2e072aac181eb5aec2bd512fb72823247f4d4862d49607239afd10aa12edfdc",
+   "seconds": 4.3,
+   "filters": "highpass=f=90,lowpass=f=11500,afftdn=nf=-40,acompressor=threshold=-22dB:ratio=3:attack=5:release=90:makeup=2,afade=t=in:d=0.005,afade=t=out:st=4.000:d=0.3,loudnorm=I=-14:TP=-1.5:LRA=11,aresample=44100,alimiter=limit=0.84:level=false",
+   "output": "audio/characters/咒术回战/v_gojo_blue.ogg",
+   "output_sha256": "2be016820e8f496b0e08df4b3632722479c3fdfc598e1dc3c60534a9d4f705ee",
    "language": "ja",
-   "use": "术式顺转·苍（日语原声）",
-   "round": "r3 2026-09-29"
+   "use": "「術式順転 出力最大 蒼」"
   },
-  "gojo_red": {
-   "page": "https://www.myinstants.com/en/search/?name=gojo-reversal-red",
-   "download": "https://www.myinstants.com/media/sounds/gojo-reversal-red.mp3",
-   "raw": "sources/jjk/gojo-reversal-red.mp3",
-   "raw_sha256": "05a25b5d8479a134b0dbc1bf694ed6228b7b749603b6ccd4b347b42186e8e1bc",
-   "raw_seconds": 8.93,
-   "trim_start": 5.8,
-   "trim_seconds": 3.13,
-   "fade_out": 0.3,
-   "filters": "afade=t=in:d=0.02,afade=t=out:st=2.830:d=0.300,loudnorm=I=-16:TP=-1.5:LRA=11",
-   "output": "audio/characters/咒术回战/gojo_red.ogg",
-   "output_sha256": "56ec10b208be1f9e7f21675329c94a813e861c7c2e1a919f928bd68de4bdbee3",
-   "use": "术式反转·赫（截取尾段）"
-  },
-  "gojo_purple": {
-   "page": "https://www.myinstants.com/en/search/?name=hollow-purple",
-   "download": "https://www.myinstants.com/media/sounds/hollow-purple.mp3",
-   "raw": "sources/jjk/hollow-purple.mp3",
-   "raw_sha256": "8b38d71dfcd2cb99328bcefe35484e8bacfaa99d395db6eb234b91b6a90d48c3",
-   "raw_seconds": 11.42,
-   "trim_start": 0.0,
-   "trim_seconds": 6.5,
-   "fade_out": 0.6,
-   "filters": "afade=t=in:d=0.02,afade=t=out:st=5.900:d=0.600,loudnorm=I=-16:TP=-1.5:LRA=11",
-   "output": "audio/characters/咒术回战/gojo_purple.ogg",
-   "output_sha256": "bb36ed0d932232b8017aaad6603c8f1f4762d0328d66a79f2f912eb32a4df046",
-   "use": "虚式·茈 语音"
-  },
-  "gojo_purple_sfx": {
+  "v_gojo_red": {
+   "kind": "voice",
    "layers": [
     {
-     "download": "https://assets.mixkit.co/active_storage/sfx/2599/2599-preview.mp3",
-     "desc": "Mixkit #2599 Heavy electric shockwave impact",
-     "raw": "sources/jjk/audio_r3/2599.mp3",
-     "raw_sha256": "db01ea375897b47166292daa4ab4c9798fa2ff2087c397db62de5ae262286abc",
-     "raw_seconds": 6.65,
-     "trim_start": 3.5,
-     "trim_seconds": 2.9,
+     "raw": "sources/jjk/audio/gojo_red_voc.flac",
+     "source": "https://www.youtube.com/watch?v=EyackbEPf2A  [0.0s-5.4s] → htdemucs vocals",
+     "desc": "TV 动画 第二期 五条悟「術式反転 赫」",
+     "raw_sha256": "20378977f10ca5ddb3416d9dedc9b5916ef943c657e7e7bfdab7c4509d8d3984",
+     "trim_start": 0.3,
+     "trim_seconds": 1.45,
      "delay": 0,
      "gain_db": 0
     },
     {
-     "download": "https://assets.mixkit.co/active_storage/sfx/2782/2782-preview.mp3",
-     "desc": "Mixkit #2782 Epic impact afar explosion",
-     "raw": "sources/jjk/audio_r3/2782.mp3",
-     "raw_sha256": "5eadacabb07da83ba1bceb0f33ea040628e8e7bada3135ddf44cdafc1fb75bc5",
-     "raw_seconds": 4.53,
-     "trim_start": 0.0,
-     "trim_seconds": 3.0,
-     "delay": 0.05,
-     "gain_db": -7
+     "raw": "sources/jjk/audio/gojo_red_voc.flac",
+     "source": "https://www.youtube.com/watch?v=EyackbEPf2A  [0.0s-5.4s] → htdemucs vocals",
+     "desc": "TV 动画 第二期 五条悟「術式反転 赫」",
+     "raw_sha256": "20378977f10ca5ddb3416d9dedc9b5916ef943c657e7e7bfdab7c4509d8d3984",
+     "trim_start": 3.6,
+     "trim_seconds": 1.0,
+     "delay": 1.55,
+     "gain_db": 0
     }
    ],
-   "seconds": 3.05,
-   "filters": "afade=t=in:d=0.02,afade=t=out:st=2.250:d=0.8,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=44100",
-   "output": "audio/characters/咒术回战/gojo_purple_sfx.ogg",
-   "output_sha256": "5d585a9a0b136681f10d9a592892af3b36ec69bf5546fe9d7ab255140219d37c",
-   "language": "none (sfx)",
-   "use": "茈 发射冲击",
-   "round": "r3 2026-09-29"
+   "seconds": 2.55,
+   "filters": "highpass=f=90,lowpass=f=11500,afftdn=nf=-40,acompressor=threshold=-22dB:ratio=3:attack=5:release=90:makeup=2,afade=t=in:d=0.005,afade=t=out:st=2.350:d=0.2,loudnorm=I=-14:TP=-1.5:LRA=11,aresample=44100,alimiter=limit=0.84:level=false",
+   "output": "audio/characters/咒术回战/v_gojo_red.ogg",
+   "output_sha256": "3cd265a11e69370234b091fd9f348b965570f0f0c629f6f8c64b438efaba9fb0",
+   "language": "ja",
+   "use": "「術式反転…赫」（中间空白压缩）"
   },
-  "gojo_purple_200": {
-   "page": "https://www.myinstants.com/en/search/?name=gojo-200-hollow-purple",
-   "download": "https://www.myinstants.com/media/sounds/gojo-200-hollow-purple.mp3",
-   "raw": "sources/jjk/gojo-200-hollow-purple.mp3",
-   "raw_sha256": "907eb3598f30bf3322d94eb3867e8a227a3d37c1d561395a625af2e10398ecac",
-   "raw_seconds": 17.86,
-   "trim_start": 11.5,
-   "trim_seconds": 6.36,
-   "fade_out": 0.6,
-   "filters": "afade=t=in:d=0.02,afade=t=out:st=5.760:d=0.600,loudnorm=I=-16:TP=-1.5:LRA=11",
-   "output": "audio/characters/咒术回战/gojo_purple_200.ogg",
-   "output_sha256": "3984fdd36936e50d10673257500d26b2c0b6af29eab543706fc57e42ae436c30",
-   "use": "200%茈（截取后段）"
-  },
-  "gojo_domain": {
-   "page": "https://www.myinstants.com/en/search/?name=domain-expansion-gojo",
-   "download": "https://www.myinstants.com/media/sounds/domain-expansion-gojo.mp3",
-   "raw": "sources/jjk/domain-expansion-gojo.mp3",
-   "raw_sha256": "49693d18a64bb4cf5b5959c238907b959de7afbe1ef3e3a186199214872e7fd2",
-   "raw_seconds": 9.1,
-   "trim_start": 0.0,
-   "trim_seconds": 9.1,
-   "fade_out": 0.5,
-   "filters": "afade=t=in:d=0.02,afade=t=out:st=8.600:d=0.500,loudnorm=I=-16:TP=-1.5:LRA=11",
-   "output": "audio/characters/咒术回战/gojo_domain.ogg",
-   "output_sha256": "d5f43c8b0f98d3abd326e7ffd2256b9f4937f74aa774a6a2a6f73642aac8f29e",
-   "use": "领域展开·无量空处"
-  },
-  "gojo_teleport": {
+  "v_gojo_purple": {
+   "kind": "voice",
    "layers": [
     {
-     "download": "https://assets.mixkit.co/active_storage/sfx/3114/3114-preview.mp3",
-     "desc": "Mixkit #3114 Fast sci fi transition sweep",
-     "raw": "sources/jjk/audio_r3/3114.mp3",
-     "raw_sha256": "2fb670b72ebbc8ad90af889c3fefc8d3e4eb0554c4f5079d0b518299c50e9004",
-     "raw_seconds": 1.21,
+     "raw": "sources/jjk/audio/gojo_purple_voc.flac",
+     "source": "https://www.youtube.com/watch?v=EyackbEPf2A  [191.6s-194.4s] → htdemucs vocals",
+     "desc": "TV 动画 第二期 五条悟「虚式 茈」",
+     "raw_sha256": "4aed4b9089222d4295a8ec4b51589fb27c702dbaf3e00b1baf8cef07a3267e0b",
      "trim_start": 0.05,
-     "trim_seconds": 0.65,
+     "trim_seconds": 2.1,
      "delay": 0,
      "gain_db": 0
     }
    ],
-   "seconds": 0.65,
-   "filters": "afade=t=in:d=0.02,afade=t=out:st=0.500:d=0.15,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=44100,volume=9dB,alimiter=limit=0.84",
-   "output": "audio/characters/咒术回战/gojo_teleport.ogg",
-   "output_sha256": "7b97ef4cd3f1ea7e08cb4c6898adccaa6d9bcee74a96843b9d768ec2f7475966",
-   "language": "none (sfx)",
-   "use": "瞬移",
-   "round": "r3 2026-09-29"
+   "seconds": 2.1,
+   "filters": "highpass=f=90,lowpass=f=11500,afftdn=nf=-40,acompressor=threshold=-22dB:ratio=3:attack=5:release=90:makeup=2,afade=t=in:d=0.005,afade=t=out:st=1.900:d=0.2,loudnorm=I=-14:TP=-1.5:LRA=11,aresample=44100,alimiter=limit=0.84:level=false",
+   "output": "audio/characters/咒术回战/v_gojo_purple.ogg",
+   "output_sha256": "7ebb546b59abe4d1b3043bcc39b67c278d9b14d97d59279b2110336cbef0dd72",
+   "language": "ja",
+   "use": "「虚式 茈」"
   },
-  "sukuna_intro": {
+  "v_gojo_domain": {
+   "kind": "voice",
    "layers": [
     {
-     "download": "https://www.myinstants.com/media/sounds/tmpfzpjrfx9.mp3",
-     "desc": "myinstants: 宿儺「身の程を弁えろ… 痴れ者が」",
-     "raw": "sources/jjk/audio_r3/tmpfzpjrfx9.mp3",
+     "raw": "sources/jjk/audio/gojo_domain_voc.flac",
+     "source": "https://www.youtube.com/watch?v=vXrXrOzpOJw  [0.3s-8.3s] → htdemucs vocals",
+     "desc": "TV 动画 五条悟「領域展開 無量空処」",
+     "raw_sha256": "ac901a298905c0b16917d944cb34526f8a98a16a699515597f9ce90d832649d7",
+     "trim_start": 0.6,
+     "trim_seconds": 1.5,
+     "delay": 0,
+     "gain_db": 0
+    },
+    {
+     "raw": "sources/jjk/audio/gojo_domain_voc.flac",
+     "source": "https://www.youtube.com/watch?v=vXrXrOzpOJw  [0.3s-8.3s] → htdemucs vocals",
+     "desc": "TV 动画 五条悟「領域展開 無量空処」",
+     "raw_sha256": "ac901a298905c0b16917d944cb34526f8a98a16a699515597f9ce90d832649d7",
+     "trim_start": 5.4,
+     "trim_seconds": 2.2,
+     "delay": 1.7,
+     "gain_db": 0
+    }
+   ],
+   "seconds": 3.9,
+   "filters": "highpass=f=90,lowpass=f=11500,afftdn=nf=-40,acompressor=threshold=-22dB:ratio=3:attack=5:release=90:makeup=2,afade=t=in:d=0.005,afade=t=out:st=3.550:d=0.35,loudnorm=I=-14:TP=-1.5:LRA=11,aresample=44100,alimiter=limit=0.84:level=false",
+   "output": "audio/characters/咒术回战/v_gojo_domain.ogg",
+   "output_sha256": "74129c6fcb003c0c2929e823bce50ded53385b0684f58491a5ada0d608d710d5",
+   "language": "ja",
+   "use": "「領域展開 無量空処」（停顿压缩到 0.2 秒）"
+  },
+  "v_sukuna_intro": {
+   "kind": "voice",
+   "layers": [
+    {
+     "raw": "sources/jjk/audio/tmpfzpjrfx9.mp3",
+     "source": "https://www.myinstants.com/media/sounds/tmpfzpjrfx9.mp3",
+     "desc": "myinstants: TV 动画 宿儺「身の程を弁えろ… 痴れ者が」",
      "raw_sha256": "c95939c9c0a6bb680260d84b90392bba80e08399a4dba4fcf8ed8af1221c2c7f",
-     "raw_seconds": 5.42,
      "trim_start": 0.25,
      "trim_seconds": 4.9,
      "delay": 0,
@@ -227,302 +183,20 @@
     }
    ],
    "seconds": 4.9,
-   "filters": "afade=t=in:d=0.02,afade=t=out:st=4.600:d=0.3,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=44100",
-   "output": "audio/characters/咒术回战/sukuna_intro.ogg",
-   "output_sha256": "2b630afdaeed4c9cd7aa4eb5bca2997b207928c08828fb862b0fbbbed48aea38",
+   "filters": "highpass=f=90,lowpass=f=11500,afftdn=nf=-40,acompressor=threshold=-22dB:ratio=3:attack=5:release=90:makeup=2,afade=t=in:d=0.005,afade=t=out:st=4.600:d=0.3,loudnorm=I=-14:TP=-1.5:LRA=11,aresample=44100,alimiter=limit=0.84:level=false",
+   "output": "audio/characters/咒术回战/v_sukuna_intro.ogg",
+   "output_sha256": "5724cc13809359976ec3cc091f5829622fb0ff487bd97e36e597d10033abc49a",
    "language": "ja",
-   "use": "宿傩登场：身の程を弁えろ… 痴れ者が",
-   "round": "r3 2026-09-29"
+   "use": "宿傩登场「身の程を弁えろ… 痴れ者が」"
   },
-  "sukuna_dismantle": {
+  "v_sukuna_kai": {
+   "kind": "voice",
    "layers": [
     {
-     "download": "https://www.myinstants.com/media/sounds/sukuna-slash.mp3",
-     "desc": "myinstants: 动画 宿儺斬撃音",
-     "raw": "sources/jjk/audio_r3/sukuna-slash.mp3",
-     "raw_sha256": "210eafc3c612aa576585bf678d23b1a93c1e2e5e0632e56c7b34e32d0dec4a39",
-     "raw_seconds": 0.98,
-     "trim_start": 0.0,
-     "trim_seconds": 1.0,
-     "delay": 0,
-     "gain_db": 0
-    },
-    {
-     "download": "https://assets.mixkit.co/active_storage/sfx/2158/2158-preview.mp3",
-     "desc": "Mixkit #2158 Quick saber cut",
-     "raw": "sources/jjk/audio_r3/2158.mp3",
-     "raw_sha256": "3cb0208e5492db44a09855893093082944b74727704fd6feb9bbd61ac93482ba",
-     "raw_seconds": 2.05,
-     "trim_start": 0.0,
-     "trim_seconds": 0.6,
-     "delay": 0.0,
-     "gain_db": -7
-    }
-   ],
-   "seconds": 1.0,
-   "filters": "afade=t=in:d=0.02,afade=t=out:st=0.750:d=0.25,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=44100",
-   "output": "audio/characters/咒术回战/sukuna_dismantle.ogg",
-   "output_sha256": "99bbdb1ae53d31532ce890e8f6f76bbc0dc2f18fb701594de3f1dbbf3f81383e",
-   "language": "none (sfx)",
-   "use": "解 斩击（动画斩击音）",
-   "round": "r3 2026-09-29"
-  },
-  "sukuna_cleave": {
-   "layers": [
-    {
-     "download": "https://www.myinstants.com/media/sounds/sukuna-slash2.mp3",
-     "desc": "myinstants: 动画 宿儺斬撃音 2",
-     "raw": "sources/jjk/audio_r3/sukuna-slash2.mp3",
-     "raw_sha256": "d2cc4591102845cdf6d3bdb475aeca6e3212f1ec8e232ad51ecb95d3b19ae493",
-     "raw_seconds": 0.75,
-     "trim_start": 0.0,
-     "trim_seconds": 0.75,
-     "delay": 0,
-     "gain_db": 0
-    },
-    {
-     "download": "https://assets.mixkit.co/active_storage/sfx/2763/2763-preview.mp3",
-     "desc": "Mixkit #2763 Sword slashes in battle",
-     "raw": "sources/jjk/audio_r3/2763.mp3",
-     "raw_sha256": "dd037ad6f2e400681b23cc61b32d07efb8172d37a27bbc1b069965172a2c1529",
-     "raw_seconds": 1.16,
-     "trim_start": 0.0,
-     "trim_seconds": 0.9,
-     "delay": 0.05,
-     "gain_db": -3
-    },
-    {
-     "download": "https://assets.mixkit.co/active_storage/sfx/2796/2796-preview.mp3",
-     "desc": "Mixkit #2796 Sword gore slash hit",
-     "raw": "sources/jjk/audio_r3/2796.mp3",
-     "raw_sha256": "74d5c161dad9b45e4a036cc4c415add859897825b368089cd35938536648a0ae",
-     "raw_seconds": 2.0,
-     "trim_start": 0.05,
-     "trim_seconds": 1.0,
-     "delay": 0.14,
-     "gain_db": -5
-    }
-   ],
-   "seconds": 1.14,
-   "filters": "afade=t=in:d=0.02,afade=t=out:st=0.840:d=0.3,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=44100",
-   "output": "audio/characters/咒术回战/sukuna_cleave.ogg",
-   "output_sha256": "1f6580f8984798939c731c67e56c770202fb8d066da55482aec6c744da2d86ef",
-   "language": "none (sfx)",
-   "use": "捌 连斩",
-   "round": "r3 2026-09-29"
-  },
-  "sukuna_fuga": {
-   "layers": [
-    {
-     "download": "https://www.youtube.com/watch?v=tLCYm3LkIgU",
-     "desc": "TV 动画 渋谷事変 第42话 BD 宿儺「■（フーガ）」",
-     "raw": "sources/jjk/audio_r3/tLCYm3LkIgU.mp3",
-     "raw_sha256": "bed10c9cd4488c3273254bb592a812acd3eeb8c19a22f982809ac95c567eef97",
-     "raw_seconds": 17.57,
-     "trim_start": 5.8,
-     "trim_seconds": 4.4,
-     "delay": 0,
-     "gain_db": 0
-    }
-   ],
-   "seconds": 4.4,
-   "filters": "afade=t=in:d=0.02,afade=t=out:st=3.600:d=0.8,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=44100",
-   "output": "audio/characters/咒术回战/sukuna_fuga.ogg",
-   "output_sha256": "f04db468a62d6d0e96889c3cadeca337cf5c5d2670467a6c907dac9a8e94a952",
-   "language": "ja",
-   "use": "■（フーガ）语音+火矢拉弓（动画原声）",
-   "round": "r3 2026-09-29"
-  },
-  "sukuna_domain": {
-   "page": "https://www.myinstants.com/en/search/?name=malevolent-shrine",
-   "download": "https://www.myinstants.com/media/sounds/malevolent-shrine.mp3",
-   "raw": "sources/jjk/malevolent-shrine.mp3",
-   "raw_sha256": "ad74dbc40bc2290c35b99e232bf92be02bc53ed49701ec473974bcf2da307424",
-   "raw_seconds": 7.78,
-   "trim_start": 0.0,
-   "trim_seconds": 7.78,
-   "fade_out": 0.5,
-   "filters": "afade=t=in:d=0.02,afade=t=out:st=7.280:d=0.500,loudnorm=I=-16:TP=-1.5:LRA=11",
-   "output": "audio/characters/咒术回战/sukuna_domain.ogg",
-   "output_sha256": "228a45e49543b954ad5f67cb2e3b3369af4e788fab984cbe316e6350dff863d4",
-   "use": "领域展开·伏魔御厨子"
-  },
-  "sukuna_world_slash": {
-   "layers": [
-    {
-     "download": "https://www.myinstants.com/media/sounds/sukuna-kai.mp3",
-     "desc": "myinstants: 宿儺「解」",
-     "raw": "sources/jjk/audio_r3/sukuna-kai.mp3",
+     "raw": "sources/jjk/audio/sukuna-kai.mp3",
+     "source": "https://www.myinstants.com/media/sounds/sukuna-kai.mp3",
+     "desc": "myinstants: TV 动画 宿儺「解」",
      "raw_sha256": "3688dfd10c215082c7c2118447ce6e6709ab4969c23dd2a20a81d126b14c159b",
-     "raw_seconds": 1.27,
-     "trim_start": 0.25,
-     "trim_seconds": 0.95,
-     "delay": 0.0,
-     "gain_db": 0
-    },
-    {
-     "download": "https://assets.mixkit.co/active_storage/sfx/2795/2795-preview.mp3",
-     "desc": "Mixkit #2795 Heavy sword smashes metal",
-     "raw": "sources/jjk/audio_r3/2795.mp3",
-     "raw_sha256": "c58bf256296cfe77e2221b5c7fb1d3fa3dadb2384d9d9215b3a5d89fee21271e",
-     "raw_seconds": 1.52,
-     "trim_start": 0.0,
-     "trim_seconds": 1.4,
-     "delay": 0.3,
-     "gain_db": -2
-    },
-    {
-     "download": "https://assets.mixkit.co/active_storage/sfx/1143/1143-preview.mp3",
-     "desc": "Mixkit #1143 Cinematic whoosh deep impact",
-     "raw": "sources/jjk/audio_r3/1143.mp3",
-     "raw_sha256": "9854bff8a78fcebef95350ff0ec72a41ba449ab372bbd601b55d84de13bd626d",
-     "raw_seconds": 4.06,
-     "trim_start": 0.15,
-     "trim_seconds": 2.0,
-     "delay": 0.25,
-     "gain_db": -1
-    },
-    {
-     "download": "https://assets.mixkit.co/active_storage/sfx/2599/2599-preview.mp3",
-     "desc": "Mixkit #2599 Heavy electric shockwave impact",
-     "raw": "sources/jjk/audio_r3/2599.mp3",
-     "raw_sha256": "db01ea375897b47166292daa4ab4c9798fa2ff2087c397db62de5ae262286abc",
-     "raw_seconds": 6.65,
-     "trim_start": 3.55,
-     "trim_seconds": 2.8,
-     "delay": 0.38,
-     "gain_db": -3
-    }
-   ],
-   "seconds": 3.18,
-   "filters": "afade=t=in:d=0.02,afade=t=out:st=2.580:d=0.6,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=44100",
-   "output": "audio/characters/咒术回战/sukuna_world_slash.ogg",
-   "output_sha256": "e911b24605d69182076fbdfbf744d687cdc892fcb229ef88d93945c0d1f53bab",
-   "language": "ja",
-   "use": "世界斩发动：解 + 断空斩击（咏唱无官方日语配音，改为官方「解」）",
-   "round": "r3 2026-09-29"
-  },
-  "mahoraga_wheel": {
-   "page": "https://www.myinstants.com/en/search/?name=mahoraga-devine-wheel-adapting-sound",
-   "download": "https://www.myinstants.com/media/sounds/mahoraga-devine-wheel-adapting-sound.mp3",
-   "raw": "sources/jjk/mahoraga-devine-wheel-adapting-sound.mp3",
-   "raw_sha256": "9f554bc920e9fb6a2336a7e85ed271de191359a4499faa3a535fa1ba80e98d5c",
-   "raw_seconds": 3.02,
-   "trim_start": 0.0,
-   "trim_seconds": 3.02,
-   "fade_out": 0.2,
-   "filters": "afade=t=in:d=0.02,afade=t=out:st=2.820:d=0.200,loudnorm=I=-16:TP=-1.5:LRA=11",
-   "output": "audio/characters/咒术回战/mahoraga_wheel.ogg",
-   "output_sha256": "ae4d67a93043f2e60e907dbe339890dd04c2e187641cd717b4f6cea9c550a8ca",
-   "use": "法阵转动（适应）"
-  },
-  "mahoraga_summon": {
-   "layers": [
-    {
-     "download": "https://www.youtube.com/watch?v=KB_y-lYj_b4",
-     "desc": "TV 动画 渋谷事変 伏黒恵「八握剣 異戒神将 魔虚羅」",
-     "raw": "sources/jjk/audio_r3/KB_y-lYj_b4.mp3",
-     "raw_sha256": "5ec9a8674ae8ff8d1771f7ac410fc159d23189b833b71dc84646ac5b070598f4",
-     "raw_seconds": 42.84,
-     "trim_start": 25.85,
-     "trim_seconds": 6.9,
-     "delay": 0,
-     "gain_db": 0
-    }
-   ],
-   "seconds": 6.9,
-   "filters": "afade=t=in:d=0.02,afade=t=out:st=6.400:d=0.5,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=44100",
-   "output": "audio/characters/咒术回战/mahoraga_summon.ogg",
-   "output_sha256": "aaa041fe62a235125234b882cf0a8818cf16bd74f21c71c232dfd05db83d82f7",
-   "language": "ja",
-   "use": "召唤：八握剣 異戒神将 魔虚羅（日语原声）",
-   "round": "r3 2026-09-29"
-  },
-  "mahoraga_roar": {
-   "layers": [
-    {
-     "download": "https://assets.mixkit.co/active_storage/sfx/1972/1972-preview.mp3",
-     "desc": "Mixkit #1972 Giant monster roar",
-     "raw": "sources/jjk/audio_r3/1972.mp3",
-     "raw_sha256": "9a20c9d2ea1becc2cf50f62e81e3cd67d4b9c53f5d8b35638eea9eb70e8da948",
-     "raw_seconds": 4.0,
-     "trim_start": 0.0,
-     "trim_seconds": 3.1,
-     "delay": 0,
-     "gain_db": 0
-    }
-   ],
-   "seconds": 3.1,
-   "filters": "afade=t=in:d=0.02,afade=t=out:st=2.500:d=0.6,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=44100",
-   "output": "audio/characters/咒术回战/mahoraga_roar.ogg",
-   "output_sha256": "1f5bdadfc9673cd3bedc68519325c5a10dc7c76fb0bfa83a337aa310f9ba862a",
-   "language": "none (sfx)",
-   "use": "魔虚罗咆哮",
-   "round": "r3 2026-09-29"
-  },
-  "agito_roar": {
-   "layers": [
-    {
-     "download": "https://assets.mixkit.co/active_storage/sfx/14/14-preview.mp3",
-     "desc": "Mixkit #14 Aggressive monster beast roar",
-     "raw": "sources/jjk/audio_r3/14.mp3",
-     "raw_sha256": "7aa0632a4e7d2aef7b39a6449df1b2b9937c9595861f49af7f56fda9bad0590b",
-     "raw_seconds": 3.21,
-     "trim_start": 0.0,
-     "trim_seconds": 3.0,
-     "delay": 0,
-     "gain_db": 0
-    }
-   ],
-   "seconds": 3.0,
-   "filters": "afade=t=in:d=0.02,afade=t=out:st=2.500:d=0.5,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=44100",
-   "output": "audio/characters/咒术回战/agito_roar.ogg",
-   "output_sha256": "64288e5303b3023e2a48c038793e2b9df6b3e6409e1a7871ec340846971754c6",
-   "language": "none (sfx)",
-   "use": "嵌合暗兽 阿吉托 咆哮",
-   "round": "r3 2026-09-29"
-  },
-  "agito_thunder": {
-   "layers": [
-    {
-     "download": "https://assets.mixkit.co/active_storage/sfx/1508/1508-preview.mp3",
-     "desc": "Mixkit #1508 Lightning whip",
-     "raw": "sources/jjk/audio_r3/1508.mp3",
-     "raw_sha256": "ab2beac9c6428f1a2c8efc72ddc66fef2ea4231190da1f2f89c45ca7e1e3349f",
-     "raw_seconds": 0.82,
-     "trim_start": 0.0,
-     "trim_seconds": 0.8,
-     "delay": 0,
-     "gain_db": -2
-    },
-    {
-     "download": "https://assets.mixkit.co/active_storage/sfx/1286/1286-preview.mp3",
-     "desc": "Mixkit #1286 Cinematic impact thunder",
-     "raw": "sources/jjk/audio_r3/1286.mp3",
-     "raw_sha256": "228fa401f7909a6e843675354885de411a57b8de20e097af09b9a6690c430de3",
-     "raw_seconds": 5.21,
-     "trim_start": 0.35,
-     "trim_seconds": 2.4,
-     "delay": 0.04,
-     "gain_db": 0
-    }
-   ],
-   "seconds": 2.44,
-   "filters": "afade=t=in:d=0.02,afade=t=out:st=1.840:d=0.6,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=44100",
-   "output": "audio/characters/咒术回战/agito_thunder.ogg",
-   "output_sha256": "129ed80f1198235eeceb4581060baac144a9cd4d33ce7d3397e07e81f3fff5e2",
-   "language": "none (sfx)",
-   "use": "鵺 落雷",
-   "round": "r3 2026-09-29"
-  },
-  "sukuna_kai": {
-   "layers": [
-    {
-     "download": "https://www.myinstants.com/media/sounds/sukuna-kai.mp3",
-     "desc": "myinstants: 宿儺「解」",
-     "raw": "sources/jjk/audio_r3/sukuna-kai.mp3",
-     "raw_sha256": "3688dfd10c215082c7c2118447ce6e6709ab4969c23dd2a20a81d126b14c159b",
-     "raw_seconds": 1.27,
      "trim_start": 0.25,
      "trim_seconds": 0.95,
      "delay": 0,
@@ -530,100 +204,895 @@
     }
    ],
    "seconds": 0.95,
-   "filters": "afade=t=in:d=0.02,afade=t=out:st=0.800:d=0.15,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=44100",
-   "output": "audio/characters/咒术回战/sukuna_kai.ogg",
-   "output_sha256": "95398186b2401071be65317684d387643e77ceee56d2f33ae07cea54beec6564",
+   "filters": "highpass=f=90,lowpass=f=11500,afftdn=nf=-40,acompressor=threshold=-22dB:ratio=3:attack=5:release=90:makeup=2,afade=t=in:d=0.005,afade=t=out:st=0.800:d=0.15,loudnorm=I=-14:TP=-1.5:LRA=11,aresample=44100,alimiter=limit=0.84:level=false",
+   "output": "audio/characters/咒术回战/v_sukuna_kai.ogg",
+   "output_sha256": "3cd3c8829208b46f9b07ff4e64f1d0e6063f816c61dafa5c5e26f2c5137040a9",
    "language": "ja",
-   "use": "解（蛛网/强化解时的语音）",
-   "round": "r3 2026-09-29"
+   "use": "「解」"
   },
-  "black_flash_hit": {
+  "v_sukuna_fuga": {
+   "kind": "voice",
    "layers": [
     {
-     "download": "https://www.myinstants.com/media/sounds/mahito-black-flash-effect-season-2-episode-20.mp3",
-     "desc": "myinstants: 动画 渋谷事変 黑闪命中音效",
-     "raw": "sources/jjk/audio_r3/mahito-black-flash-effect-season-2-episode-20.mp3",
+     "raw": "sources/jjk/audio/sukuna_fuga_voc.flac",
+     "source": "https://www.youtube.com/watch?v=qDahjNZTalQ  [95.9s-98.2s] → htdemucs vocals",
+     "desc": "TV 动画 渋谷事変 宿儺「■（フーガ）」",
+     "raw_sha256": "61419c51fce2a5f59d2b999d7c5a38e4bf7c3d1314420403524dca477a4cd657",
+     "trim_start": 0.05,
+     "trim_seconds": 1.35,
+     "delay": 0,
+     "gain_db": 0
+    }
+   ],
+   "seconds": 1.35,
+   "filters": "highpass=f=90,lowpass=f=11500,afftdn=nf=-40,acompressor=threshold=-22dB:ratio=3:attack=5:release=90:makeup=2,afade=t=in:d=0.005,afade=t=out:st=1.150:d=0.2,loudnorm=I=-14:TP=-1.5:LRA=11,aresample=44100,alimiter=limit=0.84:level=false",
+   "output": "audio/characters/咒术回战/v_sukuna_fuga.ogg",
+   "output_sha256": "a53f61315c697a2bbcc7cce668a228bed126bc0a1d1da84c481b536dacb27487",
+   "language": "ja",
+   "use": "「■（フーガ）」"
+  },
+  "v_sukuna_domain": {
+   "kind": "voice",
+   "layers": [
+    {
+     "raw": "sources/jjk/audio/sukuna_domain_voc.flac",
+     "source": "https://www.youtube.com/watch?v=qDahjNZTalQ  [68.8s-73.6s] → htdemucs vocals",
+     "desc": "TV 动画 渋谷事変 宿儺（CV 諏訪部順一）「領域展開 伏魔御廚子」",
+     "raw_sha256": "c936f70b1e3f7bb85e4ac7a8fcb99c9d4ffd205651a3c22dd9b1d1644bcaaf0b",
+     "trim_start": 0.1,
+     "trim_seconds": 4.15,
+     "delay": 0,
+     "gain_db": 0
+    }
+   ],
+   "seconds": 4.15,
+   "filters": "highpass=f=90,lowpass=f=11500,afftdn=nf=-40,acompressor=threshold=-22dB:ratio=3:attack=5:release=90:makeup=2,afade=t=in:d=0.005,afade=t=out:st=3.800:d=0.35,loudnorm=I=-14:TP=-1.5:LRA=11,aresample=44100,alimiter=limit=0.84:level=false",
+   "output": "audio/characters/咒术回战/v_sukuna_domain.ogg",
+   "output_sha256": "4b42a830b9951cd117f87757910a744fcc591365210147a3e3976cafa743e2aa",
+   "language": "ja",
+   "use": "「領域展開 伏魔御廚子」"
+  },
+  "v_black_flash": {
+   "kind": "voice",
+   "layers": [
+    {
+     "raw": "sources/jjk/audio/black_flash_voc.flac",
+     "source": "https://www.youtube.com/watch?v=k0u6G8ClSKQ  [12.8s-14.4s] → htdemucs vocals",
+     "desc": "TV 动画「黒閃」",
+     "raw_sha256": "8e50a3bbddb6dec1cc5f0dd58d0f17b25d906a5f6804ef282382cef32c532562",
+     "trim_start": 0.1,
+     "trim_seconds": 1.1,
+     "delay": 0,
+     "gain_db": 0
+    }
+   ],
+   "seconds": 1.1,
+   "filters": "highpass=f=90,lowpass=f=11500,afftdn=nf=-40,acompressor=threshold=-22dB:ratio=3:attack=5:release=90:makeup=2,afade=t=in:d=0.005,afade=t=out:st=0.950:d=0.15,loudnorm=I=-14:TP=-1.5:LRA=11,aresample=44100,alimiter=limit=0.84:level=false",
+   "output": "audio/characters/咒术回战/v_black_flash.ogg",
+   "output_sha256": "91e2360f725ad1061d6a17a08eb2b92f92a0f42d821ed93d3c1e769e31215ba3",
+   "language": "ja",
+   "use": "「黒閃」"
+  },
+  "v_mahoraga_summon": {
+   "kind": "voice",
+   "layers": [
+    {
+     "raw": "sources/jjk/audio/mahoraga_summon_voc.flac",
+     "source": "https://www.youtube.com/watch?v=KB_y-lYj_b4  [25.9s-32.8s] → htdemucs vocals",
+     "desc": "TV 动画 渋谷事変 伏黒恵「布瑠部由良由良 八握剣 異戒神将 魔虚羅」",
+     "raw_sha256": "a177a9b18a061ef89c31ab4749f354c2f43c3af3ccf4151812da90b76050fae7",
+     "trim_start": 0.3,
+     "trim_seconds": 1.5,
+     "delay": 0,
+     "gain_db": 0
+    },
+    {
+     "raw": "sources/jjk/audio/mahoraga_summon_voc.flac",
+     "source": "https://www.youtube.com/watch?v=KB_y-lYj_b4  [25.9s-32.8s] → htdemucs vocals",
+     "desc": "TV 动画 渋谷事変 伏黒恵「布瑠部由良由良 八握剣 異戒神将 魔虚羅」",
+     "raw_sha256": "a177a9b18a061ef89c31ab4749f354c2f43c3af3ccf4151812da90b76050fae7",
+     "trim_start": 3.05,
+     "trim_seconds": 1.45,
+     "delay": 1.6,
+     "gain_db": 0
+    },
+    {
+     "raw": "sources/jjk/audio/mahoraga_summon_voc.flac",
+     "source": "https://www.youtube.com/watch?v=KB_y-lYj_b4  [25.9s-32.8s] → htdemucs vocals",
+     "desc": "TV 动画 渋谷事変 伏黒恵「布瑠部由良由良 八握剣 異戒神将 魔虚羅」",
+     "raw_sha256": "a177a9b18a061ef89c31ab4749f354c2f43c3af3ccf4151812da90b76050fae7",
+     "trim_start": 5.5,
+     "trim_seconds": 0.95,
+     "delay": 3.15,
+     "gain_db": 0
+    }
+   ],
+   "seconds": 4.1,
+   "filters": "highpass=f=90,lowpass=f=11500,afftdn=nf=-40,acompressor=threshold=-22dB:ratio=3:attack=5:release=90:makeup=2,afade=t=in:d=0.005,afade=t=out:st=3.850:d=0.25,loudnorm=I=-14:TP=-1.5:LRA=11,aresample=44100,alimiter=limit=0.84:level=false",
+   "output": "audio/characters/咒术回战/v_mahoraga_summon.ogg",
+   "output_sha256": "56e972779fa466a1035e5bb1b7747aaab09d75decd2f1ef3f34c302215008b69",
+   "language": "ja",
+   "use": "「布瑠部由良由良 八握剣 異戒神将 魔虚羅」"
+  },
+  "gojo_blue": {
+   "kind": "sfx",
+   "layers": [
+    {
+     "raw": "sources/jjk/audio/2608.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/2608/2608-preview.mp3",
+     "desc": "Mixkit #2608 Air zoom vacuum",
+     "raw_sha256": "0e25921648c66e30924892ee17110ae621243de770b2944496526845a15a9998",
+     "trim_start": 0.0,
+     "trim_seconds": 1.25,
+     "delay": 0,
+     "gain_db": 0
+    },
+    {
+     "raw": "sources/jjk/audio/1465.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/1465/1465-preview.mp3",
+     "desc": "Mixkit #1465 Vacuum swoosh transition",
+     "raw_sha256": "255101fe9c148b0e52ddafbe287e2b7cc2d8928fe0f463ae30308f12631416b9",
+     "trim_start": 0.4,
+     "trim_seconds": 1.5,
+     "delay": 0.0,
+     "gain_db": -5
+    },
+    {
+     "raw": "sources/jjk/audio/772.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/772/772-preview.mp3",
+     "desc": "Mixkit #772 Quick zoom impact",
+     "raw_sha256": "c5eba091c94b5292d9a545576bbbee1c21dd5cbc2539822fb61ac2aec69836d0",
+     "trim_start": 0.05,
+     "trim_seconds": 0.6,
+     "delay": 0.0,
+     "gain_db": -6
+    }
+   ],
+   "seconds": 1.5,
+   "filters": "afade=t=in:d=0.005,afade=t=out:st=1.150:d=0.35,loudnorm=I=-18:TP=-1.5:LRA=11,aresample=44100,alimiter=limit=0.84:level=false",
+   "output": "audio/characters/咒术回战/gojo_blue.ogg",
+   "output_sha256": "aceda60520ac5676afd9f29f8b856409620cf88a0acde3ad88accd37080fd39a",
+   "language": "none (sfx)",
+   "use": "苍：真空吸入"
+  },
+  "gojo_red": {
+   "kind": "sfx",
+   "layers": [
+    {
+     "raw": "sources/jjk/audio/2655.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/2655/2655-preview.mp3",
+     "desc": "Mixkit #2655 Fast impact blow",
+     "raw_sha256": "d8ab7a4870d7438f616aed3ee0711c4a7031f29923896c9064a6d75dbda2882b",
+     "trim_start": 0.0,
+     "trim_seconds": 0.7,
+     "delay": 0,
+     "gain_db": 0
+    },
+    {
+     "raw": "sources/jjk/audio/2608.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/2608/2608-preview.mp3",
+     "desc": "Mixkit #2608 Air zoom vacuum",
+     "raw_sha256": "0e25921648c66e30924892ee17110ae621243de770b2944496526845a15a9998",
+     "trim_start": 0.12,
+     "trim_seconds": 0.8,
+     "delay": 0.0,
+     "gain_db": -5
+    },
+    {
+     "raw": "sources/jjk/audio/782.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/782/782-preview.mp3",
+     "desc": "Mixkit #782 Laser gun impact destruction",
+     "raw_sha256": "e0a2a23b48b5e9c5ac3fd18fb7e211043edb6b118949a0ea2a65360edd472dcc",
+     "trim_start": 0.2,
+     "trim_seconds": 1.1,
+     "delay": 0.0,
+     "gain_db": -7
+    }
+   ],
+   "seconds": 1.1,
+   "filters": "afade=t=in:d=0.005,afade=t=out:st=0.800:d=0.3,loudnorm=I=-18:TP=-1.5:LRA=11,aresample=44100,alimiter=limit=0.84:level=false",
+   "output": "audio/characters/咒术回战/gojo_red.ogg",
+   "output_sha256": "c5cb821a4a00376181c950cec067615b83fd9516032c975ebc01279ed82a4b3b",
+   "language": "none (sfx)",
+   "use": "赫：发射"
+  },
+  "gojo_red_boom": {
+   "kind": "sfx",
+   "layers": [
+    {
+     "raw": "sources/jjk/audio/2758.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/2758/2758-preview.mp3",
+     "desc": "Mixkit #2758 Explosive impact from afar",
+     "raw_sha256": "65e16ee0825af21f8c11e1cd4fd966be7b33c67ab57bff7d2710a20e181707f9",
+     "trim_start": 0.0,
+     "trim_seconds": 2.0,
+     "delay": 0,
+     "gain_db": 0
+    },
+    {
+     "raw": "sources/jjk/audio/1693.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/1693/1693-preview.mp3",
+     "desc": "Mixkit #1693 Shatter shot explosion",
+     "raw_sha256": "c34617ce11b48229bae76a955c6bbf34c92ddfa6246accf9f1f666dab166a4b7",
+     "trim_start": 0.0,
+     "trim_seconds": 1.2,
+     "delay": 0.0,
+     "gain_db": -3
+    },
+    {
+     "raw": "sources/jjk/audio/2155.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/2155/2155-preview.mp3",
+     "desc": "Mixkit #2155 Impact of a strong punch",
+     "raw_sha256": "21ba82c90564b070489deb207d8048abac65a2dd040602dc788fbf9957b78ad6",
+     "trim_start": 0.0,
+     "trim_seconds": 0.5,
+     "delay": 0.0,
+     "gain_db": -2
+    }
+   ],
+   "seconds": 2.0,
+   "filters": "afade=t=in:d=0.005,afade=t=out:st=1.400:d=0.6,loudnorm=I=-18:TP=-1.5:LRA=11,aresample=44100,alimiter=limit=0.84:level=false",
+   "output": "audio/characters/咒术回战/gojo_red_boom.ogg",
+   "output_sha256": "32c307d4b09563406a3f80c035344840a6201f9052f38976b4cd3ad6f11659e9",
+   "language": "none (sfx)",
+   "use": "赫：命中爆裂"
+  },
+  "gojo_purple": {
+   "kind": "sfx",
+   "layers": [
+    {
+     "raw": "sources/jjk/audio/1465.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/1465/1465-preview.mp3",
+     "desc": "Mixkit #1465 Vacuum swoosh transition",
+     "raw_sha256": "255101fe9c148b0e52ddafbe287e2b7cc2d8928fe0f463ae30308f12631416b9",
+     "trim_start": 0.8,
+     "trim_seconds": 0.8,
+     "delay": 0,
+     "gain_db": 0
+    }
+   ],
+   "seconds": 0.8,
+   "filters": "afade=t=in:d=0.005,afade=t=out:st=0.700:d=0.1,loudnorm=I=-18:TP=-1.5:LRA=11,aresample=44100,alimiter=limit=0.84:level=false",
+   "output": "audio/characters/咒术回战/gojo_purple.ogg",
+   "output_sha256": "e93fc2eb955cc8880ce4530b6eecf6766c31bee55745306f50e1f610ba3fbafd",
+   "language": "none (sfx)",
+   "use": "茈：蓄势（0.5 秒后发射）"
+  },
+  "gojo_purple_sfx": {
+   "kind": "ult",
+   "layers": [
+    {
+     "raw": "sources/jjk/audio/774.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/774/774-preview.mp3",
+     "desc": "Mixkit #774 Space impact",
+     "raw_sha256": "beb258f9d969a7521ecb9c3698cfd76edbc48ccf793c4fddcf677a98fab91b7e",
+     "trim_start": 0.0,
+     "trim_seconds": 3.2,
+     "delay": 0,
+     "gain_db": 0
+    },
+    {
+     "raw": "sources/jjk/audio/781.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/781/781-preview.mp3",
+     "desc": "Mixkit #781 Cinematic impact waves",
+     "raw_sha256": "ec46a072f65a3384d05b00689cbd59b90498521cd65914823a6df21a510930f8",
+     "trim_start": 0.05,
+     "trim_seconds": 3.5,
+     "delay": 0.0,
+     "gain_db": -3
+    },
+    {
+     "raw": "sources/jjk/audio/2599.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/2599/2599-preview.mp3",
+     "desc": "Mixkit #2599 Heavy electric shockwave impact",
+     "raw_sha256": "db01ea375897b47166292daa4ab4c9798fa2ff2087c397db62de5ae262286abc",
+     "trim_start": 3.4,
+     "trim_seconds": 2.8,
+     "delay": 0.0,
+     "gain_db": -2
+    },
+    {
+     "raw": "sources/jjk/audio/2782.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/2782/2782-preview.mp3",
+     "desc": "Mixkit #2782 Epic impact afar explosion",
+     "raw_sha256": "5eadacabb07da83ba1bceb0f33ea040628e8e7bada3135ddf44cdafc1fb75bc5",
+     "trim_start": 0.0,
+     "trim_seconds": 2.8,
+     "delay": 0.0,
+     "gain_db": -7
+    }
+   ],
+   "seconds": 3.5,
+   "filters": "afade=t=in:d=0.005,afade=t=out:st=2.300:d=1.2,loudnorm=I=-15:TP=-1.5:LRA=11,aresample=44100,alimiter=limit=0.84:level=false",
+   "output": "audio/characters/咒术回战/gojo_purple_sfx.ogg",
+   "output_sha256": "a948926233621e4a8c1ba5a55edc6e0f3e224f72b252074eb9c11e75aeccaecc",
+   "language": "none (sfx)",
+   "use": "茈：发射贯穿"
+  },
+  "gojo_teleport": {
+   "kind": "sfx",
+   "layers": [
+    {
+     "raw": "sources/jjk/audio/166.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/166/166-preview.mp3",
+     "desc": "Mixkit #166 Fast small sweep transition",
+     "raw_sha256": "5d8153579cfbd4ec23738494dff8dec95b3737981578222b793eff9e3fdd4ca8",
+     "trim_start": 0.0,
+     "trim_seconds": 0.7,
+     "delay": 0,
+     "gain_db": 0
+    },
+    {
+     "raw": "sources/jjk/audio/2608.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/2608/2608-preview.mp3",
+     "desc": "Mixkit #2608 Air zoom vacuum",
+     "raw_sha256": "0e25921648c66e30924892ee17110ae621243de770b2944496526845a15a9998",
+     "trim_start": 0.15,
+     "trim_seconds": 0.45,
+     "delay": 0.0,
+     "gain_db": -6
+    }
+   ],
+   "seconds": 0.7,
+   "filters": "afade=t=in:d=0.005,afade=t=out:st=0.550:d=0.15,loudnorm=I=-18:TP=-1.5:LRA=11,aresample=44100,alimiter=limit=0.84:level=false",
+   "output": "audio/characters/咒术回战/gojo_teleport.ogg",
+   "output_sha256": "06efca8d5d6bd61ca23dc3a84776edc768e350358db801b384e617fa8c76648b",
+   "language": "none (sfx)",
+   "use": "瞬移"
+  },
+  "gojo_domain": {
+   "kind": "ult",
+   "layers": [
+    {
+     "raw": "sources/jjk/audio/1486.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/1486/1486-preview.mp3",
+     "desc": "Mixkit #1486 Cinematic tunnel reverb woosh",
+     "raw_sha256": "b08198fe3a699296aca18c5911fd140dded026639be294036151dbc47a317f02",
+     "trim_start": 0.0,
+     "trim_seconds": 5.0,
+     "delay": 0,
+     "gain_db": 0
+    },
+    {
+     "raw": "sources/jjk/audio/2630.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/2630/2630-preview.mp3",
+     "desc": "Mixkit #2630 Terror sweep of darkness",
+     "raw_sha256": "a6d10c8b8f765d412148a0ffb3ae69b661b0c2ae87e84c4c0850928c9b598d74",
+     "trim_start": 0.0,
+     "trim_seconds": 5.5,
+     "delay": 0.0,
+     "gain_db": -4
+    },
+    {
+     "raw": "sources/jjk/audio/658.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/658/658-preview.mp3",
+     "desc": "Mixkit #658 Choir magic shine",
+     "raw_sha256": "d74385e8f1e14947172ca5a5b36ef0f89571be08b88f19f11e2145d8a43dda34",
+     "trim_start": 0.0,
+     "trim_seconds": 4.0,
+     "delay": 0.3,
+     "gain_db": -9
+    },
+    {
+     "raw": "sources/jjk/audio/774.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/774/774-preview.mp3",
+     "desc": "Mixkit #774 Space impact",
+     "raw_sha256": "beb258f9d969a7521ecb9c3698cfd76edbc48ccf793c4fddcf677a98fab91b7e",
+     "trim_start": 0.0,
+     "trim_seconds": 2.5,
+     "delay": 0.0,
+     "gain_db": -5
+    }
+   ],
+   "seconds": 5.5,
+   "filters": "afade=t=in:d=0.005,afade=t=out:st=4.000:d=1.5,loudnorm=I=-15:TP=-1.5:LRA=11,aresample=44100,alimiter=limit=0.84:level=false",
+   "output": "audio/characters/咒术回战/gojo_domain.ogg",
+   "output_sha256": "ccdd763792fb5baf4592d4c20c276742b6cb4a2e5f16a913ec979102c6a659cf",
+   "language": "none (sfx)",
+   "use": "无量空处展开"
+  },
+  "sukuna_dismantle": {
+   "kind": "sfx",
+   "layers": [
+    {
+     "raw": "sources/jjk/audio/2793.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/2793/2793-preview.mp3",
+     "desc": "Mixkit #2793 Quick magic sword slice",
+     "raw_sha256": "a655f1dd8068fd29aa144b6be931f496667a09096f82e5efe3d0322ca8710795",
+     "trim_start": 0.0,
+     "trim_seconds": 0.9,
+     "delay": 0,
+     "gain_db": 0
+    },
+    {
+     "raw": "sources/jjk/audio/2792.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/2792/2792-preview.mp3",
+     "desc": "Mixkit #2792 Fast sword whoosh",
+     "raw_sha256": "3b62edf14af791505ca588d3210089ab5c623d22ac9d3aaff5dbee9ab9ae21e7",
+     "trim_start": 0.0,
+     "trim_seconds": 0.3,
+     "delay": 0.0,
+     "gain_db": -4
+    },
+    {
+     "raw": "sources/jjk/audio/2152.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/2152/2152-preview.mp3",
+     "desc": "Mixkit #2152 Quick knife slice cutting",
+     "raw_sha256": "6080703b125ceff48058459c2bcfa9141b7108021379e3445ff313e9fd65bc50",
+     "trim_start": 0.0,
+     "trim_seconds": 0.5,
+     "delay": 0.02,
+     "gain_db": -6
+    }
+   ],
+   "seconds": 0.9,
+   "filters": "afade=t=in:d=0.005,afade=t=out:st=0.650:d=0.25,loudnorm=I=-18:TP=-1.5:LRA=11,aresample=44100,alimiter=limit=0.84:level=false",
+   "output": "audio/characters/咒术回战/sukuna_dismantle.ogg",
+   "output_sha256": "90fa9df01b3559fc65eedb093353372be9543c82ae7975f2aaa66deab649ea6d",
+   "language": "none (sfx)",
+   "use": "解：斩击"
+  },
+  "sukuna_cleave": {
+   "kind": "sfx",
+   "layers": [
+    {
+     "raw": "sources/jjk/audio/2789.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/2789/2789-preview.mp3",
+     "desc": "Mixkit #2789 Samurai Sword Impact",
+     "raw_sha256": "56ad8d2d772452077f70dc900511cf46f8270a20b5502c58f444eaaa817eb143",
+     "trim_start": 0.0,
+     "trim_seconds": 0.9,
+     "delay": 0,
+     "gain_db": 0
+    },
+    {
+     "raw": "sources/jjk/audio/2788.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/2788/2788-preview.mp3",
+     "desc": "Mixkit #2788 Sword cutting flesh",
+     "raw_sha256": "85ee3f72a5c3b68e00cf93cca75093d4d585bc6ed3295cfe552b191d7e30e652",
+     "trim_start": 0.0,
+     "trim_seconds": 0.6,
+     "delay": 0.0,
+     "gain_db": -3
+    },
+    {
+     "raw": "sources/jjk/audio/2199.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/2199/2199-preview.mp3",
+     "desc": "Mixkit #2199 Body cutting impact",
+     "raw_sha256": "8f211046a55ba2f420ab5d9f8c378dcd924500dbaa563693221b43e84bea1323",
+     "trim_start": 0.0,
+     "trim_seconds": 0.8,
+     "delay": 0.05,
+     "gain_db": -5
+    },
+    {
+     "raw": "sources/jjk/audio/2199.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/2199/2199-preview.mp3",
+     "desc": "Mixkit #2199 Body cutting impact",
+     "raw_sha256": "8f211046a55ba2f420ab5d9f8c378dcd924500dbaa563693221b43e84bea1323",
+     "trim_start": 1.6,
+     "trim_seconds": 0.7,
+     "delay": 0.18,
+     "gain_db": -6
+    }
+   ],
+   "seconds": 0.9,
+   "filters": "afade=t=in:d=0.005,afade=t=out:st=0.600:d=0.3,loudnorm=I=-18:TP=-1.5:LRA=11,aresample=44100,alimiter=limit=0.84:level=false",
+   "output": "audio/characters/咒术回战/sukuna_cleave.ogg",
+   "output_sha256": "d774e5d0ddffac5791028e2ea959f230f83541e4b157addd734405c17ec89974",
+   "language": "none (sfx)",
+   "use": "捌：连斩"
+  },
+  "sukuna_fuga": {
+   "kind": "sfx",
+   "layers": [
+    {
+     "raw": "sources/jjk/audio/1327.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/1327/1327-preview.mp3",
+     "desc": "Mixkit #1327 Big fire magic swoosh",
+     "raw_sha256": "ccc2fec52c432239ff0c32e0a1960fbf6bbd2958ad3d33565ef06024b940ced1",
+     "trim_start": 0.0,
+     "trim_seconds": 1.9,
+     "delay": 0,
+     "gain_db": 0
+    },
+    {
+     "raw": "sources/jjk/audio/1349.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/1349/1349-preview.mp3",
+     "desc": "Mixkit #1349 Fast ignition fire",
+     "raw_sha256": "ff69db5da22fbad8b56851206d5495b2e271e0bdf31d164bb442eb5bbcf33b57",
+     "trim_start": 0.2,
+     "trim_seconds": 1.8,
+     "delay": 0.0,
+     "gain_db": -5
+    }
+   ],
+   "seconds": 1.9,
+   "filters": "afade=t=in:d=0.005,afade=t=out:st=1.400:d=0.5,loudnorm=I=-18:TP=-1.5:LRA=11,aresample=44100,alimiter=limit=0.84:level=false",
+   "output": "audio/characters/咒术回战/sukuna_fuga.ogg",
+   "output_sha256": "b043f4632b07f8ebed094cd1dddafb067ac6926037e236abe6c54405182f0256",
+   "language": "none (sfx)",
+   "use": "开：火矢成形"
+  },
+  "sukuna_fuga_boom": {
+   "kind": "ult",
+   "layers": [
+    {
+     "raw": "sources/jjk/audio/1338.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/1338/1338-preview.mp3",
+     "desc": "Mixkit #1338 Fire spell with explosion",
+     "raw_sha256": "a944480c4d58d337cb2cff540190cbc0a7fa083ca433ed240b39cb07b61da275",
+     "trim_start": 0.0,
+     "trim_seconds": 3.5,
+     "delay": 0,
+     "gain_db": 0
+    },
+    {
+     "raw": "sources/jjk/audio/1343.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/1343/1343-preview.mp3",
+     "desc": "Mixkit #1343 Fire explosion",
+     "raw_sha256": "b4cd68a1e42ddd6e0ceb6d9e1947800dff63d406a1a72e6cca3c8d50301beb73",
+     "trim_start": 1.0,
+     "trim_seconds": 3.0,
+     "delay": 0.0,
+     "gain_db": -4
+    },
+    {
+     "raw": "sources/jjk/audio/3057.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/3057/3057-preview.mp3",
+     "desc": "Mixkit #3057 Apocalyptic stomp impact",
+     "raw_sha256": "c278de3e31d10b3d5e7bea277e3e1cda15bf5aaa744ee6fbd6296e913e66b245",
+     "trim_start": 0.0,
+     "trim_seconds": 1.5,
+     "delay": 0.0,
+     "gain_db": -4
+    }
+   ],
+   "seconds": 3.5,
+   "filters": "afade=t=in:d=0.005,afade=t=out:st=2.500:d=1.0,loudnorm=I=-15:TP=-1.5:LRA=11,aresample=44100,alimiter=limit=0.84:level=false",
+   "output": "audio/characters/咒术回战/sukuna_fuga_boom.ogg",
+   "output_sha256": "adb9e9b717907ae2b62abd3fdf29aba2c21dad3c924d10d6bc7a6cc0bf4952d1",
+   "language": "none (sfx)",
+   "use": "开：命中爆炎"
+  },
+  "sukuna_domain": {
+   "kind": "ult",
+   "layers": [
+    {
+     "raw": "sources/jjk/audio/3057.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/3057/3057-preview.mp3",
+     "desc": "Mixkit #3057 Apocalyptic stomp impact",
+     "raw_sha256": "c278de3e31d10b3d5e7bea277e3e1cda15bf5aaa744ee6fbd6296e913e66b245",
+     "trim_start": 0.0,
+     "trim_seconds": 2.8,
+     "delay": 0,
+     "gain_db": 0
+    },
+    {
+     "raw": "sources/jjk/audio/2291.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/2291/2291-preview.mp3",
+     "desc": "Mixkit #2291 Eerie trailer horn transition",
+     "raw_sha256": "f50abd90bbfca03f8af17a2ef1ca02f6fb5642e36203eb17c0eda67e5d5218d4",
+     "trim_start": 0.0,
+     "trim_seconds": 6.0,
+     "delay": 0.0,
+     "gain_db": -3
+    },
+    {
+     "raw": "sources/jjk/audio/1331.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/1331/1331-preview.mp3",
+     "desc": "Mixkit #1331 Big fire flame burning",
+     "raw_sha256": "c4a53aea02a058062ba1ef4f865cdfe2006c13b2a3ebe9093798ca338e234eb1",
+     "trim_start": 0.2,
+     "trim_seconds": 5.5,
+     "delay": 0.4,
+     "gain_db": -9
+    }
+   ],
+   "seconds": 6.0,
+   "filters": "afade=t=in:d=0.005,afade=t=out:st=4.500:d=1.5,loudnorm=I=-15:TP=-1.5:LRA=11,aresample=44100,alimiter=limit=0.84:level=false",
+   "output": "audio/characters/咒术回战/sukuna_domain.ogg",
+   "output_sha256": "795e96bb8be3731ecdf39b2fc9e47a8d2028d9dee45234984c5cedbf56ebd3e9",
+   "language": "none (sfx)",
+   "use": "伏魔御厨子展开"
+  },
+  "sukuna_world_slash_charge": {
+   "kind": "sfx",
+   "layers": [
+    {
+     "raw": "sources/jjk/audio/2599.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/2599/2599-preview.mp3",
+     "desc": "Mixkit #2599 Heavy electric shockwave impact",
+     "raw_sha256": "db01ea375897b47166292daa4ab4c9798fa2ff2087c397db62de5ae262286abc",
+     "trim_start": 2.1,
+     "trim_seconds": 1.38,
+     "delay": 0,
+     "gain_db": 0
+    },
+    {
+     "raw": "sources/jjk/audio/1465.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/1465/1465-preview.mp3",
+     "desc": "Mixkit #1465 Vacuum swoosh transition",
+     "raw_sha256": "255101fe9c148b0e52ddafbe287e2b7cc2d8928fe0f463ae30308f12631416b9",
+     "trim_start": 0.3,
+     "trim_seconds": 1.2,
+     "delay": 0.1,
+     "gain_db": -5
+    }
+   ],
+   "seconds": 1.38,
+   "filters": "afade=t=in:d=0.005,afade=t=out:st=1.300:d=0.08,loudnorm=I=-18:TP=-1.5:LRA=11,aresample=44100,alimiter=limit=0.84:level=false",
+   "output": "audio/characters/咒术回战/sukuna_world_slash_charge.ogg",
+   "output_sha256": "76f01c39782fcbf75a131a01d63d1d060a1279e478f9e98f2c67b80636b89751",
+   "language": "none (sfx)",
+   "use": "世界斩蓄力（1.2 秒）"
+  },
+  "sukuna_world_slash": {
+   "kind": "ult",
+   "layers": [
+    {
+     "raw": "sources/jjk/audio/2789.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/2789/2789-preview.mp3",
+     "desc": "Mixkit #2789 Samurai Sword Impact",
+     "raw_sha256": "56ad8d2d772452077f70dc900511cf46f8270a20b5502c58f444eaaa817eb143",
+     "trim_start": 0.0,
+     "trim_seconds": 1.1,
+     "delay": 0,
+     "gain_db": 0
+    },
+    {
+     "raw": "sources/jjk/audio/2952.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/2952/2952-preview.mp3",
+     "desc": "Mixkit #2952 Break tech impact",
+     "raw_sha256": "832d160240def407e700ba70844caba3bffb78cfa1eeb3cfa2f84de77b84a2dd",
+     "trim_start": 0.0,
+     "trim_seconds": 1.3,
+     "delay": 0.0,
+     "gain_db": -2
+    },
+    {
+     "raw": "sources/jjk/audio/1693.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/1693/1693-preview.mp3",
+     "desc": "Mixkit #1693 Shatter shot explosion",
+     "raw_sha256": "c34617ce11b48229bae76a955c6bbf34c92ddfa6246accf9f1f666dab166a4b7",
+     "trim_start": 0.0,
+     "trim_seconds": 2.5,
+     "delay": 0.0,
+     "gain_db": -3
+    },
+    {
+     "raw": "sources/jjk/audio/2599.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/2599/2599-preview.mp3",
+     "desc": "Mixkit #2599 Heavy electric shockwave impact",
+     "raw_sha256": "db01ea375897b47166292daa4ab4c9798fa2ff2087c397db62de5ae262286abc",
+     "trim_start": 3.45,
+     "trim_seconds": 2.9,
+     "delay": 0.0,
+     "gain_db": -4
+    },
+    {
+     "raw": "sources/jjk/audio/2183.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/2183/2183-preview.mp3",
+     "desc": "Mixkit #2183 Glass hitting a metal",
+     "raw_sha256": "227bd75601b13848096041e53e529273567b4734513324bdaf68b8a0ca78a98b",
+     "trim_start": 0.0,
+     "trim_seconds": 0.5,
+     "delay": 0.0,
+     "gain_db": -6
+    }
+   ],
+   "seconds": 2.9,
+   "filters": "afade=t=in:d=0.005,afade=t=out:st=2.100:d=0.8,loudnorm=I=-15:TP=-1.5:LRA=11,aresample=44100,alimiter=limit=0.84:level=false",
+   "output": "audio/characters/咒术回战/sukuna_world_slash.ogg",
+   "output_sha256": "9a01a7dd58068714bec4f7494acd7cb1a0ce9db36e350c64cee493941b79fec5",
+   "language": "none (sfx)",
+   "use": "世界斩：斩断空间"
+  },
+  "black_flash_hit": {
+   "kind": "sfx",
+   "layers": [
+    {
+     "raw": "sources/jjk/audio/mahito-black-flash-effect-season-2-episode-20.mp3",
+     "source": "https://www.myinstants.com/media/sounds/mahito-black-flash-effect-season-2-episode-20.mp3",
+     "desc": "myinstants: TV 动画 渋谷事変 黒閃命中音",
      "raw_sha256": "4ef0b9e755cff095bb968d7aa00bad02719013892f07dff4267ea1c673ee6d51",
-     "raw_seconds": 4.05,
      "trim_start": 0.0,
      "trim_seconds": 1.5,
      "delay": 0,
      "gain_db": 0
     },
     {
-     "download": "https://assets.mixkit.co/active_storage/sfx/772/772-preview.mp3",
-     "desc": "Mixkit #772 Quick zoom impact",
-     "raw": "sources/jjk/audio_r3/772.mp3",
-     "raw_sha256": "c5eba091c94b5292d9a545576bbbee1c21dd5cbc2539822fb61ac2aec69836d0",
-     "raw_seconds": 1.22,
-     "trim_start": 0.1,
+     "raw": "sources/jjk/audio/2155.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/2155/2155-preview.mp3",
+     "desc": "Mixkit #2155 Impact of a strong punch",
+     "raw_sha256": "21ba82c90564b070489deb207d8048abac65a2dd040602dc788fbf9957b78ad6",
+     "trim_start": 0.0,
+     "trim_seconds": 0.5,
+     "delay": 0.0,
+     "gain_db": -4
+    },
+    {
+     "raw": "sources/jjk/audio/1021.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/1021/1021-preview.mp3",
+     "desc": "Mixkit #1021 Cinematic glitch trailer",
+     "raw_sha256": "2e73d08bedc8b120a670df4c9a0c078baff503e039fb71822bc3de9a52642b90",
+     "trim_start": 0.0,
      "trim_seconds": 0.6,
      "delay": 0.0,
-     "gain_db": -8
+     "gain_db": -7
+    },
+    {
+     "raw": "sources/jjk/audio/2952.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/2952/2952-preview.mp3",
+     "desc": "Mixkit #2952 Break tech impact",
+     "raw_sha256": "832d160240def407e700ba70844caba3bffb78cfa1eeb3cfa2f84de77b84a2dd",
+     "trim_start": 0.0,
+     "trim_seconds": 1.0,
+     "delay": 0.0,
+     "gain_db": -7
     }
    ],
    "seconds": 1.5,
-   "filters": "afade=t=in:d=0.02,afade=t=out:st=1.200:d=0.3,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=44100",
+   "filters": "afade=t=in:d=0.005,afade=t=out:st=1.200:d=0.3,loudnorm=I=-18:TP=-1.5:LRA=11,aresample=44100,alimiter=limit=0.84:level=false",
    "output": "audio/characters/咒术回战/black_flash_hit.ogg",
-   "output_sha256": "361886a2560ecb0498a12ab03b3364bcc7ec1dbb456ecc44ebf00afb30a83bfc",
+   "output_sha256": "9c55fa31aebb28b25286854abda6d029509a2b82640748d0d080ff6ba4096bee",
    "language": "none (sfx)",
-   "use": "黑闪命中音效（动画）",
-   "round": "r3 2026-09-29"
+   "use": "黑闪命中"
   },
-  "sukuna_world_slash_charge": {
+  "mahoraga_summon": {
+   "kind": "ult",
    "layers": [
     {
-     "download": "https://assets.mixkit.co/active_storage/sfx/2599/2599-preview.mp3",
-     "desc": "Mixkit #2599 Heavy electric shockwave impact",
-     "raw": "sources/jjk/audio_r3/2599.mp3",
-     "raw_sha256": "db01ea375897b47166292daa4ab4c9798fa2ff2087c397db62de5ae262286abc",
-     "raw_seconds": 6.65,
-     "trim_start": 2.1,
-     "trim_seconds": 1.38,
-     "delay": 0,
-     "gain_db": 0
-    }
-   ],
-   "seconds": 1.38,
-   "filters": "afade=t=in:d=0.05,afade=t=out:st=1.300:d=0.08,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=44100",
-   "output": "audio/characters/咒术回战/sukuna_world_slash_charge.ogg",
-   "output_sha256": "51ce151b92bbe1ce5553d0fd0a725d8bcd87800f91b172b9c9020cea27f41753",
-   "language": "none (sfx)",
-   "use": "世界斩咏唱蓄力（1.2 秒）",
-   "round": "r3 2026-09-29"
-  },
-  "sukuna_fuga_boom": {
-   "layers": [
-    {
-     "download": "https://assets.mixkit.co/active_storage/sfx/1343/1343-preview.mp3",
-     "desc": "Mixkit #1343 Fire explosion",
-     "raw": "sources/jjk/audio_r3/1343.mp3",
-     "raw_sha256": "b4cd68a1e42ddd6e0ceb6d9e1947800dff63d406a1a72e6cca3c8d50301beb73",
-     "raw_seconds": 6.01,
-     "trim_start": 1.1,
-     "trim_seconds": 2.8,
+     "raw": "sources/jjk/audio/2291.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/2291/2291-preview.mp3",
+     "desc": "Mixkit #2291 Eerie trailer horn transition",
+     "raw_sha256": "f50abd90bbfca03f8af17a2ef1ca02f6fb5642e36203eb17c0eda67e5d5218d4",
+     "trim_start": 0.0,
+     "trim_seconds": 4.0,
      "delay": 0,
      "gain_db": 0
     },
     {
-     "download": "https://assets.mixkit.co/active_storage/sfx/2782/2782-preview.mp3",
-     "desc": "Mixkit #2782 Epic impact afar explosion",
-     "raw": "sources/jjk/audio_r3/2782.mp3",
-     "raw_sha256": "5eadacabb07da83ba1bceb0f33ea040628e8e7bada3135ddf44cdafc1fb75bc5",
-     "raw_seconds": 4.53,
+     "raw": "sources/jjk/audio/3057.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/3057/3057-preview.mp3",
+     "desc": "Mixkit #3057 Apocalyptic stomp impact",
+     "raw_sha256": "c278de3e31d10b3d5e7bea277e3e1cda15bf5aaa744ee6fbd6296e913e66b245",
      "trim_start": 0.0,
-     "trim_seconds": 2.6,
+     "trim_seconds": 2.5,
      "delay": 0.0,
-     "gain_db": -9
+     "gain_db": -3
     }
    ],
-   "seconds": 2.8,
-   "filters": "afade=t=in:d=0.02,afade=t=out:st=2.000:d=0.8,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=44100",
-   "output": "audio/characters/咒术回战/sukuna_fuga_boom.ogg",
-   "output_sha256": "c799eb3ce20ea96cc7be6295fa1495d994459242529ab8b3a8ab4b547906d496",
+   "seconds": 4.0,
+   "filters": "afade=t=in:d=0.005,afade=t=out:st=3.000:d=1.0,loudnorm=I=-15:TP=-1.5:LRA=11,aresample=44100,alimiter=limit=0.84:level=false",
+   "output": "audio/characters/咒术回战/mahoraga_summon.ogg",
+   "output_sha256": "06c7a229bb244ea394d68cce840b874fa7667ef5630a65fda0d34ed37cfef38e",
    "language": "none (sfx)",
-   "use": "火矢命中爆炸",
-   "round": "r3 2026-09-29"
+   "use": "魔虚罗降临"
+  },
+  "mahoraga_wheel": {
+   "kind": "sfx",
+   "layers": [
+    {
+     "raw": "sources/jjk/audio/2795.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/2795/2795-preview.mp3",
+     "desc": "Mixkit #2795 Heavy sword smashes metal",
+     "raw_sha256": "c58bf256296cfe77e2221b5c7fb1d3fa3dadb2384d9d9215b3a5d89fee21271e",
+     "trim_start": 0.0,
+     "trim_seconds": 1.2,
+     "delay": 0,
+     "gain_db": 0
+    },
+    {
+     "raw": "sources/jjk/audio/833.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/833/833-preview.mp3",
+     "desc": "Mixkit #833 Metal hammer hit",
+     "raw_sha256": "26fd7c308ec2834e4f0f9585b0b595c46054efe1d9d008d9abb1209eaf726d65",
+     "trim_start": 0.0,
+     "trim_seconds": 0.7,
+     "delay": 0.0,
+     "gain_db": 8
+    },
+    {
+     "raw": "sources/jjk/audio/1528.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/1528/1528-preview.mp3",
+     "desc": "Mixkit #1528 Magical stone slide",
+     "raw_sha256": "0e72580403b1b5bdc3c1459e8c954ed947531de27bc9aa403d1dd6af606e0a52",
+     "trim_start": 0.3,
+     "trim_seconds": 1.9,
+     "delay": 0.1,
+     "gain_db": -6
+    }
+   ],
+   "seconds": 2.0,
+   "filters": "afade=t=in:d=0.005,afade=t=out:st=1.600:d=0.4,loudnorm=I=-18:TP=-1.5:LRA=11,aresample=44100,alimiter=limit=0.84:level=false",
+   "output": "audio/characters/咒术回战/mahoraga_wheel.ogg",
+   "output_sha256": "5aee384a37d4c80f690866a52c6373654c46b5bbb886c1e0d05149a80dc64240",
+   "language": "none (sfx)",
+   "use": "法阵转动（适应）"
+  },
+  "mahoraga_roar": {
+   "kind": "sfx",
+   "layers": [
+    {
+     "raw": "sources/jjk/audio/1972.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/1972/1972-preview.mp3",
+     "desc": "Mixkit #1972 Giant monster roar",
+     "raw_sha256": "9a20c9d2ea1becc2cf50f62e81e3cd67d4b9c53f5d8b35638eea9eb70e8da948",
+     "trim_start": 0.0,
+     "trim_seconds": 3.1,
+     "delay": 0,
+     "gain_db": 0
+    }
+   ],
+   "seconds": 3.1,
+   "filters": "afade=t=in:d=0.005,afade=t=out:st=2.500:d=0.6,loudnorm=I=-18:TP=-1.5:LRA=11,aresample=44100,alimiter=limit=0.84:level=false",
+   "output": "audio/characters/咒术回战/mahoraga_roar.ogg",
+   "output_sha256": "cd750c1b50b7eea1970e27164e67fe457b1ba0b9ca5b2c1749944f05b0e82a5b",
+   "language": "none (sfx)",
+   "use": "魔虚罗咆哮"
+  },
+  "agito_roar": {
+   "kind": "sfx",
+   "layers": [
+    {
+     "raw": "sources/jjk/audio/14.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/14/14-preview.mp3",
+     "desc": "Mixkit #14 Aggressive monster beast roar",
+     "raw_sha256": "7aa0632a4e7d2aef7b39a6449df1b2b9937c9595861f49af7f56fda9bad0590b",
+     "trim_start": 0.0,
+     "trim_seconds": 3.0,
+     "delay": 0,
+     "gain_db": 0
+    }
+   ],
+   "seconds": 3.0,
+   "filters": "afade=t=in:d=0.005,afade=t=out:st=2.500:d=0.5,loudnorm=I=-18:TP=-1.5:LRA=11,aresample=44100,alimiter=limit=0.84:level=false",
+   "output": "audio/characters/咒术回战/agito_roar.ogg",
+   "output_sha256": "58b4134b8c053dd34acec6f2f7c8366ec2e2ca98978c92c2443ad05292e412e0",
+   "language": "none (sfx)",
+   "use": "嵌合暗兽 咆哮"
+  },
+  "agito_thunder": {
+   "kind": "sfx",
+   "layers": [
+    {
+     "raw": "sources/jjk/audio/1293.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/1293/1293-preview.mp3",
+     "desc": "Mixkit #1293 Fast thunder whoosh",
+     "raw_sha256": "72faa768a06993ef3dccc37daffa940559b365687c466b48a8a087f1bc292a54",
+     "trim_start": 0.0,
+     "trim_seconds": 2.5,
+     "delay": 0,
+     "gain_db": 0
+    },
+    {
+     "raw": "sources/jjk/audio/1286.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/1286/1286-preview.mp3",
+     "desc": "Mixkit #1286 Cinematic impact thunder",
+     "raw_sha256": "228fa401f7909a6e843675354885de411a57b8de20e097af09b9a6690c430de3",
+     "trim_start": 0.1,
+     "trim_seconds": 2.4,
+     "delay": 0.0,
+     "gain_db": -3
+    },
+    {
+     "raw": "sources/jjk/audio/1508.mp3",
+     "source": "https://assets.mixkit.co/active_storage/sfx/1508/1508-preview.mp3",
+     "desc": "Mixkit #1508 Lightning whip",
+     "raw_sha256": "ab2beac9c6428f1a2c8efc72ddc66fef2ea4231190da1f2f89c45ca7e1e3349f",
+     "trim_start": 0.0,
+     "trim_seconds": 0.8,
+     "delay": 0.0,
+     "gain_db": -4
+    }
+   ],
+   "seconds": 2.5,
+   "filters": "afade=t=in:d=0.005,afade=t=out:st=1.900:d=0.6,loudnorm=I=-18:TP=-1.5:LRA=11,aresample=44100,alimiter=limit=0.84:level=false",
+   "output": "audio/characters/咒术回战/agito_thunder.ogg",
+   "output_sha256": "6b8f20362e65f497c9005da1cae2e7445dd038286ebd54a0ab312f1773353e14",
+   "language": "none (sfx)",
+   "use": "鵺 落雷"
   }
  }
 }

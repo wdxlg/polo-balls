@@ -60,7 +60,7 @@ var _ai_blue_follow:float = 0.0
 var infinity_blocks:int = 0
 
 func _ready() -> void:
-	intro_sound = "gojo_intro"
+	intro_sound = "v_gojo_intro"
 	super._ready()
 	_base_speed = Speed
 	add_to_group("JJKGojo")
@@ -239,7 +239,8 @@ func cast_blue(at:Vector2,steer_with_mouse:bool = false) -> bool:
 	blue_steer = steer_with_mouse
 	blue_cd = blue_cooldown
 	_blue_tick = 0.0
-	sfx("gojo_blue",-6.0)
+	sfx("gojo_blue",-3.0)
+	voice("v_gojo_blue",0,9.0)
 	return true
 
 func begin_red_charge() -> bool:
@@ -257,7 +258,8 @@ func release_red(dir:Vector2,time:float) -> bool:
 	var d:Vector2 = dir.normalized() if dir.length_squared() > 0.001 else Vector2.RIGHT
 	var speed:float = 720.0 if charged else 560.0
 	launch("red_max" if charged else "red",global_position + d * 24.0,d * speed,16.0 if charged else 13.0,1.6)
-	sfx("gojo_red",-4.0 if charged else -8.0)
+	sfx("gojo_red",0.0 if charged else -3.0)
+	voice("v_gojo_red",1 if charged else 0,0.0 if charged else 8.0)
 	return true
 
 func on_projectile_impact(kind:String,_target:ball,point:Vector2) -> void:
@@ -269,6 +271,7 @@ func on_projectile_impact(kind:String,_target:ball,point:Vector2) -> void:
 		JJK.hit(self,t,attack_damage(mult),t.global_position,&"magic",{"phenomenon":"gojo_red"})
 		JJK.knock(self,t,t.global_position - point,red_knockback * (1.6 if charged else 1.0),900.0,0.25 if charged else 0.0,{"phenomenon":"gojo_red"})
 	fx("red_burst",{"pos":point,"radius":r},0.35)
+	sfx("gojo_red_boom",0.0 if charged else -3.0)
 
 func begin_purple_charge() -> bool:
 	if not can_act() or not technique_ready() or purple_cd > 0.0 or purple_charge >= 0.0 or purple_cast_left >= 0.0: return false
@@ -295,7 +298,8 @@ func release_purple(dir:Vector2,time:float) -> bool:
 	_purple_dir = dir.normalized() if dir.length_squared() > 0.001 else Vector2.RIGHT
 	purple_cast_left = 0.35 if full else 0.5
 	purple_cd = purple_cooldown
-	sfx("gojo_purple_200" if full else "gojo_purple",0.0)
+	sfx("gojo_purple",0.0)
+	voice("v_gojo_purple",2 if full else 1,0.0)
 	if full: cutin("虚式 茈","Hollow Technique: Purple","九纲 偏光 乌与声明 表里之间","Nine Ropes, Polarized Light, Crow and Declaration...",Color(0.6,0.3,1.0))
 	return true
 
@@ -355,7 +359,8 @@ func cast_domain() -> bool:
 	var rect:Rect2 = JJK.map_rect(self)
 	var r:float = maxf(260.0,minf(rect.size.x,rect.size.y) * 0.45)
 	open_domain("uv",global_position,r,domain_duration)
-	sfx("gojo_domain",2.0)
+	sfx("gojo_domain",-2.0)
+	voice("v_gojo_domain",2)
 	cutin("领域展开 无量空处","Domain Expansion: Unlimited Void","五条悟","Satoru Gojo",Color(0.3,0.55,1.0))
 	return true
 
@@ -535,127 +540,76 @@ func visual_particles(_dt:float) -> void:
 		# 苍：真实的屏幕空间漩涡折射，跟随苍的位置，苍结束后自动消失。
 		_blue_lens = V.distort(self,1,blue_pos,Vector2.ONE * blue_radius * 2.4,1.0,1.2,{"persistent":true,"follow":_blue_lens_follow,"aberration":1.5,"z_index":85})
 	if blue_active:
+		# 被吸进去的碎石（实心小块，普通混合）
 		var r:float = blue_max_radius if blue_max else blue_radius
-		for i:int in (3 if blue_max else 2):
+		for i:int in (2 if blue_max else 1):
 			var a:float = _vrng.randf() * TAU
-			var from:Vector2 = blue_pos + Vector2.from_angle(a) * r * _vrng.randf_range(0.7,1.05)
-			var vel:Vector2 = (blue_pos - from) * 1.6 + (blue_pos - from).orthogonal() * 1.2
-			vparts.emit(from,vel,0.6,_vrng.randf_range(1.5,3.0),Color(0.45,0.7,1.0),2,0.0)
-	if red_charge >= 0.0:
-		var p:Vector2 = _red_charge_pos()
-		var a2:float = _vrng.randf() * TAU
-		var from2:Vector2 = p + Vector2.from_angle(a2) * _vrng.randf_range(26,44)
-		vparts.emit(from2,(p - from2) * 3.2,0.3,2.0,Color(1.0,0.35,0.25),2,0.0)
-	if purple_charge >= 0.0:
-		var c:Vector2 = _purple_center()
-		var a3:float = _vrng.randf() * TAU
-		var from3:Vector2 = c + Vector2.from_angle(a3) * _vrng.randf_range(30,60)
-		vparts.emit(from3,(c - from3) * 2.5,0.4,2.0,Color(0.75,0.5,1.0),2,0.0)
+			var from:Vector2 = blue_pos + Vector2.from_angle(a) * r * _vrng.randf_range(0.6,1.0)
+			var vel:Vector2 = (blue_pos - from) * 1.8 + (blue_pos - from).orthogonal() * 1.1
+			vparts.emit(from,vel,0.5,_vrng.randf_range(1.5,2.6),Color(0.1,0.12,0.22,0.95),1,0.0)
 
-## 着色器面片：苍 = 向内吸的蓝色漩涡球 + 引力透镜环；赫蓄力 = 逐渐膨胀的红球；茈蓄力 = 公转的苍与赫合为紫球。
+## 着色器面片（赛璐璐硬边 + 墨线）：
+## 苍 = 黑色空心、蓝白外壳、螺旋色带、外圈电弧，脚下一圈向内收的集中线；
+## 赫蓄力 = 白芯红球逐渐长刺；茈蓄力 = 苍与赫公转靠拢，合成带电弧的紫球。
 func visual_quads() -> void:
 	var t:float = _view_clock
+	var step:float = floorf(t * 24.0) / 24.0
 	if blue_active:
 		var r:float = blue_max_radius if blue_max else blue_radius
-		var s:float = 1.25 if blue_max else 1.0
-		ovq("blue",V.Q.ORB,2,blue_pos,Vector2.ONE * 40.0 * s,0.0,V.pal("blue",{"alpha":1.3,"p0":Vector4(0.42,-2.6,0.45,1.0),"p1":Vector4(-6.0,0.16,1.0,0.9),"p2":Vector4(0.0,2.6,0,0)}))
-		ovq("blens",V.Q.RING,0,blue_pos,Vector2.ONE * r * 2.1,0.0,V.pal("blue",{"alpha":0.5,"p0":Vector4(0.9 + 0.03 * sin(t * 5.0),0.05,0.35,0.0),"p1":Vector4(0.0,0.0,0.6,0.0)}))
+		var s:float = 1.3 if blue_max else 1.0
+		var q:Array = V.orb_q("blue",11.0 * s * (1.0 + 0.05 * sin(step * 40.0)),1.0,0.1,0.18,10.0,-8.0,0.34,0.7 if blue_max else 0.45,2.0,Vector2(0.24,0.28))
+		ovq("blue",V.Q.ORB,2,blue_pos,q[0],0.0,q[1])
+		var ql:Array = V.lines_q(r * 1.05,Color(0.05,0.12,0.4,0.55),1.0,0.3,56.0,0.35,12.0,0.6)
+		ovq("blines",V.Q.LINES,0,blue_pos,ql[0],0.0,ql[1])
 	if red_charge >= 0.0:
 		var k:float = clampf(red_charge / 0.7,0.0,1.0)
-		var pulse:float = 0.92 + 0.08 * sin(t * (18.0 + 20.0 * k))
-		ovq("redc",V.Q.ORB,2,_red_charge_pos(),Vector2.ONE * (30.0 + 46.0 * k) * pulse,0.0,V.pal("red",{"alpha":1.3,"p0":Vector4(0.4,1.8,0.4 + 0.5 * k,1.0),"p1":Vector4(8.0,0.2,1.0,0.9),"p2":Vector4(0.0,2.6,0,0)}))
+		var qr:Array = V.orb_q("red",(6.0 + 7.0 * k) * (1.0 + 0.06 * sin(step * 50.0)),1.0,0.08 + 0.06 * k,0.15 + 0.35 * k,9.0,9.0,0.0,0.3 + 0.6 * k,2.0,Vector2(0.2,0.3))
+		ovq("redc",V.Q.ORB,2,_red_charge_pos(),qr[0],0.0,qr[1])
+		if k >= 1.0:
+			var qb:Array = V.burst_q("red",20.0,1.0,10.0,0.4,12.0,0.0,2.0)
+			ovq("redb",V.Q.BURST,1,_red_charge_pos(),qb[0],0.0,qb[1])
 	if purple_charge >= 0.0:
 		var k2:float = clampf(purple_charge / purple_200_hold,0.0,1.0)
 		var c:Vector2 = _purple_center()
 		var orbit:float = 22.0 * (1.0 - V.in_out(k2))
-		var ang2:float = t * (4.0 + 14.0 * k2)
+		var ang2:float = step * (4.0 + 14.0 * k2)
 		var sep:float = 1.0 - V.seg(k2,0.75,1.0)
-		ovq("pb",V.Q.ORB,2,c + Vector2.from_angle(ang2) * orbit,Vector2.ONE * 34.0,0.0,V.pal("blue",{"alpha":1.3 * sep,"p0":Vector4(0.42,-2.2,0.4,1.0),"p1":Vector4(-7.0,0.16,0.9,0.9)}))
-		ovq("pr",V.Q.ORB,2,c - Vector2.from_angle(ang2) * orbit,Vector2.ONE * 34.0,0.0,V.pal("red",{"alpha":1.3 * sep,"p0":Vector4(0.42,2.2,0.4,1.0),"p1":Vector4(7.0,0.16,0.9,0.9)}))
+		if sep > 0.0:
+			var q1:Array = V.orb_q("blue",7.0,sep,0.08,0.1,8.0,-8.0,0.3,0.3,1.8)
+			ovq("pb",V.Q.ORB,2,c + Vector2.from_angle(ang2) * orbit,q1[0],0.0,q1[1])
+			var q2:Array = V.orb_q("red",7.0,sep,0.08,0.2,8.0,8.0,0.0,0.3,1.8)
+			ovq("pr",V.Q.ORB,2,c - Vector2.from_angle(ang2) * orbit,q2[0],0.0,q2[1])
 		var m:float = V.seg(k2,0.45,1.0)
 		if m > 0.0:
-			ovq("pp",V.Q.ORB,1,c,Vector2.ONE * (24.0 + 70.0 * m) * (1.0 + 0.05 * sin(t * 25.0)),0.0,V.pal("purple",{"alpha":1.3 * m,"p0":Vector4(0.44,1.2,0.5 * m,1.0),"p1":Vector4(5.0,0.14,1.0,0.92),"p2":Vector4(0.0,2.2,0,0)}))
+			var q3:Array = V.orb_q("purple",(6.0 + 16.0 * m) * (1.0 + 0.05 * sin(step * 45.0)),1.0,0.1,0.2 + 0.2 * m,11.0,6.0,0.0,0.4 + 0.6 * m,2.5,Vector2(0.2,0.3))
+			ovq("pp",V.Q.ORB,1,c,q3[0],0.0,q3[1])
+		if k2 >= 1.0:
+			var q4:Array = V.lines_q(150.0,Color(0.06,0.0,0.12,0.8),1.0,0.22,64.0,0.45,12.0)
+			ovq("plines",V.Q.LINES,0,c,q4[0],0.0,q4[1])
 
+## 无下限：脚下三段青色短弧（墨线描边，逐拍转动），很淡，不挡角色。
 func draw_under(o:Node2D) -> void:
-	if blue_active:
-		# 苍：空间被吸向中心的黑洞感（角色之下先压暗中心）。
-		var r:float = blue_max_radius if blue_max else blue_radius
-		V.ring(o,blue_pos,0.0,r * 0.5,Color(0.0,0.02,0.1,0.45),Color(0.0,0.02,0.1,0.0),40)
-
-## 无下限与苍的持续视觉都在角色之下：被吸过来的敌人始终看得见。
-func draw_under_add(o:Node2D) -> void:
-	var t:float = _view_clock
 	if infinity_active():
-		# 无下限：极淡的蓝色空间折射，偶尔闪过一圈。
-		var sh:float = 0.5 + 0.5 * sin(t * 3.0)
-		V.ring(o,global_position,11.0,16.0,Color(0.5,0.85,1.0,0.0),Color(0.5,0.85,1.0,0.12 + 0.08 * sh),40)
-		V.sprite(o,"k_circle05",global_position,34.0,Color(0.55,0.9,1.0,0.18 + 0.1 * sh),t * 0.5)
+		var t:float = floorf(_view_clock * 12.0) / 12.0
 		for i:int in 3:
-			var a:float = t * (1.2 + 0.4 * i) + i * 2.1
-			o.draw_arc(global_position,15.0 + i,a,a + 0.5,10,Color(0.7,0.95,1.0,0.35),1.0,true)
-	if blue_active:
-		var r:float = blue_max_radius if blue_max else blue_radius
-		var s:float = 1.25 if blue_max else 1.0
-		V.glow(o,blue_pos,r * 0.9,Color(0.15,0.3,1.0,0.35))
-		V.sprite(o,"k_light03",blue_pos,r * 2.0,Color(0.2,0.4,1.0,0.4),t * 0.4)
-		# 螺旋吸入臂
-		for arm:int in 4:
-			var pts:PackedVector2Array = []
-			for j:int in 18:
-				var u:float = float(j) / 17.0
-				var ang:float = -t * 4.0 + arm * TAU / 4.0 + u * 3.2
-				pts.append(blue_pos + Vector2.from_angle(ang) * r * (0.12 + 0.8 * u))
-			o.draw_polyline(pts,Color(0.4,0.65,1.0,0.5),2.0 * s,true)
-		# 核心
-		V.glow(o,blue_pos,34.0 * s,Color(0.25,0.5,1.0,0.6))
-		o.draw_arc(blue_pos,18.0 * s,-t * 9.0,-t * 9.0 + 4.0,20,Color(0.7,0.9,1.0,0.8),1.5,true)
+			var a:float = t * 1.4 + i * TAU / 3.0
+			o.draw_arc(global_position,15.5,a,a + 0.7,10,Color(0.0,0.05,0.12,0.45),3.0,true)
+			o.draw_arc(global_position,15.5,a,a + 0.7,10,Color(0.65,0.95,1.0,0.6),1.2,true)
 
-func draw_overlay_add(o:Node2D) -> void:
-	var t:float = _view_clock
-	if red_charge >= 0.0:
-		var k:float = clampf(red_charge / 0.7,0.0,1.0)
-		var p:Vector2 = _red_charge_pos()
-		var pulse:float = 0.85 + 0.15 * sin(t * (18.0 + 20.0 * k))
-		V.glow(o,p,(26.0 + 30.0 * k) * pulse,Color(1.0,0.12,0.06,0.8))
-		V.sprite(o,"k_flare01",p,(60.0 + 120.0 * k),Color(1.0,0.35,0.25,0.5 + 0.4 * k),0.0,Vector2(1.0,0.25))
-		V.anim(o,"a_pfx_fireburst",p,40.0 + 30.0 * k,t * 1.5,Color(1,0.6,0.5,0.6 * k),0.0,true)
-		for i2:int in 6:
-			var a2:float = t * 10.0 + TAU * i2 / 6.0
-			var l:float = (12.0 + 12.0 * k) * (0.8 + 0.2 * sin(t * 30.0 + i2))
-			o.draw_line(p + Vector2.from_angle(a2) * 6.0,p + Vector2.from_angle(a2) * l,Color(1.0,0.5,0.35,0.7 * k),1.5,true)
-		if k >= 1.0: V.shock(o,p,22.0 + 6.0 * sin(t * 20.0),6.0,Color(1.0,0.5,0.4,0.8))
+## 茈咏唱法环：按蓄力逐段点亮的描边圆环与八个节点。
+func draw_overlay(o:Node2D) -> void:
 	if purple_charge >= 0.0:
 		var k2:float = clampf(purple_charge / purple_200_hold,0.0,1.0)
 		var c:Vector2 = _purple_center()
-		# 苍与赫环绕公转，逐渐靠近、加速，最后合为茈。
-		var orbit:float = 22.0 * (1.0 - V.in_out(k2))
-		var ang2:float = t * (4.0 + 14.0 * k2)
-		var pb:Vector2 = c + Vector2.from_angle(ang2) * orbit
-		var pr:Vector2 = c - Vector2.from_angle(ang2) * orbit
-		for tr:int in 5:
-			var back:float = ang2 - tr * 0.18
-			var fa:float = 0.4 * (1.0 - tr / 5.0)
-			V.core(o,c + Vector2.from_angle(back) * orbit,6.0,Color(0.25,0.45,1.0,fa))
-			V.core(o,c - Vector2.from_angle(back) * orbit,6.0,Color(1.0,0.2,0.12,fa))
-		V.glow(o,pb,22.0,Color(0.2,0.4,1.0,0.9))
-		V.glow(o,pr,22.0,Color(1.0,0.15,0.08,0.9))
-		V.glow(o,c,40.0 + 50.0 * k2,Color(0.6,0.25,1.0,0.25 + 0.5 * k2))
-		V.sprite(o,"k_magic03",c,(70.0 + 40.0 * k2),Color(0.75,0.5,1.0,0.3 + 0.5 * k2),t * (1.0 + 3.0 * k2))
-		if k2 > 0.5: V.anim(o,"a_pfx_purple",c,60.0 + 60.0 * k2,t * 1.2,Color(1,1,1,V.seg(k2,0.5,1.0)),0.0,true)
-		if k2 >= 1.0: V.sprite(o,"k_flare01",c,220.0,Color(0.85,0.6,1.0,0.7 + 0.3 * sin(t * 20.0)),0.0,Vector2(1.0,0.2))
-		if k2 > 0.7:
-			var m:float = V.seg(k2,0.7,1.0)
-			_vrng.seed = int(t * 25.0) + 91
-			for b:int in 3:
-				var ba:float = _vrng.randf() * TAU
-				var pts2:PackedVector2Array = V.bolt(_vrng,c,c + Vector2.from_angle(ba) * _vrng.randf_range(24,46),8.0,3)
-				V.draw_bolt(o,pts2,1.0,Color(0.75,0.45,1.0,0.8 * m),Color(1,0.9,1,m))
-		# 咏唱法环：随蓄力逐步点亮
 		var ring_r:float = 34.0
-		o.draw_arc(c,ring_r,-PI / 2.0,-PI / 2.0 + TAU * k2,48,Color(0.8,0.6,1.0,0.8),2.0,true)
+		var end_a:float = -PI / 2.0 + TAU * k2
+		o.draw_arc(c,ring_r,-PI / 2.0,end_a,48,Color(0.06,0.0,0.12,0.9),4.0,true)
+		o.draw_arc(c,ring_r,-PI / 2.0,end_a,48,Color(0.9,0.75,1.0,1.0),1.6,true)
 		for g:int in 8:
 			if float(g) / 8.0 <= k2:
-				V.sparkle(o,c + Vector2.from_angle(-PI / 2.0 + TAU * g / 8.0) * ring_r,4.5,Color(0.9,0.75,1.0,0.9),t * 2.0)
+				var gp:Vector2 = c + Vector2.from_angle(-PI / 2.0 + TAU * g / 8.0) * ring_r
+				o.draw_circle(gp,4.0,Color(0.06,0.0,0.12,0.95))
+				o.draw_circle(gp,2.4,Color(1.0,0.9,1.0,1.0))
 
 func get_armor_test_effect_summary() -> String:
 	if JJK.english():

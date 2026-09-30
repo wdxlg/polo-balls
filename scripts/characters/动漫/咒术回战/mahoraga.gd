@@ -34,7 +34,7 @@ var _swing_dir:Vector2 = Vector2.RIGHT
 var _adapt_text_cd:float = 0.0
 
 func _ready() -> void:
-	intro_sound = "mahoraga_summon"
+	intro_sound = "mahoraga_roar"
 	cursed_energy_max = 600.0
 	cursed_energy_regen = 20.0
 	rct_heal_ratio_per_second = 0.0
@@ -261,11 +261,22 @@ func accept_visual(data:Dictionary) -> void:
 	_swing_dir = data.get("sd",_swing_dir)
 
 func draw_overlay(o:Node2D) -> void:
-	# 头顶八握之剑法阵（原作的舵轮）：每完成一次适应转 1/8 圈，转动中顺滑旋转并放大。
+	# 头顶八握之剑法阵（原作的舵轮）：每完成一次适应转 1/8 圈，按拍“咔、咔”地转过去。
 	var turning:bool = not wheel_key.is_empty()
 	var c:Vector2 = global_position + Vector2(0,-25)
-	var angle:float = (wheel_turns + (V.in_out(wheel_progress) if turning else 0.0)) * TAU / 8.0
+	var prog:float = floorf(wheel_progress * 6.0) / 6.0 if turning else 0.0
+	var angle:float = (wheel_turns + prog) * TAU / 8.0
 	V.dharma_wheel(o,c,11.0 if turning else 9.5,angle,1.0)
+	if turning:
+		var e:float = -PI / 2.0 + TAU * wheel_progress
+		o.draw_arc(c,19.0,-PI / 2.0,e,32,Color(0.12,0.06,0.0,0.9),4.0,true)
+		o.draw_arc(c,19.0,-PI / 2.0,e,32,Color(1.0,0.9,0.5,1.0),1.8,true)
+	if _swing_visual > 0.0:
+		# 退魔之剑挥砍：白芯金边的新月刃（墨线描边），四拍收完。
+		var k:float = floorf(clampf(_swing_visual / 0.25,0.0,1.0) * 4.0) / 4.0
+		_swing_arc(o,sword_range * 0.9,30.0 * k,Color(0.08,0.04,0.0,0.95 * k))
+		_swing_arc(o,sword_range * 0.9,24.0 * k,Color(1.0,0.8,0.35,k))
+		_swing_arc(o,sword_range * 0.9,12.0 * k,Color(1,1,1,k))
 
 func _swing_arc(o:Node2D,r:float,w:float,col:Color) -> void:
 	if w < 1.5: return
@@ -282,22 +293,6 @@ func _swing_arc(o:Node2D,r:float,w:float,col:Color) -> void:
 	inner.reverse()
 	var poly:PackedVector2Array = outer + inner.slice(1,inner.size() - 1)
 	o.draw_colored_polygon(poly,col)
-
-func draw_overlay_add(o:Node2D) -> void:
-	var t:float = _view_clock
-	var c:Vector2 = global_position + Vector2(0,-25)
-	var turning:bool = not wheel_key.is_empty()
-	var angle:float = (wheel_turns + (V.in_out(wheel_progress) if turning else 0.0)) * TAU / 8.0
-	V.dharma_wheel_glow(o,c,11.0 if turning else 9.5,angle,(0.9 if turning else 0.35) * (1.0 + 0.1 * sin(t * 6.0)))
-	if turning:
-		o.draw_arc(c,20.0,-PI / 2.0,-PI / 2.0 + TAU * wheel_progress,32,Color(1,0.95,0.6,0.95),2.0,true)
-		V.glow(o,c + Vector2.from_angle(-PI / 2.0 + TAU * wheel_progress) * 20.0,8.0,Color(1,0.95,0.7,1))
-	if _swing_visual > 0.0:
-		var k:float = clampf(_swing_visual / 0.25,0.0,1.0)
-		_swing_arc(o,sword_range * 0.9,26.0 * k,Color(1.0,0.9,0.6,0.45 * k))
-		_swing_arc(o,sword_range * 0.9,9.0 * k,Color(1,1,1,0.95 * k))
-		var sd:Vector2 = direction.normalized() if direction.length_squared() > 0.01 else Vector2.RIGHT
-		V.sprite(o,"k_slash03",global_position + sd * sword_range * 0.55,sword_range * 1.6,Color(1.0,0.9,0.6,0.9 * k),sd.angle(),Vector2(0.6,1.0))
 
 func get_armor_test_effect_summary() -> String:
 	if JJK.english():

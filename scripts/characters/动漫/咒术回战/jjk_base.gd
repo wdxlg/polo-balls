@@ -73,7 +73,9 @@ func step_mob(delta:float) -> void:
 	if not is_combat_runtime_active(): return
 	if not _intro_played:
 		_intro_played = true
-		if not intro_sound.is_empty(): sfx(intro_sound,-2.0)
+		if not intro_sound.is_empty():
+			if intro_sound.begins_with("v_"): voice(intro_sound,2)
+			else: sfx(intro_sound,-2.0)
 	burnout_left = maxf(0.0,burnout_left - delta)
 	black_flash_zone_left = maxf(0.0,black_flash_zone_left - delta)
 	cursed_energy = minf(cursed_energy_max,cursed_energy + cursed_energy_regen * delta * (1.5 if black_flash_zone_left > 0.0 else 1.0))
@@ -160,7 +162,7 @@ func roll_black_flash(point:Vector2) -> float:
 	black_flash_zone_left = black_flash_zone_seconds
 	cursed_energy = minf(cursed_energy_max,cursed_energy + cursed_energy_max * 0.15)
 	burnout_left = maxf(0.0,burnout_left - 2.0)
-	sfx("black_flash",0.0)
+	voice("v_black_flash",2,0.0)
 	sfx("black_flash_hit",-2.0)
 	fx("black_flash",{"pos":point,"radius":70.0},0.45)
 	fx("text",{"pos":point + Vector2(0,-40),"text":"Black Flash" if JJK.english() else "黑闪","size":26,"color":Color(1.0,0.2,0.25),"world":true},0.9)
@@ -205,6 +207,28 @@ func sfx(key:String,volume_db:float = 0.0) -> void:
 @rpc("authority","call_remote","reliable")
 func _jjk_sound(key:String,point:Vector2,volume_db:float) -> void:
 	JJK.play_local(self,key,point,volume_db)
+
+## 角色语音通道：同一角色同时只说一句。priority 0 普通招式 / 1 强化招式 / 2 大招与登场（可打断低优先级）；
+## 普通招式同一句在 min_gap 秒内不重复，避免连发时台词刷屏。音效不受影响，照常用 sfx()。
+var _voice_player:AudioStreamPlayer2D
+var _voice_priority:int = -1
+var _voice_last:Dictionary = {}
+func voice(key:String,priority:int = 0,min_gap:float = 7.0,volume_db:float = 0.0) -> void:
+	if not is_multiplayer_authority(): return
+	var now:float = Time.get_ticks_msec() / 1000.0
+	if priority < 2 and now - float(_voice_last.get(key,-999.0)) < min_gap: return
+	if is_instance_valid(_voice_player) and _voice_player.playing and priority <= _voice_priority: return
+	_voice_last[key] = now
+	if multiplayer.has_multiplayer_peer(): _jjk_voice.rpc(key,priority,volume_db)
+	_jjk_voice(key,priority,volume_db)
+
+@rpc("authority","call_remote","reliable")
+func _jjk_voice(key:String,priority:int,volume_db:float) -> void:
+	if is_instance_valid(_voice_player):
+		_voice_player.stop()
+		_voice_player.queue_free()
+	_voice_player = JJK.play_local(self,key,global_position,volume_db)
+	_voice_priority = priority
 
 ## 大招过场特写（纯视觉）。right=true 从右侧切入。
 func cutin(title_zh:String,title_en:String,sub_zh:String,sub_en:String,color:Color,right:bool = false) -> void:
