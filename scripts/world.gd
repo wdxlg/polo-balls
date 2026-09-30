@@ -2618,6 +2618,7 @@ func _subtract_axis_intervals(axis_min:float,axis_max:float,intervals:Array[Vect
 
 func _process_waiter_door_passages(ball_group:Array = []) -> void:
 	_prune_waiter_doors_for_current_map()
+	_close_orphaned_waiter_doors()
 	if _waiter_doors.is_empty():
 		_restore_all_waiter_door_wall_masks()
 		return
@@ -2795,6 +2796,18 @@ func _restore_all_waiter_door_wall_masks() -> void:
 	_restore_waiter_door_wall_masks_not_in_tunnel({})
 
 
+# The waiter only closes its door from its own timer or Die(); reset and rotation retire
+# free it without dying, which left a permanent gap that later fighters walked out through.
+func _close_orphaned_waiter_doors() -> void:
+	for raw_id:Variant in _waiter_doors.keys().duplicate():
+		var info:Dictionary = _waiter_doors[raw_id]
+		if bool(info.get("closing",false)): continue
+		var owner_ref:Variant = info.get("owner_ref",null)
+		var owner:Variant = owner_ref.get_ref() if owner_ref != null else null
+		if owner == null or not is_instance_valid(owner) or owner.is_queued_for_deletion() or ("health" in owner and owner.health <= 0):
+			close_waiter_door(int(raw_id),0.12)
+
+
 func _prune_waiter_doors_for_current_map() -> void:
 	var removed:bool = false
 	for raw_id:Variant in _waiter_doors.keys().duplicate():
@@ -2843,6 +2856,12 @@ func _process_map_squeeze_protection(ball_group:Array = []) -> void:
 			continue
 		var b:ball = node as ball
 		if b.has_meta("development_reserve"):
+			continue
+		if b.Type == ball.Ball_Type.Creature:
+			# Summons get only the instant wall-embed release, never the walk-back rescue.
+			if b.health > 0 and not b.has_meta(&"submission_allow_map_escape") and not b.has_meta(&"map_rescue_animating"):
+				var creature_rect:Rect2 = nearest_map_island_rect(b.global_position,island_rects)
+				if creature_rect.size.x > 0.0 and creature_rect.has_point(b.global_position): _release_body_from_safety_wall(b,creature_rect)
 			continue
 		if b.Type != ball.Ball_Type.Ball:
 			continue
@@ -2922,7 +2941,7 @@ func _process_map_squeeze_protection(ball_group:Array = []) -> void:
 
 
 func _release_body_from_safety_wall(b:ball,map_rect:Rect2) -> void:
-	if not b.get_collision_mask_value(1) or b.has_meta(&"waiter_door_passage_grace_until_msec"): return
+	if not b.get_collision_mask_value(1) or b.collision_layer == 0 or b.has_meta(&"waiter_door_passage_grace_until_msec"): return
 	var extents:Rect2=_body_extents_from_origin(b)
 	var body:Rect2=Rect2(b.global_position+extents.position,extents.size)
 	var depth:float=maxf(maxf(map_rect.position.x-body.position.x,body.end.x-map_rect.end.x),maxf(map_rect.position.y-body.position.y,body.end.y-map_rect.end.y))
@@ -3047,6 +3066,14 @@ func _map_safe_body_position(b:ball,map_rect:Rect2,wanted:Vector2) -> Vector2:
 
 # Bodies spawned or moved onto the same point get identical depenetration every physics
 # frame and are shoved through the safety wall together; give each one its own spot.
+# For summons placed beside their owner: nearest clear spot fully inside the map walls.
+func map_free_spawn_position(b:ball,wanted:Vector2) -> Vector2:
+	var map_node:Node=_current_map_node()
+	if b==null or map_node==null: return wanted
+	var map_rect:Rect2=nearest_map_island_rect(wanted,map_island_rects(map_node))
+	if map_rect.size.x<=1.0 or map_rect.size.y<=1.0: return wanted
+	return _map_free_body_position(b,map_rect,wanted,4)
+
 func _map_free_body_position(b:ball,map_rect:Rect2,wanted:Vector2,max_rings:int=6,reserved:Array=[]) -> Vector2:
 	var extents:Rect2=_body_extents_from_origin(b)
 	var size:Vector2=extents.size.max(Vector2.ONE*4.0)
@@ -3056,7 +3083,7 @@ func _map_free_body_position(b:ball,map_rect:Rect2,wanted:Vector2,max_rings:int=
 	for unit:Variant in _battle_units_cache:
 		if unit==b or not is_instance_valid(unit) or unit.is_queued_for_deletion() or not unit is ball: continue
 		var other:ball=unit as ball
-		if other.Type!=ball.Ball_Type.Ball or other.health<=0 or other.has_meta("development_reserve") or other.has_meta("rotation_prestart_preview"): continue
+		if (other.Type!=ball.Ball_Type.Ball and other.Type!=ball.Ball_Type.Creature) or other.collision_layer==0 or other.health<=0 or other.has_meta("development_reserve") or other.has_meta("rotation_prestart_preview"): continue
 		var at:Vector2=other.get_meta("map_rescue_target",other.global_position) if other.has_meta("map_rescue_animating") else other.global_position
 		var other_extents:Rect2=_body_extents_from_origin(other)
 		occupied.append(Rect2(at+other_extents.position,other_extents.size))

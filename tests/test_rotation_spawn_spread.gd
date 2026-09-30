@@ -77,6 +77,12 @@ func run() -> void:
 	wedged.global_position = Vector2(map.get_center().x,map.position.y-ew.position.y-4.0)
 	world._release_body_from_safety_wall(wedged,map)
 	check(wall_depth(wedged,map) <= 0.0 and not body_rect(wedged).intersects(body_rect(blocker)),"a body wedged between a unit and the wall is released to a clear spot (depth %.1f)" % wall_depth(wedged,map))
+	var door_owner:Node2D = Node2D.new(); world.add_child(door_owner)
+	door_owner.global_position = Vector2(map.get_center().x+60.0,map.position.y+8.0)
+	var door_id:int = world.open_waiter_door(door_owner)
+	door_owner.queue_free()
+	for i:int in range(20): await physics_frame
+	check(door_id >= 0 and not world._waiter_doors.has(door_id),"a waiter door closes once its owner is removed without dying")
 	var phased:Node = units("right")[1]
 	phased.set_collision_mask_value(1,false)
 	phased.global_position = Vector2(map.end.x-e.end.x+6.0,map.get_center().y+30.0)

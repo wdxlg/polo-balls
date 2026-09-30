@@ -154,7 +154,7 @@ func _update_emergence(body:ball,delta:float) -> void:
 	# cubic ease-out：刚长出来明显，接近正常位置时自然减速。
 	var eased:float = 1.0 - pow(1.0 - t,3.0)
 	var outward:Vector2 = Vector2.from_angle(_emerge_angle)
-	global_position = body.global_position + outward * rest_radius * eased
+	global_position = body.global_position + outward * _emergence_reach(body,outward,rest_radius * eased)
 	direction = outward
 
 	var graphics := get_node_or_null("Graphics") as Node2D
@@ -373,6 +373,23 @@ func _is_valid_target(raw_target:Variant,body:ball,radius:float) -> bool:
 	if body.global_position.distance_squared_to(target.global_position) > allowed_radius * allowed_radius:
 		return false
 	return true
+
+
+# 长出时碰撞是关的；贴墙时把伸出距离截在墙前，否则头会穿墙长到地图外被墙挡住回不来。
+func _emergence_reach(body:ball,outward:Vector2,distance:float) -> float:
+	var space:PhysicsDirectSpaceState2D = get_world_2d().direct_space_state
+	if space == null or distance <= 0.0:
+		return distance
+	var query:PhysicsRayQueryParameters2D = PhysicsRayQueryParameters2D.create(body.global_position,body.global_position + outward * distance,1)
+	query.exclude = [body.get_rid(),get_rid()]
+	var hit:Dictionary = space.intersect_ray(query)
+	if hit.is_empty():
+		return distance
+	var head_radius:float = 8.0
+	if collision_shape_2d != null and collision_shape_2d.shape != null:
+		var size:Vector2 = collision_shape_2d.shape.get_rect().size * collision_shape_2d.global_scale.abs()
+		head_radius = maxf(size.x,size.y) * 0.5 + 2.0
+	return maxf(body.global_position.distance_to(hit.position) - head_radius,0.0)
 
 
 func _enforce_tether(body:ball) -> void:

@@ -142,6 +142,9 @@ func _spawn_head_at_angle(rest_angle:float,emerge_from_body:bool = false) -> bal
 		head.global_position = global_position
 	else:
 		head.global_position = global_position + Vector2.from_angle(rest_angle) * minf(head_rest_radius,head_move_radius * 0.72)
+		# 角落出生时头不能放到墙里/墙外。
+		if world.has_method("map_free_spawn_position"):
+			head.global_position = world.call("map_free_spawn_position",head,head.global_position)
 	_register_hydra_head(head)
 	if emerge_from_body and head.has_method("begin_regrow_emergence"):
 		head.call("begin_regrow_emergence",rest_angle,maxf(head_regrow_emerge_duration,0.08))

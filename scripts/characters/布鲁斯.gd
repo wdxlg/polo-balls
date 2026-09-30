@@ -139,6 +139,8 @@ func _spawn_dog() -> void:
 
 	var side:Vector2 = direction.normalized() if direction.length_squared() > 0.000001 else Vector2.RIGHT
 	new_dog.global_position = _clamp_point_to_map(global_position + side * dog_spawn_distance,18.0)
+	if world.has_method("map_free_spawn_position"):
+		new_dog.global_position = world.call("map_free_spawn_position",new_dog,new_dog.global_position)
 	dog = new_dog
 	_update_leash_visual()
 
