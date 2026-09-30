@@ -409,6 +409,7 @@ func _targets_in_forward_arc(attack_dir:Vector2,range_value:float,half_angle:flo
 
 
 func _is_enemy_target(target:ball) -> bool:
+	if preload("res://scripts/characters/我的世界/haochen/copy_friendly_guard.gd").skips_target(self,target): return false # 皓宸复制品及其产物不把己方选为目标
 	if target == null or not is_instance_valid(target) or target == self:
 		return false
 	if target.Type != Ball_Type.Ball or target.health <= 0 or not target.is_combat_targetable():
@@ -652,6 +653,16 @@ func receive_netherite_ingot() -> bool:
 	has_netherite_ingot = true
 	_upgrade_flash_left = 0.42
 	return true
+
+
+# 复制品是全新的钻石剑（未升级）：复制已升级的剑时扣除下界合金加成，
+# 避免复制品之后再次升级时加成叠加两次。
+func character_copy_template_stats(stats:Dictionary) -> Dictionary:
+	if not upgraded_to_netherite: return stats
+	stats["Max_health"] = maxi(int(stats.get("Max_health",Max_health))-maxi(netherite_health_bonus,0),1)
+	stats["Damage"] = maxi(int(stats.get("Damage",Damage))-maxi(netherite_damage_bonus,0),0)
+	stats["Attack_Cooling"] = maxf(float(stats.get("Attack_Cooling",Attack_Cooling))/clampf(netherite_attack_cooldown_multiplier,0.20,1.00),0.05)
+	return stats
 
 
 func _upgrade_to_netherite() -> void:

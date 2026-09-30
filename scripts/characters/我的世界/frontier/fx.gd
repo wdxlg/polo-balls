@@ -11,6 +11,7 @@ const BAR = preload("res://scripts/characters/我的世界/frontier/creeper_styl
 const TABLE:Texture2D = preload("res://Images/characters/我的世界/frontier/table_block.png")
 const VIBRATION:Texture2D = preload("res://Images/characters/我的世界/frontier/vibration.png")
 const SONIC:Texture2D = preload("res://Images/characters/我的世界/frontier/sonic.png")
+const COPY_SCALE = preload("res://scripts/characters/我的世界/haochen/copy_body_scale.gd")
 var actor:Node2D
 var particles:Array[Dictionary] = []
 var beams:Array[Dictionary] = []
@@ -148,13 +149,17 @@ func _draw_moss(_center:Vector2) -> void:
 func _draw_sword(center:Vector2) -> void:
 	if actor.part_kind != 0: return
 	var ratio:float = clampf(float(actor.durability)/float(actor.MAX_DURABILITY),0,1)
-	BAR.paint(self,Rect2(center+Vector2(-11,18.4),Vector2(22,3.2)),ratio,1.0-ratio)
+	# World-space overlay (top_level): shrink with a shrunken copy's body.
+	var k:float = COPY_SCALE.of(actor)
+	BAR.paint(self,Rect2(center+Vector2(-11,18.4)*k,Vector2(22,3.2)*k),ratio,1.0-ratio)
 func _draw_warden(center:Vector2) -> void:
 	_draw_warden_aim()
 	if actor.form==actor.Form.DORMANT:
-		BAR.paint(self,Rect2(center+Vector2(-19,17),Vector2(38,3.2)),actor.alert_level/maxf(actor.alert_max,1.0),1.0-actor.alert_level/maxf(actor.alert_max,1.0),Color(0.08,0.45,1.0,1.0))
+		# Alert bar and signal icons are the warden's own UI: shrink with a copy's body.
+		var k:float = COPY_SCALE.of(actor)
+		BAR.paint(self,Rect2(center+Vector2(-19,17)*k,Vector2(38,3.2)*k),actor.alert_level/maxf(actor.alert_max,1.0),1.0-actor.alert_level/maxf(actor.alert_max,1.0),Color(0.08,0.45,1.0,1.0))
 		for i:int in range(5):
-			draw_texture_rect(SCULK,Rect2(center+Vector2(-19+i*8,23),Vector2(6,6)),false,Color(0.6,1,1,1.0 if i<actor.signals_received else 0.2))
+			draw_texture_rect(SCULK,Rect2(center+Vector2(-19+i*8,23)*k,Vector2(6,6)*k),false,Color(0.6,1,1,1.0 if i<actor.signals_received else 0.2))
 	if actor.sonic_left>0.0:
 		var frame:int = mini(SONIC.get_width(),SONIC.get_height())
 		for i:int in range(1,12):

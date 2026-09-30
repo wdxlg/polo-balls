@@ -212,6 +212,7 @@ func _apply_explosion_damage(owner_node:Node,impact_position:Vector2) -> void:
             _play_burn_damage_sfx(owner_node,target.global_position)
 
 func _is_enemy(target:ball,owner_node:Node) -> bool:
+    if preload("res://scripts/characters/我的世界/haochen/copy_friendly_guard.gd").skips_target(owner_node,target): return false # 皓宸复制品及其产物不把己方选为目标
     if target == null or not is_instance_valid(target) or target.health <= 0:
         return false
     if target == owner_node:

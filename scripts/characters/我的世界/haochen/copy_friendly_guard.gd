@@ -12,12 +12,27 @@ extends RefCounted
 
 const GROUP:StringName = &"character_copy_friendly_guard"
 const MAX_STEPS:int = 16
+## Damage attempts stopped by blocks() (a copy's hit that reached its own side).
+## Diagnostic only; tests read it to prove target selection never aims at allies.
+static var blocked_count:int = 0
 
 static func mark(unit:Node) -> void:
 	if is_instance_valid(unit) and not unit.is_in_group(GROUP): unit.add_to_group(GROUP)
 
 ## True when `source` descends from a guard member and `target` is on that member's side.
 static func blocks(target:Node,source:Variant) -> bool:
+	if not side_of(target,source): return false
+	blocked_count += 1
+	return true
+
+## Target selection entry: `seeker` (a guarded copy, or anything it launched or
+## summoned) must never pick `candidate` as an enemy. Every custom enemy predicate
+## (_is_enemy, _is_valid_enemy, mc_enemy ...) asks this before its own team rules,
+## because those rules treat teammates as enemies when team damage is on.
+static func skips_target(seeker:Variant,candidate:Variant) -> bool:
+	return is_instance_valid(candidate) and candidate is Node and side_of(candidate as Node,seeker)
+
+static func side_of(target:Node,source:Variant) -> bool:
 	if not is_instance_valid(target) or not is_instance_valid(source) or not (source is Node) or not target.is_inside_tree(): return false
 	if not target.get_tree().has_group(GROUP): return false
 	var guard:Node = guard_in_chain(source as Node)

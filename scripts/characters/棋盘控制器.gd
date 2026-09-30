@@ -363,6 +363,7 @@ func _slot_for_player(player:ball) -> int:
 
 
 func _is_enemy(source:ball,target:ball) -> bool:
+	if preload("res://scripts/characters/我的世界/haochen/copy_friendly_guard.gd").skips_target(source,target): return false # 皓宸复制品及其产物不把己方选为目标
 	if source == null or target == null:
 		return false
 	if source == target or not target.is_combat_targetable():

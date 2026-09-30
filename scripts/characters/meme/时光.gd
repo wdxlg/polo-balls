@@ -538,6 +538,7 @@ func _board_signature(board_state:Dictionary) -> String:
 
 
 func _is_enemy(target:ball) -> bool:
+	if preload("res://scripts/characters/我的世界/haochen/copy_friendly_guard.gd").skips_target(self,target): return false # 皓宸复制品及其产物不把己方选为目标
 	if target == null or target == self or not is_instance_valid(target):
 		return false
 	if not target.is_combat_targetable():

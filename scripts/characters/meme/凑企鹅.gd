@@ -291,6 +291,7 @@ func _find_assimilation_targets() -> Array[ball]:
 
 
 func _is_attackable_enemy(candidate:ball) -> bool:
+	if preload("res://scripts/characters/我的世界/haochen/copy_friendly_guard.gd").skips_target(self,candidate): return false # 皓宸复制品及其产物不把己方选为目标
 	if candidate == null or not is_instance_valid(candidate) or candidate == self:
 		return false
 	if not candidate.is_combat_targetable():
@@ -301,6 +302,7 @@ func _is_attackable_enemy(candidate:ball) -> bool:
 
 
 func _is_enemy_character(candidate:ball) -> bool:
+	if preload("res://scripts/characters/我的世界/haochen/copy_friendly_guard.gd").skips_target(self,candidate): return false # 皓宸复制品及其产物不把己方选为目标
 	if candidate == null or not is_instance_valid(candidate) or candidate == self:
 		return false
 	if candidate.Type != Ball_Type.Ball or candidate.health <= 0:

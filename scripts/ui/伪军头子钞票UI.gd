@@ -1,6 +1,7 @@
 extends Node2D
 
 const MONEY_TEXTURE_PATH:String = "res://Images/characters/人物/收债人/收债人_一沓钱.png"
+const COPY_SCALE = preload("res://scripts/characters/我的世界/haochen/copy_body_scale.gd")
 
 @export_category("伪军头子 - 钞票视觉")
 @export var world_offset:Vector2 = Vector2(22.0,-13.0)
@@ -25,9 +26,11 @@ func _process(_delta:float) -> void:
 	var owner_node:Node2D = get_parent() as Node2D
 	if owner_node == null or not is_instance_valid(owner_node):
 		return
-	global_position = owner_node.global_position + world_offset
+	# 世界坐标 UI：缩小的复制品（皓宸复制）钞票随身体一起缩小。
+	var copy_scale:float = COPY_SCALE.of(owner_node)
+	global_position = owner_node.global_position + world_offset * copy_scale
 	global_rotation = 0.0
-	global_scale = Vector2.ONE
+	global_scale = Vector2.ONE * copy_scale
 
 func set_money(value:float,max_value:int = 3) -> void:
 	max_bills = maxi(max_value,1)

@@ -52,6 +52,7 @@ func mc_live() -> bool:
 	return is_multiplayer_authority() and health > 0 and is_combat_runtime_active() and not is_damage_output_disabled()
 
 func mc_enemy(target:Variant) -> bool:
+	if preload("res://scripts/characters/我的世界/haochen/copy_friendly_guard.gd").skips_target(self,target): return false # 皓宸复制品及其产物不把己方选为目标
 	# 必须先接收 Variant 再检查：已释放对象传入 ball 参数会在进入函数前报错。
 	if not is_instance_valid(target): return false
 	if not target is ball or target.is_queued_for_deletion(): return false

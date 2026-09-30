@@ -64,6 +64,7 @@ func _removed() -> void: pass
 
 ## Enemy of the trader's side (his team when he is gone).
 func hostile(unit:Node) -> bool:
+	if preload("res://scripts/characters/我的世界/haochen/copy_friendly_guard.gd").skips_target(self,unit): return false # 皓宸复制品及其产物不把己方选为目标
 	var owner_trader:Node2D = trader()
 	if owner_trader != null: return CATALOG.enemy_of(owner_trader,unit)
 	return is_instance_valid(unit) and not team.is_empty() and str(unit.get(&"Team")) != team

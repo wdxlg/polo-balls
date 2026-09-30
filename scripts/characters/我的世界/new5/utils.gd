@@ -3,7 +3,7 @@
 static func enemy(source:ball,target:Variant,neutral:bool = false) -> bool:
 	if not is_instance_valid(target) or not target is ball or target == source: return false
 	if not target.is_combat_targetable(): return false
-	if target.has_method(&"is_guarded_from_friendly_copy") and target.call(&"is_guarded_from_friendly_copy",source): return false # Haochen copies never pick his side (task 10)
+	if preload("res://scripts/characters/我的世界/haochen/copy_friendly_guard.gd").skips_target(source,target): return false # Haochen copies never pick his side
 	if neutral: return true
 	return Game.Game_Settings.Have_Team_Damage or source.Team.is_empty() or source.Team != target.Team
 static func nearest(source:ball) -> ball:

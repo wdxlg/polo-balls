@@ -3,6 +3,7 @@ extends RefCounted
 static func same_team(a:Node,b:Node) -> bool:
 	return a == b or (not str(a.Team).is_empty() and str(a.Team)==str(b.Team))
 static func enemy(caster:Node,target:Variant) -> bool:
+	if preload("res://scripts/characters/我的世界/haochen/copy_friendly_guard.gd").skips_target(caster,target): return false # 皓宸复制品及其产物不把己方选为目标
 	return is_instance_valid(target) and target is ball and not same_team(caster,target) and caster.mc_enemy(target)
 static func radius(unit:Node2D) -> float:
 	return maxf(float(unit.get_crowd_separation_radius_world()),3.0)

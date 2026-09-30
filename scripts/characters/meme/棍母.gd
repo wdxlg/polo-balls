@@ -136,6 +136,7 @@ func _damage_contact_enemies() -> void:
 
 
 func _is_non_existent_enemy(target:ball) -> bool:
+	if preload("res://scripts/characters/我的世界/haochen/copy_friendly_guard.gd").skips_target(self,target): return false # 皓宸复制品及其产物不把己方选为目标
 	if target == null or not is_instance_valid(target) or target == self or target.health <= 0:
 		return false
 	if not target.is_combat_targetable():

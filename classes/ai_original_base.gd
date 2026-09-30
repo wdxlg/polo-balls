@@ -20,7 +20,7 @@ func enemy_valid(value:Variant,lockable:bool = false) -> bool:
 	var candidate:ball = value as ball
 	if not candidate.is_combat_targetable():
 		return false
-	if candidate.has_method(&"is_guarded_from_friendly_copy") and candidate.call(&"is_guarded_from_friendly_copy",self): # Haochen copies never pick his side (task 10)
+	if preload("res://scripts/characters/我的世界/haochen/copy_friendly_guard.gd").skips_target(self,candidate): # Haochen copies never pick his side
 		return false
 	if not Game.Game_Settings.Have_Team_Damage and not Team.strip_edges().is_empty() and candidate.Team == Team:
 		return false

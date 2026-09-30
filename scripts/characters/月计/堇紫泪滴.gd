@@ -659,6 +659,7 @@ func _valid_enemy_from_variant(value:Variant) -> ball:
 	return candidate if _is_enemy(candidate) else null
 
 func _is_enemy(candidate:ball) -> bool:
+	if preload("res://scripts/characters/我的世界/haochen/copy_friendly_guard.gd").skips_target(self,candidate): return false # 皓宸复制品及其产物不把己方选为目标
 	if candidate == null or not is_instance_valid(candidate) or candidate == self or candidate.health <= 0:
 		return false
 	if not candidate.is_combat_targetable():

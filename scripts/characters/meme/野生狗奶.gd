@@ -512,6 +512,7 @@ func _update_target_age_status(target:ball,_age_percent:float) -> void:
 
 
 func _is_hostile_character(target:ball) -> bool:
+	if preload("res://scripts/characters/我的世界/haochen/copy_friendly_guard.gd").skips_target(self,target): return false # 皓宸复制品及其产物不把己方选为目标
 	if target == null or not is_instance_valid(target) or target == self:
 		return false
 	if target.Type != Ball_Type.Ball or target.health <= 0:

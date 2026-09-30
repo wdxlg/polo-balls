@@ -257,6 +257,7 @@ func _play_burn_damage_sfx(source:Node,position_value:Vector2) -> void:
 		source.call("play_war_burn_tick_sfx",position_value)
 
 func _is_enemy(target:ball) -> bool:
+	if preload("res://scripts/characters/我的世界/haochen/copy_friendly_guard.gd").skips_target(_owner(),target): return false # 皓宸复制品及其产物不把己方选为目标
 	if target == null or not is_instance_valid(target) or target.health <= 0:
 		return false
 	var source:Node = _owner()

@@ -482,6 +482,7 @@ func _nearest_real_enemy() -> ball:
 
 
 func _can_target(target:ball) -> bool:
+	if preload("res://scripts/characters/我的世界/haochen/copy_friendly_guard.gd").skips_target(self,target): return false # 皓宸复制品及其产物不把己方选为目标
 	if target == null or target == self or target == owner_human or target.health <= 0:
 		return false
 	return not _is_friendly(target)

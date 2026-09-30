@@ -32,6 +32,7 @@ func _on_landing(point:Vector2) -> void:
 	landing_hits = damage_landing(point)
 
 func is_landing_enemy(candidate:Variant,include_victim:bool=false) -> bool:
+	if preload("res://scripts/characters/我的世界/haochen/copy_friendly_guard.gd").skips_target(self,candidate): return false # 皓宸复制品及其产物不把己方选为目标
 	if not is_instance_valid(candidate) or not candidate is ball: return false
 	if candidate==target and not include_victim: return false
 	if candidate.is_queued_for_deletion() or candidate.health<=0 or not candidate.is_combat_targetable(): return false

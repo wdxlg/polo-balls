@@ -1186,6 +1186,7 @@ func _nearest_enemy_ball() -> ball:
 	return best
 
 func _valid_enemy(candidate:Variant) -> bool:
+	if preload("res://scripts/characters/我的世界/haochen/copy_friendly_guard.gd").skips_target(self,candidate): return false # 皓宸复制品及其产物不把己方选为目标
 	# 目标可能在 await 期间死亡并 queue_free。已释放对象传给静态 ball 参数时，
 	# GDScript 会在进入函数体前直接报 Invalid type，所以这里必须先以 Variant 接收。
 	if candidate == null or not is_instance_valid(candidate):
@@ -1200,6 +1201,7 @@ func _valid_enemy(candidate:Variant) -> bool:
 	return enemy.state_machine == null or enemy.state_machine.current_state != State.Die
 
 func _is_enemy_ball(candidate:ball) -> bool:
+	if preload("res://scripts/characters/我的世界/haochen/copy_friendly_guard.gd").skips_target(self,candidate): return false # 皓宸复制品及其产物不把己方选为目标
 	if candidate == null or candidate == self:
 		return false
 	var my_team:String = str(Team).strip_edges()

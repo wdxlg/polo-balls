@@ -802,6 +802,7 @@ func _acquire_nearest_target(max_range:float) -> ball:
 
 
 func _is_valid_enemy(target:ball) -> bool:
+	if preload("res://scripts/characters/我的世界/haochen/copy_friendly_guard.gd").skips_target(self,target): return false # 皓宸复制品及其产物不把己方选为目标
 	if target == null or not is_instance_valid(target) or target.health <= 0:
 		return false
 	if not target.is_combat_targetable():

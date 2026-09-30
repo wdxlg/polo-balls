@@ -442,6 +442,10 @@ func set_migrated_health(value:int,maximum:int) -> void:
 	set_meta("death_return_restore",true)
 	health = value
 	remove_meta("death_return_restore")
+## A copy is a whole fresh sword: copying a split hilt/blade uses the whole sword health.
+func character_copy_template_stats(stats:Dictionary) -> Dictionary:
+	if part_kind != 0 and full_max_health > 0: stats["Max_health"] = full_max_health
+	return stats
 func split_sword() -> void:
 	if not is_multiplayer_authority() or not _split_requested or is_broken() or health <= 0 or is_queued_for_deletion(): return
 	full_max_health = Max_health

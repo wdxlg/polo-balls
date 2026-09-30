@@ -349,6 +349,7 @@ func _find_best_target(body:ball) -> ball:
 
 
 func _is_valid_target(raw_target:Variant,body:ball,radius:float) -> bool:
+	if preload("res://scripts/characters/我的世界/haochen/copy_friendly_guard.gd").skips_target(self,raw_target): return false # 皓宸复制品及其产物不把己方选为目标
 	# 这里故意使用 Variant：如果上一帧目标刚被 free，强类型参数会在进入函数体前
 	# 就因为“previously freed”无法转换成 ball 而抛错，导致 is_instance_valid 根本执行不到。
 	if not is_instance_valid(raw_target):

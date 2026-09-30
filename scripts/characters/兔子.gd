@@ -77,6 +77,12 @@ func _enter_tree() -> void:
 		Max_health = mini(maxi(baby_max_health,1),maxi(_adult_max_health,1))
 
 
+# 复制品是全新的成年兔：复制幼兔时按成年生命上限取基数。
+func character_copy_template_stats(stats:Dictionary) -> Dictionary:
+	if is_baby and _adult_max_health > 0: stats["Max_health"] = _adult_max_health
+	return stats
+
+
 func _ready() -> void:
 	# 在父类初始化前确定家庭队伍，确保随后生成的第二只兔子和繁殖幼兔继承同一阵营。
 	if not is_baby:

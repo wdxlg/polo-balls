@@ -401,6 +401,7 @@ func _apply_beam_damage() -> void:
 
 
 func _is_enemy(target:ball) -> bool:
+	if preload("res://scripts/characters/我的世界/haochen/copy_friendly_guard.gd").skips_target(source,target): return false # 皓宸复制品及其产物不把己方选为目标
 	if PROJECTILE_CONTACT.ignores(target): return false
 	if target == null or target == source or target.health <= 0:
 		return false

@@ -4,6 +4,7 @@ class_name StunVisual
 ## the character plane, not just entire lines, so both halves occlude correctly.
 const ATLAS=preload("res://Images/Status/Stun/mc_status_particles.png")
 const LAYER=preload("res://scripts/effects/stun_pixel_layer.gd")
+const COPY_SCALE=preload("res://scripts/characters/我的世界/haochen/copy_body_scale.gd")
 var target:Node2D
 var follow_offset:Vector2=Vector2(0,-20)
 var visual_scale:float=0.02
@@ -94,6 +95,8 @@ func _follow_target() -> void:
 	front_layer.z_index=clampi(high+1,-4096,4096)
 	global_rotation=0.0
 	var factor:float=clampf(visual_scale/0.02,0.85,1.5)
+	# top_level swirl: a shrunken character copy gets a proportionally smaller one.
+	var copy_scale:float=COPY_SCALE.of(target)
 	if is_instance_valid(body):
 		var rect:Rect2=body.get_rect()
 		var ink:Rect2=Rect2(rect.position+rect.size*_ink.position,rect.size*_ink.size)
@@ -104,9 +107,9 @@ func _follow_target() -> void:
 		factor*=clampf(bounds.size.x/45.0,0.85,1.6)
 		# Anchor at the visible head, not the old icon offset. ball.tscn uses -20 / 0.02.
 		# Keep a shallow overlap for the front/rear occlusion instead of sinking into the body.
-		global_position=Vector2(body.global_position.x,bounds.position.y+minf(bounds.size.y*0.08,4.0))+Vector2(follow_offset.x,clampf(follow_offset.y+20.0,-8.0,0.0))
-	else: global_position=target.global_position+follow_offset
-	global_scale=Vector2.ONE*factor*0.75
+		global_position=Vector2(body.global_position.x,bounds.position.y+minf(bounds.size.y*0.08,4.0))+Vector2(follow_offset.x,clampf(follow_offset.y+20.0,-8.0,0.0))*copy_scale
+	else: global_position=target.global_position+follow_offset*copy_scale
+	global_scale=Vector2.ONE*factor*0.75*copy_scale
 func _process(delta:float) -> void:
 	if not is_instance_valid(target) or target.is_queued_for_deletion() or (target.get("health")!=null and float(target.get("health"))<=0):
 		hide()

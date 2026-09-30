@@ -1707,6 +1707,7 @@ func _is_hostile_projectile(candidate:Node) -> bool:
 	return candidate != self and PROJECTILE_API.supports(candidate,"predict") and PROJECTILE_API.hostile(self,candidate)
 
 func _is_hostile_character(candidate:ball) -> bool:
+	if preload("res://scripts/characters/我的世界/haochen/copy_friendly_guard.gd").skips_target(self,candidate): return false # 皓宸复制品及其产物不把己方选为目标
 	if candidate == self or not is_instance_valid(candidate):
 		return false
 	if not candidate.is_combat_targetable():

@@ -369,6 +369,7 @@ func _try_damage_fist_target(target:ball,hit_ids:Dictionary) -> void:
 
 
 func _is_legal_enemy(candidate:ball) -> bool:
+	if preload("res://scripts/characters/我的世界/haochen/copy_friendly_guard.gd").skips_target(self,candidate): return false # 皓宸复制品及其产物不把己方选为目标
 	if candidate == null or not is_instance_valid(candidate) or candidate == self:
 		return false
 	if not candidate.is_combat_targetable() or candidate.health <= 0:

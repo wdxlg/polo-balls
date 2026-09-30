@@ -20,6 +20,7 @@ const STONE:Texture2D = preload("res://Images/characters/我的世界/wither_ske
 const VOICE = preload("res://scripts/effects/我的世界/mc_creature_voice.gd")
 const SOUNDS = preload("res://scripts/characters/我的世界/wither_skeleton/sounds.gd")
 const GAIN = preload("res://scripts/effects/我的世界/hit_audio_gain.gd")
+const COPY_SCALE = preload("res://scripts/characters/我的世界/haochen/copy_body_scale.gd")
 const WITHER_SECONDS:float = 3.0
 const MAX_WITHER_LEVEL:int = 255 # Existing public potency limit, not a new balance cap.
 const WINDOWS:Array[Vector2] = [Vector2(0.15,0.31),Vector2(0.41,0.57)]
@@ -72,6 +73,7 @@ var _recovery_draw_time:float = -1.0
 var _recovery_draw_revision:int = -1
 var _arm:Sprite2D
 var _sword:Sprite2D
+var _body_copy_scale:float = 1.0
 var voice:Node
 var bolt_cooldown_left:float = BOLT_COOLDOWN
 var bolts_fired:int = 0
@@ -84,6 +86,13 @@ func _ready() -> void:
 	Can_Skill = false
 	set_meta("mc_hook_hurt_only",true)
 	super._ready()
+	# The top_level sword and its world-space reach are part of the body: a shrunken
+	# copy holds a proportionally smaller sword (visual, damage segment, acquisition).
+	_body_copy_scale = COPY_SCALE.of(self)
+	if not is_equal_approx(_body_copy_scale,1.0):
+		blade_length *= _body_copy_scale
+		blade_radius *= _body_copy_scale
+		acquisition_range *= _body_copy_scale
 	_last_position = global_position
 	add_to_group("MinecraftWitherSkeleton")
 	voice = VOICE.new()
@@ -440,9 +449,9 @@ func arm_aim_rotation(time:float,aim:Vector2 = Vector2.ZERO) -> float:
 
 func attack_hand_extension(time:float) -> float:
 	if time < 0.0 or time >= RECOVER_END: return 0.0
-	if time < WINDOWS[0].x: return ATTACK_HAND_REACH*_ss(time/WINDOWS[0].x)
-	if time >= COMBO_DURATION: return ATTACK_HAND_REACH*(1.0-_recovery_progress((time-COMBO_DURATION)/(RECOVER_END-COMBO_DURATION)))
-	return ATTACK_HAND_REACH
+	if time < WINDOWS[0].x: return ATTACK_HAND_REACH*_body_copy_scale*_ss(time/WINDOWS[0].x)
+	if time >= COMBO_DURATION: return ATTACK_HAND_REACH*_body_copy_scale*(1.0-_recovery_progress((time-COMBO_DURATION)/(RECOVER_END-COMBO_DURATION)))
+	return ATTACK_HAND_REACH*_body_copy_scale
 
 func _attack_hand(time:float,aim:Vector2 = Vector2.ZERO) -> Vector2:
 	var shoulder:Vector2 = shoulder_position(time,aim)

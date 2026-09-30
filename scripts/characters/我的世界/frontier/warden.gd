@@ -82,6 +82,12 @@ func _clear_aim() -> void:
 	aim_kind = ""
 func role_key() -> String: return "warden"
 func get_preview_texture() -> Texture2D: return SHRIEKER
+## Copies start dormant: capture the dormant health and shrieker speed, not the
+## awakened double health / chase speed of an emerged warden.
+func character_copy_template_stats(stats:Dictionary) -> Dictionary:
+	if _dormant_max > 0: stats["Max_health"] = _dormant_max
+	stats["Speed"] = shrieker_speed
+	return stats
 func _ready() -> void:
 	super._ready()
 	voice_controller=preload("res://scripts/characters/我的世界/frontier/warden_voice.gd").new()

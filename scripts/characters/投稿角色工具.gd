@@ -99,6 +99,7 @@ static func same_side(a:ball,b:ball) -> bool:
 	return not team_a.is_empty() and team_a == team_b
 
 static func is_enemy(owner:ball,candidate:ball) -> bool:
+	if preload("res://scripts/characters/我的世界/haochen/copy_friendly_guard.gd").skips_target(owner,candidate): return false # 皓宸复制品及其产物不把己方选为目标
 	if owner == null or candidate == null or owner == candidate:
 		return false
 	if not is_instance_valid(owner) or not is_instance_valid(candidate):
@@ -179,6 +180,11 @@ static func capture_character_template(target:ball) -> Dictionary:
 	var scene:String = str(target.scene_file_path)
 	var stats:Dictionary = {}
 	for key:String in COPY_STAT_KEYS: stats[key] = target.get(key)
+	# A copy is a fresh instance that starts in the scene's own initial form. Units
+	# whose stats change with a form (awakened warden, grown rabbit, split sword,
+	# netherite upgrade) report the stats of that initial form here, so the factor
+	# is applied to the right base and later form changes do not double it.
+	if target.has_method(&"character_copy_template_stats"): stats = target.call(&"character_copy_template_stats",stats)
 	return {"scene":scene,"label":scene.get_file().get_basename(),"stats":stats,
 		"health":maxi(int(target.health),1),"block":maxi(int(target.block),0),"energy":maxi(int(target.energy),0)}
 

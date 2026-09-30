@@ -100,6 +100,7 @@ func _on_combatant_died(victim:Node, killer:Node, health_before_lethal:float) ->
 		change_sanity(-sanity_teammate_death_loss)
 
 func _is_enemy_combatant(other:Node) -> bool:
+	if preload("res://scripts/characters/我的世界/haochen/copy_friendly_guard.gd").skips_target(self,other): return false # 皓宸复制品及其产物不把己方选为目标
 	if not (other is ball) or other == self:
 		return false
 	var other_ball:= other as ball

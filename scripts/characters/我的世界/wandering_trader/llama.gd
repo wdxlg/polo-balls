@@ -364,7 +364,7 @@ func apply_speed_hit(target:ball,speed:float,heading:Vector2) -> bool:
 
 func wt_enemy(target:Variant) -> bool:
 	if not mc_enemy(target): return false
-	if (target as Object).has_method(&"is_guarded_from_friendly_copy") and bool((target as Object).call(&"is_guarded_from_friendly_copy",self)): return false
+	if preload("res://scripts/characters/我的世界/haochen/copy_friendly_guard.gd").skips_target(self,target): return false
 	return true
 
 func wt_damage(target:ball,amount:float,point:Vector2) -> bool:

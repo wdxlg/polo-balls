@@ -71,6 +71,7 @@ func _set_character_texture(texture:Texture2D) -> void:
 
 
 func _is_enemy_character(value) -> bool:
+	if preload("res://scripts/characters/我的世界/haochen/copy_friendly_guard.gd").skips_target(self,value): return false # 皓宸复制品及其产物不把己方选为目标
 	if value == null or not is_instance_valid(value) or not (value is ball):
 		return false
 	var target:ball = value as ball
