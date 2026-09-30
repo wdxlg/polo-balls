@@ -69,6 +69,8 @@ func _ready() -> void:
 
 func initialize_swarm() -> void:
 	if not cohort.is_empty() or _retired or health <= 0 or not is_multiplayer_authority(): return
+	# Formation previews (and previews being freed) must not leave a real swarm behind.
+	if is_queued_for_deletion() or has_meta("rotation_prestart_preview"): return
 	var world:Node = get_tree().current_scene
 	var victory_key:String = "team:"+Team if not Team.is_empty() else "solo_instance:"+str(get_instance_id())
 	var presentation_key:String = "team:"+Team if not Team.is_empty() else "solo:"+str(get_instance_id())

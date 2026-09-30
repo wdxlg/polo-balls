@@ -6748,9 +6748,19 @@ func _sync_rotation_preview_positions() -> void:
 
 func _clear_rotation_formation_preview(save_positions:bool) -> void:
 	if save_positions: _sync_rotation_preview_positions()
+	var had_preview:bool = not _rotation_formation_preview.is_empty()
 	for actor:Variant in _rotation_formation_preview.values():
 		if is_instance_valid(actor): Game.free_node(actor)
 	_rotation_formation_preview.clear()
+	if had_preview and not _rotation_started: _free_rotation_preview_residue()
+
+# Previews are PROCESS_MODE_DISABLED, but deferred calls from _ready still run, so bats,
+# dogs, followers... spawned by a preview outlived it and overlapped the real spawns.
+func _free_rotation_preview_residue() -> void:
+	for node:Node in get_tree().get_nodes_in_group("Ball"):
+		if not node is ball or node.is_queued_for_deletion(): continue
+		if node.has_meta("rotation_side") or node.has_meta("rotation_prestart_preview") or node.has_meta("development_reserve"): continue
+		Game.free_node(node)
 
 func _refresh_rotation_formation_preview() -> void:
 	if not is_multiplayer_authority(): return
