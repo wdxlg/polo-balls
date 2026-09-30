@@ -2222,12 +2222,15 @@ func _process(delta: float) -> void:
 			_placement.ghost_ball = null
 		return
 	var world:World = current_scene as World
+	# 用 World 的 CanvasItem 坐标获取真实战场鼠标位置，和角色生成坐标保持一致。
+	# 必须在 process_always() 之前取样：它会立即改写 Camera2D 缩放并刷新画布变换，而录像构图镜头
+	# 随后又在本帧覆盖回实际显示的镜头。夹在中间取样会让放置预览偏离松手时（输入事件）的真实落点，
+	# 且视野越大偏差越大。这里取到的正是玩家上一帧看到、输入事件同样使用的变换。
+	_placement.mouse_poi = world.get_global_mouse_position()
 	_update_control_ring(world)
 	world.process_always(delta)
 	_wild_dog_time._update_wild_dog_time_visual(delta,world)
 
-	# 用 World 的 CanvasItem 坐标获取真实战场鼠标位置，和角色生成坐标保持一致。
-	_placement.mouse_poi = world.get_global_mouse_position()
 	var map_border:Dictionary = world.return_now_map_border()
 	mouse_in_map = (_placement.mouse_poi.x > map_border.start.x and
 	_placement.mouse_poi.x < map_border.end.x and

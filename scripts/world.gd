@@ -8425,6 +8425,12 @@ func _resolve_timed_source_setup_id(source:Node) -> int:
 	return -1
 
 
+## 计时模式进行中（含加赛）主战人物不会因扣血死亡；判负淘汰在 _timed_finished 之后执行，不受影响。
+func timed_prevents_death(target:Node) -> bool:
+	return (Game.is_timed_training_mode() and _timed_running and not _timed_finished
+		and target is ball and _is_primary_battle_character(target as ball))
+
+
 ## 计时模式计分入口：ball.health setter 在确认实际生命损失后调用（所有扣血路径都经过它）。
 ## 分数 = 该参战 setup 受到的全部实际生命伤害，不区分来源（敌人、召唤物、环境、自伤、无来源扣血）。
 ## 只统计主战人物/延续单位本身；召唤物与杂物自己掉血不计。只由权威端累加，客机只收快照。

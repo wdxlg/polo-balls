@@ -484,7 +484,8 @@ func _update_world_clock(delta:float) -> void:
 			return
 		_clock_label = label
 		_clock_base = Vector2(label.offset_top,label.offset_bottom)
-	var down:bool = visible and not outro_active
+	# 只有左右对战面板出现时才与右上角世界时间重叠；只剩中间计时面板时时间保持原位。
+	var down:bool = visible and not outro_active and sides.size() == 2
 	var target:float = _clock_target_shift(label) if down else 0.0
 	if down != _clock_down:
 		_clock_down = down

@@ -543,6 +543,12 @@ func current_health_damage_request_amount() -> int:
 			0,
 			Max_health
 		)
+		# 计时模式进行中主战人物不死：致命扣血停在 TIMED_MIN_HEALTH，被吸收的部分记入 timed_absorbed_health_loss，
+		# 受击反馈与受伤计数按完整伤害照常进行；时间到判负的淘汰不受影响。
+		var timed_floor_loss:float = 0.0
+		if new_health <= 0 and old_health > 0 and requested_health_damage > 0 and (state_machine == null or state_machine.current_state != State.Die) and _timed_death_floor_active():
+			new_health = mini(TIMED_MIN_HEALTH,maxi(Max_health,1))
+			timed_floor_loss = float(requested_health_damage)
 		# One-use death-prevention effects must intercept the lethal write BEFORE
 		# health_changed, on-death potion effects, state transitions and victory.
 		var prevented_lethal_loss:bool = false
@@ -552,7 +558,7 @@ func current_health_damage_request_amount() -> int:
 				new_health = spared_health
 				prevented_lethal_loss = true
 
-		if new_health == health and not prevented_lethal_loss:
+		if new_health == health and not prevented_lethal_loss and timed_floor_loss <= 0.0:
 			return
 
 		# 死亡状态禁止复活式回血。
@@ -572,6 +578,8 @@ func current_health_damage_request_amount() -> int:
 		# 这样即使 UI 跳字/动画脚本出现问题，
 		# 也不会阻止角色本身回血。
 		health = new_health
+		if timed_floor_loss > 0.0:
+			timed_absorbed_health_loss += maxf(timed_floor_loss - float(old_health - health),0.0)
 		if prevented_lethal_loss:
 			# The character is now alive again; applying timed statuses before this
 			# assignment would be rejected by the shared potion catalog.
@@ -595,6 +603,7 @@ func current_health_damage_request_amount() -> int:
 		# 所有扣血路径最终都会经过 health setter。月计理智等角色机制只需覆写
 		# on_actual_health_damage_received()，即可覆盖碰撞、技能、流血和直接扣血。
 		var actual_health_loss:float = maxf(float(old_health - health), 0.0)
+		if timed_floor_loss > 0.0: actual_health_loss = timed_floor_loss
 		if actual_health_loss > 0.0:
 			# 先清空旧归因；真正带 source 的伤害会在伤害结算返回后重新 record。
 			# 这样地图/自损等无来源扣血不会误算成上一位攻击者的击杀。
@@ -605,6 +614,9 @@ func current_health_damage_request_amount() -> int:
 			on_actual_health_damage_received(actual_health_loss, float(old_health))
 			# 无敌/防御姿态可能在上面的角色钩子中恢复生命，必须在其后重新取实际损失。
 			var confirmed_loss:float = maxf(float(old_health) - float(health),0.0)
+			if timed_floor_loss > 0.0:
+				# 钩子（无敌/格挡回血）在写入后恢复的生命仍要扣除，其余按完整伤害确认。
+				confirmed_loss = maxf(timed_floor_loss - maxf(float(health) - float(new_health),0.0),0.0)
 			var focus_damage:float = confirmed_loss
 			# 已确认的致命一击可能被 0 HP 下限截断（100 打 20 只掉 20）；
 			# 镜头按减伤/护盾后的真实请求伤害判断，获救/免疫时仍按净损失。
@@ -742,6 +754,21 @@ func _resolve_zero_health_after_physics() -> void:
 	Die()
 	if not _has_death_animation() and not is_queued_for_deletion():
 		queue_free()
+
+
+const TIMED_MIN_HEALTH:int = 1
+## 计时模式“不死”累计吸收的生命伤害（只增不减）。读取 before/after 生命计算本次掉血的地方
+## 要把这段时间内的增量加回去，受击特效/顿挫/受伤音效/荆棘等才与有血时一致。
+var timed_absorbed_health_loss:float = 0.0
+
+
+func _timed_death_floor_active() -> bool:
+	# 出界等强制地图规则死亡保留原行为。
+	if not Game.is_timed_training_mode() or has_meta(&"__out_of_bounds_forced_death"):
+		return false
+	var timed_world:World = _cached_world if _cached_world != null and is_instance_valid(_cached_world) else null
+	if timed_world == null and is_inside_tree(): timed_world = get_tree().current_scene as World
+	return timed_world != null and timed_world.timed_prevents_death(self)
 
 
 # 角色可覆写：只在真实生命下降时调用；护盾损失不会触发。
@@ -7174,12 +7201,14 @@ func _receive_spatial_damage_untyped(damage:float,damage_space:Variant,ignore_bl
 	if raw_health:
 		if _route_boat_damage(damage,impact_position,true,source,true): return true
 		var before_health:float = float(health)
+		var before_absorbed:float = timed_absorbed_health_loss
 		var before_block:float = float(block)
 		hit_white(true)
 		var raw_amount:int = maxi(int(round(damage)),0)
 		var remaining_amount:float = _consume_minecraft_absorption(float(raw_amount))
 		var lost_health:int = maxi(int(round(remaining_amount)),0)
 		if lost_health > 0: health -= lost_health # pure absorption is NOT a health-bar hit
+		before_health += timed_absorbed_health_loss - before_absorbed
 		var actual_health_damage:float = maxf(before_health - float(health), 0.0)
 		_emit_positional_damage_feedback(
 			damage,
@@ -7259,6 +7288,7 @@ func _on_hitbox_on_hit(hurt: hurtbox) -> void:
 			Audios.play_sfx.rpc(Hit_Audio,{volume = clampf(outgoing_damage - 12.0,-100.0,0.0)},true)
 
 	var before_health:float = float(target.health)
+	var before_absorbed:float = float(target.timed_absorbed_health_loss)
 	var before_block:float = float(target.block)
 	var hit_source_position:Vector2 = self_hitbox.global_position if self_hitbox != null else global_position
 	var hit_travel_direction:Vector2 = target.global_position - hit_source_position
@@ -7282,6 +7312,7 @@ func _on_hitbox_on_hit(hurt: hurtbox) -> void:
 		target.remove_meta("_mc_enchant_armor_penetration")
 		target.remove_meta("_mc_enchant_shield_bypass")
 
+	before_health += float(target.timed_absorbed_health_loss) - before_absorbed
 	preload("res://scripts/effects/我的世界/mc_hit_feedback.gd").settled(self,target,before_health,target.global_position)
 	var health_loss:float = maxf(before_health - float(target.health),0.0)
 	var block_loss:float = maxf(before_block - float(target.block),0.0)
@@ -7423,11 +7454,13 @@ func receive_positional_damage(
 	if _route_boat_damage(damage,impact_position,ignore_block,source): return true
 	if is_guarded_from_friendly_copy(source): return false
 	var before_health:float = float(health)
+	var before_absorbed:float = timed_absorbed_health_loss
 	var before_block:float = float(block)
 	var absorption_status:Node = get_node_or_null("MinecraftStatus_absorption")
 	var before_absorption:float = float(absorption_status.get("absorption_remaining")) if absorption_status != null else 0.0
 	hit_white(ignore_block)
 	take_damage(damage,ignore_block)
+	before_health += timed_absorbed_health_loss - before_absorbed
 	var actual_health_damage:float = maxf(before_health - float(health), 0.0)
 	_emit_positional_damage_feedback(
 		damage,
@@ -7445,6 +7478,7 @@ func receive_positional_damage(
 
 func take_damage(damage:float,ignore_block:bool = false) -> void:
 	var before_health:float = float(health)
+	var before_absorbed:float = timed_absorbed_health_loss
 	var before_block:float = float(block)
 	if damage > 0.0 and (has_meta("mc_enchant_components") or has_node("MinecraftEnchantments")):
 		var enchant_script:Script = load("res://scripts/effects/我的世界/mc_enchantments.gd")
@@ -7483,6 +7517,7 @@ func take_damage(damage:float,ignore_block:bool = false) -> void:
 		var remaining_health_damage:float = _consume_minecraft_absorption(health_damage,float(block) < before_block)
 		if remaining_health_damage > 0.0: health -= remaining_health_damage
 
+	before_health += timed_absorbed_health_loss - before_absorbed
 	# 只有真正被攻击消耗的护盾提供较轻反馈；不把自然衰减/技能消费当作命中。
 	_notify_damage_camera_feedback(maxf(before_block - float(block),0.0) * 0.35,true)
 	if float(health) < before_health and Unique_Hurt_Audio != null:
