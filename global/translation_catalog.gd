@@ -5,6 +5,14 @@ extends RefCounted
 
 const TABLE:Dictionary = {
 	"zh": {
+		"FEEDBACK_SIMPLE_FAINT": "微弱抖动强度",
+		"FEEDBACK_SIMPLE_LIGHT": "轻微抖动强度",
+		"FEEDBACK_SIMPLE_STRONG": "明显抖动强度",
+		"FEEDBACK_SIMPLE_ZOOM": "拉近倍率",
+		"FEEDBACK_SIMPLE_SPEED": "时停速度",
+		"FEEDBACK_SIMPLE_TIME": "时停时长",
+		"FEEDBACK_SIMPLE_SHAKE_HINT": "同时调整该档的身体与镜头抖动；伤害越高，抖动越强。",
+		"FEEDBACK_SIMPLE_SPECIAL_HINT": "拉近数值越大越近；时停速度越小越慢，1 为正常速度。",
 		"UI_SETTINGS_CATEGORY_RECORDING": "录制",
 		"CAMERA_COMPOSITION_FULL": "完整地图 · 竖屏排版",
 		"CAMERA_COMPOSITION_FOLLOW": "交战跟拍 · 自动推拉",
@@ -1029,6 +1037,14 @@ const TABLE:Dictionary = {
 		"MC_ARMOR_INTRO_DIAMOND_SPEAR": "移动加速，转向损失速度，命中再提速；速度提高刺击伤害与虚影数量，高速虚影升级为贯穿攻击。正面刺击附带定点虚影连刺，侧面半周横扫并击退；目标位于正面且路径可通行时，蓄势瞬移贯穿并留下虚影。"
 	},
 	"en": {
+		"FEEDBACK_SIMPLE_FAINT": "Faint shake",
+		"FEEDBACK_SIMPLE_LIGHT": "Light shake",
+		"FEEDBACK_SIMPLE_STRONG": "Strong shake",
+		"FEEDBACK_SIMPLE_ZOOM": "Zoom amount",
+		"FEEDBACK_SIMPLE_SPEED": "Hitstop speed",
+		"FEEDBACK_SIMPLE_TIME": "Hitstop duration",
+		"FEEDBACK_SIMPLE_SHAKE_HINT": "Adjusts body and screen shake together for this tier. Larger hits still shake more.",
+		"FEEDBACK_SIMPLE_SPECIAL_HINT": "Higher zoom moves closer. Lower hitstop speed slows more; 1 is normal speed.",
 		"UI_SETTINGS_CATEGORY_RECORDING": "Recording",
 		"CAMERA_COMPOSITION_FULL": "Full arena - portrait",
 		"CAMERA_COMPOSITION_FOLLOW": "Follow combat - auto zoom",

@@ -1,4 +1,12 @@
 keys,zh,en
+FEEDBACK_SIMPLE_FAINT,微弱抖动强度,Faint shake
+FEEDBACK_SIMPLE_LIGHT,轻微抖动强度,Light shake
+FEEDBACK_SIMPLE_STRONG,明显抖动强度,Strong shake
+FEEDBACK_SIMPLE_ZOOM,拉近倍率,Zoom amount
+FEEDBACK_SIMPLE_SPEED,时停速度,Hitstop speed
+FEEDBACK_SIMPLE_TIME,时停时长,Hitstop duration
+FEEDBACK_SIMPLE_SHAKE_HINT,同时调整该档的身体与镜头抖动；伤害越高，抖动越强。,Adjusts body and screen shake together for this tier. Larger hits still shake more.
+FEEDBACK_SIMPLE_SPECIAL_HINT,拉近数值越大越近；时停速度越小越慢，1 为正常速度。,Higher zoom moves closer. Lower hitstop speed slows more; 1 is normal speed.
 UI_SETTINGS_CATEGORY_RECORDING,录制,Recording
 CAMERA_COMPOSITION_FULL,完整地图 · 竖屏排版,Full arena - portrait
 CAMERA_COMPOSITION_FOLLOW,交战跟拍 · 自动推拉,Follow combat - auto zoom

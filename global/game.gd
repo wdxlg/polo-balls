@@ -702,6 +702,13 @@ func load_persistent_settings(path:String = "") -> void:
 	_localization._apply_translation_server_locale()
 
 
+func set_simple_feedback_setting(key:String,value:Variant,save_after:bool = true) -> void:
+	if not FEEDBACK_SETTINGS.SIMPLE_LABELS.has(key): return
+	FEEDBACK_SETTINGS.apply_simple(Game_Settings,key,value)
+	game_setting_changed.emit("Feedback_Reset",str(FEEDBACK_SETTINGS.SPECS[key].group))
+	if save_after: save_persistent_settings()
+
+
 func reset_feedback_settings(group:String,save_after:bool = true) -> void:
 	if group not in ["Shaking_Camera","High_Damage_Feedback"]: return
 	FEEDBACK_SETTINGS.reset_group(Game_Settings,group)

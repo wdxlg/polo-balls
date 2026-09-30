@@ -1443,23 +1443,14 @@ func _create_feedback_options(parent_box:VBoxContainer,group:String) -> void:
 	reset.text = Game.ui_t("FEEDBACK_RESET_GROUP")
 	reset.add_theme_font_size_override("font_size",9)
 	reset.pressed.connect(func(): Game.reset_feedback_settings(group))
-	box.add_child(reset)
-	var previous_section:String = ""
-	for key:String in Game.FEEDBACK_SETTINGS.SPECS:
+	for key:String in Game.FEEDBACK_SETTINGS.SIMPLE_LABELS:
 		var spec:Dictionary = Game.FEEDBACK_SETTINGS.SPECS[key]
 		if str(spec.group)!=group: continue
-		if str(spec.section)!=previous_section:
-			previous_section = str(spec.section)
-			var heading := Label.new()
-			heading.set_meta("_translation_source_text","FEEDBACK_SECTION_"+previous_section)
-			heading.text = Game.ui_t("FEEDBACK_SECTION_"+previous_section)
-			heading.add_theme_font_size_override("font_size",9)
-			box.add_child(heading)
 		var row := HBoxContainer.new()
 		row.name = key+"Row"
 		row.add_theme_constant_override("separation",3)
 		box.add_child(row)
-		var title:Dictionary = _create_setting_title_from_template("SETTING_"+key.to_upper(),96.0)
+		var title:Dictionary = _create_setting_title_from_template(str(Game.FEEDBACK_SETTINGS.SIMPLE_LABELS[key]),96.0)
 		var panel:PanelContainer = title.panel
 		var label:Label = title.label
 		panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1480,10 +1471,11 @@ func _create_feedback_options(parent_box:VBoxContainer,group:String) -> void:
 		spin.value_changed.connect(_on_feedback_value_changed.bind(key))
 		row.add_child(spin)
 		_feedback_spins[key] = spin
+	box.add_child(reset)
 	_sync_feedback_options()
 
 func _on_feedback_value_changed(value:float,key:String) -> void:
-	Game.set_runtime_game_setting(key,value)
+	Game.set_simple_feedback_setting(key,value)
 	_sync_feedback_options()
 
 func _sync_feedback_options() -> void:
@@ -1499,7 +1491,7 @@ func _sync_feedback_options() -> void:
 		if is_instance_valid(spin):
 			spin.set_value_no_signal(Game.FEEDBACK_SETTINGS.number(Game.Game_Settings,key))
 			var spec:Dictionary = Game.FEEDBACK_SETTINGS.SPECS[key]
-			spin.tooltip_text = Game.ui_t("SETTING_"+key.to_upper())+"\n"+(Game.ui_t("FEEDBACK_VALUE_HINT")%[str(spec.min),str(spec.max),str(spec.default)])+"\n"+Game.ui_t("FEEDBACK_HINT_"+str(spec.section))
+			spin.tooltip_text = Game.ui_t(str(Game.FEEDBACK_SETTINGS.SIMPLE_LABELS[key]))+"\n"+(Game.ui_t("FEEDBACK_VALUE_HINT")%[str(spec.min),str(spec.max),str(spec.default)])+"\n"+Game.ui_t("FEEDBACK_SIMPLE_SHAKE_HINT" if str(spec.group)=="Shaking_Camera" else "FEEDBACK_SIMPLE_SPECIAL_HINT")
 			(spin.get_parent().get_node("Text/Label") as Label).tooltip_text = spin.tooltip_text
 	if layout_changed: call_deferred("_refresh_settings_scroll_layout")
 

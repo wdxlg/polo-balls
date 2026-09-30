@@ -1,5 +1,13 @@
 extends RefCounted
 ## Local presentation tuning. Pure validation/curves; never owns combat state or RNG.
+const SIMPLE_LABELS:Dictionary = {
+	"Feedback_Body_Tiny":"FEEDBACK_SIMPLE_FAINT",
+	"Feedback_Body_Light":"FEEDBACK_SIMPLE_LIGHT",
+	"Feedback_Body_Strong":"FEEDBACK_SIMPLE_STRONG",
+	"Feedback_Focus_MaxZoom":"FEEDBACK_SIMPLE_ZOOM",
+	"Feedback_Hitstop_Factor":"FEEDBACK_SIMPLE_SPEED",
+	"Feedback_Hitstop_MaxDuration":"FEEDBACK_SIMPLE_TIME",
+}
 const SPECS:Dictionary = {
 	"Feedback_Shake_Low": {"default":10,"min":1,"max":99999,"step":1,"group":"Shaking_Camera","section":"TIERS","unit":""},
 	"Feedback_Shake_High": {"default":50,"min":2,"max":100000,"step":1,"group":"Shaking_Camera","section":"TIERS","unit":""},
@@ -88,3 +96,22 @@ static func amplitude(damage:float,settings:Dictionary,channel:String) -> float:
 static func duration(damage:float,settings:Dictionary) -> float:
 	var weight:float = damage/(damage+number(settings,"Shake_Growth"))
 	return lerpf(number(settings,"Shake_MinDuration"),number(settings,"Shake_MaxDuration"),clampf(weight,0.0,1.0))
+
+static func apply_simple(settings:Dictionary,key:String,value:Variant) -> void:
+	if not SIMPLE_LABELS.has(key): return
+	settings[key] = value
+	if key=="Feedback_Focus_MaxZoom":
+		settings.Feedback_Focus_MinZoom = minf(number(settings,key),number(settings,"Focus_MinZoom"))
+	elif key=="Feedback_Hitstop_MaxDuration":
+		settings.Feedback_Hitstop_MinDuration = number(settings,key)
+	normalize(settings)
+	if key.begins_with("Feedback_Body_"):
+		# Each visible tier strength drives both rendering channels; hidden gains must not mask edits.
+		settings.Feedback_Body_Gain = 1.0
+		settings.Feedback_Camera_Gain = 1.0
+		settings.Feedback_Camera_Tiny = settings.Feedback_Body_Tiny
+		settings.Feedback_Camera_Light = settings.Feedback_Body_Light*1.25
+		settings.Feedback_Camera_Strong = settings.Feedback_Body_Strong*0.6
+		settings.Feedback_Camera_Max = settings.Feedback_Body_Strong
+		settings.Feedback_Body_Max = settings.Feedback_Body_Strong*1.8
+		normalize(settings)
