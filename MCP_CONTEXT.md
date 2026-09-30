@@ -148,10 +148,10 @@
 ## 14. 录制
 
 - 左键实时录制正在进行的对战；右键从点击瞬间的完整状态固定 60fps 离线计算（不重打、不 reset），需要配套离线引擎。输出原生 1080×1920/60fps 纯对战画面和 `GameplayRecord` 音轨，排除工具栏、鼠标、暂停 UI 和恢复倒计时。每局同时输出中文/英文两份，共享一次计算和一条音频时间线。
-- 录制结束以世界正式终局为准，再按设置续录 N 秒游戏时间（默认 5，0–600），不能用固定时长截断。盔甲架录像也要在真实终局后才停。
+- 录制结束以世界正式终局为准；轮换/车轮队列统一读 `World.is_queue_battle_finished()`，小局铃声、换人/关门等待、挑战中红队打完后的重置均不是整轮结束，整轮结束后再按设置续录 N 秒游戏时间（默认 5，0–600），不能用固定时长截断。盔甲架录像也要在真实终局后才停。
 - 文件名：中文 `3个钻石剑 vs 2个木剑.mp4`，盔甲架 `角色名.mp4`；英文 `Character * 3 vs ...`。不加 `Mc小球` 前缀。冒号和星号用全角 `：`/`＊`；同队同名合并计数，不跨阵营；重名和中间文件编号避让，不改已有录像。
 - 录制结果弹窗按实际窗口缩放；长错误可滚动，路径可选中复制，暂停时仍可操作。
-- LIVE 实时录制：D3D12 首帧绘制/读回要在正式计时前准备好；双语言 NVENC 用 `-filter_threads 2` 限制滤镜线程；前台录制期间临时把帧率上限限制到 60，结束恢复。速度验收要对比真实物理推进和绘制帧率，不能只看标称 FPS。
+- LIVE 实时录制：D3D12 首帧绘制/读回要在正式计时前准备好；双语言 NVENC 用 `-filter_threads 2` 限制滤镜线程；前台录制期间临时把帧率上限限制到 60，结束恢复。速度验收要对比真实物理推进和绘制帧率，不能只看标称 FPS。轮换门转场/加载（`World.is_rotation_scene_transition_active()`）只重置速度采样窗口，帧和音轨照录；正常对战的减速保护、渲染阻塞和编码缓存上限不放宽。
 - 使用屏幕纹理/BackBufferCopy 的效果必须在真实 GPU 录制画面里检查。
 - **离线录制引擎**：Godot 4.7.2 源码补丁版（`tools/offline_engine/engine.patch`、`build.ps1`、`build_manifest.json`），新增 `Engine.set_recording_fixed_fps`、`AudioServer.set_offline_audio/render_offline_audio`、离线虚拟 `Time.get_ticks_*` 和 `Time.get_wall_ticks_*`。二进制在项目外 `../polo-balls-tools/offline-engine/runtime/Godot.4.7.2.offline.exe`，不入 Git。启动方式：编辑器工具栏「▶ 运行右键录制版」（`addons/offline_record_launcher/`），或根目录 `启动离线录制版.cmd` / `启动离线版编辑器.cmd`。Steam 原版 F5 不支持右键录制，找不到引擎时明确提示，绝不退回重打。导出时基础倍速规范为 1x，结束恢复并暂停在结果状态。
 

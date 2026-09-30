@@ -9219,6 +9219,21 @@ func _queue_battle_mode_active() -> bool:
 	return Game.is_rotation_training_mode() or (Game.is_boss_training_mode() and Game.is_training_boss_wheel_battle_enabled())
 
 
+# Read-only series verdict: result bells also play between individual rounds.
+func is_queue_battle_finished() -> bool:
+	if not _queue_battle_mode_active(): return false
+	if _rotation_transitioning or _rotation_clearing_round or not _rotation_pending_dead_sides.is_empty(): return false
+	if _rotation_finished: return true
+	if not _rotation_started: return false
+	# Red exhaustion starts a new blue attempt in challenge mode, not a series end.
+	if Game.is_rotation_training_mode() and Game.get_rotation_match_type()=="challenge": return false
+	return not _rotation_side_has_contender("left") or not _rotation_side_has_contender("right")
+
+
+func is_rotation_scene_transition_active() -> bool:
+	return _queue_battle_mode_active() and _rotation_transitioning and (is_instance_valid(_rotation_door) or _rotation_combat_blocked)
+
+
 func _queue_internal_team_for_side(side:String) -> String:
 	if Game.is_boss_training_mode():
 		return _boss_team_for_side(side)

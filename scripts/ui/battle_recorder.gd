@@ -707,20 +707,11 @@ func _capture_loop() -> void:
 			continue
 		# Physics is the independent speed witness, not video FPS/container duration.
 		# Never silently deliver a long slow-motion video under sustained overload.
-		if _speed_warmup > 0.0:
-			_speed_warmup -= real_delta
-			_speed_physics_start = _physics_clock
-		else:
-			_speed_real += real_delta
-			if _speed_real >= 2.0:
-				var progress:float = (_physics_clock - _speed_physics_start) / _speed_real
-				_speed_real = 0.0
-				_speed_physics_start = _physics_clock
-				if progress < 0.9:
-					_timing_invalid = true
-					_fail("当前负载已使对战明显减速，录制已停止且未生成正式成片。临时材料已保留，请减少人物或特效后重试。")
-					stop()
-					break
+		if not _live_speed_is_healthy(real_delta):
+			_timing_invalid = true
+			_fail("当前负载已使对战明显减速，录制已停止且未生成正式成片。临时材料已保留，请减少人物或特效后重试。")
+			stop()
+			break
 		var game_delta:float = real_delta * scale_now
 		_game_time += game_delta
 		_accumulator += game_delta
@@ -786,6 +777,26 @@ func _capture_loop() -> void:
 func _on_live_readback(data:PackedByteArray, record:Dictionary, locale:String) -> void:
 	# Both callbacks carry the texture's pixels at request time, not completion time.
 	record[locale] = data
+
+
+func _live_speed_is_healthy(real_delta:float) -> bool:
+	var world:Node = _world()
+	# Door/scene loading is a presentation pause, not sustained combat slowdown.
+	# Keep capturing its frames; only discard the incomparable speed sample window.
+	if world != null and world.has_method("is_rotation_scene_transition_active") and world.is_rotation_scene_transition_active():
+		_speed_real = 0.0
+		_speed_physics_start = _physics_clock
+		return true
+	if _speed_warmup > 0.0:
+		_speed_warmup -= real_delta
+		_speed_physics_start = _physics_clock
+		return true
+	_speed_real += real_delta
+	if _speed_real < 2.0: return true
+	var progress:float = (_physics_clock - _speed_physics_start) / _speed_real
+	_speed_real = 0.0
+	_speed_physics_start = _physics_clock
+	return progress >= 0.9
 
 
 func _flush_live_pending() -> void:
@@ -1481,7 +1492,7 @@ func _on_overlay_abort_pressed() -> void:
 
 
 func _update_sim_progress(game_delta:float) -> void:
-	_cancel_invalid_armor_tail()
+	_cancel_invalid_match_tail()
 	if _sim_tail_left < 0.0:
 		if _sim_match_over():
 			_sim_tail_left = _tail_seconds
@@ -1497,7 +1508,7 @@ func _update_sim_progress(game_delta:float) -> void:
 
 ## LIVE 和 SIM 均没有固定时长上限；只有实际终局后才按游戏时间续录。
 func _update_match_end_tail(game_delta:float) -> void:
-	_cancel_invalid_armor_tail()
+	_cancel_invalid_match_tail()
 	if _sim_tail_left < 0.0:
 		# 没有对局场景时实时录制照常进行（例如录菜单），不把“无世界”当成胜负已分。
 		var world:Node = _world()
@@ -1542,9 +1553,13 @@ func _armor_recording_still_contested(world:Node) -> bool:
 	return sides.size() > 1
 
 
-func _cancel_invalid_armor_tail() -> void:
-	if not _armor_recording_still_contested(_world()): return
-	# Re-entering an ongoing demonstration also cancels an already armed tail.
+func _cancel_invalid_match_tail() -> void:
+	var world:Node = _world()
+	if world == null or not is_instance_valid(world): return
+	if world.has_method("_queue_battle_mode_active") and world._queue_battle_mode_active():
+		if world.is_queue_battle_finished(): return
+	elif not _armor_recording_still_contested(world): return
+	# A resumed series/demonstration invalidates any previously armed end tail.
 	_sim_tail_left = -1.0
 	_sim_finished = false
 	_stale_match_over = false
@@ -1555,13 +1570,13 @@ func _match_over_now() -> bool:
 	var world:Node = _world()
 	if world == null or not is_instance_valid(world):
 		return false
+	# A round bell is presentation, not the terminal verdict of the whole queue.
+	if world.has_method("_queue_battle_mode_active") and world._queue_battle_mode_active():
+		return world.is_queue_battle_finished()
 	if _armor_recording_still_contested(world): return false
 	var played:Variant = world.get("_victory_bell_played")
 	if played != null and bool(played):
 		return true
-	# 队列换人期间可能短暂无人，不能把它误判为整场结束。
-	if world.has_method("_queue_battle_mode_active") and bool(world.call("_queue_battle_mode_active")):
-		return bool(world.get("_rotation_finished"))
 	return false
 
 
