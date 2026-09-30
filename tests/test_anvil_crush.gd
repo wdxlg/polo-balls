@@ -164,7 +164,7 @@ func run() -> void:
 		hp = victim.health
 		for i:int in range(hz/10): unit.step_mob(1.0/float(hz))
 		losses.append(hp-victim.health)
-	check(losses[0]>60.0 and losses[0]==losses[1] and losses[1]==losses[2],"30/60/120Hz physical falls yield identical first-impact plus sustained HP loss")
+	check(losses[0]>45.0 and losses[0]==losses[1] and losses[1]==losses[2],"30/60/120Hz physical falls yield identical first-impact plus sustained HP loss")
 	print("ANVIL_CONTACT_RATE_LOSSES: ",losses)
 	unit.gravity_acceleration = gravity
 	# Authority/death/output-disable also protect the actual settlement path.

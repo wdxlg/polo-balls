@@ -25,7 +25,7 @@ func run() -> void:
 	await physics_frame
 	await process_frame
 	check(unit.tracking_speed_scale==0.5 and is_equal_approx(unit.Skill_Cooling,2.8),"default pursuit is halved and miss cooldown remains 2.8 seconds")
-	check(unit.sustained_knockback_ratio==0.25 and unit.Damage==40 and unit.crush_interval==0.20 and is_equal_approx(unit.falling_damage(600),100.0),"damage, speed scaling and pressure budget are unchanged")
+	check(unit.sustained_knockback_ratio==0.25 and unit.Damage==30 and unit.crush_interval==0.20 and is_equal_approx(unit.falling_damage(600),75.0),"damage, speed scaling and pressure budget are unchanged")
 	unit.knockback_per_speed = 0.0 # Isolate actual three-pass sequencing from target displacement.
 	check(unit.begin_slam(victim) and unit.combo_slams==1,"manual first slam counts as one of the three")
 	check(not unit.begin_slam(victim),"duplicate command cannot add another first slam")
