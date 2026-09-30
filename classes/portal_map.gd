@@ -1121,7 +1121,7 @@ func _find_gate(p:Vector2,v:Vector2,he:Vector2,delta:float,is_character:bool,res
 	var island_name:String = island_at(p)
 	if island_name.is_empty():
 		return {}
-	var rect:Rect2 = _island_rects[island_name]
+	var _rect:Rect2 = _island_rects[island_name]
 	for gate:Dictionary in _gates:
 		if respect_pass_mode:
 			if is_character and not bool(gate["chars"]):

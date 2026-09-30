@@ -32,7 +32,7 @@ func run() -> void:
 		var mirror:Control=hud.make_mirror(locale,1);view.add_child(mirror);mirror.set_process(false);mirrors[locale]=mirror
 	# Actual 2v1 -> late pair scan -> final elimination before the pair ever gets a display frame.
 	await normal_setup();hud._update_clock(0)
-	var a:Node=normal_actor(101,"A",-40);var ally:Node=normal_actor(102,"A",-20);var b:Node=normal_actor(103,"B",40)
+	var _a:Node=normal_actor(101,"A",-40);var ally:Node=normal_actor(102,"A",-20);var b:Node=normal_actor(103,"B",40)
 	world.refresh_versus_text();world._update_manual_victory_bell();hud._process(0.2)
 	check(not hud.visible,"multi-character encounter has no matchup panels")
 	kill_now(ally);hud._refresh_pair()
@@ -46,7 +46,7 @@ func run() -> void:
 	check(hud.victory_result.get("is_team",false) and hud.victory_result.get("member_count",0)==2,"original team roster and wool victory retained")
 	# Normal 1v1: panels really were shown and must keep their original exit animation.
 	await normal_setup();hud._update_clock(0)
-	a=normal_actor(201,"A",-40);b=normal_actor(202,"B",40)
+	_a=normal_actor(201,"A",-40);b=normal_actor(202,"B",40)
 	world.refresh_versus_text();world._update_manual_victory_bell();hud._process(0.2)
 	check(hud.visible and await mirror_pixels("en",0,"visible_duel")>0,"ordinary matchup really displays before result")
 	kill_now(b);world._update_manual_victory_bell();hud._process(0.2) # Force pair scan on the very first death frame.
@@ -69,7 +69,7 @@ func run() -> void:
 	check(await mirror_pixels("en",0,"round_correction")==0,"late double-knockout correction does not revive already exited panels")
 	# Current suppression wins over visibility remembered from an earlier frame.
 	await normal_setup();hud._update_clock(0)
-	a=normal_actor(301,"A",-40);b=normal_actor(302,"B",40)
+	_a=normal_actor(301,"A",-40);b=normal_actor(302,"B",40)
 	world.refresh_versus_text();world._update_manual_victory_bell();hud._process(0.2)
 	world.versus_label.hide();kill_now(b);world._update_manual_victory_bell();hud._process(0)
 	check(await mirror_pixels("en",0,"suppressed_at_verdict")==0,"currently suppressed matchup is never resurrected by verdict")

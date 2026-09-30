@@ -96,7 +96,7 @@ func _spawn_area(source:ball) -> void:
 	area.call("setup",source,target_position,area_config)
 
 
-func _play_impact_sfx(source:ball) -> void:
+func _play_impact_sfx(_source:ball) -> void:
 	if FIRE_EXPLOSION_SFX == null or get_tree().current_scene == null:
 		return
 	var player:=AudioStreamPlayer2D.new()

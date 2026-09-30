@@ -383,7 +383,7 @@ func run() -> void:
 				check(child._toast_rect(hud()).has_area() and child._toast_locale() == locale,"recording " + locale + " mirror shows the toast in its own language")
 	await save_shot(captures.zh,"recording_zh_toast.png")
 	await save_shot(captures.en,"recording_en_toast.png")
-	var result_shot:Image = await save_shot(root,"main_result.png")
+	var _result_shot:Image = await save_shot(root,"main_result.png")
 	world._reset_victory_bell_state()
 	await settle()
 	check(not hud().outro_active and not world._cinematic_focus_requests.has(focus_key),"reset ends the result animation and releases the winner camera")
@@ -399,7 +399,7 @@ func run() -> void:
 	var hidden_shot:Image = await save_shot(root,"main_hidden.png")
 	var scale:float = float(shown_shot.get_width()) / 1080.0
 	var top:Rect2i = Rect2i(Vector2i(Vector2(24,32) * scale),Vector2i(Vector2(1032,176) * scale))
-	var below:Rect2i = Rect2i(Vector2i(Vector2(24,560) * scale),Vector2i(Vector2(1032,300) * scale))
+	var _below:Rect2i = Rect2i(Vector2i(Vector2(24,560) * scale),Vector2i(Vector2(1032,300) * scale))
 	var top_diff:float = region_difference(shown_shot,hidden_shot,top)
 	print("DUEL_HUD_METRIC top_diff=",top_diff," shot=",shown_shot.get_size())
 	check(top_diff > 0.05,"GPU frame shows the HUD in the top area")

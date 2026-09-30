@@ -82,7 +82,7 @@ func run() -> void:
 	trader.give_item(&"");trader.health=trader.Max_health;herd[0].health=herd[0].Max_health
 	# --- wall exit: roll + wall-texture crumbs ------------------------------------------------------
 	trader.item_show_time=999.0
-	var crumbs_before:int=get_nodes_in_group(&"MCWanderingTraderFx").filter(func(n:Node) -> bool: return n.get_script()==CRUMBS_SCRIPT).size()
+	var _crumbs_before:int=get_nodes_in_group(&"MCWanderingTraderFx").filter(func(n:Node) -> bool: return n.get_script()==CRUMBS_SCRIPT).size()
 	var rolled0:int=trader.items_rolled
 	var bursts0:int=trader.wall_crumb_bursts
 	var entered:bool=await enter_wall(trader)

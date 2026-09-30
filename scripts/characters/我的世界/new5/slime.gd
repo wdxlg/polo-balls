@@ -247,12 +247,12 @@ func get_debug_attack_regions() -> Array[Dictionary]:
 func _pulse(landing:bool,death:bool=false) -> void:
 	var hit:bool=false
 	var center:Vector2=ground_point() if death else global_position
-	var hit_point:Vector2=center
+	var _hit_point:Vector2=center
 	for target:Node in get_tree().get_nodes_in_group("Ball"):
 		if not slime_enemy(target) or not _pulse_contains_from(target,landing,center): continue
 		if not U.line_clear(self,center,U.point(target,center)): continue
 		if not U.damage(self,target,attack_damage((landing_damage if landing else jump_damage)/maxf(float(default_properties.get("Damage",Damage)),0.01)),center): continue
-		if not hit: hit_point=U.point(target,center)
+		if not hit: _hit_point=U.point(target,center)
 		hit=true
 		if death:
 			var outward:Vector2=ball.body_point(target,center)-center

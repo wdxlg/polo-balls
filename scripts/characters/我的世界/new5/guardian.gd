@@ -410,10 +410,10 @@ func start_charge_sound() -> void:
 	_beam_sfx(true)
 static func impact_volume(actual_damage:float) -> float:
 	return preload("res://scripts/effects/我的世界/hit_audio_gain.gd").damage_gain(actual_damage)
-func damage_with_sound(target:ball,amount:float,critical:bool=false) -> bool:
+func damage_with_sound(target:ball,amount:float,_critical:bool=false) -> bool:
 	if not is_instance_valid(target): return false
 	var before:float=maxf(target.health,0.0)
-	var point:Vector2=ball.body_point(target,global_position)
+	var _point:Vector2=ball.body_point(target,global_position)
 	var accepted:bool=U.damage(self,target,amount,global_position)
 	var remaining:float=maxf(target.health,0.0) if is_instance_valid(target) else 0.0
 	var actual:float=maxf(before-remaining,0.0)

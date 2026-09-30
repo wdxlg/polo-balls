@@ -21,7 +21,7 @@ func click_at(point:Vector2,button:int = MOUSE_BUTTON_LEFT) -> void:
 	var event := InputEventMouseButton.new()
 	event.position = root.get_mouse_position()
 	event.global_position = event.position
-	event.button_index = button
+	event.button_index = button as MouseButton
 	event.pressed = true
 	root.push_input(event,true)
 	# push_input does not hold the OS mouse button; dispatch release in the same

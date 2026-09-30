@@ -1044,7 +1044,7 @@ func _first_collision_shape(area:Area2D) -> CollisionShape2D:
 # 为了与真正攻击一致，只把敌方 hurtbox 的 Shape 当成可命中目标；
 # 身体碰撞框、hitbox、角色中心点都不再作为攻击起手的替代检测。
 
-func _attack_areas_for_skill(skill:int,hit_count:int) -> Array[Area2D]:
+func _attack_areas_for_skill(skill:int,_hit_count:int) -> Array[Area2D]:
 	# V79：起手检测只检查第一实际命中段。
 	# 旧版把后续连段 Shape 也并进起手检测，会出现“后续段覆盖目标，所以允许起手，但第一段根本打不到”。
 	var result:Array[Area2D] = []

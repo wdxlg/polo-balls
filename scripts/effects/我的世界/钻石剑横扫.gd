@@ -53,7 +53,7 @@ func _ready() -> void:
 func configure(
 	origin:Vector2,
 	direction_value:Vector2,
-	mirror:bool = false,
+	_mirror:bool = false,
 	duration_value:float = 0.34,
 	start_distance_value:float = 18.0,
 	spread_distance_value:float = 54.0,

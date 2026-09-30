@@ -31,7 +31,7 @@ func run() -> void:
 	var next_runner_action:float=1.2
 	var cart:Node2D = live_actor("矿车",center+Vector2(160,-170))
 	cart.direction = Vector2.RIGHT
-	var cart_target:Node2D = dummy(cart.global_position+Vector2(150,0))
+	var _cart_target:Node2D = dummy(cart.global_position+Vector2(150,0))
 	var cart_ledger:Dictionary = {"damage":0.0}
 	game.combat_damage_resolved.connect(func(source:Node,_victim:Node,amount:float,_before:float) -> void:
 		if is_instance_valid(cart) and source == cart: cart_ledger.damage += amount)

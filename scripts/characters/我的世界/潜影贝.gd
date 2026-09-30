@@ -178,7 +178,7 @@ func take_damage(damage:float,ignore_block:bool = false) -> void:
 		_closed_block_feedback(global_position,damage)
 		return
 	super.take_damage(damage,ignore_block)
-func receive_spatial_damage(damage:float,space:Variant,ignore_block:bool = false,raw_health:bool = false) -> bool:
+func receive_spatial_damage(damage:float,space:Variant,ignore_block:bool = false,_raw_health:bool = false) -> bool:
 	# 所有空间命中仍走公共几何检测，但不允许 raw_health 绕过完全格挡。
 	return super.receive_spatial_damage(damage,space,ignore_block,false)
 func on_actual_health_damage_received(actual_health_damage:float,health_before:float) -> void:

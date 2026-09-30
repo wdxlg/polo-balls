@@ -263,7 +263,7 @@ func _run_axe_attack(target:ball,serial:int) -> void:
 
 
 func _animate_axe_windup(
-	target:ball,
+	_target:ball,
 	duration:float,
 	serial:int
 ) -> bool:
@@ -293,7 +293,7 @@ func _animate_axe_windup(
 
 
 func _animate_axe_swing(
-	target:ball,
+	_target:ball,
 	duration:float,
 	serial:int
 ) -> bool:

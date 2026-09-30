@@ -173,7 +173,7 @@ func run() -> void:
 	world.create_char("Team1","木剑",Vector2(80,0))
 	await process_frame
 	var cow:Node = world._find_character_by_setup_id_any(int(world._battle_setup[-2].id))
-	var sword:Node = world._find_character_by_setup_id_any(int(world._battle_setup[-1].id))
+	var _sword:Node = world._find_character_by_setup_id_any(int(world._battle_setup[-1].id))
 	cow.health = 37.0
 	cow.position = Vector2(-63.25,17.5)
 	cow.velocity = Vector2(21,-5)

@@ -93,7 +93,7 @@ func _hit_enemy() -> bool:
 	# V434 性能：先做最便宜的线段距离过滤，只有真正贴到雨滴轨迹的单位才走
 	# TOOLS.is_enemy()（召唤链 + 阵营 metadata 判定）。两个条件都必须成立，
 	# 交换顺序不改变结果；候选列表改用 World 的可索敌快照（无 World 时退回 Ball 组）。
-	var hit_radius_sq:float = hit_radius * hit_radius
+	var _hit_radius_sq:float = hit_radius * hit_radius
 	for raw:Node in TOOLS.targeting_candidates(self):
 		if not raw is ball:
 			continue

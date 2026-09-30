@@ -92,7 +92,7 @@ func run() -> void:
 	check(entered.global_position.y<rect.position.y+64 and entered.has_meta("map_rescue_animating"),"replacement approaches from the nearest top wall, not the blue-side wall")
 	var target:Vector2=entered.get_meta("rotation_entry_target")
 	check(target.y==rect.position.y+minf(64,minf(rect.size.x,rect.size.y)*0.2) and target.distance_to(top)>1,"entry only crosses the boundary and does not travel to the stored placement")
-	var previous:Vector2=entered.global_position;game.now_stop_state=true
+	var _previous:Vector2=entered.global_position;game.now_stop_state=true
 	await physics_frame;await physics_frame;var stopped:Vector2=entered.global_position
 	await create_timer(0.16,true,false,true).timeout
 	check(entered.global_position.distance_to(stopped)<0.1,"paused combat freezes entrance")

@@ -420,7 +420,7 @@ func _sync_state_skin_paths(paths:Array[String]) -> void:
 	_apply_visual_for_state(ClownWeaponState.EMPTY)
 
 
-func _skin_index_for_state(state_value:int,weapon_id:int = -1) -> int:
+func _skin_index_for_state(state_value:int,_weapon_id:int = -1) -> int:
 	match state_value:
 		ClownWeaponState.EMPTY:
 			return 0

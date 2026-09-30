@@ -81,7 +81,7 @@ func run() -> void:
 	check(not world.armor_intro_label.visible,"enabled setting does not bypass death-save suppression")
 	world._dead_save_ui_override_active=false
 	game.set_runtime_game_setting(KEY,false,false)
-	stand.free();var opponent:Node=spawn_named("钻石剑","A");world.refresh_versus_text();mirror.sync()
+	stand.free();var _opponent:Node=spawn_named("钻石剑","A");world.refresh_versus_text();mirror.sync()
 	check(world.versus_label.visible and not world.armor_intro_label.visible,"disabled setting does not suppress ordinary matchup")
 	var before_text:String=world.versus_label.text
 	game.set_runtime_game_setting(KEY,true,false)

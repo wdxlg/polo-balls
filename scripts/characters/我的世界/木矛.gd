@@ -1745,7 +1745,7 @@ func _swept_tip_reaches_target(target:ball,from_tip:Vector2,to_tip:Vector2) -> b
 	if axis.length_squared() <= 0.000001:
 		axis = Vector2.RIGHT
 	var perpendicular:Vector2 = axis.orthogonal()
-	var hurt_extent_forward:float = _target_hurt_extent_along(target,axis)
+	var _hurt_extent_forward:float = _target_hurt_extent_along(target,axis)
 	var hurt_extent_side:float = _target_hurt_extent_along(target,perpendicular)
 	var tip_half_width:float = maxf(_tip_world_width(axis) * 0.5,0.5)
 	# 用侧向外接半径做保守 swept 检测：只兜底“高速跳帧穿过”，不扩大正常攻击范围。

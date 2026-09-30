@@ -571,7 +571,7 @@ func _restore_map() -> void:
 	world.set("_presentation_map_name",original_map)
 	world.set("_map_safety_frame_map_name",snapshot.safety_name)
 	if is_instance_valid(old_safety):
-		old_safety.process_mode = int(snapshot.safety_process)
+		old_safety.process_mode = int(snapshot.safety_process) as Node.ProcessMode
 		old_safety.visible = bool(snapshot.safety_visible)
 	world.set("map_outside_mask_enabled",bool(snapshot.mask_enabled))
 	var mask_parts:Array = world.get("map_outside_mask_parts")

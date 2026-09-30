@@ -558,7 +558,7 @@ func _setup_random_fog() -> void:
 		_randomize_fog_entry(i,true)
 
 
-func _randomize_fog_entry(index:int,first_time:bool = false) -> void:
+func _randomize_fog_entry(index:int,_first_time:bool = false) -> void:
 	if index < 0 or index >= _fog_players.size():
 		return
 	var entry:Dictionary = _fog_players[index]
@@ -974,7 +974,7 @@ func _update_global_grab() -> void:
 	if _grab_elapsed >= retract_end:
 		_finish_global_grab()
 
-func _update_entry_hands(entry:Dictionary,displacement:Vector2,extend_end:float,pull_end:float,retract_end:float) -> void:
+func _update_entry_hands(entry:Dictionary,displacement:Vector2,extend_end:float,pull_end:float,_retract_end:float) -> void:
 	var starts:Array = entry.get("starts",[])
 	var grips:Array = entry.get("grips",[])
 	var hands:Array = entry.get("hands",[])

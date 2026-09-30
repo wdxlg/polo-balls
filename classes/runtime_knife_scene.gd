@@ -77,7 +77,8 @@ static func _flatten(node:Node,scene_root:Node,records:Array) -> void:
 		record.scene_path = node.scene_file_path
 		node.scene_file_path = ""
 	if node != scene_root and node.owner != scene_root:
-		record.owner = scene_root.get_path_to(node.owner) if node.owner != null else null
+		record.owner = null
+		if node.owner != null: record.owner = scene_root.get_path_to(node.owner)
 	if record.size() > 1:
 		records.append(record)
 	if node != scene_root:

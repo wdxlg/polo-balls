@@ -51,7 +51,7 @@ func run() -> void:
 	var outcomes:Dictionary = {}
 	for i:int in range(200):
 		var pick:int = cube.next_block()
-		check(pick >= script.Block.ICE and pick <= script.Block.AMETHYST and pick != cube.block_mode,"random pick is valid and never current") if i == 0 else null
+		if i == 0: check(pick >= script.Block.ICE and pick <= script.Block.AMETHYST and pick != cube.block_mode,"random pick is valid and never current")
 		outcomes[pick] = true
 	check(outcomes.size() == 6,"all six blocks are reachable via random roll")
 	cube.set_block(script.Block.ICE)

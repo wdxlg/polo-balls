@@ -1,6 +1,7 @@
 extends "res://tests/test_skull_trail_combo.gd"
 ## Production Wither/skull damage and real controls, with isolated passive fixtures.
 class BalanceArena extends FlightArena:
+	@warning_ignore("unused_private_class_variable")
 	var _mc_placement_generation:int = 0
 
 func run() -> void:

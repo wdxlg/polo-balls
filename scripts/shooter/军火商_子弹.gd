@@ -33,7 +33,6 @@ const BULLET_IMPACT_HARD:int = 2
 
 var _life_left:float = 0.0
 var _exploded:bool = false
-var _trail_points:PackedVector2Array = PackedVector2Array()
 var _travelled_distance:float = 0.0
 
 @onready var _sprite:Sprite2D = get_node_or_null("Sprite2D") as Sprite2D

@@ -160,7 +160,7 @@ func run() -> void:
 	game.controlled_character_local = null
 	rod.set_player_control_peer(0)
 	game.now_stop_state = previous_stop
-	game.process_mode = previous_mode
+	game.process_mode = previous_mode as Node.ProcessMode
 	current_scene = previous_scene
 	arena.queue_free()
 	print("CONTROL_HOLD_RESULT checks=%d failures=%d" % [checks,failures])

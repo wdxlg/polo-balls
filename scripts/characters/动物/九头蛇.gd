@@ -277,7 +277,7 @@ func _update_one_neck(line:Line2D,head:ball) -> void:
 	var head_inset:float = minf(neck_head_inset,body_distance * 0.28)
 	var start:Vector2 = body_position + dir * root_inset
 	var finish:Vector2 = head_position - dir * head_inset
-	var chord:Vector2 = finish - start
+	var _chord:Vector2 = finish - start
 	var perpendicular:Vector2 = Vector2(-dir.y,dir.x)
 	var phase:float = float(head.get_instance_id() % 997) * 0.017
 	var wiggle:float = sin(_neck_time * neck_wiggle_speed + phase) * neck_wiggle_amount

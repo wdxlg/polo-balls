@@ -3,7 +3,7 @@ func run() -> void:
 	var center:Vector2=await setup_world()
 	create_timer(60).timeout.connect(func(): finish(2))
 	var cart:Node2D=actor("矿车",center)
-	var target:Node2D=dummy(center+Vector2(300,300))
+	var _target:Node2D=dummy(center+Vector2(300,300))
 	await physics_frame
 	await process_frame
 	var net:Node2D=cart.rails

@@ -14,7 +14,7 @@ func run() -> void:
 	var saw_curve_plan:bool = false
 	var powered:bool = false
 	var peak:float = 0.0
-	var last_heading:Vector2 = Vector2.RIGHT
+	var _last_heading:Vector2 = Vector2.RIGHT
 	var departures:int = 0
 	var coasting_departures:int = 0
 	var saw_idle_motion:bool = false
@@ -34,7 +34,7 @@ func run() -> void:
 			if cart.rush_phase==3 and cart.drive_speed>0: coasting_departures += 1
 			departures = cart.departure_count
 		if cart.rush_phase == 2:
-			last_heading = cart.rush_direction
+			_last_heading = cart.rush_direction
 			powered = powered or cart.rail_powered
 			peak = maxf(peak,cart.drive_speed)
 		elif cart.rush_phase == 0 and departures > 0:

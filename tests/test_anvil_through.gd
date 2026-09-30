@@ -75,7 +75,7 @@ func run() -> void:
 	unit.fall_speed = 0.0
 	unit.set_player_control_peer(0)
 	unit.direction = Vector2.LEFT
-	var wall:StaticBody2D = obstacle(center+Vector2(-100,75),Vector2(6,120))
+	var _wall:StaticBody2D = obstacle(center+Vector2(-100,75),Vector2(6,120))
 	upper.global_position += Vector2(300,0)
 	lower.global_position += Vector2(300,0)
 	friend.global_position += Vector2(300,0)

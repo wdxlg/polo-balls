@@ -30,7 +30,7 @@ func run() -> void:
 		if s._fist_busy: s._advance_fist_attack(1.0/120.0)
 	check(before_hand-enemy.health == 67,"intermittent hand uses its strong hit once, with a simulated delayed reach")
 	s._hand_window_active = false
-	var hand_state:bool = s._hand_window_active
+	var _hand_state:bool = s._hand_window_active
 	s._hand_window_left = 0.001
 	s.tick_physics(0,0.01)
 	check(s._hand_window_active and s._fist_root.visible,"hand opens for an intermittent attack window")

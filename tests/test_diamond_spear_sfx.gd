@@ -41,7 +41,7 @@ func run() -> void:
 			if players.is_empty(): continue
 			check(players[0].volume_db==0.0 and is_equal_approx(players[0].pitch_scale,1.02) and players[0].global_position==point,"default volume, synchronized pitch and origin "+spear.SFX_NAMES[kind]+" "+str(i))
 	clear_sounds()
-	var last:AudioStream
+	var last:AudioStream = null
 	var no_repeat:bool = true
 	for i:int in range(16):
 		spear._emit_audio(spear.Sfx.STAB)

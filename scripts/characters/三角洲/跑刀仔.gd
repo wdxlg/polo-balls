@@ -1578,7 +1578,7 @@ func _fade_safe_into_search(safe:Node2D)->void:
 	fade.tween_property(safe,"modulate",target_modulate,0.20).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	fade.finished.connect(safe.queue_free)
 
-func _start_safe_search_display(safe_pos:Vector2,on_right:bool,planned:Array)->void:
+func _start_safe_search_display(safe_pos:Vector2,_on_right:bool,planned:Array)->void:
 	if get_tree()==null or get_tree().current_scene==null or planned.is_empty():
 		return
 	var display:=Node2D.new()
@@ -3176,7 +3176,7 @@ func _stop_berserker_loop_gun_audio_local()->void:
 @rpc("authority","call_local","unreliable")
 func _rpc_play_berserker_one_shot_gun_audio(
 	weapon_name:String,
-	world_position:Vector2
+	_world_position:Vector2
 )->void:
 	var stream:AudioStream=_load_berserker_gun_audio_stream(weapon_name,false)
 	if stream==null:

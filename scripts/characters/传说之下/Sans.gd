@@ -1756,7 +1756,7 @@ func _ensure_gravity_target_ignores_sans(target:ball) -> void:
 		target.set_meta(collision_meta_key,true)
 
 
-func _restore_gravity_target_sans_collision(target:ball,state:Dictionary) -> void:
+func _restore_gravity_target_sans_collision(target:ball,_state:Dictionary) -> void:
 	if target == null or not is_instance_valid(target):
 		return
 	var collision_meta_key:StringName = _gravity_collision_exception_meta_key()
@@ -2447,7 +2447,7 @@ func _rpc_spawn_gaster(
 	spawn:Vector2,
 	park:Vector2,
 	aim_point:Vector2,
-	target_name:String,
+	_target_name:String,
 	map_rect:Rect2,
 	size_scale:float,
 	appearance_duration:float,
@@ -2481,7 +2481,7 @@ func _rpc_spawn_gaster(
 # ========================================================
 # 骨头/龙骨炮公共“1点帧伤 + KARMA”入口
 # ========================================================
-func apply_sans_frame_hit(target:ball,impact_position:Vector2,karma_amount:float) -> void:
+func apply_sans_frame_hit(target:ball,_impact_position:Vector2,karma_amount:float) -> void:
 	if not is_multiplayer_authority() or health <= 0 or is_damage_output_disabled():
 		return
 	if not _is_valid_enemy(target):

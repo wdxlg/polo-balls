@@ -39,7 +39,7 @@ func play_contact_hit(point:Vector2) -> void:
 	if multiplayer.has_multiplayer_peer(): _contact_hit_sound.rpc(point)
 	else: _contact_hit_sound(point)
 @rpc("authority","call_local","reliable")
-func _contact_hit_sound(point:Vector2) -> void:
+func _contact_hit_sound(_point:Vector2) -> void:
 	hit_sounds += 1
 	# Contact damage feedback is emitted once by the victim.
 func volley_scale() -> Vector2:

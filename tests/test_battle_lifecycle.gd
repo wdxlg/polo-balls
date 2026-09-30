@@ -263,7 +263,7 @@ func run() -> void:
 	# Same Team is not the identity of a queue slot.
 	await clean()
 	var first:Node=spawn("res://scenes/ball.tscn",61,"Team0")
-	var second:Node=spawn("res://scenes/ball.tscn",62,"Team0",100)
+	var _second:Node=spawn("res://scenes/ball.tscn",62,"Team0",100)
 	first.health=0;first.queue_free();await process_frame
 	check(not world._battle_family_alive(61) and world._battle_family_alive(62),"different same-team setup ids never keep each other alive")
 	world._reset_victory_bell_state()

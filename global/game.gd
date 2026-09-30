@@ -18,6 +18,7 @@ signal battle_session_ended()
 # V126：统一给多人 UI 的连接状态/玩家列表/双向 RPC 自检使用。
 signal network_state_changed()
 # V127：局域网 / EasyTier / 蒲公英等虚拟局域网房间发现列表变化。
+@warning_ignore("unused_signal")
 signal room_list_changed()
 # 训练奖励只关心“真正结算掉的生命”，而不是 Hitbox 理论伤害。
 # source 是实际归属角色（投射物会归因给 Master），target 是受击人物。

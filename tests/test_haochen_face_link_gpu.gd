@@ -15,7 +15,7 @@ func count(image:Image,rect:Rect2i,test:Callable) -> int:
 	return n
 
 func red(c:Color) -> bool: return c.r>0.55 and c.g<0.3 and c.b<0.3
-func opaque(c:Color) -> bool: return true
+func opaque(_c:Color) -> bool: return true
 # Native soul frames: brown soul-sand face or cyan wisp.
 func violet(c:Color) -> bool: return (c.r>0.28 and c.r>c.g+0.04 and c.g>c.b and c.r<0.8) or (c.g>0.55 and c.b>0.55 and c.r<0.5)
 

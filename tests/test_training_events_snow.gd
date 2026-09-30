@@ -166,7 +166,7 @@ func check_weather(source:Node2D,victim:Node2D,center:Vector2) -> void:
 		else: floor_count+=1
 	check(floor_count>0 and wall_count>0,"random environment snow creates both ground tiles and wall decorations, including blue maps")
 	check(field.get_child_count()<8,"snow stays a sparse grid rather than one Area2D or timer per patch")
-	var snapshot:Dictionary = field.environment_patches.duplicate(true)
+	var _snapshot:Dictionary = field.environment_patches.duplicate(true)
 	field.advance(100.0)
 	check(field.environment_patches.is_empty(),"environment snow now shares the finite melting lifecycle")
 	var cell:Vector2i = field.snow_cell_at(center)

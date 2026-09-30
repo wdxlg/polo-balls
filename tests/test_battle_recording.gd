@@ -25,7 +25,7 @@ func click(which:int) -> void:
 		var event := InputEventMouseButton.new()
 		event.position = point
 		event.global_position = point
-		event.button_index = which
+		event.button_index = which as MouseButton
 		event.pressed = down
 		root.push_input(event, true)
 		await process_frame

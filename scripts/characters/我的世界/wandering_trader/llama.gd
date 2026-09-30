@@ -58,8 +58,6 @@ var _retaliate_ref:WeakRef
 var _last_retaliate_msec:int = -100000
 var _attacker_ref:WeakRef
 var _attacker_msec:int = -100000
-var _roam_point:Vector2
-var _roam_wait:float = 0.0
 var _speed_hits:Dictionary = {}
 var _desired_direction:Vector2 = Vector2.ZERO
 var _desired_speed:float = 0.0

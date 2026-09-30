@@ -86,7 +86,7 @@ func run() -> void:
 	var witch:Node2D = units[0]
 	var blaze:Node2D = units[1]
 	var creeper:Node2D = units[2]
-	var silver:Node2D = units[3]
+	var _silver:Node2D = units[3]
 	var skeleton:Node2D = units[4]
 	# State changes never touch collision resources, damage or movement speeds.
 	for u:Node2D in units:

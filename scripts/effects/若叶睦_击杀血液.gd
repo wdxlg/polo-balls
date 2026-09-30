@@ -24,8 +24,6 @@ const BLOOD_DROP_SFX = [
 
 var _rng := RandomNumberGenerator.new()
 var _active_projectiles:Array[Dictionary] = []
-var _wall_stamps:Array[Dictionary] = []
-var _ground_stamps:Array[Vector2] = []
 var _service_mode:bool = false
 var _shed_count:int = 0
 var _surface_jobs:Dictionary = {}

@@ -459,7 +459,7 @@ func _play_attack_visual_local(attack_dir:Vector2,reverse:bool) -> void:
 	_play_sweep_sfx_local()
 
 
-func _apply_sword_visual_progress(progress:float,attack_dir:Vector2,reverse:bool) -> void:
+func _apply_sword_visual_progress(progress:float,attack_dir:Vector2,_reverse:bool) -> void:
 	if image == null or not is_instance_valid(image):
 		return
 	var p:float = clampf(progress,0.0,1.0)
@@ -530,7 +530,7 @@ func _restore_sword_visual() -> void:
 		set_character_visual_flip_h(_swing_restore_flip_h)
 
 
-func _spawn_sweep_visual(attack_dir:Vector2,reverse:bool) -> void:
+func _spawn_sweep_visual(attack_dir:Vector2,_reverse:bool) -> void:
 	var effect:Node2D = SWEEP_EFFECT_SCRIPT.new() as Node2D
 	if effect == null:
 		return

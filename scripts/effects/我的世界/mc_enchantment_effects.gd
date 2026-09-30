@@ -35,7 +35,7 @@ static func resolve(values:Dictionary,event:String,context:Dictionary = {}) -> D
 	var mode:String = str(context.get("mode","melee"))
 	var element:String = str(context.get("element","physical"))
 	var tags:Array = context.get("target_tags",[])
-	var n:int
+	var _n:int
 	match event:
 		"damage_out":
 			var damage:float = maxf(float(context.get("damage",0.0)),0.0)

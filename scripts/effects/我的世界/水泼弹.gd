@@ -16,7 +16,7 @@ var _distance:float = 0.0
 var _hit:bool = false
 var _age:float = 0.0
 
-func setup(caster:ball,origin:Vector2,damage:float,slow_multiplier:float,slow_duration:float,slow_buff:String) -> void:
+func setup(caster:ball,_origin:Vector2,damage:float,slow_multiplier:float,slow_duration:float,slow_buff:String) -> void:
 	add_to_group("AllayExtendedProjectile")
 	_caster = weakref(caster)
 	_direction = Vector2.RIGHT.rotated(rotation).normalized()

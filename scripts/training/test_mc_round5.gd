@@ -122,7 +122,7 @@ func run() -> void:
 	check(not guardian.beam.visible,"native beam hides immediately on disconnect")
 	print("ROUND5_RESULT checks=",checks," failures=",failures)
 	finish(0 if failures==0 else 1)
-func preview(guardian:Node2D,piston:Node2D,target:Node2D,other:Node2D) -> void:
+func preview(guardian:Node2D,piston:Node2D,_target:Node2D,other:Node2D) -> void:
 	# Real game scene + native beam, not a separately reconstructed image.
 	while world._mc_prewarmer.finished.size()+world._mc_prewarmer.failed.size()<13: await process_frame
 	world.set_process(false)

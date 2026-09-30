@@ -81,7 +81,7 @@ func cleanup(refresh:bool = true) -> void:
 	for entry:Dictionary in _merge_nodes:
 		var n:Variant = entry.get("node")
 		if is_instance_valid(n) and n is Node and (n as Node).has_meta("development_merge_mode"):
-			(n as Node).process_mode = int((n as Node).get_meta("development_merge_mode"))
+			(n as Node).process_mode = int((n as Node).get_meta("development_merge_mode")) as Node.ProcessMode
 			(n as Node).remove_meta("development_merge_mode")
 	_merge_nodes.clear()
 	if is_prebattle():
@@ -106,7 +106,7 @@ func cleanup(refresh:bool = true) -> void:
 			_rebase_owned_terrain(node,-_offset(key))
 			_rebase_owner_silk(node,-_offset(key))
 			if node.has_meta("development_setup_process_mode"):
-				node.process_mode = int(node.get_meta("development_setup_process_mode"))
+				node.process_mode = int(node.get_meta("development_setup_process_mode")) as Node.ProcessMode
 				node.remove_meta("development_setup_process_mode")
 	# 如在布阵时关闭开关，未来队员回到“只有名单，没有实例”的原规则。
 	for raw_id:Variant in candidates.keys():
@@ -165,7 +165,7 @@ func _start() -> void:
 	world._restore_special_prestart_nodes()
 	for node:Node in world.get_tree().get_nodes_in_group("Ball"):
 		if node.has_meta("development_setup_process_mode"):
-			node.process_mode = int(node.get_meta("development_setup_process_mode"))
+			node.process_mode = int(node.get_meta("development_setup_process_mode")) as Node.ProcessMode
 			node.remove_meta("development_setup_process_mode")
 	Game.set_development_time_multiplier(float(Game.Game_Settings.get("Development_Speed",2.0)))
 	world._reset_victory_bell_state()
@@ -687,7 +687,7 @@ func _complete_merge() -> void:
 	for entry:Dictionary in _merge_nodes:
 		var n:Variant = entry.get("node")
 		if is_instance_valid(n) and n is Node and (n as Node).has_meta("development_merge_mode"):
-			(n as Node).process_mode = int((n as Node).get_meta("development_merge_mode"))
+			(n as Node).process_mode = int((n as Node).get_meta("development_merge_mode")) as Node.ProcessMode
 			(n as Node).remove_meta("development_merge_mode")
 	_merge_nodes.clear()
 	if Game.is_rotation_training_mode():
@@ -741,7 +741,7 @@ func _unpark_candidate(b:ball) -> void:
 		return
 	_collision_tree(b,false)
 	b.visible = true
-	b.process_mode = int(b.get_meta("development_reserve_process_mode",Node.PROCESS_MODE_INHERIT))
+	b.process_mode = int(b.get_meta("development_reserve_process_mode",Node.PROCESS_MODE_INHERIT)) as Node.ProcessMode
 	b.remove_meta("development_reserve_process_mode")
 	b.remove_meta("development_reserve")
 	b.remove_meta("ignore_combat_targeting")

@@ -20,7 +20,7 @@ var _cell:float
 func _random(x:int,z:int,seed:float) -> float:
 	return fposmod(sin(float(x)*127.1+float(z)*311.7+seed)*43758.5453,1.0)
 
-func build(islands:Array[Rect2],cell:float,camera:Camera3D,heroes:Array[Node3D],source_bounds:AABB) -> void:
+func build(_islands:Array[Rect2],cell:float,camera:Camera3D,heroes:Array[Node3D],source_bounds:AABB) -> void:
 	_cell=cell
 	_camera=camera
 	_sun=camera.get_parent().get_node_or_null("WallSun3D") as DirectionalLight3D

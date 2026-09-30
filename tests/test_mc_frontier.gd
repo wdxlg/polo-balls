@@ -42,8 +42,8 @@ func run() -> void:
 	for role:String in ["苔藓","木剑","监守者","矿车"]:
 		check(world.return_all_character_names().has(role),"actual Minecraft roster contains "+role)
 	var w:Node2D = actor("监守者",center+Vector2(0,160))
-	var target:Node2D = dummy(w.global_position+Vector2(150,0))
-	var friendly:Node2D = dummy(w.global_position+Vector2(0,90),"Team0")
+	var _target:Node2D = dummy(w.global_position+Vector2(150,0))
+	var _friendly:Node2D = dummy(w.global_position+Vector2(0,90),"Team0")
 	await physics_frame
 	await process_frame
 	var bus:Node=world.get_node("MCBattleNoise")

@@ -20,7 +20,7 @@ func run() -> void:
 	u=load("res://scripts/characters/我的世界/new5/utils.gd")
 	await clear_units()
 	var ghast:Node2D=spawn("恶魂",Vector2(-200,0),"Team0")
-	var sword:Node2D=spawn("钻石剑",Vector2(-200,140),"Team1")
+	var _sword:Node2D=spawn("钻石剑",Vector2(-200,140),"Team1")
 	await create_timer(0.1).timeout
 	var arena:Node=world.get_node_or_null("MinecraftNetheriteArenaManager")
 	if arena==null:

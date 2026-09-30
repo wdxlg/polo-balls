@@ -142,7 +142,7 @@ func _draw_command_area() -> void:
 	draw_line(Vector2(0.0,-plus_half),Vector2(0.0,plus_half),strong_green,plus_width,true)
 
 
-func _draw_strike(point:Vector2,reveal_delay:float,actual_radius:float,strike_index:int) -> void:
+func _draw_strike(point:Vector2,reveal_delay:float,actual_radius:float,_strike_index:int) -> void:
 	var world_point:Vector2 = global_position + point
 	if not _is_world_point_inside_map(world_point):
 		return

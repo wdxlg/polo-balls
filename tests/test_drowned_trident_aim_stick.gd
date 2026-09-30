@@ -73,7 +73,7 @@ func planted_of(drowned:Node) -> Node:
 	for spear:Node in get_nodes_in_group("MCTrident"):
 		if spear.unit==drowned and spear.flight_state==3 and spear.planted: planted = spear
 	return planted
-func advance_until_stuck(spear:Node,limit:int = 1200) -> float:
+func advance_until_stuck(spear:Node,_limit:int = 1200) -> float:
 	var elapsed:float = 0.0
 	while elapsed<8.0 and spear.flight_state==1:
 		spear.advance(1.0/120.0)

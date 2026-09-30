@@ -107,7 +107,7 @@ func run() -> void:
 	da.advance(0.5)
 	check(da.current_clip==&"idle_empty","no phantom spear while projectile is outside")
 	check(drowned.image.texture!=drowned.get_preview_texture(),"static portrait never overwrites driver")
-	var empty_texture:Texture2D = drowned.image.texture
+	var _empty_texture:Texture2D = drowned.image.texture
 	drowned._trident.flight_state = 0
 	drowned.dizziness = true
 	drowned.catch_trident(drowned._trident)

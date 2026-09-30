@@ -716,7 +716,8 @@ func _war_texture_used_rect(texture:Texture2D) -> Rect2:
 	#（GPU->CPU 回读，单次 4~5 ms）；现在按纹理对象跨实例缓存一次。
 	# V433：优先按资源路径命中缓存——运行时若 Sprite 拿到的是同一 PNG 的另一个 Texture 实例
 	#（AutoFit/网络生成/预览复制），也不会再触发一次 GPU 回读。无路径的动态纹理仍按实例 id。
-	var cache_key:Variant = texture.resource_path if not texture.resource_path.is_empty() else texture.get_instance_id()
+	var cache_key:Variant = texture.get_instance_id()
+	if not texture.resource_path.is_empty(): cache_key = texture.resource_path
 	var cached:Variant = _war_texture_used_rect_cache.get(cache_key)
 	if cached is Rect2:
 		return cached

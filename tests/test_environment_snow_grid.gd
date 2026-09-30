@@ -100,7 +100,7 @@ func run() -> void:
 			for piece:Dictionary in view.projected_pieces(cell,actual[cell]):
 				if not (piece.rect as Rect2).size.is_equal_approx(size): wrong_pieces += 1
 		check(wrong_pieces==0,"uncut block walls receive whole one-block snow tops, not 24-unit strips")
-	await check_precise_contact(field,victim,actor,size)
+	check_precise_contact(field,victim,actor,size)
 	if DisplayServer.get_name()!="headless":
 		var camera:=Camera2D.new()
 		world.add_child(camera)

@@ -462,7 +462,7 @@ func _show_drink_visual(kind:StringName,duration:float) -> void:
 	_drink_visual_left = duration
 	if _item_sprite == null: return
 	_item_sprite.texture = CATALOG.icon(kind) if kind == CATALOG.POTATO else VISUAL.item_texture(kind)
-	var size:float = maxf(_item_sprite.texture.get_width() if _item_sprite.texture != null else 16.0,1.0)
+	var size:float = maxf(float(_item_sprite.texture.get_width()) if _item_sprite.texture != null else 16.0,1.0)
 	_item_sprite.scale = Vector2.ONE*(30.0/size)
 	_item_anchor.visible = true
 	var hand := Vector2(12.0,-12.0)
@@ -832,9 +832,9 @@ func _finish_wall() -> void:
 		mask |= 2
 	collision_layer = layer
 	collision_mask = mask
-	remove_meta(&"ignore_combat_targeting") if has_meta(&"ignore_combat_targeting") else null
-	remove_meta(&"ignore_combat_locking") if has_meta(&"ignore_combat_locking") else null
-	remove_meta(&"submission_allow_map_escape") if has_meta(&"submission_allow_map_escape") else null
+	if has_meta(&"ignore_combat_targeting"): remove_meta(&"ignore_combat_targeting")
+	if has_meta(&"ignore_combat_locking"): remove_meta(&"ignore_combat_locking")
+	if has_meta(&"submission_allow_map_escape"): remove_meta(&"submission_allow_map_escape")
 	_wall_clip_state(false,Vector2.ZERO,Vector2.UP)
 	if multiplayer.has_multiplayer_peer() and not multiplayer.get_peers().is_empty(): _wall_clip_state.rpc(false,Vector2.ZERO,Vector2.UP)
 	if self_hurtbox != null: self_hurtbox.set_deferred("monitorable",true)
@@ -906,7 +906,7 @@ func _wall_fade(alpha:float) -> void:
 ## point = wall surface (chips), at = the trader's position at that moment (peers snap to it so
 ## the clipped body never shows at a stale synced position).
 @rpc("authority","call_remote","reliable")
-func _wall_visual(show_unit:bool,point:Vector2,normal:Vector2,at:Vector2) -> void:
+func _wall_visual(show_unit:bool,_point:Vector2,_normal:Vector2,at:Vector2) -> void:
 	if not is_multiplayer_authority(): global_position = at
 	visible = show_unit
 	# The wall crumbs are streamed by _update_wall_stream while the body crosses the surface.
@@ -1104,7 +1104,7 @@ func _show_swing_visual(kind:StringName,duration:float) -> void:
 	_drink_visual_left = duration # raised-arm pose while the item is in his hand
 	if _item_sprite == null: return
 	_item_sprite.texture = CATALOG.icon(kind)
-	var size:float = maxf(_item_sprite.texture.get_width() if _item_sprite.texture != null else 16.0,1.0)
+	var size:float = maxf(float(_item_sprite.texture.get_width()) if _item_sprite.texture != null else 16.0,1.0)
 	_item_sprite.scale = Vector2.ONE*(24.0/size)
 	_item_anchor.visible = true
 	var hand := Vector2(12.0,-14.0)

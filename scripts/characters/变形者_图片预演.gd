@@ -614,7 +614,7 @@ static func _variant_float(value,default_value:float) -> float:
 
 static func _calculate_preview_transform(
 	host:ball,
-	preview_sprite:Sprite2D,
+	_preview_sprite:Sprite2D,
 	descriptor:Dictionary,
 	reference_world_size:Vector2,
 	min_ratio:float,

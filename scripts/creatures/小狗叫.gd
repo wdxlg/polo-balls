@@ -437,7 +437,7 @@ func _get_navigation_anchor(desired_anchor:Vector2) -> Vector2:
 
     var facing:Vector2 = _get_master_facing()
     var relative:Vector2 = global_position - master_dog.global_position
-    var avoid_radius:float = _get_master_avoidance_radius()
+    var _avoid_radius:float = _get_master_avoidance_radius()
 
     # 位于大狗前半侧，或者直线去后方会切过身体时，进入绕行状态。
     var still_in_front:bool = relative.dot(facing) > -maxf(master_route_release_margin,0.0)

@@ -71,7 +71,7 @@ func run() -> void:
 	check(absf(box.x-90.2)<1.0 and absf(box.y-0.82*102.5*128.0/144.0)<1.0,"collision box is halved and follows the full head-front shape")
 	print("HAOCHEN_REAL runtime=",world.is_combat_runtime_active()," view=",root.get_visible_rect()," canvas=",root.canvas_transform," hero_scale=",hero.scale," hero_screen=",hero.get_global_transform_with_canvas()," image_scale=",hero.image.scale)
 	var cam:Camera2D=root.get_camera_2d()
-	print("HAOCHEN_REAL camera=",cam.get_path() if cam else "none"," zoom=",cam.zoom if cam else Vector2.ZERO)
+	print("HAOCHEN_REAL camera=",str(cam.get_path()) if cam else "none"," zoom=",cam.zoom if cam else Vector2.ZERO)
 	# Real hero physics/AI keep running; the frozen enemy is kept 60px beside it.
 	for i:int in range(48):
 		glue(hero,donor,center)

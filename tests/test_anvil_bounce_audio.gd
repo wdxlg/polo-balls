@@ -39,7 +39,7 @@ func run() -> void:
 	await create_timer(0.3).timeout
 	check(await load("res://tests/mc_animation_test_cleanup.gd").wait_for_preloads(self),"bounce/audio preloads complete")
 	center = world.return_map_world_rect(world.map_group["Map50x50"]).get_center()
-	var floor:StaticBody2D = obstacle(center+Vector2(0,40),Vector2(300,6))
+	var _floor:StaticBody2D = obstacle(center+Vector2(0,40),Vector2(300,6))
 	var left:StaticBody2D = obstacle(center+Vector2(-80,0),Vector2(6,140))
 	var right:StaticBody2D = obstacle(center+Vector2(80,0),Vector2(6,140))
 	var unit:Node2D = anvil(center+Vector2(0,-10))

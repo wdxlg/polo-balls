@@ -19,7 +19,7 @@ func screen_point(world_point: Vector2) -> Vector2:
 	return root.get_stretch_transform() * root.canvas_transform * world_point
 
 
-func _world_rect_image(img: Image, world_a: Vector2, world_b: Vector2) -> Rect2i:
+func _world_rect_image(_img: Image, world_a: Vector2, world_b: Vector2) -> Rect2i:
 	var sa: Vector2 = screen_point(world_a)
 	var sb: Vector2 = screen_point(world_b)
 	var pos: Vector2i = Vector2i(Vector2(minf(sa.x, sb.x), minf(sa.y, sb.y)).floor())

@@ -153,7 +153,7 @@ func run() -> void:
 	world.refresh_versus_text()
 	check(not world.armor_intro_label.visible,"dead-save override hides introduction")
 	world._dead_save_ui_override_active = false
-	var other:Node2D = spawn_named("钻石剑","C")
+	var _other:Node2D = spawn_named("钻石剑","C")
 	stand.free()
 	world.refresh_versus_text()
 	world.refresh_top_text_layout()

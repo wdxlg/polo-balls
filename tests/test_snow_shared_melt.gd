@@ -83,7 +83,7 @@ func run() -> void:
 	await check_uniform_lifecycle(field,unit,center)
 	await check_merge_age(field,unit,center)
 	await check_map_grid(field,unit,center)
-	await check_recycling(field,unit)
+	check_recycling(field,unit)
 	await finish(0 if failures==0 else 1)
 
 func empty(field:Node2D) -> void:

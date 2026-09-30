@@ -543,7 +543,7 @@ func can_receive_hit_contact(incoming_hit:hitbox,contact_hurtbox:hurtbox) -> boo
 
 
 # 兼容旧版 hitbox.gd；新项目会优先调用上面的 hurtbox-aware 钩子。
-func can_receive_hit_from(incoming_hit:hitbox) -> bool:
+func can_receive_hit_from(_incoming_hit:hitbox) -> bool:
 	# 旧接口没有“碰到的是哪个 Hurtbox”信息，因此不能证明命中了破绽。
 	# 严格规则下统一拒绝，避免用方向猜测。
 	_clear_weakspot_damage_permission()

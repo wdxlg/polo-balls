@@ -36,7 +36,6 @@ var _sample_accumulator:float = 0.0
 var _initial_snapshot:Dictionary = {}
 var _initial_ball_count:int = 0
 var _history:Array[Dictionary] = []
-var _next_rewind_key:int = 1
 var _restoring:bool = false
 
 func initialize(owner:ball, interval:float, shrink_ratio:float, min_seconds:float) -> void:

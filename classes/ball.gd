@@ -1400,8 +1400,6 @@ var _projectile_facing_position_initialized:bool = false
 # V105：缓存 World 与“是否投射物”分类，避免每个单位每个 physics tick 都做
 # SceneTree.current_scene / has_method / Script.resource_path 字符串判断。
 var _cached_world:World = null
-var _projectile_motion_object_cache_valid:bool = false
-var _projectile_motion_object_cache:bool = false
 
 
 func get_external_directional_gravity() -> Vector2:
@@ -2031,7 +2029,6 @@ var _after_image_path_history_colors:Array[Color] = []
 static var _shared_after_image_path_visible_uv_cache:Dictionary = {}
 # V15：尾部真实握把截面分析在所有 ball 实例之间共享。
 # 旧版每把飞刀都逐像素扫描一次，是“每次投刀卡一下”的主要来源之一。
-static var _shared_after_image_tail_band_cache:Dictionary = {}
 # V17：逐扫描线最前沿像素缓存。相同纹理/Region/局部运动方向只分析一次。
 static var _shared_after_image_leading_scanline_cache:Dictionary = {}
 # Texture2D.get_image() 会从 GPU 取回一份 Image；所有实例共享一次，避免每把刀重复读取。
@@ -5058,7 +5055,7 @@ func _process_physical_contact_hits() -> void:
 
 	_physical_contact_ids = current_contacts
 
-func stand(delta:float):
+func stand(_delta:float):
 	if apply_transport_pose(): return
 	# Stand 状态只有显式 Repel 才允许发生位移。
 	# hitbox/hurtbox 是 Area2D，不调用 move_and_slide() 也仍可正常攻击/受伤。

@@ -59,7 +59,7 @@ func _make_particle(smoke:bool,central:bool) -> void:
 	sprite.modulate=Color(shade,shade,shade,1.0)
 	sprite.visible=false
 	add_child(sprite)
-	particles.append({"sprite":sprite,"smoke":smoke,"position3":Vector3(disk.x,_rng.randf_range(0,1.5) if smoke else 0,disk.y),"velocity3":Vector3(cos(angle)*speed,_rng.randf_range(30,68),sin(angle)*speed) if smoke else Vector3.ZERO,"diameter":diameter,"delay":_rng.randf_range(0.0,0.045 if smoke else 0.16),"life":_rng.randf_range(0.80,1.25) if smoke else _rng.randf_range(0.48,0.72),"end_shade":_rng.randf_range(0,0.45),"start_shade":shade})
+	particles.append({"sprite":sprite,"smoke":smoke,"position3":Vector3(disk.x,_rng.randf_range(0,1.5) if smoke else 0.0,disk.y),"velocity3":Vector3(cos(angle)*speed,_rng.randf_range(30,68),sin(angle)*speed) if smoke else Vector3.ZERO,"diameter":diameter,"delay":_rng.randf_range(0.0,0.045 if smoke else 0.16),"life":_rng.randf_range(0.80,1.25) if smoke else _rng.randf_range(0.48,0.72),"end_shade":_rng.randf_range(0,0.45),"start_shade":shade})
 func _process(delta:float) -> void:
 	if get_tree().paused or Game.now_stop_state: return
 	var world:Node=get_tree().current_scene

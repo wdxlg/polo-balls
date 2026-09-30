@@ -36,7 +36,7 @@ func run() -> void:
 	for u:Node in [blaze,mate,foe,pet]:hold(u)
 	for u:Node in [mate,foe,pet]:u.Can_Attack=false;u.Can_Skill=false;u.health=u.Max_health
 	pet.Master=blaze
-	game.combat_damage_resolved.connect(func(src:Node,tgt:Node,amount:float,_b:float):
+	game.combat_damage_resolved.connect(func(_src:Node,tgt:Node,amount:float,_b:float):
 		if amount>0.0 and is_instance_valid(tgt):hits[str(tgt.name)]=float(hits.get(str(tgt.name),0.0))+amount)
 	var FIREBALL:Script=load("res://scripts/effects/我的世界/烈焰弹.gd")
 	var FIELD:Script=load("res://scripts/effects/我的世界/烈焰火场.gd")

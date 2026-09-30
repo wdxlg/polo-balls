@@ -416,7 +416,7 @@ func _reset_statistics() -> void:
 	_was_dead = _is_focus_dead() if _focus != null and is_instance_valid(_focus) else false
 
 
-func _on_game_setting_changed(setting:String,value:Variant) -> void:
+func _on_game_setting_changed(setting:String,_value:Variant) -> void:
 	if setting not in ["Training_Mode","Training_Mode_Type"]:
 		return
 	var enabled:bool = Game.is_training_mode() and Game.get_training_mode_type() == "manual"

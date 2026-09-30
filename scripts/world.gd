@@ -2093,7 +2093,7 @@ func _update_large_battle_crowd_separation(units:Array,delta:float) -> void:
 			else 0.0
 		)
 
-	var cell_size:float = maxf(large_battle_grid_cell_size,8.0)
+	var _cell_size:float = maxf(large_battle_grid_cell_size,8.0)
 	# 只遍历本帧真正有单位的格子；每对单位只处理一次。
 	for cell:Vector2i in _battle_spatial_active_cells:
 		var bucket_value:Variant = _battle_spatial_grid.get(cell,null)
@@ -2520,7 +2520,7 @@ func _choose_waiter_door_placement(
 	map_rect:Rect2,
 	requested_width:float,
 	owner_half_extents:Vector2 = Vector2(7.0,7.0),
-	wall_cell_depth:float = 16.0
+	_wall_cell_depth:float = 16.0
 ) -> Dictionary:
 	var distances:PackedFloat32Array = PackedFloat32Array([
 		absf(position.x - map_rect.position.x),
@@ -3591,7 +3591,7 @@ func _constrain_camera_center_to_keep_map_visible(desired_center:Vector2,zoom_va
 	var safe_zoom:float = maxf(zoom_value,0.001)
 	var half_view:Vector2 = viewport_size / (2.0 * safe_zoom)
 	var result:Vector2 = desired_center
-	var center:Vector2 = map_rect.get_center()
+	var _center:Vector2 = map_rect.get_center()
 
 	# 相机约束分两种情况：
 	# - 视野比地图小：保证视口边缘不越出地图。
@@ -4711,7 +4711,7 @@ func _layout_armor_intro_to_screen() -> void:
 #========================================================
 # 更新黑框及战斗文字的位置
 #========================================================
-func _refresh_map_border_geometry(map_rect:Rect2) -> void:
+func _refresh_map_border_geometry(_map_rect:Rect2) -> void:
 	_refresh_map_inside_shadow()
 	if map_border_segment_root == null or not is_instance_valid(map_border_segment_root):
 		map_border_segment_root = Node2D.new()
@@ -6424,7 +6424,7 @@ func _restore_special_prestart_nodes() -> void:
 			continue
 		var node:Node = obj as Node
 		if node.has_meta("training_prestart_prev_process_mode"):
-			node.process_mode = int(node.get_meta("training_prestart_prev_process_mode"))
+			node.process_mode = int(node.get_meta("training_prestart_prev_process_mode")) as Node.ProcessMode
 			node.remove_meta("training_prestart_prev_process_mode")
 	_special_prestart_frozen_ids.clear()
 
@@ -7562,7 +7562,7 @@ func _on_rotation_name_label_gui_input(event:InputEvent,label:Label) -> void:
 		label.accept_event()
 
 
-func _rotation_promote_setup_preview_to_battle(side:String,char_name:String) -> bool:
+func _rotation_promote_setup_preview_to_battle(side:String,_char_name:String) -> bool:
 	var labels:Array = _rotation_setup_preview_labels[side]
 	if labels.is_empty():
 		return false

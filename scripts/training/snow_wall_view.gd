@@ -228,7 +228,7 @@ func _exit_tree() -> void:
 	_clear_meshes()
 	_clear_overlay()
 
-func projected_pieces(cell:Vector2i,record:Dictionary) -> Array[Dictionary]:
+func projected_pieces(_cell:Vector2i,record:Dictionary) -> Array[Dictionary]:
 	var result:Array[Dictionary] = []
 	var tile:Rect2 = field.environment_tile(record)
 	var size:Vector2 = tile.size

@@ -141,7 +141,7 @@ func _ready() -> void:
 	_setup_rod_damage_area(_rod_damage_b)
 	_update_rods(0.0)
 
-func _setup_rod(rod:AnimatableBody2D,group_name:String) -> void:
+func _setup_rod(rod:AnimatableBody2D,_group_name:String) -> void:
 	if rod == null:
 		return
 	rod.add_to_group("MinecraftBlazeRod")

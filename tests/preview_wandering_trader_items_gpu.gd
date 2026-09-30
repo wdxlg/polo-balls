@@ -119,7 +119,7 @@ func run() -> void:
 	enemy.global_position=center+Vector2(45,-35)
 	# --- fish ------------------------------------------------------------------------------------------
 	var puff:Node2D=trader.release_fish(true)
-	var fish:Node2D=trader.release_fish(false)
+	var _fish:Node2D=trader.release_fish(false)
 	await seconds(0.25)
 	await grab("i18_fish_released")
 	await seconds(0.9)

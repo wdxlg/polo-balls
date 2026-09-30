@@ -89,8 +89,8 @@ func _run() -> void:
 	check(enchant_ui.enchant_background.get_size() == Vector2(100,100),"tooltip source is Mojang's 100x100 nine-slice background")
 	check((potion_panel.get_child(0) as NinePatchRect).texture == potion_ui.potion_background,"effect rows use the original background sprite")
 	check((enchant_panel.get_child(1) as NinePatchRect).texture == enchant_ui.enchant_frame,"enchantment tooltip uses the original purple frame sprite")
-	check(enchant_ui._roman(4) == "IV" and enchant_ui._roman(50) == "L","Roman levels display correctly")
-	check(enchant_ui._duration(64) == "01:04" and enchant_ui._duration(3670) == "1:01:10","effect durations format correctly")
+	check(MCPreviewTooltip._roman(4) == "IV" and MCPreviewTooltip._roman(50) == "L","Roman levels display correctly")
+	check(MCPreviewTooltip._duration(64) == "01:04" and MCPreviewTooltip._duration(3670) == "1:01:10","effect durations format correctly")
 	check(enchant_ui._item_title == "附魔书" and enchant_ui.title_color == Color("ffff55"),"yellow title precedes enchantment lines")
 	# The 120px-wide vanilla image is nine-sliced, not a minimum width. Each
 	# potion row must wrap its own longer line (name or time), not the widest row.

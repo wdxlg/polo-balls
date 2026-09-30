@@ -104,7 +104,7 @@ func run() -> void:
 	mirror.queue_free()
 	# A genuinely single-person team stays a character, even against a many-person team.
 	await normal_setup()
-	blue1=normal_actor(201,"A",-45);blue2=normal_actor(202,"A",-20);var solo:Node=normal_actor(203,"B",35)
+	blue1=normal_actor(201,"A",-45);blue2=normal_actor(202,"A",-20);var _solo:Node=normal_actor(203,"B",35)
 	await verdict([blue1,blue2]);result=world.duel_top_hud.victory_result
 	check(not result.get("is_team",true) and result.get("member_count",0)==1,"single-person winning team still uses individual identity")
 	check(not "队伍" in world.duel_top_hud.victory_body_text() and world.duel_top_hud._victory_texture()!=null,"single winner displays character portrait and name")
@@ -116,7 +116,7 @@ func run() -> void:
 	world.duel_top_hud.outro_elapsed=2;await capture("red_team_wool")
 	await normal_setup()
 	blue1=normal_actor(601,"A",-55);red1=normal_actor(602,"B",0)
-	var third1:Node=normal_actor(603,"C",30);var third2:Node=normal_actor(604,"C",55)
+	var _third1:Node=normal_actor(603,"C",30);var _third2:Node=normal_actor(604,"C",55)
 	await verdict([blue1,red1]);result=world.duel_top_hud.victory_result
 	check(result.get("is_team",false) and result.get("member_count",0)==2 and result.get("key","")=="team:C","third-color multi-person team receives a single stable team result")
 	check(result.get("color",Color.TRANSPARENT)==world._versus_side_color("team:C",3,2) and str(result.get("wool","")) in world.duel_top_hud.WOOL_NAMES,"third-team wool uses existing VS color mapped to native dye palette")

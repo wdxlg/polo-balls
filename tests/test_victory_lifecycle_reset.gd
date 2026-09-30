@@ -68,7 +68,7 @@ func run() -> void:
 	world.reset();tick() # no frame gap: deliberately poll queued old actors
 	check(not world._victory_bell_played and not world._victory_bell_armed,"reset immediately disarms even before queued bodies leave the tree")
 	await settle()
-	var only:Node=await place("",0);await settle()
+	var _only:Node=await place("",0);await settle()
 	check(not world._victory_bell_played and not world._victory_bell_armed and not world.duel_top_hud.outro_active,"after reset placing one character never inherits a victory")
 	await capture("reset_single")
 	# Repeat the actual UI placement path: every new contest gets exactly its own result.
@@ -105,11 +105,11 @@ func run() -> void:
 	check(world._victory_bell_played and world.duel_top_hud.victory_result.get("member_count",0)==1,"winner's summon neither reopens a contest nor changes the solo result")
 	# Same-frame reset + replacement, before the old queued nodes are physically gone.
 	b=await place("B",45);await settle()
-	world.reset();var replacement:Node=await place("",0);tick()
+	world.reset();var _replacement:Node=await place("",0);tick()
 	check(not world._victory_bell_played and not world._victory_bell_armed,"same-frame reset and single placement cannot inherit old sides")
 	await settle();check(not world.duel_top_hud.outro_active,"same-frame reset stays clear after deferred exits")
 	world.reset();tick();world.reset();tick();await settle()
-	replacement=await place("",0);await settle()
+	_replacement=await place("",0);await settle()
 	check(not world._victory_bell_played and not world._victory_bell_armed,"repeated empty resets do not accumulate an armed verdict")
 	b=await place("",45);await settle();await eliminate(b)
 	var heard:int=bell_players

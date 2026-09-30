@@ -462,8 +462,8 @@ func _damage_invisibility_contact_enemies() -> void:
 			false,
 			target
 		)
-		var health_loss:float = maxf(before_health - float(enemy.health),0.0)
-		var block_loss:float = maxf(before_block - float(enemy.block),0.0)
+		var _health_loss:float = maxf(before_health - float(enemy.health),0.0)
+		var _block_loss:float = maxf(before_block - float(enemy.block),0.0)
 		preload("res://scripts/effects/我的世界/mc_hit_feedback.gd").finish(target,enemy,before_health,enemy.global_position)
 
 

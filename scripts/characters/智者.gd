@@ -640,7 +640,7 @@ func _update_tactical_move(delta:float) -> void:
 		direction = mixed.normalized()
 
 
-func _finish_tactical_move(success:bool) -> void:
+func _finish_tactical_move(_success:bool) -> void:
 	var finished_mode:int = _tactical_mode
 	_tactical_mode = TACTIC_NONE
 	_tactical_target = null

@@ -10,6 +10,7 @@ class SnapshotWorld extends Node:
 	var _last_battle_setup:Array = []
 	var _rotation_rosters:Dictionary = {"left":[],"right":[]}
 	var _rotation_saved_rosters:Dictionary = {"left":[],"right":[]}
+	@warning_ignore("unused_private_class_variable")
 	var _armor_stand_test_hud_active:bool = false
 	var fallback:Dictionary = {"order":[],"members":{}}
 	func return_battle_sides() -> Dictionary: return fallback

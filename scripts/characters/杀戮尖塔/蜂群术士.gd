@@ -23,7 +23,7 @@ func continue_attack() -> void:
 	if state_machine.current_state == State.Die:return
 	var world:World = get_tree().current_scene
 	
-	var new_knife:ball
+	var _new_knife:ball
 	var enemy = Target_Enemy if Target_Enemy else Nearest_Enemy
 	if enemy or has_player_control_aim():
 		var border:Dictionary = world.return_now_map_border()

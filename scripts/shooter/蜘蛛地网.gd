@@ -32,7 +32,7 @@ func _ready() -> void:
 		health_bar.visibility_layer = 0
 		health_bar.process_mode = Node.PROCESS_MODE_DISABLED
 
-func setup(caster:ball,lifetime:float,tick:float,damage:float,slow_multiplier:float,slow_duration:float,slow_buff:String) -> void:
+func setup(_caster:ball,lifetime:float,tick:float,damage:float,slow_multiplier:float,slow_duration:float,slow_buff:String) -> void:
 	_lifetime = maxf(lifetime,0.5)
 	_left = _lifetime
 	_tick = maxf(tick,0.2)

@@ -205,7 +205,7 @@ func run() -> void:
 		check(delta_count_all(without_fill, with_fill) > 1000, "GPU circle really contains a visible cosmic fill")
 		export_image(with_fill.duplicate(), "heavenfall_arrival_ring.png")
 		print("TRANSIT_ACTOR_PIXELS: checked=",actor_pixels.x," covered=",actor_pixels.y)
-		world.process_mode = previous_mode
+		world.process_mode = previous_mode as Node.ProcessMode
 		world.camera_2d.enabled = camera_enabled
 		world.camera_2d.force_update_scroll()
 	for i in range(28):

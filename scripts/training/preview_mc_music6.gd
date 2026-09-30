@@ -31,7 +31,7 @@ func run() -> void:
 	backdrop.z_as_relative=false
 	backdrop.z_index=1
 	world.add_child(backdrop)
-	var examples:Array=[
+	var _examples:Array=[
 		[0.95,0.25,0.15,0.2,0.8,0.06,0.95,false],
 		[0.1,0.8,0.95,0.8,0.3,0.06,0.6,false],
 		[0.1,0.1,0.1,0.85,0.95,0.9,0.35,false]]

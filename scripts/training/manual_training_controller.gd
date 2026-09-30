@@ -911,7 +911,7 @@ func _tick_blood_projectiles(delta:float) -> void:
 		var wall_hit:Dictionary = _blood_wall_raycast(ray_from,ray_to)
 		if not wall_hit.is_empty():
 			var impact_position:Vector2 = wall_hit.get("position",ray_to)
-			var normal:Vector2 = wall_hit.get("normal",-velocity_dir)
+			var _normal:Vector2 = wall_hit.get("normal",-velocity_dir)
 			# 把血滴中心退回 front_offset，使前端正好接触碰撞面。
 			visual.global_position = impact_position - velocity_dir * front_offset
 			visual.global_rotation = velocity_dir.angle()

@@ -371,10 +371,12 @@ func _apply_damage(target:ball,amount:float) -> void:
 	if not _plain_arrow_mode:
 		var nonlethal_cap:float = maxf(float(target.block),0.0) + maxf(float(target.health) - 1.0,0.0)
 		outgoing = minf(outgoing,nonlethal_cap)
+	var hit_source:Object = self
+	if source != null: hit_source = source
 	if outgoing > 0.0:
-		var applied:bool = target.receive_positional_damage(outgoing,global_position,false,source if source != null else self)
+		var applied:bool = target.receive_positional_damage(outgoing,global_position,false,hit_source)
 		# Native MC sources are handled by the victim; foreign adapters retain legacy audio.
-		if applied and not preload("res://scripts/effects/我的世界/mc_hit_feedback.gd").manages(source if source != null else self):
+		if applied and not preload("res://scripts/effects/我的世界/mc_hit_feedback.gd").manages(hit_source):
 			MC_DAMAGE_SFX.play(target,global_position)
 	if _knockback_distance > 0.0:
 		target.apply_knockback(
@@ -383,7 +385,7 @@ func _apply_damage(target:ball,amount:float) -> void:
 			_knockback_speed,
 			0.0,
 			0.0,
-			{"source":source if source != null else self,"stop_on_character":true}
+			{"source":hit_source,"stop_on_character":true}
 		)
 
 

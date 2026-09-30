@@ -36,13 +36,13 @@ func run() -> void:
 	var rect:Rect2 = world.return_map_world_rect(world.map_group["Map50x50"])
 	print("MAP_RECT ",rect)
 	var t0:int = Time.get_ticks_usec()
-	var i:int = 0
+	var _i:int = 0
 	for team:String in ["Team0","Team1"]:
 		for k in COUNT/2:
 			var fx:float = 0.15 + 0.7*float(k%10)/9.0
 			var fy:float = (0.15 if team=="Team0" else 0.85) + (0.0 if team=="Team0" else -0.0) + (float(k/10)*0.04 * (1 if team=="Team0" else -1))
 			world.create_char(team,CHARACTER,rect.position + Vector2(rect.size.x*fx, rect.size.y*fy))
-			i += 1
+			_i += 1
 	print("SPAWN_MS=",(Time.get_ticks_usec()-t0)/1000.0," balls=",get_nodes_in_group("Ball").size())
 	for f in WARM_FRAMES: await process_frame
 	var frames:Array[float] = []

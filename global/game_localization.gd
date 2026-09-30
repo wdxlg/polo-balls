@@ -18,6 +18,7 @@ const MISSING_TRANSLATIONS_PATH := "user://missing_translations.csv"
 
 const SUPPORTED_LOCALES := ["zh", "en"]
 
+@warning_ignore("unused_private_class_variable")
 var _runtime_localization_sweep_left:float = 0.0
 
 const RUNTIME_LOCALIZATION_SWEEP_INTERVAL:float = 0.35

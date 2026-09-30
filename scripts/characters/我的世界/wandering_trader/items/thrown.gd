@@ -169,7 +169,7 @@ func _hit_enemy() -> bool:
 		var at:Vector2 = global_position
 		if not CATALOG.body_rect(unit).grow(2.0).has_point(at): continue
 		var heading:Vector2 = vel.normalized() if vel.length_squared() > 0.01 else Vector2.RIGHT
-		var actual:float = CATALOG.hurt(owner_trader,unit,SLIME_DAMAGE,at,true)
+		var _actual:float = CATALOG.hurt(owner_trader,unit,SLIME_DAMAGE,at,true)
 		if is_instance_valid(unit) and unit.health > 0 and unit.can_receive_negative_effects():
 			unit.apply_knockback(heading,SLIME_KNOCKBACK*unit.get_negative_effect_ratio(),300.0,0.0,0.0,{"source":owner_trader,"lock_control":true})
 			POTION_EFFECTS.apply_effect(unit,"slowness",owner_trader,1,SLIME_SLOW_TIME)
