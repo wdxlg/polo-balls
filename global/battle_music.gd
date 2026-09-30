@@ -15,9 +15,10 @@ const BUS: StringName = &"GameplayRecord"
 #   "volume_db" 可选音量（缺省 0）
 const TRACKS: Dictionary = {
 	NONE: {},
+	"the_king": {"path":"res://audio/music/the_king.mp3","loop":true},
 }
 # 下拉框顺序。
-const OPTIONS: Array[String] = [NONE]
+const OPTIONS: Array[String] = [NONE,"the_king"]
 
 var _game: Node
 var _player: AudioStreamPlayer

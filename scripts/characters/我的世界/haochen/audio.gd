@@ -1,9 +1,6 @@
 extends RefCounted
 ## User-provided voice clips plus original Minecraft 1.21.11 clips (SOURCE.json).
-## Task 11 (user 2026-09-28): charge_start = new "今天搬哪个" recording; hurt = "啊"
-## (same hurt_voice_chance as before); ambient/breathing = "好期待啊" (same cadence).
-## Task 8 (user choices 2026-09-28): charge_soul = particle.soul_escape while energy is
-## gained; copy_complete = entity.illusioner.mirror_move (replaces enderman.teleport).
+## User voices keep their original samples; event gains are applied at playback.
 const NATIVE = preload("res://scripts/effects/我的世界/mc_native_audio.gd")
 const EVENTS:Dictionary = {
 	&"charge_start":[preload("res://audio/characters/我的世界/haochen/charge_start.wav")],
@@ -27,7 +24,7 @@ static func gain(event:StringName) -> float:
 	match event:
 		&"charge_start",&"copy_start",&"copy_complete": return 0.0
 		&"charge_soul": return -3.0
-		&"ambient": return -8.0
+		&"ambient",&"hurt": return 0.0
 		&"step": return -5.0
 	return -4.0
 static func play(context:Node2D,event:StringName,point:Vector2,index:int = -1,pitch:float = 1.0) -> Dictionary:

@@ -1,7 +1,5 @@
 extends "res://tests/test_mc_bat.gd"
-# 设置“音乐”：默认且目前唯一的选项是“无”；战斗实际开始时从头播放，
-# 播放速度跟随时间流速、暂停随游戏暂停；重置 / 重打停止并回到开头。
-# 登记表只有“无”，所以用程序生成的音调流验证播放流程。
+# Use registered music for playback lifecycle checks and a short tone for looping.
 
 var music: Node
 
@@ -70,7 +68,11 @@ func run() -> void:
 		finish(1)
 		return
 	var registry: Script = music.get_script()
-	check(Array(registry.OPTIONS) == ["none"], "the music list only offers 无 (none)")
+	check(Array(registry.OPTIONS) == ["none","the_king"], "the music list offers None and The King")
+	var song:AudioStream = registry.track_stream("the_king")
+	check(song is AudioStreamMP3 and song.resource_path=="res://audio/music/the_king.mp3" and song.get_length()>30.0,"The King loads from the music directory as a real MP3")
+	for locale:String in ["zh","en"]:
+		check(game._localization._t_for_locale("BATTLE_MUSIC_THE_KING",locale,false)=="The King","The King is translated in "+locale)
 	check(registry.normalize("removed_track") == "none", "an unknown or removed track falls back to 无")
 	var defaults: Variant = game.get_script().get_property_default_value("Game_Settings")
 	check(defaults is Dictionary and str((defaults as Dictionary).get("Battle_Music", "")) == "none", "the music setting defaults to 无")
@@ -92,8 +94,13 @@ func run() -> void:
 	world.control.add_child(box)
 	world.control._create_battle_music_setting(box)
 	var option: OptionButton = box.find_child("BattleMusicOption", true, false) as OptionButton
-	check(option != null and option.item_count == 1 and str(option.get_item_metadata(0)) == "none" and option.selected == 0, "the settings dropdown has exactly one entry, 无, selected")
+	check(option != null and option.item_count == 2 and str(option.get_item_metadata(0)) == "none" and option.selected == 0, "the settings dropdown offers two tracks with None selected")
 	check(option != null and option.get_item_text(0) == game.ui_t("BATTLE_MUSIC_NONE") and game.ui_t("BATTLE_MUSIC_NONE") != "BATTLE_MUSIC_NONE", "the 无 entry is translated")
+	check(option.get_item_text(1)=="The King" and str(option.get_item_metadata(1))=="the_king","the dropdown exposes the registered The King track")
+	option.select(1)
+	option.item_selected.emit(1)
+	check(game.Game_Settings.Battle_Music=="the_king" and music.current_track()=="the_king" and player.stream==song,"selecting The King in settings loads the actual music")
+	game.set_runtime_game_setting("Battle_Music","none",false)
 	box.queue_free()
 
 	# ---- 选“无”：开战也保持安静 ----
@@ -106,7 +113,8 @@ func run() -> void:
 	check(not music.is_round_active(), "reset ends the music round")
 
 	# ---- 有曲目时：时间静止推迟开始 ----
-	music.debug_set_stream(_tone(8.0))
+	game.set_runtime_game_setting("Battle_Music","the_king",false)
+	check(player.stream==song,"battle playback uses The King, not a test tone")
 	check(not music.is_music_playing(), "a track does not play before the battle starts")
 	game.now_stop_state = true
 	_spawn_pair(center)

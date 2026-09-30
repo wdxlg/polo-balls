@@ -1,0 +1,9 @@
+{
+  "the_king": {
+    "path": "res://audio/music/the_king.mp3",
+    "original_filename": "The king.MP3",
+    "source": "User-provided project-root audio file; moved unchanged.",
+    "sha256": "d9b9ecb8a5f1981f4ad5709c983048538538d9c85d530ef8ca1f1d2722815349",
+    "license": "User-provided project asset. Rights not independently verified; no claim of free redistribution."
+  }
+}

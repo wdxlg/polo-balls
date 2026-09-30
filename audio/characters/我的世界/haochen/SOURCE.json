@@ -13,7 +13,7 @@
   },
   "charge_start": {
     "path": "res://audio/characters/我的世界/haochen/charge_start.wav",
-    "original_path": "今天搬哪个.mp4 (project root, user-supplied video 2026-09-28)",
+    "original_path": "res://audio/characters/我的世界/haochen/sources/今天搬哪个.mp4",
     "original_sha256": "868b410ec6b188e4517f5da2e9708233272d5e053ae44e86b2e1d8ed5fd4247a",
     "conversion": "ffmpeg: audio stream only (AAC 44.1 kHz stereo) -> PCM16 WAV 44.1 kHz stereo; no trimming, no gain change",
     "selection": "User 2026-09-28 (task 11): replaces the previous charging-start voice (1_今天搬哪个_(Vocals).wav). Not claimed to be Mojang audio.",
@@ -21,28 +21,28 @@
     "format": "PCM16 stereo 44100Hz",
     "gain_db": 0.0,
     "license": "User-provided project asset; no claim of free redistribution.",
-    "replaces": "1_今天搬哪个_(Vocals).wav (2.554 s; backup .arena_haochen/backups/task11/charge_start.wav.bak)"
+    "replaces": "1_今天搬哪个_(Vocals).wav (2.554 s)"
   },
   "hurt": {
     "path": "res://audio/characters/我的世界/haochen/hurt_ah.wav",
-    "original_path": "啊.mp4 (project root, user-supplied video 2026-09-28)",
+    "original_path": "res://audio/characters/我的世界/haochen/sources/啊.mp4",
     "original_sha256": "7661893bcdb1b8ddc4530572eae423c7d97c935716503a104a80a01eb0d664bc",
     "conversion": "ffmpeg: audio stream only (AAC 44.1 kHz stereo) -> PCM16 WAV 44.1 kHz stereo; no trimming, no gain change",
     "selection": "User 2026-09-28 (task 11): Haochen hurt voice, replaces entity.evoker.hurt; plays with the unchanged mc_mob_base hurt_voice_chance.",
     "duration_seconds": 0.441179,
     "format": "PCM16 stereo 44100Hz",
-    "gain_db": -4.0,
+    "gain_db": 0.0,
     "license": "User-provided project asset; no claim of free redistribution."
   },
   "ambient": {
     "path": "res://audio/characters/我的世界/haochen/breath_haoqidai.wav",
-    "original_path": "好期待啊.mp4 (project root, user-supplied video 2026-09-28)",
+    "original_path": "res://audio/characters/我的世界/haochen/sources/好期待啊.mp4",
     "original_sha256": "0dc959fffd40ee6ffef88fcae71177d81afb86df4638ada4a91780f4cb470526",
     "conversion": "ffmpeg: audio stream only (AAC 44.1 kHz stereo) -> PCM16 WAV 44.1 kHz stereo; no trimming, no gain change",
     "selection": "User 2026-09-28 (task 11): Haochen breathing/idle voice, replaces entity.evoker.ambient; same cadence (RESTING only, every 3-7 s, never overlapping).",
     "duration_seconds": 1.021678,
     "format": "PCM16 stereo 44100Hz",
-    "gain_db": -8.0,
+    "gain_db": 0.0,
     "license": "User-provided project asset; no claim of free redistribution."
   },
   "copy_start": {
