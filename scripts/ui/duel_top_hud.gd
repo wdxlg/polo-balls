@@ -601,7 +601,7 @@ func victory_body_text() -> String:
 	else: return "双方战败" if _toast_locale()=="zh" else "Double knockout"
 	return str(TOAST_TEXT[_toast_locale()].body)%display
 
-func _draw_wool_cube(texture:Texture2D,rect:Rect2) -> void:
+func _draw_wool_cube(texture:Texture2D,rect:Rect2,tint:Color=Color.WHITE) -> void:
 	var uv:=PackedVector2Array([Vector2(0,0),Vector2(1,0),Vector2(1,1),Vector2(0,1)])
 	var faces:Array=[ [Vector2(0.5,0),Vector2(1,0.25),Vector2(0.5,0.5),Vector2(0,0.25)],
 		[Vector2(0,0.25),Vector2(0.5,0.5),Vector2(0.5,1),Vector2(0,0.75)],
@@ -610,7 +610,7 @@ func _draw_wool_cube(texture:Texture2D,rect:Rect2) -> void:
 		var points:=PackedVector2Array()
 		for point:Vector2 in faces[i]: points.append(rect.position+point*rect.size)
 		var shade:float=[1.0,0.8,0.6][i]
-		draw_polygon(points,PackedColorArray([Color(shade,shade,shade)]),uv,texture)
+		draw_polygon(points,PackedColorArray([Color(shade,shade,shade)*tint]),uv,texture)
 
 func _update_outro(delta:float) -> void:
 	if outro_active:
@@ -776,6 +776,10 @@ func _refresh_pair() -> void:
 	var collected:Dictionary = _collect_battle_sides()
 	var order:Array = collected.order
 	var entries:Dictionary = collected.entries
+	if timed_mode:
+		# 计时模式按队伍组对：本局正好 2 个队伍才显示对战面板（多于 2 队只显示计时器）。
+		_refresh_timed_team_pair(order,entries)
+		return
 	var is_duel:bool = order.size() == 2
 	if is_duel:
 		for side_key:String in order:
@@ -861,6 +865,65 @@ func _build_sides(order:Array,entries:Dictionary) -> void:
 	_refresh_values()
 
 
+## 计时模式的队伍对阵。队伍来自 World.timed_team_map()（布阵名单，队员阵亡也不会让队伍消失）；
+## 人数超过 1 的队伍显示为队伍：羊毛方块 + “X色队伍”，数值为队伍总受伤。
+## 签名只含队伍组成，不含节点：队员阵亡/复活只更新节点列表，不会重建面板打断结算动画。
+func _refresh_timed_team_pair(order:Array,entries:Dictionary) -> void:
+	var team_map:Dictionary = world.timed_team_map()
+	var team_keys:Array = []
+	var team_nodes:Dictionary = {}
+	var team_names:Dictionary = {}
+	for side_key:Variant in order:
+		for entry:Dictionary in entries[side_key]:
+			var entry_nodes:Array = entry.nodes
+			if entry_nodes.is_empty(): continue
+			var key:String = str(team_map.get(int(world._resolve_timed_source_setup_id(entry_nodes[0])),""))
+			if key.is_empty(): continue
+			if not team_keys.has(key):
+				team_keys.append(key)
+				team_nodes[key] = []
+				team_names[key] = str(entry.name)
+			(team_nodes[key] as Array).append_array(entry_nodes)
+	var members:Dictionary = {}
+	var setup_ids:Array = team_map.keys()
+	setup_ids.sort()
+	for raw_id:Variant in setup_ids:
+		var key:String = str(team_map[raw_id])
+		if not members.has(key): members[key] = []
+		(members[key] as Array).append(int(raw_id))
+		if not team_keys.has(key):
+			team_keys.append(key)
+			team_nodes[key] = []
+			team_names[key] = str(world._timed_name_by_setup.get(int(raw_id),""))
+	if team_keys.size() != 2:
+		_clear_pair()
+		return
+	var signature_parts:PackedStringArray = PackedStringArray()
+	for key:Variant in team_keys:
+		signature_parts.append(str(key) + "|" + str(members.get(key,[])) + "|" + str(team_names[key]))
+	var signature:String = "timed||" + "||".join(signature_parts)
+	if signature != _pair_signature or sides.size() != 2:
+		_pair_signature = signature
+		var colors:Array = _side_colors(team_keys)
+		var built:Array = []
+		for i:int in range(2):
+			var key:String = str(team_keys[i])
+			var ids:Array = members.get(key,[])
+			var nodes:Array = team_nodes[key]
+			var raw_name:String = str(team_names[key])
+			var is_team:bool = ids.size() > 1
+			built.append({"side_key":key,"team_key":key,"is_team":is_team,"raw_name":raw_name,"color":colors[i],
+				"texture":null if is_team else _resolve_portrait(raw_name,nodes[0] if not nodes.is_empty() else null),
+				"nodes":nodes.duplicate(),"setup_id":int(ids[0]) if not ids.is_empty() else -1,
+				"damage":0.0,"value_color":HP_TEXT_COLOR,"hp":0.0,"max_hp":1.0,"block":0.0,"absorption":0.0,"reduction":0.0,"dead":false})
+		sides = built
+		_reset_outro()
+	else:
+		_refresh_colors(team_keys)
+		for i:int in range(2):
+			var live_nodes:Array = team_nodes[str(team_keys[i])]
+			sides[i].nodes = live_nodes.duplicate()
+	_refresh_values()
 func _resolve_portrait(raw_name:String,node:Node) -> Texture2D:
 	# 变形者等身份名与场景不同的角色，按身份名查场景，与轮换头像框一致。
 	var scene_path:String = ""
@@ -870,9 +933,14 @@ func _resolve_portrait(raw_name:String,node:Node) -> Texture2D:
 
 
 func _refresh_values() -> void:
+	var timed_teams:Dictionary = world.timed_team_map() if timed_mode and world.has_method("timed_team_map") else {}
+	var timed_scores:Dictionary = world.timed_team_scores(timed_teams) if not timed_teams.is_empty() else {}
 	for side:Dictionary in sides:
-		# 计时模式：受到的实际生命伤害（与头顶数字同一份权威分数）。
-		side.damage=float(world._timed_damage_by_setup.get(int(side.get("setup_id",-1)),0.0))
+		# 计时模式：队伍总受伤（单人队伍即本人受伤），颜色按队伍受伤排名由白到红，与头顶数字同一份权威分数。
+		var setup_id:int = int(side.get("setup_id",-1))
+		var team_key:String = str(side.get("team_key",timed_teams.get(setup_id,"")))
+		side.damage = float(timed_scores[team_key]) if timed_scores.has(team_key) else float(world._timed_damage_by_setup.get(setup_id,0.0))
+		side.value_color = world.timed_heat_color(world.timed_team_heat(team_key,timed_scores)) if timed_scores.has(team_key) else HP_TEXT_COLOR
 		var hp:float = 0.0
 		var max_hp:float = 0.0
 		var block:float = 0.0
@@ -1054,6 +1122,12 @@ func _draw_side_graphics(panel:Rect2,side:Dictionary,mirrored:bool) -> void:
 	var tint:Color = DEAD_TINT if dead else Color.WHITE
 	var slot:Rect2 = _portrait_rect(panel,mirrored)
 	draw_texture_rect(ITEM_FRAME,slot,false,tint)
+	if bool(side.get("is_team",false)):
+		# 多人队伍：与胜利 toast 相同的羊毛方块，颜色跟随队伍色。
+		_draw_wool_cube(_team_wool_texture(side),slot.grow(-slot.size.x*0.18),tint)
+		if not bool(_data().timed_mode): _draw_hearts(panel,side,mirrored,tint)
+		_draw_armor(panel,side,mirrored,tint)
+		return
 	var texture:Texture2D = side.texture
 	if texture != null:
 		var area:Rect2 = slot.grow(-slot.size.x * 0.15)
@@ -1095,10 +1169,32 @@ func _outlined_text(canvas:CanvasItem,left_baseline:Vector2,text:String,alignmen
 	canvas.draw_string(FONT,left_baseline,text,alignment,width,font_size,color)
 
 
+## 计时模式的对战面板只显示受伤数字本身（不带“受到伤害”字样）。
 func side_value_text(side:Dictionary) -> String:
 	if bool(_data().timed_mode):
-		return ("受到伤害：" if _toast_locale()=="zh" else "Damage taken: ")+str(roundi(float(side.get("damage",0.0))))
+		return str(roundi(float(side.get("damage",0.0))))
 	return "%d / %d" % [ceili(float(side.hp)),roundi(float(side.max_hp))]
+
+
+## 数值颜色：计时模式按队伍受伤排名由白到红（与头顶数字一致）；其它模式为白色生命值。
+func side_value_color(side:Dictionary) -> Color:
+	if bool(_data().timed_mode):
+		return side.get("value_color",HP_TEXT_COLOR)
+	return HP_TEXT_COLOR
+
+
+func side_name_text(side:Dictionary) -> String:
+	if bool(side.get("is_team",false)):
+		var wool:String = _wool_for_color(side.color)
+		var index:int = WOOL_NAMES.find(wool)
+		return WOOL_ZH[index] + "队伍" if _toast_locale() == "zh" else wool.replace("_"," ").capitalize() + " Team"
+	return _display_name(str(side.raw_name))
+
+
+func _team_wool_texture(side:Dictionary) -> Texture2D:
+	var wool:String = _wool_for_color(side.color)
+	if not _wool_cache.has(wool): _wool_cache[wool] = load("res://Images/UI/team_victory/" + wool + "_wool.png")
+	return _wool_cache[wool]
 func clock_text() -> String:
 	var data=_data()
 	if bool(data.timed_mode):
@@ -1135,7 +1231,7 @@ func _draw_text() -> void:
 		var area:Rect2 = _text_rect(panel,mirrored)
 		var alignment:HorizontalAlignment = HORIZONTAL_ALIGNMENT_RIGHT if mirrored else HORIZONTAL_ALIGNMENT_LEFT
 		var dead:bool = bool(side.dead)
-		var name_text:String = _display_name(str(side.raw_name))
+		var name_text:String = side_name_text(side)
 		var name_size:int = _fit_font_size(name_text,area.size.x,NAME_MAX_SIZE,NAME_MIN_SIZE)
 		name_text = _ellipsize(name_text,area.size.x,name_size)
 		var name_color:Color = side.color
@@ -1148,7 +1244,7 @@ func _draw_text() -> void:
 		var row_width:float = SIDE_WIDTH - PAD * 2.0
 		var hp_size:int = _fit_font_size(hp_text,row_width,HP_TEXT_SIZE,16)
 		_outlined_text(_text_layer,Vector2(row_x,panel.position.y + HP_BASELINE),hp_text,alignment,
-			row_width,hp_size,HP_TEXT_COLOR * (DEAD_TEXT_TINT if dead else Color.WHITE),5)
+			row_width,hp_size,side_value_color(side) * (DEAD_TEXT_TINT if dead else Color.WHITE),5)
 	_draw_clock_text(rects[1])
 	_draw_toast_text()
 

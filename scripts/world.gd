@@ -781,6 +781,11 @@ var _timed_damage_labels:Dictionary = {}
 # 伤害数字不再作为人物的子控件（否则会继承人物/图片的缩放差异）。
 # 这里只保存人物 instance_id，每帧按实际显示 Sprite 的全局边界重新定位。
 var _timed_damage_label_character_ids:Dictionary = {}
+# 计时模式队伍：setup_id -> 队伍键（"team:队名"；无队伍为 "solo_setup:id"），与胜利判定的阵营键一致。
+# 权威端按当前布阵实时计算并随快照下发；客机没收到快照前本地推算。
+var _timed_team_by_setup:Dictionary = {}
+# 头顶数字 / 顶部对战 UI 数字按所在队伍的受伤排名，由白色渐变到这个红色。
+const TIMED_HEAT_RED:Color = Color(1.0,0.2,0.2)
 
 # 轮放/计时布阵阶段需要冻结所有实际战斗对象。
 # 某些角色（例如兔子）会在 _ready()/call_deferred 中额外生成同伴，
@@ -6333,6 +6338,7 @@ func _reset_special_training_state() -> void:
 	_timed_time_left = Game.get_training_timed_duration()
 	_timed_damage_by_setup.clear()
 	_timed_name_by_setup.clear()
+	_timed_team_by_setup.clear()
 	for raw_label:Variant in _timed_damage_labels.values():
 		if raw_label is Label and is_instance_valid(raw_label):
 			(raw_label as Label).queue_free()
@@ -8398,6 +8404,7 @@ func _enforce_timed_character_hud() -> void:
 			continue
 		if character.health_bar != null:
 			character.health_bar.visible = false
+	_update_all_timed_damage_labels() # 双端每帧同步头顶数字与排名颜色（客机只收分数快照）
 	_layout_all_timed_damage_labels()
 
 
@@ -8430,14 +8437,106 @@ func on_timed_health_loss(target:ball,actual_health_loss:float) -> void:
 	if setup_id < 0:
 		return
 	_timed_damage_by_setup[setup_id] = float(_timed_damage_by_setup.get(setup_id,0.0)) + actual_health_loss
-	_update_timed_damage_label(setup_id)
+	_update_all_timed_damage_labels() # 一队分数变化会改变所有队伍的颜色排名
 	if _timed_overtime: _finish_timed_training() # Settle as soon as a tie for the lowest score breaks.
 
 
-func _update_timed_damage_label(setup_id:int) -> void:
+func _update_timed_damage_label(setup_id:int,team_map:Variant=null,team_scores:Variant=null) -> void:
 	var raw:Variant = _timed_damage_labels.get(setup_id,null)
 	if raw is Label and is_instance_valid(raw):
-		(raw as Label).text = str(int(round(float(_timed_damage_by_setup.get(setup_id,0.0)))))
+		var label:Label = raw as Label
+		# 数字是本人受到的伤害；颜色按所在队伍总受伤的排名由白到红。
+		label.text = str(int(round(float(_timed_damage_by_setup.get(setup_id,0.0)))))
+		var map:Dictionary = team_map if team_map is Dictionary else timed_team_map()
+		var totals:Dictionary = team_scores if team_scores is Dictionary else timed_team_scores(map)
+		var key:String = str(map.get(setup_id,""))
+		var color:Color = timed_heat_color(timed_team_heat(key,totals)) if not key.is_empty() else Color.WHITE
+		if not label.has_theme_color_override("font_color") or not label.get_theme_color("font_color").is_equal_approx(color):
+			label.add_theme_color_override("font_color",color)
+
+
+func _update_all_timed_damage_labels() -> void:
+	if _timed_damage_labels.is_empty():
+		return
+	var map:Dictionary = timed_team_map()
+	var totals:Dictionary = timed_team_scores(map)
+	for raw_id:Variant in _timed_damage_labels.keys():
+		_update_timed_damage_label(int(raw_id),map,totals)
+
+
+## 计时模式的队伍划分：setup_id -> 队伍键。有 Team 的布阵为 "team:队名"，没有 Team 的角色各自成队 "solo_setup:id"
+## （与 _victory_side_key_for_character / _configured_manual_victory_side_count 相同）。
+## 已从布阵删除且场上也没有人物的 setup 不计入。客机优先使用权威端快照。
+func timed_team_map() -> Dictionary:
+	if not is_multiplayer_authority() and not _timed_team_by_setup.is_empty():
+		return _timed_team_by_setup
+	var map:Dictionary = {}
+	for raw_id:Variant in _timed_damage_by_setup.keys():
+		var setup_id:int = int(raw_id)
+		if setup_id < 0:
+			continue
+		var entry:Dictionary = _find_battle_setup_entry(setup_id)
+		var key:String = ""
+		if not entry.is_empty():
+			var team_name:String = str(entry.get("team","")).strip_edges()
+			key = "team:" + team_name if not team_name.is_empty() else "solo_setup:" + str(setup_id)
+		else:
+			var character:Variant = _timed_character_for_setup(setup_id)
+			if character == null:
+				continue
+			key = _victory_side_key_for_character(character)
+		if not key.is_empty():
+			map[setup_id] = key
+	if is_multiplayer_authority():
+		_timed_team_by_setup = map
+	return map
+
+
+func _timed_character_for_setup(setup_id:int) -> Variant:
+	for raw:Variant in _battle_units_cache:
+		if is_instance_valid(raw) and raw is ball and raw.has_meta("battle_setup_id") and int(raw.get_meta("battle_setup_id")) == setup_id:
+			return raw
+	return null
+
+
+## 队伍总受伤：队伍键 -> 全体队员（含已阵亡队员）受到的实际生命伤害之和。
+func timed_team_scores(team_map:Variant=null) -> Dictionary:
+	var map:Dictionary = team_map if team_map is Dictionary else timed_team_map()
+	var totals:Dictionary = {}
+	for raw_id:Variant in map.keys():
+		var key:String = str(map[raw_id])
+		totals[key] = float(totals.get(key,0.0)) + float(_timed_damage_by_setup.get(int(raw_id),0.0))
+	return totals
+
+
+## 受伤排名热度：0 = 受伤最少（白），1 = 受伤最多（红），中间队伍按名次均匀渐变。
+## 按不同分值排名：同分同色；所有队伍分数相同（含开局全 0）时都为白色。
+func timed_team_heat(team_key:String,team_scores:Variant=null) -> float:
+	var totals:Dictionary = team_scores if team_scores is Dictionary else timed_team_scores()
+	if not totals.has(team_key):
+		return 0.0
+	var levels:Array[float] = []
+	for raw:Variant in totals.values():
+		var value:float = float(raw)
+		var seen:bool = false
+		for level:float in levels:
+			if absf(level - value) <= 0.001:
+				seen = true
+				break
+		if not seen:
+			levels.append(value)
+	if levels.size() <= 1:
+		return 0.0
+	levels.sort()
+	var own:float = float(totals[team_key])
+	for i:int in range(levels.size()):
+		if absf(levels[i] - own) <= 0.001:
+			return float(i) / float(levels.size() - 1)
+	return 0.0
+
+
+static func timed_heat_color(heat:float) -> Color:
+	return Color.WHITE.lerp(TIMED_HEAT_RED,clampf(heat,0.0,1.0))
 
 
 func _sync_timed_match(delta:float,force:bool=false) -> void:
@@ -8446,13 +8545,14 @@ func _sync_timed_match(delta:float,force:bool=false) -> void:
 	if not force and _timed_sync_elapsed<0.1: return
 	_timed_sync_elapsed=0.0
 	_timed_sync_sequence+=1
-	_receive_timed_match.rpc(_timed_sync_sequence,_timed_time_left,_timed_damage_by_setup,_timed_running,_timed_finished,_timed_overtime,_timed_winner_setup)
+	_receive_timed_match.rpc(_timed_sync_sequence,_timed_time_left,_timed_damage_by_setup,_timed_running,_timed_finished,_timed_overtime,_timed_winner_setup,timed_team_map())
 @rpc("authority","call_remote","reliable")
-func _receive_timed_match(sequence:int,remaining:float,scores:Dictionary,running:bool,finished:bool,overtime:bool,winner:int) -> void:
+func _receive_timed_match(sequence:int,remaining:float,scores:Dictionary,running:bool,finished:bool,overtime:bool,winner:int,teams:Dictionary={}) -> void:
 	if is_multiplayer_authority() or not Game.is_timed_training_mode() or sequence<=_timed_received_sequence: return
 	_timed_received_sequence=sequence
 	_timed_time_left=maxf(remaining,0.0)
 	_timed_damage_by_setup=scores.duplicate()
+	_timed_team_by_setup=teams.duplicate()
 	_timed_running=running
 	_timed_finished=finished
 	_timed_overtime=overtime
@@ -8463,24 +8563,39 @@ func _receive_timed_match(sequence:int,remaining:float,scores:Dictionary,running
 func _finish_timed_training() -> void:
 	if _timed_finished or not is_multiplayer_authority(): return
 	_timed_time_left=0.0
-	# 受到伤害最少者胜。候选：仍在布阵名单中（或有在场人物）且家族存活/等待训练复活的 setup；
-	# 已删除的布阵、已彻底阵亡的人物不能凭“少挨打”获胜。无人符合时退回全部分数参与。
-	var candidates:Array = []
+	# 按队伍判胜：队伍总受伤（含已阵亡队员挨过的伤害）最少的队伍获胜；没有 Team 的角色各自成队。
+	# 候选队伍：至少一名队员仍在布阵名单中（或有在场人物）且家族存活/等待训练复活；
+	# 全员已删除/彻底阵亡的队伍不能凭“少挨打”获胜。无队伍符合时退回全部队伍参与。
+	var team_map:Dictionary = timed_team_map()
+	var team_scores:Dictionary = timed_team_scores(team_map)
+	var candidate_members:Dictionary = {} # 队伍键 -> Array（符合条件的队员 setup_id）
 	for raw_id:Variant in _timed_damage_by_setup.keys():
 		var candidate_id:int = int(raw_id)
+		if not team_map.has(candidate_id): continue
 		var listed:bool = not _find_battle_setup_entry(candidate_id).is_empty() or _battle_setup_character_exists(candidate_id)
 		var alive:bool = _battle_family_alive(candidate_id) or _battle_setup_character_exists(candidate_id) or _training_respawn_pending.has(candidate_id)
-		if listed and alive: candidates.append(raw_id)
-	if candidates.is_empty(): candidates = _timed_damage_by_setup.keys()
+		if listed and alive:
+			var key:String = str(team_map[candidate_id])
+			if not candidate_members.has(key): candidate_members[key] = []
+			(candidate_members[key] as Array).append(candidate_id)
+	# 兜底：没有队伍记录的 setup（既不在布阵名单也没有在场人物）按单人队伍、以自身分数参与。
+	for raw_id:Variant in _timed_damage_by_setup.keys():
+		if not team_map.has(int(raw_id)):
+			team_scores["solo_setup:" + str(int(raw_id))] = float(_timed_damage_by_setup[raw_id])
+	if candidate_members.is_empty():
+		for raw_id:Variant in _timed_damage_by_setup.keys():
+			var key:String = str(team_map.get(int(raw_id),"solo_setup:" + str(int(raw_id))))
+			if not candidate_members.has(key): candidate_members[key] = []
+			(candidate_members[key] as Array).append(int(raw_id))
 	var best_score:float=INF
-	var winners:Array[int]=[]
-	for raw_id:Variant in candidates:
-		var setup_id:int=int(raw_id)
-		var score:float=float(_timed_damage_by_setup[raw_id])
+	var winners:Array[String]=[]
+	for raw_key:Variant in candidate_members.keys():
+		var team_key:String=str(raw_key)
+		var score:float=float(team_scores.get(team_key,0.0))
 		if score<best_score-0.001:
 			best_score=score
-			winners=[setup_id]
-		elif absf(score-best_score)<=0.001: winners.append(setup_id)
+			winners=[team_key]
+		elif absf(score-best_score)<=0.001: winners.append(team_key)
 	if winners.size()!=1:
 		var first_overtime:bool=not _timed_overtime
 		_timed_overtime=true
@@ -8491,15 +8606,20 @@ func _finish_timed_training() -> void:
 	_timed_running=false
 	_timed_overtime=false
 	_timed_start_armed=false
-	_timed_winner_setup=winners[0]
+	var winner_team:String=winners[0]
+	var winner_members:Array=(candidate_members[winner_team] as Array).duplicate()
+	winner_members.sort()
+	# 代表 setup：胜利 toast 通过它找到阵营键，多人队伍显示为“X色队伍获胜”。
+	_timed_winner_setup=int(winner_members[0])
 	for raw_id:Variant in _timed_damage_by_setup.keys():
-		if int(raw_id)!=_timed_winner_setup: _timed_defeated_setups[int(raw_id)]=true
+		if str(team_map.get(int(raw_id),"solo_setup:" + str(int(raw_id)))) != winner_team: _timed_defeated_setups[int(raw_id)]=true
 	_training_respawn_pending.clear()
 	for unit:Node in _battle_units_cache.duplicate()+_ball_projectile_units.duplicate():
 		if is_instance_valid(unit) and _timed_defeated_setups.has(_resolve_timed_source_setup_id(unit)):
 			_eliminate_timed_defeated(unit)
 	_trigger_victory_bell()
-	_notify_battle_victory_for_setup(_timed_winner_setup)
+	for member:Variant in winner_members:
+		_notify_battle_victory_for_setup(int(member))
 	_sync_timed_match(0.0,true)
 	notify_primary_battle_character_alive_changed()
 	# Deliberately no SceneTree pause or disabled winner: death animations and victory movement continue.

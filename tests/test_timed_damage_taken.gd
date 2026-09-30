@@ -1,5 +1,5 @@
 extends "res://tests/test_rotation_timed_flow.gd"
-# 2026-09-30 user rule: timed mode shows and scores DAMAGE TAKEN.
+# Timed mode shows and scores DAMAGE TAKEN.
 # - Head number and the 1v1 top HUD show each setup's accumulated actual HP loss.
 # - Every actual HP loss counts (enemy, summon, environment, self, sourceless writes),
 #   read in ball.health's setter after character hooks; healing never changes it.
@@ -44,7 +44,7 @@ func run() -> void:
 	if world.duel_top_hud.sides.size()==2:
 		var left:Dictionary=world.duel_top_hud.sides[0]
 		var text:String=world.duel_top_hud.side_value_text(left)
-		check(("受到伤害" in text or "Damage taken" in text) and "40" in text,"1v1 top HUD shows damage taken with the same score: "+text)
+		check(text=="40","1v1 top HUD shows only the same damage-taken number: "+text)
 	else:
 		check(false,"1v1 top HUD available for the timed duel")
 
