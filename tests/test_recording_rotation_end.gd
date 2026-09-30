@@ -129,15 +129,15 @@ func speed_guard_cases() -> void:
 	world._rotation_combat_blocked=true
 	check(recorder._live_speed_is_healthy(2.0),"covered scene loading is not sustained combat slowdown")
 	world._rotation_combat_blocked=false
-	check(not recorder._live_speed_is_healthy(2.0),"an old-round result alone does not bypass overload protection")
+	check(not recorder._live_speed_is_healthy(2.0),"an old-round result alone does not suppress overload diagnostics")
 	world._rotation_transitioning=false
 	recorder._physics_clock=2.0
 	check(recorder._live_speed_is_healthy(2.0),"normal combat speed resumes a clean measurement window")
 	recorder._physics_clock=3.0
-	check(not recorder._live_speed_is_healthy(2.0),"genuine half-speed combat still fails the unchanged speed threshold")
-	check(recorder.MAX_FRAMES_PER_DRAW==120 and recorder.WriterScript.MAX_BYTES==256*1024*1024 and recorder.WriterScript.MAX_FRAMES==120,"render-stall and encoder backpressure limits are unchanged")
+	check(not recorder._live_speed_is_healthy(2.0),"genuine half-speed combat is still detected for the final warning")
+	check(recorder.MAX_FRAMES_PER_DRAW==120 and recorder.WriterScript.MAX_BYTES==256*1024*1024 and recorder.WriterScript.MAX_FRAMES==120,"stall-warning thresholds and bounded encoder memory remain unchanged")
 
-func gpu_case(folder:String,match_type:String,simulated:bool) -> void:
+func gpu_case(folder:String,match_type:String,simulated:bool,inject_stall:bool = false) -> void:
 	await setup(match_type)
 	var prefs:RefCounted=recorder.PreferencesScript.new(folder.path_join("prefs.cfg"))
 	prefs.directory=folder
@@ -148,6 +148,18 @@ func gpu_case(folder:String,match_type:String,simulated:bool) -> void:
 	if not started: return
 	var deadline:int=wall_msec()+120000
 	while recorder.is_recording() and recorder._frame_index<12 and wall_msec()<deadline: await process_frame
+	if inject_stall:
+		var before_stall:float=recorder._game_time
+		recorder._speed_warmup=0.0
+		recorder._speed_real=0.0
+		recorder._speed_physics_start=recorder._physics_clock
+		OS.delay_msec(6500) # Longer than both old video-stop and audio-ring thresholds.
+		while recorder.is_recording() and recorder._game_time<before_stall+6.3 and wall_msec()<deadline: await process_frame
+		check(recorder.is_recording(),"LIVE survives a real 6.5-second main-thread stall")
+		check(recorder._live_issues.has("stall") and recorder._live_issues.has("slow"),"render stall and combat slowdown become deferred warnings")
+		check(recorder._audio.dropped_frames>0 and recorder._live_issues.has("audio"),"real audio ring overflow is padded instead of stopping")
+		check(not world.control._battle_record_controls.result_dialog.visible,"no warning dialog interrupts the running match")
+		check(recorder._writer.peak_bytes<=recorder.WriterScript.MAX_BYTES and recorder._secondary._writer.peak_bytes<=recorder.WriterScript.MAX_BYTES,"both real encoders remain within the raw-frame memory cap")
 	var sequence:Array=["left","right","right"] if match_type=="challenge" else ["right","right"]
 	var terminal_frame:int=-1
 	for index:int in sequence.size():
@@ -173,6 +185,10 @@ func gpu_case(folder:String,match_type:String,simulated:bool) -> void:
 	check(recorder.last_outputs.get("zh","")!=recorder.last_outputs.get("en",""),"localized output paths are distinct")
 	check(terminal_frame>=0 and recorder._frame_index-terminal_frame>=28,"final series result retains the configured 30-frame tail")
 	check(recorder.get_last_error().is_empty(),"no recording error: "+recorder.get_last_error())
+	if inject_stall:
+		var message:String=world.control._battle_record_controls.last_message
+		check(message.begins_with("已保存") and message.contains("本次录制提示") and message.contains("补静音"),"final saved result reports recovered problems without calling it interrupted")
+		check(recorder._live_issues.has("encoder"),"oversized catch-up duration uses bounded repeat metadata")
 	print("ROTATION_MOVIES ",JSON.stringify({"match_type":match_type,"simulated":simulated,"frames":recorder._frame_index,"terminal_frame":terminal_frame,"outputs":recorder.last_outputs}))
 
 func run() -> void:
@@ -194,7 +210,7 @@ func run() -> void:
 	recorder=world.control._battle_record_controls.recorder
 	var args:PackedStringArray=OS.get_cmdline_user_args()
 	if DisplayServer.get_name()!="headless" and args.size()==3:
-		await gpu_case(args[0],args[1],args[2]=="sim")
+		await gpu_case(args[0],args[1],args[2]=="sim",args[2]=="live_faults")
 	else:
 		await contract_cases()
 		speed_guard_cases()

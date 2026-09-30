@@ -9,6 +9,8 @@ var sample_rate:int = 48000
 var samples_written:int = 0
 var peak:float = 0.0
 var error:String = ""
+var dropped_frames:int = 0
+var _last_discarded:int = 0
 var _position:float = 0.0
 var _path:String = ""
 
@@ -30,14 +32,16 @@ func begin(path:String, offline:bool = false) -> bool:
 	effect.clear_buffer()
 	return true
 
-func drain(timeline_scale:float, discard:bool = false) -> void:
+func drain(timeline_scale:float, discard:bool = false, recover_overflow:bool = false) -> void:
 	if effect == null or file == null: return
-	if effect.get_discarded_frames() > 0:
+	var count:int = effect.get_frames_available()
+	var input:PackedVector2Array = effect.get_buffer(count)
+	var discarded:int = effect.get_discarded_frames()
+	var missing:int = maxi(0, discarded - _last_discarded)
+	_last_discarded = discarded
+	if missing > 0 and not recover_overflow:
 		error = "音频采集缓冲溢出，已停止录制；请降低对战负载后重试。"
 		return
-	var count:int = effect.get_frames_available()
-	if count <= 0: return
-	var input:PackedVector2Array = effect.get_buffer(count)
 	if discard or timeline_scale <= 0.000001:
 		_position = 0.0
 		return
@@ -65,6 +69,20 @@ func drain(timeline_scale:float, discard:bool = false) -> void:
 		output.resize(written)
 		file.store_buffer(output.to_byte_array())
 		samples_written += written
+		if file.get_error() != OK: error = "写入录制音频失败，请检查磁盘空间。"
+	if missing > 0:
+		dropped_frames += missing
+		# Capture keeps the oldest buffered samples; the lost interval follows them.
+		write_silence(int(round(missing * timeline_scale)))
+
+func write_silence(count:int) -> void:
+	var silence:PackedByteArray = PackedByteArray()
+	silence.resize(4096 * 8)
+	while count > 0 and error.is_empty():
+		var chunk:int = mini(count, 4096)
+		file.store_buffer(silence if chunk == 4096 else silence.slice(0, chunk * 8))
+		samples_written += chunk
+		count -= chunk
 		if file.get_error() != OK: error = "写入录制音频失败，请检查磁盘空间。"
 
 func render_offline(frame_number:int, fps:float) -> void:
@@ -96,5 +114,7 @@ func finish() -> void:
 		if samples_written == 0:
 			file.store_float(0.0)
 			file.store_float(0.0)
+		file.flush()
+		if file.get_error() != OK: error = "保存录制音频失败，请检查磁盘空间。"
 		file.close()
 		file = null

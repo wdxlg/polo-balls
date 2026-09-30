@@ -32,7 +32,7 @@ const SIM_OUTPUT_FPS:float = 60.0
 ## 胜负分出后继续录制的秒数由设置 → 录制决定（preferences.tail_seconds，默认 5 秒）；两种模式共用。
 const OUTPUT_ROOT:String = "user://recordings"
 const OVERLAY_LAYER:int = 2000
-## 两秒内卡顿保留帧时钟；更严重的阻塞明确停止，不静默缩短视频造成音画漂移。
+## 超过两秒的绘制阻塞记录提示，仍以重复帧保留 LIVE 时间线。
 const MAX_FRAMES_PER_DRAW:int = 120
 const FFMPEG_CANDIDATES:Array = [
 	"C:/ffmpeg/bin/ffmpeg.exe",
@@ -124,6 +124,11 @@ var _last_capture_paused:bool = false
 var _last_capture_scale:float = 1.0
 var _previous_image:PackedByteArray = PackedByteArray()
 var _live_pending:Array[Dictionary] = []
+var _live_session:bool = false
+var _live_async_disabled:bool = false
+var _last_good_live_zh:PackedByteArray = PackedByteArray()
+var _last_good_live_en:PackedByteArray = PackedByteArray()
+var _live_issues:Dictionary = {}
 var _session_dir:String = ""
 var _pipe:FileAccess = null
 var _pipe_pid:int = 0
@@ -355,6 +360,11 @@ func _enter_mode(next_mode:int) -> void:
 
 func _begin_session(output_fps:float, tag:String) -> bool:
 	_last_error = ""
+	_live_issues.clear()
+	_live_session = tag == "live"
+	_live_async_disabled = false
+	_last_good_live_zh = PackedByteArray()
+	_last_good_live_en = PackedByteArray()
 	if DisplayServer.get_name() == "headless":
 		return _fail("无渲染环境不能录制画面。")
 	var source:Viewport = get_viewport()
@@ -406,6 +416,7 @@ func _begin_session(output_fps:float, tag:String) -> bool:
 	_audio_path = _out_path.get_basename() + ".audio.f32"
 	_secondary = get_script().new()
 	_secondary._is_variant = true
+	_secondary._live_session = _live_session
 	_secondary._locale = "en"
 	_secondary.name = "EnglishRecording"
 	add_child(_secondary)
@@ -513,8 +524,13 @@ func _drain_writer() -> void:
 	if _writer == null: return
 	_writer.close_when_empty()
 	var deadline:int = int(_wall_usec() / 1000) + 20000
+	var progress:int = _writer.get_frames_written()
 	while _writer.is_running() and int(_wall_usec() / 1000) < deadline:
 		await get_tree().create_timer(0.02, true, false, true).timeout
+		var written:int = _writer.get_frames_written()
+		if written > progress:
+			progress = written
+			deadline = int(_wall_usec() / 1000) + 20000
 	if _writer.is_running():
 		if OS.is_process_running(_pipe_pid): OS.kill(_pipe_pid)
 		_fail("编码器收尾超时，已停止。")
@@ -530,7 +546,9 @@ func _finish_session() -> void:
 	if mode != Mode.IDLE:
 		mode = Mode.IDLE
 		mode_changed.emit(mode)
-	if _audio != null: _audio.finish()
+	if _audio != null:
+		_audio.finish()
+		if not _audio.error.is_empty(): _fail(_audio.error)
 	_release_sim_world_state()
 	_free_sim_capture_viewport()
 	if is_instance_valid(_locale_mirror):
@@ -558,6 +576,8 @@ func _finish_session() -> void:
 	_previous_image = PackedByteArray()
 	_previous_secondary_image = PackedByteArray()
 	_live_pending.clear()
+	_last_good_live_zh = PackedByteArray()
+	_last_good_live_en = PackedByteArray()
 	_release_live_render_budget()
 	_finalizing = false
 	recording_finished.emit(path, _frame_index)
@@ -632,22 +652,22 @@ func _capture_is_paused() -> bool:
 	return not get_pause_reason().is_empty()
 
 func _prime_live_capture() -> bool:
-	# D3D12's first bilingual viewport draw/readback may compile pipelines for
-	# seconds. This is preparation, not recorded time: otherwise the first draw
-	# fabricates ~100 repeated frames and overwhelms the bounded writer queues.
-	_prepare_next_capture()
-	await RenderingServer.frame_post_draw
-	if mode != Mode.LIVE: return false # Stop during preparation remains valid.
-	var zh:PackedByteArray = _grab_capture_rgba()
-	var en:PackedByteArray = _secondary._grab_capture_rgba()
-	var expected:int = _capture_size.x * _capture_size.y * 4
-	if zh.size() != expected or en.size() != expected:
-		return _fail("录制画面准备失败：中英文首帧不完整，本次未开始正式录制。")
-	# Drop preparation audio too; audio, video and the end-tail share the new
-	# epoch. Never reset these clocks or discard audio after recording starts.
-	_audio.drain(1.0, true)
-	if not _audio.error.is_empty(): return _fail(_audio.error)
-	return true
+	# Do not count D3D12 pipeline warmup as recorded time. Preparation is cancellable.
+	while mode == Mode.LIVE:
+		_prepare_next_capture()
+		await RenderingServer.frame_post_draw
+		if mode != Mode.LIVE: return false
+		var zh:PackedByteArray = _grab_capture_rgba()
+		var en:PackedByteArray = _secondary._grab_capture_rgba()
+		var expected:int = _capture_size.x * _capture_size.y * 4
+		_audio.drain(1.0, true, true)
+		if not _audio.error.is_empty(): return _fail(_audio.error)
+		if zh.size() == expected and en.size() == expected:
+			_last_good_live_zh = zh
+			_last_good_live_en = en
+			return true
+		_note_live_issue("prepare", "首帧读回曾失败，准备阶段已重试。")
+	return false
 
 
 func _capture_loop() -> void:
@@ -691,7 +711,10 @@ func _capture_loop() -> void:
 		var scale_now:float = Engine.time_scale if mode == Mode.SIM else 1.0
 		var skip:bool = not capture_requested or paused_now or _last_capture_paused or _pause_boundary
 		_pause_boundary = false
-		_audio.drain(_last_capture_scale, skip)
+		var audio_dropped:int = _audio.dropped_frames
+		_audio.drain(_last_capture_scale, skip, true)
+		if _audio.dropped_frames > audio_dropped:
+			_note_live_issue("audio", "音频采集曾溢出，缺失区间已补静音；该段原声音无法恢复。")
 		_last_capture_paused = paused_now
 		_last_capture_scale = scale_now
 		if not _audio.error.is_empty():
@@ -705,49 +728,40 @@ func _capture_loop() -> void:
 			_previous_image = PackedByteArray()
 			_previous_secondary_image = PackedByteArray()
 			continue
-		# Physics is the independent speed witness, not video FPS/container duration.
-		# Never silently deliver a long slow-motion video under sustained overload.
 		if not _live_speed_is_healthy(real_delta):
-			_timing_invalid = true
-			_fail("当前负载已使对战明显减速，录制已停止且未生成正式成片。临时材料已保留，请减少人物或特效后重试。")
-			stop()
-			break
+			_note_live_issue("slow", "对战运行曾明显变慢，录像可能包含慢动作。")
 		var game_delta:float = real_delta * scale_now
 		_game_time += game_delta
 		_accumulator += game_delta
 		var wanted:int = int(_accumulator / _frame_interval)
 		if wanted > MAX_FRAMES_PER_DRAW:
-			_fail("录制遇到超过两秒的渲染阻塞，已停止，避免产生音画不同步的视频。")
-			stop()
-			break
+			_note_live_issue("stall", "画面曾阻塞超过两秒，已重复最近画面以保留时长。")
 		if wanted > 0:
 			var read_begin:int = _wall_usec() if _profile_enabled else 0
 			# Preparation validated both RD textures; unsupported formats keep the
 			# original synchronous path. Ready textures use asynchronous readback.
-			var async_ready:bool = _writer != null and _secondary._writer != null and _readback_texture.is_valid() and _secondary._readback_texture.is_valid() and _readback_device.has_method("texture_get_data_async")
+			var async_ready:bool = not _live_async_disabled and _writer != null and _secondary._writer != null and _readback_texture.is_valid() and _secondary._readback_texture.is_valid() and _readback_device.has_method("texture_get_data_async")
 			if async_ready:
 				if _live_pending.size() >= 8:
-					_timing_invalid = true
-					_fail("异步读回积压，录制已停止且未生成正式成片。")
-					stop()
-					break
-				var record:Dictionary = {"zh":PackedByteArray(), "en":PackedByteArray(), "wanted":wanted}
-				_live_pending.append(record)
-				var zh_result:Error = _readback_device.texture_get_data_async(_readback_texture, 0, _on_live_readback.bind(record, "zh"))
-				var en_result:Error = _secondary._readback_device.texture_get_data_async(_secondary._readback_texture, 0, _on_live_readback.bind(record, "en"))
-				if zh_result != OK or en_result != OK:
-					_timing_invalid = true
-					_fail("异步读回请求失败，录制已停止且未生成正式成片。")
-					stop()
-					break
-				# Expose the captured frame count now, not when callbacks return during
-				# a later paused frame. The writer enqueues these reserved frames later.
+					_live_pending[-1].wanted += wanted
+					_note_live_issue("readback_busy", "画面读回曾积压，已重复最近待写画面；部分动作缺失。")
+				else:
+					var record:Dictionary = {"zh":PackedByteArray(), "en":PackedByteArray(), "wanted":wanted, "zh_done":false, "en_done":false, "since":_wall_usec()}
+					_live_pending.append(record)
+					var zh_result:Error = _readback_device.texture_get_data_async(_readback_texture, 0, _on_live_readback.bind(record, "zh"))
+					var en_result:Error = _secondary._readback_device.texture_get_data_async(_secondary._readback_texture, 0, _on_live_readback.bind(record, "en"))
+					if zh_result != OK or en_result != OK:
+						_live_async_disabled = true
+						if zh_result != OK: record.zh_done = true
+						if en_result != OK: record.en_done = true
+						_note_live_issue("readback", "异步读回失败，已切换同步读回；缺失画面以最近画面补齐。")
 				_frame_index += wanted
 				_secondary._frame_index += wanted
 			else:
+				# Finish older async captures before switching to synchronous writes.
+				if not _live_pending.is_empty(): await _drain_live_pending()
 				var image:PackedByteArray = _grab_capture_rgba()
 				var english:PackedByteArray = _secondary._grab_capture_rgba()
-				if image.size() != _capture_size.x * _capture_size.y * 4 or english.size() != _capture_size.x * _capture_size.y * 4: continue
 				_write_live_pair(image, english, wanted)
 			var read_end:int = _wall_usec() if _profile_enabled else 0
 			_accumulator -= wanted * _frame_interval
@@ -777,6 +791,7 @@ func _capture_loop() -> void:
 func _on_live_readback(data:PackedByteArray, record:Dictionary, locale:String) -> void:
 	# Both callbacks carry the texture's pixels at request time, not completion time.
 	record[locale] = data
+	record[locale + "_done"] = true
 
 
 func _live_speed_is_healthy(real_delta:float) -> bool:
@@ -799,31 +814,61 @@ func _live_speed_is_healthy(real_delta:float) -> bool:
 	return progress >= 0.9
 
 
-func _flush_live_pending() -> void:
+func _flush_live_pending(force:bool = false) -> void:
 	while not _live_pending.is_empty():
 		var record:Dictionary = _live_pending[0]
-		if (record.zh as PackedByteArray).is_empty() or (record.en as PackedByteArray).is_empty(): break
+		if not record.zh_done or not record.en_done:
+			if not force and _wall_usec() - int(record.since) < 1000000: break
+			_live_async_disabled = true
+			_note_live_issue("readback_timeout", "异步读回曾超时，缺失画面已补齐并切换同步读回。")
+			# Never mix one locale's newer frame with the other's held frame.
+			record.zh = PackedByteArray()
+			record.en = PackedByteArray()
 		_live_pending.pop_front()
-		if _timing_invalid: continue
-		if record.zh.size() != _capture_size.x * _capture_size.y * 4 or record.en.size() != _capture_size.x * _capture_size.y * 4:
-			_timing_invalid = true
-			_fail("异步读回帧大小错误，录制已停止且未生成正式成片。")
-			stop()
-			break
 		_write_live_pair(record.zh, record.en, record.wanted, true)
 
 
 func _write_live_pair(image:PackedByteArray, english:PackedByteArray, wanted:int, reserved:bool = false) -> void:
-	# Repeats and both locale queues must preserve capture order and wall timing.
-	var repeat_old:int = wanted - 1 if not _previous_image.is_empty() else 0
-	if repeat_old > 0:
-		_write_capture_rgba(_previous_image, repeat_old, not reserved)
-		_secondary._write_capture_rgba(_previous_secondary_image, repeat_old, not reserved)
-	_write_capture_rgba(image, wanted - repeat_old, not reserved)
-	_secondary._write_capture_rgba(english, wanted - repeat_old, not reserved)
-	if not _secondary._last_error.is_empty():
-		_fail("英文编码失败：" + _secondary._last_error)
-		stop()
+	var expected:int = _capture_size.x * _capture_size.y * 4
+	if image.size() != expected or english.size() != expected:
+		_live_async_disabled = true
+		_note_live_issue("frame", "部分画面读回不完整，已同时为中英文重复最近有效画面。")
+		image = _last_good_live_zh
+		english = _last_good_live_en
+	else:
+		_last_good_live_zh = image
+		_last_good_live_en = english
+	# One shared decision prevents independent encoders from holding different moments.
+	if _writer != null and _secondary._writer != null:
+		var hold:bool = not _writer.can_accept(expected * 2, wanted) or not _secondary._writer.can_accept(expected * 2, wanted)
+		var repeat_old:int = wanted - 1 if not _previous_image.is_empty() and not hold else 0
+		var zh_ok:bool = true
+		var en_ok:bool = true
+		if repeat_old > 0:
+			zh_ok = _writer.enqueue_live(_previous_image, repeat_old)
+			en_ok = _secondary._writer.enqueue_live(_previous_secondary_image, repeat_old)
+		if zh_ok: zh_ok = _writer.enqueue_live(image, wanted - repeat_old, hold)
+		if en_ok: en_ok = _secondary._writer.enqueue_live(english, wanted - repeat_old, hold)
+		if not zh_ok or not en_ok:
+			_fail("编码写入失败：" + _writer.get_error() + " " + _secondary._writer.get_error())
+			stop()
+			return
+		if not reserved:
+			_frame_index += wanted
+			_secondary._frame_index += wanted
+		if hold:
+			_note_live_issue("encoder", "编码曾积压，已同时重复中英文最近画面以保持时长；部分动作缺失。")
+			return # Keep the last actually accepted pair for future interpolation.
+	else:
+		var repeat_old:int = wanted - 1 if not _previous_image.is_empty() else 0
+		if repeat_old > 0:
+			_write_capture_rgba(_previous_image, repeat_old, not reserved)
+			_secondary._write_capture_rgba(_previous_secondary_image, repeat_old, not reserved)
+		_write_capture_rgba(image, wanted - repeat_old, not reserved)
+		_secondary._write_capture_rgba(english, wanted - repeat_old, not reserved)
+		if not _secondary._last_error.is_empty():
+			_fail("英文编码失败：" + _secondary._last_error)
+			stop()
 	_previous_image = image
 	_previous_secondary_image = english
 
@@ -833,10 +878,17 @@ func _drain_live_pending() -> void:
 	while not _live_pending.is_empty() and _wall_usec() < deadline:
 		await RenderingServer.frame_post_draw
 		_flush_live_pending()
-	if not _live_pending.is_empty():
-		_timing_invalid = true
-		_fail("异步读回收尾超时，录制已停止且未生成正式成片。")
-		_live_pending.clear()
+	_flush_live_pending(true)
+
+func _note_live_issue(key:String, message:String) -> void:
+	if not _live_issues.has(key): _live_issues[key] = {"message":message, "count":0}
+	_live_issues[key].count += 1
+
+func get_recording_warnings() -> String:
+	var lines:PackedStringArray = PackedStringArray()
+	for issue:Dictionary in _live_issues.values():
+		lines.append("• %s（%d 次）" % [issue.message, issue.count])
+	return "\n".join(lines)
 
 
 func _offline_capture_loop() -> void:
@@ -1171,7 +1223,7 @@ func _grab_image() -> Image:
 	if image == null or image.is_empty():
 		if is_instance_valid(_sim_viewport) and (source == _sim_viewport or source == _resolve_viewport):
 			_empty_sim_grabs += 1
-			if _empty_sim_grabs == 3:
+			if _empty_sim_grabs == 3 and not _live_session:
 				_fail("离屏抓帧失败，已停止录制以免输出遮罩画面。")
 				stop()
 		return null

@@ -120,13 +120,18 @@ func _on_finished(path:String, frames:int) -> void:
 	refresh()
 	last_output = path
 	english_path.text = str(recorder.last_outputs.get("en", ""))
+	var message:String
 	if path.is_empty():
-		_show_message("录制未完成：" + recorder.get_last_error())
+		message = "录制未完成：" + recorder.get_last_error()
 	elif not recorder.get_last_error().is_empty():
-		_show_message("录制中断，已保留部分录像（%d 帧），不是完整对局。" % frames)
+		message = "录制中断，已保留部分录像（%d 帧），不是完整对局。" % frames
 	else:
 		var kind:String = "%d 个语言版本 MP4" % recorder.last_outputs.size() if path.ends_with(".mp4") else "PNG 图片序列（未找到可用的编码器）"
-		_show_message(("已保存 %s，%d 帧（含游戏声音）。" if path.ends_with(".mp4") else "已保存 %s，%d 帧；音频保留为 .audio.f32 临时文件，尚未合成视频。") % [kind, frames])
+		message = ("已保存 %s，%d 帧（含游戏声音）。" if path.ends_with(".mp4") else "已保存 %s，%d 帧；音频保留为 .audio.f32 临时文件，尚未合成视频。") % [kind, frames]
+	var warnings:String = recorder.get_recording_warnings()
+	if not warnings.is_empty(): message += "\n\n本次录制提示（已尽力继续，成片质量可能受影响）：\n" + warnings
+	_show_message(message)
+
 
 func _show_message(message:String) -> void:
 	last_message = message if not message.is_empty() else "录制正在收尾，请稍后再试。"

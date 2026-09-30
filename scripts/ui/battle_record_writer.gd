@@ -12,6 +12,7 @@ var _bytes:int = 0
 var _frames:int = 0
 var _closing:bool = false
 var _error:String = ""
+var _last_live_data:PackedByteArray = PackedByteArray()
 var _pipe:FileAccess
 var frames_written:int = 0
 var peak_bytes:int = 0
@@ -36,6 +37,38 @@ func enqueue(data:PackedByteArray, count:int) -> bool:
 	_mutex.unlock()
 	_wake.post()
 	return true
+
+# LIVE can hold the last paired image without allocating one raw frame per tick.
+# The recorder makes one hold decision for both languages. SIM uses strict enqueue.
+func enqueue_live(data:PackedByteArray, count:int, hold:bool = false) -> bool:
+	_mutex.lock()
+	if _closing or not _error.is_empty():
+		_mutex.unlock()
+		return false
+	if hold and not _jobs.is_empty():
+		_jobs[-1].count += count
+		_frames += count
+		_mutex.unlock()
+		return true # No new job: do not accumulate semaphore wakeups either.
+	var pixels:PackedByteArray = _last_live_data if hold and not _last_live_data.is_empty() else data
+	if pixels.is_empty() or count <= 0 or _bytes + pixels.size() > MAX_BYTES:
+		_error = "录制帧无法加入有界编码缓存。"
+		_mutex.unlock()
+		return false
+	_jobs.append({"data":pixels, "count":count})
+	_last_live_data = pixels
+	_bytes += pixels.size()
+	_frames += count
+	peak_bytes = maxi(peak_bytes, _bytes)
+	_mutex.unlock()
+	_wake.post()
+	return true
+
+func get_frames_written() -> int:
+	_mutex.lock()
+	var value:int = frames_written
+	_mutex.unlock()
+	return value
 
 func can_accept(data_bytes:int, count:int = 1) -> bool:
 	_mutex.lock()
@@ -73,12 +106,16 @@ func _run() -> void:
 		var job:Dictionary = _jobs.pop_front()
 		_mutex.unlock()
 		var failed:bool = false
-		for index:int in range(job.count):
+		var remaining:int = job.count
+		while remaining > 0:
+			remaining -= 1
 			_pipe.store_buffer(job.data)
 			if _pipe.get_error() != OK:
 				failed = true
 				break
+			_mutex.lock()
 			frames_written += 1
+			_mutex.unlock()
 		_mutex.lock()
 		_bytes -= job.data.size()
 		_frames -= job.count
@@ -90,4 +127,8 @@ func _run() -> void:
 		_mutex.unlock()
 		if failed: break
 	_pipe.flush()
+	if _pipe.get_error() != OK:
+		_mutex.lock()
+		_error = "编码器写入或收尾失败，请检查磁盘空间和编码器。"
+		_mutex.unlock()
 	_pipe.close()
