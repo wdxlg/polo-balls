@@ -19,6 +19,8 @@ func run() -> void:
 	game = root.get_node("Game")
 	saved = game.Game_Settings.duplicate(true)
 	saved_stop = game.now_stop_state
+	game.reset_feedback_settings("Shaking_Camera",false)
+	game.reset_feedback_settings("High_Damage_Feedback",false)
 	game.Game_Settings.Training_Mode = false
 	game.Game_Settings.Training_Mode_Type = "manual"
 	game.Game_Settings.Character_Placement_Mode = "custom"
@@ -45,7 +47,7 @@ func run() -> void:
 		check(strength>previous and strength<=18.0,"larger damage produces stronger but bounded body shake")
 		previous = strength
 	check(fx_script.strength_for_damage(0.0)==0 and fx_script.strength_for_damage(-10)==0 and fx_script.strength_for_damage(INF)==0 and fx_script.strength_for_damage(NAN)==0,"zero/healing/nonfinite values cannot trigger shake")
-	check(is_equal_approx(fx_script.strength_for_damage(48.0),0.6*sqrt(48.0/50.0)),"48 HP stays in the slight body-shake tier")
+	check(is_equal_approx(fx_script.strength_for_damage(48.0),0.08+(0.6-0.08)*pow((48.0-10.0)/40.0,0.75)),"48 HP stays in the slight body-shake tier")
 	var owner:Node2D = spawn("res://scenes/characters/我的世界/溺尸.tscn",center)
 	var target:Node2D = dummy(center+Vector2(180,0))
 	var friend:Node2D = dummy(target.global_position+Vector2(0,15),"Team0")
@@ -82,7 +84,7 @@ func run() -> void:
 	check(not fx.active,"healing does not shake")
 	target.health -= 12
 	check(fx.active and is_equal_approx(fx.amplitude,fx_script.strength_for_damage(12.0)),"direct health damage uses actual lost HP")
-	check(fx.duration>=0.16 and fx.duration<=0.28,"stronger feedback remains brief with a 160 to 280 millisecond envelope")
+	check(fx.duration>=0.10 and fx.duration<=0.28,"default feedback stays within its configurable 100 to 280 ms envelope")
 	fx.stop()
 	target.Damage_reduction = 1.0
 	owner.mc_damage_with_impact(target,100.0,target.global_position)
@@ -259,13 +261,14 @@ func camera_feedback_check() -> void:
 	for invalid:float in [0.0,-1.0,INF,NAN]: world.add_damage_camera_shake(invalid)
 	check(world._damage_shake_pending_peak==0.0,"invalid or zero camera damage cannot create an impulse")
 	world.add_damage_camera_shake(48.0)
-	check(is_equal_approx(world._damage_shake_pending_peak,0.75*sqrt(48.0/50.0)),"48 HP stays in the slight camera-shake tier")
+	check(is_equal_approx(world._damage_shake_pending_peak,0.08+(0.75-0.08)*pow((48.0-10.0)/40.0,0.75)),"48 HP stays in the slight camera-shake tier")
 	world._update_damage_camera_shake(0.0)
 	check((world.camera_2d.offset*world.camera_2d.zoom).x>0.0 and (world.camera_2d.offset*world.camera_2d.zoom).x<1.0,"slight damage feedback reaches Camera2D without a strong jolt")
+	var heavy_pixels:float = game.FEEDBACK_SETTINGS.amplitude(1000000.0,game.Game_Settings,"Camera")
 	for i:int in range(120): world.add_damage_camera_shake(1000000.0)
-	check(world._damage_shake_pending_peak==10.0 and world._damage_shake_pending_sum<=80.0,"same-frame mass hits remain bounded at the configured ceiling")
+	check(is_equal_approx(world._damage_shake_pending_peak,heavy_pixels) and world._damage_shake_pending_sum<=80.0,"same-frame mass hits remain bounded at the configured ceiling")
 	world._update_damage_camera_shake(0.0)
-	check(world._damage_shake_pixels==10.0,"heavy hits retain the configured 10-pixel camera ceiling")
+	check(is_equal_approx(world._damage_shake_pixels,heavy_pixels),"heavy hits retain the configured 10-pixel camera ceiling")
 	world.camera_shake_amount = world.max_shake_amount
 	world._update_damage_camera_shake(0.0)
 	check(is_equal_approx((world.camera_2d.offset*world.camera_2d.zoom).x,10.0),"damage and legacy screen feedback use the stronger channel rather than adding twice")
@@ -273,7 +276,7 @@ func camera_feedback_check() -> void:
 	var remaining:float = world._damage_shake_time_left
 	world.add_damage_camera_shake(1.0)
 	world._update_damage_camera_shake(0.0)
-	check(world._damage_shake_time_left==remaining and world._damage_shake_pixels==10.0,"weak damage does not prolong or replace a strong camera impulse")
+	check(world._damage_shake_time_left==remaining and is_equal_approx(world._damage_shake_pixels,heavy_pixels),"weak damage does not prolong or replace a strong camera impulse")
 	var positive:bool = false
 	var negative:bool = false
 	var bounded:bool = true

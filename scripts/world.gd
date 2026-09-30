@@ -831,10 +831,11 @@ var _interaction_initialized:bool = false
 # 强度以视口像素计算，不随地图缩放而忽强忽弱。
 @export_range(0.0,3.0,0.05) var damage_shake_strength:float = 1.0
 @export_range(0.0,24.0,0.5) var damage_shake_max_pixels:float = 10.0
-const DAMAGE_SHAKE_CURVE = preload("res://scripts/effects/character_hurt_shake.gd")
+const FEEDBACK_TUNING = preload("res://global/feedback_settings.gd")
 const LIGHT_DAMAGE_SHAKE_MAX_PIXELS:float = 0.75
 var _damage_shake_pending_peak:float = 0.0
 var _damage_shake_pending_sum:float = 0.0
+var _damage_shake_pending_duration:float = 0.10
 var _damage_shake_pixels:float = 0.0
 var _damage_shake_time_left:float = 0.0
 var _damage_shake_duration:float = 0.12
@@ -878,6 +879,25 @@ func add_confirmed_impact_visual(unit_id:int,origin:Vector2,radius:float,actual_
 	var strength:float = sqrt(clampf(actual_damage / maxf(max_health * 0.35,24.0),0.0,1.0))
 	var heavy:bool = not blocked and actual_damage >= _heavy_hit_threshold(max_health)
 	return bool(_combat_impact_layer.call("add_impact",unit_id,origin,radius,strength,heavy,blocked,actual_damage))
+
+
+func _feedback_number(suffix:String) -> float:
+	return FEEDBACK_TUNING.number(Game.Game_Settings,suffix)
+
+
+func _sync_feedback_settings() -> void:
+	damage_shake_max_pixels = _feedback_number("Camera_Max") * _feedback_number("Camera_Gain")
+	damage_focus_min_damage = _feedback_number("Focus_Damage")
+	damage_focus_health_ratio = _feedback_number("Focus_HealthPercent") / 100.0
+	damage_focus_max_threshold = _feedback_number("Focus_ThresholdCap")
+	damage_focus_max_zoom = _feedback_number("Focus_MaxZoom")
+	damage_focus_cooldown = _feedback_number("Focus_Cooldown")
+	heavy_hit_min_damage = _feedback_number("Hitstop_Damage")
+	heavy_hit_health_ratio = _feedback_number("Hitstop_HealthPercent") / 100.0
+	heavy_hitstop_min_duration = _feedback_number("Hitstop_MinDuration")
+	heavy_hitstop_max_duration = _feedback_number("Hitstop_MaxDuration")
+	heavy_hitstop_time_factor = _feedback_number("Hitstop_Factor")
+	heavy_hitstop_cooldown = _feedback_number("Hitstop_Cooldown")
 
 
 func _high_damage_feedback_enabled() -> bool:
@@ -939,9 +959,9 @@ func _update_heavy_hitstop() -> void:
 	if not _can_play_heavy_hitstop() or Game.get_time_scale_override_factor() < 0.95:
 		return
 	# 不覆盖已有角色慢动作/电影镜头。只注册自己的 key，释放时由 Game 重算玩家基础倍速。
-	var duration:float = clampf(lerpf(heavy_hitstop_min_duration,heavy_hitstop_max_duration,strength),0.01,0.08)
+	var duration:float = clampf(lerpf(heavy_hitstop_min_duration,heavy_hitstop_max_duration,strength),0.01,0.5)
 	_heavy_hit_end_usec = now + int(duration * 1000000.0)
-	_heavy_hit_next_allowed_usec = now + int(maxf(heavy_hitstop_cooldown,0.20) * 1000000.0)
+	_heavy_hit_next_allowed_usec = now + int(maxf(heavy_hitstop_cooldown,0.0) * 1000000.0)
 	_heavy_hit_time_key = "WorldHeavyHit_%d" % get_instance_id()
 	Game.request_time_scale_override(_heavy_hit_time_key,heavy_hitstop_time_factor,Color(0.0,0.0,0.0,0.0))
 
@@ -992,23 +1012,25 @@ func _update_damage_focus() -> void:
 	var now:int = Time.get_ticks_usec()
 	if _damage_focus_pending_strength >= 0.0 and _damage_focus_started_usec == 0 and now >= _damage_focus_next_usec:
 		_damage_focus_anchor = _damage_focus_pending_position
-		var maximum_zoom:float = clampf(damage_focus_max_zoom,1.02,1.40)
-		_damage_focus_peak_zoom = lerpf(minf(1.06,maximum_zoom),maximum_zoom,_damage_focus_pending_strength)
+		var maximum_zoom:float = clampf(damage_focus_max_zoom,1.0,2.0)
+		_damage_focus_peak_zoom = lerpf(minf(_feedback_number("Focus_MinZoom"),maximum_zoom),maximum_zoom,_damage_focus_pending_strength)
 		_damage_focus_started_usec = now
-		_damage_focus_next_usec = now + int(maxf(damage_focus_cooldown,0.50) * 1000000.0)
+		_damage_focus_next_usec = now + int(maxf(damage_focus_cooldown,0.0) * 1000000.0)
 	_damage_focus_pending_strength = -1.0
 	if _damage_focus_started_usec == 0:
 		_damage_focus_weight = 0.0
 		return
 	var age:float = float(now - _damage_focus_started_usec) * 0.000001
-	# 80ms 进入、70ms 留驻、300ms 平滑回位；不创建定时器，也不保存旧基础缩放。
-	if age < 0.08:
-		_damage_focus_weight = smoothstep(0.0,0.08,age)
-	elif age < 0.15:
+	var ease_in:float = _feedback_number("Focus_In")
+	var hold_end:float = ease_in + _feedback_number("Focus_Hold")
+	var end:float = hold_end + _feedback_number("Focus_Out")
+	if age < ease_in:
+		_damage_focus_weight = smoothstep(0.0,ease_in,age)
+	elif age < hold_end:
 		_damage_focus_weight = 1.0
 	else:
-		_damage_focus_weight = 1.0 - smoothstep(0.15,0.45,age)
-	if age >= 0.45:
+		_damage_focus_weight = 1.0 - smoothstep(hold_end,end,age)
+	if age >= end:
 		_damage_focus_weight = 0.0
 		_damage_focus_started_usec = 0
 
@@ -1018,12 +1040,9 @@ func add_damage_camera_shake(actual_damage:float) -> void:
 		return
 	if not Game.Game_Settings.Shaking_Camera or not is_combat_runtime_active():
 		return
-	var pixels:float
-	if actual_damage <= DAMAGE_SHAKE_CURVE.STRONG_DAMAGE_THRESHOLD:
-		pixels = minf(LIGHT_DAMAGE_SHAKE_MAX_PIXELS * sqrt(actual_damage / DAMAGE_SHAKE_CURVE.STRONG_DAMAGE_THRESHOLD) * maxf(damage_shake_strength,0.0),LIGHT_DAMAGE_SHAKE_MAX_PIXELS)
-	else:
-		pixels = minf(1.25 * sqrt(actual_damage),damage_shake_max_pixels) * maxf(damage_shake_strength,0.0)
-	pixels = clampf(pixels,0.0,damage_shake_max_pixels)
+	var pixels:float = FEEDBACK_TUNING.amplitude(actual_damage,Game.Game_Settings,"Camera") * maxf(damage_shake_strength,0.0)
+	if pixels >= _damage_shake_pending_peak:
+		_damage_shake_pending_duration = FEEDBACK_TUNING.duration(actual_damage,Game.Game_Settings)
 	_damage_shake_pending_peak = maxf(_damage_shake_pending_peak,pixels)
 	_damage_shake_pending_sum = minf(_damage_shake_pending_sum + pixels,damage_shake_max_pixels * 8.0)
 
@@ -1038,27 +1057,23 @@ func _update_damage_camera_shake(delta:float) -> void:
 		camera_2d.offset = Vector2.ZERO
 		return
 	if _damage_shake_pending_peak > 0.0:
-		# 同帧群攻以最强一下为主，其余最多增强 25%，不按目标数线性叠满。
-		var extra:float = minf(
-			(_damage_shake_pending_sum - _damage_shake_pending_peak) * 0.15,
-			_damage_shake_pending_peak * 0.25
-		)
-		var impulse:float = minf(_damage_shake_pending_peak + extra,damage_shake_max_pixels)
+		# Same-frame crowds retain the strongest hit; small hits never stack into a higher tier.
+		var impulse:float = _damage_shake_pending_peak
 		# 弱小 DOT 不延长尚未结束的重击；达到当前衰减强度才刷新包络。
 		if impulse >= _damage_shake_pixels:
 			# 连续命中时保持相位推进，否则每帧重置会把震动锁成单向偏移。
 			if _damage_shake_time_left <= 0.0:
 				_damage_shake_elapsed = 0.0
 			_damage_shake_pixels = impulse
-			_damage_shake_duration = lerpf(0.10,0.28,clampf(impulse / maxf(damage_shake_max_pixels,0.001),0.0,1.0))
+			_damage_shake_duration = _damage_shake_pending_duration
 			_damage_shake_time_left = _damage_shake_duration
 	_damage_shake_pending_peak = 0.0
 	_damage_shake_pending_sum = 0.0
-	var legacy_pixels:float = maxf(camera_shake_amount * shake_rate,0.0)
+	var legacy_pixels:float = maxf(camera_shake_amount * shake_rate,0.0) * _feedback_number("Camera_Gain")
 	var amplitude:float = maxf(_damage_shake_pixels,legacy_pixels)
 	# 双向、零中心衰减振荡；不占用战斗 RNG，不影响命中/AI 的随机序列。
 	if amplitude > 0.001:
-		var phase:float = _damage_shake_elapsed * 85.0
+		var phase:float = _damage_shake_elapsed * TAU * _feedback_number("Shake_Frequency")
 		var screen_offset:Vector2 = Vector2(cos(phase),sin(phase * 1.31 + 0.7)) * amplitude
 		camera_2d.offset = screen_offset / Vector2(maxf(absf(camera_2d.zoom.x),0.001),maxf(absf(camera_2d.zoom.y),0.001))
 	else:
@@ -1454,6 +1469,7 @@ var _mc_pending_placements:Array[int] = []
 var _mc_next_placement:int = 0
 
 func _ready() -> void:
+	_sync_feedback_settings()
 	_mc_prewarmer = load("res://scripts/effects/我的世界/mc_native_prewarm.gd").new()
 	_mc_prewarmer.name = "MinecraftResourcePreparation"
 	add_child(_mc_prewarmer)
@@ -6414,6 +6430,16 @@ func _restore_special_prestart_nodes() -> void:
 
 
 func _on_training_game_setting_changed(setting:String,_value:Variant) -> void:
+	if FEEDBACK_TUNING.SPECS.has(setting) or setting == "Feedback_Reset":
+		_sync_feedback_settings()
+		if setting.begins_with("Feedback_Focus_") or setting.begins_with("Feedback_Hitstop_") or (setting=="Feedback_Reset" and str(_value)=="High_Damage_Feedback"):
+			_clear_high_damage_feedback()
+		else:
+			_damage_shake_pending_peak = 0.0
+			_damage_shake_pending_sum = 0.0
+			_damage_shake_pixels = 0.0
+			_damage_shake_time_left = 0.0
+		return
 	if setting == "High_Damage_Feedback":
 		if not bool(_value): _clear_high_damage_feedback()
 		return

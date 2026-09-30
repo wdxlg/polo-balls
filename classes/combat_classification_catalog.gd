@@ -2886,6 +2886,7 @@ const SCENES:Dictionary = {
 }
 
 const SCRIPTS:Dictionary = {
+	"res://global/feedback_settings.gd": {"entity_kind":"system","attack_modes":[],"carriers":[],"damage_kinds":[],"review":"local_feedback_validation_and_curves; no_combat_state"},
  "res://scripts/characters/默认/丁某人睡觉.gd": {
    "entity_kind": "character",
    "attack_modes": [

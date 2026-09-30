@@ -674,7 +674,7 @@ func _play_damage_camera_feedback_local(actual_damage:float,blocked:bool = false
 	var world:Node = get_tree().current_scene
 	# 独立训练场/非战斗场景可以没有相机接口，不再直接写未知属性。
 	if is_instance_valid(world) and world.has_method("add_damage_camera_shake"):
-		world.call("add_damage_camera_shake",minf(actual_damage,HURT_SHAKE_SCRIPT.STRONG_DAMAGE_THRESHOLD) if blocked else actual_damage)
+		world.call("add_damage_camera_shake",minf(actual_damage,HURT_SHAKE_SCRIPT.light_damage_limit(Game.Game_Settings)) if blocked else actual_damage)
 	if not blocked and is_instance_valid(world) and world.has_method("request_damage_focus"):
 		world.call("request_damage_focus",focus_damage if focus_damage >= 0.0 else actual_damage,get_impact_reference_health(),global_position)
 	if not is_instance_valid(world) or not world.has_method("add_confirmed_impact_visual"):

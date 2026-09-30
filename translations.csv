@@ -1,4 +1,56 @@
 keys,zh,en
+UI_SETTINGS_CATEGORY_RECORDING,录制,Recording
+CAMERA_COMPOSITION_FULL,完整地图 · 竖屏排版,Full arena - portrait
+CAMERA_COMPOSITION_FOLLOW,交战跟拍 · 自动推拉,Follow combat - auto zoom
+CAMERA_COMPOSITION_OVERVIEW,交战跟拍 + 小全图,Follow combat + overview
+FEEDBACK_VALUE_HINT,范围 %s～%s；默认 %s。,Range %s to %s; default %s.
+FEEDBACK_HINT_TIERS,上限包含等于：第一门槛以内微弱，第二门槛以内轻微，超过第二门槛明显。自动校验两道门槛的顺序。,"Limits are inclusive: faint up to the first, light up to the second, strong above the second. Limits stay ordered."
+FEEDBACK_HINT_BODY,只改身体显示，不改碰撞或位移。身体倍率设为 0 可关闭身体抖动；镜头开关不控制身体。,Visual body offset only; never changes collisions or movement. Zero body gain disables body shake independently of the camera switch.
+FEEDBACK_HINT_CAMERA,幅度为视口逻辑像素。屏幕倍率也作用于技能的镜头抖动；设为 0 可关闭屏幕抖动。,Amplitude is in logical viewport pixels. Screen gain also scales skill camera shake; zero disables screen shake.
+FEEDBACK_HINT_ENVELOPE,增长尺度越大，高伤害增长越慢；曲线指数越小，增长越快。时间单位秒，频率单位 Hz。,Larger growth scales slow the increase for strong hits; smaller exponents increase faster. Time is in seconds; frequency in Hz.
+FEEDBACK_HINT_FOCUS,实际触发门槛＝最低伤害与生命百分比的较大值，再限制到门槛封顶。百分比设为 0 可只用伤害门槛。时间为真实秒。,"Trigger = max(minimum damage, reference health times percentage), limited by the threshold cap. Zero percent uses damage only. Timing uses real seconds."
+FEEDBACK_HINT_HITSTOP,门槛取最低伤害与生命百分比的较大值。速度倍率越小，时停越强；1 为正常速度。时间为真实秒；联机与训练中不启用时停。,"Trigger = max(minimum damage, reference health times percentage). Lower time scales pause harder; 1 is normal speed. Real seconds; hitstop remains disabled online and in training."
+SETTING_FEEDBACK_SHAKE_LOW,微弱档伤害上限,Faint damage limit
+SETTING_FEEDBACK_SHAKE_HIGH,轻微档伤害上限,Light damage limit
+SETTING_FEEDBACK_BODY_TINY,身体微弱档上限,Body faint ceiling
+SETTING_FEEDBACK_BODY_LIGHT,身体轻微档上限,Body light ceiling
+SETTING_FEEDBACK_BODY_STRONG,身体明显档起始,Body strong start
+SETTING_FEEDBACK_BODY_MAX,身体明显档极限,Body strong limit
+SETTING_FEEDBACK_BODY_GAIN,身体强度倍率,Body strength
+SETTING_FEEDBACK_CAMERA_TINY,屏幕微弱档上限,Screen faint ceiling
+SETTING_FEEDBACK_CAMERA_LIGHT,屏幕轻微档上限,Screen light ceiling
+SETTING_FEEDBACK_CAMERA_STRONG,屏幕明显档起始,Screen strong start
+SETTING_FEEDBACK_CAMERA_MAX,屏幕明显档极限,Screen strong limit
+SETTING_FEEDBACK_CAMERA_GAIN,屏幕强度倍率,Screen strength
+SETTING_FEEDBACK_SHAKE_GROWTH,明显档增长尺度,Strong growth scale
+SETTING_FEEDBACK_SHAKE_CURVE,伤害曲线指数,Damage curve exponent
+SETTING_FEEDBACK_SHAKE_MINDURATION,最短抖动时间,Minimum shake time
+SETTING_FEEDBACK_SHAKE_MAXDURATION,最长抖动时间,Maximum shake time
+SETTING_FEEDBACK_SHAKE_FREQUENCY,抖动频率,Shake frequency
+SETTING_FEEDBACK_FOCUS_DAMAGE,拉近最低伤害,Focus minimum damage
+SETTING_FEEDBACK_FOCUS_HEALTHPERCENT,拉近生命阈值,Focus health threshold
+SETTING_FEEDBACK_FOCUS_THRESHOLDCAP,拉近门槛封顶,Focus threshold cap
+SETTING_FEEDBACK_FOCUS_MINZOOM,最低拉近倍率,Minimum focus zoom
+SETTING_FEEDBACK_FOCUS_MAXZOOM,最高拉近倍率,Maximum focus zoom
+SETTING_FEEDBACK_FOCUS_IN,拉近进入时间,Focus ease-in time
+SETTING_FEEDBACK_FOCUS_HOLD,拉近停留时间,Focus hold time
+SETTING_FEEDBACK_FOCUS_OUT,拉近恢复时间,Focus return time
+SETTING_FEEDBACK_FOCUS_COOLDOWN,拉近冷却时间,Focus cooldown
+SETTING_FEEDBACK_HITSTOP_DAMAGE,时停最低伤害,Hitstop minimum damage
+SETTING_FEEDBACK_HITSTOP_HEALTHPERCENT,时停生命阈值,Hitstop health threshold
+SETTING_FEEDBACK_HITSTOP_FACTOR,时停速度倍率,Hitstop time scale
+SETTING_FEEDBACK_HITSTOP_MINDURATION,最短时停时间,Minimum hitstop time
+SETTING_FEEDBACK_HITSTOP_MAXDURATION,最长时停时间,Maximum hitstop time
+SETTING_FEEDBACK_HITSTOP_COOLDOWN,时停冷却时间,Hitstop cooldown
+SETTING_CAMERA_COMPOSITION,画面取景,Camera framing
+FEEDBACK_COMPOSITION_BUSY,录制中不能更改画面取景。,Camera framing is locked while recording.
+FEEDBACK_RESET_GROUP,恢复本组默认,Reset this group
+FEEDBACK_SECTION_TIERS,伤害分档（含上限）,Damage tiers (inclusive limits)
+FEEDBACK_SECTION_BODY,身体抖动,Body shake
+FEEDBACK_SECTION_CAMERA,屏幕抖动,Screen shake
+FEEDBACK_SECTION_ENVELOPE,增长与时长,Growth and timing
+FEEDBACK_SECTION_FOCUS,高伤害拉近,Heavy hit zoom
+FEEDBACK_SECTION_HITSTOP,高伤害时停,Heavy hitstop
 皓宸,皓宸,Haochen
 MAP_BACKGROUND_SUMMIT,山巅 · 古竞技场,Summit - Ancient Arena
 UI_LANGUAGE,语言,Language

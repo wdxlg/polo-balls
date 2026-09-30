@@ -80,7 +80,7 @@ func contract_cases() -> void:
 	reset_feedback()
 	world.damage_shake_strength = 0.5
 	world.add_damage_camera_shake(1000000.0)
-	check(is_equal_approx(world._damage_shake_pending_peak,5.0),"heavy damage preserves the existing strength multiplier")
+	check(is_equal_approx(world._damage_shake_pending_peak,game.FEEDBACK_SETTINGS.amplitude(1000000.0,game.Game_Settings,"Camera")*0.5),"heavy damage preserves the existing strength multiplier")
 	reset_feedback()
 	world.add_damage_camera_shake(50.0)
 	check(is_equal_approx(world._damage_shake_pending_peak,0.375),"light damage also respects the strength multiplier")
@@ -177,6 +177,8 @@ func run() -> void:
 	saved = game.Game_Settings.duplicate(true)
 	saved_stop = game.now_stop_state
 	saved_locale = game.current_locale
+	game.reset_feedback_settings("Shaking_Camera",false)
+	game.reset_feedback_settings("High_Damage_Feedback",false)
 	game.Game_Settings.Training_Mode = false
 	game.Game_Settings.Training_Mode_Type = "manual"
 	game.Game_Settings.Development_Mode = false

@@ -1,6 +1,7 @@
 extends Control
 const BATTLE_CONDITIONS_CATALOG = preload("res://scripts/training/battle_conditions_catalog.gd")
 const BATTLE_MUSIC_MODULE = preload("res://global/battle_music.gd")
+const FEEDBACK_SETTINGS = preload("res://global/feedback_settings.gd")
 
 #设定
 # V126：多人端口固定为 27018。UI 中的输入框是“服务器地址/IP”，不是端口输入框。
@@ -26,6 +27,7 @@ signal combat_damage_resolved(source:Node, target:Node, actual_health_damage:flo
 signal combatant_died(victim:Node, killer:Node, health_before_lethal:float)
 
 const SETTINGS_PATH := "user://settings.cfg"
+var _settings_storage_path:String = SETTINGS_PATH
 
 
 #########################################################################
@@ -469,7 +471,7 @@ func release_character_control_for_death(target:Node) -> void:
 
 func _is_network_shared_setting(setting:String) -> bool:
 	# 语言显示域、水印和“跟随我控制的角色”属于每台机器自己的表现设置；其它玩法设置跟随房主房间。
-	return setting not in ["Only_In_Game_Translation","Show_Center_Watermark","Follow_Controlled_Character","Map_Background","Minecraft_Clouds","Show_Armor_Stand_Intro","Battle_Music","Battle_Music_Volume","High_Damage_Feedback"]
+	return not FEEDBACK_SETTINGS.SPECS.has(setting) and setting not in ["Only_In_Game_Translation","Show_Center_Watermark","Follow_Controlled_Character","Map_Background","Minecraft_Clouds","Show_Armor_Stand_Intro","Battle_Music","Battle_Music_Volume","High_Damage_Feedback"]
 
 func _shared_settings_snapshot() -> Dictionary:
 	var snapshot:Dictionary = {}
@@ -481,6 +483,12 @@ func _shared_settings_snapshot() -> Dictionary:
 
 func _apply_runtime_game_setting_local(setting:String,value:Variant,save_after:bool) -> void:
 	if not Game_Settings.has(setting):
+		return
+	if FEEDBACK_SETTINGS.SPECS.has(setting):
+		Game_Settings[setting] = value
+		FEEDBACK_SETTINGS.normalize(Game_Settings)
+		game_setting_changed.emit(setting,Game_Settings[setting])
+		if save_after: save_persistent_settings()
 		return
 	if BATTLE_CONDITIONS_CATALOG.SETTING_KEYS.has(setting):
 		value = BATTLE_CONDITIONS_CATALOG.normalize_setting(setting,value)
@@ -637,9 +645,11 @@ func reseed_battle_global(tag:String, ordinal:int = 0) -> void:
 	seed(derive_battle_random_seed(tag,ordinal))
 
 
-func load_persistent_settings() -> void:
+func load_persistent_settings(path:String = "") -> void:
+	if path.is_empty(): path = _settings_storage_path
+	FEEDBACK_SETTINGS.normalize(Game_Settings)
 	var config := ConfigFile.new()
-	var err := config.load(SETTINGS_PATH)
+	var err := config.load(path)
 
 	if err == OK:
 		for setting in Game_Settings.keys():
@@ -661,6 +671,7 @@ func load_persistent_settings() -> void:
 		)
 
 
+	FEEDBACK_SETTINGS.normalize(Game_Settings)
 	for key:String in BATTLE_CONDITIONS_CATALOG.SETTING_KEYS:
 		Game_Settings[key] = BATTLE_CONDITIONS_CATALOG.normalize_setting(key,Game_Settings.get(key))
 	# 登记表里已删除的曲目回落到“无”。
@@ -691,10 +702,18 @@ func load_persistent_settings() -> void:
 	_localization._apply_translation_server_locale()
 
 
-func save_persistent_settings() -> void:
+func reset_feedback_settings(group:String,save_after:bool = true) -> void:
+	if group not in ["Shaking_Camera","High_Damage_Feedback"]: return
+	FEEDBACK_SETTINGS.reset_group(Game_Settings,group)
+	game_setting_changed.emit("Feedback_Reset",group)
+	if save_after: save_persistent_settings()
+
+
+func save_persistent_settings(path:String = "") -> void:
+	if path.is_empty(): path = _settings_storage_path
 	var config := ConfigFile.new()
 	# 先加载旧文件，方便以后增加其他 section 时不被覆盖。
-	config.load(SETTINGS_PATH)
+	config.load(path)
 
 	Game_Settings.erase("Show_Center_Watermark")
 	if config.has_section_key("game_settings","Show_Center_Watermark"):
@@ -712,7 +731,7 @@ func save_persistent_settings() -> void:
 
 	# 不保存速度滑条。
 	# 速度仍然可以在本次运行中正常调整，只是不带到下一次启动。
-	var err := config.save(SETTINGS_PATH)
+	var err := config.save(path)
 	if err != OK:
 		push_warning("无法保存设置: " + str(err))
 
@@ -978,6 +997,7 @@ var world_middle_drag := false
 # V378：比 V132 的 _enter_tree 更早，在对象 _init 阶段就恢复保存语言并安装翻译。
 # 这一步专门覆盖“编辑器正常、导出后大量中文先被系统英文 locale 翻走”的启动时序。
 func _init() -> void:
+	FEEDBACK_SETTINGS.normalize(Game_Settings)
 	_localization._bootstrap_localization_before_tree()
 
 

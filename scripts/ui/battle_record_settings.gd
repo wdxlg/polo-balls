@@ -8,7 +8,6 @@ var open_button:Button
 var tail_spin:SpinBox
 var tail_label:Label
 var composition_select:OptionButton
-var composition_feedback:Label
 
 func setup(target:Node) -> void:
 	recorder = target
@@ -66,12 +65,19 @@ func setup(target:Node) -> void:
 	var composition_container:VBoxContainer = parameter_box if parameter_box != null else self
 	var layout_row := HBoxContainer.new()
 	layout_row.name = "CompositionRow"
-	layout_row.add_theme_constant_override("separation", 6)
+	layout_row.add_theme_constant_override("separation", 3)
+	layout_row.custom_minimum_size = Vector2(0,24)
 	composition_container.add_child(layout_row)
-	var layout_label := Label.new()
-	layout_label.text = "画面取景"
-	layout_label.add_theme_font_size_override("font_size", 9)
-	layout_row.add_child(layout_label)
+	var template:Control = preload("res://ui/game_setting.tscn").instantiate()
+	var framing_title:PanelContainer = template.get_node("Text") as PanelContainer
+	template.remove_child(framing_title)
+	template.free()
+	framing_title.custom_minimum_size = Vector2(64,20)
+	framing_title.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	var layout_label:Label = framing_title.get_node("Label") as Label
+	layout_label.set_meta("_translation_source_text","SETTING_CAMERA_COMPOSITION")
+	layout_label.text = Game.ui_t("SETTING_CAMERA_COMPOSITION")
+	layout_row.add_child(framing_title)
 	composition_select = OptionButton.new()
 	composition_select.name = "RecordingComposition"
 	# Match the compact parameter rows; popup entries retain their full text.
@@ -81,24 +87,18 @@ func setup(target:Node) -> void:
 	composition_select.custom_minimum_size = Vector2(0,24)
 	composition_select.add_theme_font_size_override("font_size",9)
 	composition_select.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	composition_select.add_item("完整地图 · 竖屏排版", recorder.preferences.FULL)
-	composition_select.add_item("交战跟拍 · 自动推拉", recorder.preferences.FOLLOW)
-	composition_select.add_item("交战跟拍 + 小全图", recorder.preferences.FOLLOW_OVERVIEW)
+	composition_select.add_item(Game.ui_t("CAMERA_COMPOSITION_FULL"), recorder.preferences.FULL)
+	composition_select.add_item(Game.ui_t("CAMERA_COMPOSITION_FOLLOW"), recorder.preferences.FOLLOW)
+	composition_select.add_item(Game.ui_t("CAMERA_COMPOSITION_OVERVIEW"), recorder.preferences.FOLLOW_OVERVIEW)
+	composition_select.set_meta("_translation_option_sources",["CAMERA_COMPOSITION_FULL","CAMERA_COMPOSITION_FOLLOW","CAMERA_COMPOSITION_OVERVIEW"])
 	composition_select.select(recorder.get_composition())
 	composition_select.tooltip_text = "立即改变游戏内的实际镜头；中英文录像沿用相同视野。小全图也会显示在游戏画面中；录制中锁定。"
 	composition_select.item_selected.connect(_composition_changed)
 	layout_row.add_child(composition_select)
-	composition_feedback = Label.new()
-	composition_feedback.name = "CompositionFeedback"
-	composition_feedback.add_theme_font_size_override("font_size",9)
-	composition_feedback.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	composition_feedback.text = "选择后立即改变游戏内画面；录像沿用同一取景。"
-	composition_container.add_child(composition_feedback)
 	if parameter_box != null:
 		var background_row:Node = parameter_box.get_node_or_null("MapBackgroundRow")
 		if background_row != null:
 			parameter_box.move_child(layout_row,background_row.get_index() + 1)
-			parameter_box.move_child(composition_feedback,layout_row.get_index() + 1)
 	feedback = Label.new()
 	feedback.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	feedback.text = "「设置」选择文件夹，或直接输入路径后按回车。设置会记住；录制中不能更改。"
@@ -165,13 +165,13 @@ func _tail_changed(value:float) -> void:
 func _composition_changed(index:int) -> void:
 	if recorder.is_busy():
 		composition_select.select(recorder.get_composition())
-		composition_feedback.text = "录制中不能更改画面取景。"
+		composition_select.tooltip_text = Game.ui_t("FEEDBACK_COMPOSITION_BUSY")
 		return
 	if recorder.set_composition(composition_select.get_item_id(index)):
-		composition_feedback.text = "已切换画面取景：%s；游戏画面立即生效，录像同步。" % composition_select.get_item_text(index)
+		composition_select.tooltip_text = composition_select.get_item_text(index)
 	else:
 		composition_select.select(recorder.get_composition())
-		composition_feedback.text = recorder.get_last_error()
+		composition_select.tooltip_text = recorder.get_last_error()
 
 func _fmt(value:float) -> String:
 	return str(int(value)) if is_equal_approx(value, floorf(value)) else "%.1f" % value

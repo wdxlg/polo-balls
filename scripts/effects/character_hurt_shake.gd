@@ -1,6 +1,7 @@
 extends Node
 ## Render-only additive body shake. Never writes Node2D transforms, physics or RNG.
 ## Composed immediately before drawing so animation/stun/network poses remain intact.
+const TUNING = preload("res://global/feedback_settings.gd")
 const STRONG_DAMAGE_THRESHOLD:float = 50.0
 const LIGHT_MAX_AMPLITUDE:float = 0.6
 const MAX_AMPLITUDE:float = 18.0
@@ -24,19 +25,18 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	set_process(false)
 
-static func strength_for_damage(actual_damage:float) -> float:
-	if not is_finite(actual_damage) or actual_damage<=0.0: return 0.0
-	if actual_damage <= STRONG_DAMAGE_THRESHOLD:
-		return LIGHT_MAX_AMPLITUDE * sqrt(actual_damage / STRONG_DAMAGE_THRESHOLD)
-	return minf(MAX_AMPLITUDE,1.8+16.2*sqrt(actual_damage/(actual_damage+60.0)))
+static func strength_for_damage(actual_damage:float,settings:Dictionary = {}) -> float:
+	return TUNING.amplitude(actual_damage,settings,"Body")
+
+static func light_damage_limit(settings:Dictionary) -> float:
+	return TUNING.number(settings,"Shake_High")
 
 func _can_play() -> bool:
-	return is_instance_valid(actor) and is_instance_valid(graphics) and actor.is_inside_tree() and graphics.is_inside_tree() and not actor.is_queued_for_deletion() and float(actor.get("health"))>0 and bool(actor.get("hurt_shake_enabled")) and not Game.now_stop_state and not get_tree().paused and Engine.time_scale>0.0 and bool(actor.call("is_combat_runtime_active"))
+	return is_instance_valid(actor) and is_instance_valid(graphics) and actor.is_inside_tree() and graphics.is_inside_tree() and not actor.is_queued_for_deletion() and float(actor.get("health"))>0 and bool(actor.get("hurt_shake_enabled")) and not Game.now_stop_state and not get_tree().paused and Engine.time_scale>0.0 and TUNING.number(Game.Game_Settings,"Body_Gain")>0.0 and bool(actor.call("is_combat_runtime_active"))
 
 func kick(actual_damage:float) -> void:
-	var incoming:float = strength_for_damage(actual_damage)
+	var incoming:float = strength_for_damage(actual_damage,Game.Game_Settings)
 	if incoming<=0.0 or not _can_play(): return
-	var weight:float = clampf((incoming-1.8)/16.2,0.0,1.0)
 	var current:float = amplitude*pow(maxf(0.0,1.0-age/maxf(duration,0.001)),1.5) if active else 0.0
 	# Small repeated ticks cannot keep an earlier heavy hit shaking indefinitely.
 	if active and incoming < current: return
@@ -44,8 +44,8 @@ func kick(actual_damage:float) -> void:
 	if not active:
 		phase = 0.0
 		_last_tick = Time.get_ticks_usec()
-	amplitude = minf(MAX_AMPLITUDE,maxf(current,incoming))
-	duration = minf(MAX_DURATION,maxf(remaining,lerpf(0.16,MAX_DURATION,weight)))
+	amplitude = maxf(current,incoming)
+	duration = maxf(remaining,TUNING.duration(actual_damage,Game.Game_Settings))
 	age = 0.0
 	active = true
 	if not RenderingServer.frame_pre_draw.is_connected(_present):
@@ -65,7 +65,7 @@ func advance(real_delta:float) -> void:
 		stop()
 		return
 	age += maxf(real_delta,0.0)
-	phase = fposmod(phase+maxf(real_delta,0.0)*TAU*22.0,TAU*100.0)
+	phase = fposmod(phase+maxf(real_delta,0.0)*TAU*TUNING.number(Game.Game_Settings,"Shake_Frequency"),TAU*100.0)
 	if age>=duration:
 		stop()
 		return

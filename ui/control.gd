@@ -1424,6 +1424,85 @@ func _on_battle_music_volume_changed(value:float) -> void:
 func _on_battle_music_selected(index:int) -> void:
 	Game.set_runtime_game_setting(BATTLE_MUSIC.SETTING_KEY,str(battle_music_option.get_item_metadata(index)))
 
+var _feedback_groups:Dictionary = {}
+var _feedback_spins:Dictionary = {}
+
+func _create_feedback_options(parent_box:VBoxContainer,group:String) -> void:
+	var inset := MarginContainer.new()
+	inset.name = group+"Options"
+	inset.add_theme_constant_override("margin_left",6)
+	parent_box.add_child(inset)
+	_feedback_groups[group] = inset
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation",3)
+	inset.add_child(box)
+	var reset := Button.new()
+	reset.name = "ResetFeedback"
+	reset.set_meta("feedback_group",group)
+	reset.set_meta("_translation_source_text","FEEDBACK_RESET_GROUP")
+	reset.text = Game.ui_t("FEEDBACK_RESET_GROUP")
+	reset.add_theme_font_size_override("font_size",9)
+	reset.pressed.connect(func(): Game.reset_feedback_settings(group))
+	box.add_child(reset)
+	var previous_section:String = ""
+	for key:String in Game.FEEDBACK_SETTINGS.SPECS:
+		var spec:Dictionary = Game.FEEDBACK_SETTINGS.SPECS[key]
+		if str(spec.group)!=group: continue
+		if str(spec.section)!=previous_section:
+			previous_section = str(spec.section)
+			var heading := Label.new()
+			heading.set_meta("_translation_source_text","FEEDBACK_SECTION_"+previous_section)
+			heading.text = Game.ui_t("FEEDBACK_SECTION_"+previous_section)
+			heading.add_theme_font_size_override("font_size",9)
+			box.add_child(heading)
+		var row := HBoxContainer.new()
+		row.name = key+"Row"
+		row.add_theme_constant_override("separation",3)
+		box.add_child(row)
+		var title:Dictionary = _create_setting_title_from_template("SETTING_"+key.to_upper(),96.0)
+		var panel:PanelContainer = title.panel
+		var label:Label = title.label
+		panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(panel)
+		var spin := SpinBox.new()
+		spin.name = key
+		spin.set_meta("feedback_setting",key)
+		spin.custom_minimum_size = Vector2(76,24)
+		spin.min_value = float(spec.min)
+		spin.max_value = float(spec.max)
+		spin.step = float(spec.step)
+		spin.suffix = str(spec.unit)
+		spin.select_all_on_focus = true
+		spin.get_line_edit().add_theme_font_size_override("font_size",9)
+		spin.set_value_no_signal(Game.FEEDBACK_SETTINGS.number(Game.Game_Settings,key))
+		spin.value_changed.connect(_on_feedback_value_changed.bind(key))
+		row.add_child(spin)
+		_feedback_spins[key] = spin
+	_sync_feedback_options()
+
+func _on_feedback_value_changed(value:float,key:String) -> void:
+	Game.set_runtime_game_setting(key,value)
+	_sync_feedback_options()
+
+func _sync_feedback_options() -> void:
+	var layout_changed:bool = false
+	for group:String in _feedback_groups:
+		var panel:Control = _feedback_groups[group]
+		if not is_instance_valid(panel): continue
+		var enabled:bool = bool(Game.Game_Settings.get(group,false))
+		layout_changed = layout_changed or panel.visible!=enabled
+		panel.visible = enabled
+	for key:String in _feedback_spins:
+		var spin:SpinBox = _feedback_spins[key]
+		if is_instance_valid(spin):
+			spin.set_value_no_signal(Game.FEEDBACK_SETTINGS.number(Game.Game_Settings,key))
+			var spec:Dictionary = Game.FEEDBACK_SETTINGS.SPECS[key]
+			spin.tooltip_text = Game.ui_t("SETTING_"+key.to_upper())+"\n"+(Game.ui_t("FEEDBACK_VALUE_HINT")%[str(spec.min),str(spec.max),str(spec.default)])+"\n"+Game.ui_t("FEEDBACK_HINT_"+str(spec.section))
+			(spin.get_parent().get_node("Text/Label") as Label).tooltip_text = spin.tooltip_text
+	if layout_changed: call_deferred("_refresh_settings_scroll_layout")
+
 func _build_parameter_settings(parent_box:VBoxContainer) -> void:
 	_create_map_background_setting(parent_box)
 	_create_battle_music_setting(parent_box)
@@ -1473,9 +1552,12 @@ func _build_parameter_settings(parent_box:VBoxContainer) -> void:
 			continue
 		if Game.Game_Settings[setting] is bool:
 			_create_bool_setting_row(parent_box, setting)
+			if setting in ["Shaking_Camera","High_Damage_Feedback"]:
+				_create_feedback_options(parent_box,setting)
 
 
 func _refresh_game_setting_toggle_visuals() -> void:
+	_sync_feedback_options()
 	_sync_map_background_setting()
 	_sync_battle_music_setting()
 	if settings_stack == null or not is_instance_valid(settings_stack):
@@ -1555,8 +1637,9 @@ func _show_settings_category(category:String) -> void:
 
 
 func _refresh_settings_category_texts() -> void:
+	_sync_feedback_options()
 	if settings_tab_buttons.has("recording"):
-		(settings_tab_buttons["recording"] as Button).text = "录制"
+		(settings_tab_buttons["recording"] as Button).text = Game.ui_t("UI_SETTINGS_CATEGORY_RECORDING")
 	_sync_map_background_setting()
 	_sync_battle_music_setting()
 	if settings_tab_buttons.has("training"):
