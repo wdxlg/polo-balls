@@ -43,3 +43,9 @@ tests/patches/
 tests/_*_userdata/
 tests/*validation*.json
 scripts/training/benchmark_*.json
+
+# Private export credentials and release outputs never belong in source control.
+*.key
+*.pck
+*.pdb
+export_credentials.cfg

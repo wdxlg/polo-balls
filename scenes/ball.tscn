@@ -3,7 +3,7 @@
 [ext_resource type="Texture2D" uid="uid://dwfkfvo27gjse" path="res://Images/bilibili.png" id="1_cxlvu"]
 [ext_resource type="Script" uid="uid://bt7wadlg5ylr4" path="res://classes/ball.gd" id="1_f7cbr"]
 [ext_resource type="PackedScene" uid="uid://eve8tksfkyvy" path="res://scenes/health_bar.tscn" id="2_f7cbr"]
-[ext_resource type="Shader" uid="uid://c5swo3m3c1w3t" path="res://shaders/set_rgb_color.gdshader" id="2_fwo8l"]
+[ext_resource type="Shader" path="res://shaders/Set_RGB_Color.gdshader" id="2_fwo8l"]
 [ext_resource type="Script" uid="uid://bv2rb81mpjfxg" path="res://classes/state_machine.gd" id="4_4dx81"]
 [ext_resource type="Script" uid="uid://dfrt1bpsaxbql" path="res://classes/hitbox.gd" id="5_jj7gd"]
 [ext_resource type="Script" uid="uid://drkxgge158cfk" path="res://classes/hurtbox.gd" id="6_fwo8l"]

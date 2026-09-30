@@ -23,6 +23,7 @@
 - 完成时报告：更新前/后提交 ID、验证结果、可恢复范围。有未纳入版本的其他改动要说明。
 - 回退前先备份当前修改，优先撤销指定提交或恢复指定文件。未经确认不得 `reset --hard`、`clean -fd`、强制推送。只有用户明确授权才推送远程，不擅自创建公开仓库。
 - 常用入口：`scripts/world.gd`、`global/game.gd`、`ui/control.gd`、`classes/ball.gd`、`scripts/training/combat_threat_analyzer.gd`。按任务定位，不随意扩大修改范围。
+- **Windows 保护发布**：入口 `导出加密Windows版.cmd` / `python tools/protected_export.py export`，使用与离线录制补丁一致的专用 Release 模板，资源与目录全部加密、脚本二进制化；缺密钥、模板不匹配或验证失败必须停止，不允许退回明文。模板通过 `python tools/protected_export.py build` 编译到项目外 `../polo-balls-tools/protected-export/`；私钥只保存在本机账户的 `%LOCALAPPDATA%/PoloBalls/ProtectedExport/`，编辑器凭据在已忽略的 `.godot/export_credentials.cfg`。密钥不得输出、提交或随游戏分发；测试/构建源码不进发布包，运行数据及第三方许可仍保留。加密只提高拆包门槛，不承诺防止逆向。
 - Headless 测试：`godot --headless --path . --script res://tests/<脚本>.gd`，退出码 0 为通过。需要 GPU 的测试去掉 `--headless`。`preview_*`/`live_*` 只是摆拍，不作验证依据。
 
 ## 2. 伤害结算与伤害音效

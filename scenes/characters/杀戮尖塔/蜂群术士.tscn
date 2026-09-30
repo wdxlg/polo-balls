@@ -3,7 +3,7 @@
 [ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_ji0sr"]
 [ext_resource type="Script" path="res://scripts/characters/杀戮尖塔/蜂群术士.gd" id="2_6g0dn"]
 [ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/蜂群术士/正常/蜂群术士_正常_1.png" id="2_ddewq"]
-[ext_resource type="Shader" path="res://shaders/set_rgb_color.gdshader" id="2_oijwk"]
+[ext_resource type="Shader" path="res://shaders/Set_RGB_Color.gdshader" id="2_oijwk"]
 [ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/蜂群术士/攻击/蜂群术士_攻击_1 (1).png" id="3_6g0dn"]
 [ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/蜂群术士/攻击/蜂群术士_攻击_2 (1).png" id="4_xdhbj"]
 [ext_resource type="Texture2D" path="res://Images/characters/杀戮尖塔/蜂群术士/攻击/蜂群术士_攻击_3 (1).png" id="5_hxcha"]

@@ -23,7 +23,7 @@ const HURT_SFX:Array[AudioStream] = [
 ]
 const DEATH_SFX:AudioStream = preload("res://audio/characters/我的世界/烈焰人/死亡.ogg")
 const MC_SMOKE_SCENE:PackedScene = preload("res://scenes/effects/我的世界/MC烟雾粒子.tscn")
-const BLAZE_HIT_FLASH_SHADER:Shader = preload("res://shaders/set_rgb_color.gdshader")
+const BLAZE_HIT_FLASH_SHADER:Shader = preload("res://shaders/Set_RGB_Color.gdshader")
 
 @export_category("烈焰人 / 视觉")
 # 原版烈焰人 1.8 格、苦力怕 1.7 格；1.18 是旧 SVG 素材（含大量透明留白）时代的补偿值，
