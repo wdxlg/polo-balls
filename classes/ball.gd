@@ -622,7 +622,7 @@ func current_health_damage_request_amount() -> int:
 			# 镜头按减伤/护盾后的真实请求伤害判断，获救/免疫时仍按净损失。
 			if new_health == 0 and health == 0 and requested_health_damage > old_health:
 				focus_damage = float(requested_health_damage)
-			_notify_damage_camera_feedback(focus_damage)
+			_notify_damage_camera_feedback(confirmed_loss,false,focus_damage)
 			# 计时模式按“受到的实际生命伤害”计分：所有扣血路径（含环境/自伤/无来源）都经过这里，
 			# 且取角色钩子（无敌/格挡回血）之后的确认损失。World 自己判断模式、权威端与主战人物。
 			if confirmed_loss > 0.0 and Game.is_timed_training_mode():
@@ -650,22 +650,22 @@ func get_received_hit_feedback_damage(_raw_damage:float,health_before:float) -> 
 	return maxf(health_before - float(health),0.0)
 
 
-func _notify_damage_camera_feedback(actual_damage:float,blocked:bool = false) -> void:
+func _notify_damage_camera_feedback(actual_damage:float,blocked:bool = false,focus_damage:float = -1.0) -> void:
 	if actual_damage <= 0.0 or not is_finite(actual_damage):
 		return
 	if not is_node_ready() or not is_multiplayer_authority() or not is_combat_runtime_active():
 		return
-	_play_damage_camera_feedback_local(actual_damage,blocked)
+	_play_damage_camera_feedback_local(actual_damage,blocked,focus_damage)
 	if multiplayer.has_multiplayer_peer() and not multiplayer.multiplayer_peer is OfflineMultiplayerPeer:
-		_remote_damage_camera_feedback.rpc(actual_damage,blocked)
+		_remote_damage_camera_feedback.rpc(actual_damage,blocked,focus_damage)
 
 
 @rpc("authority","call_remote","unreliable")
-func _remote_damage_camera_feedback(actual_damage:float,blocked:bool = false) -> void:
-	_play_damage_camera_feedback_local(actual_damage,blocked)
+func _remote_damage_camera_feedback(actual_damage:float,blocked:bool = false,focus_damage:float = -1.0) -> void:
+	_play_damage_camera_feedback_local(actual_damage,blocked,focus_damage)
 
 
-func _play_damage_camera_feedback_local(actual_damage:float,blocked:bool = false) -> void:
+func _play_damage_camera_feedback_local(actual_damage:float,blocked:bool = false,focus_damage:float = -1.0) -> void:
 	if not is_inside_tree():
 		return
 	# Reuse the existing authority-confirmed feedback RPC, not health replication.
@@ -674,9 +674,9 @@ func _play_damage_camera_feedback_local(actual_damage:float,blocked:bool = false
 	var world:Node = get_tree().current_scene
 	# 独立训练场/非战斗场景可以没有相机接口，不再直接写未知属性。
 	if is_instance_valid(world) and world.has_method("add_damage_camera_shake"):
-		world.call("add_damage_camera_shake",actual_damage)
+		world.call("add_damage_camera_shake",minf(actual_damage,HURT_SHAKE_SCRIPT.STRONG_DAMAGE_THRESHOLD) if blocked else actual_damage)
 	if not blocked and is_instance_valid(world) and world.has_method("request_damage_focus"):
-		world.call("request_damage_focus",actual_damage,get_impact_reference_health(),global_position)
+		world.call("request_damage_focus",focus_damage if focus_damage >= 0.0 else actual_damage,get_impact_reference_health(),global_position)
 	if not is_instance_valid(world) or not world.has_method("add_confirmed_impact_visual"):
 		return
 	if Type != Ball_Type.Ball and Type != Ball_Type.Creature:

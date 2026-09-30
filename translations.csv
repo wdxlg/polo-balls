@@ -27,6 +27,7 @@ UI_CONNECT_SUCCESS_IP,连接成功，服务器 IP：,"Connected, server IP: "
 ERR_SERVER_START,服务器启动失败,Failed to start server
 SETTING_HAVE_TEAM_DAMAGE,队友伤害,Team Damage
 SETTING_SHAKING_CAMERA,镜头震动,Camera Shake
+SETTING_HIGH_DAMAGE_FEEDBACK,高伤害特殊反馈,Heavy Hit Effects
 SETTING_CAMERA_MOVE,镜头跟随,Camera Follow
 SETTING_CREATING,允许创建角色,Allow Character Creation
 SETTING_SAME_BALL_CHANGE_COLOR,按队伍自动换色,Color Characters by Team

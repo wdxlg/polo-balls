@@ -469,7 +469,7 @@ func release_character_control_for_death(target:Node) -> void:
 
 func _is_network_shared_setting(setting:String) -> bool:
 	# 语言显示域、水印和“跟随我控制的角色”属于每台机器自己的表现设置；其它玩法设置跟随房主房间。
-	return setting not in ["Only_In_Game_Translation","Show_Center_Watermark","Follow_Controlled_Character","Map_Background","Minecraft_Clouds","Show_Armor_Stand_Intro","Battle_Music","Battle_Music_Volume"]
+	return setting not in ["Only_In_Game_Translation","Show_Center_Watermark","Follow_Controlled_Character","Map_Background","Minecraft_Clouds","Show_Armor_Stand_Intro","Battle_Music","Battle_Music_Volume","High_Damage_Feedback"]
 
 func _shared_settings_snapshot() -> Dictionary:
 	var snapshot:Dictionary = {}
@@ -727,6 +727,8 @@ func _on_speed_slider_drag_ended(value_changed:bool) -> void:
 @export var Game_Settings:Dictionary = {
 	Have_Team_Damage = true,
 	Shaking_Camera = true,
+	# Local presentation preference; skill cinematics and time abilities are separate.
+	High_Damage_Feedback = true,
 	Camera_Move = true,
 	Creating = true,
 	Same_Ball_Change_Color = false,

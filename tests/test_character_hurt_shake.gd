@@ -45,7 +45,7 @@ func run() -> void:
 		check(strength>previous and strength<=18.0,"larger damage produces stronger but bounded body shake")
 		previous = strength
 	check(fx_script.strength_for_damage(0.0)==0 and fx_script.strength_for_damage(-10)==0 and fx_script.strength_for_damage(INF)==0 and fx_script.strength_for_damage(NAN)==0,"zero/healing/nonfinite values cannot trigger shake")
-	check(is_equal_approx(fx_script.strength_for_damage(48.0),12.6),"ordinary 48 HP hit has 2.4 times the previous version and six times the original amplitude")
+	check(is_equal_approx(fx_script.strength_for_damage(48.0),0.6*sqrt(48.0/50.0)),"48 HP stays in the slight body-shake tier")
 	var owner:Node2D = spawn("res://scenes/characters/我的世界/溺尸.tscn",center)
 	var target:Node2D = dummy(center+Vector2(180,0))
 	var friend:Node2D = dummy(target.global_position+Vector2(0,15),"Team0")
@@ -255,25 +255,25 @@ func camera_feedback_check() -> void:
 	world.add_damage_camera_shake(1000.0)
 	check(world._damage_shake_pending_peak==0.0 and world.camera_2d.offset==Vector2.ZERO,"camera shake off still suppresses all camera feedback")
 	game.Game_Settings.Shaking_Camera = true
-	check(world.damage_shake_max_pixels==32.0 and world.damage_shake_strength==1.6 and world.max_shake_amount==320.0,"damage and legacy camera channels both have the increased ceiling")
+	check(world.damage_shake_max_pixels==10.0 and world.damage_shake_strength==1.0 and world.max_shake_amount==100.0,"threshold change preserves the configured heavy and legacy camera ceilings")
 	for invalid:float in [0.0,-1.0,INF,NAN]: world.add_damage_camera_shake(invalid)
 	check(world._damage_shake_pending_peak==0.0,"invalid or zero camera damage cannot create an impulse")
 	world.add_damage_camera_shake(48.0)
-	check(is_equal_approx(world._damage_shake_pending_peak,1.25*sqrt(48.0)*1.6) and world._damage_shake_pending_peak>10.0,"ordinary hits already exceed the old camera ceiling")
+	check(is_equal_approx(world._damage_shake_pending_peak,0.75*sqrt(48.0/50.0)),"48 HP stays in the slight camera-shake tier")
 	world._update_damage_camera_shake(0.0)
-	check((world.camera_2d.offset*world.camera_2d.zoom).x>10.0,"larger damage feedback reaches the actual Camera2D offset")
+	check((world.camera_2d.offset*world.camera_2d.zoom).x>0.0 and (world.camera_2d.offset*world.camera_2d.zoom).x<1.0,"slight damage feedback reaches Camera2D without a strong jolt")
 	for i:int in range(120): world.add_damage_camera_shake(1000000.0)
-	check(world._damage_shake_pending_peak==32.0 and world._damage_shake_pending_sum<=256.0,"same-frame mass hits remain bounded at the new ceiling")
+	check(world._damage_shake_pending_peak==10.0 and world._damage_shake_pending_sum<=80.0,"same-frame mass hits remain bounded at the configured ceiling")
 	world._update_damage_camera_shake(0.0)
-	check(world._damage_shake_pixels==32.0,"heavy hits can reach 32 camera pixels instead of 10")
+	check(world._damage_shake_pixels==10.0,"heavy hits retain the configured 10-pixel camera ceiling")
 	world.camera_shake_amount = world.max_shake_amount
 	world._update_damage_camera_shake(0.0)
-	check(is_equal_approx((world.camera_2d.offset*world.camera_2d.zoom).x,32.0),"damage and legacy screen feedback use the stronger channel rather than adding twice")
+	check(is_equal_approx((world.camera_2d.offset*world.camera_2d.zoom).x,10.0),"damage and legacy screen feedback use the stronger channel rather than adding twice")
 	world.camera_shake_amount = 0.0
 	var remaining:float = world._damage_shake_time_left
 	world.add_damage_camera_shake(1.0)
 	world._update_damage_camera_shake(0.0)
-	check(world._damage_shake_time_left==remaining and world._damage_shake_pixels==32.0,"weak damage does not prolong or replace a strong camera impulse")
+	check(world._damage_shake_time_left==remaining and world._damage_shake_pixels==10.0,"weak damage does not prolong or replace a strong camera impulse")
 	var positive:bool = false
 	var negative:bool = false
 	var bounded:bool = true
@@ -286,7 +286,7 @@ func camera_feedback_check() -> void:
 		var pixels:Vector2 = world.camera_2d.offset*world.camera_2d.zoom
 		positive = positive or pixels.x>0.5
 		negative = negative or pixels.x< -0.5
-		bounded = bounded and absf(pixels.x)<=32.001 and absf(pixels.y)<=32.001
+		bounded = bounded and absf(pixels.x)<=10.001 and absf(pixels.y)<=10.001
 	check(positive and negative and bounded,"continuous heavy hits oscillate in both directions without exceeding the camera cap")
 	check(is_equal_approx(randf(),expected_random),"stronger camera feedback still consumes no combat RNG")
 	world._update_damage_camera_shake(1.0)
@@ -295,7 +295,7 @@ func camera_feedback_check() -> void:
 	world.camera_shake_amount = world.max_shake_amount
 	world._damage_shake_elapsed = 0.0
 	world._update_damage_camera_shake(0.0)
-	check(is_equal_approx((world.camera_2d.offset*world.camera_2d.zoom).x,32.0),"legacy skill effects can also reach the increased screen-shake ceiling")
+	check(is_equal_approx((world.camera_2d.offset*world.camera_2d.zoom).x,10.0),"legacy skill effects can also reach the configured screen-shake ceiling")
 	world._update_damage_camera_shake(2.1)
 	world._update_damage_camera_shake(0.0)
 	check(world.camera_shake_amount==0.0 and world.camera_2d.offset==Vector2.ZERO,"larger legacy shake retains a bounded recovery time rather than a six second tail")
@@ -348,7 +348,7 @@ func gpu_camera_check() -> void:
 		await process_frame
 		await RenderingServer.frame_post_draw
 		var shaken:Vector2 = image_centroid(viewport.get_texture().get_image())
-		check((shaken-baseline).distance_to(expected)<1.25 and absf(shaken.x-baseline.x)>30.0,"GPU camera motion visibly reaches the new ceiling at zoom "+str(zoom))
+		check((shaken-baseline).distance_to(expected)<1.25 and absf(shaken.x-baseline.x)>9.0,"GPU camera motion visibly reaches the configured ceiling at zoom "+str(zoom))
 		check(sprite.position==Vector2(128,128) and camera.position==Vector2(128,128),"screen shake changes rendering offset, not object or camera center positions")
 		game.Game_Settings.Shaking_Camera = false
 		world._update_damage_camera_shake(0.0)

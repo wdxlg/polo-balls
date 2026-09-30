@@ -1,6 +1,8 @@
 extends Node
 ## Render-only additive body shake. Never writes Node2D transforms, physics or RNG.
 ## Composed immediately before drawing so animation/stun/network poses remain intact.
+const STRONG_DAMAGE_THRESHOLD:float = 50.0
+const LIGHT_MAX_AMPLITUDE:float = 0.6
 const MAX_AMPLITUDE:float = 18.0
 const MAX_DURATION:float = 0.28
 var actor:Node2D
@@ -24,6 +26,8 @@ func _ready() -> void:
 
 static func strength_for_damage(actual_damage:float) -> float:
 	if not is_finite(actual_damage) or actual_damage<=0.0: return 0.0
+	if actual_damage <= STRONG_DAMAGE_THRESHOLD:
+		return LIGHT_MAX_AMPLITUDE * sqrt(actual_damage / STRONG_DAMAGE_THRESHOLD)
 	return minf(MAX_AMPLITUDE,1.8+16.2*sqrt(actual_damage/(actual_damage+60.0)))
 
 func _can_play() -> bool:
@@ -34,6 +38,8 @@ func kick(actual_damage:float) -> void:
 	if incoming<=0.0 or not _can_play(): return
 	var weight:float = clampf((incoming-1.8)/16.2,0.0,1.0)
 	var current:float = amplitude*pow(maxf(0.0,1.0-age/maxf(duration,0.001)),1.5) if active else 0.0
+	# Small repeated ticks cannot keep an earlier heavy hit shaking indefinitely.
+	if active and incoming < current: return
 	var remaining:float = maxf(duration-age,0.0) if active else 0.0
 	if not active:
 		phase = 0.0

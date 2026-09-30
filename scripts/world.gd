@@ -831,6 +831,8 @@ var _interaction_initialized:bool = false
 # 强度以视口像素计算，不随地图缩放而忽强忽弱。
 @export_range(0.0,3.0,0.05) var damage_shake_strength:float = 1.0
 @export_range(0.0,24.0,0.5) var damage_shake_max_pixels:float = 10.0
+const DAMAGE_SHAKE_CURVE = preload("res://scripts/effects/character_hurt_shake.gd")
+const LIGHT_DAMAGE_SHAKE_MAX_PIXELS:float = 0.75
 var _damage_shake_pending_peak:float = 0.0
 var _damage_shake_pending_sum:float = 0.0
 var _damage_shake_pixels:float = 0.0
@@ -878,6 +880,22 @@ func add_confirmed_impact_visual(unit_id:int,origin:Vector2,radius:float,actual_
 	return bool(_combat_impact_layer.call("add_impact",unit_id,origin,radius,strength,heavy,blocked,actual_damage))
 
 
+func _high_damage_feedback_enabled() -> bool:
+	return bool(Game.Game_Settings.get("High_Damage_Feedback",true))
+
+
+func _clear_high_damage_feedback() -> void:
+	_damage_focus_pending_strength = -1.0
+	_damage_focus_started_usec = 0
+	_damage_focus_next_usec = 0
+	_damage_focus_weight = 0.0
+	_damage_focus_peak_zoom = 1.0
+	_heavy_hit_pending_strength = -1.0
+	_heavy_hit_next_allowed_usec = 0
+	_release_heavy_hitstop() # Release only our own lease, never another character's slow motion.
+	if is_instance_valid(camera_2d): _apply_camera_zoom()
+
+
 func request_heavy_hitstop(actual_health_damage:float,max_health:float,origin:Vector2) -> void:
 	if not is_finite(actual_health_damage) or actual_health_damage < _heavy_hit_threshold(max_health):
 		return
@@ -897,7 +915,7 @@ func _can_play_heavy_hitstop() -> bool:
 	# Godot 单机也可能持有 OfflineMultiplayerPeer；不能只用 has_multiplayer_peer 判断联机。
 	var offline:bool = Game.network_role == "offline" and (
 		not multiplayer.has_multiplayer_peer() or multiplayer.multiplayer_peer is OfflineMultiplayerPeer)
-	return (heavy_hitstop_enabled and offline
+	return (heavy_hitstop_enabled and _high_damage_feedback_enabled() and offline
 		and not Game.is_training_mode() and Game.get_base_game_time_scale() <= 2.0
 		and is_combat_runtime_active())
 
@@ -950,7 +968,7 @@ func request_damage_focus(damage:float,reference_health:float,impact_position:Ve
 	# a confirmed 100-damage hit is still a strong hit on a 1000-HP target.
 	var relative_threshold:float = maxf(damage_focus_min_damage,reference_health * damage_focus_health_ratio)
 	var threshold:float = minf(relative_threshold,maxf(damage_focus_max_threshold,damage_focus_min_damage))
-	if not damage_focus_enabled or not is_finite(damage) or damage < threshold:
+	if not damage_focus_enabled or not _high_damage_feedback_enabled() or not is_finite(damage) or damage < threshold:
 		return
 	if not impact_position.is_finite() or not is_combat_runtime_active() or not _impact_is_on_screen(impact_position):
 		return
@@ -966,7 +984,7 @@ func request_damage_focus(damage:float,reference_health:float,impact_position:Ve
 
 
 func _update_damage_focus() -> void:
-	if not damage_focus_enabled or not is_combat_runtime_active() or _dead_save_force_non_follow_camera or _cinematic_focus_weight > 0.01 or not _cinematic_focus_requests.is_empty():
+	if not damage_focus_enabled or not _high_damage_feedback_enabled() or not is_combat_runtime_active() or _dead_save_force_non_follow_camera or _cinematic_focus_weight > 0.01 or not _cinematic_focus_requests.is_empty():
 		_damage_focus_weight = 0.0
 		_damage_focus_started_usec = 0
 		_damage_focus_pending_strength = -1.0
@@ -1000,9 +1018,12 @@ func add_damage_camera_shake(actual_damage:float) -> void:
 		return
 	if not Game.Game_Settings.Shaking_Camera or not is_combat_runtime_active():
 		return
-	# 平方根压缩极端伤害，小伤害仍有短促反馈，重击更强但不会无限放大。
-	var pixels:float = minf(1.25 * sqrt(actual_damage),damage_shake_max_pixels)
-	pixels = clampf(pixels * damage_shake_strength,0.0,damage_shake_max_pixels)
+	var pixels:float
+	if actual_damage <= DAMAGE_SHAKE_CURVE.STRONG_DAMAGE_THRESHOLD:
+		pixels = minf(LIGHT_DAMAGE_SHAKE_MAX_PIXELS * sqrt(actual_damage / DAMAGE_SHAKE_CURVE.STRONG_DAMAGE_THRESHOLD) * maxf(damage_shake_strength,0.0),LIGHT_DAMAGE_SHAKE_MAX_PIXELS)
+	else:
+		pixels = minf(1.25 * sqrt(actual_damage),damage_shake_max_pixels) * maxf(damage_shake_strength,0.0)
+	pixels = clampf(pixels,0.0,damage_shake_max_pixels)
 	_damage_shake_pending_peak = maxf(_damage_shake_pending_peak,pixels)
 	_damage_shake_pending_sum = minf(_damage_shake_pending_sum + pixels,damage_shake_max_pixels * 8.0)
 
@@ -6393,6 +6414,9 @@ func _restore_special_prestart_nodes() -> void:
 
 
 func _on_training_game_setting_changed(setting:String,_value:Variant) -> void:
+	if setting == "High_Damage_Feedback":
+		if not bool(_value): _clear_high_damage_feedback()
+		return
 	if setting == "Development_Mode" and _development != null:
 		if bool(_value):
 			# 战斗中途不突然拆成两张地图；从新一局布阵开始生效。
