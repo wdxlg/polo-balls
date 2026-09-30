@@ -349,6 +349,7 @@ var _out_of_bounds_states:Dictionary = {}
 @export_range(0.0,160.0,1.0) var map_squeeze_rescue_distance:float = 56.0
 # 按角色真实 CollisionShape2D 半径再多留一点余量，避免救回后下一帧又贴墙穿出。
 @export_range(0.0,16.0,0.5) var map_squeeze_rescue_padding:float = 2.0
+const MAP_WALL_EMBED_TOLERANCE:float = 1.5
 
 var _map_safety_frame:Node2D = null
 var _map_safety_frame_map_name:String = ""
@@ -2878,10 +2879,12 @@ func _process_map_squeeze_protection(ball_group:Array = []) -> void:
 			if Time.get_ticks_msec() >= grace_until:
 				b.remove_meta(&"waiter_door_passage_grace_until_msec")
 
-		# 关键修复：角色中心仍在地图内时，不做任何位置纠正。
+		# 关键修复：角色中心仍在地图内时，不做动画纠正。
 		# 安全墙本身已经负责阻止 CharacterBody2D 穿出边界，move_and_slide()
 		# 会自然保留沿墙切向速度，因此贴墙移动不会再出现 0.2 秒停顿。
+		# 只有碰撞体真的嵌进安全墙（拥挤时角色间的穿透修正会把人挤进墙）才原地移回。
 		if map_rect.has_point(old_pos):
+			_release_body_from_safety_wall(b,map_rect)
 			continue
 
 		# 中心确实已经在地图外：只有离边界不远时才动画救回；
@@ -2895,7 +2898,7 @@ func _process_map_squeeze_protection(ball_group:Array = []) -> void:
 
 		# The collision shape may be offset from the character origin (AutoFit/manual bodies).
 		# Center +/- half-size alone can place that shape back inside the same solid wall.
-		var corrected:Vector2 = _map_safe_body_position(b,map_rect,old_pos)
+		var corrected:Vector2 = _map_free_body_position(b,map_rect,old_pos,3)
 		var correction:Vector2 = corrected - old_pos
 		if correction.length_squared() <= 0.0001:
 			continue
@@ -2918,12 +2921,36 @@ func _process_map_squeeze_protection(ball_group:Array = []) -> void:
 					b.notify_bounce_feedback(incoming_dir,feedback_power,null)
 
 
+func _release_body_from_safety_wall(b:ball,map_rect:Rect2) -> void:
+	if not b.get_collision_mask_value(1) or b.has_meta(&"waiter_door_passage_grace_until_msec"): return
+	var extents:Rect2=_body_extents_from_origin(b)
+	var body:Rect2=Rect2(b.global_position+extents.position,extents.size)
+	var depth:float=maxf(maxf(map_rect.position.x-body.position.x,body.end.x-map_rect.end.x),maxf(map_rect.position.y-body.position.y,body.end.y-map_rect.end.y))
+	if depth<=MAP_WALL_EMBED_TOLERANCE: return
+	var collision:CollisionShape2D=b.collision_shape_2d
+	if not is_instance_valid(collision) or collision.shape==null: return
+	var query:=PhysicsShapeQueryParameters2D.new()
+	query.shape=collision.shape
+	query.transform=collision.global_transform
+	query.collision_mask=1
+	query.margin=-MAP_WALL_EMBED_TOLERANCE
+	var in_wall:bool=false
+	for hit:Dictionary in get_world_2d().direct_space_state.intersect_shape(query,8):
+		var collider:Object=hit.get("collider")
+		if collider!=null and collider.has_meta(&"map_safety_wall"):
+			in_wall=true
+			break
+	if not in_wall: return
+	var target:Vector2=_map_safe_body_position(b,map_rect,b.global_position)
+	if target.distance_squared_to(b.global_position)>0.0001: b.global_position=target
+
 func _animate_ball_back_inside_map(b:ball,target_position:Vector2,entry_seconds:float=-1.0) -> void:
 	if b == null or not is_instance_valid(b) or not is_multiplayer_authority():
 		return
 	if b.has_meta(&"map_rescue_animating") and bool(b.get_meta(&"map_rescue_animating")):
 		return
 	b.set_meta(&"map_rescue_animating",true)
+	b.set_meta("map_rescue_target",target_position)
 	var had_physics:bool = b.is_physics_processing()
 	b.set_meta(&"map_rescue_had_physics",had_physics)
 	b.set_physics_process(false)
@@ -2986,11 +3013,12 @@ func _finish_ball_map_rescue(b_ref:WeakRef) -> void:
 	b.set_physics_process(restore_physics)
 	b.remove_meta(&"map_rescue_had_physics")
 	b.remove_meta(&"map_rescue_animating")
+	if b.has_meta("map_rescue_target"): b.remove_meta("map_rescue_target")
 	b.velocity = Vector2.ZERO
 	b.Repel = Vector2.ZERO
 
 
-func _map_safe_body_position(b:ball,map_rect:Rect2,wanted:Vector2) -> Vector2:
+func _body_extents_from_origin(b:ball) -> Rect2:
 	# Include the root as well, since the existing boundary rule tests root position.
 	var lower:Vector2=Vector2.ZERO
 	var upper:Vector2=Vector2.ZERO
@@ -3002,12 +3030,72 @@ func _map_safe_body_position(b:ball,map_rect:Rect2,wanted:Vector2) -> Vector2:
 			lower=lower.min(relative);upper=upper.max(relative)
 	else:
 		lower=-_ball_collision_world_half_extents(b);upper=-lower
+	return Rect2(lower,upper-lower)
+
+func _map_safe_body_position(b:ball,map_rect:Rect2,wanted:Vector2) -> Vector2:
+	var extents:Rect2=_body_extents_from_origin(b)
+	var lower:Vector2=extents.position
+	var upper:Vector2=extents.end
 	var padding:Vector2=Vector2.ONE*maxf(map_squeeze_rescue_padding,b.safe_margin)
 	var minimum:Vector2=map_rect.position+padding-lower
 	var maximum:Vector2=map_rect.end-padding-upper
 	# Do not shrink oversized actors or issue an inverted clamp on an impossible island.
 	if minimum.x>maximum.x or minimum.y>maximum.y: return wanted
 	return wanted.clamp(minimum,maximum)
+
+# Bodies spawned or moved onto the same point get identical depenetration every physics
+# frame and are shoved through the safety wall together; give each one its own spot.
+func _map_free_body_position(b:ball,map_rect:Rect2,wanted:Vector2,max_rings:int=6,reserved:Array=[]) -> Vector2:
+	var extents:Rect2=_body_extents_from_origin(b)
+	var size:Vector2=extents.size.max(Vector2.ONE*4.0)
+	var occupied:Array[Rect2]=[]
+	for point:Variant in reserved:
+		if point is Vector2: occupied.append(Rect2(point+extents.position,size))
+	for unit:Variant in _battle_units_cache:
+		if unit==b or not is_instance_valid(unit) or unit.is_queued_for_deletion() or not unit is ball: continue
+		var other:ball=unit as ball
+		if other.Type!=ball.Ball_Type.Ball or other.health<=0 or other.has_meta("development_reserve") or other.has_meta("rotation_prestart_preview"): continue
+		var at:Vector2=other.get_meta("map_rescue_target",other.global_position) if other.has_meta("map_rescue_animating") else other.global_position
+		var other_extents:Rect2=_body_extents_from_origin(other)
+		occupied.append(Rect2(at+other_extents.position,other_extents.size))
+	var base:Vector2=_map_safe_body_position(b,map_rect,wanted)
+	var best:Vector2=base
+	var best_overlap:float=INF
+	var step:float=maxf(size.x,size.y)*0.6
+	for ring:int in range(max_rings+1):
+		var count:int=1 if ring==0 else ring*8
+		for i:int in range(count):
+			var offset:Vector2=Vector2.ZERO if ring==0 else Vector2.from_angle(TAU*float(i)/float(count)+float(ring)*0.37)*step*float(ring)
+			var candidate:Vector2=_map_safe_body_position(b,map_rect,base+offset)
+			var body:Rect2=Rect2(candidate+extents.position,size)
+			var overlap:float=0.0
+			for other_rect:Rect2 in occupied:
+				if body.intersects(other_rect): overlap+=body.intersection(other_rect).get_area()
+			if overlap<=0.0: return candidate
+			if overlap<best_overlap-0.01:
+				best_overlap=overlap
+				best=candidate
+	return best
+
+# Placed templates keep their formation spot (only pulled out of walls or off an exactly
+# coincident body); quantity copies search a free spot and avoid the round's planned spots.
+func _settle_rotation_spawn(actor:ball,keep_placement:bool,reserved:Array=[]) -> void:
+	if actor==null or not is_instance_valid(actor) or not is_multiplayer_authority(): return
+	var map_node:Node=_current_map_node()
+	if map_node==null: return
+	var map_rect:Rect2=nearest_map_island_rect(actor.global_position,map_island_rects(map_node))
+	if map_rect.size.x<=0.0: return
+	if keep_placement:
+		var safe:Vector2=_map_safe_body_position(actor,map_rect,actor.global_position)
+		var coincident:bool=false
+		for unit:Variant in _battle_units_cache:
+			if unit==actor or not is_instance_valid(unit) or unit.is_queued_for_deletion() or not unit is ball or unit.has_meta("rotation_prestart_preview"): continue
+			if (unit as ball).Type==ball.Ball_Type.Ball and (unit as ball).health>0 and (unit as ball).global_position.distance_squared_to(safe)<1.0:
+				coincident=true
+				break
+		actor.global_position=_map_free_body_position(actor,map_rect,safe) if coincident else safe
+	else:
+		actor.global_position=_map_free_body_position(actor,map_rect,actor.global_position,6,reserved)
 
 func _ball_collision_world_half_extents(b:ball) -> Vector2:
 	if b == null or not is_instance_valid(b) or b.collision_shape_2d == null:
@@ -6694,6 +6782,10 @@ func _spawn_next_rotation_character(side:String) -> ball:
 	var round_number:int=int(roster[start_index].get("round",start_index+1))
 	var first:ball=null
 	var names:PackedStringArray=[]
+	var planned_spots:Array=[]
+	for planned_index:int in range(start_index,roster.size()):
+		if int(roster[planned_index].get("round",planned_index+1))!=round_number: break
+		planned_spots.append(_rotation_record_position(roster[planned_index],side))
 	while int(_rotation_next_index[side])<roster.size():
 		var index:int=int(_rotation_next_index[side]);var record:Dictionary=roster[index]
 		if int(record.get("round",index+1))!=round_number: break
@@ -6714,6 +6806,8 @@ func _spawn_next_rotation_character(side:String) -> ball:
 			if reinforcement:
 				copy.set_meta("rotation_entry_target",ingress.end)
 				_animate_queue_reinforcement_into_map(copy,side)
+			else:
+				_settle_rotation_spawn(copy,false,planned_spots)
 	_rotation_active_setup[side]=int(roster[start_index].id)
 	_rotation_active_name[side]=" + ".join(names)
 	_rotation_create_current_label(side,_rotation_active_name[side],int(roster[start_index].id))
@@ -6828,6 +6922,8 @@ func _spawn_next_rotation_member(side:String,group_start:int=-1) -> ball:
 	if not ingress.is_empty(): spawned.set_meta("rotation_entry_target",ingress.end)
 	if is_reinforcement and not used_prestart_preview:
 		_animate_queue_reinforcement_into_map(spawned,side)
+	else:
+		_settle_rotation_spawn(spawned,true)
 	_rotation_active_setup[side] = setup_id
 	_rotation_active_name[side] = char_name
 	spawned.tree_exiting.connect(
@@ -9118,10 +9214,16 @@ func _animate_queue_reinforcement_into_map(character:ball, side:String) -> void:
 		return
 	# Wheel replacements visibly walk in; do not hide a 0.2-second rescue snap behind doors.
 	var wheel:bool=(Game.is_rotation_training_mode() and Game.is_rotation_wheel_enabled()) or (Game.is_boss_training_mode() and Game.is_training_boss_wheel_battle_enabled())
-	var target:Vector2=character.get_meta("rotation_entry_target",_rotation_spawn_position(side))
+	var planned:Vector2=character.get_meta("rotation_entry_target",_rotation_spawn_position(side))
+	var target:Vector2=planned
 	var map_node:Node=_current_map_node()
 	if map_node!=null:
-		target=_map_safe_body_position(character,nearest_map_island_rect(target,map_island_rects(map_node)),target)
+		target=_map_free_body_position(character,nearest_map_island_rect(planned,map_island_rects(map_node)),planned)
+		var lane:Vector2=planned-character.global_position
+		if lane.length_squared()>0.0001:
+			var shift:Vector2=target-planned
+			lane=lane.normalized()
+			character.global_position+=shift-lane*shift.dot(lane)
 	var seconds:float=clampf(character.global_position.distance_to(target)/maxf(character.Speed,40.0),0.65,3.0) if wheel else -1.0
 	_animate_ball_back_inside_map(character,target,seconds)
 
