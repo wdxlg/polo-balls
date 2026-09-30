@@ -69,7 +69,7 @@ func run() -> void:
 	world.now_choose_map = "Map10x10"
 	world.refresh_map_presentation()
 	world.control._sync_training_mode_controls()
-	check(world.control.rotation_match_option.item_count==3,"three rotation rule choices")
+	check(world.control.rotation_match_option.item_count==2,"normal/challenge choices with independent wheel switch")
 	check(game.ui_t("ROTATION_CHALLENGE")!="ROTATION_CHALLENGE","challenge label is translated")
 	await setup("challenge")
 	check(world._rotation_started,"challenge starts with both queues")

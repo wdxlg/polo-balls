@@ -130,9 +130,9 @@ func _spawn_placed_character(world:World,team_name:String,character_name:String,
 	if world == null or not is_instance_valid(world) or character_name.is_empty():
 		return
 	if not _game.is_multiplayer_authority():
-		_game.create_ball_in_server.rpc_id(_game.Server_Id,team_name,character_name,position)
+		_game.create_ball_in_server.rpc_id(_game.Server_Id,team_name,character_name,position,world.rotation_selected_round)
 	else:
-		_game.create_ball_in_server(team_name,character_name,position)
+		_game.create_ball_in_server(team_name,character_name,position,world.rotation_selected_round)
 
 
 # 把框选区域夹到可放置范围内，返回 [min_x,min_y,max_x,max_y]；范围无效时返回空数组。

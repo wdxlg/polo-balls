@@ -97,7 +97,7 @@ func _draw() -> void:
 			var ts:Vector2 = texture.get_size()
 			var fitted:Vector2 = ts * minf(area.size.x/maxf(ts.x,1.0),area.size.y/maxf(ts.y,1.0))
 			draw_texture_rect(texture,Rect2(area.get_center()-fitted*0.5,fitted),false,tint)
-		if id == active_id and state not in ["dead","won"]:
+		if _is_active_slot(id) and state not in ["dead","won"]:
 			var pulse:float = 0.7 + 0.3*sin(float(Time.get_ticks_msec())*0.004)
 			draw_rect(box.grow(cell*0.025),Color(1.0,0.78,0.08,0.26*pulse),false,maxf(cell*0.05,0.6))
 			draw_rect(box,Color(1.0,0.9,0.24,1.0),false,maxf(cell*0.035,0.5))
@@ -110,11 +110,21 @@ func _draw() -> void:
 			draw_texture_rect(mark,Rect2(mark_rect.position+Vector2.ONE*cell*0.025,mark_rect.size),false,Color(0,0,0,0.85))
 			draw_texture_rect(mark,mark_rect,false)
 
+func _is_active_slot(id:int) -> bool:
+	if id==active_id: return true
+	var active_round:int=-1
+	for record:Dictionary in roster:
+		if int(record.get("id",-1))==active_id: active_round=int(record.get("round",-1))
+	if active_round<0: return false
+	for record:Dictionary in roster:
+		if int(record.get("id",-1))==id: return int(record.get("round",-2))==active_round
+	return false
+
 func _get_tooltip(at_position:Vector2) -> String:
 	var index:int = floori((at_position.x-content_start())/cell)
 	if index < 0 or index >= roster.size(): return ""
 	var record:Dictionary = roster[index]
-	return str(index+1)+". "+Game.t(str(record.get("char",""))).replace("_"," ")
+	return (Game.ui_t("UI_ROTATION_ROUND_N")%int(record.get("round",index+1)))+" · "+Game.t(str(record.get("char",""))).replace("_"," ")+" ×"+str(Game.rotation_team_count(side))
 
 func _gui_input(event:InputEvent) -> void:
 	if not event is InputEventMouseButton or not event.pressed or event.button_index != MOUSE_BUTTON_RIGHT: return

@@ -724,6 +724,11 @@ var rotation_left_root:Control = null
 var rotation_right_root:Control = null
 var rotation_vs_label:Label = null
 var _rotation_rosters:Dictionary = {"left": [], "right": []}
+var rotation_selected_round:int = 0 # 0 = automatic single-slot placement.
+var _rotation_draft_rounds:Array[int]=[1]
+var _rotation_preview_round:int = 1
+var _rotation_formation_preview:Dictionary = {}
+var _rotation_active_records:Dictionary = {"left":[],"right":[]}
 var _rotation_next_index:Dictionary = {"left": 0, "right": 0}
 var _rotation_active_setup:Dictionary = {"left": -1, "right": -1}
 var _rotation_active_name:Dictionary = {"left": "", "right": ""}
@@ -2817,6 +2822,7 @@ func _refresh_current_map_border_geometry() -> void:
 
 
 func _process_map_squeeze_protection(ball_group:Array = []) -> void:
+	if not is_multiplayer_authority(): return
 	# 正常贴墙完全交给 CharacterBody2D.move_and_slide()。
 	# 这里不再因为“碰撞体边缘接近/轻微压到地图边界”就启动 Tween，
 	# 否则角色每次撞墙都会被暂停 physics_process 一小段时间，产生明显顿挫。
@@ -2887,17 +2893,9 @@ func _process_map_squeeze_protection(ball_group:Array = []) -> void:
 		if old_pos.distance_to(nearest_raw) > maxf(map_squeeze_rescue_distance,0.0):
 			continue
 
-		var half_extents:Vector2 = _ball_collision_world_half_extents(b)
-		half_extents += Vector2.ONE * maxf(map_squeeze_rescue_padding,0.0)
-		var min_center:Vector2 = map_rect.position + half_extents
-		var max_center:Vector2 = map_rect.end - half_extents
-		if min_center.x > max_center.x or min_center.y > max_center.y:
-			continue
-
-		var corrected:Vector2 = Vector2(
-			clampf(old_pos.x,min_center.x,max_center.x),
-			clampf(old_pos.y,min_center.y,max_center.y)
-		)
+		# The collision shape may be offset from the character origin (AutoFit/manual bodies).
+		# Center +/- half-size alone can place that shape back inside the same solid wall.
+		var corrected:Vector2 = _map_safe_body_position(b,map_rect,old_pos)
 		var correction:Vector2 = corrected - old_pos
 		if correction.length_squared() <= 0.0001:
 			continue
@@ -2921,7 +2919,7 @@ func _process_map_squeeze_protection(ball_group:Array = []) -> void:
 
 
 func _animate_ball_back_inside_map(b:ball,target_position:Vector2,entry_seconds:float=-1.0) -> void:
-	if b == null or not is_instance_valid(b):
+	if b == null or not is_instance_valid(b) or not is_multiplayer_authority():
 		return
 	if b.has_meta(&"map_rescue_animating") and bool(b.get_meta(&"map_rescue_animating")):
 		return
@@ -2929,10 +2927,12 @@ func _animate_ball_back_inside_map(b:ball,target_position:Vector2,entry_seconds:
 	var had_physics:bool = b.is_physics_processing()
 	b.set_meta(&"map_rescue_had_physics",had_physics)
 	b.set_physics_process(false)
+	# Root processing does not disable the child state machine that calls move_and_slide().
+	# The shared Tween owns motion for BOTH ordinary recovery and wheel entry.
+	b.set_meta("map_rescue_state_physics",b.state_machine.is_physics_processing() if b.state_machine!=null else false)
+	if b.state_machine!=null: b.state_machine.set_physics_process(false)
 	var tween:Tween = create_tween().bind_node(b)
 	if entry_seconds>0.0:
-		b.set_meta("queue_entry_state_physics",b.state_machine.is_physics_processing() if b.state_machine!=null else false)
-		if b.state_machine!=null: b.state_machine.set_physics_process(false)
 		b.set_meta("queue_entry_z",b.z_index)
 		b.set_meta("queue_entry_z_relative",b.z_as_relative)
 		b.z_as_relative=false
@@ -2943,17 +2943,18 @@ func _animate_ball_back_inside_map(b:ball,target_position:Vector2,entry_seconds:
 		tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tween.set_process_mode(Tween.TWEEN_PROCESS_PHYSICS)
 	tween.tween_property(b,"global_position",target_position,entry_seconds if entry_seconds>0.0 else maxf(map_rescue_animation_duration,0.05))
-	if entry_seconds>0.0: _guard_queue_entry_tween(weakref(b),tween)
 	# Tween.finished() 自身不携带参数。这里绑定 WeakRef 而不是把自定义
 	# class_name ball 作为强类型回调参数，避免脚本热重载后出现
 	# “Cannot convert argument 1 from Object to Object”的类身份不一致错误。
 	tween.finished.connect(_finish_ball_map_rescue.bind(weakref(b)))
+	_guard_queue_entry_tween(weakref(b),tween)
 
 
 func _guard_queue_entry_tween(b_ref:WeakRef,tween:Tween) -> void:
 	while tween.is_valid() and is_inside_tree():
 		var actor:Variant=b_ref.get_ref()
 		if not is_instance_valid(actor) or actor.is_queued_for_deletion(): return
+		if not actor.has_meta("map_rescue_animating"): return
 		if actor.health<=0:
 			tween.kill()
 			_finish_ball_map_rescue(b_ref)
@@ -2973,8 +2974,14 @@ func _finish_ball_map_rescue(b_ref:WeakRef) -> void:
 	if b.has_meta("queue_entry_z"):
 		b.z_index=int(b.get_meta("queue_entry_z"))
 		b.z_as_relative=bool(b.get_meta("queue_entry_z_relative"))
+		for key:String in ["queue_entry_z","queue_entry_z_relative"]: b.remove_meta(key)
+	if b.has_meta("map_rescue_state_physics"):
+		if b.state_machine!=null: b.state_machine.set_physics_process(bool(b.get_meta("map_rescue_state_physics")))
+		b.remove_meta("map_rescue_state_physics")
+	# A wheel entry already running during script reload may still own the old key.
+	elif b.has_meta("queue_entry_state_physics"):
 		if b.state_machine!=null: b.state_machine.set_physics_process(bool(b.get_meta("queue_entry_state_physics")))
-		for key:String in ["queue_entry_z","queue_entry_z_relative","queue_entry_state_physics"]: b.remove_meta(key)
+	if b.has_meta("queue_entry_state_physics"): b.remove_meta("queue_entry_state_physics")
 	var restore_physics:bool = bool(b.get_meta(&"map_rescue_had_physics",true))
 	b.set_physics_process(restore_physics)
 	b.remove_meta(&"map_rescue_had_physics")
@@ -2982,6 +2989,25 @@ func _finish_ball_map_rescue(b_ref:WeakRef) -> void:
 	b.velocity = Vector2.ZERO
 	b.Repel = Vector2.ZERO
 
+
+func _map_safe_body_position(b:ball,map_rect:Rect2,wanted:Vector2) -> Vector2:
+	# Include the root as well, since the existing boundary rule tests root position.
+	var lower:Vector2=Vector2.ZERO
+	var upper:Vector2=Vector2.ZERO
+	var collision:CollisionShape2D=b.collision_shape_2d
+	if is_instance_valid(collision) and collision.shape!=null:
+		var local_rect:Rect2=collision.shape.get_rect()
+		for corner:Vector2 in [local_rect.position,Vector2(local_rect.end.x,local_rect.position.y),local_rect.end,Vector2(local_rect.position.x,local_rect.end.y)]:
+			var relative:Vector2=collision.global_transform*corner-b.global_position
+			lower=lower.min(relative);upper=upper.max(relative)
+	else:
+		lower=-_ball_collision_world_half_extents(b);upper=-lower
+	var padding:Vector2=Vector2.ONE*maxf(map_squeeze_rescue_padding,b.safe_margin)
+	var minimum:Vector2=map_rect.position+padding-lower
+	var maximum:Vector2=map_rect.end-padding-upper
+	# Do not shrink oversized actors or issue an inverted clamp on an impossible island.
+	if minimum.x>maximum.x or minimum.y>maximum.y: return wanted
+	return wanted.clamp(minimum,maximum)
 
 func _ball_collision_world_half_extents(b:ball) -> Vector2:
 	if b == null or not is_instance_valid(b) or b.collision_shape_2d == null:
@@ -3620,6 +3646,7 @@ func has_rematch_setup() -> bool:
 
 
 func delete_rotation_queue_setup_id(setup_id:int,side_hint:String = "") -> bool:
+	if Game.is_rotation_training_mode(): return _remove_rotation_slot(setup_id)
 	if setup_id < 0:
 		return false
 
@@ -3689,6 +3716,9 @@ func forget_battle_setup_node(node:Node) -> void:
 	if node == null or not node.has_meta("battle_setup_id"):
 		return
 	var setup_id:int = int(node.get_meta("battle_setup_id"))
+	if Game.is_rotation_training_mode() and node.has_meta("rotation_side"):
+		_remove_rotation_slot(setup_id)
+		return
 	# 轮放/Boss车轮战的名单并不只存在于 _battle_setup。手动删除预览/当前人物时，
 	# 同步从对应 roster 移除，避免删掉后又在后续轮次重新生成。
 	if node.has_meta("rotation_side"):
@@ -3749,6 +3779,7 @@ func rematch_last_battle(exact_replay:bool = true) -> void:
 	if is_instance_valid(day_night_cycle) and has_rematch_setup(): day_night_cycle.reset_to_noon()
 	if is_instance_valid(minecraft_clouds) and has_rematch_setup(): minecraft_clouds.reset_drift()
 	if Game.is_rotation_training_mode():
+		_sync_rotation_preview_positions()
 		var roster_source:Dictionary = _rotation_rosters if not _rotation_rosters["left"].is_empty() else _rotation_saved_rosters
 		if not roster_source["left"].is_empty():
 			if not exact_replay: _battle_random_seed = 0
@@ -5013,7 +5044,7 @@ func _scan_rotation_family_extinctions() -> void:
 	for side:String in ["left","right"]:
 		var setup_id:int=int(_rotation_active_setup.get(side,-1))
 		if setup_id<0: continue
-		if _battle_family_alive(setup_id):
+		if _rotation_side_alive(side):
 			_rotation_pending_dead_sides.erase(side)
 		elif not _rotation_pending_dead_sides.has(side):
 			# Only a candidate. Do not erase the slot, cross the portrait or end a totem save yet.
@@ -5030,8 +5061,11 @@ func _retire_rotation_families() -> void:
 		var setup_id:int = int(_rotation_active_setup.get(side,-1))
 		if setup_id >= 0:
 			setup_ids.append(setup_id)
-			var alive:bool = _battle_family_alive(setup_id)
+			var alive:bool = _rotation_side_alive(side)
 			_rotation_mark_current_dead(side,not alive,alive)
+	for side:String in ["left","right"]:
+		for id:int in _rotation_active_records[side]:
+			if not setup_ids.has(id): setup_ids.append(id)
 	# Include already-extinct slots whose dying bodies/children may still linger.
 	for side:String in ["left","right"]:
 		var index:int = int(_rotation_next_index[side])-1
@@ -5103,7 +5137,7 @@ func _configured_manual_victory_side_count() -> int:
 
 
 func _rotation_side_has_contender(side:String) -> bool:
-	if _battle_family_alive(int(_rotation_active_setup.get(side,-1))): return true
+	if _rotation_side_alive(side): return true
 	var roster:Array = _rotation_rosters[side]
 	var next_index:int = int(_rotation_next_index.get(side,0))
 	return next_index >= 0 and next_index < roster.size()
@@ -5828,7 +5862,7 @@ func _refresh_armor_stand_test_enemy_info() -> void:
 	var new_text:String = _build_armor_stand_test_enemy_info()
 	if armor_intro_label.text != new_text:
 		armor_intro_label.text = new_text
-	armor_intro_label.visible = not new_text.is_empty()
+	armor_intro_label.visible = bool(Game.Game_Settings.get("Show_Armor_Stand_Intro",true)) and not new_text.is_empty()
 	versus_label.text = ""
 	versus_label.hide()
 	versus_label.size.y = 0.0
@@ -6262,6 +6296,9 @@ func _on_training_game_setting_changed(setting:String,_value:Variant) -> void:
 	if setting == "Show_Center_Watermark":
 		_refresh_center_watermark()
 		return
+	if setting == "Show_Armor_Stand_Intro":
+		refresh_versus_text() # Presentation only: keep armor-test suppression and combat state unchanged.
+		return
 	if setting == "Enable_Dialogue":
 		if not _is_character_dialogue_enabled():
 			_clear_character_dialogues()
@@ -6290,8 +6327,14 @@ func _on_training_game_setting_changed(setting:String,_value:Variant) -> void:
 		if Game.is_timed_training_mode() and not _timed_running:
 			_timed_time_left = Game.get_training_timed_duration()
 			_refresh_timed_training_hud()
-	elif setting in ["Training_Wheel_Battle","Rotation_Match_Type"]:
+	elif setting in ["Training_Wheel_Battle","Rotation_Match_Type","Rotation_Multi_Characters"]:
+		if setting=="Rotation_Multi_Characters":
+			rotation_selected_round=1 if Game.rotation_multi_enabled() else 0
+			if not Game.rotation_multi_enabled():
+				for side:String in ["left","right"]:
+					for i:int in range(_rotation_rosters[side].size()): _rotation_rosters[side][i]["round"]=i+1
 		if Game.is_rotation_training_mode() and is_multiplayer_authority():
+			_sync_rotation_preview_positions()
 			_restart_rotation_series(_rotation_rosters.duplicate(true))
 		_rotation_refresh_all_texts()
 	elif setting in ["Training_Boss_Side","Training_Boss_Wheel_Battle","Training_Boss_Multiplier","Training_Boss_Specialization","Training_Boss_Intro"]:
@@ -6300,6 +6343,11 @@ func _on_training_game_setting_changed(setting:String,_value:Variant) -> void:
 
 
 func _reset_special_training_state() -> void:
+	_rotation_draft_rounds=[1]
+	_clear_rotation_formation_preview(false)
+	rotation_selected_round=1 if Game.rotation_multi_enabled() else 0
+	_rotation_preview_round=1
+	_rotation_active_records={"left":[],"right":[]}
 	_battle_lifecycle_generation += 1
 	_battle_spawn_tickets.clear()
 	_rotation_epoch += 1 # Cancel delayed deaths from reset / mode switches / rematches.
@@ -6399,7 +6447,9 @@ func _update_special_training_modes(delta:float) -> void:
 		if not _rotation_started and not control.is_set_team():
 			var left_roster:Array = _rotation_rosters["left"]
 			var right_roster:Array = _rotation_rosters["right"]
+			if not _rotation_draft_is_complete(): return
 			if not left_roster.is_empty() and not right_roster.is_empty():
+				_clear_rotation_formation_preview(true)
 				_rotation_started = true
 				_restore_special_prestart_nodes()
 				_spawn_next_rotation_character("left")
@@ -6463,7 +6513,7 @@ func _count_primary_battle_characters() -> int:
 #========================================================
 # 轮放模式
 #========================================================
-func _enqueue_rotation_character(_requested_team:String,char_name:String,poi:Vector2,forced_side:String = "",scene_path:String = "") -> void:
+func _enqueue_rotation_character(_requested_team:String,char_name:String,poi:Vector2,forced_side:String = "",scene_path:String = "",round_choice:int=-1) -> void:
 	if _get_character_scene_path(char_name,scene_path) == null:
 		push_warning("轮放模式无法加入角色: " + char_name)
 		return
@@ -6471,7 +6521,24 @@ func _enqueue_rotation_character(_requested_team:String,char_name:String,poi:Vec
 	var setup_id:int = _battle_setup_next_id
 	_battle_setup_next_id += 1
 	var roster:Array = _rotation_rosters[side]
-	roster.append({"id":setup_id,"char":char_name,"scene_path":scene_path if not scene_path.is_empty() else character_scene_path(char_name)})
+	var round_number:int=roster.size()+1
+	if Game.is_rotation_training_mode():
+		var selected:int=rotation_selected_round if round_choice<0 else round_choice
+		if selected>0: round_number=selected
+		elif Game.rotation_multi_enabled(): round_number=maxi(rotation_selected_round,1)
+		else:
+			for old:Dictionary in roster: round_number=maxi(round_number,int(old.get("round",1))+1)
+		if _rotation_started:
+			# Do not silently insert new contenders into an already consumed group.
+			for old:Dictionary in roster.slice(0,int(_rotation_next_index[side])): round_number=maxi(round_number,int(old.get("round",1))+1)
+		if not Game.rotation_multi_enabled():
+			for old:Dictionary in roster.duplicate():
+				if int(old.get("round",-1))==round_number: delete_rotation_queue_setup_id(int(old.id),side)
+		_rotation_preview_round=round_number
+	roster.append({"id":setup_id,"char":char_name,"scene_path":scene_path if not scene_path.is_empty() else character_scene_path(char_name),"round":round_number,"x":poi.x,"y":poi.y})
+	roster.sort_custom(func(a:Dictionary,c:Dictionary): return int(a.get("round",0))<int(c.get("round",0)))
+	if Game.is_rotation_training_mode() and not Game.rotation_multi_enabled(): rotation_selected_round=0
+	if is_instance_valid(control): control.call_deferred("_sync_rotation_formation_ui")
 	_rotation_rosters[side] = roster
 	if _development != null and _development.is_prebattle():
 		_development._sync_lanes(true)
@@ -6499,6 +6566,9 @@ func _enqueue_rotation_character(_requested_team:String,char_name:String,poi:Vec
 
 
 func _spawn_rotation_preview_character_if_needed(side:String) -> void:
+	if Game.is_rotation_training_mode() and not (_development!=null and _development.is_prebattle()):
+		_refresh_rotation_formation_preview()
+		return
 	var existing:Variant = _rotation_preview_character.get(side,null)
 	if existing is ball and is_instance_valid(existing):
 		return
@@ -6517,6 +6587,198 @@ func _spawn_rotation_preview_character_if_needed(side:String) -> void:
 
 
 
+func _rotation_record_position(record:Dictionary,side:String) -> Vector2:
+	return Vector2(float(record.get("x",_rotation_spawn_position(side).x)),float(record.get("y",_rotation_spawn_position(side).y)))
+
+func rotation_round_numbers() -> Array[int]:
+	var numbers:Array[int]=_rotation_draft_rounds.duplicate()
+	for side:String in ["left","right"]:
+		for i:int in range(_rotation_rosters[side].size()):
+			var number:int=int(_rotation_rosters[side][i].get("round",i+1))
+			if not numbers.has(number): numbers.append(number)
+	if rotation_selected_round>0 and not numbers.has(rotation_selected_round): numbers.append(rotation_selected_round)
+	numbers.sort()
+	return numbers
+
+func select_rotation_round(number:int) -> void:
+	if not Game.is_rotation_training_mode(): return
+	var chosen:int=clampi(number,1,999)
+	if number>0 and not _rotation_draft_rounds.has(chosen): _rotation_draft_rounds.append(chosen)
+	if not is_multiplayer_authority():
+		rotation_selected_round=clampi(number,1 if Game.rotation_multi_enabled() else 0,999)
+		_request_rotation_round.rpc_id(1,rotation_selected_round)
+		if is_instance_valid(control): control.call_deferred("_sync_rotation_formation_ui")
+		return
+	_sync_rotation_preview_positions()
+	rotation_selected_round=clampi(number,1 if Game.rotation_multi_enabled() else 0,999)
+	_rotation_preview_round=maxi(rotation_selected_round,1)
+	_refresh_rotation_formation_preview()
+	if is_instance_valid(control): control.call_deferred("_sync_rotation_formation_ui")
+
+@rpc("any_peer","call_remote","reliable")
+func _request_rotation_round(number:int) -> void:
+	# Round choice is a placement/view action, like the existing unrestricted team choice.
+	if is_multiplayer_authority() and not _rotation_started and multiplayer.get_remote_sender_id()>0:
+		select_rotation_round(number)
+
+func _sync_rotation_preview_positions() -> void:
+	if _rotation_started: return
+	for side:String in ["left","right"]:
+		for record:Dictionary in _rotation_rosters[side]:
+			var actor:Variant=_rotation_formation_preview.get(int(record.id))
+			if is_instance_valid(actor) and not actor.is_queued_for_deletion():
+				record.x=actor.global_position.x;record.y=actor.global_position.y
+
+func _clear_rotation_formation_preview(save_positions:bool) -> void:
+	if save_positions: _sync_rotation_preview_positions()
+	for actor:Variant in _rotation_formation_preview.values():
+		if is_instance_valid(actor): Game.free_node(actor)
+	_rotation_formation_preview.clear()
+
+func _refresh_rotation_formation_preview() -> void:
+	if not is_multiplayer_authority(): return
+	if _rotation_started or not Game.is_rotation_training_mode(): return
+	if _development!=null and _development.is_prebattle(): return
+	_sync_rotation_preview_positions()
+	var wanted:Dictionary={}
+	for side:String in ["left","right"]:
+		for i:int in range(_rotation_rosters[side].size()):
+			var record:Dictionary=_rotation_rosters[side][i]
+			if int(record.get("round",i+1))!=_rotation_preview_round: continue
+			var id:int=int(record.id);wanted[id]=true
+			var actor:Variant=_rotation_formation_preview.get(id)
+			if is_instance_valid(actor) and not actor.is_queued_for_deletion(): continue
+			actor=_spawn_character_from_setup(_queue_entry_for_record(record,side,_rotation_record_position(record,side)))
+			if not is_instance_valid(actor): continue
+			actor.set_meta("rotation_side",side);actor.set_meta("rotation_prestart_preview",true)
+			actor.process_mode=Node.PROCESS_MODE_DISABLED
+			_rotation_formation_preview[id]=actor
+	for id:Variant in _rotation_formation_preview.keys():
+		if not wanted.has(id):
+			var actor:Variant=_rotation_formation_preview[id]
+			if is_instance_valid(actor): Game.free_node(actor)
+			_rotation_formation_preview.erase(id)
+
+func _rotation_side_alive(side:String) -> bool:
+	if Game.is_rotation_training_mode() and not _rotation_active_records[side].is_empty():
+		for id:int in _rotation_active_records[side]:
+			if _battle_family_alive(id): return true
+		return false
+	return _battle_family_alive(int(_rotation_active_setup.get(side,-1)))
+
+func _rotation_wall_entry(position_hint:Vector2) -> Dictionary:
+	var rect:Rect2=return_map_world_rect(map_group[now_choose_map])
+	var point:Vector2=position_hint.clamp(rect.position,rect.end)
+	var distances:Array[float]=[point.x-rect.position.x,rect.end.x-point.x,point.y-rect.position.y,rect.end.y-point.y]
+	var wall:int=0
+	for i:int in range(1,4):
+		if distances[i]<distances[wall]: wall=i
+	var inset:float=minf(64.0,minf(rect.size.x,rect.size.y)*0.2)
+	point=point.clamp(rect.position+Vector2.ONE*inset,rect.end-Vector2.ONE*inset)
+	var start:Vector2=point;var finish:Vector2=point
+	match wall:
+		0: start.x=rect.position.x-64.0;finish.x=rect.position.x+inset
+		1: start.x=rect.end.x+64.0;finish.x=rect.end.x-inset
+		2: start.y=rect.position.y-64.0;finish.y=rect.position.y+inset
+		3: start.y=rect.end.y+64.0;finish.y=rect.end.y-inset
+	return {"start":start,"end":finish,"wall":wall}
+
+func _spawn_next_rotation_character(side:String) -> ball:
+	if not Game.is_rotation_training_mode(): return _spawn_next_rotation_member(side)
+	_rotation_active_records[side]=[]
+	var roster:Array=_rotation_rosters[side]
+	var start_index:int=int(_rotation_next_index[side])
+	if start_index>=roster.size():
+		_rotation_active_setup[side]=-1;_rotation_active_name[side]=""
+		return null
+	var round_number:int=int(roster[start_index].get("round",start_index+1))
+	var first:ball=null
+	var names:PackedStringArray=[]
+	while int(_rotation_next_index[side])<roster.size():
+		var index:int=int(_rotation_next_index[side]);var record:Dictionary=roster[index]
+		if int(record.get("round",index+1))!=round_number: break
+		var actor:ball=_spawn_next_rotation_member(side,start_index)
+		if actor==null: continue
+		if first==null: first=actor
+		_rotation_active_records[side].append(int(record.id));names.append(str(record.char))
+		var reinforcement:bool=start_index>0 and not _rotation_fresh_round and Game.is_rotation_wheel_enabled()
+		for copy_index:int in range(1,Game.rotation_team_count(side)):
+			var position_hint:Vector2=_rotation_record_position(record,side)
+			var ingress:Dictionary=_rotation_wall_entry(position_hint) if reinforcement else {}
+			var copy:ball=_spawn_character_from_setup(_queue_entry_for_record(record,side,ingress.start if reinforcement else position_hint))
+			if copy==null: continue
+			bind_battle_lifecycle(copy,null,true)
+			copy.set_meta("rotation_side",side);copy.set_meta("queue_character_name",str(record.char))
+			copy.set_meta("rotation_copy_index",copy_index)
+			copy.tree_exiting.connect(_on_rotation_character_tree_exiting.bind(copy,side,int(record.id)),CONNECT_ONE_SHOT)
+			if reinforcement:
+				copy.set_meta("rotation_entry_target",ingress.end)
+				_animate_queue_reinforcement_into_map(copy,side)
+	_rotation_active_setup[side]=int(roster[start_index].id)
+	_rotation_active_name[side]=" + ".join(names)
+	_rotation_create_current_label(side,_rotation_active_name[side],int(roster[start_index].id))
+	_rotation_refresh_future_labels(side)
+	return first
+
+func _remove_rotation_slot(setup_id:int) -> bool:
+	if not is_multiplayer_authority() or _rotation_transitioning: return false
+	for side:String in ["left","right"]:
+		var roster:Array=_rotation_rosters[side]
+		for i:int in range(roster.size()):
+			if int(roster[i].id)!=setup_id: continue
+			roster.remove_at(i)
+			if i<int(_rotation_next_index[side]): _rotation_next_index[side]=maxi(0,int(_rotation_next_index[side])-1)
+			_rotation_active_records[side].erase(setup_id)
+			if int(_rotation_active_setup[side])==setup_id:
+				_rotation_active_setup[side]=int(_rotation_active_records[side][0]) if not _rotation_active_records[side].is_empty() else -1
+			_rotation_formation_preview.erase(setup_id);_rotation_results.erase(setup_id)
+			for index:int in range(_battle_setup.size()-1,-1,-1):
+				if int(_battle_setup[index].get("id",-1))==setup_id: _battle_setup.remove_at(index)
+			for ticket:Variant in _battle_spawn_tickets.keys():
+				if int(_battle_spawn_tickets[ticket].identity.get("setup",-1))==setup_id: _battle_spawn_tickets.erase(ticket)
+			if _development!=null: _development.on_character_removed(setup_id)
+			for actor:Variant in _battle_units_cache.duplicate():
+				if not is_instance_valid(actor): continue
+				var identity:Dictionary=actor.get_meta(BATTLE_LIFECYCLE_META,{})
+				if int(identity.get("setup",actor.get_meta("battle_setup_id",-1)))==setup_id: Game.free_node(actor)
+			if not _rotation_started:
+				_clear_rotation_hud_labels()
+				for rebuild_side:String in ["left","right"]:
+					for record:Dictionary in _rotation_rosters[rebuild_side]: _rotation_add_setup_preview_label(rebuild_side,str(record.char),int(record.id))
+				_refresh_rotation_formation_preview()
+			else:
+				var names:PackedStringArray=[]
+				for record:Dictionary in roster:
+					if _rotation_active_records[side].has(int(record.id)): names.append(str(record.char))
+				_rotation_active_name[side]=" + ".join(names)
+				_rotation_create_current_label(side,_rotation_active_name[side],int(_rotation_active_setup[side]))
+				_rotation_refresh_future_labels(side)
+				if int(_rotation_active_setup[side])<0: call_deferred("_rotation_fill_empty_side",side,_rotation_epoch)
+			_reset_victory_bell_state()
+			control.call_deferred("_sync_rotation_formation_ui")
+			return true
+	return false
+
+func _rotation_fill_empty_side(side:String,epoch:int) -> void:
+	if epoch==_rotation_epoch and _rotation_started and not _rotation_transitioning and int(_rotation_active_setup[side])<0:
+		_spawn_next_rotation_character(side)
+
+func _rotation_draft_is_complete() -> bool:
+	if not Game.rotation_multi_enabled() or Game.get_rotation_match_type()!="duel": return true
+	var rounds:Dictionary={}
+	for side:String in ["left","right"]:
+		for i:int in range(_rotation_rosters[side].size()):
+			var number:int=int(_rotation_rosters[side][i].get("round",i+1))
+			rounds[number]=int(rounds.get(number,0))|(1 if side=="left" else 2)
+	for number:int in rounds:
+		if int(rounds[number])!=3:
+			control.show();control.team.show()
+			var dialog:=AcceptDialog.new();dialog.dialog_text=Game.ui_t("ROTATION_INCOMPLETE_ROUND")%number
+			control.add_child(dialog);dialog.confirmed.connect(dialog.queue_free,CONNECT_ONE_SHOT)
+			dialog.canceled.connect(dialog.queue_free,CONNECT_ONE_SHOT);dialog.popup_centered()
+			return false
+	return true
+
 func _rotation_spawn_position(side:String) -> Vector2:
 	var border:Dictionary = return_now_map_border()
 	var start:Vector2 = border.get("start",Vector2.ZERO)
@@ -6526,7 +6788,7 @@ func _rotation_spawn_position(side:String) -> Vector2:
 	return Vector2(x,(start.y + end.y) * 0.5)
 
 
-func _spawn_next_rotation_character(side:String) -> ball:
+func _spawn_next_rotation_member(side:String,group_start:int=-1) -> ball:
 	var roster:Array = _rotation_rosters[side]
 	var index:int = int(_rotation_next_index[side])
 	if index < 0 or index >= roster.size():
@@ -6539,8 +6801,10 @@ func _spawn_next_rotation_character(side:String) -> ball:
 	_rotation_next_index[side] = index + 1
 	var setup_id:int = int(record.get("id",-1))
 	var char_name:String = str(record.get("char",""))
-	var is_reinforcement:bool = index > 0 and not _rotation_fresh_round
-	var pos:Vector2 = _queue_outside_spawn_position(side) if is_reinforcement else _rotation_spawn_position(side)
+	var is_reinforcement:bool = (index if group_start<0 else group_start) > 0 and not _rotation_fresh_round and (not Game.is_rotation_training_mode() or Game.is_rotation_wheel_enabled())
+	var pos:Vector2 = _rotation_record_position(record,side) if Game.is_rotation_training_mode() else _rotation_spawn_position(side)
+	var ingress:Dictionary=_rotation_wall_entry(pos) if is_reinforcement and Game.is_rotation_training_mode() else {}
+	if is_reinforcement: pos=ingress.start if not ingress.is_empty() else _queue_outside_spawn_position(side)
 	var entry:Dictionary = _queue_entry_for_record(record, side, pos)
 	var spawned:ball = null
 	var preview:Variant = _rotation_preview_character.get(side,null)
@@ -6561,6 +6825,7 @@ func _spawn_next_rotation_character(side:String) -> ball:
 	bind_battle_lifecycle(spawned,null,true)
 	spawned.set_meta("rotation_side",side)
 	spawned.set_meta("queue_character_name",char_name)
+	if not ingress.is_empty(): spawned.set_meta("rotation_entry_target",ingress.end)
 	if is_reinforcement and not used_prestart_preview:
 		_animate_queue_reinforcement_into_map(spawned,side)
 	_rotation_active_setup[side] = setup_id
@@ -6569,6 +6834,7 @@ func _spawn_next_rotation_character(side:String) -> ball:
 		_on_rotation_character_tree_exiting.bind(spawned,side,setup_id),
 		CONNECT_ONE_SHOT
 	)
+	if Game.is_rotation_training_mode(): return spawned
 	if used_prestart_preview and _rotation_promote_setup_preview_to_battle(side,char_name):
 		pass
 	else:
@@ -6596,7 +6862,7 @@ func _rotation_resolve_pending_deaths() -> void:
 	for side:String in _rotation_pending_dead_sides:
 		var setup_id:int=int(_rotation_active_setup.get(side,-1))
 		# Revalidate the same live family after death prevention / revival / deferred descendants settle.
-		if setup_id>=0 and not _battle_family_alive(setup_id): dead_sides.append(side)
+		if setup_id>=0 and not _rotation_side_alive(side): dead_sides.append(side)
 	_rotation_pending_dead_sides.clear()
 	if dead_sides.is_empty():
 		_rotation_transitioning=false
@@ -6605,7 +6871,7 @@ func _rotation_resolve_pending_deaths() -> void:
 		_rotation_active_setup[side]=-1
 		_rotation_active_name[side]=""
 		_rotation_mark_current_dead(side)
-	if Game.is_rotation_training_mode() and Game.get_rotation_match_type()!="wheel":
+	if Game.is_rotation_training_mode() and not Game.is_rotation_wheel_enabled():
 		_rotation_ui_token+=1
 		if multiplayer.has_multiplayer_peer(): _rotation_remote_begin.rpc(dead_sides,_rotation_ui_token,_rotation_rosters,_rotation_next_index)
 		await _present_rotation_match(dead_sides,epoch,true)
@@ -6619,7 +6885,7 @@ func _rotation_resolve_pending_deaths() -> void:
 func _advance_rotation_match(dead_sides:Array[String],epoch:int) -> void:
 	if Game.is_rotation_training_mode() and Game.get_rotation_match_type()=="challenge":
 		await _resolve_rotation_challenge(dead_sides,epoch)
-	elif (Game.is_boss_training_mode() and Game.is_training_boss_wheel_battle_enabled()) or Game.get_rotation_match_type()=="wheel":
+	elif (Game.is_boss_training_mode() and Game.is_training_boss_wheel_battle_enabled()) or (Game.is_rotation_training_mode() and Game.is_rotation_wheel_enabled()):
 		for dead_side:String in dead_sides: _spawn_next_rotation_character(dead_side)
 	else:
 		_retire_rotation_families()
@@ -6707,11 +6973,14 @@ func _rotation_next_scene_paths(dead_sides:Array[String]) -> Array[String]:
 		var roster:Array=_rotation_rosters[side]
 		var index:int=0 if starts_fresh and side=="right" else int(_rotation_next_index[side])
 		if index<0 or index>=roster.size(): continue
-		var entry:Dictionary=roster[index]
-		var path:String=str(entry.get("scene_path",""))
-		if path.is_empty(): path=character_scene_path(str(entry.get("char","")))
-		# Do not silently skip broken contenders and report a false 100% success.
-		if not paths.has(path): paths.append(path)
+		var round_number:int=int(roster[index].get("round",index+1))
+		while index<roster.size() and int(roster[index].get("round",index+1))==round_number:
+			var entry:Dictionary=roster[index]
+			var path:String=str(entry.get("scene_path",""))
+			if path.is_empty(): path=character_scene_path(str(entry.get("char","")))
+			# Preload every template in the wave; never report completion after just its leader.
+			if not paths.has(path): paths.append(path)
+			index+=1
 	return paths
 
 func _rotation_fail_load(path:String) -> void:
@@ -6743,7 +7012,7 @@ func _load_rotation_covered(dead_sides:Array[String],epoch:int,authority:bool) -
 	if authority:
 		for side:String in ["left","right"]:
 			var setup_id:int=int(_rotation_active_setup[side])
-			if not dead_sides.has(side) and setup_id>=0 and not _battle_family_alive(setup_id):
+			if not dead_sides.has(side) and setup_id>=0 and not _rotation_side_alive(side):
 				dead_sides.append(side)
 				_rotation_active_setup[side]=-1
 				_rotation_active_name[side]=""
@@ -6806,6 +7075,8 @@ func _load_rotation_covered(dead_sides:Array[String],epoch:int,authority:bool) -
 		await get_tree().process_frame
 
 func _clear_rotation_round_units() -> void:
+	_clear_rotation_formation_preview(false)
+	_rotation_active_records={"left":[],"right":[]}
 	_battle_lifecycle_round += 1
 	_battle_spawn_tickets.clear()
 	_rotation_clearing_round = true
@@ -6839,6 +7110,7 @@ func _resolve_rotation_challenge(dead_sides:Array[String],epoch:int) -> void:
 	if blue_index >= 0 and blue_index < _rotation_rosters["left"].size():
 		var blue_id:int = int(_rotation_rosters["left"][blue_index]["id"])
 		_rotation_results[blue_id] = "dead" if blue_lost else "won"
+		for id:int in _rotation_active_records.left: _rotation_results[id]="dead" if blue_lost else "won"
 		if not blue_lost and not is_instance_valid(_rotation_door): _play_victory_bell_once()
 	_clear_rotation_round_units()
 	await get_tree().process_frame
@@ -6905,6 +7177,15 @@ func _receive_rotation_frame_state(rosters:Dictionary,results:Dictionary,active:
 	_rotation_rosters = rosters
 	_rotation_results = results
 	_rotation_active_setup = active
+	for side:String in ["left","right"]:
+		_rotation_active_records[side]=[]
+		var current_round:int=-1
+		for record:Dictionary in _rotation_rosters[side]:
+			if int(record.id)==int(active[side]): current_round=int(record.get("round",-1))
+		if current_round<0: continue
+		for record:Dictionary in _rotation_rosters[side]:
+			if int(record.get("round",-2))==current_round: _rotation_active_records[side].append(int(record.id))
+	if is_instance_valid(control): control.call_deferred("_sync_rotation_formation_ui")
 
 
 func _find_character_by_setup_id_any(setup_id:int) -> ball:
@@ -7166,6 +7447,8 @@ func _rotation_create_current_label(side:String,char_name:String,setup_id:int = 
 
 
 func _rotation_mark_current_dead(side:String,red:bool = true,winner:bool = false) -> void:
+	for id:int in _rotation_active_records[side]:
+		_rotation_results[id]="dead" if red else ("won" if winner else "retired")
 	var index:int = int(_rotation_next_index.get(side,0))-1
 	var roster:Array = _rotation_rosters[side]
 	if index >= 0 and index < roster.size():
@@ -8782,6 +9065,8 @@ func _special_two_team_side(team:String, poi:Vector2) -> String:
 	var selected:String = team.strip_edges()
 	if selected.is_empty():
 		return _boss_side_for_position(poi)
+	if Game.is_rotation_training_mode() and selected=="__rotation_left": return "left"
+	if Game.is_rotation_training_mode() and selected=="__rotation_right": return "right"
 	if selected == "Team0":
 		return "left"
 	if selected == "Team1":
@@ -8832,8 +9117,11 @@ func _animate_queue_reinforcement_into_map(character:ball, side:String) -> void:
 	if character == null or not is_instance_valid(character):
 		return
 	# Wheel replacements visibly walk in; do not hide a 0.2-second rescue snap behind doors.
-	var wheel:bool=Game.get_rotation_match_type()=="wheel" or (Game.is_boss_training_mode() and Game.is_training_boss_wheel_battle_enabled())
-	var target:Vector2=_rotation_spawn_position(side)
+	var wheel:bool=(Game.is_rotation_training_mode() and Game.is_rotation_wheel_enabled()) or (Game.is_boss_training_mode() and Game.is_training_boss_wheel_battle_enabled())
+	var target:Vector2=character.get_meta("rotation_entry_target",_rotation_spawn_position(side))
+	var map_node:Node=_current_map_node()
+	if map_node!=null:
+		target=_map_safe_body_position(character,nearest_map_island_rect(target,map_island_rects(map_node)),target)
 	var seconds:float=clampf(character.global_position.distance_to(target)/maxf(character.Speed,40.0),0.65,3.0) if wheel else -1.0
 	_animate_ball_back_inside_map(character,target,seconds)
 
@@ -8929,7 +9217,8 @@ func _remember_random_setup(setup_id:int,random_choice:bool) -> void:
 				break
 
 
-func create_char(team:String,char:String,poi:Vector2):
+func create_char(team:String,char:String,poi:Vector2,rotation_round:int=-1):
+	var requested_round:int=rotation_selected_round if rotation_round<0 else clampi(rotation_round,0,999)
 	var random_choice:bool = char == "random"
 	if char == "random":
 		char = return_random_char()
@@ -8961,7 +9250,7 @@ func create_char(team:String,char:String,poi:Vector2):
 		var rotation_side:String = _special_two_team_side(team, poi)
 		if rotation_side.is_empty():
 			return
-		_enqueue_rotation_character(team,char,poi,rotation_side)
+		_enqueue_rotation_character(team,char,poi,rotation_side,"",requested_round)
 		_remember_random_setup(placement_id,random_choice)
 		return
 	if Game.is_boss_training_mode() and Game.is_training_boss_wheel_battle_enabled() and not _restoring_battle_setup:

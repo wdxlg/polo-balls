@@ -545,6 +545,7 @@ NC佬,NC佬,NC Guy
 殷红迷雾,殷红迷雾,The Red Mist
 堇紫泪滴,堇紫泪滴,The Purple Tear
 SETTING_ENABLE_DIALOGUE,开启对话,Enable Dialogue
+SETTING_SHOW_ARMOR_STAND_INTRO,对战盔甲架时显示人物介绍,Show character intro vs armor stand
 meme,meme,Meme
 凑企鹅,凑企鹅,gugugaga
 MEME_COU_PENGUIN_LINE_1,咕咕嘎嘎,Gugu Gaga
@@ -893,8 +894,17 @@ AI,AI,AI
 石头,石头,Stone
 虚无盔甲架,虚无盔甲架,Void Armor Stand
 SETTING_ROTATION_MATCH_TYPE,轮换模式,Rotation rules
-ROTATION_DUEL,1v1,1v1
+ROTATION_DUEL,普通轮换,Normal
 ROTATION_WHEEL,车轮战,Winner stays
+__rotation_left,蓝队,Blue Team
+__rotation_right,红队,Red Team
+SETTING_ROTATION_MULTI_CHARACTERS,同队同轮多人物,Multi-character rounds
+SETTING_ROTATION_BLUE_COUNT,蓝队人物数量倍数,Blue team count
+SETTING_ROTATION_RED_COUNT,红队人物数量倍数,Red team count
+UI_ROTATION_ROUNDS,轮次,Rounds
+UI_ROTATION_ROUND_N,第%d轮,Round %d
+UI_ROTATION_AUTO,自动下一轮,Next automatically
+ROTATION_INCOMPLETE_ROUND,第%d轮尚未同时放置蓝队与红队人物，请补齐后开战。,Round %d needs both Blue and Red teams. Complete the formation before starting.
 ROTATION_CHALLENGE,挑战,Challenge
 ROTATION_CHALLENGE_HINT,每名蓝队独立挑战整支红队；失败或通关后重置双方状态并换下一名蓝队。,Each blue fighter challenges the entire red roster. Reset for the next blue fighter after defeat or victory.
 SETTING_DEVELOPMENT_MODE,发育模式,Development Mode

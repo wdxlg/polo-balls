@@ -189,8 +189,18 @@ func get_training_mode_type() -> String:
 	return _training.get_training_mode_type()
 
 func get_rotation_match_type() -> String:
-	var value:String = str(Game_Settings.get("Rotation_Match_Type","wheel" if bool(Game_Settings.get("Training_Wheel_Battle",false)) else "duel"))
-	return value if value in ["duel","wheel","challenge"] else "duel"
+	if is_rotation_wheel_enabled(): return "wheel"
+	return "challenge" if str(Game_Settings.get("Rotation_Match_Type","duel"))=="challenge" else "duel"
+
+func is_rotation_wheel_enabled() -> bool:
+	return bool(Game_Settings.get("Training_Wheel_Battle",false)) or str(Game_Settings.get("Rotation_Match_Type","duel"))=="wheel"
+
+func rotation_multi_enabled() -> bool:
+	return bool(Game_Settings.get("Rotation_Multi_Characters",false))
+
+func rotation_team_count(side:String) -> int:
+	return clampi(int(Game_Settings.get("Rotation_Blue_Count" if side=="left" else "Rotation_Red_Count",1)),1,100)
+
 
 func is_rotation_training_mode() -> bool:
 	return _training.is_rotation_training_mode()
@@ -456,7 +466,7 @@ func release_character_control_for_death(target:Node) -> void:
 
 func _is_network_shared_setting(setting:String) -> bool:
 	# 语言显示域、水印和“跟随我控制的角色”属于每台机器自己的表现设置；其它玩法设置跟随房主房间。
-	return setting not in ["Only_In_Game_Translation","Show_Center_Watermark","Follow_Controlled_Character","Map_Background","Minecraft_Clouds"]
+	return setting not in ["Only_In_Game_Translation","Show_Center_Watermark","Follow_Controlled_Character","Map_Background","Minecraft_Clouds","Show_Armor_Stand_Intro"]
 
 func _shared_settings_snapshot() -> Dictionary:
 	var snapshot:Dictionary = {}
@@ -474,13 +484,16 @@ func _apply_runtime_game_setting_local(setting:String,value:Variant,save_after:b
 	if setting == "Rotation_Match_Type":
 		var match_type:String = str(value)
 		if match_type not in ["duel","wheel","challenge"]: match_type = "duel"
-		Game_Settings[setting] = match_type
-		Game_Settings["Training_Wheel_Battle"] = match_type == "wheel"
+		if match_type=="wheel": Game_Settings["Training_Wheel_Battle"]=true
+		Game_Settings[setting] = "duel" if match_type=="wheel" else match_type
 		game_setting_changed.emit(setting,match_type)
 	elif setting == "Training_Wheel_Battle":
 		Game_Settings[setting] = bool(value)
-		Game_Settings["Rotation_Match_Type"] = "wheel" if bool(value) else "duel"
-		game_setting_changed.emit("Rotation_Match_Type",Game_Settings["Rotation_Match_Type"])
+		if str(Game_Settings["Rotation_Match_Type"])=="wheel": Game_Settings["Rotation_Match_Type"]="duel"
+		game_setting_changed.emit(setting,bool(value))
+	elif setting in ["Rotation_Blue_Count","Rotation_Red_Count"]:
+		Game_Settings[setting]=clampi(int(value),1,100)
+		game_setting_changed.emit(setting,Game_Settings[setting])
 	elif setting == "Training_Mode":
 		_training.set_training_mode(bool(value))
 	elif setting == "Training_Mode_Type":
@@ -647,8 +660,9 @@ func load_persistent_settings() -> void:
 	# Migrate the old winner-stays checkbox once, without overriding a saved challenge choice.
 	if not config.has_section_key("game_settings","Rotation_Match_Type"):
 		Game_Settings["Rotation_Match_Type"] = "wheel" if bool(Game_Settings.get("Training_Wheel_Battle",false)) else "duel"
-	Game_Settings["Rotation_Match_Type"] = get_rotation_match_type()
-	Game_Settings["Training_Wheel_Battle"] = get_rotation_match_type() == "wheel"
+	if str(Game_Settings["Rotation_Match_Type"])=="wheel":
+		Game_Settings["Training_Wheel_Battle"]=true
+		Game_Settings["Rotation_Match_Type"]="duel"
 	# 关键：
 	# 不再恢复旧的 speed_slider。
 	# 速度倍率直接影响 physics delta，高倍率会降低高速投射物碰撞可靠性。
@@ -724,6 +738,8 @@ func _on_speed_slider_drag_ended(value_changed:bool) -> void:
 	Blood_Effects = false,
 	# 角色对话总开关。开启后，支持对话的角色会把台词显示在地图下方的阵营槽位。
 	Enable_Dialogue = false,
+	# 本机显示偏好；旧存档默认保留盔甲架对战的人物介绍。
+	Show_Armor_Stand_Intro = true,
 	# 训练玩法类型：manual / rotation / timed / boss。
 	Training_Mode_Type = "manual",
 	Random_Events = false,
@@ -736,6 +752,9 @@ func _on_speed_slider_drag_ended(value_changed:bool) -> void:
 	# 轮放模式：false=任一方死亡后双方都换下一位；true=胜者留场，只补死亡方。
 	Training_Wheel_Battle = false, # Legacy compatibility; UI uses Rotation_Match_Type.
 	Rotation_Match_Type = "duel",
+	Rotation_Multi_Characters = false,
+	Rotation_Blue_Count = 1,
+	Rotation_Red_Count = 1,
 	# 计时模式时长（秒）。SpinBox 可自由输入。
 	Training_Timed_Duration = 60.0,
 	# Boss 模式固定为左右两队；其中一侧按倍率强化。
@@ -1230,7 +1249,8 @@ func _network_ping_reply(token:int,client_sent_ms:int) -> void:
 
 
 @rpc("any_peer")
-func create_ball_in_server(team_value:String,character_name:String,poi:Vector2) -> void:
+func create_ball_in_server(team_value:String,character_name:String,poi:Vector2,rotation_round:int=0) -> void:
+	if not multiplayer.is_server(): return
 	var tree := get_tree()
 	var world := tree.current_scene
 	if world is not World:
@@ -1239,7 +1259,8 @@ func create_ball_in_server(team_value:String,character_name:String,poi:Vector2) 
 	world.create_char(
 				team_value,
 				character_name,
-				poi
+				poi,
+				rotation_round
 			)
 
 func _find_ball_ancestor(node:Node) -> Node:

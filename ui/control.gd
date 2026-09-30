@@ -745,6 +745,10 @@ var training_mode_option:OptionButton
 var map_background_label:Label
 var map_background_option:OptionButton
 var rotation_mode_options:VBoxContainer
+var rotation_count_spins:Dictionary={}
+var rotation_round_panel:Control
+var rotation_round_box:VBoxContainer
+var _rotation_round_ui_signature:String=""
 var rotation_match_option:OptionButton
 var rotation_match_label:Label
 var timed_mode_options:VBoxContainer
@@ -939,10 +943,14 @@ func _build_training_settings(parent_box:VBoxContainer) -> void:
 	rotation_match_option.name = "RotationMatchOption"
 	rotation_match_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	rotation_match_option.custom_minimum_size = Vector2(0,24)
-	for key:String in ["ROTATION_DUEL","ROTATION_WHEEL","ROTATION_CHALLENGE"]:
+	_create_bool_setting_row(rotation_mode_options,"Training_Wheel_Battle")
+	_create_bool_setting_row(rotation_mode_options,"Rotation_Multi_Characters")
+	_create_rotation_count_setting("left")
+	_create_rotation_count_setting("right")
+	for key:String in ["ROTATION_DUEL","ROTATION_CHALLENGE"]:
 		rotation_match_option.add_item(Game.ui_t(key))
-	for index:int in range(3):
-		rotation_match_option.set_item_metadata(index,["duel","wheel","challenge"][index])
+	for index:int in range(2):
+		rotation_match_option.set_item_metadata(index,["duel","challenge"][index])
 	rotation_match_option.item_selected.connect(_on_rotation_match_selected)
 	rotation_row.add_child(rotation_match_option)
 	Game.Set_Ui_sfx(rotation_match_option)
@@ -1359,6 +1367,9 @@ func _build_parameter_settings(parent_box:VBoxContainer) -> void:
 		"Training_Mode_Type": true,
 		"Training_Wheel_Battle": true,
 		"Rotation_Match_Type": true,
+		"Rotation_Multi_Characters": true,
+		"Rotation_Blue_Count": true,
+		"Rotation_Red_Count": true,
 		"Training_Timed_Duration": true,
 		"Training_Boss_Side": true,
 		"Training_Boss_Wheel_Battle": true,
@@ -1485,13 +1496,97 @@ func _refresh_settings_category_texts() -> void:
 	_refresh_manual_attack_interval_value()
 
 
+func _sync_rotation_formation_ui() -> void:
+	if not is_node_ready(): return
+	var world:Node=get_tree().current_scene
+	if not is_instance_valid(world): return
+	var enabled:bool=Game.is_rotation_training_mode()
+	if enabled and Game.rotation_multi_enabled() and int(world.rotation_selected_round)==0: world.select_rotation_round(1)
+	for side:String in ["left","right"]:
+		var key:String="__rotation_"+side
+		var button:Button=null
+		for child:Node in team_box.get_children():
+			if child is Button and str(child.get_meta("choice_value",""))==key: button=child;break
+		if enabled and button==null:
+			button=create_new_but(team_box)
+			button.name="RotationBlueTeam" if side=="left" else "RotationRedTeam"
+			button.set_meta("choice_value",key);button.set_meta("rotation_reserved",true)
+			button.set_meta("_translation_source_text",key)
+			var color:Color=Color("418cff") if side=="left" else Color("ef4f50")
+			for style:String in ["font_color","font_hover_color","font_pressed_color"]: button.add_theme_color_override(style,color)
+			team_box.move_child(button,0 if side=="left" else 1)
+		if button!=null:
+			button.visible=enabled
+			button.text=Game.ui_t(key)
+			if not enabled: button.set_pressed_no_signal(false)
+	if not enabled and str(world.now_choose_team).begins_with("__rotation_"): change_choose_team("")
+	if not enabled:
+		if is_instance_valid(rotation_round_panel): rotation_round_panel.hide()
+		return
+	if not is_instance_valid(rotation_round_panel):
+		rotation_round_panel=$Team/Team.duplicate(0)
+		rotation_round_panel.name="RotationRounds"
+		team.add_child(rotation_round_panel)
+		rotation_round_panel.position=$Team/Team.position+Vector2(0,$Team/Team.size.y+36)
+		rotation_round_panel.scale=Vector2.ONE
+		rotation_round_panel.get_node("Label").hide()
+		var add:Button=rotation_round_panel.get_node("CreateButton")
+		add.text="+";add.button_up.connect(_add_rotation_round)
+		var inner:Control=rotation_round_panel.get_node("Team_Inner")
+		for child:Node in inner.get_children():inner.remove_child(child);child.queue_free()
+		var scroll:=ScrollContainer.new();inner.add_child(scroll)
+		scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
+		rotation_round_box=VBoxContainer.new();rotation_round_box.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+		scroll.add_child(rotation_round_box)
+		Game.Set_Ui_sfx(rotation_round_panel)
+	rotation_round_panel.show()
+	rotation_round_panel.get_node("NowTeam").text=Game.ui_t("UI_ROTATION_ROUNDS")
+	var signature:String=str([world.rotation_round_numbers(),world.rotation_selected_round,Game.rotation_multi_enabled(),Game.current_locale])
+	if signature==_rotation_round_ui_signature: return
+	_rotation_round_ui_signature=signature
+	for child:Node in rotation_round_box.get_children():rotation_round_box.remove_child(child);child.queue_free()
+	var choices:Array=world.rotation_round_numbers()
+	if not Game.rotation_multi_enabled():choices.push_front(0)
+	var group:=ButtonGroup.new()
+	for number:int in choices:
+		var button:Button=team_set_button_tem.instantiate()
+		button.text=Game.ui_t("UI_ROTATION_AUTO") if number==0 else Game.ui_t("UI_ROTATION_ROUND_N")%number
+		button.toggle_mode=true;button.button_group=group
+		button.set_pressed_no_signal(number==int(world.rotation_selected_round))
+		button.set_meta("rotation_round",number)
+		button.pressed.connect(func(): world.select_rotation_round(number))
+		rotation_round_box.add_child(button)
+	Game.Set_Ui_sfx(rotation_round_box)
+
+func _add_rotation_round() -> void:
+	var world:Node=get_tree().current_scene
+	if not is_instance_valid(world): return
+	var numbers:Array=world.rotation_round_numbers()
+	world.select_rotation_round(mini(int(numbers.back())+1,999))
+
+func _create_rotation_count_setting(side:String) -> void:
+	var key:String="Rotation_Blue_Count" if side=="left" else "Rotation_Red_Count"
+	var row:=HBoxContainer.new();rotation_mode_options.add_child(row)
+	row.add_child(_create_setting_title_from_template("SETTING_"+key.to_upper(),64.0)["panel"])
+	var spin:=SpinBox.new();spin.name=key;spin.min_value=1;spin.max_value=100;spin.step=1
+	spin.rounded=true;spin.suffix="x";spin.select_all_on_focus=true
+	spin.size_flags_horizontal=Control.SIZE_EXPAND_FILL;spin.custom_minimum_size=Vector2(0,24)
+	spin.value_changed.connect(func(value:float):Game.set_runtime_game_setting(key,int(value)))
+	row.add_child(spin);_style_settings_spinbox(spin);rotation_count_spins[side]=spin
+
 func _sync_training_mode_controls() -> void:
+	_sync_rotation_formation_ui()
+	for side:String in rotation_count_spins:
+		var spin:SpinBox=rotation_count_spins[side]
+		spin.set_value_no_signal(Game.rotation_team_count(side))
+		spin.editable=Game.can_local_change_settings()
 	if is_instance_valid(rotation_match_label): rotation_match_label.text = Game.ui_t("SETTING_ROTATION_MATCH_TYPE")
 	if is_instance_valid(rotation_match_option):
-		var keys:Array[String] = ["ROTATION_DUEL","ROTATION_WHEEL","ROTATION_CHALLENGE"]
-		for index:int in range(3):
+		var keys:Array[String] = ["ROTATION_DUEL","ROTATION_CHALLENGE"]
+		for index:int in range(2):
 			rotation_match_option.set_item_text(index,Game.ui_t(keys[index]))
-			if str(rotation_match_option.get_item_metadata(index)) == Game.get_rotation_match_type(): rotation_match_option.select(index)
+			if str(rotation_match_option.get_item_metadata(index)) == ("challenge" if str(Game.Game_Settings.get("Rotation_Match_Type","duel"))=="challenge" else "duel"): rotation_match_option.select(index)
 		rotation_match_option.disabled = Game.is_network_guest() and not Game.guest_has_free_permissions()
 		rotation_match_option.tooltip_text = Game.ui_t("ROTATION_CHALLENGE_HINT")
 	if is_instance_valid(training_mode_label):
@@ -2114,22 +2209,30 @@ func create_new_but(parent) -> Button:
 	#队伍
 @onready var now_team: Label = $Team/Team/NowTeam
 func return_random_team() -> String:
-	if team_box.get_children().size() > 0:
-		return team_box.get_child(randi_range(0,team_box.get_children().size() - 1)).text
-	else:return ""
+	var choices:Array[String]=[]
+	for button:Node in team_box.get_children():
+		if not button is Button: continue
+		if button.has_meta("rotation_reserved") and not Game.is_rotation_training_mode(): continue
+		choices.append(str(button.get_meta("choice_value",button.text)))
+	return choices.pick_random() if not choices.is_empty() else ""
 
 func reset_team_buts() -> void:
 	var pressed_team:String = ""
+	var user_index:int=0
 
 	for i in team_box.get_children():
 		if not i is Button:
 			continue
 
 		var team_button:Button = i
+		if team_button.has_meta("rotation_reserved"):
+			if team_button.button_pressed and Game.is_rotation_training_mode(): pressed_team=str(team_button.get_meta("choice_value"))
+			continue
 		var team_name:String = (
 			"Team"
-			+ str(team_button.get_index())
+			+ str(user_index)
 		)
+		user_index+=1
 
 		team_button.text = team_name
 		team_button.set_meta(
@@ -2151,6 +2254,7 @@ func reset_team_buts() -> void:
 	Game.Set_Ui_sfx(team_box)
 
 func set_team_button_callable_delete(event:InputEvent,but:Button) -> void:
+	if but.has_meta("rotation_reserved"): return
 	if not Game.can_local_edit_team_structure():
 		return
 	if event.is_echo():

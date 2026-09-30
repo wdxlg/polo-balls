@@ -138,6 +138,9 @@ var round_exit:float = 0.0
 var sides:Array = []
 ## 结算动画：开始后保持到重置/新对阵。outro_elapsed 为真实秒数。
 var outro_active:bool = false
+# Only a matchup actually displayed before the verdict may animate out.
+var _matchup_was_visible:bool = false
+var _outro_show_panels:bool = false
 var outro_elapsed:float = 0.0
 var winner_index:int = -1
 var victory_result:Dictionary = {}
@@ -332,6 +335,8 @@ func _process(delta:float) -> void:
 	var shown_now:bool = _should_show()
 	if visible != shown_now:
 		visible = shown_now
+	if not outro_active:
+		_matchup_was_visible = visible and is_visible_in_tree() and sides.size()==2
 	_sync_versus_title(visible)
 	_update_world_clock(delta)
 	if visible:
@@ -613,12 +618,20 @@ func _draw_wool_cube(texture:Texture2D,rect:Rect2,tint:Color=Color.WHITE) -> voi
 		var shade:float=[1.0,0.8,0.6][i]
 		draw_polygon(points,PackedColorArray([Color(shade,shade,shade)*tint]),uv,texture)
 
+func _can_exit_matchup() -> bool:
+	return not outro_active and _matchup_was_visible and visible and sides.size()==2 and _should_show()
+
+func _matchup_panels_visible() -> bool:
+	var data=_data()
+	return data.sides.size()==2 and (not data.outro_active or data._outro_show_panels)
+
 func _update_outro(delta:float) -> void:
 	if outro_active:
 		# 真实时间：不受倍速/训练加速影响；暂停时 _process 不跑，自然冻结。
 		outro_elapsed = minf(outro_elapsed + delta / maxf(Engine.time_scale,0.0001),30.0)
 		return
 	if not bool(world.get("_victory_bell_played")): return
+	_outro_show_panels = _can_exit_matchup()
 	if not Game.is_rotation_training_mode(): victory_result=_build_victory_result()
 	if victory_result.is_empty() and (not visible or sides.size()!=2): return
 	var alive:Array[int] = []
@@ -651,6 +664,8 @@ func _reset_outro() -> void:
 	_focus_requested = false
 	victory_result.clear()
 	outro_active = false
+	_matchup_was_visible = false
+	_outro_show_panels = false
 	outro_elapsed = 0.0
 	winner_index = -1
 
@@ -669,6 +684,7 @@ func _outro_panel_shift(data) -> float:
 
 ## 成就框矩形；未到出场时间返回空矩形。
 func begin_round_result(winner_side:String) -> void:
+	var show_exiting_panels:bool = _can_exit_matchup()
 	# Snapshot real roster identities before the old units are cleared, even if a summon finished the round.
 	var entries:Dictionary={}
 	var order:Array=["Team0","Team1"]
@@ -683,6 +699,8 @@ func begin_round_result(winner_side:String) -> void:
 			"texture":_portraits.resolve(world,record),"nodes":[actor] if is_instance_valid(actor) else [],
 			"hp":float(actor.health) if is_instance_valid(actor) else 0.0,"max_hp":float(actor.Max_health) if is_instance_valid(actor) else 1.0,
 			"block":0.0,"absorption":0.0,"reduction":0.0,"damage":0.0,"setup_id":int(record.id),"dead":side!=winner_side}
+		if Game.is_rotation_training_mode() and (world._rotation_active_records[side].size()>1 or Game.rotation_team_count(side)>1):
+			row.raw_name="__rotation_"+side
 		entries[side]=row
 	_reset_outro()
 	sides=[entries.left,entries.right]
@@ -690,6 +708,7 @@ func begin_round_result(winner_side:String) -> void:
 	round_exit=0.0
 	winner_index=0 if winner_side=="left" else 1 if winner_side=="right" else -1
 	outro_active=true
+	_outro_show_panels=show_exiting_panels
 	outro_elapsed=0.0
 	visible=true
 func end_round_result() -> void:
@@ -774,6 +793,8 @@ func _collect_battle_sides() -> Dictionary:
 
 func _refresh_pair() -> void:
 	if not victory_result.is_empty() and bool(world.get("_victory_bell_played")): return
+	# A death and the next scan can share a frame; retain a genuinely displayed final pair.
+	_refresh_values()
 	var collected:Dictionary = _collect_battle_sides()
 	var order:Array = collected.order
 	var entries:Dictionary = collected.entries
@@ -1081,7 +1102,7 @@ func _draw_patch(box:StyleBoxTexture,rect:Rect2,pixel:float) -> void:
 func _draw() -> void:
 	var data = _data()
 	if not is_instance_valid(data): return
-	if data.sides.size()!=2:
+	if not _matchup_panels_visible():
 		if bool(data.timed_mode) and not data.outro_active:
 			_panel_shift=0.0
 			_draw_patch(_effect_box,_panel_rects()[1],GUI_PIXEL)
@@ -1217,7 +1238,7 @@ func _draw_clock_text(center:Rect2) -> void:
 func _draw_text() -> void:
 	var data = _data()
 	if not is_instance_valid(data): return
-	if data.sides.size()!=2:
+	if not _matchup_panels_visible():
 		if bool(data.timed_mode) and not data.outro_active:
 			_panel_shift=0.0
 			_draw_clock_text(_panel_rects()[1])
