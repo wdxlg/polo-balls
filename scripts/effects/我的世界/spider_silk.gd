@@ -1,6 +1,12 @@
 extends Node2D
 const COBWEB_TEXTURE = preload("res://Images/characters/我的世界/蜘蛛/cobweb_native.png")
 const GEOMETRY = preload("res://scripts/effects/我的世界/mc16_geometry.gd")
+const MAP_THEMES = preload("res://scripts/effects/我的世界/地图背景主题.gd")
+## Strand ends sink this far into the touched wall, so the 3D wall covers them.
+const WALL_SINK:float = 4.0
+## Absolute layer: above the ground tiles (-5, drawn earlier), below the 3D walls,
+## wall shadows and 2D obstacles (-4 and up), so a sunk end is hidden by its wall.
+const SILK_Z:int = -5
 var unit:ball
 var segments:Array[Dictionary] = []
 var anchor:Dictionary = {}
@@ -18,7 +24,8 @@ func _ready() -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	set_as_top_level(true)
 	global_transform = Transform2D.IDENTITY
-	z_index = -1
+	z_as_relative = false
+	z_index = SILK_Z
 	add_to_group("BattleTransient")
 	add_to_group("MCSpiderSilk")
 func _make_anchor(point:Vector2,surface:Node2D) -> Dictionary:
@@ -85,10 +92,27 @@ func development_rebase(change:Vector2) -> void:
 	queue_redraw()
 func wall_attachment_point(contact:Vector2,normal:Vector2,surface:Node2D,tail:Vector2) -> Vector2:
 	# A body/head contact is not the silk endpoint. Extend the current abdomen
-	# strand onto the touched wall plane, preserving its direction when fixing it.
+	# strand into the touched wall, preserving its direction when fixing it.
 	var n:Vector2 = normal.normalized()
-	var plane:Vector2 = contact+n*1.5
-	if n.length_squared()<0.5: return plane
+	if n.length_squared()<0.5: return contact
+	# Intersect with the wall plane shifted inward, so the end continues along
+	# the strand into the wall instead of stepping sideways off it.
+	var sink:float = _wall_sink(surface)
+	var point:Vector2 = _surface_attachment(contact-n*sink,n,surface,tail)
+	if sink<=0.0 or _inside_surface(point,surface): return point
+	return _surface_attachment(contact,n,surface,tail) # Thin obstacle: stay on its face.
+func _wall_sink(surface:Node2D) -> float:
+	var world:Node = get_tree().current_scene if is_inside_tree() else null
+	var map_wall:bool = surface!=null and surface.get_parent()!=null and surface.get_parent().has_meta(&"map_safety_frame")
+	if map_wall and world!=null and world.has_method(&"map_background_style") and not MAP_THEMES.tiled(world.map_background_style()):
+		# Flat themes draw the map wall as the black border line (above everything),
+		# centred on the edge: end inside that line, not in the outside backdrop.
+		# The line's centre uses World.return_map_display_rect's inset; stop in the
+		# middle of its inner half so the pixel stroke's rounding stays under it.
+		var width:float = float(world.get("map_border_width")) if "map_border_width" in world else 2.0
+		return maxf(width*0.5-1.0,0.0)-maxf(width,0.0)*0.25
+	return WALL_SINK
+func _surface_attachment(plane:Vector2,n:Vector2,surface:Node2D,tail:Vector2) -> Vector2:
 	if _valid(anchor):
 		var start:Vector2 = _point(anchor)
 		var axis:Vector2 = (tail-start).normalized()
@@ -107,8 +131,20 @@ func wall_attachment_point(contact:Vector2,normal:Vector2,surface:Node2D,tail:Ve
 	return plane
 func _on_wall_surface(point:Vector2,normal:Vector2,surface:Node2D) -> bool:
 	if surface==null: return true # Explicit geometric fixtures have no PhysicsBody.
-	var hit:Dictionary = GEOMETRY.wall_ray(self,point+normal*4.0,point-normal*4.0,[unit.get_rid()])
+	# Start outside even when the point is already sunk into the wall.
+	var hit:Dictionary = GEOMETRY.wall_ray(self,point+normal*(WALL_SINK+4.0),point-normal*4.0,[unit.get_rid()])
 	return not hit.is_empty() and hit.collider==surface
+func _inside_surface(point:Vector2,surface:Node2D) -> bool:
+	# Thin obstacles keep the end on their face instead of poking out the far side.
+	if surface==null: return true
+	var query := PhysicsPointQueryParameters2D.new()
+	query.position = point
+	query.collision_mask = 1
+	query.collide_with_areas = false
+	query.exclude = [unit.get_rid()]
+	for hit:Dictionary in get_world_2d().direct_space_state.intersect_point(query,8):
+		if hit.collider==surface: return true
+	return false
 func _can_weave() -> bool:
 	if unit.has_method(&"can_weave_silk"): return unit.can_weave_silk()
 	return unit.mc_live() and not Game.now_stop_state
@@ -268,7 +304,9 @@ func _draw() -> void:
 	for line:Array in draw_lines:
 		var endpoint:Vector2 = unit.silk_tail_position() if line[2] else line[1]
 		# One hard-edged pixel stroke: no smooth shadow/outline or round wall dots.
-		draw_line(Vector2(line[0]).round()+Vector2(0.5,0.5),endpoint.round()+Vector2(0.5,0.5),Color(0.91,0.94,0.96),1.0,false)
+		# Snap to the centre of the pixel that holds each end (floor, not round):
+		# unbiased on every side, so wall-sunk ends stay under the wall.
+		draw_line(Vector2(line[0]).floor()+Vector2(0.5,0.5),endpoint.floor()+Vector2(0.5,0.5),Color(0.91,0.94,0.96),1.0,false)
 	for point:Vector2 in draw_webs:
 		# Untouched vanilla 16x16 cobweb; no generated radial spokes/rings.
 		var diameter:float = unit.web_radius*2.0
