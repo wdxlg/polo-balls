@@ -219,8 +219,7 @@ func _can_damage_target(target:ball,master:ball) -> bool:
 	if master != null and target == master:
 		return false
 	if (
-		not Game.Game_Settings.Have_Team_Damage
-		and Team != ""
+		Team != ""
 		and target.Team != ""
 		and Team == target.Team
 	):

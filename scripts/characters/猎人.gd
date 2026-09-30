@@ -294,7 +294,7 @@ func _is_valid_enemy(target:ball) -> bool:
 		return false
 	if target.state_machine != null and target.state_machine.current_state == State.Die:
 		return false
-	if not Game.Game_Settings.Have_Team_Damage and Team != "" and target.Team != "" and target.Team == Team:
+	if Team != "" and target.Team != "" and target.Team == Team:
 		return false
 	return true
 

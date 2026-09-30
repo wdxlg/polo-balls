@@ -345,8 +345,7 @@ func _can_hit_target(target:ball) -> bool:
 	if target == self or not target.is_combat_targetable():
 		return false
 	if (
-		not Game.Game_Settings.Have_Team_Damage
-		and Team != ""
+		Team != ""
 		and target.Team != ""
 		and Team == target.Team
 	):

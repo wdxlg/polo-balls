@@ -39,7 +39,7 @@ func is_landing_enemy(candidate:Variant,include_victim:bool=false) -> bool:
 	if candidate.Type not in [ball.Ball_Type.Ball,ball.Ball_Type.Creature]: return false
 	if excluded_ids.has(candidate.get_instance_id()): return false
 	if is_instance_valid(source): return source.mc_enemy(candidate)
-	return Game.Game_Settings.Have_Team_Damage or owner_team.is_empty() or candidate.Team!=owner_team
+	return owner_team.is_empty() or candidate.Team!=owner_team
 
 func overlaps_ground_circle(candidate:ball,center:Vector2,radius:float) -> bool:
 	var circle := CircleShape2D.new()

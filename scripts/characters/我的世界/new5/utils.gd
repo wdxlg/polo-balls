@@ -5,7 +5,7 @@ static func enemy(source:ball,target:Variant,neutral:bool = false) -> bool:
 	if not target.is_combat_targetable(): return false
 	if preload("res://scripts/characters/我的世界/haochen/copy_friendly_guard.gd").skips_target(source,target): return false # Haochen copies never pick his side
 	if neutral: return true
-	return Game.Game_Settings.Have_Team_Damage or source.Team.is_empty() or source.Team != target.Team
+	return source.Team.is_empty() or source.Team != target.Team
 static func nearest(source:ball) -> ball:
 	var result:ball
 	var best:float = INF

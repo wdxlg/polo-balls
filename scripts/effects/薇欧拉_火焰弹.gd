@@ -220,7 +220,7 @@ func _is_enemy(target:ball,owner_node:Node) -> bool:
     if not target.is_combat_targetable():
         return false
     var owner_team:String = str(owner_node.get("Team")) if owner_node != null else ""
-    if not Game.Game_Settings.Have_Team_Damage and not owner_team.is_empty() and target.Team == owner_team:
+    if not owner_team.is_empty() and target.Team == owner_team:
         return false
     return true
 

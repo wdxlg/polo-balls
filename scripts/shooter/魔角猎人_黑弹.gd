@@ -112,7 +112,7 @@ func _should_pass_through(collider:Variant,master:ball) -> bool:
 	var target:ball = collider as ball
 	if target == master:
 		return true
-	if not Game.Game_Settings.Have_Team_Damage and not Team.is_empty() and not target.Team.is_empty() and Team == target.Team:
+	if not Team.is_empty() and not target.Team.is_empty() and Team == target.Team:
 		return true
 	# V179：Sans 闪避时射线把他当成不存在，继续检查同一路径后面的目标/墙。
 	if target.has_method("try_full_projectile_dodge") and bool(target.call("try_full_projectile_dodge",self)):
@@ -125,7 +125,7 @@ func _can_damage_target(target:ball,master:ball) -> bool:
 		return false
 	if target == master or master == null or not is_instance_valid(master) or master.is_damage_output_disabled():
 		return false
-	if not Game.Game_Settings.Have_Team_Damage and not Team.is_empty() and not target.Team.is_empty() and Team == target.Team:
+	if not Team.is_empty() and not target.Team.is_empty() and Team == target.Team:
 		return false
 	return true
 

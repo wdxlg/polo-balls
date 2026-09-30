@@ -132,7 +132,7 @@ func _can_damage_target(target:ball) -> bool:
 		return false
 	if not target.is_combat_targetable():
 		return false
-	if not Game.Game_Settings.Have_Team_Damage and not team.is_empty() and target.Team == team:
+	if not team.is_empty() and target.Team == team:
 		return false
 	return true
 

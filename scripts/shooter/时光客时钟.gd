@@ -299,7 +299,7 @@ func _should_ignore_character(target:ball) -> bool:
 		return true
 	if Master != null and is_instance_valid(Master) and target == Master:
 		return true
-	if not Game.Game_Settings.Have_Team_Damage and Team != "" and target.Team == Team:
+	if Team != "" and target.Team == Team:
 		return true
 	return false
 

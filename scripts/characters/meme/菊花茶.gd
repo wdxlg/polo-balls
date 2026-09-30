@@ -702,11 +702,9 @@ func _can_gravity_damage_target(target:ball) -> bool:
 		return false
 	if target.has_method("is_combat_targetable") and not bool(target.call("is_combat_targetable")):
 		return false
-	# 与项目 Hitbox 规则一致：默认尊重 Have_Team_Damage；角色自身显式 Ignore_Team_Damage_Setting 时允许无视该开关。
-	var team_damage_enabled:bool = bool(Game.Game_Settings.get("Have_Team_Damage",false))
+	# 自身伤害不伤同队，与全局友伤开关无关；只有显式 Ignore_Team_Damage_Setting 才允许伤同队。
 	if (
-		not team_damage_enabled
-		and not Ignore_Team_Damage_Setting
+		not Ignore_Team_Damage_Setting
 		and not Team.is_empty()
 		and target.Team == Team
 	):

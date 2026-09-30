@@ -22,7 +22,7 @@ func enemy_valid(value:Variant,lockable:bool = false) -> bool:
 		return false
 	if preload("res://scripts/characters/我的世界/haochen/copy_friendly_guard.gd").skips_target(self,candidate): # Haochen copies never pick his side
 		return false
-	if not Game.Game_Settings.Have_Team_Damage and not Team.strip_edges().is_empty() and candidate.Team == Team:
+	if not Can_Target_Teammates and not Team.strip_edges().is_empty() and candidate.Team == Team:
 		return false
 	return not lockable or candidate.is_combat_lockable()
 func nearest_opponent() -> ball:

@@ -480,8 +480,7 @@ func _is_invisibility_contact_enemy(candidate:ball) -> bool:
 	elif candidate.Type != ball.Ball_Type.Ball:
 		return false
 	if (
-		not Game.Game_Settings.Have_Team_Damage
-		and not target.Team.is_empty()
+		not target.Team.is_empty()
 		and candidate.Team == target.Team
 	):
 		return false
@@ -501,8 +500,7 @@ func _clear_existing_enemy_locks() -> void:
 		if observer == target or not is_instance_valid(observer):
 			continue
 		if (
-			not Game.Game_Settings.Have_Team_Damage
-			and not target.Team.is_empty()
+			not target.Team.is_empty()
 			and observer.Team == target.Team
 		):
 			continue

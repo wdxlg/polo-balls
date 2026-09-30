@@ -134,7 +134,7 @@ func _is_valid_target(target:ball) -> bool:
 		return false
 	if _hit_target_ids.has(int(target.get_instance_id())):
 		return false
-	if not Game.Game_Settings.Have_Team_Damage and owner_team != "" and target.Team == owner_team:
+	if owner_team != "" and target.Team == owner_team:
 		return false
 	return true
 

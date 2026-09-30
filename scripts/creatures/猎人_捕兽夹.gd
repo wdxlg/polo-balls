@@ -193,7 +193,7 @@ func _can_affect_target(target:ball,master:ball) -> bool:
 		return false
 	if not target.is_combat_targetable() or target == master:
 		return false
-	if not Game.Game_Settings.Have_Team_Damage and Team != "" and target.Team != "" and target.Team == Team:
+	if Team != "" and target.Team != "" and target.Team == Team:
 		return false
 	return true
 

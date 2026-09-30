@@ -318,8 +318,7 @@ func _damage_all_crossed_targets(from_pos:Vector2,to_pos:Vector2,facing_angle:fl
 		if hit_ids.has(target.get_instance_id()):
 			continue
 		if (
-			not bool(Game.Game_Settings.get("Have_Team_Damage",false))
-			and projectile_team != ""
+			projectile_team != ""
 			and target.Team != ""
 			and target.Team == projectile_team
 		):

@@ -218,7 +218,7 @@ func _should_pass_through(collider:Variant) -> bool:
 	if _is_protected_target(target):
 		return true
 	# 友伤强制开启时同阵营也属于真实攻击，所以仍允许 Sans 正常消耗一次闪避。
-	if not force_friendly_fire and not Game.Game_Settings.Have_Team_Damage and Team != "" and target.Team != "" and target.Team == Team:
+	if not force_friendly_fire and Team != "" and target.Team != "" and target.Team == Team:
 		return true
 	# V179：闪避成功后本颗子弹继续原射线路径；不播放撞人/撞墙声，也不被删除。
 	if target.has_method("try_full_projectile_dodge") and bool(target.call("try_full_projectile_dodge",self)):
@@ -397,7 +397,7 @@ func _can_damage_target(target:ball) -> bool:
 		return false
 	if _is_protected_target(target):
 		return false
-	if not force_friendly_fire and not Game.Game_Settings.Have_Team_Damage and Team != "" and target.Team != "" and target.Team == Team:
+	if not force_friendly_fire and Team != "" and target.Team != "" and target.Team == Team:
 		return false
 	return true
 

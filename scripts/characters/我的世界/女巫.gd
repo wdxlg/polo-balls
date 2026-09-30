@@ -359,7 +359,7 @@ func _is_valid_potion_enemy(candidate:ball) -> bool:
 		return false
 	if not candidate.is_combat_targetable():
 		return false
-	if not Game.Game_Settings.Have_Team_Damage and not Team.is_empty() and candidate.Team == Team:
+	if not Team.is_empty() and candidate.Team == Team:
 		return false
 	return true
 

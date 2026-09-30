@@ -144,7 +144,7 @@ func enemy_viewers(actor:ball) -> Array[Dictionary]:
 	var result:Array[Dictionary] = []
 	for entry:Dictionary in viewers:
 		var unit:Variant = entry.unit.get_ref()
-		if is_instance_valid(unit) and unit.health>0 and (Game.Game_Settings.Have_Team_Damage or actor.Team.is_empty() or unit.Team!=actor.Team): result.append(entry)
+		if is_instance_valid(unit) and unit.health>0 and (actor.Team.is_empty() or unit.Team!=actor.Team): result.append(entry)
 	return result
 func body_exposure(actor:ball,point:Vector2) -> float:
 	var best:float = 0.0

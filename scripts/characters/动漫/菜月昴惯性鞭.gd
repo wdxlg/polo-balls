@@ -109,7 +109,7 @@ func _hit_segment(start:Vector2,end:Vector2) -> void:
 	for result:Dictionary in get_world_2d().direct_space_state.intersect_shape(query,32):
 		var enemy:Variant = result.collider
 		if not enemy is ball or enemy == fighter or not enemy.is_combat_targetable() or enemy.health <= 0: continue
-		if not Game.Game_Settings.get("Have_Team_Damage",false) and fighter.Team != "" and fighter.Team == enemy.Team: continue
+		if fighter.Team != "" and fighter.Team == enemy.Team: continue
 		var id:int = enemy.get_instance_id()
 		if hit_ids.has(id): continue
 		hit_ids[id] = true

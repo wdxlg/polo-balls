@@ -101,8 +101,7 @@ func _first_enemy_hit(from_pos:Vector2,to_pos:Vector2) -> ball:
 		if target == owner_leader or not target.is_combat_targetable():
 			continue
 		if (
-			not bool(Game.Game_Settings.get("Have_Team_Damage",false))
-			and projectile_team != ""
+			projectile_team != ""
 			and target.Team != ""
 			and target.Team == projectile_team
 		):

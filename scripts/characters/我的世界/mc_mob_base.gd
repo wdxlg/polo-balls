@@ -60,7 +60,7 @@ func mc_enemy(target:Variant) -> bool:
 	if target.Type not in [Ball_Type.Ball,Ball_Type.Creature]: return false
 	if target == Master or target.Master == self: return false
 	if is_instance_valid(Master) and target.Master == Master: return false
-	return Game.Game_Settings.Have_Team_Damage or Team.is_empty() or target.Team != Team
+	return Can_Target_Teammates or Team.is_empty() or target.Team != Team
 
 func mc_nearest(delta:float = 0.0) -> ball:
 	_mc_target_wait -= delta

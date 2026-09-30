@@ -576,10 +576,9 @@ func _apply_nuke_damage(
 		if distance_to_blast > nuke_explosion_radius:
 			continue
 
-		# 沿用项目原来的队伤设置。
+		# 核弹不伤同队。
 		if (
-			not Game.Game_Settings.Have_Team_Damage
-			and Team != ""
+			Team != ""
 			and target.Team != ""
 			and target.Team == Team
 		):

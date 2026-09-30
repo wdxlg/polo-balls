@@ -223,7 +223,7 @@ func _is_valid_enemy(target:ball) -> bool:
 		return false
 	if target == self or not target.is_combat_targetable():
 		return false
-	if not Game.Game_Settings.Have_Team_Damage and Team != "" and target.Team != "" and Team == target.Team:
+	if Team != "" and target.Team != "" and Team == target.Team:
 		return false
 	return true
 

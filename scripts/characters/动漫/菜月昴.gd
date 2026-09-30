@@ -421,8 +421,7 @@ func _find_fist_target() -> ball:
 		if not candidate.is_combat_targetable():
 			continue
 		if (
-			not bool(Game.Game_Settings.get("Have_Team_Damage",false))
-			and Team != ""
+			Team != ""
 			and candidate.Team != ""
 			and candidate.Team == Team
 		):
@@ -500,8 +499,7 @@ func _on_fist_area_entered(area:Area2D) -> void:
 	if target == self or target.health <= 0 or not target.is_combat_targetable():
 		return
 	if (
-		not bool(Game.Game_Settings.get("Have_Team_Damage",false))
-		and Team != ""
+		Team != ""
 		and target.Team != ""
 		and target.Team == Team
 	):

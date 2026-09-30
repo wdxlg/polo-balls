@@ -188,4 +188,4 @@ func _is_friendly(target:ball) -> bool:
 	# 自己的墙虽然同队，但砖块就是故意拿它当目标。
 	if target.has_method("is_builder_wall"):
 		return false
-	return not bool(Game.Game_Settings.get("Have_Team_Damage",false))
+	return true

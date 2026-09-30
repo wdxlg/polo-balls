@@ -1673,7 +1673,6 @@ func _can_damage_ball(target:ball) -> bool:
 	if (
 		Team != ""
 		and Team == target.Team
-		and not Game.Game_Settings.Have_Team_Damage
 		and not Ignore_Team_Damage_Setting
 	):
 		return false

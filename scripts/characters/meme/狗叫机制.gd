@@ -472,10 +472,9 @@ func _can_damage_target(target:ball) -> bool:
 		return false
 	if target.Master != null and is_instance_valid(target.Master) and target.Master == _damage_source:
 		return false
-	if not Game.Game_Settings.Have_Team_Damage:
-		var target_team:String = str(target.Team).strip_edges()
-		if not _team.is_empty() and target_team == _team:
-			return false
+	var target_team:String = str(target.Team).strip_edges()
+	if not _team.is_empty() and target_team == _team:
+		return false
 	return true
 
 

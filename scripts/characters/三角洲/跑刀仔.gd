@@ -2894,7 +2894,7 @@ func _try_damage_berserker_dagger_target(target:ball,hit_ids:Dictionary,attack_d
 		return
 	if not target.is_combat_targetable():
 		return
-	if not bool(Game.Game_Settings.get("Have_Team_Damage",false)) and Team!="" and target.Team==Team:
+	if Team!="" and target.Team==Team:
 		return
 	var id:int=target.get_instance_id()
 	if hit_ids.has(id):

@@ -493,7 +493,7 @@ func _is_friendly(target:ball) -> bool:
 		return true
 	if Team.is_empty() or target.Team.is_empty():
 		return false
-	return Team == target.Team and not bool(Game.Game_Settings.get("Have_Team_Damage",false))
+	return Team == target.Team
 
 
 func _cleanup_contact_cooldowns(delta:float) -> void:

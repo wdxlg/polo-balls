@@ -138,9 +138,8 @@ func _try_damage_character(target:ball,direct_throw:bool) -> void:
 		return
 	if is_instance_valid(Master) and target == Master:
 		return
-	if not bool(Game.Game_Settings.get("Have_Team_Damage", false)):
-		if not Team.is_empty() and not target.Team.is_empty() and target.Team == Team:
-			return
+	if not Team.is_empty() and not target.Team.is_empty() and target.Team == Team:
+		return
 
 	var id:int = target.get_instance_id()
 	var now:int = Time.get_ticks_msec()

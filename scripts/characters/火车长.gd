@@ -723,8 +723,7 @@ func _is_valid_mining_target(target:ball) -> bool:
 	if not target.is_combat_targetable():
 		return false
 	if (
-		not Game.Game_Settings.Have_Team_Damage
-		and not Ignore_Team_Damage_Setting
+		not Ignore_Team_Damage_Setting
 		and Team != ""
 		and target.Team == Team
 	):

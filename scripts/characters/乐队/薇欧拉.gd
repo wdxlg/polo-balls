@@ -556,7 +556,7 @@ func _support_target(data:Dictionary) -> ball:
 		return null
 	if target.state_machine != null and target.state_machine.current_state == State.Die:
 		return null
-	if not Game.Game_Settings.Have_Team_Damage and not Team.is_empty() and target.Team == Team:
+	if not Team.is_empty() and target.Team == Team:
 		return null
 	return target
 
@@ -1248,7 +1248,7 @@ func _is_valid_enemy(target:ball) -> bool:
 		return false
 	if target.state_machine != null and target.state_machine.current_state == State.Die:
 		return false
-	if not Game.Game_Settings.Have_Team_Damage and not Team.is_empty() and target.Team == Team:
+	if not Team.is_empty() and target.Team == Team:
 		return false
 	return true
 

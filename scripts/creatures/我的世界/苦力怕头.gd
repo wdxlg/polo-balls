@@ -710,7 +710,7 @@ func _is_enemy(target:ball) -> bool:
 		return false
 	if target.Type != Ball_Type.Ball or target.health <= 0 or not target.is_combat_targetable():
 		return false
-	if not Game.Game_Settings.Have_Team_Damage and not Team.is_empty() and not target.Team.is_empty() and Team == target.Team:
+	if not Team.is_empty() and not target.Team.is_empty() and Team == target.Team:
 		return false
 	return true
 

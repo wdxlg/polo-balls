@@ -1119,7 +1119,7 @@ func _is_friendly(target:ball) -> bool:
 		return false
 	if Team != target.Team:
 		return false
-	return not bool(Game.Game_Settings.get("Have_Team_Damage",false))
+	return true
 
 
 func _response_is_valid(serial:int) -> bool:

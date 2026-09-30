@@ -155,8 +155,7 @@ func _nearest_legal_enemy() -> ball:
 		if candidate == self or not candidate.is_combat_targetable():
 			continue
 		if (
-			not bool(Game.Game_Settings.get("Have_Team_Damage",false))
-			and Team != ""
+			Team != ""
 			and candidate.Team != ""
 			and candidate.Team == Team
 		):

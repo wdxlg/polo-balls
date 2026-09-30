@@ -296,8 +296,7 @@ func _is_enemy(target:ball) -> bool:
 	if target.has_method("is_combat_targetable") and not target.is_combat_targetable():
 		return false
 	if (
-		not Game.Game_Settings.Have_Team_Damage
-		and not source_team.is_empty()
+		not source_team.is_empty()
 		and not target.Team.is_empty()
 		and source_team == target.Team
 	):

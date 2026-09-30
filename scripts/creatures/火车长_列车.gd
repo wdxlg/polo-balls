@@ -917,8 +917,7 @@ func _is_valid_target(target:ball) -> bool:
 	if not target.is_combat_targetable():
 		return false
 	if (
-		not Game.Game_Settings.Have_Team_Damage
-		and not owner_conductor.Ignore_Team_Damage_Setting
+		not owner_conductor.Ignore_Team_Damage_Setting
 		and owner_conductor.Team != ""
 		and target.Team == owner_conductor.Team
 	):

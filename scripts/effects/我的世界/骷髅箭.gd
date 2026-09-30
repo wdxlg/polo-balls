@@ -355,9 +355,7 @@ func _can_damage_target(target:ball) -> bool:
 	if source != null and target == source:
 		return false
 	if _source_team != "" and target.Team != "" and target.Team == _source_team:
-		# 处决后重新飞出的箭永远不会伤害友军；普通射出的箭仍遵守项目全局友伤设置。
-		if _force_no_friendly_fire or not Game.Game_Settings.Have_Team_Damage:
-			return false
+		return false
 	return true
 
 
