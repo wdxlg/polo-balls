@@ -310,10 +310,10 @@ static func feeding_volume_db(actual_damage:int) -> float:
 	# +1 dB per doubling, capped at the native SFX ceiling to limit loud swarms.
 	return clampf(-3.0+log(float(maxi(actual_damage,1)))/log(2.0),-3.0,2.0)
 
-func _notify_damage_camera_feedback(actual_damage:float,blocked:bool = false) -> void:
+func _notify_damage_camera_feedback(actual_damage:float,blocked:bool = false,focus_damage:float = -1.0) -> void:
 	# Redistribution is a state transfer, not a hit (150 -> 30 is not 120 damage).
 	if _redistributing: return
-	super._notify_damage_camera_feedback(actual_damage,blocked)
+	super._notify_damage_camera_feedback(actual_damage,blocked,focus_damage)
 
 func detach() -> void:
 	var target:Variant = attached_target()
