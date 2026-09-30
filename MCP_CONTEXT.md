@@ -84,7 +84,7 @@
 - **MC 生物型角色**必须接入原版/模组的四类声音：**脚步、呼吸/待机（ambient/idle 也算）、受伤、死亡**。确实不存在的记录检索结果，不伪造。死亡时同时保留项目默认死亡音效，一次死亡只触发一次。受伤按概率、只对实际有效受伤触发。
 - 同类周期声音两次开始的间隔**不得短于上一次实际所播音频的时长**（计入变体和音高）。脚步只在真实位移时播放，静止、死亡、暂停不播。
 - 用户指定的例外：硫方怪不播呼吸/待机；雪傀儡每实际射出一颗雪球就播一次发射声，允许重叠。
-- **战斗音乐**：设置“音乐”（`Battle_Music`，本机偏好、不随房间同步，默认“无”）唯一实现 `global/battle_music.gd`（Game 子节点 `BattleMusic`）；新增曲目只在其 `TRACKS`/`OPTIONS` 登记并补 `BATTLE_MUSIC_<KEY>` 译名。开播条件与 World 开场问候同一套（结构性开局 + `is_combat_runtime_active`），时间静止/暂停只推迟不重开；`Game.battle_session_ended`（重置/重打/轮放系列重开）、战场被清空、离开 World 时停止并回到开头。播放器走 `GameplayRecord`、可暂停，由 Audios 统一随时间流速变速。
+- **战斗音乐**：设置“音乐”（`Battle_Music`，本机偏好、不随房间同步，默认“无”）唯一实现 `global/battle_music.gd`（Game 子节点 `BattleMusic`）；“音乐音量”滑块（`Battle_Music_Volume`，0–100%，默认 100%）为本机偏好，只调音乐播放器，0% 静音但不停止时间线，调节不重播曲目；新增曲目只在其 `TRACKS`/`OPTIONS` 登记并补 `BATTLE_MUSIC_<KEY>` 译名。开播条件与 World 开场问候同一套（结构性开局 + `is_combat_runtime_active`），时间静止/暂停只推迟不重开；`Game.battle_session_ended`（重置/重打/轮放系列重开）、战场被清空、离开 World 时停止并回到开头。播放器走 `GameplayRecord`、可暂停，由 Audios 统一随时间流速变速。
 
 ## 7. C 键直接控制（全角色强制）
 

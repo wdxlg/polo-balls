@@ -7,6 +7,8 @@ extends Node
 #   播放器本身可暂停，SceneTree 暂停时随游戏声一起暂停；录像同样会录到音乐。
 
 const SETTING_KEY: String = "Battle_Music"
+const VOLUME_KEY: String = "Battle_Music_Volume"
+const DEFAULT_VOLUME: float = 100.0
 const NONE: String = "none"
 const BUS: StringName = &"GameplayRecord"
 # 曲目登记表：新增音乐只需在这里加一项，并补翻译键 BATTLE_MUSIC_<KEY 大写>。
@@ -24,6 +26,7 @@ var _game: Node
 var _player: AudioStreamPlayer
 var _track_key: String = NONE
 var _track_loop: bool = true
+var _volume_percent: float = DEFAULT_VOLUME
 var _world_id: int = 0
 # 当前这一局音乐是否已经开始（已开始就不再重复从头播放，直到被停止）。
 var _round_active: bool = false
@@ -32,6 +35,13 @@ var _round_active: bool = false
 static func normalize(key: Variant) -> String:
 	var text: String = str(key)
 	return text if TRACKS.has(text) else NONE
+
+
+static func normalize_volume(value: Variant) -> float:
+	if typeof(value) not in [TYPE_INT,TYPE_FLOAT]:
+		return DEFAULT_VOLUME
+	var amount: float = float(value)
+	return clampf(amount,0.0,100.0) if is_finite(amount) else DEFAULT_VOLUME
 
 
 static func track_stream(key: String) -> AudioStream:
@@ -56,6 +66,7 @@ func _ready() -> void:
 		_game.game_setting_changed.connect(_on_game_setting_changed)
 		if _game.has_signal("battle_session_ended"):
 			_game.battle_session_ended.connect(stop_and_rewind)
+		_apply_volume(_game.Game_Settings.get(VOLUME_KEY,DEFAULT_VOLUME))
 		_apply_track(normalize(_game.Game_Settings.get(SETTING_KEY, NONE)))
 
 
@@ -134,9 +145,20 @@ func _on_player_finished() -> void:
 
 
 func _on_game_setting_changed(setting: String, value: Variant) -> void:
+	if setting == VOLUME_KEY:
+		_apply_volume(value)
+		return
 	if setting != SETTING_KEY:
 		return
 	_apply_track(normalize(value))
+
+
+func _apply_volume(value: Variant) -> void:
+	_volume_percent = normalize_volume(value)
+	if _player == null: return
+	var entry: Dictionary = TRACKS.get(_track_key,{})
+	# Only this player changes; the shared gameplay bus and playback clock stay intact.
+	_player.volume_linear = db_to_linear(float(entry.get("volume_db",0.0))) * _volume_percent / 100.0
 
 
 func _apply_track(key: String) -> void:
@@ -147,7 +169,7 @@ func _apply_track(key: String) -> void:
 	_track_loop = bool(entry.get("loop", true))
 	_player.stop()
 	_player.stream = track_stream(key)
-	_player.volume_db = float(entry.get("volume_db", 0.0))
+	_apply_volume(_volume_percent)
 	# 战斗进行中切歌：新曲目从头播放；切到“无”则安静。
 	if _round_active:
 		_play_from_start()

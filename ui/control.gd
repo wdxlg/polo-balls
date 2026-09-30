@@ -747,6 +747,9 @@ var map_background_label:Label
 var map_background_option:OptionButton
 var battle_music_label:Label
 var battle_music_option:OptionButton
+var battle_music_volume_label:Label
+var battle_music_volume_slider:HSlider
+var battle_music_volume_value:Label
 var rotation_mode_options:VBoxContainer
 var rotation_count_spins:Dictionary={}
 var rotation_round_panel:Control
@@ -1372,6 +1375,32 @@ func _create_battle_music_setting(parent_box:VBoxContainer) -> void:
 	battle_music_option.item_selected.connect(_on_battle_music_selected)
 	row.add_child(battle_music_option)
 	Game.Set_Ui_sfx(battle_music_option)
+	var volume_row := HBoxContainer.new()
+	volume_row.name = "BattleMusicVolumeRow"
+	volume_row.custom_minimum_size = Vector2(0,24)
+	volume_row.add_theme_constant_override("separation",3)
+	parent_box.add_child(volume_row)
+	var volume_title:Dictionary = _create_setting_title_from_template("SETTING_BATTLE_MUSIC_VOLUME",64.0)
+	volume_row.add_child(volume_title["panel"])
+	battle_music_volume_label = volume_title["label"]
+	battle_music_volume_slider = HSlider.new()
+	battle_music_volume_slider.name = "BattleMusicVolumeSlider"
+	battle_music_volume_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	battle_music_volume_slider.custom_minimum_size = Vector2(72,20)
+	battle_music_volume_slider.min_value = 0.0
+	battle_music_volume_slider.max_value = 100.0
+	battle_music_volume_slider.step = 1.0
+	battle_music_volume_slider.scrollable = true
+	battle_music_volume_slider.theme = preload("res://ui/slider.tres")
+	battle_music_volume_slider.value_changed.connect(_on_battle_music_volume_changed)
+	volume_row.add_child(battle_music_volume_slider)
+	battle_music_volume_value = Label.new()
+	battle_music_volume_value.name = "BattleMusicVolumeValue"
+	battle_music_volume_value.custom_minimum_size = Vector2(36,22)
+	battle_music_volume_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	battle_music_volume_value.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	battle_music_volume_value.add_theme_font_size_override("font_size",9)
+	volume_row.add_child(battle_music_volume_value)
 	_sync_battle_music_setting()
 func _sync_battle_music_setting() -> void:
 	if not is_instance_valid(battle_music_option): return
@@ -1382,6 +1411,16 @@ func _sync_battle_music_setting() -> void:
 	var chosen:String = BATTLE_MUSIC.normalize(Game.Game_Settings.get(BATTLE_MUSIC.SETTING_KEY,BATTLE_MUSIC.NONE))
 	battle_music_option.select(maxi(BATTLE_MUSIC.OPTIONS.find(chosen),0))
 	battle_music_option.tooltip_text = Game.ui_t("BATTLE_MUSIC_" + chosen.to_upper())
+	if is_instance_valid(battle_music_volume_slider):
+		var volume:float = BATTLE_MUSIC.normalize_volume(Game.Game_Settings.get(BATTLE_MUSIC.VOLUME_KEY,BATTLE_MUSIC.DEFAULT_VOLUME))
+		battle_music_volume_label.text = Game.ui_t("SETTING_BATTLE_MUSIC_VOLUME")
+		battle_music_volume_slider.set_value_no_signal(volume)
+		battle_music_volume_value.text = "%d%%" % roundi(volume)
+		battle_music_volume_slider.tooltip_text = "%s: %d%%" % [Game.ui_t("SETTING_BATTLE_MUSIC_VOLUME"),roundi(volume)]
+func _on_battle_music_volume_changed(value:float) -> void:
+	Game.set_runtime_game_setting(BATTLE_MUSIC.VOLUME_KEY,value)
+	_sync_battle_music_setting()
+
 func _on_battle_music_selected(index:int) -> void:
 	Game.set_runtime_game_setting(BATTLE_MUSIC.SETTING_KEY,str(battle_music_option.get_item_metadata(index)))
 

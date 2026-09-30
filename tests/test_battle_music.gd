@@ -2,6 +2,20 @@ extends "res://tests/test_mc_bat.gd"
 # Use registered music for playback lifecycle checks and a short tone for looping.
 
 var music: Node
+var _original_settings:PackedByteArray
+var _settings_existed:bool = false
+var _settings_captured:bool = false
+
+func finish(code:int) -> void:
+	if done: return
+	if _settings_captured:
+		if _settings_existed:
+			var file:=FileAccess.open(game.SETTINGS_PATH,FileAccess.WRITE)
+			file.store_buffer(_original_settings)
+			file.close()
+		else:
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(game.SETTINGS_PATH))
+	super.finish(code)
 
 
 func _tone(seconds: float) -> AudioStreamWAV:
@@ -51,12 +65,16 @@ func _clear() -> void:
 
 func run() -> void:
 	game = root.get_node("Game")
+	_settings_existed = FileAccess.file_exists(game.SETTINGS_PATH)
+	if _settings_existed: _original_settings = FileAccess.get_file_as_bytes(game.SETTINGS_PATH)
+	_settings_captured = true
 	saved = game.Game_Settings.duplicate(true)
 	saved_stop = game.now_stop_state
 	game.Game_Settings.Training_Mode = false
 	game.Game_Settings.Training_Mode_Type = "manual"
 	game.Game_Settings.Camera_Move = false
 	game.Game_Settings.Battle_Music = "none"
+	game.set_runtime_game_setting("Battle_Music_Volume",100.0,false)
 	game.now_stop_state = false
 	AudioServer.set_bus_mute(0, true)
 	create_timer(100.0, true, false, true).timeout.connect(func(): finish(2))
@@ -77,6 +95,10 @@ func run() -> void:
 	var defaults: Variant = game.get_script().get_property_default_value("Game_Settings")
 	check(defaults is Dictionary and str((defaults as Dictionary).get("Battle_Music", "")) == "none", "the music setting defaults to 无")
 	check(not game._is_network_shared_setting("Battle_Music"), "music is a local preference and is never synced to the room")
+	check(defaults.get("Battle_Music_Volume")==100.0,"music volume defaults to 100 percent for old settings")
+	check(not game._is_network_shared_setting("Battle_Music_Volume") and not game._shared_settings_snapshot().has("Battle_Music_Volume"),"volume is a local preference excluded from room snapshots")
+	check(registry.normalize_volume(-1)==0.0 and registry.normalize_volume(150)==100.0,"volume clamps to zero through one hundred")
+	check(registry.normalize_volume(NAN)==100.0 and registry.normalize_volume(INF)==100.0 and registry.normalize_volume("bad")==100.0,"invalid volume safely falls back to the default")
 	var player: AudioStreamPlayer = music.player()
 	check(player.bus == &"GameplayRecord", "music plays on the gameplay bus (time-scaled like other game audio)")
 	check(player.process_mode == Node.PROCESS_MODE_PAUSABLE, "the music player pauses together with the game")
@@ -101,6 +123,29 @@ func run() -> void:
 	option.item_selected.emit(1)
 	check(game.Game_Settings.Battle_Music=="the_king" and music.current_track()=="the_king" and player.stream==song,"selecting The King in settings loads the actual music")
 	game.set_runtime_game_setting("Battle_Music","none",false)
+	var slider:HSlider = box.find_child("BattleMusicVolumeSlider",true,false) as HSlider
+	var value_label:Label = box.find_child("BattleMusicVolumeValue",true,false) as Label
+	check(slider!=null and slider.min_value==0.0 and slider.max_value==100.0 and slider.step==1.0 and slider.value==100.0,"settings offer a zero-to-one-hundred percent volume slider")
+	slider.value = 25.0
+	check(game.Game_Settings.Battle_Music_Volume==25.0 and value_label.text=="25%" and is_equal_approx(player.volume_linear,0.25),"slider updates music gain and percentage immediately")
+	var config:=ConfigFile.new()
+	check(config.load(game.SETTINGS_PATH)==OK and config.get_value("game_settings","Battle_Music_Volume")==25.0,"slider automatically saves the local volume")
+	game.Game_Settings.Battle_Music_Volume=90.0
+	game.load_persistent_settings()
+	check(game.Game_Settings.Battle_Music_Volume==25.0,"saved volume survives a settings reload")
+	var restored:Node = registry.new()
+	game.add_child(restored)
+	check(is_equal_approx(restored.player().volume_linear,0.25),"a new music controller restores the saved gain")
+	restored.free()
+	game._receive_shared_setting("Battle_Music_Volume",80.0)
+	check(game.Game_Settings.Battle_Music_Volume==25.0,"remote room settings cannot overwrite local volume")
+	game.set_runtime_game_setting("Battle_Music_Volume",50.0,false)
+	await _frames(2)
+	check(slider.value==50.0 and value_label.text=="50%","external setting changes update the slider without feedback loops")
+	for locale:String in ["zh","en"]:
+		check(game._localization._t_for_locale("SETTING_BATTLE_MUSIC_VOLUME",locale,false)==("音乐音量" if locale=="zh" else "Music Volume"),"volume label is translated in "+locale)
+	await capture_music_controls(box)
+	game.set_runtime_game_setting("Battle_Music_Volume",100.0,false)
 	box.queue_free()
 
 	# ---- 选“无”：开战也保持安静 ----
@@ -126,6 +171,28 @@ func run() -> void:
 	await _real_wait(0.15)
 	check(music.playback_position() < 0.6, "the music starts from the beginning (%.2fs)" % music.playback_position())
 
+	# Music-only gain changes must never restart a playing stream or mute the gameplay bus.
+	var other:=AudioStreamPlayer.new()
+	other.bus=&"GameplayRecord"
+	other.volume_linear=0.35
+	other.stream=_tone(8.0)
+	root.add_child(other)
+	other.play()
+	var bus_index:int=AudioServer.get_bus_index("GameplayRecord")
+	var bus_gain:float=AudioServer.get_bus_volume_db(bus_index)
+	var before_volume:float=music.playback_position()
+	game.set_runtime_game_setting("Battle_Music_Volume",50.0,false)
+	await _real_wait(0.15)
+	check(is_equal_approx(player.volume_linear,0.5) and music.playback_position()>=before_volume,"live volume changes preserve the playback position")
+	before_volume=music.playback_position()
+	game.set_runtime_game_setting("Battle_Music_Volume",0.0,false)
+	await _real_wait(0.15)
+	check(is_zero_approx(player.volume_linear) and music.is_music_playing() and music.playback_position()>before_volume,"zero percent mutes without stopping the timeline")
+	check(is_equal_approx(other.volume_linear,0.35) and other.playing and AudioServer.get_bus_volume_db(bus_index)==bus_gain and not AudioServer.is_bus_mute(bus_index),"other gameplay sounds and the shared bus are unaffected")
+	game.set_runtime_game_setting("Battle_Music_Volume",200.0,false)
+	check(game.Game_Settings.Battle_Music_Volume==100.0 and is_equal_approx(player.volume_linear,1.0),"runtime settings clamp excessive volume and restore original gain")
+	other.queue_free()
+
 	# ---- 时间流速 ----
 	var p0: float = music.playback_position()
 	await _real_wait(0.5)
@@ -146,6 +213,8 @@ func run() -> void:
 	paused = true
 	await _frames(2)
 	var pp: float = music.playback_position()
+	game.set_runtime_game_setting("Battle_Music_Volume",35.0,false)
+	check(is_equal_approx(player.volume_linear,0.35),"volume can change while paused without restarting music")
 	await _real_wait(0.4)
 	var paused_advance: float = music.playback_position() - pp
 	paused = false
@@ -162,6 +231,7 @@ func run() -> void:
 	_spawn_pair(center)
 	await _frames(3)
 	check(music.is_music_playing(), "the next battle starts the music again")
+	check(is_equal_approx(player.volume_linear,0.35),"reset keeps the chosen music volume")
 	check(before_reset > 0.5 and music.playback_position() < 0.3, "and it plays from the beginning (%.2fs, was %.2fs)" % [music.playback_position(), before_reset])
 
 	# ---- 重打 / 轮放系列重开：会话结束信号 ----
@@ -176,10 +246,13 @@ func run() -> void:
 	await _real_wait(0.8)
 	check(music.is_music_playing(), "a track shorter than the battle loops")
 
+	game.set_runtime_game_setting("Battle_Music_Volume",42.0,false)
 	# ---- 战斗中切回“无” ----
 	game.set_runtime_game_setting("Battle_Music", "none", false)
 	await _frames(2)
 	check(not music.is_music_playing() and player.stream == null, "switching to 无 mid-battle silences the music")
+	game.set_runtime_game_setting("Battle_Music","the_king",false)
+	check(is_equal_approx(player.volume_linear,0.42),"switching tracks keeps the volume preference")
 
 	# ---- 离开 World ----
 	music.debug_set_stream(_tone(8.0))
@@ -193,3 +266,24 @@ func run() -> void:
 	music.debug_set_stream(null)
 	print("BATTLE MUSIC RESULT: %d/%d passed" % [checks - failures, checks])
 	finish(0 if failures == 0 else 1)
+
+func capture_music_controls(box:VBoxContainer) -> void:
+	var path:String=OS.get_environment("BATTLE_MUSIC_UI_CAPTURE")
+	if path.is_empty() or DisplayServer.get_name()=="headless": return
+	var previous_parent:Node=box.get_parent()
+	var view:=SubViewport.new()
+	view.size=Vector2i(720,240)
+	view.render_target_update_mode=SubViewport.UPDATE_ALWAYS
+	root.add_child(view)
+	var panel:=PanelContainer.new()
+	panel.position=Vector2(12,12)
+	panel.size=Vector2(232,68)
+	panel.scale=Vector2(3,3)
+	view.add_child(panel)
+	box.reparent(panel)
+	await _frames(3)
+	await RenderingServer.frame_post_draw
+	check(box.size.x<=232.0 and box.get_combined_minimum_size().x<=232.0,"music controls fit the existing narrow settings width")
+	check(view.get_texture().get_image().save_png(path)==OK,"GPU settings capture saved outside the project")
+	box.reparent(previous_parent)
+	view.queue_free()

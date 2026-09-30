@@ -469,7 +469,7 @@ func release_character_control_for_death(target:Node) -> void:
 
 func _is_network_shared_setting(setting:String) -> bool:
 	# 语言显示域、水印和“跟随我控制的角色”属于每台机器自己的表现设置；其它玩法设置跟随房主房间。
-	return setting not in ["Only_In_Game_Translation","Show_Center_Watermark","Follow_Controlled_Character","Map_Background","Minecraft_Clouds","Show_Armor_Stand_Intro","Battle_Music"]
+	return setting not in ["Only_In_Game_Translation","Show_Center_Watermark","Follow_Controlled_Character","Map_Background","Minecraft_Clouds","Show_Armor_Stand_Intro","Battle_Music","Battle_Music_Volume"]
 
 func _shared_settings_snapshot() -> Dictionary:
 	var snapshot:Dictionary = {}
@@ -484,6 +484,8 @@ func _apply_runtime_game_setting_local(setting:String,value:Variant,save_after:b
 		return
 	if BATTLE_CONDITIONS_CATALOG.SETTING_KEYS.has(setting):
 		value = BATTLE_CONDITIONS_CATALOG.normalize_setting(setting,value)
+	if setting == BATTLE_MUSIC_MODULE.VOLUME_KEY:
+		value = BATTLE_MUSIC_MODULE.normalize_volume(value)
 	if setting == "Rotation_Match_Type":
 		var match_type:String = str(value)
 		if match_type not in ["duel","wheel","challenge"]: match_type = "duel"
@@ -663,6 +665,7 @@ func load_persistent_settings() -> void:
 		Game_Settings[key] = BATTLE_CONDITIONS_CATALOG.normalize_setting(key,Game_Settings.get(key))
 	# 登记表里已删除的曲目回落到“无”。
 	Game_Settings["Battle_Music"] = BATTLE_MUSIC_MODULE.normalize(Game_Settings.get("Battle_Music",BATTLE_MUSIC_MODULE.NONE))
+	Game_Settings[BATTLE_MUSIC_MODULE.VOLUME_KEY] = BATTLE_MUSIC_MODULE.normalize_volume(Game_Settings.get(BATTLE_MUSIC_MODULE.VOLUME_KEY,BATTLE_MUSIC_MODULE.DEFAULT_VOLUME))
 	# Migrate the old winner-stays checkbox once, without overriding a saved challenge choice.
 	if not config.has_section_key("game_settings","Rotation_Match_Type"):
 		Game_Settings["Rotation_Match_Type"] = "wheel" if bool(Game_Settings.get("Training_Wheel_Battle",false)) else "duel"
@@ -742,6 +745,7 @@ func _on_speed_slider_drag_ended(value_changed:bool) -> void:
 	Minecraft_Clouds = true,
 	# 本机战斗音乐：曲目登记在 res://global/battle_music.gd，默认“无”。
 	Battle_Music = "none",
+	Battle_Music_Volume = 100.0,
 	# V184：全局击杀血液。关闭时若叶睦/墨提斯自身的击杀血仍保留；开启时其它人物击杀也会生成血液。
 	Blood_Effects = false,
 	# 角色对话总开关。开启后，支持对话的角色会把台词显示在地图下方的阵营槽位。
