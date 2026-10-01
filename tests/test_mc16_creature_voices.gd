@@ -32,7 +32,6 @@ func run() -> void:
 		var role:String = pair[1]
 		var f:Node = actor.native_feedback
 		f.set_physics_process(false)
-		f._rng.seed = 314159
 		actor._mc_voice_rng.seed = 314159
 		await process_frame
 		await process_frame
@@ -118,12 +117,14 @@ func run() -> void:
 		check(f.voice("ambient",-8.0)==null and f.voice("hurt",-5.0)==null,role+" clients cannot originate duplicate creature voices")
 		actor.set_multiplayer_authority(1)
 		if role=="drowned":
-			check(actor._trident.DRAW_SIZE==18.0,"flying and lodged trident is reduced from 24 to 18")
+			check(actor._trident.DRAW_SIZE==16.0,"flying and lodged trident retain current compact draw size")
 			var manifest:Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://Images/characters/我的世界/native_frames/hand_pounce/manifest.json"))
 			check(is_equal_approx(float(manifest.hand_scale),0.5),"independent held native layer is another 25 percent smaller")
 			fresh(actor)
 			enemy.global_position = center+Vector2(100,0)
-			check(actor.throw_trident(enemy) and count(actor,"item.trident.throw")==1,"drowned throw retains original trident throw sound")
+			check(actor.throw_trident(enemy) and count(actor,"item.trident.throw")==0,"drowned windup does not emit release sound early")
+			actor._advance_trident_throw(actor.trident_throw_windup+0.001)
+			check(count(actor,"item.trident.throw")==1,"actual drowned release retains original trident throw sound")
 		fresh(actor)
 		actor.health = 0
 		actor.Die()

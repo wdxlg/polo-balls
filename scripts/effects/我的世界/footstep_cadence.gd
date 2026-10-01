@@ -5,8 +5,8 @@ var _progress:float = 1.0
 var _since_step:float = INF
 var _still:float = 0.0
 
-static func base_speed(unit:Object) -> float:
-	if unit == null: return 100.0
+static func base_speed(unit:Variant) -> float:
+	if not is_instance_valid(unit): return 100.0
 	if unit.has_meta("training_boss_base_speed"): return maxf(float(unit.get_meta("training_boss_base_speed")),1.0)
 	var props:Variant = unit.get("default_properties")
 	if props is Dictionary and props.has("Speed"): return maxf(float(props["Speed"]),1.0)

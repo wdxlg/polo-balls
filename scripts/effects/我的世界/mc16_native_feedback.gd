@@ -38,13 +38,20 @@ func advance(delta:float) -> void:
 	if not active: return
 	_clock += maxf(delta,0.0)
 	if not unit.is_multiplayer_authority() or unit.dizziness: return
+	var step_event:String = "entity."+role+".step"
+	# Item-only users have no walking sound or creature-only tuning fields.
+	if not BANK.EVENTS.has(step_event): return
 	if role=="spider" and float(unit.get("_lunge_left"))>0.0: return
 	var walking:bool = moved>0.03 and moved<maxf(48.0,unit.Speed*delta*5.0)
-	var gap_min:float = maxf(unit.footstep_gap_min,0.05)
-	var gap_max:float = maxf(unit.footstep_gap_max,gap_min)
-	if not _step_cadence.tick(moved if walking else 0.0,delta,FOOTSTEP.base_speed(unit),_step_length+(gap_min+gap_max)*0.5): return
-	var step:AudioStreamPlayer2D = request("entity."+role+".step",unit.global_position,-17.0,0.0,false)
+	if not _step_cadence.tick(moved if walking else 0.0,delta,FOOTSTEP.base_speed(unit),_footstep_interval()): return
+	var step:AudioStreamPlayer2D = request(step_event,unit.global_position,-17.0,0.0,false)
 	if is_instance_valid(step) and step.stream != null: _step_length = step.stream.get_length()
+func _footstep_interval() -> float:
+	var raw_min:Variant = unit.get("footstep_gap_min")
+	var raw_max:Variant = unit.get("footstep_gap_max")
+	var gap_min:float = maxf(float(raw_min) if raw_min!=null else 0.15,0.05)
+	var gap_max:float = maxf(float(raw_max) if raw_max!=null else 0.45,gap_min)
+	return _step_length+(gap_min+gap_max)*0.5
 # Four creature categories are distinct from cobweb/trident item cues.
 func voice(kind:String,volume:float) -> AudioStreamPlayer2D:
 	if not is_instance_valid(unit) or not unit.is_multiplayer_authority(): return null

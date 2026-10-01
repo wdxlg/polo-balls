@@ -56,10 +56,12 @@ func reset_silk(net:Node) -> void:
 	net._contact_left = 0.0
 	# Test reset removes only this spider's live motion leases; fixture geometry is reset independently.
 	for raw:Node in get_nodes_in_group("Ball"):
-		if not (raw is ball): continue
-		for key:Variant in (raw as ball)._motion_speed_factors.keys():
-			var source:Variant = (raw as ball)._motion_speed_factors[key].get("source",null)
-			if source is WeakRef and source.get_ref()==net.unit: (raw as ball)._motion_speed_factors.erase(key)
+		# Avoid loading the gameplay base class before SceneTree autoloads exist.
+		var factors:Variant = raw.get("_motion_speed_factors")
+		if not factors is Dictionary: continue
+		for key:Variant in factors.keys():
+			var source:Variant = factors[key].get("source",null)
+			if source is WeakRef and source.get_ref()==net.unit: factors.erase(key)
 func wall_touch(net:Node,point:Vector2) -> void:
 	net._contact_left = 0.0
 	net.touch_wall(point)
