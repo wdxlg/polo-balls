@@ -87,10 +87,10 @@ func run() -> void:
 	var foe_size:float = foe.image.texture.get_size().x*foe.image.global_scale.x
 	var clock_size:float = clock.image.texture.get_size().x*clock.image.global_scale.x
 	check(clock_size < foe_size*0.6,"clock drawn smaller than a normal character (%.1f vs %.1f)" % [clock_size,foe_size])
-	clock._measured_speed = clock.base_travel_speed()*3.8
-	check(not clock.ghosts_armed(),"no afterimages below 4x speed")
-	clock._measured_speed = clock.base_travel_speed()*4.2
-	check(clock.ghosts_armed(),"afterimages from 4x speed")
+	clock._measured_speed = clock.base_travel_speed()*2.8
+	check(not clock.ghosts_armed(),"no damaging afterimages below 3x speed")
+	clock._measured_speed = clock.base_travel_speed()*3.2
+	check(clock.ghosts_armed(),"damaging afterimages from 3x speed")
 	# Speed -> collision damage multiplier.
 	clock._measured_speed = clock.base_travel_speed()
 	check(is_equal_approx(clock.current_hit_damage_multiplier(),1.0),"normal speed x1")
@@ -160,6 +160,9 @@ func run() -> void:
 	var before:int = clock.rewind_count
 	await frames(40)
 	check(clock.rewind_count > before,"rewind fired")
+	var trail:int = 0
+	for n:Node in arena.get_children(): if n.name.begins_with("ClockAfterimage"): trail += 1
+	check(trail > 0,"rewind always leaves a visible trail")
 	await frames(20)
 	check(clock.health > clock.Max_health - 100,"rewind restores health (%d)" % clock.health)
 	clock.rewind_interval = 999.0

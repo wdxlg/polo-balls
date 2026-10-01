@@ -24,7 +24,7 @@ const HURTBOX_MASK:int = 2
 @export_category("时钟 - 速度与残影")
 @export var speed_damage_min:float = 0.6
 @export var speed_damage_max:float = 3.0
-@export var ghost_speed_ratio:float = 4.0
+@export var ghost_speed_ratio:float = 3.0
 @export var ghost_max_alive:int = 40
 @export var ghost_spacing:float = 16.0
 @export var ghost_life:float = 0.4
@@ -190,7 +190,7 @@ func _step_rewind(delta:float) -> void:
 	var f:float = clampf(_rewind_elapsed / maxf(rewind_duration,0.01),0.0,1.0)
 	var idx:int = int(round(f * float(n - 1)))
 	for i:int in range(_rewind_idx + 1,idx + 1):
-		if _rewind_armed and i % 3 == 0: _spawn_ghost(_rewind_path[i - 1],true)
+		if i % 3 == 0: _spawn_ghost(_rewind_path[i - 1],_rewind_armed)
 	_rewind_idx = idx
 	global_position = _rewind_path[idx]
 	if f >= 1.0: _finish_rewind()
