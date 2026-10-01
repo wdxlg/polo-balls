@@ -765,6 +765,10 @@ var _rotation_door:CanvasLayer
 var _rotation_toast_mirror:Control
 ## 轮换切换：门关上后保持的秒数，底部经验条按这段时间充满后开门。
 const ROTATION_RESULT_WAIT_SECONDS:float = 3.0
+## 比赛完整结束时从屏幕下方放的我的世界烟花（scripts/effects/我的世界/mc_firework.gd）。
+const MC_FIREWORK_SCRIPT:String = "res://scripts/effects/我的世界/mc_firework.gd"
+var _match_fireworks:Node2D
+var _match_fireworks_played:bool = false
 var _rotation_load_ready:bool = false
 var _rotation_ui_token:int = 0
 var _rotation_ui_progress:float = 0.0
@@ -3889,6 +3893,7 @@ func reset() -> void:
 		_development.cleanup(false)
 
 	_reset_victory_bell_state()
+	_stop_match_fireworks()
 	# Reset 是“清空战场”。在清空前保存这一套初始阵容，之后仍可点“重打”。
 	if not _battle_setup.is_empty():
 		_last_battle_setup = _battle_setup.duplicate(true)
@@ -5435,6 +5440,8 @@ func _trigger_victory_bell() -> void:
 	_victory_bell_played = true
 	_victory_bell_armed = false
 	play_victory_bell_triplet()
+	# 整场比赛完整结束才放烟花；轮换中间每一场的结算铃不算（最后一场由 _present_rotation_final 放）。
+	if not _queue_battle_mode_active() or is_queue_battle_finished(): _celebrate_match_end()
 
 	# V108：胜利音效类角色由World真正完成胜负结算时收到回调。
 	# 不让角色自己用“瞬间没敌人”猜胜利，避免轮放换人/复活间隙误触发。
@@ -5549,8 +5556,19 @@ func _reset_victory_bell_state() -> void:
 	_victory_encounter_setup_ids.clear()
 	_victory_bell_armed = false
 	_victory_bell_played = false
+	_match_fireworks_played = false
 	_victory_bell_sequence_generation += 1
 	if is_instance_valid(duel_top_hud): duel_top_hud.reset_victory_roster()
+
+func _celebrate_match_end() -> void:
+	if _match_fireworks_played or not is_inside_tree(): return
+	_match_fireworks_played = true
+	_stop_match_fireworks()
+	_match_fireworks = load(MC_FIREWORK_SCRIPT).celebrate(self)
+
+func _stop_match_fireworks() -> void:
+	if is_instance_valid(_match_fireworks): _match_fireworks.queue_free()
+	_match_fireworks = null
 
 
 func play_victory_bell_triplet() -> void:
@@ -7252,7 +7270,37 @@ func _rotation_remote_progress(token:int,value:float,ready:bool) -> void:
 	if is_instance_valid(_rotation_door) and _rotation_door.phase==_rotation_door.Phase.COVERED:
 		_rotation_door.set_loading_progress(_rotation_ui_progress)
 
+func _rotation_side_exhausted(side:String) -> bool:
+	return int(_rotation_next_index.get(side,0)) >= (_rotation_rosters.get(side,[]) as Array).size()
+
+## 对决/挑战：这一场打完后整个轮换是否已经结束（结束就不再关门换人）。
+func _rotation_round_is_final(dead_sides:Array[String]) -> bool:
+	if dead_sides.is_empty(): return false
+	if Game.get_rotation_match_type()=="challenge":
+		var attempt_over:bool=dead_sides.has("left") or (dead_sides.has("right") and _rotation_side_exhausted("right"))
+		return attempt_over and _rotation_side_exhausted("left")
+	return _rotation_side_exhausted("left") or _rotation_side_exhausted("right")
+
+## 整个轮换打完：不关门、不清场、不换人，胜者留在场上继续，直接结算并放烟花。
+func _present_rotation_final(dead_sides:Array[String],authority:bool) -> void:
+	_rotation_combat_blocked=false
+	_rotation_load_ready=false
+	_rotation_combat_released=false
+	_rotation_finished=true
+	var winner_side:String="" if dead_sides.size()!=1 else ("right" if dead_sides[0]=="left" else "left")
+	if authority and Game.get_rotation_match_type()=="challenge":
+		var outcome:String="dead" if dead_sides.has("left") else "won"
+		var blue_index:int=int(_rotation_next_index.left)-1
+		if blue_index>=0 and blue_index<_rotation_rosters.left.size(): _rotation_results[int(_rotation_rosters.left[blue_index].id)]=outcome
+		for id:int in _rotation_active_records.left: _rotation_results[id]=outcome
+	if is_instance_valid(duel_top_hud): duel_top_hud.begin_round_result(winner_side)
+	if authority and not winner_side.is_empty(): _trigger_victory_bell()
+	_celebrate_match_end()
+
 func _present_rotation_match(dead_sides:Array[String],epoch:int,authority:bool) -> void:
+	if _rotation_round_is_final(dead_sides):
+		_present_rotation_final(dead_sides,authority)
+		return
 	_rotation_combat_blocked=false # Old round keeps moving/attacking while the result and closing doors play.
 	_rotation_load_ready=false
 	_rotation_ui_progress=0.0
@@ -7465,6 +7513,7 @@ func _restart_rotation_series(rosters:Dictionary) -> void:
 		_development.cleanup(false)
 	_rotation_epoch += 1
 	_cancel_rotation_presentation()
+	_stop_match_fireworks()
 	var epoch:int = _rotation_epoch
 	_rotation_transitioning = true
 	Game.end_battle_random()

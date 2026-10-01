@@ -1,5 +1,5 @@
 extends SceneTree
-## 轮换模式切换：同一种角色（含数量复制）显示角色本人、混合队伍显示队伍；门关上后卡片滑下，经验条充满后开门。
+## 轮换模式切换：同一种角色（含数量复制）显示角色本人、混合队伍显示队伍；门关上后卡片滑下，经验条充满后开门；最后一场不关门，直接结算并放烟花。
 var world:Node
 var game:Node
 var checks:int = 0
@@ -96,6 +96,20 @@ func run() -> void:
 		deadline = Time.get_ticks_msec() + 3000
 		while Time.get_ticks_msec() < deadline and world._rotation_transitioning: await process_frame
 		check(not world._rotation_transitioning and door.wait_seconds == 0.0 and world._find_character_by_setup_id_any(int(world._rotation_active_setup.left)) != null,"next round starts and the shared door leaves wait mode")
+		check(not is_instance_valid(world._match_fireworks),"a middle rotation round does not launch fireworks")
+		for unit:Node in get_nodes_in_group("Ball"): unit.process_mode = Node.PROCESS_MODE_DISABLED
+		var final_winner:Node = world._find_character_by_setup_id_any(int(world._rotation_active_setup.left))
+		var final_loser:Node = world._find_character_by_setup_id_any(int(world._rotation_active_setup.right))
+		final_loser.health = 0
+		final_loser.queue_free()
+		deadline = Time.get_ticks_msec() + 3000
+		while Time.get_ticks_msec() < deadline and not world._rotation_finished: await process_frame
+		await create_timer(0.5,true,false,true).timeout
+		check(world._rotation_finished and not world._rotation_transitioning,"last rotation round finishes the series")
+		check(door.phase == door.Phase.IDLE and not is_instance_valid(world._rotation_door) and not is_instance_valid(world._rotation_toast_mirror),"the series end skips the door transition")
+		check(is_instance_valid(final_winner) and world._find_character_by_setup_id_any(int(world._rotation_active_setup.left)) == final_winner,"final winner stays on the field")
+		check(hud.round_result_locked and hud.victory_body_text() == "骷髅 获得了胜利","series result shows the final winner: "+hud.victory_body_text())
+		check(is_instance_valid(world._match_fireworks),"series end launches fireworks")
 	check(hud.rotation_wave_kinds([{"round":1,"scene_path":"a"},{"round":1,"scene_path":"a"},{"round":2,"scene_path":"b"}],0) == 1 and hud.rotation_wave_kinds([{"round":1,"char":"x"},{"round":1,"char":"y"}],1) == 2,"wave kinds counted per round by scene, then name")
 	world.reset()
 	await process_frame
@@ -106,5 +120,6 @@ func run() -> void:
 	if leftover_door != null: leftover_door.queue_free()
 	print("ROTATION_TOAST_RESULT checks=%d failures=%d" % [checks,failures])
 	quit(0 if failures == 0 else 1)
+
 
 

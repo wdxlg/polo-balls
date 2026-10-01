@@ -1,0 +1,93 @@
+{
+  "copyright": "Mojang Studios / Microsoft. Minecraft assets; Minecraft EULA applies. Not original artwork.",
+  "texture_version": "Minecraft Java 1.21.4 (versioned mirror)",
+  "sound_version": "Java 1.21.4 official asset index",
+  "processing": "Unmodified.",
+  "files": [
+    {
+      "path": "Images/effects/我的世界/firework/flash.png",
+      "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/particle/flash.png",
+      "sha256": "6db2b97a3256b9fe9f49dc96f083a3465375eea99b3b5e353e5f9a40f81ed3e7"
+    },
+    {
+      "path": "Images/effects/我的世界/firework/firework_rocket.png",
+      "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/firework_rocket.png",
+      "sha256": "fea5f8fdf3a1517edbc7006d327fe09b8567a0e4c2e76f8aeb8aeac68eabf786"
+    },
+    {
+      "path": "Images/effects/我的世界/firework/spark_0.png",
+      "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/particle/spark_0.png",
+      "sha256": "683d658fee68ad73d507efd7018bc87e570e38c6a6ca7f4a7a4e85c432a340de"
+    },
+    {
+      "path": "Images/effects/我的世界/firework/spark_1.png",
+      "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/particle/spark_1.png",
+      "sha256": "b69253471906f5adb443b724d89579d34a46fc2c5dd37c1ad1146e2ae8ca9bb1"
+    },
+    {
+      "path": "Images/effects/我的世界/firework/spark_2.png",
+      "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/particle/spark_2.png",
+      "sha256": "2ebcaa2486b0de8f4fef2caf7400deb5f61e5d6aba430716538d92275f507192"
+    },
+    {
+      "path": "Images/effects/我的世界/firework/spark_3.png",
+      "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/particle/spark_3.png",
+      "sha256": "336bbd8bf661eb032917113e9dbf0ac04653aef202a5b397d5df15f7feb3b460"
+    },
+    {
+      "path": "Images/effects/我的世界/firework/spark_4.png",
+      "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/particle/spark_4.png",
+      "sha256": "cf9ab0778ff604422b3f6663d66afff001dbf75c453c58bb773a6004af381ff6"
+    },
+    {
+      "path": "Images/effects/我的世界/firework/spark_5.png",
+      "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/particle/spark_5.png",
+      "sha256": "aaa694f62b5474cf8001692b567270b3a6f860c41acb5242e3e95cab154326c6"
+    },
+    {
+      "path": "Images/effects/我的世界/firework/spark_6.png",
+      "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/particle/spark_6.png",
+      "sha256": "e6dd439db2474db73a3d6dc5a1496af033e1058f02b0d8738205c469c505d9b9"
+    },
+    {
+      "path": "Images/effects/我的世界/firework/spark_7.png",
+      "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/particle/spark_7.png",
+      "sha256": "aaa694f62b5474cf8001692b567270b3a6f860c41acb5242e3e95cab154326c6"
+    },
+    {
+      "path": "audio/effects/我的世界/firework/launch1.ogg",
+      "url": "https://resources.download.minecraft.net/9d/9d1ba828a27b2a6b5be6b97e4d6b554db885cb08",
+      "sha1": "9d1ba828a27b2a6b5be6b97e4d6b554db885cb08"
+    },
+    {
+      "path": "audio/effects/我的世界/firework/blast1.ogg",
+      "url": "https://resources.download.minecraft.net/71/71d9ad77da5febc1b2b7bd5916ca730c2b9ab6a8",
+      "sha1": "71d9ad77da5febc1b2b7bd5916ca730c2b9ab6a8"
+    },
+    {
+      "path": "audio/effects/我的世界/firework/blast_far1.ogg",
+      "url": "https://resources.download.minecraft.net/b3/b391080c22475f5196be93af0d7475cdb78e7003",
+      "sha1": "b391080c22475f5196be93af0d7475cdb78e7003"
+    },
+    {
+      "path": "audio/effects/我的世界/firework/largeblast1.ogg",
+      "url": "https://resources.download.minecraft.net/62/62b284afd1c5805c6300c41e80c3f27e1994b2e3",
+      "sha1": "62b284afd1c5805c6300c41e80c3f27e1994b2e3"
+    },
+    {
+      "path": "audio/effects/我的世界/firework/largeblast_far1.ogg",
+      "url": "https://resources.download.minecraft.net/cb/cb708ddb2081e3ee334ee73d39093dd8f2e35940",
+      "sha1": "cb708ddb2081e3ee334ee73d39093dd8f2e35940"
+    },
+    {
+      "path": "audio/effects/我的世界/firework/twinkle1.ogg",
+      "url": "https://resources.download.minecraft.net/cf/cfa1c4fcdb9c70534b54249266f877ad2fac7a9f",
+      "sha1": "cfa1c4fcdb9c70534b54249266f877ad2fac7a9f"
+    },
+    {
+      "path": "audio/effects/我的世界/firework/twinkle_far1.ogg",
+      "url": "https://resources.download.minecraft.net/81/81cc878e9bd9af120e4fa6f66da69a769cfb75d1",
+      "sha1": "81cc878e9bd9af120e4fa6f66da69a769cfb75d1"
+    }
+  ]
+}

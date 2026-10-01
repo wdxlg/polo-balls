@@ -16,11 +16,11 @@ func run() -> void:
 		await setup(mode,1,1)
 		var loser:Node=current("right");loser.health=0;loser.queue_free()
 		check(await until(func():return world.duel_top_hud.round_result_locked),mode+": final battle still has outcome achievement")
-		check(await until(func():return world._rotation_load_ready),mode+": exhausted queue still completes covered final transition")
-		check(await until(func():return not world._rotation_transitioning),mode+": exhausted queue never stalls on next resource")
+		check(await until(func():return world._rotation_finished and not world._rotation_transitioning),mode+": exhausted queue ends in place")
+		check(not is_instance_valid(world._rotation_door) and not world._rotation_load_ready,mode+": final round skips the door transition")
 		check(int(world._rotation_next_index.right)==1,mode+": no phantom next contender")
-		if mode=="wheel":check(is_instance_valid(current("left")),"wheel final survivor remains intact")
-		elif mode=="challenge":check(world._rotation_finished,"challenge marks complete after last blue challenger")
+		check(is_instance_valid(current("left")) and world.is_combat_runtime_active(),mode+": final winner stays on the field and the game continues")
+		check(is_instance_valid(world._match_fireworks),mode+": complete series end launches fireworks")
 	# Missing upcoming resource must not erase the old winner or falsely reach 100%.
 	await setup("challenge",2,2)
 	var survivor:Node=current("left");survivor.health=23
