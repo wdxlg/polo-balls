@@ -100,19 +100,26 @@ func run() -> void:
 	var ref:WeakRef = target.get_meta("mc_cobweb_step_player")
 	var player:AudioStreamPlayer2D = ref.get_ref()
 	check(player.get_meta("mc16_web_walker")==target.get_instance_id(),"footstep is tracked per walker")
-	check(manager.states[target.get_instance_id()].remaining>=player.stream.get_length(),"next step cannot start before the preceding audio duration")
-	var durations:Array[float] = []
-	for i:int in range(20): durations.append(manager.next_interval())
-	check(durations.min()>=manager.longest_step+0.149 and durations.max()-durations.min()>0.02,"random intervals protect the longest native clip on every peer")
+	check(manager.base_interval()>=manager.longest_step,"base interval at base speed covers the longest native clip")
+	# 脚步按踩踏者走过的距离计步：步幅 = 基础速度 × 基础间隔。
+	var stride:float = manager.FOOTSTEP.base_speed(target)*manager.base_interval()
 	target.global_position += Vector2(1,0)
 	manager.sample(0.08)
-	check(count(spider,"block.cobweb.step")==1,"repeated movement samples do not overlap the previous footstep")
+	check(count(spider,"block.cobweb.step")==1,"less than one stride adds no web footstep")
+	var side:float = -1.0
+	var walked:float = 2.0
+	while count(spider,"block.cobweb.step")==1 and walked<stride*2.0:
+		target.global_position += Vector2(6.0*side,0)
+		side = -side
+		walked += 6.0
+		manager.sample(0.08)
+	check(count(spider,"block.cobweb.step")==2 and walked>=stride*0.9,"the next web footstep comes after one stride and may overlap the previous")
 	# Independent walkers must not share an event-wide cooldown.
 	var second:Node = dummy(center+Vector2(0,2))
 	manager.sample(0.08)
 	second.global_position += Vector2(1,0)
 	manager.sample(0.08)
-	check(count(spider,"block.cobweb.step")==2,"a second enemy has an independent footstep timer")
+	check(count(spider,"block.cobweb.step")==3,"a second enemy has an independent footstep cadence")
 	var ally:Node = spawn("res://scenes/characters/我的世界/蜘蛛.tscn",center+Vector2(-250,0))
 	ally.native_feedback.set_physics_process(false)
 	seed_web(ally.silk_network)
@@ -139,12 +146,12 @@ func run() -> void:
 	target.global_position += Vector2(1,0)
 	manager.sample(10.0)
 	check(total_steps([spider,ally])==before,"walking outside all webs is silent")
-	var clock:float = manager.states[target.get_instance_id()].remaining
+	var clock:float = manager.states[target.get_instance_id()].cadence._progress
 	game.now_stop_state = true
 	target.global_position += Vector2(1,0)
 	manager.sample(10.0)
 	debris._process(10.0)
-	check(manager.states[target.get_instance_id()].remaining==clock and debris.elapsed==0.0,"pause freezes footstep clocks and web placement particles")
+	check(manager.states[target.get_instance_id()].cadence._progress==clock and debris.elapsed==0.0,"pause freezes footstep clocks and web placement particles")
 	game.now_stop_state = false
 	debris._process(debris.duration+0.1)
 	check(debris.is_queued_for_deletion(),"web placement particles clean themselves up")

@@ -63,7 +63,10 @@ var _desired_direction:Vector2 = Vector2.ZERO
 var _desired_speed:float = 0.0
 var _stuck_time:float = 0.0
 var _ghost_time:float = 0.0
-var _step_wait:float = 0.3
+const FOOTSTEP = preload("res://scripts/effects/我的世界/footstep_cadence.gd")
+# 每走 18px 响一步：间隔随当前移速缩放，越快越密、越慢越稀，可与上一声重叠。
+const STEP_STRIDE:float = 18.0
+var _step_cadence = FOOTSTEP.new()
 var _retired:bool = false
 var free_moving:bool = false
 var _last_motion_dir:Vector2 = Vector2.ZERO
@@ -289,11 +292,8 @@ func move(speed:float,delta:float) -> void:
 		if _stuck_time > 1.0: collision_mask = 0
 	if absf(moved.x) > 0.02 and _spit_anim <= 0.0: _face(moved.x)
 	_speed_damage_sweep(from,global_position,delta)
-	if last_speed > 12.0:
-		_step_wait -= delta
-		if _step_wait <= 0.0:
-			_step_wait = clampf(18.0/last_speed,0.14,0.5)
-			wt_sound(&"llama_step")
+	if _step_cadence.tick_stride(moved.length() if last_speed > 12.0 else 0.0,delta,STEP_STRIDE):
+		wt_sound(&"llama_step")
 
 func when_collide(speed:float,collision:KinematicCollision2D) -> void:
 	# Leashed: the AI re-steers every frame (no pinball bounce). Free: normal ball bounce.

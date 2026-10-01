@@ -34,11 +34,17 @@ func run() -> void:
 	reset_channel(voice,"tendril"); voice.tendril_chance=0.0
 	w.hear_noise(enemy,enemy.global_position,"attack",200)
 	check(int(voice.counts.tendril)==1,"tendril probability gate can skip heard sounds")
-	voice.step_chance=1.0; voice._step_sample=0; reset_channel(voice,"step")
+	voice._step_cadence.ready_now(); reset_channel(voice,"step")
 	w.velocity=Vector2(30,0); w.global_position+=Vector2(3,0); voice._process(0.1)
-	check(int(voice.counts.get("step",0))==1 and voice.waits.step>voice.last_duration.step,"actual walking emits native footsteps with clip-length cooldown")
-	reset_channel(voice,"step"); voice._step_sample=0; voice._process(0.3)
-	check(int(voice.counts.step)==1,"fake velocity while stationary does not produce footsteps")
+	check(int(voice.counts.get("step",0))==1,"actual walking emits native footsteps")
+	# 脚步按走过的距离计步：步幅 = 基础速度 × 基础间隔；快速走完一步时可与上一声重叠。
+	var stride:float=voice.FOOTSTEP.base_speed(w)*voice.step_base_interval
+	w.global_position+=Vector2(stride*0.5,0); voice._process(0.1)
+	check(int(voice.counts.step)==1,"half a stride adds no footstep")
+	w.global_position+=Vector2(stride*0.6,0); voice._process(0.1)
+	check(int(voice.counts.step)==2,"after one stride the next footstep starts even while the previous plays")
+	voice._process(0.3)
+	check(int(voice.counts.step)==2,"fake velocity while stationary does not produce footsteps")
 	var wait:float=voice.waits.breath
 	game.now_stop_state=true; voice._process(2.0)
 	await process_frame

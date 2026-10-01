@@ -54,22 +54,28 @@ func run() -> void:
 	clear_voices(v)
 	v._breath_wait = 999.0
 	for actor:Node2D in [g,v]:
-		actor._step_wait = 0.0
+		actor._step_cadence.ready_now()
 		actor.tick_pair_audio(100.0,false)
 		check(voices(actor,"step").is_empty(),"idle has no step "+actor.mc_audio_role)
-		actor.tick_pair_audio(0.0,true)
+		actor.global_position.x += 1.0
+		actor.tick_pair_audio(0.016,true)
 		p = actor._step_player
 		check(is_instance_valid(p) and p.playing,"walking starts step "+actor.mc_audio_role)
 		duration = actor._audio_duration(p)
-		check(actor._step_wait>=duration+0.25 and actor._step_wait<=duration+0.701,"step interval includes clip duration "+actor.mc_audio_role)
-		actor.tick_pair_audio(999.0,true)
-		check(voices(actor,"step").size()==1 and actor._step_player==p,"steps do not overlap "+actor.mc_audio_role)
+		# 脚步按走过的距离计步：步幅 = 基础速度 × (一声脚步 + 平均停顿)。
+		var stride:float = actor.FOOTSTEP.base_speed(actor)*(duration+(actor.step_silence.x+actor.step_silence.y)*0.5)
+		actor.global_position.x += stride*0.5
+		actor.tick_pair_audio(0.1,true)
+		check(voices(actor,"step").size()==1,"half a stride adds no step "+actor.mc_audio_role)
+		actor.global_position.x += stride*0.6
+		actor.tick_pair_audio(0.1,true)
+		check(voices(actor,"step").size()==2 and p.playing,"fast walking starts the next step before the previous ends "+actor.mc_audio_role)
 		actor.tick_pair_audio(0.0,false)
 		check(not p.playing and voices(actor,"step").is_empty(),"stopping movement stops step "+actor.mc_audio_role)
 		clear_voices(actor)
 	check(v._pair_event_key("step")=="block.stone.step" and v.PAIR_SOUNDS.EVENTS["block.stone.step"].size()==6,"villager uses six native stone footsteps, not fabricated entity event")
 	v._breath_wait = 999.0
-	g._step_wait = 0.0
+	g._step_cadence.ready_now()
 	g.direction = Vector2.RIGHT
 	g.Can_Attack = false
 	g.dizziness = true
@@ -100,7 +106,7 @@ func run() -> void:
 	clear_voices(v)
 	v.set_multiplayer_authority(2)
 	v._breath_wait = 0.0
-	v._step_wait = 0.0
+	v._step_cadence.ready_now()
 	v.tick_pair_audio(100.0,true)
 	check(voices(v).is_empty() and v.mc_play("hurt")==null,"replica does not independently schedule or randomly choose voices")
 	p = v._pair_audio_local("block.stone.step",v.global_position,-10.0,4)

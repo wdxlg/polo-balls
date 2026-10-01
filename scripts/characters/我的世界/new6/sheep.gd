@@ -54,11 +54,13 @@ var _bite_flash_left:float = 0.0
 var _bite_serial:int = 0
 var _seen_bite_serial:int = 0
 var _ambient_cd:float = 3.0
-var _footstep_cd:float = 0.0
+const FOOTSTEP = preload("res://scripts/effects/我的世界/footstep_cadence.gd")
+# 按基础速度行走时的脚步间隔；冲锋更快，脚步自然更密。
+@export var footstep_base_interval:float = 0.55
+var _footstep_cadence = FOOTSTEP.new()
 var _breath_player:AudioStreamPlayer2D
 var _footstep_player:AudioStreamPlayer2D
 var _sound_position:Vector2
-var _sound_was_charging:bool = false
 var _moving:bool = false
 var _visual_rest:Vector2
 var _graze_velocity:Vector2 = Vector2.ZERO
@@ -146,22 +148,19 @@ func _sound_duration(player:AudioStreamPlayer2D) -> float:
 	return player.stream.get_length()/maxf(player.pitch_scale,0.01) if is_instance_valid(player) and player.stream != null else 0.0
 
 func _step_sheep_sounds(delta:float) -> void:
-	var moved:bool = global_position.distance_squared_to(_sound_position) > 0.0025
+	var moved_px:float = global_position.distance_to(_sound_position)
+	var moved:bool = moved_px > 0.05
 	_sound_position = global_position
 	if not is_multiplayer_authority() or not active() or health <= 0: return
 	_ambient_cd = maxf(_ambient_cd-delta,0.0)
 	if _ambient_cd <= 0 and not (is_instance_valid(_breath_player) and _breath_player.playing):
 		var breath:AudioStreamPlayer2D = play_sound("entity.sheep.ambient",-6.0)
 		_ambient_cd = _sound_duration(breath)+rng.randf_range(2.0,5.0)
-	_footstep_cd = maxf(_footstep_cd-delta,0.0)
 	var charging:bool = ram_state == RamState.CHARGE
-	if charging and not _sound_was_charging: _footstep_cd = minf(_footstep_cd,0.09)
-	_sound_was_charging = charging
-	if not moved or is_transport_mounted() or dizziness or ram_state in [RamState.GRAZE,RamState.RECOVER]: return
-	if _footstep_cd > 0: return
-	if not charging and is_instance_valid(_footstep_player) and _footstep_player.playing: return
-	var foot:AudioStreamPlayer2D = play_sound("entity.sheep.step",-8.0 if not charging else -5.0)
-	_footstep_cd = rng.randf_range(0.085,0.13) if charging else _sound_duration(foot)+rng.randf_range(0.16,0.38)
+	# 脚步按当前实际移速计步（footstep_cadence.gd）：越快越密、越慢越稀，可与上一声重叠。
+	var walking:bool = moved and not is_transport_mounted() and not dizziness and ram_state not in [RamState.GRAZE,RamState.RECOVER]
+	if not _footstep_cadence.tick(moved_px if walking else 0.0,delta,FOOTSTEP.base_speed(self),footstep_base_interval): return
+	play_sound("entity.sheep.step",-8.0 if not charging else -5.0)
 
 func apply_knockback(knockback_direction:Vector2,knockback_distance:float,knockback_speed:float = 700.0,wall_bounce_strength:float = 0.0,stun_duration:float = 0.0,options:Dictionary = {}) -> Node:
 	# 后撤与冲锋只免疫位移型击退，不免疫伤害或独立的纯眩晕。

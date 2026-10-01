@@ -7,9 +7,10 @@ var _clock:float = 0.0
 var _last:Dictionary = {}
 var played:Dictionary = {} # Actual emitted cues; useful for regression checks.
 var _last_position:Vector2
-var _step_next:float = 0.0
-var _step_player:AudioStreamPlayer2D
-var _rng := RandomNumberGenerator.new()
+const FOOTSTEP = preload("res://scripts/effects/我的世界/footstep_cadence.gd")
+# 脚步按当前移速计步，越快越密；下一步不等上一声播完。
+var _step_cadence = FOOTSTEP.new()
+var _step_length:float = 0.35 # 最近一声脚步的时长，用于换算基础间隔
 var _death_started:bool = false
 var _voice_next:Dictionary = {}
 var _players:Array[WeakRef] = []
@@ -22,7 +23,6 @@ static func attach(target:ball,kind:String) -> Node:
 	return node
 func _ready() -> void:
 	_last_position = unit.global_position
-	_rng.randomize()
 func _physics_process(delta:float) -> void: advance(delta)
 func advance(delta:float) -> void:
 	if not is_instance_valid(unit): return
@@ -41,14 +41,13 @@ func advance(delta:float) -> void:
 	if not unit.is_multiplayer_authority() or unit.dizziness: return
 	if role=="spider" and float(unit.get("_lunge_left"))>0.0: return
 	var walking:bool = moved>0.03 and moved<maxf(48.0,unit.Speed*delta*5.0)
-	if not walking or _clock<_step_next: return
-	if is_instance_valid(_step_player) and _step_player.playing: return
-	_step_player = request("entity."+role+".step",unit.global_position,-17.0,0.0,false)
-	if is_instance_valid(_step_player):
-		var gap_min:float = maxf(unit.footstep_gap_min,0.05)
-		var gap_max:float = maxf(unit.footstep_gap_max,gap_min)
-		_step_next = _clock+_step_player.stream.get_length()+_rng.randf_range(gap_min,gap_max)
-	else: _step_next = _clock+0.15
+	# 基础间隔 = 一声脚步 + 平均停顿（即按基础速度行走时的原有节奏），
+	# 实际间隔随当前移速缩放：越快越密、越慢越稀，可短于上一声脚步。
+	var gap_min:float = maxf(unit.footstep_gap_min,0.05)
+	var gap_max:float = maxf(unit.footstep_gap_max,gap_min)
+	if not _step_cadence.tick(moved if walking else 0.0,delta,FOOTSTEP.base_speed(unit),_step_length+(gap_min+gap_max)*0.5): return
+	var step:AudioStreamPlayer2D = request("entity."+role+".step",unit.global_position,-17.0,0.0,false)
+	if is_instance_valid(step) and step.stream != null: _step_length = step.stream.get_length()
 # Four creature categories are distinct from cobweb/trident item cues.
 func voice(kind:String,volume:float) -> AudioStreamPlayer2D:
 	if not is_instance_valid(unit) or not unit.is_multiplayer_authority(): return null
@@ -106,9 +105,7 @@ func _cobweb_step_local(path:NodePath,point:Vector2) -> AudioStreamPlayer2D:
 	if get_tree().current_scene==null: return null
 	var target:Node = get_tree().current_scene.get_node_or_null(path)
 	if not target is ball or target.health<=0 or not unit.mc_enemy(target): return null
-	var previous:Variant = target.get_meta("mc_cobweb_step_player",false)
-	var sound:Variant = previous.get_ref() if previous is WeakRef else null
-	if is_instance_valid(sound) and sound.playing: return null
+	# 节奏由 cobweb_footsteps.gd 按踩踏者移速决定；允许与上一声重叠。
 	var player:AudioStreamPlayer2D = _play_local("block.cobweb.step",point,-14.0,false)
 	if is_instance_valid(player):
 		target.set_meta("mc_cobweb_step_player",weakref(player))

@@ -36,16 +36,20 @@ var _burst_point:Vector2 = Vector2.ZERO
 var _burst_target:WeakRef
 var _burst_manual:bool = false
 @export_category("雪傀儡 / 移动与动作声音")
-@export var footstep_distance:float = 14.0
+# 按基础速度行走时的脚步间隔；实际间隔随当前移速缩放（越快越密、越慢越稀，可与上一声重叠）。
+@export var footstep_base_interval:float = 0.32
+# 撞墙脚步的最短间隔（贴墙推挤时不会每帧响）。
 @export var footstep_min_interval:float = 0.28
 @export var footstep_volume_db:float = -3.0
 @export var shoot_volume_db:float = 0.0
-var _footstep_travel:float = 14.0
+const FOOTSTEP = preload("res://scripts/effects/我的世界/footstep_cadence.gd")
+var _footstep_cadence = FOOTSTEP.new()
 var _footstep_wait:float = 0.0
 var _wall_step_due:bool = false
 var _wall_contact_this_step:bool = false
 var _walking_right:bool = false
 var _step_audio:Dictionary = {}
+var _step_voices:Array[Dictionary] = [] # 所有还在响的脚步（脚步可以重叠）
 var _shoot_audio:Dictionary = {} # Latest launch remains available to action observers.
 var _shoot_voices:Array[Dictionary] = [] # One transient for every actual projectile.
 var _break_audio:Dictionary = {}
@@ -366,20 +370,19 @@ func _step_movement_audio(start:Vector2,delta:float) -> void:
 	# Read the actual completed shared physics step, never an idle speed value.
 	if moved<0.01 and not _wall_contact_this_step:
 		_wall_step_due = false # Never replay a stale collision while stationary.
+		_footstep_cadence.tick(0.0,delta,1.0,1.0)
 		return
-	_footstep_travel += moved
-	if _footstep_wait>0.0 or SNOW_AUDIO.action_busy(_step_audio): return
-	if not _wall_step_due and _footstep_travel<maxf(footstep_distance,1.0): return
-	var reason:String = "wall" if _wall_step_due else "walk"
-	if _request_action_sound("block.snow.step",reason,0.0 if _wall_step_due else footstep_volume_db):
-		_footstep_travel = 0.0
+	# 行走脚步：按当前实际移速计步（footstep_cadence.gd），不等上一声播完。
+	var walk_due:bool = _footstep_cadence.tick(moved,delta,FOOTSTEP.base_speed(self),footstep_base_interval)
+	var wall_due:bool = _wall_step_due and _footstep_wait<=0.0
+	if not walk_due and not wall_due: return
+	var reason:String = "wall" if wall_due else "walk"
+	if _request_action_sound("block.snow.step",reason,0.0 if wall_due else footstep_volume_db):
 		_footstep_wait = maxf(footstep_min_interval,0.0)
 		_wall_step_due = false
 
 func _request_action_sound(event:String,reason:String,gain:float) -> bool:
 	if not active(): return false
-	var current:Dictionary = _step_audio if event=="block.snow.step" else _shoot_audio
-	if event=="block.snow.step" and SNOW_AUDIO.action_busy(current): return false
 	var records:Array = SNOW_AUDIO.action_records(event)
 	if records.is_empty(): return false
 	var variant:int = _voice_rng.randi_range(0,records.size()-1) # Cosmetic RNG, not volley chance/spread.
@@ -395,15 +398,21 @@ func _receive_action_sound(serial:int,event:String,variant:int,point:Vector2,gai
 	if serial<=_last_sound_serial or event not in ["block.snow.step","entity.snow_golem.shoot"]: return
 	_last_sound_serial = serial
 	if health<=0 or is_queued_for_deletion(): return
-	var current:Dictionary = _step_audio if event=="block.snow.step" else _shoot_audio
-	if event=="block.snow.step" and SNOW_AUDIO.action_busy(current): return
+	# 脚步与每发投射物的发射声都允许重叠（脚步节奏由移速决定）。
 	# Per-projectile launch events may overlap, even in a late reliable batch.
 	var ticket:Dictionary = SNOW_AUDIO.queue_action(self,event,variant,point,gain,reason)
-	if event=="block.snow.step": _step_audio = ticket
+	if event=="block.snow.step":
+		_step_audio = ticket
+		_prune_step_voices()
+		if not ticket.is_empty(): _step_voices.append(ticket)
 	else:
 		_shoot_audio = ticket
 		_prune_shoot_voices()
 		if not ticket.is_empty(): _shoot_voices.append(ticket)
+
+func _prune_step_voices() -> void:
+	for i:int in range(_step_voices.size()-1,-1,-1):
+		if not SNOW_AUDIO.action_busy(_step_voices[i]): _step_voices.remove_at(i)
 
 func _prune_shoot_voices() -> void:
 	for i:int in range(_shoot_voices.size()-1,-1,-1):
@@ -413,15 +422,19 @@ func _process(delta:float) -> void:
 	super._process(delta)
 	if health<=0: _stop_movement_and_launch_audio()
 	_prune_shoot_voices()
+	_prune_step_voices()
 	var paused:bool = not is_combat_runtime_active()
 	var tickets:Array = [_step_audio,_break_audio]
 	tickets.append_array(_shoot_voices)
+	tickets.append_array(_step_voices)
 	for ticket:Dictionary in tickets:
 		var player:AudioStreamPlayer2D = SNOW_AUDIO.action_player(ticket)
 		if is_instance_valid(player): player.stream_paused = paused
 
 func _stop_movement_and_launch_audio() -> void:
 	SNOW_AUDIO.stop_action(_step_audio)
+	for ticket:Dictionary in _step_voices: SNOW_AUDIO.stop_action(ticket)
+	_step_voices.clear()
 	SNOW_AUDIO.stop_action(_shoot_audio)
 	for ticket:Dictionary in _shoot_voices: SNOW_AUDIO.stop_action(ticket)
 	_shoot_voices.clear()

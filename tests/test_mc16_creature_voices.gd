@@ -73,20 +73,17 @@ func run() -> void:
 		f.advance(0.05)
 		var foot:AudioStreamPlayer2D = last_voice(actor,step)
 		check(is_instance_valid(foot),role+" walking even a short distance can trigger a footstep")
-		var step_gap:float = f._step_next-f._clock-foot.stream.get_length()
-		check(step_gap>=actor.footstep_gap_min-0.0001 and step_gap<=actor.footstep_gap_max+0.0001,role+" footsteps wait for clip length plus random silence")
+		# 脚步按走过的距离计步：步幅 = 基础速度 × (一声脚步 + 平均停顿)。
+		var stride:float = f.FOOTSTEP.base_speed(actor)*(f._step_length+(actor.footstep_gap_min+actor.footstep_gap_max)*0.5)
 		actor.global_position += Vector2(2,0)
 		f.advance(0.01)
-		check(count(actor,step)==1,role+" moving every frame does not overlap footsteps")
-		var gaps:Array[float] = []
-		for i:int in range(6):
-			fresh(actor)
-			f._clock = maxf(f._clock,f._step_next+1.0)
-			actor.global_position += Vector2(2,0)
-			f.advance(0.016)
-			foot = last_voice(actor,step)
-			gaps.append(f._step_next-f._clock-foot.stream.get_length())
-		check(gaps.max()-gaps.min()>0.02,role+" walking interval is randomized, not fixed cadence")
+		check(count(actor,step)==1,role+" less than one stride adds no footstep")
+		var walked:float = 2.0
+		while count(actor,step)==1 and walked<stride*2.0:
+			actor.global_position += Vector2(10,0)
+			walked += 10.0
+			f.advance(0.1)
+		check(count(actor,step)==2 and walked>=stride*0.9,role+" the next footstep comes after one stride, even while the previous may still play")
 		var before:int = count(actor,step)
 		fresh(actor)
 		f._clock += 20.0

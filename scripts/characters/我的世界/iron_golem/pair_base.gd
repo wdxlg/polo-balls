@@ -1,6 +1,7 @@
 extends "res://scripts/characters/我的世界/mc_mob_base.gd"
 const AUDIO_PLAYER:Script = preload("res://scripts/characters/我的世界/iron_golem/native_audio_player.gd")
 const PAIR_SOUNDS = preload("res://scripts/characters/我的世界/iron_golem/native_sounds.gd")
+const FOOTSTEP = preload("res://scripts/effects/我的世界/footstep_cadence.gd")
 @export var continuation_victory_key:String = ""
 @export var continuation_presentation_key:String = ""
 @export var visual_clip:String = "idle"
@@ -9,9 +10,12 @@ const PAIR_SOUNDS = preload("res://scripts/characters/我的世界/iron_golem/na
 @export var visual_rage:bool = false
 var pair_frames:SpriteFrames
 @export var breath_silence:Vector2 = Vector2(2.0,5.0)
+# 脚步基础间隔 = 一声脚步 + step_silence 平均值；实际间隔随当前移速缩放（越快越密，可重叠）。
 @export var step_silence:Vector2 = Vector2(0.25,0.7)
 var _breath_wait:float = 0.0
-var _step_wait:float = 0.0
+var _step_cadence = FOOTSTEP.new()
+var _step_length:float = 0.45
+var _step_last_position:Vector2
 var _voice_player:AudioStreamPlayer2D
 var _step_player:AudioStreamPlayer2D
 var _death_voice_played:bool = false
@@ -27,7 +31,7 @@ func _ready() -> void:
 	bind_continuation_identity()
 	_pair_audio_rng.seed = Game.battle_rng_seed_or("golem_pair_voice:"+str(name),int(get_instance_id()))
 	_breath_wait = _random_gap(breath_silence)
-	_step_wait = _random_gap(step_silence)
+	_step_last_position = global_position
 
 func bind_continuation_identity() -> void:
 	if continuation_victory_key.is_empty(): return
@@ -71,22 +75,34 @@ func _stop_sound(player:Variant) -> void:
 		player.stop()
 		player.queue_free()
 
+# 脚步可以重叠，停步/死亡时要把本角色所有还在响的脚步一起停掉。
+func _stop_all_steps() -> void:
+	_stop_sound(_step_player)
+	for node:Node in get_tree().get_nodes_in_group("GolemPairAudio"):
+		if node.get_meta("mc_pair_owner",0)==get_instance_id() and str(node.get_meta("mc_sound_event","")).ends_with(".step"):
+			_stop_sound(node)
+
 func tick_pair_audio(delta:float,walking:bool) -> void:
 	if health<=0:
-		_stop_sound(_step_player)
+		_stop_all_steps()
 		if is_instance_valid(_voice_player) and not str(_voice_player.get_meta("mc_sound_event","")).ends_with(".death"): _stop_sound(_voice_player)
 		return
 	if not is_combat_runtime_active(): return
 	if not is_multiplayer_authority(): return
 	if not walking and _audio_busy(_step_player):
-		_stop_sound(_step_player)
+		_stop_all_steps()
 		if multiplayer.has_multiplayer_peer(): _pair_stop_step.rpc()
 	_breath_wait = maxf(_breath_wait-maxf(delta,0.0),0.0)
 	if mc_audio_role=="villager" and _breath_wait<=0.0 and not _audio_busy(_voice_player):
 		mc_play("ambient",-8.0)
-	if not walking: return
-	_step_wait = maxf(_step_wait-maxf(delta,0.0),0.0)
-	if _step_wait<=0.0 and not _audio_busy(_step_player): mc_play("step",-10.0)
+	# 脚步：按当前实际移速计步，越快越密、越慢越稀；下一步不等上一声播完。
+	var moved:float = global_position.distance_to(_step_last_position)
+	_step_last_position = global_position
+	if not walking:
+		_step_cadence.tick(0.0,delta,1.0,1.0)
+		return
+	var base_interval:float = _step_length+(step_silence.x+step_silence.y)*0.5
+	if _step_cadence.tick(moved,delta,FOOTSTEP.base_speed(self),base_interval): mc_play("step",-10.0)
 
 func update_pair_visual() -> void:
 	if pair_frames == null or not pair_frames.has_animation(visual_clip): return
@@ -147,7 +163,6 @@ func _pair_audio_local(event:String,point:Vector2,volume:float,index:int = -1) -
 			if kind=="hurt" and str(_voice_player.get_meta("mc_sound_event","")).ends_with(".ambient"):
 				_stop_sound(_voice_player)
 			else: return null
-	elif kind=="step" and _audio_busy(_step_player): return null
 	var pool:Array = PAIR_SOUNDS.EVENTS[event]
 	var choice:int = index if index>=0 and index<pool.size() else _pair_audio_rng.randi_range(0,pool.size()-1)
 	var record:Dictionary = pool[choice]
@@ -169,14 +184,13 @@ func _pair_audio_local(event:String,point:Vector2,volume:float,index:int = -1) -
 	player.set_meta("mc_pair_variant",choice)
 	player.finished.connect(player.queue_free,CONNECT_ONE_SHOT)
 	player.play()
-	# At accelerated game speed, playing remains a second gate: even if the
-	# combat timer expires early, never start another sound before this finishes.
+	# 嗓音仍以"正在播放"为第二道闸，不会叠音；脚步不受此限，可以重叠。
 	if vocal:
 		_voice_player = player
 		_breath_wait = _audio_duration(player)+_random_gap(breath_silence)
 	elif kind=="step":
 		_step_player = player
-		_step_wait = _audio_duration(player)+_random_gap(step_silence)
+		_step_length = _audio_duration(player)
 	return player
 
 func _exit_tree() -> void:

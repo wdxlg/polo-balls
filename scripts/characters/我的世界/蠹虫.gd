@@ -35,7 +35,11 @@ const DEATH_BRIDGE_DISPLAY_META:StringName = &"battle_death_bridge_display_name"
 
 var _rng := RandomNumberGenerator.new()
 var _hiss_time_left:float = 1.0
-var _footstep_time_left:float = 0.0
+const FOOTSTEP = preload("res://scripts/effects/我的世界/footstep_cadence.gd")
+# 按基础速度行走时的脚步间隔；实际间隔随当前移速缩放（越快越密、越慢越稀，可与上一声重叠）。
+@export var footstep_base_interval:float = 0.61
+var _footstep_cadence = FOOTSTEP.new()
+var _footstep_overlaps:Array[AudioStreamPlayer2D] = []
 var _audio_last_position:Vector2 = Vector2.ZERO
 var _stone_trigger_cooldown_left:float = 0.0
 var _stone_field:Node = null
@@ -76,7 +80,7 @@ func _ready() -> void:
 	_rng.seed = Game.battle_rng_seed_or("scripts/characters/我的世界/蠹虫.gd:_rng.seed",maxi(abs(int(Time.get_ticks_usec()) ^ int(get_instance_id())),1))
 	_audio_last_position = global_position
 	_hiss_time_left = _rng.randf_range(0.85,2.0)
-	_footstep_time_left = 0.0
+	_footstep_cadence.ready_now()
 
 	_stone_field = _ensure_stone_field()
 	if _stone_field != null and is_instance_valid(_stone_field) and _stone_field.has_method("register_silverfish"):
@@ -230,13 +234,9 @@ func _update_living_audio(delta:float) -> void:
 	if _hiss_time_left <= 0.0 and hiss_audio != null and not hiss_audio.playing:
 		_play_random_hiss()
 
-	if moving:
-		_footstep_time_left -= delta
-		if _footstep_time_left <= 0.0 and footstep_audio != null and not footstep_audio.playing:
-			_play_random_footstep()
-	else:
-		# 停下后不在后台积累“欠下的脚步”，下一次真正移动时从一声新脚步开始。
-		_footstep_time_left = 0.0
+	# 脚步按当前实际移速计步：越快越密、越慢越稀；停下后下一次起步先响一声。
+	if _footstep_cadence.tick(moved_distance if moving else 0.0,delta,FOOTSTEP.base_speed(self),footstep_base_interval):
+		_play_random_footstep()
 
 
 func _play_random_hiss() -> void:
@@ -254,11 +254,17 @@ func _play_random_footstep() -> void:
 	if FOOTSTEP_SOUNDS.is_empty() or footstep_audio == null:
 		return
 	var stream:AudioStream = FOOTSTEP_SOUNDS[_rng.randi_range(0,FOOTSTEP_SOUNDS.size() - 1)]
-	footstep_audio.stream = stream
-	footstep_audio.pitch_scale = 1.0
-	footstep_audio.play()
-	# 三个脚步素材都是约 0.5s；必须先播放完，再加一个很短的随机间隔。
-	_footstep_time_left = maxf(stream.get_length(),0.05) + _rng.randf_range(0.04,0.18)
+	var player:AudioStreamPlayer2D = footstep_audio
+	if footstep_audio.playing:
+		# 跑得快时下一步可在上一声结束前开始：另开临时播放器叠加，播完自动释放。
+		player = footstep_audio.duplicate() as AudioStreamPlayer2D
+		add_child(player)
+		player.finished.connect(player.queue_free,CONNECT_ONE_SHOT)
+		_footstep_overlaps = _footstep_overlaps.filter(func(p:AudioStreamPlayer2D) -> bool: return is_instance_valid(p))
+		_footstep_overlaps.append(player)
+	player.stream = stream
+	player.pitch_scale = 1.0
+	player.play()
 
 
 func on_actual_health_damage_received(actual_health_damage:float,_health_before:float) -> void:
@@ -401,6 +407,9 @@ func _rpc_start_death_visual(death_position:Vector2,play_death_audio:bool = true
 		hiss_audio.stop()
 	if footstep_audio != null:
 		footstep_audio.stop()
+	for extra:AudioStreamPlayer2D in _footstep_overlaps:
+		if is_instance_valid(extra): extra.queue_free()
+	_footstep_overlaps.clear()
 	if play_death_audio and death_audio != null:
 		death_audio.stream = DEATH_SOUND
 		death_audio.pitch_scale = 1.0

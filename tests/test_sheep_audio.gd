@@ -87,26 +87,26 @@ func run() -> void:
 	check(sounds("entity.sheep.ambient").size()==1,"playing breath never overlaps itself")
 	clear_sounds()
 	sheep._ambient_cd = 100
-	sheep._footstep_cd = 0
+	sheep._footstep_cadence.ready_now()
 	sheep._step_sheep_sounds(0.01)
 	check(sounds("entity.sheep.step").is_empty(),"stationary sheep has no footsteps")
 	sheep.global_position.x += 2
 	sheep._step_sheep_sounds(0.01)
 	check(sounds("entity.sheep.step").size()==1,"actual movement makes footstep")
-	check(sheep._footstep_cd>=sheep._sound_duration(sheep._footstep_player)+0.16,"normal footstep waits for full preceding clip")
-	sheep._footstep_cd = 0
-	sheep.global_position.x += 2
-	sheep._step_sheep_sounds(0.01)
-	check(sounds("entity.sheep.step").size()==1,"normal footsteps cannot overlap")
+	# 脚步按走过的距离计步：步幅 = 基础速度 × 基础间隔。
+	var stride:float = sheep.FOOTSTEP.base_speed(sheep)*sheep.footstep_base_interval
+	sheep.global_position.x += stride*0.5
+	sheep._step_sheep_sounds(0.1)
+	check(sounds("entity.sheep.step").size()==1,"half a stride adds no footstep")
+	sheep.global_position.x += stride*0.6
+	sheep._step_sheep_sounds(0.1)
+	check(sounds("entity.sheep.step").size()==2,"after one stride the next footstep starts even while the previous plays")
 	sheep.ram_state = sheep.RamState.CHARGE
-	sheep._footstep_cd = 0
-	sheep.global_position.x += 2
-	sheep._step_sheep_sounds(0.01)
-	check(sounds("entity.sheep.step").size()==2,"charge allows overlapping footsteps")
-	check(sheep._footstep_cd>=0.085 and sheep._footstep_cd<=0.13,"charge has fast randomized cadence")
-	sheep._footstep_cd = 0
+	sheep.global_position.x += stride*1.1
+	sheep._step_sheep_sounds(0.08)
+	check(sounds("entity.sheep.step").size()==3,"charging covers a stride faster, so footsteps come faster")
 	sheep._step_sheep_sounds(0.2)
-	check(sounds("entity.sheep.step").size()==2,"blocked charge with no displacement stays quiet")
+	check(sounds("entity.sheep.step").size()==3,"blocked charge with no displacement stays quiet")
 	clear_sounds()
 	sheep.hurt_voice_chance = 0
 	sheep.receive_positional_damage(1,sheep.global_position,false,enemy)

@@ -152,13 +152,14 @@ func run() -> void:
 	check(seen.any(func(s):return s.reason=="wall"),"real contact requests one cadence-limited snow impact cue")
 	await pcm("wall_rebound")
 	check(unit.rng.state==gameplay_rng,"movement variants do not consume the volley gameplay RNG")
+	# 行走脚步按移速计步，可与上一声重叠，但不会快过最短间隔。
 	var previous:Dictionary = {}
 	var spaced:bool = true
 	for sound:Dictionary in seen:
-		if sound.event!="block.snow.step": continue
-		if not previous.is_empty(): spaced = spaced and float(sound.started-previous.started)>=float(previous.length)*1000.0-3.0
+		if sound.event!="block.snow.step" or sound.reason!="walk": continue
+		if not previous.is_empty(): spaced = spaced and float(sound.started-previous.started)>=unit.FOOTSTEP.MIN_INTERVAL*1000.0-3.0
 		previous = sound
-	check(spaced,"movement/impact starts never overlap the previous selected native clip")
+	check(spaced,"walking footsteps never come faster than the minimum cadence interval")
 	wall.queue_free()
 	await quiet()
 	count = seen.size()
@@ -302,7 +303,7 @@ func check_overlapping_launch_lifecycle() -> void:
 	await settle()
 	check(seen.size()==first and pending.all(func(t):return t.get("state","")=="cancelled"),"all unflushed overlapping launches cancel before allocation")
 	check(unit._request_action_sound("block.snow.step","walk",-3.0),"first actual movement cue accepted")
-	check(not unit._request_action_sound("block.snow.step","walk",-3.0),"pending footsteps still do not overlap")
+	check(unit._request_action_sound("block.snow.step","walk",-3.0),"a second footstep may start before the previous one ends")
 	unit._stop_movement_and_launch_audio()
 	await settle()
 

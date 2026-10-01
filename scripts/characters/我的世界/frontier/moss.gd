@@ -87,15 +87,13 @@ func _moss_sound(id:int,event:String,point:Vector2,volume:float,target_path:Node
 	if not target_path.is_empty():
 		context = get_tree().current_scene.get_node_or_null(target_path)
 		if not is_instance_valid(context): return
-	# Steps are throttled per walker, not per terrain owner or global sound event.
-	if event == "block.moss.step":
-		var previous:Variant = context.get_meta("mc_moss_step_player",false)
-		var sound:Variant = previous.get_ref() if previous is WeakRef else null
-		if is_instance_valid(sound) and sound.playing: return
+	# 脚步节奏由 moss_footsteps.gd 按踩踏者移速决定，这里不再拒绝与上一声重叠。
 	# Actual damage is already gameplay-gated. Do not drop hit feedback at the
 	# ambient voice cap or merge separate victims/ticks in the 75ms sound debounce.
 	var impact:bool = event.begins_with("entity.player.")
-	var player:AudioStreamPlayer2D = AUDIO.play(context,event,point,volume,false,impact,true,impact)
+	# 脚步间隔已由移速节奏控制（最短 0.07s），不再走 75ms 限流，否则加速对局里会吞掉脚步。
+	var step:bool = event == "block.moss.step"
+	var player:AudioStreamPlayer2D = AUDIO.play(context,event,point,volume,false,impact,true,impact or step)
 	if is_instance_valid(player):
 		# Moss-only mix: the shared +2 dB ceiling otherwise swallows the extra gain.
 		# Retain the selected native variant gain without raising other characters.

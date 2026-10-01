@@ -1,5 +1,8 @@
 extends Node
-## One per-world scheduler, one cooldown per walking enemy, even across moss owners.
+## One per-world scheduler, one cadence per walking enemy, even across moss owners.
+## 脚步节奏按踩踏者当前实际移速计步（footstep_cadence.gd）：越快越密、越慢越稀，可与上一声重叠。
+## 基础间隔 = 最长一声苔藓脚步 + 随机停顿区间的平均值。
+const FOOTSTEP = preload("res://scripts/effects/我的世界/footstep_cadence.gd")
 const AUDIO = preload("res://scripts/characters/我的世界/new5/audio.gd")
 const U = preload("res://scripts/characters/我的世界/new5/utils.gd")
 @export var random_gap_min:float = 0.08
@@ -7,7 +10,6 @@ const U = preload("res://scripts/characters/我的世界/new5/utils.gd")
 var states:Dictionary = {}
 var longest_step:float = 0.0
 var _elapsed:float = 0.0
-var _rng := RandomNumberGenerator.new()
 static func ensure(context:Node) -> Node:
 	for node:Node in context.get_tree().get_nodes_in_group("MCMossFootsteps"):
 		if not node.is_queued_for_deletion(): return node
@@ -18,19 +20,11 @@ static func ensure(context:Node) -> Node:
 func _ready() -> void:
 	add_to_group("MCMossFootsteps")
 	add_to_group("BattleTransient")
-	_rng.seed = Game.battle_rng_seed_or("moss_footstep_audio",int(get_instance_id()))
-	# Clients may choose a different native variant. Waiting for the LONGEST clip
-	# (including pitch) ensures no peer starts a new step before the previous ends.
+	# 用最长一声（含音高）来换算基础间隔，各端选到不同变体时节奏一致。
 	for record:Dictionary in AUDIO.EVENTS["block.moss.step"]:
 		longest_step = maxf(longest_step,record.stream.get_length()/maxf(float(record.pitch),0.01))
-func next_interval() -> float:
-	var low:float = maxf(minf(random_gap_min,random_gap_max),0.0)
-	var high:float = maxf(maxf(random_gap_min,random_gap_max),low)
-	return longest_step+_rng.randf_range(low,high)
-func step_is_playing(target:Node) -> bool:
-	var previous:Variant = target.get_meta("mc_moss_step_player",false)
-	var player:Variant = previous.get_ref() if previous is WeakRef else null
-	return is_instance_valid(player) and player.playing
+func base_interval() -> float:
+	return longest_step+(maxf(random_gap_min,0.0)+maxf(random_gap_max,0.0))*0.5
 func _physics_process(delta:float) -> void:
 	if get_tree().paused or Game.now_stop_state: return
 	_elapsed += maxf(delta,0.0)
@@ -54,16 +48,14 @@ func sample(delta:float) -> void:
 		var id:int = target.get_instance_id()
 		present[id] = true
 		var point:Vector2 = target.global_position
-		var state:Dictionary = states.get(id,{"point":point,"remaining":0.0})
-		var moved:bool = point.distance_squared_to(state.point)>0.0225
-		state.remaining = maxf(0.0,float(state.remaining)-maxf(delta,0.0))
+		var state:Dictionary = states.get(id,{"point":point,"cadence":FOOTSTEP.new()})
+		var travel:float = point.distance_to(state.point)
 		state.point = point
-		if moved and float(state.remaining)<=0.0 and not step_is_playing(target):
+		if state.cadence.tick(travel if travel>0.15 else 0.0,delta,FOOTSTEP.base_speed(target),base_interval()):
 			for cell:Vector2i in reference.touching_moss_cells(target as ball,field):
 				var owner:Node = field[cell]
 				if not is_instance_valid(owner) or not U.enemy(owner,target): continue
 				owner.emit_moss_sound("block.moss.step",point,-15.0,target)
-				state.remaining = next_interval()
 				break # Sound is per walker, unlike the independent per-cell damage ticks.
 		states[id] = state
 	for id:Variant in states.keys():

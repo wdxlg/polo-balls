@@ -70,39 +70,40 @@ func run() -> void:
 	target.velocity = Vector2(999,0)
 	scheduler.sample(1.0)
 	check(sounds("block.moss.step").is_empty(),"stationary enemies do not produce steps even with fake velocity")
-	var intervals:Dictionary = {}
-	for i:int in range(20):
-		var interval:float = scheduler.next_interval()
-		intervals[interval] = true
-		check(interval>=scheduler.longest_step+0.079 and interval<=scheduler.longest_step+0.321,"random silence is added after the longest native clip")
-	check(intervals.size()>1,"footstep intervals actually vary")
+	check(scheduler.base_interval()>=scheduler.longest_step,"base interval at base speed covers the longest native clip")
+	# 脚步按踩踏者走过的距离计步：步幅 = 基础速度 × 基础间隔。
+	var stride:float = scheduler.FOOTSTEP.base_speed(target)*scheduler.base_interval()
 	target.global_position += Vector2(1,0)
 	friendly.global_position += Vector2(1,0)
 	scheduler.sample(0.1)
 	check(sounds("block.moss.step").size()==1,"only moving enemy, not friendly, produces a step")
 	var first:AudioStreamPlayer2D = target.get_meta("mc_moss_step_player").get_ref()
-	check(scheduler.states[target.get_instance_id()].remaining>=first.stream.get_length()/first.pitch_scale,"next interval covers the actual sound duration")
 	first.stream_paused = true
-	target.global_position += Vector2(1,0)
-	scheduler.sample(100.0)
-	check(sounds("block.moss.step").size()==1,"even accelerated combat time cannot overlap a still-playing clip")
+	var side:float = -1.0
+	var walked:float = 0.0
+	while walked+6.0<stride*0.9:
+		target.global_position += Vector2(6.0*side,0)
+		side = -side
+		walked += 6.0
+		scheduler.sample(0.05)
+	check(sounds("block.moss.step").size()==1,"less than one stride of walking adds no moss step")
+	while sounds("block.moss.step").size()==1 and walked<stride*2.0:
+		target.global_position += Vector2(6.0*side,0)
+		side = -side
+		walked += 6.0
+		scheduler.sample(0.05)
+	check(sounds("block.moss.step").size()==2 and walked<=stride+12.0,"after one stride the next step starts even while the previous clip still plays")
 	var before_serial:int = moss._moss_sound_serial
 	moss.emit_moss_sound("block.moss.step",target.global_position,-15,target)
-	check(sounds("block.moss.step").size()==1 and moss._moss_sound_serial==before_serial+1,"receiver independently rejects overlapping step playback")
-	var saved:float = scheduler.states[target.get_instance_id()].remaining
-	game.now_stop_state = true
-	target.global_position += Vector2(1,0)
-	scheduler.sample(2.0)
-	check(scheduler.states[target.get_instance_id()].remaining==saved,"pause does not advance footstep cooldown")
-	game.now_stop_state = false
+	check(sounds("block.moss.step").size()==3 and moss._moss_sound_serial==before_serial+1,"receiver no longer rejects overlapping step playback")
 	reset_sound(target,"block.moss.step")
-	scheduler.states[target.get_instance_id()].remaining = 0.05
-	target.global_position += Vector2(1,0)
-	scheduler.sample(0.01)
-	check(sounds("block.moss.step").is_empty(),"random gap remains enforced after old clip stops")
-	target.global_position += Vector2(1,0)
-	scheduler.sample(0.1)
-	check(sounds("block.moss.step").size()==1,"moving enemy can step again after duration plus random gap")
+	game.now_stop_state = true
+	for i:int in range(20):
+		target.global_position += Vector2(6.0*side,0)
+		side = -side
+		scheduler.sample(0.1)
+	check(sounds("block.moss.step").is_empty(),"pause emits no moss footsteps")
+	game.now_stop_state = false
 	reset_sound(target,"block.moss.step")
 	target.global_position = point+Vector2(96,0)
 	scheduler.sample(10.0)
@@ -116,7 +117,7 @@ func run() -> void:
 	check(second_owner.FOOTSTEPS.ensure(second_owner)==scheduler,"all moss owners share one per-enemy scheduler")
 	target.global_position = point+Vector2(24,0)
 	scheduler.sample(100.0)
-	check(sounds("block.moss.step").size()==1,"crossing between moss owners cannot reset an active enemy footstep")
+	check(sounds("block.moss.step").size()==1,"crossing between moss owners keeps one cadence per enemy")
 	reset_sound(target,"block.moss.step")
 	var another:Node2D = dummy(point)
 	scheduler.states.clear()
