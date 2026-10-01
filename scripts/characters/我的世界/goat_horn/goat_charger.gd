@@ -20,18 +20,18 @@ const BODY_RADIUS_UNIT:float = 48.0
 const SPRITE_SCALE:float = 1.1
 # 帧画布 176×176，身体包围盒中心在 (85.5,103)：偏移后节点原点就是身体中心（判定圆心）。
 const SPRITE_OFFSET:Vector2 = Vector2(2.5,-15.0)
-const ENTER_SPEED:float = 90.0
-const CHARGE_ACCEL:float = 130.0
-const CHARGE_MAX_SPEED:float = 220.0
-const EXIT_ACCEL:float = 300.0
-const EXIT_MAX_SPEED:float = 480.0
-const IMPACT_REFERENCE_SPEED:float = 245.0
+const ENTER_SPEED:float = 50.0
+const CHARGE_ACCEL:float = 70.0
+const CHARGE_MAX_SPEED:float = 120.0
+const EXIT_ACCEL:float = 160.0
+const EXIT_MAX_SPEED:float = 260.0
+const IMPACT_REFERENCE_SPEED:float = 135.0
 const IMPACT_RATIO_MAX:float = 1.3
 const RAM_SPEED_KEEP:float = 0.72
 const PUSH_INTERVAL:float = 0.16
 const CONTACT_RELEASE_MARGIN:float = 6.0
 const BOW_LEAD_TIME:float = 0.12
-const MAX_LIFE:float = 16.0
+const MAX_LIFE:float = 30.0
 # 世界的地图外遮罩在绝对 z=90 用背景快照盖住越界视觉；山羊从屏幕外进出，必须画在它之上。
 const DRAW_Z:int = 91
 const OFFSCREEN_MARGIN:float = 140.0
@@ -389,7 +389,8 @@ func _update_visual(running:bool = true) -> void:
 		var keep:int = _sprite.frame
 		_sprite.play(clip)
 		_sprite.frame = keep % FRAMES.get_frame_count(clip)
-	_sprite.speed_scale = clampf(speed / 500.0,0.5,2.2) if running else 0.0
+	# 腿部动画随实际移速放慢，避免慢跑时原地快速倒腿。
+	_sprite.speed_scale = clampf(speed / 200.0,0.35,2.2) if running else 0.0
 	# 原图朝左；向右跑时镜像。只分左右，不随斜向旋转。
 	var flip:bool = heading.x > 0.0
 	_sprite.flip_h = flip

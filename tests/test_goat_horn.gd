@@ -152,7 +152,7 @@ func run() -> void:
 	check(view.size.x > 1.0 and seen_start.all(func(p:Vector2): return not view.has_point(p)),"every goat enters from off-screen")
 	check(any_goat_scale_ok(horn),"goat size follows the horn's character scale")
 	check(goats_above_outside_mask(),"goats draw above the map-outside mask so they stay visible off the map")
-	check(goats().all(func(g:Node): return g.CHARGE_MAX_SPEED <= 250.0 and g.EXIT_MAX_SPEED <= 500.0),"goat speeds stay moderate")
+	check(goats().all(func(g:Node): return g.CHARGE_MAX_SPEED <= 150.0 and g.EXIT_MAX_SPEED <= 300.0),"goat speeds stay moderate")
 	check(get_nodes_in_group("GoatHornGoat").all(func(g:Node): return not g is CollisionObject2D and not g.is_in_group("Ball")),"goats are bodiless, untargetable transients")
 	var any_goat:Node = goats()[0] if not goats().is_empty() else null
 	check(any_goat != null and any_goat.is_in_group("AI_Hazard") and is_equal_approx(any_goat.get_ai_hazard_info().get("radius",0.0),any_goat.body_radius) and any_goat.get_ai_hazard_info().get("source") == horn,"goat registers its real ram circle as AI hazard")
@@ -169,11 +169,11 @@ func run() -> void:
 	var g_slow:Node2D = GOAT.new()
 	g_slow.setup_authority(horn,9001,slow_target,slow_target.global_position - Vector2(40,0),1)
 	world.add_child(g_slow)
-	g_slow.speed = 90.0
+	g_slow.speed = 50.0
 	var g_fast:Node2D = GOAT.new()
 	g_fast.setup_authority(horn,9002,fast_target,fast_target.global_position - Vector2(40,0),2)
 	world.add_child(g_fast)
-	g_fast.speed = 220.0
+	g_fast.speed = 120.0
 	g_slow.set_physics_process(false)
 	g_fast.set_physics_process(false)
 	var hs:float = slow_target.health
@@ -184,7 +184,7 @@ func run() -> void:
 	var loss_fast:float = hf - fast_target.health
 	check(loss_slow > 0.0 and loss_fast > loss_slow,"ram damage grows with goat speed (%.1f slow vs %.1f fast)" % [loss_slow,loss_fast])
 	check(has_knockback(slow_target) and has_knockback(fast_target),"ram applies shared knockback")
-	check(g_fast.speed < 220.0,"goat loses momentum on impact")
+	check(g_fast.speed < 120.0,"goat loses momentum on impact")
 	await process_frame
 	await process_frame
 	check(sound_events().has("entity.goat.ram_impact"),"native goat ram impact plays")
@@ -198,7 +198,7 @@ func run() -> void:
 	g_push.setup_authority(horn,9003,push_target,push_target.global_position,3)
 	world.add_child(g_push)
 	g_push.set_physics_process(false)
-	g_push.speed = 180.0
+	g_push.speed = 100.0
 	var id:int = push_target.get_instance_id()
 	g_push._contacts[id] = 0.0
 	var h0:float = push_target.health
@@ -233,9 +233,9 @@ func run() -> void:
 	var g_run:Node2D = GOAT.new()
 	g_run.setup_authority(horn,9005,run_target,run_target.global_position - Vector2(120,0),5)
 	world.add_child(g_run)
-	g_run.speed = 220.0
+	g_run.speed = 120.0
 	var rammed:bool = false
-	for i:int in range(90):
+	for i:int in range(180):
 		await physics_frame
 		if not is_instance_valid(g_run): break
 		if g_run._rammed: rammed = true
@@ -264,7 +264,7 @@ func run() -> void:
 	var steps_before:int = sound_events().count("entity.goat.step")
 	var particles:int = 0
 	var lock_exit:bool = false
-	for i:int in range(120):
+	for i:int in range(300):
 		await physics_frame
 		particles = maxi(particles,get_nodes_in_group("MCBlockFragments").size())
 		if not is_instance_valid(g_lock): break
