@@ -194,6 +194,17 @@ func run() -> void:
 	var loss_fast:float = hf - fast_target.health
 	check(loss_slow > 0.0 and loss_fast > loss_slow,"ram damage grows with goat speed (%.1f slow vs %.1f fast)" % [loss_slow,loss_fast])
 	check(has_knockback(slow_target) and has_knockback(fast_target),"ram applies shared knockback")
+	var sheep_ref:Node2D = spawn("res://scenes/characters/我的世界/羊.tscn",center + Vector2(0,330),"Team2")
+	await physics_frame
+	var same_curve:bool = true
+	for v:float in [50.0,120.0,260.0,520.0]:
+		var mine:Dictionary = GOAT.impact_profile(horn,g_fast.impact_ratio(v))
+		var theirs:Dictionary = sheep_ref.impact_profile(v)
+		if not is_equal_approx(mine.distance,theirs.distance) or not is_equal_approx(mine.speed,theirs.speed): same_curve = false
+	check(same_curve,"ram knockback follows the sheep's impact curve at the same speed")
+	var top:Dictionary = GOAT.impact_profile(horn,g_fast.impact_ratio(g_fast.CHARGE_MAX_SPEED))
+	check(top.distance < 90.0,"a goat at full charge knocks back like a sheep at that speed (%.0f px)" % top.distance)
+	sheep_ref.queue_free()
 	check(g_fast.speed < 120.0,"goat loses momentum on impact")
 	await process_frame
 	await process_frame

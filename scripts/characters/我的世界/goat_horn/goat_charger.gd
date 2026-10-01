@@ -25,9 +25,11 @@ const CHARGE_ACCEL:float = 70.0
 const CHARGE_MAX_SPEED:float = 120.0
 const EXIT_ACCEL:float = 160.0
 const EXIT_MAX_SPEED:float = 260.0
-const IMPACT_REFERENCE_SPEED:float = 135.0
-const IMPACT_RATIO_MAX:float = 1.3
-const RAM_SPEED_KEEP:float = 0.72
+# 冲撞与羊（new6/sheep.gd::impact_profile）同一条曲线：比例 = 冲撞速度 ÷ 羊的冲锋速度 520，封顶 1。
+# 山羊跑得比羊慢，所以同样按实际速度换算，击退与伤害都和同速的羊一致。
+const IMPACT_REFERENCE_SPEED:float = 520.0
+const IMPACT_RATIO_MAX:float = 1.0
+const RAM_SPEED_KEEP:float = 0.65
 const PUSH_INTERVAL:float = 0.16
 const CONTACT_RELEASE_MARGIN:float = 6.0
 const MAX_LIFE:float = 30.0
@@ -154,6 +156,16 @@ func impact_ratio(speed_value:float = -1.0) -> float:
 	return clampf((speed if speed_value < 0.0 else speed_value) / IMPACT_REFERENCE_SPEED,0.0,IMPACT_RATIO_MAX)
 
 
+## 与羊相同的冲撞结算表；source 是山羊角本体（伤害按它的攻击力）。
+static func impact_profile(source:ball,ratio:float) -> Dictionary:
+	return {"damage":source.attack_damage(0.5 + 3.0 * ratio),"distance":35.0 + 150.0 * ratio,"speed":150.0 + 650.0 * ratio,"wall_damage":source.attack_damage(0.5 + 1.8 * ratio)}
+
+
+## 持续顶住时的推撞：只把目标往前推开一小段，避免连续推撞叠成远距离击飞。
+static func push_profile(source:ball,ratio:float,goat_speed:float) -> Dictionary:
+	return {"damage":source.attack_damage(0.2 + 0.8 * ratio),"distance":8.0 + 30.0 * ratio,"speed":maxf(goat_speed * 1.2,100.0 + 200.0 * ratio),"wall_damage":source.attack_damage(0.1 + 0.6 * ratio)}
+
+
 func _physics_process(delta:float) -> void:
 	if not _authority: return
 	var owner_horn:Node2D = horn()
@@ -217,21 +229,21 @@ func _knockback_direction(victim:ball) -> Vector2:
 
 
 func _ram(source:ball,victim:ball,point:Vector2) -> void:
-	var r:float = impact_ratio()
-	var dealt:bool = U.damage(source,victim,source.attack_damage(0.35 + 1.25 * r),point)
+	var impact:Dictionary = impact_profile(source,impact_ratio())
+	var dealt:bool = U.damage(source,victim,impact.damage,point)
 	if dealt:
-		victim.apply_knockback(_knockback_direction(victim),30.0 + 110.0 * r,160.0 + 520.0 * r,0.65,0.0,
-			{"source":source,"max_wall_bounces":1,"collision_damage":source.attack_damage(0.25 + 0.8 * r),"collision_damage_wall_only":true,"redirect_blend_time":0.0})
+		victim.apply_knockback(_knockback_direction(victim),impact.distance,impact.speed,0.65,0.0,
+			{"source":source,"max_wall_bounces":1,"collision_damage":impact.wall_damage,"collision_damage_wall_only":true,"redirect_blend_time":0.0})
 		source.call(&"emit_goat_sound",AUDIO.KIND_IMPACT,_rng.randi_range(0,AUDIO.variant_count(AUDIO.KIND_IMPACT) - 1),point)
 	speed *= RAM_SPEED_KEEP
 	_rammed = true
 
 
 func _push(source:ball,victim:ball) -> void:
-	var r:float = impact_ratio()
-	if not U.damage(source,victim,source.attack_damage(0.12 + 0.30 * r),U.point(victim,global_position)): return
-	victim.apply_knockback(_knockback_direction(victim),16.0 + 44.0 * r,maxf(speed * 1.1,160.0 + 520.0 * r),0.65,0.0,
-		{"source":source,"max_wall_bounces":1,"collision_damage":source.attack_damage(0.1 + 0.3 * r),"collision_damage_wall_only":true,"redirect_blend_time":0.0})
+	var push:Dictionary = push_profile(source,impact_ratio(),speed)
+	if not U.damage(source,victim,push.damage,U.point(victim,global_position)): return
+	victim.apply_knockback(_knockback_direction(victim),push.distance,push.speed,0.65,0.0,
+		{"source":source,"max_wall_bounces":1,"collision_damage":push.wall_damage,"collision_damage_wall_only":true,"redirect_blend_time":0.0})
 
 
 ## 权威端：第一次进入镜头时按概率发出原版蓄力咩声。
@@ -378,7 +390,7 @@ func get_ai_hazard_info(_receiver:ball = null) -> Dictionary:
 	var owner_horn:Node2D = horn()
 	if owner_horn == null or not _hostile(owner_horn): return {}
 	return {"shape":"circle","position":global_position,"velocity":heading * speed,"radius":body_radius,
-		"damage":(owner_horn as ball).attack_damage(0.35 + 1.25 * impact_ratio()),"source":owner_horn,"danger_duration":0.1,"kind":"goat_ram"}
+		"damage":impact_profile(owner_horn as ball,impact_ratio()).damage,"source":owner_horn,"danger_duration":0.1,"kind":"goat_ram"}
 
 
 ## 权威端视角（镜头可见世界矩形）；无镜头/无视口时退回当前地图矩形。
