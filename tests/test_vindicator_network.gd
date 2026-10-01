@@ -118,7 +118,7 @@ func run() -> void:
 	check(remote.hand_center().distance_to(source.hand_center())<0.1 and remote._axe.to_global(remote.AXE_GRIP+remote._axe.offset).distance_to(remote.hand_center())<0.001,"guest lowered axe remains attached to the actual moving palm")
 	source.cancel_attack()
 	check(await until(func():return remote.phase==source.Phase.IDLE),"resting wrist pose reaches guest")
-	check(remote.hand_center().distance_to(source.hand_center())<0.1 and is_equal_approx(remote._axe.rotation,remote.AXE_HOLD_ANGLE),"idle hand and axe preserve their rigid grip on both peers")
+	check(remote.hand_center().distance_to(source.hand_center())<0.1 and is_equal_approx(remote._axe.rotation,remote.AXE_HOLD_ANGLE) and is_zero_approx(remote._wrist.rotation),"idle hand and axe preserve their rigid grip on both peers")
 	source.attack_wait = 0.0
 	source.rush_wait = 0.0
 	check(source._begin_charge(true),"host restores an active rush before checking stun cancellation")

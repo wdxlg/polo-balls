@@ -21,7 +21,6 @@ const RUSH_READY_ARM_ANGLE:float = -1.00
 const DRAW_CHARGE_RATIO:float = 0.065
 const RAISED_ARM_ANGLE:float = -0.70
 const AXE_HOLD_ANGLE:float = -READY_ARM_ANGLE-PI/4.0
-const REST_GRIP_ANGLE:float = -REST_ARM_ANGLE-PI/4.0
 enum Phase { IDLE, CHARGE, DASH, SWING, RECOVER }
 @export var full_charge_seconds:float = 1.6
 @export var maximum_damage_multiplier:float = 4.0
@@ -308,7 +307,7 @@ func cancel_attack() -> void:
 func _charge_pose(ratio:float,rush:bool) -> Vector2:
 	var draw:float = smoothstep(0.0,DRAW_CHARGE_RATIO,ratio)
 	var ready:float = RUSH_READY_ARM_ANGLE if rush else READY_ARM_ANGLE
-	return Vector2(lerpf(REST_ARM_ANGLE,lerpf(ready,RAISED_ARM_ANGLE,ratio),draw),lerpf(REST_GRIP_ANGLE,AXE_HOLD_ANGLE,draw))
+	return Vector2(lerpf(REST_ARM_ANGLE,lerpf(ready,RAISED_ARM_ANGLE,ratio),draw),AXE_HOLD_ANGLE)
 
 func _swing_pose(aim:Vector2,progress:float) -> Vector2:
 	var start:Vector2 = _charge_pose(clampf(released_charge,0.0,1.0),released_rush)
@@ -331,7 +330,7 @@ func _update_pose() -> void:
 	var mirrored:bool = local_aim.x>=0.0
 	set_character_visual_flip_h(mirrored)
 	var canonical_aim:Vector2 = Vector2(-absf(local_aim.x),local_aim.y)
-	var held:Vector2 = Vector2(REST_ARM_ANGLE,REST_GRIP_ANGLE)
+	var held:Vector2 = Vector2(REST_ARM_ANGLE,AXE_HOLD_ANGLE)
 	if phase in [Phase.CHARGE,Phase.DASH]:
 		held = _charge_pose(charge_ratio(),phase==Phase.DASH)
 	elif phase == Phase.SWING:
@@ -339,9 +338,9 @@ func _update_pose() -> void:
 	elif phase == Phase.RECOVER:
 		var end:Vector2 = _swing_pose(canonical_aim,1.0)
 		var settle:float = smoothstep(0.2,1.0,phase_elapsed/maxf(recovery_seconds,0.01))
-		held = Vector2(lerp_angle(end.x,REST_ARM_ANGLE,settle),lerpf(end.y,REST_GRIP_ANGLE,settle))
+		held = Vector2(lerp_angle(end.x,REST_ARM_ANGLE,settle),AXE_HOLD_ANGLE)
 	var angle:float = held.x
-	_wrist.rotation = held.y-AXE_HOLD_ANGLE
+	_wrist.rotation = 0.0
 	var pose:Transform2D = Transform2D(angle,SHOULDER-Vector2(80,112))
 	if mirrored:
 		pose = Transform2D(Vector2(-1,0),Vector2(0,1),Vector2.ZERO)*pose

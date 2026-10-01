@@ -322,7 +322,7 @@ func gpu_checks() -> void:
 				for x:int in range(-1,2):
 					var pixel:Color = frame.get_pixelv(Vector2i(shaft.round())+Vector2i(x,y))
 					brown = brown or (pixel.r>0.2 and pixel.r>pixel.g*1.1 and pixel.b<pixel.r*0.6)
-			check(brown,"GPU lowered axe has visible wooden shaft above the fist, not hidden by sleeve: side="+str(side)+" stage="+str(stage_index))
+			check(brown,"GPU lowered axe has visible wooden shaft on the blade side of the fist, not hidden by sleeve: side="+str(side)+" stage="+str(stage_index))
 			frame.save_png("user://vindicator_low_grip_%d_%d.png"%[side,stage_index])
 	model.set_player_control_peer(1)
 	for rush:bool in [false,true]:
@@ -492,7 +492,8 @@ func fixed_grip_charge_checks() -> void:
 		unit.phase = unit.Phase.IDLE
 		unit._update_pose()
 		check(unit.hand_center().y>unit._arm.global_position.y+5,"idle hand hangs below shoulder, not an attacking stance: "+str(heading))
-		check(axe_shaft_direction(unit).dot(Vector2.UP)>0.99999,"idle holds the axe vertically: "+str(heading))
+		var hand_direction:Vector2 = (unit.hand_center()-unit._wrist.global_position).normalized()
+		check(absf(axe_shaft_direction(unit).dot(hand_direction))<0.1 and is_zero_approx(unit._wrist.rotation),"lowered axe stays perpendicular to hand, not upright on screen: "+str(heading))
 		check(is_equal_approx(unit._axe.scale.x,5.0) and is_equal_approx(unit.blade_radius(),unit._axe.global_scale.abs().x*4.5),"larger axe and actual blade radius share scale: "+str(heading))
 		for pose:int in [unit.Phase.CHARGE,unit.Phase.DASH]:
 			unit.phase = pose
@@ -635,7 +636,7 @@ func low_hand_grip_checks() -> void:
 				var palm:Vector2 = unit.hand_center()
 				var hand_axis:Vector2 = (unit._hand_sprite.to_global(unit.HAND+Vector2(10,0)+unit._hand_sprite.offset)-palm).normalized()
 				var expected:float = absf(unit.AXE_HOLD_ANGLE-PI/4.0)
-				fixed = fixed and absf(absf(hand_axis.angle_to(axe_shaft_direction(unit)))-expected)<0.001
+				fixed = fixed and is_zero_approx(unit._wrist.rotation) and absf(absf(hand_axis.angle_to(axe_shaft_direction(unit)))-expected)<0.001
 				attached = attached and palm.distance_to(unit._axe.to_global(unit.AXE_GRIP+unit._axe.offset))<0.001
-			check(fixed and attached,"axe stays clenched in the actual rotating fist throughout lowering/drawing: "+str(heading)+" phase="+str(pose))
+			check(fixed and attached,"axe stays clenched in the unchanged attack grip throughout lowering/drawing, without wrist compensation: "+str(heading)+" phase="+str(pose))
 	reset_attack()

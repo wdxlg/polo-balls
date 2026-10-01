@@ -12,8 +12,8 @@
     64.87014371184253
   ],
   "hand_split": "unchanged_original_gray_skin_texels",
-  "grip_parent": "articulated_hand",
-  "rest_wrist_angle": 1.1,
+  "grip_parent": "rigid_hand",
+  "rest_wrist_angle": 0.0,
   "canvas": [
     160,
     224
@@ -29,12 +29,12 @@
   "arm_depth": "behind_body_at_rest",
   "front_swing_depth": "in_front_of_body",
   "item_depth": "behind_hand",
-  "rest_axe_axis": "screen_up",
+  "rest_axe_axis": "perpendicular_to_hand",
   "axe_scale": 5.0,
   "rest_arm_angle": -2.75,
   "ready_arm_angle": -1.65,
   "rush_ready_arm_angle": -1.0,
-  "rest_grip_angle": 1.9646018366025517,
+  "rest_grip_angle": 0.8646018366025516,
   "draw_charge_ratio": 0.065,
   "raised_arm_angle": -0.7,
   "axe_hold_angle": 0.8646018366025516,

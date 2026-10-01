@@ -53,7 +53,7 @@ def bake(output):
     forearm_pixels=pixels.copy();forearm_pixels[skin]=0
     hand_image=Image.fromarray(hand_pixels);forearm=Image.fromarray(forearm_pixels)
     hand_image.save(output/'hand.png');forearm.save(output/'forearm.png')
-    geom={'shoulder':shoulder.tolist(),'hand':hand.tolist(),'wrist':wrist.tolist(),'hand_split':'unchanged_original_gray_skin_texels','grip_parent':'articulated_hand','rest_wrist_angle':2.75-1.65,'canvas':[160,224],'axe_grip':[5.5,11.5],'axe_blade':[9.0,4.0],'arm_depth':'behind_body_at_rest','front_swing_depth':'in_front_of_body','item_depth':'behind_hand','rest_axe_axis':'screen_up','axe_scale':5.0,'rest_arm_angle':-2.75,'ready_arm_angle':-1.65,'rush_ready_arm_angle':-1.00,'rest_grip_angle':2.75-math.pi/4,'draw_charge_ratio':0.065,'raised_arm_angle':-0.70,'axe_hold_angle':1.65-math.pi/4,'rig_space':'canonical_left_mirror_all','charge_pose_progress':'full_ratio'}
+    geom={'shoulder':shoulder.tolist(),'hand':hand.tolist(),'wrist':wrist.tolist(),'hand_split':'unchanged_original_gray_skin_texels','grip_parent':'rigid_hand','rest_wrist_angle':0.0,'canvas':[160,224],'axe_grip':[5.5,11.5],'axe_blade':[9.0,4.0],'arm_depth':'behind_body_at_rest','front_swing_depth':'in_front_of_body','item_depth':'behind_hand','rest_axe_axis':'perpendicular_to_hand','axe_scale':5.0,'rest_arm_angle':-2.75,'ready_arm_angle':-1.65,'rush_ready_arm_angle':-1.00,'rest_grip_angle':1.65-math.pi/4,'draw_charge_ratio':0.065,'raised_arm_angle':-0.70,'axe_hold_angle':1.65-math.pi/4,'rig_space':'canonical_left_mirror_all','charge_pose_progress':'full_ratio'}
     (output/'rig.json').write_text(json.dumps(geom,indent=2))
     def place(pic,pivot,anchor,angle,scale=1):
         basis=scale*np.array([[math.cos(angle),-math.sin(angle)],[math.sin(angle),math.cos(angle)]])
@@ -74,7 +74,7 @@ def bake(output):
     text='[gd_resource type="SpriteFrames" format=3]\n'+''.join(f'[ext_resource type="Texture2D" path="res://Images/characters/我的世界/vindicator/{n}" id="{i+1}"]\n' for i,n in enumerate(resources))
     text+='\n[resource]\nanimations = [{"name": &"idle", "loop": true, "speed": 1.0, "frames": [{"duration": 1.0,"texture": ExtResource("1")}]}, {"name": &"walk", "loop": true, "speed": 12.0, "frames": ['+','.join('{"duration": 1.0,"texture": ExtResource("%d")}'%(i+2) for i in range(12))+']}]\n'
     (output/'frames.tres').write_text(text,encoding='utf-8')
-    (output/'SOURCE.json').write_text(json.dumps({'repository':'https://github.com/Mojang/bedrock-samples','revision':REV,'license':'Minecraft EULA; original Mojang/Microsoft assets, not freely redistributable artwork.','derivation':'Official cuboids and UVs rasterized with bake_native_mobs.Baker; official leg walk formula. Original right-arm pixels split losslessly into sleeve and hand; hand and iron axe share a wrist transform at runtime.','files':records,'rig':geom},ensure_ascii=False,indent=2),encoding='utf-8')
+    (output/'SOURCE.json').write_text(json.dumps({'repository':'https://github.com/Mojang/bedrock-samples','revision':REV,'license':'Minecraft EULA; original Mojang/Microsoft assets, not freely redistributable artwork.','derivation':'Official cuboids and UVs rasterized with bake_native_mobs.Baker; official leg walk formula. Original right-arm pixels split losslessly into sleeve and hand; hand and iron axe retain the same rigid attack grip in every arm pose.','files':records,'rig':geom},ensure_ascii=False,indent=2),encoding='utf-8')
     print('VINDICATOR_ART',geom,flush=True)
 if __name__=='__main__':
     import argparse
