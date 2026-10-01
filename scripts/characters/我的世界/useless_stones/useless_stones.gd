@@ -28,7 +28,7 @@ const BLOCKS:Array[Texture2D] = [
 	preload("res://Images/characters/我的世界/useless_stones/andesite_block.png"),
 ]
 const DIORITE_BUFF_KEY:String = "三废石_闪长岩攻速"
-const SHARED_EXPORTS:Array[String] = ["attack_range","shard_speed","granite_damage","granite_attack_cooling","granite_knockback","granite_knockback_speed","granite_slowness_level","granite_slowness_duration","diorite_damage","diorite_attack_cooling","diorite_rate_per_hit","diorite_decay_per_second","andesite_damage","andesite_attack_cooling","andesite_heal_missing_scale","andesite_haste_first","andesite_haste_interval","andesite_haste_level","andesite_haste_duration","ripple_speed","member_spawn_distance","footstep_base_interval","footstep_volume_db"]
+const SHARED_EXPORTS:Array[String] = ["attack_range","shard_speed","granite_damage","granite_attack_cooling","granite_knockback","granite_knockback_speed","granite_slowness_level","granite_slowness_duration","diorite_damage","diorite_attack_cooling","diorite_rate_per_hit","diorite_decay_per_second","andesite_damage","andesite_attack_cooling","andesite_heal_missing_scale","andesite_haste_first","andesite_haste_interval","andesite_haste_level","andesite_haste_duration","ripple_speed","member_spawn_distance","footstep_base_interval","footstep_volume_db","recoil_base","recoil_per_damage","recoil_max","recoil_frequency","recoil_damping_ratio"]
 
 ## 0 花岗岩（放置的领头）、1 闪长岩、2 安山岩。
 @export_range(0,2) var stone_kind:int = GRANITE
@@ -63,6 +63,14 @@ const SHARED_EXPORTS:Array[String] = ["attack_range","shard_speed","granite_dama
 ## 以基础移速走完“基础速度 × 该秒数”的距离踩一步；实际移速越快步点越密。
 @export var footstep_base_interval:float = 0.42
 @export var footstep_volume_db:float = -8.0
+@export_category("三废石 / 投掷后坐")
+## 投掷瞬间图像沿投掷反方向震开的距离（世界像素，随单位尺寸缩放）= 基础 + 投掷伤害 × 系数，封顶。
+@export var recoil_base:float = 1.0
+@export var recoil_per_damage:float = 0.22
+@export var recoil_max:float = 7.0
+## 弹性恢复：欠阻尼弹簧的角频率（弧度/秒）与阻尼比，阻尼比越小回弹越明显。
+@export var recoil_frequency:float = 28.0
+@export var recoil_damping_ratio:float = 0.32
 
 var trio:Dictionary = {}
 ## 领头的伤害相对花岗岩基础伤害的倍率；成员按同一倍率换算各自基础伤害（训练强化等）。
@@ -86,6 +94,10 @@ var _break_done:bool = false
 var _stone_collision_peers:Array[WeakRef] = []
 var _footstep_cadence = FOOTSTEP.new()
 var _landed_sound_done:bool = false
+## 后坐偏移（世界坐标）；只影响图像，不移动身体。
+var recoil_offset:Vector2 = Vector2.ZERO
+var _recoil_velocity:Vector2 = Vector2.ZERO
+var _rest_image_position:Vector2 = Vector2.ZERO
 
 func get_preview_texture() -> Texture2D: return BLOCKS[GRANITE]
 
@@ -99,7 +111,9 @@ func _ready() -> void:
 	_apply_kind_stats()
 	super._ready()
 	add_to_group(&"MCUselessStone")
-	if image != null: _rest_image_scale = image.scale
+	if image != null:
+		_rest_image_scale = image.scale
+		_rest_image_position = image.position
 	_apply_kind_visual()
 	_haste_wait = andesite_haste_first
 	_shot_left = 0.3 + 0.15*float(stone_kind)
@@ -297,6 +311,7 @@ func _spawn_shard(shot_name:String,point:Vector2,heading:Vector2,damage:float) -
 	var parent:Node = get_parent()
 	if not is_instance_valid(parent) or parent.has_node(NodePath(shot_name)): return
 	_pulse = 1.0
+	kick_recoil(heading,damage)
 	var shot:ball = SHARD_SCENE.instantiate()
 	shot.name = shot_name
 	shot.Master = self
@@ -447,6 +462,39 @@ func visual_mob() -> void:
 	if _pulse > 0.0 and is_combat_runtime_active(): _pulse = maxf(_pulse-get_process_delta_time()/0.16,0.0)
 	var squash:float = sin(_pulse*PI)*0.1
 	image.scale = Vector2(_rest_image_scale.x*(1.0+squash),_rest_image_scale.y*(1.0-squash*0.6))
+	if is_combat_runtime_active(): _step_recoil(get_process_delta_time())
+	image.position = _rest_image_position + _recoil_local_offset()
+
+func recoil_distance(damage:float) -> float:
+	return clampf(recoil_base + maxf(damage,0.0)*recoil_per_damage,0.0,recoil_max)*_unit_scale()
+
+## 投掷时沿投掷反方向震开；连投叠加但不超过上限，然后由弹簧弹性恢复。
+func kick_recoil(heading:Vector2,damage:float) -> void:
+	if not heading.is_finite() or heading.length_squared() <= 0.000001: return
+	recoil_offset = (recoil_offset - heading.normalized()*recoil_distance(damage)).limit_length(recoil_max*_unit_scale())
+	_recoil_velocity = Vector2.ZERO
+
+func _step_recoil(delta:float) -> void:
+	if delta <= 0.0 or (recoil_offset == Vector2.ZERO and _recoil_velocity == Vector2.ZERO): return
+	var omega:float = maxf(recoil_frequency,0.01)
+	var damping:float = 2.0*maxf(recoil_damping_ratio,0.0)*omega
+	var steps:int = clampi(ceili(delta*240.0),1,32)
+	var h:float = delta/float(steps)
+	for i:int in range(steps):
+		_recoil_velocity += (-omega*omega*recoil_offset - damping*_recoil_velocity)*h
+		recoil_offset += _recoil_velocity*h
+	var unit:float = maxf(_unit_scale(),0.01)
+	if recoil_offset.length() < 0.01*unit and _recoil_velocity.length() < 0.5*unit:
+		recoil_offset = Vector2.ZERO
+		_recoil_velocity = Vector2.ZERO
+
+func _recoil_local_offset() -> Vector2:
+	if recoil_offset == Vector2.ZERO: return Vector2.ZERO
+	var holder:Node2D = image.get_parent() as Node2D
+	if holder == null: return recoil_offset
+	var basis:Transform2D = holder.global_transform
+	if absf(basis.determinant()) < 0.000001: return Vector2.ZERO
+	return basis.affine_inverse().basis_xform(recoil_offset)
 
 func visual_state() -> Dictionary: return {"time":clock,"kind":stone_kind,"stacks":diorite_stacks}
 func accept_visual(data:Dictionary) -> void:
