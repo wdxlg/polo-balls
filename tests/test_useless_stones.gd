@@ -8,6 +8,12 @@ var saved_stop:bool
 var checks:int = 0
 var failures:int = 0
 var done:bool = false
+var heard:Dictionary = {}
+
+func _record_sound(node:Node) -> void:
+	if node is AudioStreamPlayer2D and node.has_meta("mc_sound_event"):
+		var event:String = str(node.get_meta("mc_sound_event"))
+		heard[event] = int(heard.get(event,0)) + 1
 
 func _initialize() -> void: call_deferred("run")
 
@@ -96,6 +102,7 @@ func run() -> void:
 	world = load("res://scenes/world.tscn").instantiate()
 	world.tree_entered.connect(func(): current_scene = world,CONNECT_ONE_SHOT)
 	root.add_child(world)
+	world.child_entered_tree.connect(_record_sound)
 	world.now_choose_map = "Map50x50"
 	world.refresh_map_presentation()
 	world.control.hide()
@@ -136,6 +143,8 @@ func run() -> void:
 	shard_probe.free()
 	mate.queue_free()
 
+	check(int(heard.get("block.stone.place",0)) >= 3,"each stone plays the native place sound when the battle starts (%d)" % int(heard.get("block.stone.place",0)))
+
 	# --- 花岗岩：击退 + 缓慢 II，不叠加、命中重置时间 ---
 	var start_shots:int = granite.shots_fired
 	var hit_ok:bool = await wait_until(func(): return STATUS.active(target,"slowness"),150)
@@ -148,6 +157,15 @@ func run() -> void:
 	granite._shot_left = 0.0
 	var refreshed:bool = await wait_until(func(): return is_instance_valid(status) and float(status.remaining) > before_refresh + 0.3,120)
 	check(before_refresh < 2.6 and refreshed and STATUS.level_of(target,"slowness") == 2,"another granite hit resets the slowness time without raising its level")
+
+	check(int(heard.get("entity.snowball.throw",0)) >= 1,"throwing plays the native throw sound")
+	check(int(heard.get("block.stone.hit",0)) >= 1,"a landing stone plays the native stone hit sound")
+	var hits_before:int = int(heard.get("block.stone.hit",0))
+	await create_timer(0.15).timeout
+	hits_before = int(heard.get("block.stone.hit",0))
+	diorite.receive_positional_damage(3.0,diorite.global_position,true,target)
+	await frames(3)
+	check(int(heard.get("block.stone.hit",0)) > hits_before,"a hurt stone plays the native stone hit sound")
 
 	# --- 闪长岩：命中无限叠加攻速 ---
 	var stacks_ok:bool = await wait_until(func(): return diorite.diorite_stacks >= 2,240)
@@ -188,6 +206,8 @@ func run() -> void:
 	check(andesite.heals_sent == sent,"no heal ripple when all stones are full")
 	andesite.on_stone_shard_hit(target,5.0)
 	check(andesite.heals_sent == sent,"andesite shard hit routes through the same heal rule")
+
+	check(stones().any(func(st:Node2D): return st.footsteps > 0) and int(heard.get("block.stone.step",0)) >= 1,"moving stones play native stone footsteps")
 
 	# --- 安山岩：周期急迫 III，三块都有，同样走波纹 ---
 	andesite._haste_wait = 0.0

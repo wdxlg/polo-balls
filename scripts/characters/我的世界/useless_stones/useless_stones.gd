@@ -8,12 +8,14 @@ extends "res://scripts/characters/我的世界/new5/base.gd"
 ## - 安山岩：攻速最慢、伤害低；命中时治疗三块中生命比例最低的一块，目标越残血治疗越多；
 ##   每隔一段时间给三块都施加几秒急迫 III。治疗与急迫都以地面石头波纹（andesite_ripple.gd）
 ##   从安山岩脚下射向队友，抵达时才生效。
-## 受击播原版石头敲击声、碎裂播原版石头破坏声并迸出方块像素碎屑。
+## 声音全部取原版石质音组：开战落地放置声、移动脚步声、投掷声、受击敲击声、碎裂破坏声
+## （并迸出方块像素碎屑）；石块落点与波纹的声音见 stone_shard.gd、andesite_ripple.gd。
 const SHARD_SCENE:PackedScene = preload("res://scenes/shooter/我的世界/废石碎块.tscn")
 const STONE_AUDIO = preload("res://scripts/characters/我的世界/useless_stones/useless_stones_audio.gd")
 const RIPPLE = preload("res://scripts/characters/我的世界/useless_stones/andesite_ripple.gd")
 const STATUS = preload("res://scripts/effects/我的世界/mc_status_effects.gd")
 const BLOCK_FRAGMENTS = preload("res://scripts/effects/我的世界/block_fragments.gd")
+const FOOTSTEP = preload("res://scripts/effects/我的世界/footstep_cadence.gd")
 const SCENE_PATH:String = "res://scenes/characters/我的世界/三废石.tscn"
 const GRANITE:int = 0
 const DIORITE:int = 1
@@ -25,7 +27,7 @@ const BLOCKS:Array[Texture2D] = [
 	preload("res://Images/characters/我的世界/useless_stones/andesite_block.png"),
 ]
 const DIORITE_BUFF_KEY:String = "三废石_闪长岩攻速"
-const SHARED_EXPORTS:Array[String] = ["attack_range","shard_speed","granite_damage","granite_attack_cooling","granite_knockback","granite_knockback_speed","granite_slowness_level","granite_slowness_duration","diorite_damage","diorite_attack_cooling","diorite_rate_per_hit","andesite_damage","andesite_attack_cooling","andesite_heal_missing_scale","andesite_haste_first","andesite_haste_interval","andesite_haste_level","andesite_haste_duration","ripple_speed","member_spawn_distance"]
+const SHARED_EXPORTS:Array[String] = ["attack_range","shard_speed","granite_damage","granite_attack_cooling","granite_knockback","granite_knockback_speed","granite_slowness_level","granite_slowness_duration","diorite_damage","diorite_attack_cooling","diorite_rate_per_hit","andesite_damage","andesite_attack_cooling","andesite_heal_missing_scale","andesite_haste_first","andesite_haste_interval","andesite_haste_level","andesite_haste_duration","ripple_speed","member_spawn_distance","footstep_base_interval","footstep_volume_db"]
 
 ## 0 花岗岩（放置的领头）、1 闪长岩、2 安山岩。
 @export_range(0,2) var stone_kind:int = GRANITE
@@ -54,6 +56,10 @@ const SHARED_EXPORTS:Array[String] = ["attack_range","shard_speed","granite_dama
 @export var andesite_haste_level:int = 3
 @export var andesite_haste_duration:float = 5.0
 @export var ripple_speed:float = 300.0
+@export_category("三废石 / 声音")
+## 以基础移速走完“基础速度 × 该秒数”的距离踩一步；实际移速越快步点越密。
+@export var footstep_base_interval:float = 0.42
+@export var footstep_volume_db:float = -8.0
 
 var trio:Dictionary = {}
 ## 领头的伤害相对花岗岩基础伤害的倍率；成员按同一倍率换算各自基础伤害（训练强化等）。
@@ -62,6 +68,7 @@ var diorite_stacks:int = 0
 var shots_fired:int = 0
 var heals_sent:int = 0
 var haste_casts:int = 0
+var footsteps:int = 0
 var _shot_left:float = 0.4
 var _shot_serial:int = 0
 var _ripple_serial:int = 0
@@ -73,6 +80,8 @@ var _pulse:float = 0.0
 var _rest_image_scale:Vector2 = Vector2.ONE
 var _break_done:bool = false
 var _stone_collision_peers:Array[WeakRef] = []
+var _footstep_cadence = FOOTSTEP.new()
+var _landed_sound_done:bool = false
 
 func get_preview_texture() -> Texture2D: return BLOCKS[GRANITE]
 
@@ -230,6 +239,10 @@ func nearest_stone_enemy() -> ball:
 	return result
 
 func step_mob(delta:float) -> void:
+	if not _landed_sound_done:
+		# 开战第一帧落地：每块石头一声原版放置声（准备阶段不出声）。
+		_landed_sound_done = true
+		_play_stone_sound(STONE_AUDIO.PLACE_SOUND,_voice_rng.randi_range(0,STONE_AUDIO.variant_count(STONE_AUDIO.PLACE_SOUND)-1),_voice_rng.randf_range(0.9,1.1))
 	_shot_left = maxf(_shot_left-delta,0.0)
 	_throw_sound_gap = maxf(_throw_sound_gap-delta,0.0)
 	if stone_kind == ANDESITE: _tick_haste(delta)
@@ -272,7 +285,7 @@ func throw_at(point:Vector2) -> bool:
 	_pulse = 1.0
 	if _throw_sound_gap <= 0.0:
 		_throw_sound_gap = 0.09
-		_play_stone_sound(STONE_AUDIO.THROW_SOUND,_shot_serial,rng.randf_range(0.8,1.2))
+		_play_stone_sound(STONE_AUDIO.THROW_SOUND,_shot_serial,_voice_rng.randf_range(0.8,1.2))
 	return true
 
 @rpc("authority","call_remote","reliable")
@@ -356,25 +369,45 @@ func _unit_scale() -> float:
 
 # ---------------------------------------------------------------- 声音与表现
 
-func _play_stone_sound(kind:int,index:int,pitch_scale:float = 1.0) -> void:
+## volume_db 为 NAN 时用音组默认音量。
+func _play_stone_sound(kind:int,index:int,pitch_scale:float = 1.0,volume_db:float = NAN) -> void:
 	if not is_multiplayer_authority(): return
-	if multiplayer.has_multiplayer_peer(): _receive_stone_sound.rpc(kind,index,global_position,pitch_scale)
-	_receive_stone_sound(kind,index,global_position,pitch_scale)
+	if multiplayer.has_multiplayer_peer(): _receive_stone_sound.rpc(kind,index,global_position,pitch_scale,volume_db)
+	_receive_stone_sound(kind,index,global_position,pitch_scale,volume_db)
 
 @rpc("authority","call_remote","reliable")
-func _receive_stone_sound(kind:int,index:int,point:Vector2,pitch_scale:float) -> void:
-	STONE_AUDIO.play(self,kind,index,point,pitch_scale)
+func _receive_stone_sound(kind:int,index:int,point:Vector2,pitch_scale:float,volume_db:float) -> void:
+	STONE_AUDIO.play(self,kind,index,point,pitch_scale,{} if is_nan(volume_db) else {"volume_db":volume_db})
+
+## 公共移动/站立结算后按实际位移踩步（被击退滑动也算移动）。
+func move(speed:float,delta:float) -> void:
+	var start:Vector2 = global_position
+	super.move(speed,delta)
+	_step_movement_audio(start,delta)
+
+func stand(delta:float) -> void:
+	var start:Vector2 = global_position
+	super.stand(delta)
+	_step_movement_audio(start,delta)
+
+func _step_movement_audio(start:Vector2,delta:float) -> void:
+	if not active() or dizziness or delta <= 0.0: return
+	var moved:float = start.distance_to(global_position)
+	if moved < 0.01: moved = 0.0
+	if not _footstep_cadence.tick(moved,delta,FOOTSTEP.base_speed(self),footstep_base_interval): return
+	footsteps += 1
+	_play_stone_sound(STONE_AUDIO.STEP_SOUND,_voice_rng.randi_range(0,STONE_AUDIO.variant_count(STONE_AUDIO.STEP_SOUND)-1),_voice_rng.randf_range(0.9,1.1),footstep_volume_db)
 
 func on_actual_health_damage_received(amount:float,before:float) -> void:
 	super.on_actual_health_damage_received(amount,before)
 	if amount <= 0.0 or health <= 0 or not is_multiplayer_authority(): return
 	if Time.get_ticks_msec()*0.001 < _hit_sound_gap: return
 	_hit_sound_gap = Time.get_ticks_msec()*0.001 + 0.1
-	_play_stone_sound(STONE_AUDIO.HIT_SOUND,rng.randi_range(0,STONE_AUDIO.variant_count(STONE_AUDIO.HIT_SOUND)-1))
+	_play_stone_sound(STONE_AUDIO.HIT_SOUND,_voice_rng.randi_range(0,STONE_AUDIO.variant_count(STONE_AUDIO.HIT_SOUND)-1))
 
 func Die() -> void:
 	if is_multiplayer_authority() and not _break_done:
-		_play_stone_sound(STONE_AUDIO.BREAK_SOUND,rng.randi_range(0,STONE_AUDIO.variant_count(STONE_AUDIO.BREAK_SOUND)-1))
+		_play_stone_sound(STONE_AUDIO.BREAK_SOUND,_voice_rng.randi_range(0,STONE_AUDIO.variant_count(STONE_AUDIO.BREAK_SOUND)-1))
 		if multiplayer.has_multiplayer_peer(): _shatter.rpc(absi(hash(str(name))))
 		_shatter(absi(hash(str(name))))
 	_clear_stone_collision_exceptions()
