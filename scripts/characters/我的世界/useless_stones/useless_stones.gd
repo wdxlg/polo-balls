@@ -64,13 +64,14 @@ const SHARED_EXPORTS:Array[String] = ["attack_range","shard_speed","granite_dama
 @export var footstep_base_interval:float = 0.42
 @export var footstep_volume_db:float = -8.0
 @export_category("三废石 / 投掷后坐")
-## 投掷瞬间图像沿投掷反方向震开的距离（世界像素，随单位尺寸缩放）= 基础 + 投掷伤害 × 系数，封顶。
-@export var recoil_base:float = 1.0
-@export var recoil_per_damage:float = 0.22
-@export var recoil_max:float = 7.0
-## 弹性恢复：欠阻尼弹簧的角频率（弧度/秒）与阻尼比，阻尼比越小回弹越明显。
-@export var recoil_frequency:float = 28.0
-@export var recoil_damping_ratio:float = 0.32
+## 投掷时图像沿投掷反方向震开的最远距离（世界像素，随单位尺寸缩放）= 基础 + 投掷伤害 × 系数，封顶。
+@export var recoil_base:float = 1.5
+@export var recoil_per_damage:float = 0.25
+@export var recoil_max:float = 8.0
+## 弹性恢复：欠阻尼弹簧的角频率（弧度/秒）与阻尼比（0.05–0.95）。
+## 默认约 0.09 秒震到最远，约 0.25 秒回到原位，再向前回弹约四分之一后停稳。
+@export var recoil_frequency:float = 14.0
+@export var recoil_damping_ratio:float = 0.4
 
 var trio:Dictionary = {}
 ## 领头的伤害相对花岗岩基础伤害的倍率；成员按同一倍率换算各自基础伤害（训练强化等）。
@@ -468,22 +469,49 @@ func visual_mob() -> void:
 func recoil_distance(damage:float) -> float:
 	return clampf(recoil_base + maxf(damage,0.0)*recoil_per_damage,0.0,recoil_max)*_unit_scale()
 
-## 投掷时沿投掷反方向震开；连投叠加但不超过上限，然后由弹簧弹性恢复。
+## 投掷时给图像一个向后的冲量：弹簧先把图像推到 recoil_distance 处，再弹性拉回。
+## 连投叠加冲量，但偏移不超过上限。
 func kick_recoil(heading:Vector2,damage:float) -> void:
 	if not heading.is_finite() or heading.length_squared() <= 0.000001: return
-	recoil_offset = (recoil_offset - heading.normalized()*recoil_distance(damage)).limit_length(recoil_max*_unit_scale())
-	_recoil_velocity = Vector2.ZERO
+	var peak_per_speed:float = _recoil_peak_per_speed()
+	if peak_per_speed <= 0.0: return
+	_recoil_velocity -= heading.normalized()*recoil_distance(damage)/peak_per_speed
+
+func _recoil_omega() -> float:
+	return maxf(recoil_frequency,0.01)
+
+func _recoil_zeta() -> float:
+	return clampf(recoil_damping_ratio,0.05,0.95)
+
+## 从原位以单位初速度出发时到达最远点的时间与距离。
+func recoil_peak_time() -> float:
+	var omega:float = _recoil_omega()
+	var zeta:float = _recoil_zeta()
+	var damped:float = omega*sqrt(1.0-zeta*zeta)
+	return atan2(damped,zeta*omega)/damped
+
+func _recoil_peak_per_speed() -> float:
+	var omega:float = _recoil_omega()
+	var zeta:float = _recoil_zeta()
+	var damped:float = omega*sqrt(1.0-zeta*zeta)
+	var peak_time:float = recoil_peak_time()
+	return exp(-zeta*omega*peak_time)*sin(damped*peak_time)/damped
 
 func _step_recoil(delta:float) -> void:
 	if delta <= 0.0 or (recoil_offset == Vector2.ZERO and _recoil_velocity == Vector2.ZERO): return
-	var omega:float = maxf(recoil_frequency,0.01)
-	var damping:float = 2.0*maxf(recoil_damping_ratio,0.0)*omega
+	var omega:float = _recoil_omega()
+	var damping:float = 2.0*_recoil_zeta()*omega
+	var unit:float = maxf(_unit_scale(),0.01)
+	var limit:float = recoil_max*unit
 	var steps:int = clampi(ceili(delta*240.0),1,32)
 	var h:float = delta/float(steps)
 	for i:int in range(steps):
 		_recoil_velocity += (-omega*omega*recoil_offset - damping*_recoil_velocity)*h
 		recoil_offset += _recoil_velocity*h
-	var unit:float = maxf(_unit_scale(),0.01)
+		if recoil_offset.length() > limit:
+			var outward:Vector2 = recoil_offset.normalized()
+			recoil_offset = outward*limit
+			_recoil_velocity -= outward*maxf(_recoil_velocity.dot(outward),0.0)
 	if recoil_offset.length() < 0.01*unit and _recoil_velocity.length() < 0.5*unit:
 		recoil_offset = Vector2.ZERO
 		_recoil_velocity = Vector2.ZERO

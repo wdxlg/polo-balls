@@ -256,26 +256,40 @@ func run() -> void:
 	granite.Can_Attack = false
 	andesite.Can_Attack = false
 	check(granite_threw and andesite_threw,"recoil probe throws succeed")
-	var granite_kick:Vector2 = granite.recoil_offset
-	var andesite_kick:Vector2 = andesite.recoil_offset
-	check(granite_kick.normalized().dot(-granite_aim) > 0.99 and andesite_kick.normalized().dot(-andesite_aim) > 0.99,"throw recoil points opposite the throw direction")
-	check(is_equal_approx(granite_kick.length(),granite.recoil_distance(16.0)) and is_equal_approx(andesite_kick.length(),andesite.recoil_distance(5.0)),"recoil distance follows the thrown damage")
-	check(granite_kick.length() > andesite_kick.length()*1.8,"granite (16 damage) recoils much farther than andesite (5 damage): %.2f vs %.2f" % [granite_kick.length(),andesite_kick.length()])
-	await process_frame
-	await process_frame
-	var shown:Vector2 = granite.image.get_parent().global_transform.basis_xform(granite.image.position - granite_rest)
-	check(shown.length() > 0.5 and shown.normalized().dot(-granite_aim) > 0.95 and shown.is_equal_approx(granite.recoil_offset),"the stone image is visibly displaced backwards on screen (%.2f px)" % shown.length())
+	check(granite.recoil_offset == Vector2.ZERO and granite._recoil_velocity.normalized().dot(-granite_aim) > 0.99 and andesite._recoil_velocity.normalized().dot(-andesite_aim) > 0.99,"throw kicks the image backwards, opposite the throw direction")
+	var granite_peak:float = 0.0
+	var andesite_peak:float = 0.0
+	var peak_at:float = 0.0
 	var overshoot:float = 0.0
+	var returned_at:float = -1.0
+	var shown_ok:bool = false
 	var elapsed:float = 0.0
-	while elapsed < 1.0:
+	while elapsed < 1.3:
 		await process_frame
 		elapsed += get_root().get_process_delta_time()
-		overshoot = maxf(overshoot,granite.recoil_offset.dot(granite_aim))
-	check(overshoot > 0.3,"recovery is elastic: the image springs past rest toward the throw (%.2f px)" % overshoot)
+		var back:float = granite.recoil_offset.dot(-granite_aim)
+		if back > granite_peak:
+			granite_peak = back
+			peak_at = elapsed
+		andesite_peak = maxf(andesite_peak,andesite.recoil_offset.dot(-andesite_aim))
+		if granite_peak > 1.0 and back < 0.0 and returned_at < 0.0: returned_at = elapsed
+		overshoot = maxf(overshoot,-back)
+		var shown:Vector2 = granite.image.get_parent().global_transform.basis_xform(granite.image.position - granite_rest)
+		if back > 2.0 and shown.is_equal_approx(granite.recoil_offset) and shown.normalized().dot(-granite_aim) > 0.95: shown_ok = true
+	var granite_want:float = granite.recoil_distance(16.0)
+	var andesite_want:float = andesite.recoil_distance(5.0)
+	check(absf(granite_peak - granite_want) < granite_want*0.12 and absf(andesite_peak - andesite_want) < andesite_want*0.12,"farthest recoil follows the thrown damage (granite %.2f/%.2f, andesite %.2f/%.2f)" % [granite_peak,granite_want,andesite_peak,andesite_want])
+	check(granite_peak > andesite_peak*1.8,"granite (16 damage) recoils much farther than andesite (5 damage)")
+	check(peak_at > 0.04 and peak_at < 0.2,"the kick reaches its farthest point over several frames, not a one-frame flicker (%.3f s)" % peak_at)
+	check(returned_at > 0.15 and returned_at < 0.45,"the image swings back through rest after %.3f s" % returned_at)
+	check(shown_ok,"the stone image is visibly displaced backwards on screen")
+	check(overshoot > granite_peak*0.12,"recovery is elastic: it springs past rest toward the throw (%.2f px)" % overshoot)
 	check(granite.recoil_offset == Vector2.ZERO and andesite.recoil_offset == Vector2.ZERO and granite.image.position.is_equal_approx(granite_rest),"recoil settles back to the exact rest position")
 	var body_before:Vector2 = granite.global_position
-	for i:int in range(10): granite.kick_recoil(Vector2.RIGHT,16.0)
-	check(granite.recoil_offset.length() <= granite.recoil_max*granite._unit_scale() + 0.001 and granite.recoil_offset.length() > granite.recoil_distance(16.0)*1.2,"rapid throws stack recoil up to the cap")
+	for i:int in range(12):
+		granite.kick_recoil(Vector2.RIGHT,16.0)
+		granite._step_recoil(1.0/60.0)
+	check(granite.recoil_offset.length() <= granite.recoil_max*granite._unit_scale() + 0.001 and granite.recoil_offset.length() > granite_want*1.2,"rapid throws stack recoil up to the cap")
 	check(granite.global_position == body_before and granite.recoil_offset.x < 0.0,"recoil moves only the image, never the body")
 	await create_timer(1.0).timeout
 	await frames(1)
