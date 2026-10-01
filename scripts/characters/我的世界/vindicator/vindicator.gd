@@ -11,6 +11,10 @@ const SHOULDER:Vector2 = Vector2(60.297922,98.722430)
 const HAND:Vector2 = Vector2(56.357506,58.194286)
 const AXE_GRIP:Vector2 = Vector2(5.5,11.5)
 const AXE_BLADE:Vector2 = Vector2(9.0,4.0)
+const AXE_SCALE:float = 5.0
+const REST_ARM_ANGLE:float = -1.65
+const RAISED_ARM_ANGLE:float = -0.70
+const AXE_HOLD_ANGLE:float = -REST_ARM_ANGLE-PI/4.0
 enum Phase { IDLE, CHARGE, DASH, SWING, RECOVER }
 @export var full_charge_seconds:float = 1.6
 @export var maximum_damage_multiplier:float = 4.0
@@ -60,9 +64,9 @@ func _ready() -> void:
 	_axe.texture = AXE
 	_axe.centered = false
 	_axe.offset = -AXE_GRIP
-	_axe.scale = Vector2(3,3)
+	_axe.scale = Vector2.ONE*AXE_SCALE
 	_axe.position = HAND-SHOULDER
-	_axe.rotation = -PI/4.0
+	_axe.rotation = AXE_HOLD_ANGLE
 	_arm.add_child(_axe)
 	_arm.move_child(_axe,0)
 	_charge_bar = Line2D.new()
@@ -275,31 +279,28 @@ func _update_pose() -> void:
 	if not is_instance_valid(_arm) or health<=0: return
 	var walking:bool = velocity.length_squared()>1.0
 	image.texture = FRAMES.get_frame_texture(&"walk",int(_walk_clock*12.0)%12) if walking else FRAMES.get_frame_texture(&"idle",0)
-	set_character_visual_flip_h(facing.x>=0.0)
-	var shoulder:Vector2 = SHOULDER-Vector2(80,112)
-	if is_character_visual_flipped_h(): shoulder.x = -shoulder.x
-	var side:float = 1.0 if facing.x>=0.0 else -1.0
-	var rest:float = (PI-0.15)*side
-	var raised:float = 0.38*side
-	var aimed:float = facing.angle()+PI/2.0
-	if side<0.0 and aimed>0.0: aimed-=TAU
-	var finish:float = aimed+0.65*side
-	var angle:float = rest
-	var axe_tilt:float = 0.0
-	var start:float = lerpf(rest,raised,clampf(released_charge,0.0,1.0))
+	var local_aim:Vector2 = image.to_local(image.global_position+facing).normalized()
+	var mirrored:bool = local_aim.x>=0.0
+	set_character_visual_flip_h(mirrored)
+	var canonical_aim:Vector2 = Vector2(-absf(local_aim.x),local_aim.y)
+	var aimed:float = canonical_aim.angle()+PI/2.0
+	if aimed>0.0: aimed-=TAU
+	var start:float = lerpf(REST_ARM_ANGLE,RAISED_ARM_ANGLE,clampf(released_charge,0.0,1.0))
+	var finish:float = aimed+0.65*signf(aimed-start)
+	var angle:float = REST_ARM_ANGLE
 	if phase in [Phase.CHARGE,Phase.DASH]:
-		angle = lerpf(rest,raised,charge_ratio())
+		angle = lerpf(REST_ARM_ANGLE,RAISED_ARM_ANGLE,charge_ratio())
 	elif phase == Phase.SWING:
 		angle = lerpf(start,finish,clampf(phase_elapsed/maxf(swing_seconds,0.01),0.0,1.0))
-		axe_tilt = angle-start
 	elif phase == Phase.RECOVER:
-		var recovery:float = clampf(phase_elapsed/maxf(recovery_seconds,0.01),0.0,1.0)
-		angle = lerpf(finish,rest,recovery)
-		axe_tilt = (finish-start)*(1.0-recovery)
-	_axe.rotation = -PI/4.0+(angle-axe_tilt)*side
-	angle -= image.global_rotation
-	var mirror:Vector2 = Vector2(-1,1) if is_character_visual_flipped_h() else Vector2.ONE
-	_arm.transform = Transform2D(angle,mirror,0.0,shoulder+image.offset)
+		angle = lerpf(finish,REST_ARM_ANGLE,clampf(phase_elapsed/maxf(recovery_seconds,0.01),0.0,1.0))
+	var pose:Transform2D = Transform2D(angle,SHOULDER-Vector2(80,112))
+	if mirrored:
+		pose = Transform2D(Vector2(-1,0),Vector2(0,1),Vector2.ZERO)*pose
+	pose.origin += image.offset
+	_arm.transform = pose
+	var reaching_front:bool = local_aim.y>0.15 and (phase==Phase.RECOVER or (phase==Phase.SWING and phase_elapsed>=maxf(swing_seconds,0.01)*0.12))
+	_arm.show_behind_parent = not reaching_front
 	_charge_bar.position = Vector2(0,-90)+image.offset
 	_charge_bar.visible = phase in [Phase.CHARGE,Phase.DASH]
 	_charge_fill.points = PackedVector2Array([Vector2(-22,0),Vector2(-22+44*charge_ratio(),0)])

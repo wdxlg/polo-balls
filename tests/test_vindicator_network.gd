@@ -60,14 +60,16 @@ func run() -> void:
 	remote._advance_swing(0.5)
 	check(remote.charge_elapsed==before_charge and remote.global_position==before_position,"guest cannot run dash or swing simulation")
 	var last_height:float = remote.blade_center().y
+	var previous_shaft:Vector2 = Vector2.UP
 	for ratio:float in [0.8,0.9,0.95]:
 		source.charge_elapsed = source.full_charge_seconds*ratio
 		source._update_pose()
 		source._sync_visual(true)
 		check(await until(func():return is_equal_approx(remote.charge_ratio(),ratio)),"late charge progression reaches replica: "+str(ratio))
 		var shaft:Vector2 = remote._axe.to_global(remote.AXE_GRIP+Vector2(6,-6)+remote._axe.offset)-remote._axe.to_global(remote.AXE_GRIP+remote._axe.offset)
-		check(remote.blade_center().y<last_height and shaft.normalized().dot(Vector2.UP)>0.99999 and remote.blade_center().distance_to(source.blade_center())<0.1,"replica keeps raising the upright axe after 75%: "+str(ratio))
+		check(remote.blade_center().y<last_height and absf(previous_shaft.angle_to(shaft.normalized()))>0.01 and is_equal_approx(remote._axe.rotation,remote.AXE_HOLD_ANGLE) and remote.blade_center().distance_to(source.blade_center())<0.1,"replica raises and rotates the fixed-grip axe after 75%: "+str(ratio))
 		last_height = remote.blade_center().y
+		previous_shaft = shaft.normalized()
 	source._release_swing()
 	check(await until(func():return remote.phase==source.Phase.SWING and is_equal_approx(remote.released_charge,0.95)),"release phase and locked charge cross the wire")
 	var before:int = target.health

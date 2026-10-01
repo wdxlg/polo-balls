@@ -46,9 +46,15 @@
       9.0,
       4.0
     ],
-    "arm_depth": "behind_body",
+    "arm_depth": "behind_body_at_rest",
+    "front_swing_depth": "in_front_of_body",
     "item_depth": "behind_hand",
-    "held_axe_axis": "screen_up",
+    "rest_axe_axis": "screen_up",
+    "axe_scale": 5.0,
+    "rest_arm_angle": -1.65,
+    "raised_arm_angle": -0.7,
+    "axe_hold_angle": 0.8646018366025516,
+    "rig_space": "canonical_left_mirror_all",
     "charge_pose_progress": "full_ratio"
   }
 }
