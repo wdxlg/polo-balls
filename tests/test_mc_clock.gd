@@ -83,6 +83,14 @@ func run() -> void:
 	check(clock.player_control_action_ids().is_empty(),"passive only, no C-key actions")
 	check(not game.t("MC_ARMOR_INTRO_CLOCK").begins_with("MC_ARMOR"),"intro translated")
 
+	check(is_equal_approx(clock.graphics.scale.x,clock.size_factor) and is_equal_approx(clock.collision_shape_2d.scale.x,clock.size_factor),"clock shrunk after auto-fit")
+	var foe_size:float = foe.image.texture.get_size().x*foe.image.global_scale.x
+	var clock_size:float = clock.image.texture.get_size().x*clock.image.global_scale.x
+	check(clock_size < foe_size*0.8,"clock drawn smaller than a normal character (%.1f vs %.1f)" % [clock_size,foe_size])
+	clock._measured_speed = clock.base_travel_speed()*2.0
+	check(not clock.ghosts_armed(),"no afterimages at 2x speed")
+	clock._measured_speed = clock.base_travel_speed()*2.3
+	check(clock.ghosts_armed(),"afterimages from 2.2x speed")
 	# Speed -> collision damage multiplier.
 	clock._measured_speed = clock.base_travel_speed()
 	check(is_equal_approx(clock.current_hit_damage_multiplier(),1.0),"normal speed x1")
@@ -164,6 +172,7 @@ func run() -> void:
 		if n.name.begins_with("ClockAfterimage"):
 			for c:Node in n.get_children(): if c is StaticBody2D: solid = c
 	check(solid != null,"armed afterimage has a collision body")
+	if solid != null: check(not solid.get_parent().z_as_relative and solid.get_parent().z_index < clock.image.z_index and solid.get_parent().z_index < foe.image.z_index,"afterimage drawn below characters")
 	if solid != null: check(clock.get_collision_exceptions().has(solid),"clock passes through own afterimage")
 	check(foe.health < hp0,"afterimage damages enemy (%d -> %d)" % [hp0,foe.health])
 	var kinds:Array = clock.get_debug_attack_regions().map(func(r): return r.kind)

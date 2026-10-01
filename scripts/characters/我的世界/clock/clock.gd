@@ -15,8 +15,10 @@ const FRAME_PATH:String = "res://Images/characters/我的世界/时钟/clock_%02
 const GROUP:StringName = &"MCClock"
 const HURTBOX_MASK:int = 2
 
+@export_category("时钟 - 体型")
+@export_range(0.3,1.0,0.01) var size_factor:float = 0.7
 @export_category("时钟 - 时间加速")
-@export var time_accel_per_second:float = 0.025
+@export var time_accel_per_second:float = 0.1
 @export var time_scale_max:float = 2.5
 @export_category("时钟 - 时光倒流")
 @export var rewind_interval:float = 4.5
@@ -25,7 +27,7 @@ const HURTBOX_MASK:int = 2
 @export_category("时钟 - 速度与残影")
 @export var speed_damage_min:float = 0.6
 @export var speed_damage_max:float = 3.0
-@export var ghost_speed_ratio:float = 1.6
+@export var ghost_speed_ratio:float = 2.2
 @export var ghost_spacing:float = 16.0
 @export var ghost_life:float = 0.4
 @export var ghost_damage_ratio:float = 0.6
@@ -78,6 +80,16 @@ func _ready() -> void:
 	_query.collide_with_bodies = false
 	_query.collide_with_areas = true
 	FIELD.ensure(self)
+	call_deferred("_apply_size")
+
+
+## 在 CharacterAutoFit 之后缩小外观与三个碰撞形状（与普通角色同尺寸下表盘显得过大）。
+func _apply_size() -> void:
+	if has_meta("clock_sized") or not is_inside_tree(): return
+	set_meta("clock_sized",true)
+	graphics.scale *= size_factor
+	for shape:Node in [collision_shape_2d,self_hitbox.get_node_or_null("CollisionShape2D"),self_hurtbox.get_node_or_null("CollisionShape2D")]:
+		if shape is Node2D: (shape as Node2D).scale *= size_factor
 
 
 func clock_running() -> bool:
@@ -222,6 +234,10 @@ func _spot_free(point:Vector2) -> bool:
 
 # ---------------------------------------------------------------- 残影
 func ghost_radius() -> float:
+	var shape:Shape2D = collision_shape_2d.shape if collision_shape_2d != null else null
+	var gs:Vector2 = collision_shape_2d.global_scale.abs() if collision_shape_2d != null else Vector2.ONE
+	if shape is RectangleShape2D: return maxf(minf((shape as RectangleShape2D).size.x*gs.x,(shape as RectangleShape2D).size.y*gs.y)*0.5,6.0)
+	if shape is CircleShape2D: return maxf((shape as CircleShape2D).radius*maxf(gs.x,gs.y),6.0)
 	return maxf(get_crowd_separation_radius_world(),6.0)
 
 
@@ -243,7 +259,7 @@ func _clock_ghost(point:Vector2,frame:int,armed:bool) -> void:
 	var g:Node2D = GHOST.new()
 	scene.add_child(g)
 	var solid:float = ghost_radius() * 0.9 if armed and is_multiplayer_authority() else 0.0
-	g.setup(self,frame_texture(frame),image.global_scale,point,ghost_life,armed,solid)
+	g.setup(self,frame_texture(frame),image.global_scale,point,ghost_life,armed,solid,image.z_index - 2)
 
 
 func _hit_with_ghosts() -> void:
@@ -329,4 +345,3 @@ func Die() -> void:
 	_rewinding = false
 	ITEM_DEATH.spawn(self)
 	super.Die()
-

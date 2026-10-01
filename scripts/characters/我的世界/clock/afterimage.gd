@@ -1,5 +1,5 @@
 extends Node2D
-## 时钟残影：原版表盘贴图淡出；带伤残影在权威端附带实体碰撞（时钟自身例外）。
+## 时钟残影：原版表盘贴图淡出，画在人物下层；带伤残影在权威端附带实体碰撞（时钟自身例外）。
 const ARMED_TINT := Color(1.0,0.86,0.45,0.62)
 const PLAIN_TINT := Color(0.66,0.82,1.0,0.46)
 var life:float = 0.4
@@ -10,14 +10,15 @@ var _body:StaticBody2D
 var _clock_ref:WeakRef
 
 
-func setup(clock:Node2D,texture:Texture2D,sprite_scale:Vector2,point:Vector2,duration:float,is_armed:bool,solid_radius:float) -> void:
+func setup(clock:Node2D,texture:Texture2D,sprite_scale:Vector2,point:Vector2,duration:float,is_armed:bool,solid_radius:float,layer:int = -2) -> void:
 	name = "ClockAfterimage"
 	add_to_group(&"BattleTransient")
 	global_position = point
 	life = maxf(duration,0.05)
 	armed = is_armed
-	z_index = clock.z_index
+	# 与内置拖尾一致：画在人物之下。
 	z_as_relative = false
+	z_index = layer
 	_clock_ref = weakref(clock)
 	_sprite = Sprite2D.new()
 	_sprite.texture = texture
@@ -59,4 +60,3 @@ func _expire() -> void:
 	if _body != null and is_instance_valid(clock) and clock is PhysicsBody2D:
 		(clock as PhysicsBody2D).remove_collision_exception_with(_body)
 	queue_free()
-
