@@ -3,8 +3,9 @@ extends "res://scripts/characters/我的世界/new5/base.gd"
 ## 放置的是花岗岩（领头），开战前延迟生成另外两块；三块共享一个三人组（同一存续键，
 ## 任意一块活着这一方就没输），各自独立、走公共正常移动，射程内锁最近的可见敌人投掷石块。
 ## 三块之间无身体碰撞、互不选为目标；石块投射物见 stone_shard.gd。
-## - 花岗岩：伤害最高、攻速中等；命中小幅击退并施加缓慢 II，不叠加，再次命中重置时间。
-## - 闪长岩：伤害较低；每次命中永久提高自身攻速（每次 +闪长岩每击攻速，没有上限）。
+## - 花岗岩：伤害最高、攻速中等；命中小幅击退并施加缓慢 I，不叠加，再次命中重置时间。
+## - 闪长岩：伤害较低；每次命中提高自身攻速（每次 +闪长岩每击攻速，没有上限）。石块落空
+##   （撞墙、飞完射程，没碰到任何敌人）后叠层开始按中速线性衰减，下一次命中立即停止衰减。
 ## - 安山岩：攻速最慢、伤害低；命中时治疗三块中生命比例最低的一块，目标越残血治疗越多；
 ##   每隔一段时间给三块都施加几秒急迫 III。治疗与急迫都以地面石头波纹（andesite_ripple.gd）
 ##   从安山岩脚下射向队友，抵达时才生效。
@@ -27,7 +28,7 @@ const BLOCKS:Array[Texture2D] = [
 	preload("res://Images/characters/我的世界/useless_stones/andesite_block.png"),
 ]
 const DIORITE_BUFF_KEY:String = "三废石_闪长岩攻速"
-const SHARED_EXPORTS:Array[String] = ["attack_range","shard_speed","granite_damage","granite_attack_cooling","granite_knockback","granite_knockback_speed","granite_slowness_level","granite_slowness_duration","diorite_damage","diorite_attack_cooling","diorite_rate_per_hit","andesite_damage","andesite_attack_cooling","andesite_heal_missing_scale","andesite_haste_first","andesite_haste_interval","andesite_haste_level","andesite_haste_duration","ripple_speed","member_spawn_distance","footstep_base_interval","footstep_volume_db"]
+const SHARED_EXPORTS:Array[String] = ["attack_range","shard_speed","granite_damage","granite_attack_cooling","granite_knockback","granite_knockback_speed","granite_slowness_level","granite_slowness_duration","diorite_damage","diorite_attack_cooling","diorite_rate_per_hit","diorite_decay_per_second","andesite_damage","andesite_attack_cooling","andesite_heal_missing_scale","andesite_haste_first","andesite_haste_interval","andesite_haste_level","andesite_haste_duration","ripple_speed","member_spawn_distance","footstep_base_interval","footstep_volume_db"]
 
 ## 0 花岗岩（放置的领头）、1 闪长岩、2 安山岩。
 @export_range(0,2) var stone_kind:int = GRANITE
@@ -39,13 +40,15 @@ const SHARED_EXPORTS:Array[String] = ["attack_range","shard_speed","granite_dama
 @export var granite_attack_cooling:float = 1.5
 @export var granite_knockback:float = 20.0
 @export var granite_knockback_speed:float = 170.0
-@export var granite_slowness_level:int = 2
+@export var granite_slowness_level:int = 1
 @export var granite_slowness_duration:float = 3.0
 @export_category("三废石 / 闪长岩")
 @export var diorite_damage:int = 8
 @export var diorite_attack_cooling:float = 1.2
 ## 每次命中叠加的攻速比例：攻速倍率 = 1 + 层数 × 该值，冷却 = 基础冷却 / 攻速倍率。
 @export var diorite_rate_per_hit:float = 0.10
+## 落空后每秒衰减的叠层数（线性，可降到 0）；命中即停止衰减。
+@export var diorite_decay_per_second:float = 2.0
 @export_category("三废石 / 安山岩")
 @export var andesite_damage:int = 5
 @export var andesite_attack_cooling:float = 2.4
@@ -64,7 +67,8 @@ const SHARED_EXPORTS:Array[String] = ["attack_range","shard_speed","granite_dama
 var trio:Dictionary = {}
 ## 领头的伤害相对花岗岩基础伤害的倍率；成员按同一倍率换算各自基础伤害（训练强化等）。
 var stat_ratio:float = 1.0
-var diorite_stacks:int = 0
+var diorite_stacks:float = 0.0
+var diorite_decaying:bool = false
 var shots_fired:int = 0
 var heals_sent:int = 0
 var haste_casts:int = 0
@@ -246,6 +250,7 @@ func step_mob(delta:float) -> void:
 	_shot_left = maxf(_shot_left-delta,0.0)
 	_throw_sound_gap = maxf(_throw_sound_gap-delta,0.0)
 	if stone_kind == ANDESITE: _tick_haste(delta)
+	if stone_kind == DIORITE and diorite_decaying: _tick_diorite_decay(delta)
 	if dizziness or is_damage_output_disabled() or not Can_Attack:
 		_manual_request = false
 		return
@@ -321,11 +326,24 @@ func on_stone_shard_hit(_target:Variant,_actual:float) -> void:
 		ANDESITE: heal_lowest_member()
 
 func add_diorite_stack() -> void:
-	diorite_stacks += 1
+	diorite_decaying = false
+	diorite_stacks += 1.0
+	_apply_diorite_buff()
+
+## 石块没碰到任何敌人就碎了（撞墙/飞完射程）时由石块回调。
+func on_stone_shard_miss() -> void:
+	if not is_multiplayer_authority() or health <= 0 or stone_kind != DIORITE: return
+	if diorite_stacks > 0.0: diorite_decaying = true
+
+func _tick_diorite_decay(delta:float) -> void:
+	diorite_stacks = maxf(diorite_stacks - maxf(diorite_decay_per_second,0.0)*delta,0.0)
+	if diorite_stacks <= 0.0: diorite_decaying = false
+	_apply_diorite_buff()
+
+func _apply_diorite_buff() -> void:
 	var world:Node = get_tree().current_scene
 	if world == null or not world.has_method("new_buff"): return
-	var rate:float = 1.0 + maxf(diorite_rate_per_hit,0.0)*float(diorite_stacks)
-	world.call("new_buff",self,self,DIORITE_BUFF_KEY,Buff.new(2,INF,Buff.Buff_types.Attack_Cooling,1.0/rate,Buff.Algorithms.mul))
+	world.call("new_buff",self,self,DIORITE_BUFF_KEY,Buff.new(2,INF,Buff.Buff_types.Attack_Cooling,1.0/diorite_attack_rate(),Buff.Algorithms.mul))
 	if world.has_method("refresh_runtime_buffs"): world.call("refresh_runtime_buffs",self)
 
 func diorite_attack_rate() -> float:
@@ -435,7 +453,7 @@ func visual_state() -> Dictionary: return {"time":clock,"kind":stone_kind,"stack
 func accept_visual(data:Dictionary) -> void:
 	super.accept_visual(data)
 	stone_kind = clampi(int(data.get("kind",stone_kind)),GRANITE,ANDESITE)
-	diorite_stacks = int(data.get("stacks",diorite_stacks))
+	diorite_stacks = float(data.get("stacks",diorite_stacks))
 
 func get_debug_detection_regions() -> Array:
 	if health <= 0 or not Can_Attack or dizziness or is_damage_output_disabled(): return []

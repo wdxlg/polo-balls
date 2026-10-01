@@ -3,6 +3,7 @@ extends ball
 ## （护盾、格挡、船载都照常生效），撞墙或飞完射程即碎，名字确定、权威端 RPC 生成。
 ## 外观是投掷者那种石头的小方块（自旋飞行），碎裂时迸出该石头的原版像素碎屑并播石质敲击声。
 ## 花岗岩石块命中后小幅击退并施加缓慢；闪长岩/安山岩的命中效果交给投掷者 on_stone_shard_hit 结算。
+## 没碰到任何敌人就碎掉（撞墙、飞完射程）时回调投掷者 on_stone_shard_miss；被敌人格挡不算落空。
 const U = preload("res://scripts/characters/我的世界/new5/utils.gd")
 const STATUS = preload("res://scripts/effects/我的世界/mc_status_effects.gd")
 const BLOCK_FRAGMENTS = preload("res://scripts/effects/我的世界/block_fragments.gd")
@@ -31,6 +32,7 @@ var trio_id:int = -1
 var hits:int = 0
 var _spent:bool = false
 var _resolving_hit:bool = false
+var _touched_enemy:bool = false
 
 func _ready() -> void:
 	Hit_Audio = ""
@@ -130,6 +132,7 @@ func _on_hitbox_on_hit(hurt:hurtbox) -> void:
 	if _spent or _resolving_hit or not is_multiplayer_authority(): return
 	var target:ball = _hurtbox_target_ball(hurt)
 	if not enemy(target): return
+	_touched_enemy = true
 	var before:float = maxf(float(target.health),0.0)
 	var heading:Vector2 = direction.normalized()
 	_resolving_hit = true
@@ -156,12 +159,14 @@ func should_destroy_projectile_on_rejected_hit(_incoming:hitbox) -> bool: return
 func on_projectile_blocked_by(target:ball,_point:Vector2) -> void:
 	if _spent or not is_multiplayer_authority(): return
 	if is_instance_valid(target) and not enemy(target): return
+	_touched_enemy = true
 	expire()
 
 func Die() -> void: expire()
 func when_collide(_speed:float,_collision:KinematicCollision2D) -> void: expire()
 func expire() -> void:
 	if _spent: return
+	if is_multiplayer_authority() and not _touched_enemy and is_instance_valid(Master) and Master.has_method(&"on_stone_shard_miss"): Master.call(&"on_stone_shard_miss")
 	if is_multiplayer_authority() and multiplayer.has_multiplayer_peer() and multiplayer.get_peers().size() > 0: _retire.rpc(global_position)
 	_retire(global_position)
 

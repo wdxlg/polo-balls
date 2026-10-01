@@ -145,18 +145,18 @@ func run() -> void:
 
 	check(int(heard.get("block.stone.place",0)) >= 3,"each stone plays the native place sound when the battle starts (%d)" % int(heard.get("block.stone.place",0)))
 
-	# --- 花岗岩：击退 + 缓慢 II，不叠加、命中重置时间 ---
+	# --- 花岗岩：击退 + 缓慢 I，不叠加、命中重置时间 ---
 	var start_shots:int = granite.shots_fired
 	var hit_ok:bool = await wait_until(func(): return STATUS.active(target,"slowness"),150)
 	check(hit_ok and granite.shots_fired > start_shots,"granite throws a stone that lands and applies Slowness")
-	check(STATUS.level_of(target,"slowness") == 2,"granite slowness is level II")
+	check(STATUS.level_of(target,"slowness") == 1,"granite slowness is level I")
 	check(target.get_children().any(func(c:Node): return c.has_method("replace_with_hit")) or target.global_position.x > center.x + 60.5,"granite hit knocks the target back")
 	var status:Node = STATUS.current(target,"slowness")
 	await create_timer(0.8).timeout
 	var before_refresh:float = float(status.remaining) if is_instance_valid(status) else 0.0
 	granite._shot_left = 0.0
 	var refreshed:bool = await wait_until(func(): return is_instance_valid(status) and float(status.remaining) > before_refresh + 0.3,120)
-	check(before_refresh < 2.6 and refreshed and STATUS.level_of(target,"slowness") == 2,"another granite hit resets the slowness time without raising its level")
+	check(before_refresh < 2.6 and refreshed and STATUS.level_of(target,"slowness") == 1,"another granite hit resets the slowness time without raising its level")
 
 	check(int(heard.get("entity.snowball.throw",0)) >= 1,"throwing plays the native throw sound")
 	check(int(heard.get("block.stone.hit",0)) >= 1,"a landing stone plays the native stone hit sound")
@@ -177,12 +177,46 @@ func run() -> void:
 	diorite.add_diorite_stack()
 	await physics_frame
 	check(diorite.Attack_Cooling < 0.2 and diorite.diorite_attack_rate() > 7.0,"diorite stacking has no cap")
+	# 落空后中速衰减，命中停止衰减。
+	diorite.Can_Attack = false
+	diorite.diorite_stacks = 10.0
+	diorite.add_diorite_stack()
+	var miss_shot:Node2D = load("res://scenes/shooter/我的世界/废石碎块.tscn").instantiate()
+	miss_shot.name = "UselessStonesMissProbe"
+	miss_shot.Master = diorite
+	miss_shot.Team = diorite.Team
+	miss_shot.stone_kind = 1
+	miss_shot.direction = Vector2.UP
+	miss_shot.life = 0.05
+	miss_shot.position = diorite.global_position + Vector2(0,-30)
+	world.add_child(miss_shot,true)
+	await wait_until(func(): return not is_instance_valid(miss_shot),30)
+	check(diorite.diorite_decaying,"a shard that touches no enemy starts the diorite decay")
+	var decay_from:float = diorite.diorite_stacks
+	await create_timer(1.0).timeout
+	var lost:float = decay_from - diorite.diorite_stacks
+	check(lost > 1.6 and lost < 2.4,"diorite decays about 2 stacks per second (lost %.2f)" % lost)
+	await physics_frame
+	var decayed_cd:float = 1.2/(1.0 + 0.1*diorite.diorite_stacks)
+	check(absf(diorite.Attack_Cooling - decayed_cd) < 0.03,"decayed stacks lengthen the diorite cooldown")
+	var at_hit:float = diorite.diorite_stacks
+	diorite.on_stone_shard_hit(target,8.0)
+	check(not diorite.diorite_decaying and is_equal_approx(diorite.diorite_stacks,at_hit + 1.0),"a hit stops the decay and adds a stack")
+	await create_timer(0.5).timeout
+	check(is_equal_approx(diorite.diorite_stacks,at_hit + 1.0),"stacks hold steady after the hit")
+	diorite.diorite_decay_per_second = 1000.0
+	diorite.on_stone_shard_miss()
+	await frames(2)
+	check(diorite.diorite_stacks == 0.0 and not diorite.diorite_decaying and absf(diorite.Attack_Cooling - 1.2) < 0.01,"decay bottoms out at the base attack speed")
+	diorite.diorite_decay_per_second = 2.0
+	diorite.Can_Attack = true
 
 	# --- 安山岩：命中治疗血最少的石头，越残血治疗越多，以地面波纹送达 ---
 	granite.Can_Attack = false
 	diorite.Can_Attack = false
 	andesite.Can_Attack = false
 	await wait_until(func(): return get_nodes_in_group("MCUselessStoneShard").is_empty(),60)
+	await wait_until(func(): return get_nodes_in_group("MCAndesiteRipple").filter(func(r:Node): return is_instance_valid(r) and not r.is_queued_for_deletion()).is_empty(),120)
 	granite.health = 100
 	diorite.health = 180
 	andesite.health = 200
