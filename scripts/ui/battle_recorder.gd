@@ -27,7 +27,6 @@ const VIDEO_CRF:String = "22"
 const VIDEO_NVENC_CQ:String = "23"
 const VIDEO_MAXRATE:String = "10M"
 const VIDEO_BUFSIZE:String = "20M"
-const IntroTitleScript = preload("res://scripts/ui/battle_intro_title.gd")
 # NVENC still performs RGBA -> YUV preprocessing on CPU. Two auto-sized filter
 # pools can starve each other/the editor; bound these separately from x264 threads.
 const ENCODER_FILTER_THREADS:int = 2
@@ -1345,8 +1344,6 @@ func _setup_sim_capture_viewport() -> void:
 	_capture_vignette.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_sync_capture_vignette()
 	_setup_recording_composition(sub)
-	# 开战大标题是屏幕层，共享 World2D 拍不到：这条录像的视口按自己的语言另放一份。
-	IntroTitleScript.register_capture(sub,_locale)
 	if sub.use_hdr_2d:
 		_setup_color_resolve(sub)
 	if not _is_variant and is_instance_valid(_secondary):

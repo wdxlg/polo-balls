@@ -3,6 +3,7 @@ extends Node
 const ZH_BIT:int = 1 << 17
 const EN_BIT:int = 1 << 18
 const HIDDEN_BIT:int = 1 << 19
+const VERSUS_TITLE_3D:GDScript = preload("res://scripts/ui/versus_title_3d.gd")
 var world:Node
 var main:Viewport
 var old_mask:int
@@ -287,6 +288,8 @@ func sync() -> void:
 			var localized_versus:bool = source == world.versus_label and texts[locale] != source_text
 			_style(source, copy, localized_versus)
 			if copy.text != texts[locale]: copy.text = texts[locale]
+			# 中/英录像的 VS 各自按翻译后的文字生成 3D 立体字。
+			if source == world.versus_label: VERSUS_TITLE_3D.attach(copy as RichTextLabel).sync_now()
 			copy.position = Vector2.ZERO
 			if source == world.armor_intro_label:
 				copy.size.x = source.size.x

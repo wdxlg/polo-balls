@@ -6,6 +6,7 @@ extends Control
 ## 不注册 class_name，用 load() 取脚本：
 ##   var title = load(PATH).new()
 ##   title.setup([{"text":"烈焰人","style":Color.RED},{"text":"VS","style":"gold","scale":0.62}])
+##   一行多色：{"segments":[{"text":"烈焰人","style":Color.RED},{"text":"VS","style":"gold","scale":0.7},{"text":"骷髅","style":Color.BLUE}]}
 ##   parent.add_child(title)   # 在自己的 size 里按比例居中绘制
 ## 行 style："stone"（原版标题灰石）/ "gold"（JAVA EDITION 金）/ Color（按颜色生成整套配色）。
 ## 选项：render_width（渲染宽度，默认 1280）。
@@ -20,6 +21,8 @@ const DEPTH_EM:float = 0.5
 ## 描边半格粗（在 2 倍细分的格子上外扩 1 格）。
 const OUTLINE_CELLS:float = 0.5
 const LINE_GAP_EM:float = 0.2
+## 同一行几段之间的间距。
+const SEGMENT_GAP_EM:float = 0.3
 ## 相机距离 / 画面宽度：越小透视越强（cube-3d-text 默认约 0.8）。
 const CAMERA_DISTANCE_RATIO:float = 0.7
 ## 每行绕自己的水平中线往后仰的角度：每一行都露出底面，像原版标题从下往上看。
@@ -267,34 +270,49 @@ func _build() -> void:
 	var bottom_y:float = INF
 	var any:bool = false
 	for line:Dictionary in _lines:
-		var text:String = str(line.get("text","")).strip_edges()
-		if text.is_empty(): continue
-		var scale_amount:float = float(line.get("scale",1.0))
-		var mask:Dictionary = rasterize(text)
-		var cell:float = float(mask.unit) * scale_amount
-		var depth:float = DEPTH_EM * EM * scale_amount
-		var colors:Dictionary = style_colors(line.get("style","stone"))
-		var ink:Vector2 = _ink_rows(mask)
-		# 行距按实际有字的行算，字体上下留白不占地方。每行在自己的局部坐标里建（行中线为 y=0），再整体后仰。
-		var ink_height:float = (ink.y - ink.x) * cell
-		var origin := Vector2(-int(mask.w) * cell * 0.5,ink.x * cell + ink_height * 0.5)
-		var main := SurfaceTool.new()
-		main.begin(Mesh.PRIMITIVE_TRIANGLES)
-		_extrude(main,mask,origin,cell,depth,colors,ink.x,ink.y)
-		var rim := SurfaceTool.new()
-		rim.begin(Mesh.PRIMITIVE_TRIANGLES)
-		_extrude(rim,_outline_mask(mask),origin + Vector2(-OUTLINE_CELLS * cell,OUTLINE_CELLS * cell),cell * 0.5,depth,colors,0.0,1.0,colors.outline)
-		for st:SurfaceTool in [rim,main]:
-			var mesh := MeshInstance3D.new()
-			mesh.mesh = st.commit()
-			mesh.material_override = _material(0 if st == rim else 1,st == main)
-			mesh.position = Vector3(0.0,y - ink_height * 0.5,0.0)
-			mesh.rotation.x = -deg_to_rad(TILT_DEGREES)
-			viewport.add_child(mesh)
-		half_width = maxf(half_width,(int(mask.w) * 0.5 + OUTLINE_CELLS) * cell)
-		top_y = maxf(top_y,y + OUTLINE_CELLS * cell)
-		bottom_y = minf(bottom_y,y - (ink.y - ink.x + OUTLINE_CELLS) * cell)
-		y -= (ink.y - ink.x) * cell + LINE_GAP_EM * EM * scale_amount
+		var line_scale:float = float(line.get("scale",1.0))
+		var parts:Array = []
+		var line_width:float = 0.0
+		var line_height:float = 0.0
+		var line_cell:float = 0.0
+		var pieces:Array = line.get("segments",[line])
+		for piece:Dictionary in pieces:
+			var text:String = str(piece.get("text","")).strip_edges()
+			if text.is_empty(): continue
+			var scale_amount:float = line_scale * (float(piece.get("scale",1.0)) if line.has("segments") else 1.0)
+			var mask:Dictionary = rasterize(text)
+			var cell:float = float(mask.unit) * scale_amount
+			var ink:Vector2 = _ink_rows(mask)
+			if not parts.is_empty(): line_width += SEGMENT_GAP_EM * EM * line_scale
+			parts.append({"mask":mask,"cell":cell,"ink":ink,"x":line_width,"depth":DEPTH_EM * EM * scale_amount,"colors":style_colors(piece.get("style","stone"))})
+			line_width += int(mask.w) * cell
+			line_height = maxf(line_height,(ink.y - ink.x) * cell)
+			line_cell = maxf(line_cell,cell)
+		if parts.is_empty(): continue
+		# 行距按实际有字的行算，字体上下留白不占地方。每段在自己的局部坐标里建（墨迹中线为 y=0），
+		# 同一行的几段共用行中线、一起后仰。
+		for part:Dictionary in parts:
+			var mask:Dictionary = part.mask
+			var cell:float = part.cell
+			var ink:Vector2 = part.ink
+			var origin := Vector2(0.0,ink.x * cell + (ink.y - ink.x) * cell * 0.5)
+			var main := SurfaceTool.new()
+			main.begin(Mesh.PRIMITIVE_TRIANGLES)
+			_extrude(main,mask,origin,cell,part.depth,part.colors,ink.x,ink.y)
+			var rim := SurfaceTool.new()
+			rim.begin(Mesh.PRIMITIVE_TRIANGLES)
+			_extrude(rim,_outline_mask(mask),origin + Vector2(-OUTLINE_CELLS * cell,OUTLINE_CELLS * cell),cell * 0.5,part.depth,part.colors,0.0,1.0,part.colors.outline)
+			for st:SurfaceTool in [rim,main]:
+				var mesh := MeshInstance3D.new()
+				mesh.mesh = st.commit()
+				mesh.material_override = _material(0 if st == rim else 1,st == main)
+				mesh.position = Vector3(-line_width * 0.5 + float(part.x),y - line_height * 0.5,0.0)
+				mesh.rotation.x = -deg_to_rad(TILT_DEGREES)
+				viewport.add_child(mesh)
+		half_width = maxf(half_width,line_width * 0.5 + OUTLINE_CELLS * line_cell)
+		top_y = maxf(top_y,y + OUTLINE_CELLS * line_cell)
+		bottom_y = minf(bottom_y,y - line_height - OUTLINE_CELLS * line_cell)
+		y -= line_height + LINE_GAP_EM * EM * line_scale
 		any = true
 	if not any: return
 	# 画面：字块四周留一点边（后仰后行底会往前凸一点）。相机正对字块中心，透视但不裁切。

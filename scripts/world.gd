@@ -44,6 +44,7 @@ const WORLD_OUTSIDE_GRID_SHADER:Shader = preload("res://shaders/world_outside_ch
 const MAP_BACKGROUND_THEMES = preload("res://scripts/effects/我的世界/地图背景主题.gd")
 const HEAVY_GIRL_GLYPH_SHAKE_EFFECT = preload("res://scripts/effects/重女式逐字颤抖.gd")
 const MOJANGLES_FONT = preload("res://fonts/Mojangles.ttf")
+const VERSUS_TITLE_3D_SCRIPT:GDScript = preload("res://scripts/ui/versus_title_3d.gd")
 const DUEL_TOP_HUD_SCRIPT = preload("res://scripts/ui/duel_top_hud.gd")
 const COMBAT_IMPACT_LAYER_SCRIPT = preload("res://scripts/effects/combat_impact_layer.gd")
 
@@ -4388,6 +4389,8 @@ func setup_map_presentation() -> void:
 	armor_intro_label.add_theme_constant_override("line_separation",6)
 	armor_intro_label.visible = false
 	versus_screen_layer.add_child(armor_intro_label)
+	# 顶部 VS 用我的世界 3D 立体字显示；标签本身仍负责文字、布局与可见性（盔甲架介绍复制后再挂）。
+	VERSUS_TITLE_3D_SCRIPT.attach(versus_label)
 	# 1v1 顶部对战 HUD：仅在恰好两名主角色分属两方时自行显示；原文字 VS 保留。
 	duel_top_hud = DUEL_TOP_HUD_SCRIPT.new()
 	duel_top_hud.world = self
@@ -5637,7 +5640,6 @@ func _update_battle_start_bell() -> void:
 	if _collect_alive_victory_sides().size() < 2: return
 	_battle_start_bell_played = true
 	_play_battle_start_bell()
-	_present_battle_intro_title()
 	_start_intro_camera()
 
 
@@ -5696,44 +5698,6 @@ func _update_intro_camera(delta:float) -> void:
 	if pull >= 1.0:
 		_intro_camera_state = 0
 		_intro_camera_weight = 0.0
-
-
-## 开战大标题：各方名字用阵营颜色的我的世界立体字，中间金色 VS；录像里中英文各一份。
-func _present_battle_intro_title() -> void:
-	var by_locale:Dictionary = {}
-	for locale:String in ["zh","en"]: by_locale[locale] = _battle_intro_title_lines(locale)
-	load("res://scripts/ui/battle_intro_title.gd").present(self,by_locale,str(Game.current_locale))
-
-
-func _battle_intro_title_lines(locale:String) -> Array:
-	var battle_data:Dictionary = return_battle_sides()
-	var side_order:Array = battle_data["order"]
-	var side_members:Dictionary = battle_data["members"]
-	var active_team_count:int = 0
-	for side_key:String in side_order:
-		if _versus_is_named_team(side_key): active_team_count += 1
-	var lines:Array = []
-	var team_index:int = 0
-	for side_key:String in side_order:
-		var counts:Dictionary = {}
-		var names:PackedStringArray = PackedStringArray()
-		for member in side_members[side_key]:
-			var raw:String = str(member)
-			if not counts.has(raw):
-				counts[raw] = 0
-				names.append(raw)
-			counts[raw] = int(counts[raw]) + 1
-		var parts:PackedStringArray = PackedStringArray()
-		for raw:String in names:
-			var text:String = Game._localization._t_for_locale(raw,locale,false).replace("_"," ")
-			if int(counts[raw]) > 1: text += " * %d" % int(counts[raw])
-			parts.append(text)
-		var color:Color = _versus_side_color(side_key,active_team_count,team_index)
-		if _versus_is_named_team(side_key): team_index += 1
-		if not lines.is_empty(): lines.append({"text":"VS","style":"gold","scale":0.62})
-		# 中立/白色阵营用原版标题的灰石配色。
-		lines.append({"text":" + ".join(parts),"style":color if color.s > 0.2 else "stone"})
-	return lines
 
 
 func _play_battle_start_bell() -> void:
