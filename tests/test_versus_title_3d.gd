@@ -36,6 +36,16 @@ func count_opaque(adaptor:Control) -> int:
 			if image.get_pixel(x,y).a > 0.5: count += 1
 	return count
 
+## 等后台网格生成完成、新画面换上并渲染。
+func settle(adaptors:Array) -> void:
+	for i:int in range(400):
+		var busy:bool = false
+		for item:Variant in adaptors:
+			if item != null and is_instance_valid(item) and is_instance_valid(item.title) and item.title.is_busy(): busy = true
+		if not busy: break
+		await process_frame
+	await frames(3)
+
 func frames(n:int) -> void:
 	for i:int in range(n): await process_frame
 
@@ -80,6 +90,7 @@ func run() -> void:
 	await frames(20)
 	world.refresh_versus_text()
 	await frames(8)
+	await settle([adaptor])
 	check(label.visible and adaptor.visible and label.material == Adaptor.hide_material(),"3D shown and flat glyphs hidden")
 	check(adaptor.size.x > 0.0 and adaptor.size.y >= label.size.y,"3D area covers the label width")
 	check(count_opaque(adaptor) > 400,"3D title rendered (%d)" % count_opaque(adaptor))
@@ -93,6 +104,7 @@ func run() -> void:
 	await frames(2)
 	world.refresh_versus_text()
 	await frames(8)
+	await settle([adaptor])
 	canvas = label.get_global_transform_with_canvas()
 	var crowd_top:float = (canvas * (adaptor.position + adaptor.title.content_rect().position)).y
 	var crowd_bottom:float = (canvas * (adaptor.position + adaptor.title.content_rect().end)).y
@@ -102,6 +114,20 @@ func run() -> void:
 	check(crowd_top < single_top - 20.0 and crowd_top >= screen_h * 0.04 - 1.0,"crowded title grows upward into the empty header, below the safe line")
 	check(adaptor.title._lines.size() >= 2 and count_opaque(adaptor) > 400,"crowded title wraps and renders")
 	root.get_texture().get_image().save_png(OS.get_environment("TEMP") + "/versus3d_crowd.png")
+	# 卡顿回归：人多时某一方数量变化，主线程只做排版/组装，网格在后台生成（旧画面继续显示）。
+	var crowd_text:String = label.text
+	var t0:int = Time.get_ticks_usec()
+	label.text = crowd_text.replace("[b]女巫[/b]","[b]女巫 * 2[/b]")
+	adaptor.sync_now()
+	var main_ms:float = (Time.get_ticks_usec() - t0) / 1000.0
+	check(main_ms < 20.0,"one roster change costs %.1f ms on the main thread" % main_ms)
+	await settle([adaptor])
+	t0 = Time.get_ticks_usec()
+	label.text = crowd_text
+	adaptor.sync_now()
+	main_ms = (Time.get_ticks_usec() - t0) / 1000.0
+	check(main_ms < 10.0 and not adaptor.title.is_busy(),"returning to a cached roster reuses meshes (%.1f ms)" % main_ms)
+	await settle([adaptor])
 	label.self_modulate.a = 0.0
 	await process_frame
 	check(is_zero_approx(adaptor.modulate.a),"duel HUD self_modulate hide also hides the 3D title")
@@ -125,6 +151,9 @@ func run() -> void:
 	await frames(8)
 	var copies:Dictionary = mirror.copies.get(label.get_instance_id(),{})
 	check(copies.has("zh") and copies.has("en"),"recording mirrors exist")
+	var pending:Array = []
+	for locale:String in copies: pending.append((copies[locale].text as Node).get_node_or_null(Adaptor.NODE_NAME))
+	await settle(pending)
 	var copy_adaptors:Dictionary = {}
 	for locale:String in ["zh","en"]:
 		if not copies.has(locale): continue

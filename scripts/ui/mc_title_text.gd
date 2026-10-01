@@ -42,7 +42,18 @@ const SHINE_AMOUNT:float = 0.1
 const GOLD:Dictionary = {"front_top":Color("ffd07b"),"front_bottom":Color("ffaa00"),"side":Color("553800"),"down_front":Color("a56c00"),"down_back":Color("553800"),"outline":Color("291a00")}
 const STONE:Dictionary = {"front_top":Color("ffffff"),"front_bottom":Color("a8a8a8"),"side":Color("3c3c3c"),"down_front":Color("727272"),"down_back":Color("3c3c3c"),"outline":Color("161616")}
 
+## 新画面组装好、换上之后发出。
+signal built
+
+## 段网格缓存（文字 + 缩放 + 配色 → 正文/描边网格），本体与录像副本共用；字形栅格同样缓存。
+const MESH_CACHE_LIMIT:int = 96
+static var _mesh_cache:Dictionary = {}
+static var _mask_cache:Dictionary = {}
+static var _materials:Array = []
+
 var viewport:SubViewport
+var _task_id:int = -1
+var _job:Dictionary = {}
 var _lines:Array = []
 var _options:Dictionary = {}
 var _aspect:float = 4.0
@@ -64,6 +75,7 @@ func texture() -> Texture2D:
 	return viewport.get_texture() if viewport != null else null
 
 func _ready() -> void:
+	set_process(_task_id >= 0)
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	resized.connect(queue_redraw)
 	if viewport == null: _build()
@@ -307,7 +319,7 @@ static func _ink_rows(mask:Dictionary) -> Vector2:
 				break
 	return Vector2(maxi(top,0),maxi(bottom,1))
 
-func _material(priority:int,depth_test:bool) -> StandardMaterial3D:
+static func _make_material(priority:int,depth_test:bool) -> StandardMaterial3D:
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.vertex_color_use_as_albedo = true
@@ -320,19 +332,87 @@ func _material(priority:int,depth_test:bool) -> StandardMaterial3D:
 	mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_ALWAYS if depth_test else BaseMaterial3D.DEPTH_DRAW_DISABLED
 	return mat
 
+## 先在主线程排版（字形栅格有缓存），缺的段网格交给后台线程生成，期间继续显示旧画面；
+## 全部就绪后在主线程组装新视口再换上，主线程只做很轻的组装。
 func _build() -> void:
-	if viewport != null: viewport.queue_free()
-	viewport = SubViewport.new()
-	viewport.own_world_3d = true
-	viewport.transparent_bg = true
-	viewport.msaa_3d = Viewport.MSAA_4X
-	viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
-	add_child(viewport)
+	if _task_id >= 0: return # 后台任务完成后会按最新的行重新排版。
+	var plan:Dictionary = _plan()
+	if plan.parts.is_empty(): return
+	var missing:Array = []
+	var queued:Dictionary = {}
+	for part:Dictionary in plan.parts:
+		if _mesh_cache.has(part.key) or queued.has(part.key): continue
+		queued[part.key] = true
+		missing.append(part.duplicate())
+	if missing.is_empty():
+		_assemble(plan)
+		return
+	_job = {"parts":missing}
+	_task_id = WorkerThreadPool.add_task(_run_job.bind(_job),false,"mc_title_mesh")
+	set_process(true)
+
+func is_busy() -> bool:
+	return _task_id >= 0
+
+func _process(_delta:float) -> void:
+	if _task_id < 0 or not WorkerThreadPool.is_task_completed(_task_id): return
+	WorkerThreadPool.wait_for_task_completion(_task_id)
+	_task_id = -1
+	set_process(false)
+	_store(_job)
+	_job = {}
+	_build()
+
+func _notification(what:int) -> void:
+	if what == NOTIFICATION_PREDELETE and _task_id >= 0:
+		WorkerThreadPool.wait_for_task_completion(_task_id)
+		_task_id = -1
+
+## 后台线程：只做纯计算（挤出网格数组），不碰场景树。
+static func _run_job(job:Dictionary) -> void:
+	for part:Dictionary in job.parts:
+		var mask:Dictionary = part.mask
+		var cell:float = part.cell
+		var ink:Vector2 = part.ink
+		var origin := Vector2(0.0,ink.x * cell + (ink.y - ink.x) * cell * 0.5)
+		var main := SurfaceTool.new()
+		main.begin(Mesh.PRIMITIVE_TRIANGLES)
+		_extrude(main,mask,origin,cell,part.depth,part.colors,ink.x,ink.y)
+		part["main_arrays"] = main.commit_to_arrays()
+		var rim := SurfaceTool.new()
+		rim.begin(Mesh.PRIMITIVE_TRIANGLES)
+		_extrude(rim,_outline_mask(mask),origin + Vector2(-OUTLINE_CELLS * cell,OUTLINE_CELLS * cell),cell * 0.5,part.depth,part.colors,0.0,1.0,part.colors.outline)
+		part["rim_arrays"] = rim.commit_to_arrays()
+
+static func _store(job:Dictionary) -> void:
+	if _mesh_cache.size() + (job.parts as Array).size() > MESH_CACHE_LIMIT: _mesh_cache.clear()
+	for part:Dictionary in job.parts:
+		if not part.has("main_arrays"): continue
+		var entry:Dictionary = {}
+		for kind:String in ["main","rim"]:
+			var mesh := ArrayMesh.new()
+			mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,part[kind + "_arrays"])
+			entry[kind] = mesh
+		_mesh_cache[part.key] = entry
+
+static func _cached_mask(text:String) -> Dictionary:
+	if not _mask_cache.has(text):
+		if _mask_cache.size() > 256: _mask_cache.clear()
+		_mask_cache[text] = rasterize(text)
+	return _mask_cache[text]
+
+static func _shared_material(rim:bool) -> StandardMaterial3D:
+	if _materials.is_empty():
+		_materials = [_make_material(0,false),_make_material(1,true)]
+	return _materials[0] if rim else _materials[1]
+
+## 排版：每段的网格键、栅格、位置，以及整块的范围。
+func _plan() -> Dictionary:
+	var parts_out:Array = []
 	var y:float = 0.0
 	var half_width:float = 0.0
 	var top_y:float = -INF
 	var bottom_y:float = INF
-	var any:bool = false
 	for line:Dictionary in _lines:
 		var line_scale:float = float(line.get("scale",1.0))
 		var parts:Array = []
@@ -344,11 +424,12 @@ func _build() -> void:
 			var text:String = str(piece.get("text","")).strip_edges()
 			if text.is_empty(): continue
 			var scale_amount:float = line_scale * (float(piece.get("scale",1.0)) if line.has("segments") else 1.0)
-			var mask:Dictionary = rasterize(text)
+			var mask:Dictionary = _cached_mask(text)
 			var cell:float = float(mask.unit) * scale_amount
 			var ink:Vector2 = _ink_rows(mask)
+			var colors:Dictionary = style_colors(piece.get("style","stone"))
 			if not parts.is_empty(): line_width += SEGMENT_GAP_EM * EM * line_scale
-			parts.append({"mask":mask,"cell":cell,"ink":ink,"x":line_width,"depth":DEPTH_EM * EM * scale_amount,"colors":style_colors(piece.get("style","stone"))})
+			parts.append({"key":"%s|%s|%s" % [text,scale_amount,str(colors)],"mask":mask,"cell":cell,"ink":ink,"x":line_width,"depth":DEPTH_EM * EM * scale_amount,"colors":colors})
 			line_width += int(mask.w) * cell
 			line_height = maxf(line_height,(ink.y - ink.x) * cell)
 			line_cell = maxf(line_cell,cell)
@@ -356,32 +437,34 @@ func _build() -> void:
 		# 行距按实际有字的行算，字体上下留白不占地方。每段在自己的局部坐标里建（墨迹中线为 y=0），
 		# 同一行的几段共用行中线、一起后仰。
 		for part:Dictionary in parts:
-			var mask:Dictionary = part.mask
-			var cell:float = part.cell
-			var ink:Vector2 = part.ink
-			var origin := Vector2(0.0,ink.x * cell + (ink.y - ink.x) * cell * 0.5)
-			var main := SurfaceTool.new()
-			main.begin(Mesh.PRIMITIVE_TRIANGLES)
-			_extrude(main,mask,origin,cell,part.depth,part.colors,ink.x,ink.y)
-			var rim := SurfaceTool.new()
-			rim.begin(Mesh.PRIMITIVE_TRIANGLES)
-			_extrude(rim,_outline_mask(mask),origin + Vector2(-OUTLINE_CELLS * cell,OUTLINE_CELLS * cell),cell * 0.5,part.depth,part.colors,0.0,1.0,part.colors.outline)
-			for st:SurfaceTool in [rim,main]:
-				var mesh := MeshInstance3D.new()
-				mesh.mesh = st.commit()
-				mesh.material_override = _material(0 if st == rim else 1,st == main)
-				mesh.position = Vector3(-line_width * 0.5 + float(part.x),y - line_height * 0.5,0.0)
-				mesh.rotation.x = -deg_to_rad(TILT_DEGREES)
-				viewport.add_child(mesh)
+			part["position"] = Vector3(-line_width * 0.5 + float(part.x),y - line_height * 0.5,0.0)
+			parts_out.append(part)
 		half_width = maxf(half_width,line_width * 0.5 + OUTLINE_CELLS * line_cell)
 		top_y = maxf(top_y,y + OUTLINE_CELLS * line_cell)
 		bottom_y = minf(bottom_y,y - line_height - OUTLINE_CELLS * line_cell)
 		y -= line_height + LINE_GAP_EM * EM * line_scale
-		any = true
-	if not any: return
+	return {"parts":parts_out,"half_width":half_width,"top_y":top_y,"bottom_y":bottom_y}
+
+func _assemble(plan:Dictionary) -> void:
+	var next := SubViewport.new()
+	next.own_world_3d = true
+	next.transparent_bg = true
+	next.msaa_3d = Viewport.MSAA_4X
+	next.render_target_update_mode = SubViewport.UPDATE_ONCE
+	for part:Dictionary in plan.parts:
+		var entry:Dictionary = _mesh_cache[part.key]
+		for kind:String in ["rim","main"]:
+			var mesh := MeshInstance3D.new()
+			mesh.mesh = entry[kind]
+			mesh.material_override = _shared_material(kind == "rim")
+			mesh.position = part.position
+			mesh.rotation.x = -deg_to_rad(TILT_DEGREES)
+			next.add_child(mesh)
 	# 画面：字块四周留一点边（后仰后行底会往前凸一点）。相机正对字块中心，透视但不裁切。
 	var margin:float = EM * 0.45
-	var view_w:float = half_width * 2.0 + margin * 2.0
+	var top_y:float = plan.top_y
+	var bottom_y:float = plan.bottom_y
+	var view_w:float = float(plan.half_width) * 2.0 + margin * 2.0
 	var view_h:float = (top_y - bottom_y) + margin * 2.0
 	var center_y:float = (top_y + bottom_y) * 0.5
 	var camera_y:float = center_y
@@ -396,9 +479,14 @@ func _build() -> void:
 	env.background_mode = Environment.BG_CLEAR_COLOR
 	env.tonemap_mode = Environment.TONE_MAPPER_LINEAR
 	camera.environment = env
-	viewport.add_child(camera)
-	_aspect = view_w / view_h
+	next.add_child(camera)
+	var aspect:float = view_w / view_h
 	var render_width:int = int(_options.get("render_width",1280))
-	viewport.size = Vector2i(render_width,maxi(int(render_width / _aspect),8))
+	next.size = Vector2i(render_width,maxi(int(render_width / aspect),8))
+	add_child(next)
+	if viewport != null: viewport.queue_free()
+	viewport = next
+	_aspect = aspect
 	queue_redraw()
+	built.emit()
 

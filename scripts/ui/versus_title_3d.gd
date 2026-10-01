@@ -20,6 +20,7 @@ const ROW_HEIGHT_PER_WIDTH:float = 0.16
 ## 底边固定在单行标题的位置；人多折行时往上长，用掉顶部空白，最高到屏幕高度的这个比例
 ## （时钟下面；本体还会避开顶部工具栏）。放不下就整体缩小，绝不往下压到战场。
 const TOP_SAFE_FRACTION:float = 0.04
+const RELAYOUT_TOLERANCE:float = 0.08
 const WRAP_CANDIDATES:Array[float] = [13.0,16.0,20.0,25.0,32.0,44.0,64.0]
 const VS_INLINE_SCALE:float = 0.68
 
@@ -27,7 +28,7 @@ static var _hide_material:ShaderMaterial = null
 var title:Control = null
 var _source_text:String = "\u0001"
 var _sides:Array = []
-var _layout_key:Vector2 = Vector2.ZERO
+var _layout_area:Vector2 = Vector2.ZERO
 ## 可选：返回本体屏幕坐标里标题最高能到的 y（world 用它避开顶部工具栏）。
 var top_limit_provider:Callable = Callable()
 
@@ -141,7 +142,7 @@ func sync_now() -> void:
 	if label.text != _source_text:
 		_source_text = label.text
 		_sides = parse_sides(_source_text)
-		_layout_key = Vector2.ZERO
+		_layout_area = Vector2.ZERO
 	var active:bool = not _sides.is_empty()
 	var wanted:Material = hide_material() if active else null
 	if label.material != wanted: label.material = wanted
@@ -160,17 +161,22 @@ func sync_now() -> void:
 	var canvas:Transform2D = label.get_global_transform_with_canvas()
 	var top:float = minf((canvas.affine_inverse() * Vector2(0.0,screen_top)).y,bottom - row)
 	var area := Vector2(label.size.x,bottom - top)
-	# 文字或区域明显变化才重新生成网格（区域按 4% 粒度比较，避免每帧抖动重建）。
-	var key := Vector2(roundf(area.x / maxf(row,0.001) * 25.0),roundf(area.y / maxf(row,0.001) * 25.0))
-	if key != _layout_key or not is_instance_valid(title):
-		_layout_key = key
-		if is_instance_valid(title): title.queue_free()
-		title = TITLE_SCRIPT.new()
-		title.name = "Title"
-		title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		title.valign = 1.0
-		title.setup(best_layout(_sides,area,row))
-		add_child(title)
+	# 只有文字变了、或区域变化超过 8% 时才重新挑折行；折行结果和现在一样就不动网格（只改绘制大小）。
+	var relayout:bool = _layout_area == Vector2.ZERO or not is_instance_valid(title) \
+		or absf(area.x - _layout_area.x) > _layout_area.x * RELAYOUT_TOLERANCE \
+		or absf(area.y - _layout_area.y) > _layout_area.y * RELAYOUT_TOLERANCE
+	if relayout:
+		_layout_area = area
+		var lines:Array = best_layout(_sides,area,row)
+		if not is_instance_valid(title):
+			title = TITLE_SCRIPT.new()
+			title.name = "Title"
+			title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			title.valign = 1.0
+			title.setup(lines)
+			add_child(title)
+		elif lines != title._lines:
+			title.setup(lines)
 	position = Vector2(0.0,top)
 	size = area
 	title.position = Vector2.ZERO
