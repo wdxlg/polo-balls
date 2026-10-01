@@ -83,14 +83,14 @@ func run() -> void:
 	check(clock.player_control_action_ids().is_empty(),"passive only, no C-key actions")
 	check(not game.t("MC_ARMOR_INTRO_CLOCK").begins_with("MC_ARMOR"),"intro translated")
 
-	check(is_equal_approx(clock.graphics.scale.x,clock.size_factor) and is_equal_approx(clock.collision_shape_2d.scale.x,clock.size_factor),"clock shrunk after auto-fit")
+	check(is_equal_approx(float(clock.get_node("CharacterAutoFit").visual_size_multiplier),0.5),"scene-level auto-fit size (preview uses the same fit)")
 	var foe_size:float = foe.image.texture.get_size().x*foe.image.global_scale.x
 	var clock_size:float = clock.image.texture.get_size().x*clock.image.global_scale.x
-	check(clock_size < foe_size*0.8,"clock drawn smaller than a normal character (%.1f vs %.1f)" % [clock_size,foe_size])
-	clock._measured_speed = clock.base_travel_speed()*2.0
-	check(not clock.ghosts_armed(),"no afterimages at 2x speed")
-	clock._measured_speed = clock.base_travel_speed()*2.3
-	check(clock.ghosts_armed(),"afterimages from 2.2x speed")
+	check(clock_size < foe_size*0.6,"clock drawn smaller than a normal character (%.1f vs %.1f)" % [clock_size,foe_size])
+	clock._measured_speed = clock.base_travel_speed()*3.8
+	check(not clock.ghosts_armed(),"no afterimages below 4x speed")
+	clock._measured_speed = clock.base_travel_speed()*4.2
+	check(clock.ghosts_armed(),"afterimages from 4x speed")
 	# Speed -> collision damage multiplier.
 	clock._measured_speed = clock.base_travel_speed()
 	check(is_equal_approx(clock.current_hit_damage_multiplier(),1.0),"normal speed x1")
@@ -137,7 +137,17 @@ func run() -> void:
 	clock.time_scale = 1.0
 	clock.time_accel_per_second = 0.5
 	await frames(60)
-	check(clock.time_scale > 1.3 and clock.time_scale <= clock.time_scale_max,"time scale grows (%.2f)" % clock.time_scale)
+	check(clock.time_scale > 1.3,"time scale grows (%.2f)" % clock.time_scale)
+	clock.time_scale = 60.0
+	await frames(10)
+	check(clock.time_scale > 60.0,"time scale has no cap (%.2f)" % clock.time_scale)
+	var fast_shot:Node2D = make_projectile(Vector2(100,140))
+	await frames(2)
+	var f0:float = float(fast_shot.get("travelled"))
+	await frames(30)
+	var fast_rate:float = (float(fast_shot.get("travelled"))-f0)/(100.0*30.0/float(Engine.physics_ticks_per_second))
+	check(fast_rate > 55.0,"x60 still fully applied to delta-based projectiles (%.1f)" % fast_rate)
+	fast_shot.queue_free()
 	clock.time_accel_per_second = 0.0
 	clock.time_scale = 1.0
 
@@ -172,7 +182,7 @@ func run() -> void:
 		if n.name.begins_with("ClockAfterimage"):
 			for c:Node in n.get_children(): if c is StaticBody2D: solid = c
 	check(solid != null,"armed afterimage has a collision body")
-	if solid != null: check(not solid.get_parent().z_as_relative and solid.get_parent().z_index < clock.image.z_index and solid.get_parent().z_index < foe.image.z_index,"afterimage drawn below characters")
+	if solid != null: check(not solid.get_parent().z_as_relative and solid.get_parent().z_index < clock._effective_z(clock.image) and solid.get_parent().z_index < clock._effective_z(foe.image),"afterimage drawn below characters")
 	if solid != null: check(clock.get_collision_exceptions().has(solid),"clock passes through own afterimage")
 	check(foe.health < hp0,"afterimage damages enemy (%d -> %d)" % [hp0,foe.health])
 	var kinds:Array = clock.get_debug_attack_regions().map(func(r): return r.kind)

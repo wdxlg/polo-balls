@@ -1,10 +1,12 @@
 extends Node
-## 时钟的全局时间加速器。倍率取场上存活时钟的最大 time_scale；
+## 时钟的全局时间加速器（无上限）。倍率取场上存活时钟的最大 time_scale；
 ## 多出来的时间按整物理步补跑：时钟自身、投射物、药水/凋零状态、独立危险物与昼夜时间。
 ## 其它角色（Ball / Creature 类型）及挂在其身上的攻击节点不补跑。
 const PROJECTILES = preload("res://classes/projectile_interactions.gd")
 const GROUP:StringName = &"MCClockTimeField"
-const MAX_EXTRA_STEPS:int = 4
+## 角色类节点用 move_and_slide（固定物理步长），只能多跑整步；超过上限的部分
+## 只由按 delta 计算的节点（状态、昼夜、非角色投射物）以放大的步长补齐。
+const MAX_EXTRA_STEPS:int = 32
 var time_scale_now:float = 1.0
 var extra_steps:int = 0
 var _carry:float = 0.0
@@ -50,12 +52,13 @@ func _physics_process(delta:float) -> void:
 		return
 	var step:float = delta
 	_carry += delta * (time_scale_now - 1.0)
-	var n:int = 0
-	while _carry >= step - 0.000001 and n < MAX_EXTRA_STEPS:
-		_carry -= step
-		n += 1
-		_extra_tick(step)
-	if n == MAX_EXTRA_STEPS: _carry = minf(_carry,step)
+	var whole:int = int(floor((_carry + 0.000001) / step))
+	if whole <= 0: return
+	_carry -= float(whole) * step
+	var n:int = mini(whole,MAX_EXTRA_STEPS)
+	var stretched:float = step * float(whole) / float(n)
+	var nodes:Array[Node] = accelerated_nodes()
+	for i:int in n: _extra_tick(nodes,step,stretched)
 	extra_steps += n
 
 
@@ -96,21 +99,21 @@ static func _take(node:Node,seen:Dictionary,out:Array[Node]) -> void:
 	out.append(node)
 
 
-static func tick_node(node:Node,step:float) -> void:
+static func tick_node(node:Node,step:float,stretched:float = -1.0) -> void:
+	if stretched <= 0.0: stretched = step
 	if not is_instance_valid(node) or node.is_queued_for_deletion() or not node.is_inside_tree() or not node.can_process(): return
 	if node is ball:
 		if node.health <= 0: return
 		var machine:Node = node.get("state_machine")
 		if is_instance_valid(machine) and machine.is_physics_processing(): machine.call("_physics_process",step)
 	elif node.is_physics_processing() and node.has_method("_physics_process"):
-		node.call("_physics_process",step)
+		node.call("_physics_process",stretched)
 	elif node.is_processing() and node.has_method("_process"):
-		node.call("_process",step)
+		node.call("_process",stretched)
 
 
-func _extra_tick(step:float) -> void:
-	for node:Node in accelerated_nodes(): tick_node(node,step)
+func _extra_tick(nodes:Array[Node],step:float,stretched:float) -> void:
+	for node:Node in nodes: tick_node(node,step,stretched)
 	var scene:Node = get_tree().current_scene
 	var cycle:Variant = scene.get("day_night_cycle") if scene != null else null
-	if cycle is Node and is_instance_valid(cycle) and cycle.has_method("advance"): cycle.call("advance",step)
-
+	if cycle is Node and is_instance_valid(cycle) and cycle.has_method("advance"): cycle.call("advance",stretched)

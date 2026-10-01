@@ -1,6 +1,6 @@
 extends ball
 ## 时钟：只有身体碰撞伤害，伤害随实际移动速度提高。
-## 被动「时间加速」：战斗中时间流速逐渐提高；非时钟角色不受影响，投射物、药水状态、
+## 被动「时间加速」：战斗中时间流速持续提高、没有上限；非时钟角色不受影响，投射物、药水状态、
 ## 场上危险物与世界时间按倍率多跑物理步（time_field.gd），时钟自身同样多跑。
 ## 被动「时光倒流」：每隔一段时钟时间沿走过的路径快速倒回，恢复这段时间损失的生命。
 ## 速度足够快时留下残影；此后所有残影（含倒流残影）都有实体碰撞并造成伤害。
@@ -15,11 +15,8 @@ const FRAME_PATH:String = "res://Images/characters/我的世界/时钟/clock_%02
 const GROUP:StringName = &"MCClock"
 const HURTBOX_MASK:int = 2
 
-@export_category("时钟 - 体型")
-@export_range(0.3,1.0,0.01) var size_factor:float = 0.7
 @export_category("时钟 - 时间加速")
-@export var time_accel_per_second:float = 0.1
-@export var time_scale_max:float = 2.5
+@export var time_accel_per_second:float = 0.3 # 无上限
 @export_category("时钟 - 时光倒流")
 @export var rewind_interval:float = 4.5
 @export var rewind_span:float = 1.0
@@ -27,7 +24,8 @@ const HURTBOX_MASK:int = 2
 @export_category("时钟 - 速度与残影")
 @export var speed_damage_min:float = 0.6
 @export var speed_damage_max:float = 3.0
-@export var ghost_speed_ratio:float = 2.2
+@export var ghost_speed_ratio:float = 4.0
+@export var ghost_max_alive:int = 40
 @export var ghost_spacing:float = 16.0
 @export var ghost_life:float = 0.4
 @export var ghost_damage_ratio:float = 0.6
@@ -54,7 +52,8 @@ var _rewind_armed:bool = false
 var _ghosts:Array[Dictionary] = []
 var _ghost_hits:Dictionary = {}
 var _ghost_travel:float = 0.0
-var _next_tick_mark:float = 1.25
+var _next_tick_mark:float = 2.0
+var _warp_quiet_until:float = 0.0
 var _sync_wait:float = 0.0
 var _query := PhysicsShapeQueryParameters2D.new()
 var _query_shape := CircleShape2D.new()
@@ -80,16 +79,6 @@ func _ready() -> void:
 	_query.collide_with_bodies = false
 	_query.collide_with_areas = true
 	FIELD.ensure(self)
-	call_deferred("_apply_size")
-
-
-## 在 CharacterAutoFit 之后缩小外观与三个碰撞形状（与普通角色同尺寸下表盘显得过大）。
-func _apply_size() -> void:
-	if has_meta("clock_sized") or not is_inside_tree(): return
-	set_meta("clock_sized",true)
-	graphics.scale *= size_factor
-	for shape:Node in [collision_shape_2d,self_hitbox.get_node_or_null("CollisionShape2D"),self_hurtbox.get_node_or_null("CollisionShape2D")]:
-		if shape is Node2D: (shape as Node2D).scale *= size_factor
 
 
 func clock_running() -> bool:
@@ -123,15 +112,18 @@ func _physics_process(delta:float) -> void:
 		var sample:float = step.length() / maxf(delta,0.0001)
 		_measured_speed = lerpf(_measured_speed,sample,1.0 - exp(-delta / 0.12))
 	if not is_multiplayer_authority(): return
-	time_scale = minf(time_scale + time_accel_per_second * delta,maxf(time_scale_max,1.0))
+	time_scale += time_accel_per_second * delta
 	if time_scale >= _next_tick_mark:
-		_next_tick_mark += 0.25
-		_emit_tick(0.8 + 0.3 * (time_scale - 1.0))
+		_next_tick_mark = floorf(time_scale) + 1.0
+		_emit_tick(0.7 + 0.1 * time_scale)
 	if not _rewinding:
 		_ghost_travel += step.length()
 		if ghosts_armed() and _ghost_travel >= ghost_spacing:
+			# 高速时一帧走得远：沿本帧位移等距补残影，单帧最多 4 个。
+			var count:int = mini(int(_ghost_travel / ghost_spacing),4)
+			for i:int in count:
+				_spawn_ghost(global_position - step * (float(i + 1) / float(count)),true)
 			_ghost_travel = 0.0
-			_spawn_ghost(global_position - step,true)
 		elif not ghosts_armed():
 			_ghost_travel = minf(_ghost_travel,ghost_spacing)
 	_hit_with_ghosts()
@@ -143,7 +135,7 @@ func _physics_process(delta:float) -> void:
 
 @rpc("authority","call_remote","unreliable_ordered")
 func _clock_sync(k:float) -> void:
-	time_scale = clampf(k,1.0,maxf(time_scale_max,1.0))
+	time_scale = maxf(k,1.0)
 
 
 # ---------------------------------------------------------------- 时钟时间（随加速多跑）
@@ -198,7 +190,7 @@ func _step_rewind(delta:float) -> void:
 	var f:float = clampf(_rewind_elapsed / maxf(rewind_duration,0.01),0.0,1.0)
 	var idx:int = int(round(f * float(n - 1)))
 	for i:int in range(_rewind_idx + 1,idx + 1):
-		if i % 3 == 0: _spawn_ghost(_rewind_path[i - 1],_rewind_armed)
+		if _rewind_armed and i % 3 == 0: _spawn_ghost(_rewind_path[i - 1],true)
 	_rewind_idx = idx
 	global_position = _rewind_path[idx]
 	if f >= 1.0: _finish_rewind()
@@ -246,6 +238,7 @@ func _current_frame() -> int:
 
 
 func _spawn_ghost(point:Vector2,armed:bool) -> void:
+	if _ghosts.size() >= ghost_max_alive: return
 	var mult:float = current_hit_damage_multiplier()
 	_ghosts.append({"pos":point,"until":_real_t + ghost_life,"armed":armed,"mult":mult})
 	if multiplayer.has_multiplayer_peer(): _clock_ghost.rpc(point,_current_frame(),armed)
@@ -259,7 +252,17 @@ func _clock_ghost(point:Vector2,frame:int,armed:bool) -> void:
 	var g:Node2D = GHOST.new()
 	scene.add_child(g)
 	var solid:float = ghost_radius() * 0.9 if armed and is_multiplayer_authority() else 0.0
-	g.setup(self,frame_texture(frame),image.global_scale,point,ghost_life,armed,solid,image.z_index - 2)
+	g.setup(self,frame_texture(frame),image.global_scale,point,ghost_life,armed,solid,_effective_z(image) - 1)
+
+
+## 残影挂在场景根下，用绝对层级；取本体实际层级减一，保证画在人物下面、地图上面。
+static func _effective_z(node:Node) -> int:
+	var z:int = 0
+	while node is CanvasItem:
+		z += (node as CanvasItem).z_index
+		if not (node as CanvasItem).z_as_relative: break
+		node = node.get_parent()
+	return z
 
 
 func _hit_with_ghosts() -> void:
@@ -297,6 +300,9 @@ func _clock_tick(pitch:float) -> void:
 
 
 func _emit_warp() -> void:
+	# 高倍速下倒流很频繁：同一声音播完前不重复触发。
+	if _real_t < _warp_quiet_until: return
+	_warp_quiet_until = _real_t + WARP[0].get_length() / 1.15
 	if multiplayer.has_multiplayer_peer(): _clock_warp.rpc()
 	_clock_warp()
 
