@@ -7434,7 +7434,6 @@ func _on_hitbox_on_hit(hurt: hurtbox) -> void:
 		if float(info.get("shield_bypass",0.0)) > 0.0: target.set_meta("_mc_enchant_shield_bypass",float(info.shield_bypass))
 
 	if outgoing_damage > 0.0 and (target.block < outgoing_damage or ignore_block) and not preload("res://scripts/effects/我的世界/mc_hit_feedback.gd").manages(self):
-		# 命中音按原来的随机音高播放，同时记一次连击计数。
 		var combo_pitch:float = HIT_COMBO.next_pitch(self)
 		if Unique_Hit_Audio != null:
 			play_unique_audio(Character_Audio_Slot.Hit,true,combo_pitch)

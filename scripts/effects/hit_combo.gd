@@ -1,6 +1,4 @@
 extends RefCounted
-## 连击计数：同一攻击者（投射物、召唤物算到主人身上）在窗口内连续命中时累加，
-## 断档或自己被打中后清零。命中音高固定为原调。
 const OWNERS = preload("res://classes/projectile_interactions.gd")
 const WINDOW_USEC:int = 1500000
 const META:StringName = &"_hit_combo_state"

@@ -1,5 +1,5 @@
 extends SceneTree
-## 分级顿挫（轻/重/暴击、白闪、声音不随顿挫变慢）与连击计数（命中音保持原音高）。
+## 分级顿挫（轻/重/暴击、白闪、声音不随顿挫变慢）与连击计数（命中音不升调）。
 const KEY:String = "High_Damage_Feedback"
 var COMBO:Script
 var game:Node
@@ -141,7 +141,7 @@ func run() -> void:
 	world._heavy_hit_pending_tier = 0
 	world._heavy_hit_pending_strength = -1.0
 
-	# 连击计数；命中音保持原音高。
+	# 连击计数；命中音不随连击升调。
 	COMBO.reset(attacker)
 	var counts:Array[int] = []
 	for i:int in 3:
@@ -149,7 +149,7 @@ func run() -> void:
 		await physics_frame
 	check(counts == [1,2,3],"consecutive hits count up: %s" % [counts])
 	check(COMBO.register(attacker) == 4 and COMBO.register(attacker) == 4,"several hits in one physics frame count once")
-	check(is_equal_approx(COMBO.pitch_for(1),1.0) and is_equal_approx(COMBO.pitch_for(3),1.0) and is_equal_approx(COMBO.pitch_for(40),1.0),"combo hits keep the original pitch")
+	check(is_equal_approx(COMBO.pitch_for(1),1.0) and is_equal_approx(COMBO.pitch_for(3),1.0) and is_equal_approx(COMBO.pitch_for(40),1.0),"combo hits keep the original pitch instead of climbing")
 	COMBO.reset(attacker)
 	var pitches:Array[float] = []
 	for i:int in 6:
