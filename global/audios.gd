@@ -257,7 +257,7 @@ func _play_sfx_player(source:AudioStreamPlayer,params:Dictionary = {},random:boo
 	if random:
 		logical_pitch *= randf_range(0.9,1.1)
 		sfx.volume_db *= randf_range(0.9,1.1)
-	# 调用方给的相对音高（连击升调），叠在默认/指定音高之上。
+	# 调用方给的相对音高，叠在默认/指定音高之上。
 	if "pitch_mul" in params:
 		logical_pitch *= maxf(float(params.pitch_mul),0.01)
 
