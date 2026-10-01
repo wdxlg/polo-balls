@@ -1316,6 +1316,17 @@ var _victory_bell_armed:bool = false
 var _victory_bell_played:bool = false
 ## 本场开战钟声已敲过；和胜利铃一起重置（新一局 / 轮换下一场 / 手动模式新对手）。
 var _battle_start_bell_played:bool = false
+## 开场镜头：开战时视角先贴近双方，再先快后慢地拉远回正常视角。
+## 0 空闲 / 1 门后预备（停在近景等开战）/ 2 播放中。录像构图读 _intro_camera_weight 跟着走。
+const INTRO_CAMERA_PUNCH_SECONDS:float = 0.12
+const INTRO_CAMERA_PULL_SECONDS:float = 1.15
+const INTRO_CAMERA_MAX_ZOOM:float = 1.6
+const INTRO_CAMERA_MIN_ZOOM:float = 1.3
+var _intro_camera_state:int = 0
+var _intro_camera_age:float = 0.0
+var _intro_camera_peak:float = 1.0
+var _intro_camera_anchor:Vector2 = Vector2.ZERO
+var _intro_camera_weight:float = 0.0
 var _victory_encounter_limited:bool = false
 var _victory_encounter_setup_ids:Dictionary = {}
 # V434 性能：网格重建时顺带整理一份“当前可被索敌的人物”快照（仍在 Ball 组、is_combat_targetable()）。
@@ -1773,6 +1784,9 @@ func process_always(delta:float):
 	if _damage_focus_weight > 0.0:
 		desired_center = desired_center.lerp(_damage_focus_anchor,_damage_focus_weight * 0.55)
 		desired_center = _constrain_camera_center_to_keep_map_visible(desired_center,get_effective_camera_zoom())
+	_update_intro_camera(delta)
+	if _intro_camera_weight > 0.0:
+		desired_center = desired_center.lerp(_intro_camera_anchor,_intro_camera_weight)
 	_apply_camera_zoom()
 	camera_2d.global_position = desired_center
 
@@ -3696,7 +3710,8 @@ func get_effective_camera_zoom() -> float:
 	# 否则即使中心已经切到地图中心，看起来仍像角色特写。保留玩家自己的工具栏缩放倍率。
 	var cinematic_multiplier:float = 1.0 if _dead_save_force_non_follow_camera else _cinematic_focus_zoom_multiplier
 	var impact_multiplier:float = 1.0 if _dead_save_force_non_follow_camera else lerpf(1.0,_damage_focus_peak_zoom,_damage_focus_weight)
-	return maxf(_base_camera_zoom_value() * toolbar_zoom_multiplier * cinematic_multiplier * impact_multiplier,0.05)
+	var intro_multiplier:float = lerpf(1.0,_intro_camera_peak,_intro_camera_weight)
+	return maxf(_base_camera_zoom_value() * toolbar_zoom_multiplier * cinematic_multiplier * impact_multiplier * intro_multiplier,0.05)
 
 
 func _constrain_camera_center_to_keep_map_visible(desired_center:Vector2,zoom_value:float) -> Vector2:
@@ -5564,6 +5579,8 @@ func _reset_victory_bell_state() -> void:
 	_victory_bell_played = false
 	_battle_start_bell_played = false
 	_match_fireworks_played = false
+	_intro_camera_state = 0
+	_intro_camera_weight = 0.0
 	_victory_bell_sequence_generation += 1
 	if is_instance_valid(duel_top_hud): duel_top_hud.reset_victory_roster()
 
@@ -5612,12 +5629,73 @@ func _play_victory_bell_once() -> void:
 ## 开战：时间在走、至少两方在场时敲一下钟。每场一次；轮换每一场等门打开后再敲。
 func _update_battle_start_bell() -> void:
 	if _battle_start_bell_played or _victory_bell_played: return
-	if is_instance_valid(_rotation_door) and not _rotation_combat_released: return
+	if is_instance_valid(_rotation_door) and not _rotation_combat_released:
+		# 门关着时先把镜头停在近景，开门后直接拉远，门缝里不会看到镜头突然推进。
+		if int(_rotation_door.phase) == int(_rotation_door.Phase.COVERED): _arm_intro_camera()
+		return
 	if not is_combat_runtime_active(): return
 	if _collect_alive_victory_sides().size() < 2: return
 	_battle_start_bell_played = true
 	_play_battle_start_bell()
 	_present_battle_intro_title()
+	_start_intro_camera()
+
+
+func _arm_intro_camera() -> void:
+	_intro_camera_state = 1
+	_intro_camera_age = INTRO_CAMERA_PUNCH_SECONDS
+	_aim_intro_camera()
+	_intro_camera_weight = 1.0
+
+
+func _start_intro_camera() -> void:
+	# 门后已预备就直接拉远；画面本来可见时先用 0.12 秒快速推近，避免硬切。
+	if _intro_camera_state != 1: _intro_camera_age = 0.0
+	_intro_camera_state = 2
+	_aim_intro_camera()
+
+
+## 近景对准所有在场角色的中心，倍率尽量让双方都留在画面里。
+func _aim_intro_camera() -> void:
+	var bounds:Rect2 = Rect2()
+	var found:bool = false
+	for actor:Node in get_tree().get_nodes_in_group("Ball"):
+		if not actor is Node2D or not is_ancestor_of(actor) or not (actor as Node2D).visible: continue
+		var point:Vector2 = (actor as Node2D).global_position
+		bounds = bounds.expand(point) if found else Rect2(point,Vector2.ZERO)
+		found = true
+	var view:Vector2 = get_viewport_rect().size
+	var zoom_now:float = maxf(_base_camera_zoom_value() * toolbar_zoom_multiplier,0.001)
+	if not found:
+		var map_node:Node = _current_map_node()
+		_intro_camera_anchor = return_map_world_rect(map_node).get_center() if map_node != null else camera_2d.global_position
+		_intro_camera_peak = INTRO_CAMERA_MAX_ZOOM
+		return
+	_intro_camera_anchor = bounds.get_center()
+	var span:Vector2 = (bounds.size + Vector2(48.0,48.0)) * zoom_now
+	var fit:float = minf(view.x * 0.8 / maxf(span.x,1.0),view.y * 0.6 / maxf(span.y,1.0))
+	_intro_camera_peak = clampf(fit,INTRO_CAMERA_MIN_ZOOM,INTRO_CAMERA_MAX_ZOOM)
+
+
+func _update_intro_camera(delta:float) -> void:
+	if _intro_camera_state == 0 or _dead_save_force_non_follow_camera:
+		_intro_camera_weight = 0.0
+		return
+	if _intro_camera_state == 1:
+		_aim_intro_camera()
+		_intro_camera_weight = 1.0
+		return
+	_intro_camera_age += minf(delta,1.0 / 30.0)
+	if _intro_camera_age < INTRO_CAMERA_PUNCH_SECONDS:
+		var punch:float = _intro_camera_age / INTRO_CAMERA_PUNCH_SECONDS
+		_intro_camera_weight = 1.0 - (1.0 - punch) * (1.0 - punch)
+		return
+	var pull:float = clampf((_intro_camera_age - INTRO_CAMERA_PUNCH_SECONDS) / INTRO_CAMERA_PULL_SECONDS,0.0,1.0)
+	# 先快后慢：四次方缓出，尾段几乎无感地落回正常视角。
+	_intro_camera_weight = pow(1.0 - pull,4.0)
+	if pull >= 1.0:
+		_intro_camera_state = 0
+		_intro_camera_weight = 0.0
 
 
 ## 开战大标题：各方名字用阵营颜色的我的世界立体字，中间金色 VS；录像里中英文各一份。

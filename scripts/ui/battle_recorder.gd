@@ -1083,7 +1083,7 @@ func _sync_player_composition(delta:float) -> void:
 	var manual_offset:Vector2 = offset if offset is Vector2 else Vector2.ZERO
 	var composed_center:Vector2 = _player_camera_center + manual_offset
 	# Existing cinematic and hit reactions keep their center override.
-	var focus:float = maxf(float(world.get("_cinematic_focus_weight")), float(world.get("_damage_focus_weight")))
+	var focus:float = maxf(maxf(float(world.get("_cinematic_focus_weight")), float(world.get("_damage_focus_weight"))), float(world.get("_intro_camera_weight")))
 	if focus > 0.0: composed_center = composed_center.lerp(camera.global_position, clampf(focus, 0.0, 1.0))
 	# Apply short hit and cinematic zoom *after* smoothing the stable framing;
 	# this camera is shared by the player and both recording viewports.
