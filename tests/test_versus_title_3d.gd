@@ -85,6 +85,23 @@ func run() -> void:
 	check(count_opaque(adaptor) > 400,"3D title rendered (%d)" % count_opaque(adaptor))
 	check(get_nodes_in_group("BattleIntroTitle").is_empty(),"no intro popup after the battle starts")
 
+	# 人多时往上长：底边不低于单行标题，顶边不越过屏幕安全线，字仍然够大。
+	var canvas:Transform2D = label.get_global_transform_with_canvas()
+	var single_bottom:float = (canvas * (adaptor.position + adaptor.title.content_rect().end)).y
+	var single_top:float = (canvas * (adaptor.position + adaptor.title.content_rect().position)).y
+	for extra:Array in [["钻石剑","D"],["木剑","E"],["末影人","F"],["僵尸","G"],["蜘蛛","H"],["史莱姆","I"],["女巫","J"]]: spawn_named(extra[0],extra[1])
+	await frames(2)
+	world.refresh_versus_text()
+	await frames(8)
+	canvas = label.get_global_transform_with_canvas()
+	var crowd_top:float = (canvas * (adaptor.position + adaptor.title.content_rect().position)).y
+	var crowd_bottom:float = (canvas * (adaptor.position + adaptor.title.content_rect().end)).y
+	var screen_h:float = label.get_viewport_rect().size.y
+	print("VERSUS_3D_METRIC single=",single_top,"..",single_bottom," crowd=",crowd_top,"..",crowd_bottom," rows=",adaptor.title._lines.size())
+	check(crowd_bottom <= single_bottom + 1.0,"crowded title does not push down into the battle")
+	check(crowd_top < single_top - 20.0 and crowd_top >= screen_h * 0.04 - 1.0,"crowded title grows upward into the empty header, below the safe line")
+	check(adaptor.title._lines.size() >= 2 and count_opaque(adaptor) > 400,"crowded title wraps and renders")
+	root.get_texture().get_image().save_png(OS.get_environment("TEMP") + "/versus3d_crowd.png")
 	label.self_modulate.a = 0.0
 	await process_frame
 	check(is_zero_approx(adaptor.modulate.a),"duel HUD self_modulate hide also hides the 3D title")

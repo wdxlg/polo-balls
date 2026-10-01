@@ -4390,7 +4390,7 @@ func setup_map_presentation() -> void:
 	armor_intro_label.visible = false
 	versus_screen_layer.add_child(armor_intro_label)
 	# 顶部 VS 用我的世界 3D 立体字显示；标签本身仍负责文字、布局与可见性（盔甲架介绍复制后再挂）。
-	VERSUS_TITLE_3D_SCRIPT.attach(versus_label)
+	VERSUS_TITLE_3D_SCRIPT.attach(versus_label).top_limit_provider = _versus_title_top_limit
 	# 1v1 顶部对战 HUD：仅在恰好两名主角色分属两方时自行显示；原文字 VS 保留。
 	duel_top_hud = DUEL_TOP_HUD_SCRIPT.new()
 	duel_top_hud.world = self
@@ -4835,6 +4835,17 @@ func refresh_top_text_layout() -> void:
 	_layout_rotation_versus_hud()
 	_layout_timed_training_hud()
 	_layout_character_dialogue_hud()
+
+## VS 立体字人多折行时往上长；顶部工具栏显示时不盖住它（返回屏幕 y，0 = 不限制）。
+func _versus_title_top_limit() -> float:
+	if not is_instance_valid(control): return 0.0
+	var bar:Control = control.get_node_or_null("Settings") as Control
+	if bar == null or not bar.is_visible_in_tree(): return 0.0
+	var bar_layer:CanvasLayer = bar.get_canvas_layer_node()
+	if bar_layer != null and not bar_layer.visible: return 0.0
+	var bar_canvas:Transform2D = bar.get_global_transform_with_canvas()
+	var bottom:float = maxf((bar_canvas * Vector2(0.0,bar.size.y)).y,(bar_canvas * bar.size).y)
+	return bottom + 12.0 if bottom > 0.0 else 0.0
 
 func _anchor_versus_to_screen() -> void:
 	if not is_inside_tree() or not is_instance_valid(versus_label):

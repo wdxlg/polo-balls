@@ -46,6 +46,8 @@ var viewport:SubViewport
 var _lines:Array = []
 var _options:Dictionary = {}
 var _aspect:float = 4.0
+## 竖直对齐：0 顶、0.5 居中、1 贴底。
+var valign:float = 0.5
 
 static func style_colors(style:Variant) -> Dictionary:
 	if style is Color:
@@ -69,9 +71,13 @@ func _ready() -> void:
 func _draw() -> void:
 	var tex:Texture2D = texture()
 	if tex == null or size.x <= 0.0 or size.y <= 0.0: return
+	draw_texture_rect(tex,content_rect(),false)
+
+## 实际画出字块的矩形（本地坐标，按比例适配 size，横向居中、竖直按 valign）。
+func content_rect() -> Rect2:
 	var fit:Vector2 = Vector2(size.x,size.x / _aspect)
 	if fit.y > size.y: fit = Vector2(size.y * _aspect,size.y)
-	draw_texture_rect(tex,Rect2((size - fit) * 0.5,fit),false)
+	return Rect2(Vector2((size.x - fit.x) * 0.5,(size.y - fit.y) * valign),fit)
 
 static func _has_cjk(text:String) -> bool:
 	for i:int in range(text.length()):

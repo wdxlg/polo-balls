@@ -14,17 +14,22 @@ const SEGMENT_PATTERN:String = "\\[color=#([0-9a-fA-F]{6,8})\\]\\[b\\](.*?)\\[/b
 ## 一行能放下的大致字宽（汉字 = 1，西文字符约 0.62）；超过就折到下一行。
 const SINGLE_LINE_EM:float = 13.0
 const VS_WIDTH_EM:float = 1.6
-## 每行绘制高度 = 文字框高度 × 这个倍数（第一行以文字框中线上下对称外扩），立体字比平面字大一号；
-## 至少是宽度的 ROW_HEIGHT_PER_WIDTH。折行时往下逐行加高，不往上顶到工具栏/时钟。
+## 单行绘制高度 = 字号行高 × 这个倍数，且至少是宽度的 ROW_HEIGHT_PER_WIDTH——立体字比平面字大一号。
 const HEIGHT_RATIO:float = 1.8
 const ROW_HEIGHT_PER_WIDTH:float = 0.16
+## 底边固定在单行标题的位置；人多折行时往上长，用掉顶部空白，最高到屏幕高度的这个比例
+## （时钟下面；本体还会避开顶部工具栏）。放不下就整体缩小，绝不往下压到战场。
+const TOP_SAFE_FRACTION:float = 0.04
+const WRAP_CANDIDATES:Array[float] = [13.0,16.0,20.0,25.0,32.0,44.0,64.0]
 const VS_INLINE_SCALE:float = 0.68
 
 static var _hide_material:ShaderMaterial = null
 var title:Control = null
 var _source_text:String = "\u0001"
-var _active:bool = false
-var _rows:int = 1
+var _sides:Array = []
+var _layout_key:Vector2 = Vector2.ZERO
+## 可选：返回本体屏幕坐标里标题最高能到的 y（world 用它避开顶部工具栏）。
+var top_limit_provider:Callable = Callable()
 
 
 static func attach(label:RichTextLabel) -> Control:
@@ -46,8 +51,14 @@ static func hide_material() -> ShaderMaterial:
 	return _hide_material
 
 
-## VS 文字 → mc_title_text 的行；不是 VS 格式返回 []。
+## VS 文字 → mc_title_text 的行（默认折行宽度）；不是 VS 格式返回 []。
 static func parse(text:String) -> Array:
+	var sides:Array = parse_sides(text)
+	return [] if sides.is_empty() else pack(sides,SINGLE_LINE_EM)
+
+
+## VS 文字 → 各方 [{text, style}]；不是 VS 格式返回 []。
+static func parse_sides(text:String) -> Array:
 	var pattern := RegEx.new()
 	pattern.compile(SEGMENT_PATTERN)
 	var found:Array[RegExMatch] = pattern.search_all(text)
@@ -63,13 +74,17 @@ static func parse(text:String) -> Array:
 		# 白色（中立/单方）用石头灰，其余用阵营色。
 		var style:Variant = "stone" if color.s < 0.12 and color.v > 0.85 else color
 		sides.append({"text":name,"style":style})
-	# 一行放不下就按宽度贪心折行，续行以 VS 开头。
+	return sides
+
+
+## 按宽度贪心折行，续行以 VS 开头。
+static func pack(sides:Array,wrap_em:float) -> Array:
 	var lines:Array = []
 	var segments:Array = []
 	var width:float = 0.0
 	for side:Dictionary in sides:
 		var side_width:float = estimate_width(side.text)
-		if not segments.is_empty() and width + VS_WIDTH_EM + side_width > SINGLE_LINE_EM:
+		if not segments.is_empty() and width + VS_WIDTH_EM + side_width > wrap_em:
 			lines.append({"segments":segments})
 			segments = []
 			width = 0.0
@@ -80,6 +95,26 @@ static func parse(text:String) -> Array:
 		width += side_width
 	if not segments.is_empty(): lines.append({"segments":segments})
 	return lines
+
+
+## 在给定区域（宽 × 高，任意单位）里挑字最大的折行宽度；同样大时行数少的优先。
+static func best_layout(sides:Array,area:Vector2,row_cap:float) -> Array:
+	var best:Array = []
+	var best_scale:float = -1.0
+	for wrap_em:float in WRAP_CANDIDATES:
+		var lines:Array = pack(sides,wrap_em)
+		var widest:float = 0.0
+		for line:Dictionary in lines:
+			var width:float = 0.0
+			for piece:Dictionary in line.segments:
+				width += VS_WIDTH_EM if piece.text == "VS" and piece.style is String and piece.style == "gold" else estimate_width(piece.text)
+			widest = maxf(widest,width)
+		# 每 em 能给多大：受宽度、可用高度、单行上限三者约束（行高约 1.3 em，四周约 0.45 em 留白）。
+		var per_em:float = minf(minf(area.x / (widest + 0.9),area.y / (float(lines.size()) * 1.3 + 0.35)),row_cap / 1.63)
+		if per_em > best_scale * 1.03:
+			best_scale = per_em
+			best = lines
+	return best
 
 
 ## 大致字宽（单位：一个汉字）。
@@ -105,26 +140,39 @@ func sync_now() -> void:
 	if label == null: return
 	if label.text != _source_text:
 		_source_text = label.text
-		var lines:Array = parse(_source_text)
-		_active = not lines.is_empty()
-		_rows = maxi(lines.size(),1)
+		_sides = parse_sides(_source_text)
+		_layout_key = Vector2.ZERO
+	var active:bool = not _sides.is_empty()
+	var wanted:Material = hide_material() if active else null
+	if label.material != wanted: label.material = wanted
+	visible = active
+	if not active:
 		if is_instance_valid(title):
 			title.queue_free()
 			title = null
-		if _active:
-			title = TITLE_SCRIPT.new()
-			title.name = "Title"
-			title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			title.setup(lines)
-			add_child(title)
-	var wanted:Material = hide_material() if _active else null
-	if label.material != wanted: label.material = wanted
-	visible = _active
-	if not _active: return
-	var row:float = maxf(label.size.y * HEIGHT_RATIO,label.size.x * ROW_HEIGHT_PER_WIDTH)
-	if _rows > 1: row = maxf(label.size.x * ROW_HEIGHT_PER_WIDTH,label.size.y * HEIGHT_RATIO / float(_rows))
-	position = Vector2(0.0,(label.size.y - row) * 0.5)
-	size = Vector2(label.size.x,row * float(_rows))
+		return
+	# 区域：底边 = 单行标题底边（以一行字的中线为准上下外扩），顶边 = 屏幕安全线（换算到标签本地坐标）。
+	var line_height:float = float(label.get_theme_font_size("bold_font_size")) * 1.4
+	var row:float = maxf(line_height * HEIGHT_RATIO,label.size.x * ROW_HEIGHT_PER_WIDTH)
+	var bottom:float = line_height * 0.5 + row * 0.5
+	var screen_top:float = label.get_viewport_rect().size.y * TOP_SAFE_FRACTION
+	if top_limit_provider.is_valid(): screen_top = maxf(screen_top,float(top_limit_provider.call()))
+	var canvas:Transform2D = label.get_global_transform_with_canvas()
+	var top:float = minf((canvas.affine_inverse() * Vector2(0.0,screen_top)).y,bottom - row)
+	var area := Vector2(label.size.x,bottom - top)
+	# 文字或区域明显变化才重新生成网格（区域按 4% 粒度比较，避免每帧抖动重建）。
+	var key := Vector2(roundf(area.x / maxf(row,0.001) * 25.0),roundf(area.y / maxf(row,0.001) * 25.0))
+	if key != _layout_key or not is_instance_valid(title):
+		_layout_key = key
+		if is_instance_valid(title): title.queue_free()
+		title = TITLE_SCRIPT.new()
+		title.name = "Title"
+		title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		title.valign = 1.0
+		title.setup(best_layout(_sides,area,row))
+		add_child(title)
+	position = Vector2(0.0,top)
+	size = area
 	title.position = Vector2.ZERO
 	title.size = size
 	# 1v1 对战 HUD 只把父标签 self_modulate 透明度置 0；子节点不受 self_modulate 影响，这里跟随。
