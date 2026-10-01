@@ -4,6 +4,27 @@ extends "res://scripts/status/战争女神_灼烧.gd"
 ## effective burn tick; Sulfur's own RPC keeps that sound on both battle peers.
 const HIT_GAIN = preload("res://scripts/effects/我的世界/hit_audio_gain.gd")
 const NATIVE_AUDIO = preload("res://scripts/characters/我的世界/new5/audio.gd")
+const SOUL_BURN_FRAMES:SpriteFrames = preload("res://particles/mc_burning_soul_fire.tres")
+## 与 BURN_TINT 同等强度的灵魂火青色（按 soul_fire_1 平均色换算）。
+const SOUL_BURN_TINT := Color(0.52,0.98,1.0,1.0)
+
+## 这次燃烧来自灵魂火：原版 soul_fire_1 燃烧动画与青色染色。任何刷新先回到普通火，由施加方重新声明。
+var soul:bool = false
+
+func set_soul(value:bool) -> void:
+	soul = value
+	_apply_burn_tint()
+	_sync_minecraft_burn_visual()
+
+func refresh(new_source:ball,duration:float,new_tick_damage:float) -> void:
+	soul = false
+	super.refresh(new_source,duration,new_tick_damage)
+
+func _burn_tint() -> Color:
+	return SOUL_BURN_TINT if soul else BURN_TINT
+
+func _minecraft_burn_frames() -> SpriteFrames:
+	return SOUL_BURN_FRAMES if soul else MINECRAFT_BURN_FRAMES
 
 func _physics_process(delta:float) -> void:
 	var old_health:float = maxf(target.health,0.0) if is_instance_valid(target) else 0.0

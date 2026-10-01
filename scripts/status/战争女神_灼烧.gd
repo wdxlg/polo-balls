@@ -64,9 +64,19 @@ func _apply_burn_tint() -> void:
 		_capture_target_visual()
 	if _target_visual == null or not is_instance_valid(_target_visual):
 		return
-	# 只把人物本身染成偏橙色；保留角色当前 Alpha（例如棍母的生命透明度）。
+	# 只把人物本身染成燃烧色（默认偏橙）；保留角色当前 Alpha（例如棍母的生命透明度）。
 	var alpha:float = _target_visual.self_modulate.a
-	_target_visual.self_modulate = Color(BURN_TINT.r,BURN_TINT.g,BURN_TINT.b,alpha)
+	var tint:Color = _burn_tint()
+	_target_visual.self_modulate = Color(tint.r,tint.g,tint.b,alpha)
+
+
+## 子类可换燃烧染色与原版燃烧动画（如灵魂火燃烧）；结算、刷新与免疫逻辑不变。
+func _burn_tint() -> Color:
+	return BURN_TINT
+
+
+func _minecraft_burn_frames() -> SpriteFrames:
+	return MINECRAFT_BURN_FRAMES
 
 
 func _restore_target_tint() -> void:
@@ -93,13 +103,20 @@ func _sync_minecraft_burn_visual() -> void:
 	if _minecraft_burn_visual == null or not is_instance_valid(_minecraft_burn_visual):
 		_minecraft_burn_visual = AnimatedSprite2D.new()
 		_minecraft_burn_visual.name = "MinecraftBurnLoop"
-		_minecraft_burn_visual.sprite_frames = MINECRAFT_BURN_FRAMES
+		_minecraft_burn_visual.sprite_frames = _minecraft_burn_frames()
 		_minecraft_burn_visual.animation = MINECRAFT_BURN_ANIMATION
 		_minecraft_burn_visual.centered = true
 		_minecraft_burn_visual.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		_minecraft_burn_visual.z_index = 7
 		add_child(_minecraft_burn_visual)
 		_minecraft_burn_visual.play(MINECRAFT_BURN_ANIMATION)
+	elif _minecraft_burn_visual.sprite_frames != _minecraft_burn_frames():
+		# 换成另一套燃烧动画时保留播放进度，刷新不跳帧。
+		var keep_frame:int = _minecraft_burn_visual.frame
+		var keep_progress:float = _minecraft_burn_visual.frame_progress
+		_minecraft_burn_visual.sprite_frames = _minecraft_burn_frames()
+		_minecraft_burn_visual.play(MINECRAFT_BURN_ANIMATION)
+		_minecraft_burn_visual.set_frame_and_progress(keep_frame,keep_progress)
 	_update_minecraft_burn_visual_layout()
 
 

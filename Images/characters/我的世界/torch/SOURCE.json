@@ -2,7 +2,7 @@
   "description": "火把 (Torch)：火把/灵魂火把贴图、灵魂火动画、火焰与火星粒子",
   "origin": "Minecraft Java 1.21.4 assets (mirror InventivetalentDev/minecraft-assets, branch 1.21.4); bytes copied unchanged",
   "license": "Minecraft assets are copyright Mojang Studios/Microsoft and subject to the Minecraft EULA; no general redistribution permission is claimed.",
-  "used_by": "scripts/characters/我的世界/torch/ (torch.gd, torch_fire.gd, torch_spark.gd), particles/mc_ground_soul_fire.tres, scripts/effects/我的世界/mc_fire_block_3d.gd",
+  "used_by": "scripts/characters/我的世界/torch/ (torch.gd, torch_fire.gd, torch_spark.gd), particles/mc_ground_soul_fire.tres, particles/mc_burning_soul_fire.tres, scripts/effects/我的世界/mc_fire_block_3d.gd",
   "files": [
     {
       "file": "torch.png",
@@ -32,7 +32,7 @@
       "file": "soul_fire_1.png",
       "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/soul_fire_1.png",
       "sha256": "9c20e1da6955ed4b78653e74dcc6edb19d3b50aa9ed54ada9dc16eaec83ece18",
-      "use": "原版 3D 地面灵魂火方块的第二张贴图（soul_fire_floor1 / side1 / side_alt1），32 帧顺序、20 fps"
+      "use": "原版 3D 地面灵魂火方块的第二张贴图（soul_fire_floor1 / side1 / side_alt1）与灵魂火燃烧动画（particles/mc_burning_soul_fire.tres），32 帧顺序、20 fps"
     },
     {
       "file": "soul_fire_1.png.mcmeta",

@@ -17,13 +17,16 @@ func setup_torch(source:ball,id:int,point:Vector2,soul_fire:bool,radius:float,du
 	setup(source,source.Team,point,radius,duration,0.5,area_multiplier,burn_seconds,burn_multiplier)
 
 
-## 施加燃烧：同一火把已有更强的燃烧（灵魂火）时保留较高的每跳伤害，只刷新时长。
-static func apply_burn(source:ball,target:ball,seconds:float,tick:float) -> bool:
+## 施加燃烧：soul_fire 为灵魂火燃烧（原版灵魂火外观）。同一火把已有更强的燃烧（灵魂火）时
+## 保留较高的每跳伤害和它的灵魂火外观，只刷新时长。
+static func apply_burn(source:ball,target:ball,seconds:float,tick:float,soul_fire:bool = false) -> bool:
 	if not is_instance_valid(source) or not is_instance_valid(target): return false
 	var existing:Node = target.get_node_or_null(NodePath(String(SHARED_BURN.NODE_NAME)))
 	if is_instance_valid(existing) and not existing.is_queued_for_deletion() and existing.get("source") == source:
-		tick = maxf(tick,float(existing.get("tick_damage")))
-	return SHARED_BURN.apply_amount(source,target,seconds,tick)
+		var held:float = float(existing.get("tick_damage"))
+		if held >= tick and existing.get("soul") == true: soul_fire = true
+		tick = maxf(tick,held)
+	return SHARED_BURN.apply_amount(source,target,seconds,tick,SHARED_BURN.TICK_INTERVAL,soul_fire)
 
 
 func _soul_fire_visual() -> bool:
@@ -69,7 +72,7 @@ func _can_damage(target:ball) -> bool:
 
 
 func _apply_burn(source:ball,target:ball) -> void:
-	apply_burn(source,target,_burn_duration,source.attack_damage(_burn_tick_damage_multiplier))
+	apply_burn(source,target,_burn_duration,source.attack_damage(_burn_tick_damage_multiplier),soul)
 
 
 func get_ai_hazard_info(_receiver:ball = null) -> Dictionary:

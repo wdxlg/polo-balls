@@ -27,6 +27,11 @@ func spawn(path:String,point:Vector2,team:String = "Team0") -> Node2D:
 	world.add_child(unit,true)
 	return unit
 
+func soul_look(unit:Node2D,burn:Node) -> bool:
+	var tint:Color = unit.image.self_modulate
+	var soul_tint:Color = burn.SOUL_BURN_TINT
+	return burn.soul and burn._minecraft_burn_visual.sprite_frames == burn.SOUL_BURN_FRAMES and Vector3(tint.r,tint.g,tint.b).is_equal_approx(Vector3(soul_tint.r,soul_tint.g,soul_tint.b))
+
 func dummy(point:Vector2,team:String = "Team1") -> Node2D:
 	var target:Node2D = spawn("res://scenes/ball.tscn",point,team)
 	target.Can_Attack = false
@@ -228,6 +233,7 @@ func run() -> void:
 	var burn:Node = enemy.get_node_or_null("MinecraftBlazeBurn")
 	check(enemy.health < before,"an enemy standing in the fire takes damage")
 	check(burn != null and burn.source == torch and is_equal_approx(float(burn.tick_damage),3.0),"fire sets the enemy burning (Damage x 0.3 per burn tick)")
+	check(burn != null and not burn.soul and burn._minecraft_burn_visual.sprite_frames == burn.MINECRAFT_BURN_FRAMES,"normal fire burns with the normal native fire look")
 	var ally:Node2D = dummy(land,"Team0")
 	var ally_before:float = ally.health
 	await sim(0.6)
@@ -264,10 +270,22 @@ func run() -> void:
 	if soul_fire != null:
 		check(is_equal_approx(soul_fire.tick_damage(),10.0) and is_equal_approx(soul_fire.burn_tick_damage(),6.0),"soul fire doubles ground damage and burn")
 		check(soul_fire.get_ai_hazard_info(null).get("kind") == "torch_soul_fire","soul fire threat is labelled")
+		var scorched:Node2D = dummy(soul_fire.damage_center())
+		await physics_frame
+		await physics_frame
+		soul_fire._damage_inside(torch)
+		var scorched_burn:Node = scorched.get_node_or_null("MinecraftBlazeBurn")
+		check(scorched_burn != null and soul_look(scorched,scorched_burn),"standing in soul fire burns with the native soul fire look and soul tint")
+		scorched.queue_free()
 	var marked:Node2D = dummy(center + Vector2(-200,-200))
-	FIRE.apply_burn(torch,marked,3.0,6.0)
+	FIRE.apply_burn(torch,marked,3.0,6.0,true)
+	var marked_burn:Node = marked.get_node("MinecraftBlazeBurn")
 	FIRE.apply_burn(torch,marked,3.0,3.0)
-	check(is_equal_approx(float(marked.get_node("MinecraftBlazeBurn").tick_damage),6.0),"normal fire does not downgrade the same torch's soul burn")
+	check(is_equal_approx(float(marked_burn.tick_damage),6.0),"normal fire does not downgrade the same torch's soul burn")
+	check(soul_look(marked,marked_burn),"the kept soul burn keeps its soul fire look")
+	FIRE.SHARED_BURN.apply_amount(torch,marked,3.0,2.0)
+	var tint:Color = marked.image.self_modulate
+	check(not marked_burn.soul and marked_burn._minecraft_burn_visual.sprite_frames == marked_burn.MINECRAFT_BURN_FRAMES and Vector3(tint.r,tint.g,tint.b).is_equal_approx(Vector3(marked_burn.BURN_TINT.r,marked_burn.BURN_TINT.g,marked_burn.BURN_TINT.b)),"a plain fire refresh turns it back into the normal burning look")
 	marked.queue_free()
 	await clear_fires(torch)
 
@@ -301,7 +319,7 @@ func run() -> void:
 	check(segment_ok,"the dash path is shown as a real threat segment")
 	check(drop > 0.0 and torch._dash_hit.size() == 1 and torch._dash_hit.has(victim.get_instance_id()),"each enemy on the path is hit once per chain (%.1f damage)" % drop)
 	var victim_burn:Node = victim.get_node_or_null("MinecraftBlazeBurn")
-	check(victim_burn != null and is_equal_approx(float(victim_burn.tick_damage),6.0),"dash hits apply soul-strength burn")
+	check(victim_burn != null and is_equal_approx(float(victim_burn.tick_damage),6.0) and soul_look(victim,victim_burn),"dash hits apply soul-strength burn with the soul fire look")
 	check(knocked,"dash knocks the enemy away")
 	check(torch.dash_hops == 2 and torch.global_position.distance_to(c2) < 1.0,"the flame visits every reachable soul fire once and stops at the last")
 	check(not torch.dashing and torch.image.visible and torch._dash_cooldown_left > 2.5,"it turns back into a torch with about 3 s cooldown")

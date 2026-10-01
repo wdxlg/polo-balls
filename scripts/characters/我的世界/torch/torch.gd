@@ -416,7 +416,7 @@ func _dash_sweep(a:Vector2,b:Vector2) -> void:
 func _dash_strike(target:ball,point:Vector2,heading:Vector2) -> void:
 	if not U.enemy(self,target): return
 	if not target.receive_fire_positional_damage(attack_damage(dash_damage_multiplier),point,false,self): return
-	FIRE.apply_burn(self,target,burn_seconds,attack_damage(burn_tick_multiplier * soul_multiplier))
+	FIRE.apply_burn(self,target,burn_seconds,attack_damage(burn_tick_multiplier * soul_multiplier),true)
 	var away:Vector2 = target.global_position - point
 	if away.length_squared() < 0.01: away = heading
 	target.apply_knockback(away.normalized(),dash_knockback,dash_knockback_speed,0.0,0.0,
