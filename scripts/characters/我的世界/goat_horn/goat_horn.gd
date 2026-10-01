@@ -27,8 +27,8 @@ enum BlowPhase { IDLE, WINDUP, HOLD }
 @export var stun_retry_delay:float = 1.0
 @export var goat_spawn_start:float = 0.35
 # 号声后山羊一只一只陆续出现：相邻两只间隔 goat_spawn_gap ± goat_spawn_jitter 秒；吹奏结束后仍按时间表继续出现。
-@export var goat_spawn_gap:float = 0.8
-@export var goat_spawn_jitter:float = 0.15
+@export var goat_spawn_gap:float = 0.4
+@export var goat_spawn_jitter:float = 0.08
 @export var goat_spawn_margin:float = 90.0
 
 var _flip:bool = false
