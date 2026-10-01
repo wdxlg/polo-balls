@@ -85,7 +85,8 @@ func _deal_tick() -> void:
 		outgoing,
 		target.global_position,
 		false,
-		source
+		source,
+		{"focus_position":target.global_position}
 	)
 	if applied and source.has_method("play_bladesmith_burn_tick_sfx"):
 		source.call("play_bladesmith_burn_tick_sfx",target.global_position)

@@ -166,7 +166,7 @@ func _physics_process(delta:float) -> void:
 		_tick_left += tick_interval
 		var outgoing:float = source.effective_outgoing_damage(tick_damage)
 		if outgoing > 0.0:
-			var applied:bool = target.receive_fire_positional_damage(outgoing,target.global_position,false,source)
+			var applied:bool = target.receive_fire_positional_damage(outgoing,target.global_position,false,source,{"focus_position":target.global_position})
 			if applied and source.has_method("play_war_burn_tick_sfx"):
 				source.call("play_war_burn_tick_sfx",target.global_position)
 

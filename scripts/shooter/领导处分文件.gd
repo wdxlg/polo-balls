@@ -60,7 +60,7 @@ func _physics_process(delta:float) -> void:
 			if final_damage > 0.0:
 				dealt = target.receive_spatial_damage(
 					final_damage,
-					{"point":global_position,"source":owner_leader},
+					{"point":global_position,"source":owner_leader,"focus_position":global_position},
 					false,
 					false
 				)

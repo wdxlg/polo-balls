@@ -343,7 +343,7 @@ func _damage_all_crossed_targets(from_pos:Vector2,to_pos:Vector2,facing_angle:fl
 		var impact_point:Vector2 = target.global_position
 		var dealt:bool = target.receive_spatial_damage(
 			final_damage,
-			{"point":impact_point,"source":owner_teacher},
+			{"point":impact_point,"source":owner_teacher,"focus_position":global_position},
 			false,
 			false
 		)

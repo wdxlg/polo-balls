@@ -176,8 +176,11 @@ func try_hit_hurtbox(hurt:hurtbox) -> bool:
 
 	# 先记真实生命；hurt 信号在本项目中同步结算伤害。
 	var health_before:float = float(target.health)
+	# Snapshot the actual hitbox, not its Master; overrides may delete the bullet.
+	var focus_previous:Vector2 = target.push_damage_focus_position(global_position)
 	on_hit.emit(hurt)
 	hurt.on_hurt.emit(self)
+	if is_instance_valid(target): target.restore_damage_focus_position(focus_previous)
 	var actual_health_damage:float = maxf(health_before - float(target.health), 0.0)
 	if actual_health_damage > 0.0 and Game.has_method("report_combat_damage"):
 		var effective_source:Node = master if master != null else attacker

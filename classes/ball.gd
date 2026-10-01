@@ -518,6 +518,45 @@ var _pending_health_damage_text_amount:int = 0
 # V65：在完整 health setter 结算期间保留“请求扣血值”，让真正无限血角色也能识别
 # 旧脚本直接 target.health -= huge_damage 的 INF 级破限伤害。
 var _current_health_damage_request_amount:int = 0
+# Per synchronous settlement only; never reuse persistent kill-credit sources.
+var _damage_focus_origin:Vector2 = Vector2.INF
+var _pending_positional_focus_origin:Vector2 = Vector2.INF
+var _pending_positional_focus_space:Dictionary = {}
+
+func damage_focus_position() -> Vector2:
+	return _damage_focus_origin if _damage_focus_origin.is_finite() else global_position
+
+func push_damage_focus_position(point:Vector2) -> Vector2:
+	var previous:Vector2 = _damage_focus_origin
+	_damage_focus_origin = point if point.is_finite() else global_position
+	return previous
+
+func restore_damage_focus_position(previous:Vector2) -> void:
+	_damage_focus_origin = previous
+
+func _damage_focus_position_for_hit(point:Vector2,source:Node,space:Variant = null) -> Vector2:
+	if space is Dictionary:
+		if str(space.get("carrier","")) == "status_tick": return global_position
+		var explicit:Variant = space.get("focus_position")
+		if explicit is Vector2 and explicit.is_finite(): return explicit
+		var center:Variant = space.get("center")
+		if center is Vector2 and center.is_finite(): return center
+	# The impact point can be a weapon tip or explosion origin, unlike kill credit.
+	var origin:Vector2 = _positional_damage_feedback_origin(point,source)
+	return origin if origin.is_finite() else global_position
+
+func _receive_positional_damage_with_focus(damage:float,point:Vector2,ignore_block:bool,source:Node,origin:Vector2,feedback_space:Dictionary = {}) -> bool:
+	var previous:Vector2 = push_damage_focus_position(origin)
+	var pending:Vector2 = _pending_positional_focus_origin
+	_pending_positional_focus_origin = origin
+	var pending_space:Dictionary = _pending_positional_focus_space
+	_pending_positional_focus_space = feedback_space
+	# Preserve virtual damage/defense entry points, including overrides without super.
+	var accepted:bool = receive_positional_damage(damage,point,ignore_block,source)
+	_pending_positional_focus_origin = pending
+	_pending_positional_focus_space = pending_space
+	restore_damage_focus_position(previous)
+	return accepted
 
 func pending_health_damage_text_amount() -> int:
 	return maxi(_pending_health_damage_text_amount,0)
@@ -535,6 +574,7 @@ func current_health_damage_request_amount() -> int:
 				health_bar.health_changed.emit(health,health,Max_health,false)
 			return
 		# 训练模式 V2 不再改生命规则：原上限、原伤害、原死亡流程全部保留。
+		var focus_origin:Vector2 = damage_focus_position()
 		var old_health:int = int(health)
 		var requested_health:int = int(v)
 		var requested_health_damage:int = maxi(old_health - requested_health,0)
@@ -622,7 +662,7 @@ func current_health_damage_request_amount() -> int:
 			# 镜头按减伤/护盾后的真实请求伤害判断，获救/免疫时仍按净损失。
 			if new_health == 0 and health == 0 and requested_health_damage > old_health:
 				focus_damage = float(requested_health_damage)
-			_notify_damage_camera_feedback(confirmed_loss,false,focus_damage)
+			_notify_damage_camera_feedback(confirmed_loss,false,focus_damage,focus_origin)
 			# 计时模式按“受到的实际生命伤害”计分：所有扣血路径（含环境/自伤/无来源）都经过这里，
 			# 且取角色钩子（无敌/格挡回血）之后的确认损失。World 自己判断模式、权威端与主战人物。
 			if confirmed_loss > 0.0 and Game.is_timed_training_mode():
@@ -650,22 +690,23 @@ func get_received_hit_feedback_damage(_raw_damage:float,health_before:float) -> 
 	return maxf(health_before - float(health),0.0)
 
 
-func _notify_damage_camera_feedback(actual_damage:float,blocked:bool = false,focus_damage:float = -1.0) -> void:
+func _notify_damage_camera_feedback(actual_damage:float,blocked:bool = false,focus_damage:float = -1.0,focus_origin:Vector2 = Vector2.INF) -> void:
 	if actual_damage <= 0.0 or not is_finite(actual_damage):
 		return
 	if not is_node_ready() or not is_multiplayer_authority() or not is_combat_runtime_active():
 		return
-	_play_damage_camera_feedback_local(actual_damage,blocked,focus_damage)
+	focus_origin = focus_origin if focus_origin.is_finite() else damage_focus_position()
+	_play_damage_camera_feedback_local(actual_damage,blocked,focus_damage,focus_origin)
 	if multiplayer.has_multiplayer_peer() and not multiplayer.multiplayer_peer is OfflineMultiplayerPeer:
-		_remote_damage_camera_feedback.rpc(actual_damage,blocked,focus_damage)
+		_remote_damage_camera_feedback.rpc(actual_damage,blocked,focus_damage,focus_origin)
 
 
 @rpc("authority","call_remote","unreliable")
-func _remote_damage_camera_feedback(actual_damage:float,blocked:bool = false,focus_damage:float = -1.0) -> void:
-	_play_damage_camera_feedback_local(actual_damage,blocked,focus_damage)
+func _remote_damage_camera_feedback(actual_damage:float,blocked:bool = false,focus_damage:float = -1.0,focus_origin:Vector2 = Vector2.INF) -> void:
+	_play_damage_camera_feedback_local(actual_damage,blocked,focus_damage,focus_origin)
 
 
-func _play_damage_camera_feedback_local(actual_damage:float,blocked:bool = false,focus_damage:float = -1.0) -> void:
+func _play_damage_camera_feedback_local(actual_damage:float,blocked:bool = false,focus_damage:float = -1.0,focus_origin:Vector2 = Vector2.INF) -> void:
 	if not is_inside_tree():
 		return
 	# Reuse the existing authority-confirmed feedback RPC, not health replication.
@@ -676,7 +717,7 @@ func _play_damage_camera_feedback_local(actual_damage:float,blocked:bool = false
 	if is_instance_valid(world) and world.has_method("add_damage_camera_shake"):
 		world.call("add_damage_camera_shake",minf(actual_damage,HURT_SHAKE_SCRIPT.light_damage_limit(Game.Game_Settings)) if blocked else actual_damage)
 	if not blocked and is_instance_valid(world) and world.has_method("request_damage_focus"):
-		world.call("request_damage_focus",focus_damage if focus_damage >= 0.0 else actual_damage,get_impact_reference_health(),global_position)
+		world.call("request_damage_focus",focus_damage if focus_damage >= 0.0 else actual_damage,get_impact_reference_health(),focus_origin if focus_origin.is_finite() else global_position)
 	if not is_instance_valid(world) or not world.has_method("add_confirmed_impact_visual"):
 		return
 	if Type != Ball_Type.Ball and Type != Ball_Type.Creature:
@@ -4897,14 +4938,14 @@ func can_receive_control_from(source:Node) -> bool:
 	var carrier:Node = _boat_damage_carrier()
 	return carrier == null or not carrier.source_is_onboard(source)
 
-func _route_boat_damage(damage:float,point:Vector2,ignore_block:bool,source:Node,raw_health:bool = false,damage_kind:String = "") -> bool:
+func _route_boat_damage(damage:float,point:Vector2,ignore_block:bool,source:Node,raw_health:bool = false,damage_kind:String = "",feedback_space:Dictionary = {}) -> bool:
 	if has_meta("boat_damage_share_guard"): return false
 	var carrier:Node = _boat_damage_carrier()
 	if carrier == null: return false
 	if is_instance_valid(source):
 		set_meta("boat_recent_source",weakref(source))
 		set_meta("boat_source_frame",Engine.get_physics_frames())
-	return carrier.share_external_damage(self,damage,point,ignore_block,source,raw_health,damage_kind)
+	return carrier.share_external_damage(self,damage,point,ignore_block,source,raw_health,damage_kind,feedback_space)
 
 func get_transport_rider() -> Node:
 	if not has_meta("mc_boat_rider"): return null
@@ -7079,8 +7120,10 @@ func _consume_minecraft_absorption(damage:float,already_blocked:bool = false) ->
 	return remainder
 
 
-func receive_classified_positional_damage(damage:float,point:Vector2,kind:StringName,ignore_block:bool = false,source:Node = null) -> bool:
-	return _receive_classified_damage(damage,point,kind,ignore_block,false,source,false)
+func receive_classified_positional_damage(damage:float,point:Vector2,kind:StringName,ignore_block:bool = false,source:Node = null,feedback_space:Dictionary = {}) -> bool:
+	var space:Dictionary = feedback_space.duplicate()
+	space["point"] = point
+	return _receive_classified_damage(damage,space,kind,ignore_block,false,source,false)
 
 func receive_classified_spatial_damage(damage:float,space:Variant,kind:StringName,ignore_block:bool = false,raw_health:bool = false) -> bool:
 	return _receive_classified_damage(damage,space,kind,ignore_block,raw_health,null,true)
@@ -7093,7 +7136,7 @@ func _receive_classified_damage(damage:float,space:Variant,requested_kind:String
 		if space.get("point") is Vector2: point = space["point"]
 		if space.get("source") is Node: source = space["source"]
 	# Split UNSCALED damage before each passenger applies its own resistance.
-	if _route_boat_damage(damage,point,ignore_block,source,raw_health,kind): return true
+	if _route_boat_damage(damage,point,ignore_block,source,raw_health,kind,space if space is Dictionary else {}): return true
 	var ratio:float = 1.0
 	if kind == "fire": ratio = get_fire_effect_ratio()
 	elif kind == "cold": ratio = get_cold_effect_ratio()
@@ -7120,7 +7163,7 @@ func _receive_classified_damage(damage:float,space:Variant,requested_kind:String
 	if spatial:
 		accepted = _receive_spatial_damage_untyped(scaled,envelope,ignore_block,raw_health) if spatial_already_dispatched else receive_spatial_damage(scaled,envelope,ignore_block,raw_health)
 	else:
-		accepted = receive_positional_damage(scaled,point,ignore_block,source)
+		accepted = _receive_positional_damage_with_focus(scaled,point,ignore_block,source,_damage_focus_position_for_hit(point,source,envelope),envelope)
 	for key:String in keys:
 		if saved.has(key): set_meta(key,saved[key])
 		elif has_meta(key): remove_meta(key)
@@ -7148,7 +7191,9 @@ func receive_internal_status_damage(damage:float,kind:StringName,source:Node = n
 	set_meta("_blood_damage_element",String(kind))
 	if is_instance_valid(source): record_combat_damage_source(source,float(health))
 	var before:float = float(health)
+	var focus_previous:Vector2 = push_damage_focus_position(global_position)
 	health -= damage
+	restore_damage_focus_position(focus_previous)
 	if had: set_meta("_blood_damage_element",previous)
 	else: remove_meta("_blood_damage_element")
 	return maxf(before-float(health),0.0)
@@ -7185,8 +7230,8 @@ func can_receive_fire_status() -> bool:
 	return not is_fire_immune()
 
 
-func receive_fire_positional_damage(damage:float,impact_position:Vector2,ignore_block:bool = false,source:Node = null) -> bool:
-	return receive_classified_positional_damage(damage,impact_position,&"fire",ignore_block,source)
+func receive_fire_positional_damage(damage:float,impact_position:Vector2,ignore_block:bool = false,source:Node = null,feedback_space:Dictionary = {}) -> bool:
+	return receive_classified_positional_damage(damage,impact_position,&"fire",ignore_block,source,feedback_space)
 
 
 func receive_fire_spatial_damage(damage:float,damage_space:Variant,ignore_block:bool = false,raw_health:bool = false) -> bool:
@@ -7229,9 +7274,10 @@ func _receive_spatial_damage_untyped(damage:float,damage_space:Variant,ignore_bl
 			impact_position = context["point"] as Vector2
 		if context.get("source",null) is Node:
 			source = context.get("source",null) as Node
+	var focus_origin:Vector2 = _damage_focus_position_for_hit(impact_position,source,damage_space)
 	if is_guarded_from_friendly_copy(source): return false
 	if raw_health:
-		if _route_boat_damage(damage,impact_position,true,source,true): return true
+		if _route_boat_damage(damage,impact_position,true,source,true,"",damage_space if damage_space is Dictionary else {}): return true
 		var before_health:float = float(health)
 		var before_absorbed:float = absorbed_health_loss
 		var before_block:float = float(block)
@@ -7239,7 +7285,9 @@ func _receive_spatial_damage_untyped(damage:float,damage_space:Variant,ignore_bl
 		var raw_amount:int = maxi(int(round(damage)),0)
 		var remaining_amount:float = _consume_minecraft_absorption(float(raw_amount))
 		var lost_health:int = maxi(int(round(remaining_amount)),0)
+		var focus_previous:Vector2 = push_damage_focus_position(focus_origin)
 		if lost_health > 0: health -= lost_health # pure absorption is NOT a health-bar hit
+		restore_damage_focus_position(focus_previous)
 		before_health += absorbed_health_loss - before_absorbed
 		var actual_health_damage:float = maxf(before_health - float(health), 0.0)
 		_emit_positional_damage_feedback(
@@ -7260,7 +7308,7 @@ func _receive_spatial_damage_untyped(damage:float,damage_space:Variant,ignore_bl
 	var previous_enchant_element:Variant = get_meta("_mc_enchant_element") if had_enchant_element else null
 	var typed_element:String = str(damage_space.get("element","")) if damage_space is Dictionary else ""
 	if not typed_element.is_empty(): set_meta("_mc_enchant_element",typed_element)
-	var accepted_damage:bool = receive_positional_damage(damage,impact_position,ignore_block,source)
+	var accepted_damage:bool = _receive_positional_damage_with_focus(damage,impact_position,ignore_block,source,focus_origin,damage_space if damage_space is Dictionary else {})
 	if had_enchant_element: set_meta("_mc_enchant_element",previous_enchant_element)
 	elif has_meta("_mc_enchant_element"): remove_meta("_mc_enchant_element")
 	return accepted_damage
@@ -7337,8 +7385,10 @@ func _on_hitbox_on_hit(hurt: hurtbox) -> void:
 		if _is_ranged_hit_source(self): target.set_meta("_mc_enchant_element","projectile")
 		routed_to_boat = target._route_boat_damage(outgoing_damage,hit_source_position,ignore_block,self)
 		if not routed_to_boat:
+			var focus_previous:Vector2 = target.push_damage_focus_position(hit_source_position)
 			target.hit_white(ignore_block)
 			target.take_damage(outgoing_damage,ignore_block)
+			target.restore_damage_focus_position(focus_previous)
 		if old_enchant_element == null: target.remove_meta("_mc_enchant_element")
 		else: target.set_meta("_mc_enchant_element",old_enchant_element)
 		target.remove_meta("_mc_enchant_armor_penetration")
@@ -7406,7 +7456,7 @@ func _positional_damage_feedback_origin(impact_position:Vector2,source:Node) -> 
 	var origin:Vector2 = impact_position
 	# 很多持续/范围伤害历史上把 target.global_position 当作 impact_position。
 	# 这种情况下用真正来源节点的位置恢复入射方向，避免所有线都退化到角色自身移动方向。
-	if origin.distance_squared_to(global_position) <= 4.0 and source is Node2D:
+	if origin.distance_squared_to(global_position) <= 4.0 and is_instance_valid(source) and source is Node2D:
 		origin = (source as Node2D).global_position
 	return origin
 
@@ -7481,17 +7531,25 @@ func receive_positional_damage(
 	ignore_block:bool = false,
 	source:Node = null
 ) -> bool:
+	# Consume the spatial/classified handoff before any callbacks or early return.
+	var focus_origin:Vector2 = _pending_positional_focus_origin
+	_pending_positional_focus_origin = Vector2.INF
+	var focus_space:Dictionary = _pending_positional_focus_space
+	_pending_positional_focus_space = {}
+	if not focus_origin.is_finite(): focus_origin = _damage_focus_position_for_hit(impact_position,source)
 	if damage <= 0.0:
 		return false
-	if _route_boat_damage(damage,impact_position,ignore_block,source): return true
+	if _route_boat_damage(damage,impact_position,ignore_block,source,false,"",focus_space): return true
 	if is_guarded_from_friendly_copy(source): return false
 	var before_health:float = float(health)
 	var before_absorbed:float = absorbed_health_loss
 	var before_block:float = float(block)
 	var absorption_status:Node = get_node_or_null("MinecraftStatus_absorption")
 	var before_absorption:float = float(absorption_status.get("absorption_remaining")) if absorption_status != null else 0.0
+	var focus_previous:Vector2 = push_damage_focus_position(focus_origin)
 	hit_white(ignore_block)
 	take_damage(damage,ignore_block)
+	restore_damage_focus_position(focus_previous)
 	before_health += absorbed_health_loss - before_absorbed
 	var actual_health_damage:float = maxf(before_health - float(health), 0.0)
 	_emit_positional_damage_feedback(

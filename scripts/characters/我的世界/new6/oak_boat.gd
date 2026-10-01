@@ -266,7 +266,7 @@ func source_is_onboard(source:Node) -> bool:
 		else: node = node.get_parent()
 	return false
 
-func share_external_damage(receiver:ball,damage:float,point:Vector2,ignore_block:bool,source:Node,raw_health:bool = false,damage_kind:String = "") -> bool:
+func share_external_damage(receiver:ball,damage:float,point:Vector2,ignore_block:bool,source:Node,raw_health:bool = false,damage_kind:String = "",feedback_space:Dictionary = {}) -> bool:
 	if _sharing_damage or source_is_onboard(source) or damage <= 0: return false
 	_prune_passengers()
 	if passengers.is_empty(): return false
@@ -294,11 +294,14 @@ func share_external_damage(receiver:ball,damage:float,point:Vector2,ignore_block
 		var part:int = each+(1 if i<remainder else 0)
 		if part <= 0: continue
 		member.set_meta("boat_damage_share_guard",true)
+		# Keep visual origin/status delivery separate from the unmodified damage split.
+		var context:Dictionary = {"point":point,"source":source}
+		context["focus_position"] = member._damage_focus_position_for_hit(point,source,feedback_space)
 		if not damage_kind.is_empty():
-			if raw_health: member.receive_classified_spatial_damage(part,{"point":point,"source":source},StringName(damage_kind),true,true)
-			else: member.receive_classified_positional_damage(part,point,StringName(damage_kind),ignore_block,source)
-		elif raw_health: member.receive_spatial_damage(part,{"point":point,"source":source},true,true)
-		else: member.receive_positional_damage(part,point,ignore_block,source)
+			if raw_health: member.receive_classified_spatial_damage(part,context,StringName(damage_kind),true,true)
+			else: member.receive_classified_positional_damage(part,point,StringName(damage_kind),ignore_block,source,context)
+		elif raw_health: member.receive_spatial_damage(part,context,true,true)
+		else: member._receive_positional_damage_with_focus(part,point,ignore_block,source,member._damage_focus_position_for_hit(point,source,context),context)
 		if is_instance_valid(member): member.remove_meta("boat_damage_share_guard")
 	_sharing_damage = false
 	return true
