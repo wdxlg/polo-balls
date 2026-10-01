@@ -27,6 +27,9 @@ var _half_sent:bool = false
 const XP_BACKGROUND:Texture2D = preload("res://Images/UI/minecraft_xp/experience_bar_background.png")
 const XP_PROGRESS:Texture2D = preload("res://Images/UI/minecraft_xp/experience_bar_progress.png")
 var loading_progress:float = -1.0
+## >0 时为等待模式：门关上后至少保持这么多秒，底部经验条按等待时间充满，满了才开门（由调用方在 play 前设置，结束后清零）。
+var wait_seconds:float = 0.0
+var _covered_time:float = 0.0
 var loading_slide:float = 0.0
 var _loading_canvas:Control
 var _focus:WeakRef
@@ -100,6 +103,7 @@ func play(change:Callable = Callable(),half_open:Callable = Callable()) -> bool:
 	_half_sent=false
 	loading_progress=-1.0
 	loading_slide=0.0
+	_covered_time=0.0
 	change_applied = false
 	_committed = false
 	_elapsed = 0.0
@@ -140,7 +144,12 @@ func _process(_delta:float) -> void:
 			_elapsed = 0.0
 			_commit_when_drawn(_generation)
 	elif phase == Phase.COVERED:
-		if _committed and _elapsed>=hold_seconds:
+		_covered_time += ui_delta
+		var waited:bool = wait_seconds<=0.0 or _covered_time>=wait_seconds
+		if wait_seconds>0.0:
+			# 经验条代表等待时间；后台还没准备好时停在 95%，不会提前满。满了先滑出再开门。
+			loading_progress=-1.0 if _committed and waited else minf(_covered_time/wait_seconds,1.0 if _committed else 0.95)
+		if _committed and _elapsed>=hold_seconds and waited and (wait_seconds<=0.0 or loading_slide<=0.0):
 			phase = Phase.OPENING
 			open_audio.play()
 			audio_events.append("open")
@@ -181,6 +190,7 @@ func _commit_when_drawn(generation:int) -> void:
 	_last_usec = Time.get_ticks_usec()
 
 func set_loading_progress(value:float) -> void:
+	if wait_seconds>0.0: return # 等待模式下经验条只表示等待时间。
 	loading_progress=clampf(value,0.0,1.0) if value>=0.0 else -1.0
 func loading_rect() -> Rect2:
 	var screen:Vector2=get_viewport().get_visible_rect().size
@@ -234,6 +244,8 @@ func _finish(completed:bool) -> void:
 	_half_callback=Callable()
 	loading_progress=-1.0
 	loading_slide=0.0
+	wait_seconds=0.0
+	_covered_time=0.0
 	_change = Callable()
 	visible = false
 	viewport_3d.render_target_update_mode=SubViewport.UPDATE_DISABLED

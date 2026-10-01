@@ -1,5 +1,5 @@
 extends SceneTree
-## 轮换模式切换时的胜利弹窗：同一种角色（含数量复制）弹出角色本人；混合队伍弹出队伍。
+## 轮换模式切换：同一种角色（含数量复制）显示角色本人、混合队伍显示队伍；门关上后卡片滑下，经验条充满后开门。
 var world:Node
 var game:Node
 var checks:int = 0
@@ -68,14 +68,43 @@ func run() -> void:
 	hud.begin_round_result("right")
 	check(hud.winner_index == 1 and hud.victory_body_text() == "烈焰人 获得了胜利","single red winner shows the character")
 	hud.end_round_result()
+	# 真实切换流程：门关上后卡片从上方滑下，经验条按等待时间充满，满了才开门。
+	await setup([[["left","苦力怕"],["right","烈焰人"]],[["left","骷髅"],["right","苦力怕"]]],1,1)
+	var loser:Node = world._find_character_by_setup_id_any(int(world._rotation_active_setup.right))
+	loser.health = 0
+	loser.queue_free()
+	var door:Node = null
+	var deadline:int = Time.get_ticks_msec() + 6000
+	while Time.get_ticks_msec() < deadline:
+		door = root.get_node_or_null("DarkOakDoorTransition")
+		if door != null and door.phase == door.Phase.COVERED: break
+		await process_frame
+	check(door != null and door.phase == door.Phase.COVERED and is_equal_approx(door.wait_seconds,world.ROTATION_RESULT_WAIT_SECONDS),"doors close and hold for the result")
+	var card:Node = door.shield.get_node_or_null("RotationResultCard") if door != null else null
+	check(card != null,"the result card sits on the closed doors")
+	if card != null:
+		await create_timer(1.0,true,false,true).timeout
+		check(card.slide >= 0.99 and card.card_rect().position.y > 0.0,"card slid down from the top")
+		check(card.body_text() == "苦力怕 获得了胜利" and card.title_text() == "挑战已完成！" and card.hint_text() == "下一场即将开始","card shows the winner and the hint: "+card.body_text())
+		var early:float = door.loading_progress
+		check(door.phase == door.Phase.COVERED and early > 0.2 and early < 0.6,"experience bar fills with the waiting time: %.2f" % early)
+		await create_timer(1.2,true,false,true).timeout
+		check(door.phase == door.Phase.COVERED and door.loading_progress > early,"doors stay closed while the bar fills")
+		deadline = Time.get_ticks_msec() + 4000
+		while Time.get_ticks_msec() < deadline and door.phase == door.Phase.COVERED: await process_frame
+		check(door.phase != door.Phase.COVERED,"a full bar opens the doors")
+		deadline = Time.get_ticks_msec() + 3000
+		while Time.get_ticks_msec() < deadline and world._rotation_transitioning: await process_frame
+		check(not world._rotation_transitioning and door.wait_seconds == 0.0 and world._find_character_by_setup_id_any(int(world._rotation_active_setup.left)) != null,"next round starts and the shared door leaves wait mode")
 	check(hud.rotation_wave_kinds([{"round":1,"scene_path":"a"},{"round":1,"scene_path":"a"},{"round":2,"scene_path":"b"}],0) == 1 and hud.rotation_wave_kinds([{"round":1,"char":"x"},{"round":1,"char":"y"}],1) == 2,"wave kinds counted per round by scene, then name")
 	world.reset()
 	await process_frame
 	game.Game_Settings = saved
 	world.queue_free()
 	await process_frame
-	var door:Node = root.get_node_or_null("DarkOakDoorTransition")
-	if door != null: door.queue_free()
+	var leftover_door:Node = root.get_node_or_null("DarkOakDoorTransition")
+	if leftover_door != null: leftover_door.queue_free()
 	print("ROTATION_TOAST_RESULT checks=%d failures=%d" % [checks,failures])
 	quit(0 if failures == 0 else 1)
+
 

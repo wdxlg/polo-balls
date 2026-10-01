@@ -761,7 +761,10 @@ var _rotation_transitioning:bool = false
 var _rotation_combat_released:bool = false
 var _rotation_combat_blocked:bool = false
 var _rotation_door:CanvasLayer
+## 轮换切换时门上的胜利卡片（rotation_result_card.gd）。
 var _rotation_toast_mirror:Control
+## 轮换切换：门关上后保持的秒数，底部经验条按这段时间充满后开门。
+const ROTATION_RESULT_WAIT_SECONDS:float = 3.0
 var _rotation_load_ready:bool = false
 var _rotation_ui_token:int = 0
 var _rotation_ui_progress:float = 0.0
@@ -7264,11 +7267,13 @@ func _present_rotation_match(dead_sides:Array[String],epoch:int,authority:bool) 
 	while _rotation_presentation_valid(epoch) and _rotation_door.is_busy(): await get_tree().process_frame
 	if not _rotation_presentation_valid(epoch): return
 	if is_instance_valid(duel_top_hud):
-		_rotation_toast_mirror=duel_top_hud.make_mirror("",COMBAT_TEXT_VISIBILITY_LAYER)
-		_rotation_toast_mirror.process_mode=Node.PROCESS_MODE_ALWAYS
+		# 门关上后从上方滑下胜利卡片（人物/队伍 + 提示文字），开门时随门滑回。
+		_rotation_toast_mirror=load("res://scripts/ui/rotation_result_card.gd").new()
+		_rotation_toast_mirror.call("setup",duel_top_hud,_rotation_door)
 		_rotation_door.shield.add_child(_rotation_toast_mirror)
 	var began:bool=_rotation_door.play(_load_rotation_covered.bind(dead_sides,epoch,authority),_release_rotation_combat.bind(epoch))
 	if not began: return
+	_rotation_door.wait_seconds=ROTATION_RESULT_WAIT_SECONDS
 	await _rotation_door.finished
 	if not _rotation_presentation_valid(epoch): return
 	if is_instance_valid(_rotation_toast_mirror): _rotation_toast_mirror.queue_free()
