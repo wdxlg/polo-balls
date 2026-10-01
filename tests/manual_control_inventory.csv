@@ -229,3 +229,4 @@
 选角人物,scenes/characters/动漫/宿傩.tscn,scripts/characters/动漫/咒术回战/sukuna.gd,"controlled_attack_action,controlled_skill_action,controlled_middle_action,controlled_amplification,controlled_domain,controlled_mahoraga,controlled_agito,controlled_world_slash",是,左：解（长按蜘蛛网/展延中拳脚）；右：捌；中：开；1领域展延 2伏魔御厨子（再按缩小）3魔虚罗 4嵌合暗兽 5世界斩；专项见JJK_CHARACTERS.md
 选角人物,scenes/characters/动漫/魔虚罗.tscn,scripts/characters/动漫/咒术回战/mahoraga.gd,"controlled_attack_action,controlled_skill_action,controlled_middle_action",是,左：退魔之剑；右：突进斩；中：咆哮；适应被动自动；专项见JJK_CHARACTERS.md
 选角人物,scenes/characters/动漫/嵌合暗兽.tscn,scripts/characters/动漫/咒术回战/agito.gd,"controlled_attack_action,controlled_skill_action,controlled_middle_action",是,左：撕咬；右：鵺落雷；中：圆鹿反转治疗；专项见JJK_CHARACTERS.md
+选角人物,scenes/characters/我的世界/时钟.tscn,scripts/characters/我的世界/clock/clock.gd,,是,无独立主动键：时间加速、时光倒流与残影均为被动

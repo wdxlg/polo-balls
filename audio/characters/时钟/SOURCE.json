@@ -1,0 +1,8 @@
+{
+    "new_asset":  "note_block.hat.ogg",
+    "source":  "Locally installed Minecraft Java asset index 1.21.json and its hashed original object",
+    "original_path":  "minecraft/sounds/note/hat.ogg",
+    "sha1":  "fd2b6f745b05a2cf44a4e010f72631de2e5099f6",
+    "event":  "block.note_block.hat",
+    "rights":  "Minecraft assets are copyright Mojang Studios/Microsoft. Use is subject to the Minecraft EULA; no general redistribution permission is claimed."
+}

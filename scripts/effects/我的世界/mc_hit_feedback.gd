@@ -14,6 +14,7 @@ const POLICIES:Dictionary = {
 	"res://scripts/characters/我的世界/wither_skeleton/wither_skeleton.gd": 0,
 	"res://scripts/characters/我的世界/new5/slime.gd": 1,
 	"res://scripts/characters/我的世界/唤魔者.gd": 0,
+	"res://scripts/characters/我的世界/clock/clock.gd": 1,
 	"res://scripts/characters/我的世界/cactus_note/note_block.gd": 0,
 	"res://scripts/characters/我的世界/new6/heavenfall_longbow.gd": 1,
 	"res://scripts/characters/我的世界/女巫.gd": 1,

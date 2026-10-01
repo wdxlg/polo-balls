@@ -1,0 +1,327 @@
+{
+    "source_game":  "Minecraft Java 1.21.4",
+    "definition":  "Vanilla item texture minecraft:item/clock_00..63 (64 time-of-day frames of the Clock item); used as the 时钟 body sprite.",
+    "license":  "Mojang/Microsoft Minecraft assets, Minecraft EULA applies; unchanged game textures via versioned mirror.",
+    "files":  [
+                  {
+                      "file":  "clock_00.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_00.png",
+                      "sha256":  "52652043a299f6d27da9229f1ccadd64e94018e6126c0bb2cbdf283bec114d87"
+                  },
+                  {
+                      "file":  "clock_01.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_01.png",
+                      "sha256":  "afef4167763a2fce3a45e65c58b0cbe04d6cdfbf1487a2c04b3d944c61c4e80e"
+                  },
+                  {
+                      "file":  "clock_02.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_02.png",
+                      "sha256":  "30e116914e1ef89882be6e620f24ebbb8c0adab69e0a1ad48698501cd6753635"
+                  },
+                  {
+                      "file":  "clock_03.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_03.png",
+                      "sha256":  "84a8675c022254b279d16504f7932740b5d1d56ba0c3c7fef8ab65ff1b9f9520"
+                  },
+                  {
+                      "file":  "clock_04.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_04.png",
+                      "sha256":  "b94701e1a96bfacb0d2d6754e310a726fb7756818812e237dbc0e6b24bb4217e"
+                  },
+                  {
+                      "file":  "clock_05.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_05.png",
+                      "sha256":  "530ccffe33c60e4047b68b002d91ded3e218f4b13666c389593a6a656505489c"
+                  },
+                  {
+                      "file":  "clock_06.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_06.png",
+                      "sha256":  "958e114c94f0ab75f94755d63de14acfe5ea57953bd897f28dd36f47f8c0838d"
+                  },
+                  {
+                      "file":  "clock_07.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_07.png",
+                      "sha256":  "1894f6b1b8507c880313416ae87a70343d03593786fb7bf82954aa95319e7d86"
+                  },
+                  {
+                      "file":  "clock_08.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_08.png",
+                      "sha256":  "30d3d0ad7eef8000a3f8a58ba193aaef7d43bad90af707536f7c1bfd88032e5b"
+                  },
+                  {
+                      "file":  "clock_09.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_09.png",
+                      "sha256":  "41069cd9ee3df243a303c143928d0f1b79449d4a913c55913d54c131a509e336"
+                  },
+                  {
+                      "file":  "clock_10.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_10.png",
+                      "sha256":  "244a9357695db153e59144d54af26495979a89ccb6c3f58dec33b8179c9a826b"
+                  },
+                  {
+                      "file":  "clock_11.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_11.png",
+                      "sha256":  "75391bf88c547414bf44eb399ec72ce793dbf4f19e8c1a64add34a26cbc9f00e"
+                  },
+                  {
+                      "file":  "clock_12.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_12.png",
+                      "sha256":  "4cc690b39739b06bdba18cdcbd817d57762610a9f2da22ca4433583176270219"
+                  },
+                  {
+                      "file":  "clock_13.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_13.png",
+                      "sha256":  "2403b81326a20dbf19e47a0069b225fbbe8770f1f83ca248f5c9b283625a9f76"
+                  },
+                  {
+                      "file":  "clock_14.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_14.png",
+                      "sha256":  "e269664739ab163dd281d2955dffc8140297d23256b1eb33cc0cf40c1ba0eba3"
+                  },
+                  {
+                      "file":  "clock_15.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_15.png",
+                      "sha256":  "32b794d5dcf1665b3c86c0e9727c067a3b50642ac31e1fc14fd45303e1dbe9fb"
+                  },
+                  {
+                      "file":  "clock_16.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_16.png",
+                      "sha256":  "a9965a39623ce92f91c9065e5d9752ca4ce872b3a7feb87afc4ad3b1e7613d08"
+                  },
+                  {
+                      "file":  "clock_17.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_17.png",
+                      "sha256":  "9ca70e3ecb6645188e98eaaebd252d9418a6ddb2ff7beff2b89c7ebdc814700e"
+                  },
+                  {
+                      "file":  "clock_18.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_18.png",
+                      "sha256":  "4471250846ab4c559a0cd638c0beb0be9434a52689a74c9b564216db1c82fe2c"
+                  },
+                  {
+                      "file":  "clock_19.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_19.png",
+                      "sha256":  "3ad57df299192b601855530f80d009e5fbede4158ab3af602ec5b74953a94285"
+                  },
+                  {
+                      "file":  "clock_20.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_20.png",
+                      "sha256":  "e6a8d0a3fcc1d369bed91199e1d05d706724a1e8778d74a153fbd649edc87557"
+                  },
+                  {
+                      "file":  "clock_21.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_21.png",
+                      "sha256":  "54992db69576196c59b6723cc68c15e56a311b75a7d9627aa97657c7e6428737"
+                  },
+                  {
+                      "file":  "clock_22.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_22.png",
+                      "sha256":  "507c7439802312831dfb7ad9ba3a0067a6fe489bc5637f10dd6e88e265c6fdc8"
+                  },
+                  {
+                      "file":  "clock_23.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_23.png",
+                      "sha256":  "735c1a461c461f3ee9fd745cb336f45e957ebf30491fedb3e4baa5c35c9707dc"
+                  },
+                  {
+                      "file":  "clock_24.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_24.png",
+                      "sha256":  "2660854e48a34b05c85142d022e93bb1fad27735705ae0ca5a8d53d136c7eda5"
+                  },
+                  {
+                      "file":  "clock_25.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_25.png",
+                      "sha256":  "587ce6b78341d04f7f62403262490997f931ed4b69dcbc88570bdd7605bae125"
+                  },
+                  {
+                      "file":  "clock_26.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_26.png",
+                      "sha256":  "4306ef0b6a2158bc32d6b43e8ab60fa22663936681f4167de5bfc8506b871ae7"
+                  },
+                  {
+                      "file":  "clock_27.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_27.png",
+                      "sha256":  "7314da488d3a33ef4d08fd39b5ce69d2df391aa8a01eaefcd689b4a01629527e"
+                  },
+                  {
+                      "file":  "clock_28.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_28.png",
+                      "sha256":  "55bb268a9a2f0d234f2dcdfb80bc26a11e4d918124d568afb82e1d90877f7388"
+                  },
+                  {
+                      "file":  "clock_29.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_29.png",
+                      "sha256":  "4ba13422b676f30491dbbc31bf33e534c65519839976f53bf3ce8ed1d02a4255"
+                  },
+                  {
+                      "file":  "clock_30.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_30.png",
+                      "sha256":  "65b13cfa8d1fc53cfec37c58fe30d3e80a366e3d9d57068d2b6102caaed3f9f7"
+                  },
+                  {
+                      "file":  "clock_31.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_31.png",
+                      "sha256":  "6440da211b672cf224e37421b6dd641c8b614ee21cd25664efd0fbdde2cffb63"
+                  },
+                  {
+                      "file":  "clock_32.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_32.png",
+                      "sha256":  "b3a7a625bc99e27a1b03962bf321412223a661887127ba10c1d620b3deb2b324"
+                  },
+                  {
+                      "file":  "clock_33.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_33.png",
+                      "sha256":  "5121a5793906776a6dca0edfe78f7bdf5cb4aa606d44db6f29dc5822659aca69"
+                  },
+                  {
+                      "file":  "clock_34.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_34.png",
+                      "sha256":  "f35ec1fd0ee6019486086a156a446eddb5441e8392b27969abad383d2c1f6f58"
+                  },
+                  {
+                      "file":  "clock_35.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_35.png",
+                      "sha256":  "d5ff9e5aca90cd01f85745b98135c1da2eb2233ba125902c6ddeeaaff6b4c600"
+                  },
+                  {
+                      "file":  "clock_36.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_36.png",
+                      "sha256":  "4f343afcfa742f738a723e7e5b87c8c46a6d8e13277e8c529446566d5f78a823"
+                  },
+                  {
+                      "file":  "clock_37.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_37.png",
+                      "sha256":  "a52a1d9efc185643c9e1a3e604bf5777c420a7663542cab7578a7ec75090b4ad"
+                  },
+                  {
+                      "file":  "clock_38.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_38.png",
+                      "sha256":  "7895a95d6efcc987c7adfc6352a708eb3cd0f33a141b0ec1800cec1c8cc063d9"
+                  },
+                  {
+                      "file":  "clock_39.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_39.png",
+                      "sha256":  "90776f008770d6570cfd71aa570dafcef2c8580867730f3ba9b555b152ababe3"
+                  },
+                  {
+                      "file":  "clock_40.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_40.png",
+                      "sha256":  "17b34109ff93c360b6858f7492519563b92d2c3be092fa233660ff92b1986533"
+                  },
+                  {
+                      "file":  "clock_41.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_41.png",
+                      "sha256":  "a41f975aedbd3bbbb26f3d300d426d415f41e356d6c8cc7db5dc8dec0f26f60f"
+                  },
+                  {
+                      "file":  "clock_42.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_42.png",
+                      "sha256":  "215877fb90d18f46066a7f208a304635297cc94e110a9ef30b8452e6009e042c"
+                  },
+                  {
+                      "file":  "clock_43.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_43.png",
+                      "sha256":  "aa0251cfb4e0c91dd23752d1ad6df0e58f80846c8ac99629d8264f5f6fcac468"
+                  },
+                  {
+                      "file":  "clock_44.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_44.png",
+                      "sha256":  "c5a12d13fb867fd906bb3c3b6881bc49e82313d24a9f0c3c5f47146652e11c22"
+                  },
+                  {
+                      "file":  "clock_45.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_45.png",
+                      "sha256":  "bc177a301ac1f2c64a5b76fdd75619440466900986852deeb4b15632a72e0278"
+                  },
+                  {
+                      "file":  "clock_46.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_46.png",
+                      "sha256":  "85f298e322ed7c6e14b487ecec0a5d1c22ffd9cf1e45afa2fb772ec6ce4960c9"
+                  },
+                  {
+                      "file":  "clock_47.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_47.png",
+                      "sha256":  "e02f2d2c022e97bbd5c3faba6ef35e8bd4da3a59530102c01a42c4694eb96e8f"
+                  },
+                  {
+                      "file":  "clock_48.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_48.png",
+                      "sha256":  "bcedb370f9c12a85c72d589364ba36d486da4bc0321c82381f0d5852276dee27"
+                  },
+                  {
+                      "file":  "clock_49.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_49.png",
+                      "sha256":  "a907290370de477acc51d987175fcb7f57c74411ccf8460bcc91d70af0fdbd9a"
+                  },
+                  {
+                      "file":  "clock_50.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_50.png",
+                      "sha256":  "6a7a7d13d42a22109b3481a7f5a485e34ded193419f539abbc3b3e924517729a"
+                  },
+                  {
+                      "file":  "clock_51.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_51.png",
+                      "sha256":  "a7dfa7507863ed4c9b56c77891510fc9d9e7e1053d43290f69175539e9659a62"
+                  },
+                  {
+                      "file":  "clock_52.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_52.png",
+                      "sha256":  "98a27cc542509bb26c9e0942b3d36193d638d720ca48344d73b3f5e79fb87dd0"
+                  },
+                  {
+                      "file":  "clock_53.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_53.png",
+                      "sha256":  "741e809f6d683ab7461d53a31d3878bd4db7caf9579360a4190abffed88ca00f"
+                  },
+                  {
+                      "file":  "clock_54.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_54.png",
+                      "sha256":  "a494fdbe0c521416b33265e29906b0d71ecbced89e2ec68cad0f946e99d2ef20"
+                  },
+                  {
+                      "file":  "clock_55.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_55.png",
+                      "sha256":  "cac200c22731fa695cfbd69ccf5eb31394e20f34414ec2b67fa13991c3447b3b"
+                  },
+                  {
+                      "file":  "clock_56.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_56.png",
+                      "sha256":  "82390807103025360b6e7216a69e8b885edd4bf038950d74fc361fc8305ee392"
+                  },
+                  {
+                      "file":  "clock_57.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_57.png",
+                      "sha256":  "2c71f1e64cfb45b8be908609b8a6f07fb76d0f65fc38f4b46ec90770dd4fa0f5"
+                  },
+                  {
+                      "file":  "clock_58.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_58.png",
+                      "sha256":  "f6ba02877bab5c72835ea6fca4879bf169d7068f6a6c82dc97110b6ddd016130"
+                  },
+                  {
+                      "file":  "clock_59.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_59.png",
+                      "sha256":  "d5a12085e2c9dcc2346dfa9e8ccbc654e2ee2e8c8377581e8831ea50b2801844"
+                  },
+                  {
+                      "file":  "clock_60.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_60.png",
+                      "sha256":  "262896921032d5aaf58101cd47e2404c5a0e44831b75cd6d6dbdadfd534b1c2e"
+                  },
+                  {
+                      "file":  "clock_61.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_61.png",
+                      "sha256":  "dad6491d8027acd75b3c0ebd9ce8c12d9c879fce0336f316527c5ccda9b9b539"
+                  },
+                  {
+                      "file":  "clock_62.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_62.png",
+                      "sha256":  "928fe1973639f301da5364db41bbf925434379555d15f89437659be4b356ecd9"
+                  },
+                  {
+                      "file":  "clock_63.png",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/clock_63.png",
+                      "sha256":  "be70a584ebee3c4ac5be64ab9cec6d9424915a7a6fecb102a530151869f402cb"
+                  }
+              ]
+}

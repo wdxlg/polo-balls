@@ -4,6 +4,20 @@ extends RefCounted
 ## ordinary_or_contextual is an audit summary, NEVER a legal damage-event kind.
 ## Unknown new resources stay unregistered; do not infer fire from names/directories.
 const SCENES:Dictionary = {
+ "res://scenes/characters/我的世界/时钟.tscn": {
+  "entity_kind": "character",
+  "attack_modes": [
+   "melee"
+  ],
+  "carriers": [
+   "body_contact"
+  ],
+  "damage_kinds": [
+   "ordinary"
+  ],
+  "review": "speed_scaled_body_contact; time_field_accelerates_projectiles_statuses_hazards_world_time_not_characters; rewind_restores_window_health; solid_damaging_afterimages_team_filtered",
+  "root_script": "res://scripts/characters/我的世界/clock/clock.gd"
+ },
  "res://scenes/characters/默认/丁某人睡觉.tscn": {
    "entity_kind": "character",
    "attack_modes": [
@@ -2886,6 +2900,33 @@ const SCENES:Dictionary = {
 }
 
 const SCRIPTS:Dictionary = {
+ "res://scripts/characters/我的世界/clock/clock.gd": {
+  "entity_kind": "character",
+  "attack_modes": [
+   "melee"
+  ],
+  "carriers": [
+   "body_contact"
+  ],
+  "damage_kinds": [
+   "ordinary"
+  ],
+  "review": "speed_scaled_body_contact; time_field_accelerates_projectiles_statuses_hazards_world_time_not_characters; rewind_restores_window_health; solid_damaging_afterimages_team_filtered"
+ },
+ "res://scripts/characters/我的世界/clock/time_field.gd": {
+  "entity_kind": "component",
+  "attack_modes": [],
+  "carriers": [],
+  "damage_kinds": [],
+  "review": "extra_whole_physics_steps_for_non_character_world"
+ },
+ "res://scripts/characters/我的世界/clock/afterimage.gd": {
+  "entity_kind": "component",
+  "attack_modes": [],
+  "carriers": [],
+  "damage_kinds": [],
+  "review": "visual_plus_static_body; damage_resolved_by_clock"
+ },
 	"res://global/feedback_settings.gd": {"entity_kind":"system","attack_modes":[],"carriers":[],"damage_kinds":[],"review":"local_feedback_validation_and_curves; no_combat_state"},
  "res://scripts/characters/默认/丁某人睡觉.gd": {
    "entity_kind": "character",

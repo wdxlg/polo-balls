@@ -83,6 +83,7 @@ func run() -> void:
 		"人物/火车长":[&"controlled_attack_action"],
 		"人物/疲倦的人":[],
 		"我的世界/铁匠村民":[],
+		"我的世界/时钟":[],
 		"人物/变形者":[&"controlled_attack_action"],
 		"我的世界/雾中人":[&"controlled_attack_action",&"controlled_skill_action"],
 		"meme/肌肉男":[],

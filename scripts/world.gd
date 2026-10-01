@@ -5862,6 +5862,7 @@ const ARMOR_TEST_ROLE_SUMMARIES:Dictionary = {
 	"res://scripts/characters/我的世界/骷髅.gd":"MC_ARMOR_INTRO_SKELETON",
 	"res://scripts/characters/我的世界/苦力怕.gd":"MC_ARMOR_INTRO_CREEPER",
 	"res://scripts/characters/我的世界/minecart/minecart.gd":"MC_ARMOR_INTRO_MINECART",
+	"res://scripts/characters/我的世界/clock/clock.gd":"MC_ARMOR_INTRO_CLOCK",
 	"res://scripts/characters/我的世界/烈焰人.gd":"MC_ARMOR_INTRO_BLAZE",
 	"res://scripts/characters/我的世界/流浪商人.gd":"MC_ARMOR_INTRO_WANDERING_TRADER",
 	"res://scripts/characters/我的世界/硫方怪.gd":"MC_ARMOR_INTRO_SULFUR_CUBE",
