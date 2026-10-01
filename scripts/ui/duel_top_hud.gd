@@ -699,8 +699,10 @@ func begin_round_result(winner_side:String) -> void:
 			"texture":_portraits.resolve(world,record),"nodes":[actor] if is_instance_valid(actor) else [],
 			"hp":float(actor.health) if is_instance_valid(actor) else 0.0,"max_hp":float(actor.Max_health) if is_instance_valid(actor) else 1.0,
 			"block":0.0,"absorption":0.0,"reduction":0.0,"damage":0.0,"setup_id":int(record.id),"dead":side!=winner_side}
-		if Game.is_rotation_training_mode() and (world._rotation_active_records[side].size()>1 or Game.rotation_team_count(side)>1):
+		# 轮换：这一波只有一种角色（含数量复制）时按这个角色弹出；混合队伍才显示队伍名和队伍羊毛。
+		if Game.is_rotation_training_mode() and rotation_wave_kinds(roster,index)>1:
 			row.raw_name="__rotation_"+side
+			row.team_wool="blue" if side=="left" else "red"
 		entries[side]=row
 	_reset_outro()
 	sides=[entries.left,entries.right]
@@ -711,6 +713,18 @@ func begin_round_result(winner_side:String) -> void:
 	_outro_show_panels=show_exiting_panels
 	outro_elapsed=0.0
 	visible=true
+## 轮换名单里与 index 同一波的不同角色数（按场景，缺场景时按名字）。
+static func rotation_wave_kinds(roster:Array,index:int) -> int:
+	if index<0 or index>=roster.size(): return 0
+	var round_number:int=int(roster[index].get("round",index+1))
+	var kinds:Dictionary={}
+	for i:int in range(roster.size()):
+		var entry:Dictionary=roster[i]
+		if int(entry.get("round",i+1))!=round_number: continue
+		var path:String=str(entry.get("scene_path",""))
+		kinds[path if not path.is_empty() else "char:"+str(entry.get("char",""))]=true
+	return kinds.size()
+
 func end_round_result() -> void:
 	round_result_locked=false
 	round_exit=0.0
@@ -1127,6 +1141,14 @@ func _draw_toast_graphics() -> void:
 		draw_texture_rect(TOAST_ADVANCEMENT,toast,false)
 		var winner_side:int = int(data.winner_index)
 		if not data.victory_result.is_empty() or (winner_side >= 0 and winner_side < data.sides.size()):
+			var team_wool:String = str(data.sides[winner_side].get("team_wool","")) if data.victory_result.is_empty() else ""
+			if not team_wool.is_empty():
+				# 轮换混合队伍：与普通模式队伍胜利相同的羊毛方块。
+				if not _wool_cache.has(team_wool): _wool_cache[team_wool] = load("res://Images/UI/team_victory/" + team_wool + "_wool.png")
+				var wool_slot:Rect2 = Rect2(toast.position + Vector2(8.0,8.0) * TOAST_PIXEL,Vector2(16.0,16.0) * TOAST_PIXEL)
+				draw_texture_rect(ITEM_FRAME,wool_slot,false)
+				_draw_wool_cube(_wool_cache[team_wool],wool_slot.grow(-wool_slot.size.x*0.18))
+				return
 			var texture:Texture2D = _victory_texture() if not data.victory_result.is_empty() else data.sides[winner_side].texture
 			if texture != null:
 				var slot:Rect2 = Rect2(toast.position + Vector2(8.0,8.0) * TOAST_PIXEL,Vector2(16.0,16.0) * TOAST_PIXEL)
