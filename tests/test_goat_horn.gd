@@ -113,7 +113,7 @@ func run() -> void:
 	var target:Node2D = dummy(center + Vector2(160,0))
 	await physics_frame
 	await process_frame
-	check(horn.Max_health == 370 and is_equal_approx(horn.Damage,9.0) and is_equal_approx(horn.Speed,80.0),"山羊角 stats 370 HP / 9 damage / 80 speed")
+	check(horn.Max_health == 750 and is_equal_approx(horn.Damage,9.0) and is_equal_approx(horn.Speed,80.0),"山羊角 stats 750 HP / 9 damage / 80 speed")
 	check(world.return_all_character_names().has("山羊角"),"山羊角 appears in the Minecraft roster")
 	check(horn.Unique_Death_Audio == horn.AUDIO.EVENTS["entity.item.break"][0].stream,"death uses native item break")
 	check(horn.call("is_combat_runtime_active"),"real World combat is active")
