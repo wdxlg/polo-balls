@@ -217,7 +217,16 @@ func run() -> void:
 	actor.voice._physics_process(0.4)
 	check(actor.voice.played.get("step",0) == 1,"real displacement emits native footstep")
 	actor.voice._physics_process(0.001)
-	check(actor.voice.played.get("step",0) == 1,"same step stream never immediately overlaps")
+	check(actor.voice.played.get("step",0) == 1,"no movement adds no step")
+	# 脚步按当前移速计步：快走时下一步不等上一声播完。
+	var stride:float = actor.voice.FOOTSTEP.base_speed(actor)*actor.voice.step_base_interval()
+	actor.global_position.x += stride*0.45
+	actor.voice._physics_process(0.05)
+	check(actor.voice.played.get("step",0) == 1,"half a stride adds no step")
+	for i:int in range(6):
+		actor.global_position.x += stride*0.1
+		actor.voice._physics_process(0.02)
+	check(actor.voice.played.get("step",0) == 2 and actor.voice.QUEUE.channel_busy(actor.voice._channels.get("step",{})),"fast walking starts the next step while the previous still plays")
 	if DisplayServer.get_name() != "headless":
 		var images:Array[Image] = []
 		for t:float in [-1.0,0.22,0.49,0.86]:

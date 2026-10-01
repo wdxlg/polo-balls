@@ -7,6 +7,9 @@ const CLASSIFY = preload("res://classes/combat_classification.gd")
 const AUDIO = preload("res://scripts/characters/我的世界/haochen/audio.gd")
 const STREAM = preload("res://scripts/effects/我的世界/character_copy_request.gd")
 const SOUL = preload("res://scripts/effects/我的世界/灵魂粒子.gd")
+const FOOTSTEP = preload("res://scripts/effects/我的世界/footstep_cadence.gd")
+## 原节奏：脚步至少隔 0.3 秒且等上一声播完。现在它只作为"按基础速度行走"时的基础间隔。
+const STEP_BASE_INTERVAL:float = 0.30
 const CHARGE_SOUL_WIDTH:float = 8.0
 const CHARGE_STREAM_INTERVAL:float = 0.12
 const CHARGE_STREAM_PER_SOURCE:int = 1
@@ -58,7 +61,11 @@ var _sound_tickets:Dictionary = {}
 var _sound_serial:int = 0
 var _last_remote_sound:int = 0
 var _ambient_left:float = 3.0
-var _step_left:float = 0.15
+# 脚步按当前移速计步（见 footstep_cadence.gd）：越快越密、越慢越稀，
+# 下一步不等上一声播完，允许重叠。
+var _step_cadence = FOOTSTEP.new()
+var _step_length:float = 0.0 # 最近一声脚步的时长
+var _step_tickets:Array[Dictionary] = [] # 可能同时有几声脚步在响，死亡时全部停掉
 var _previous_audio_position:Vector2
 var _audio_sample_valid:bool = false
 var _drain_left:float = 0.0
@@ -358,10 +365,11 @@ func _step_creature_audio(delta:float) -> void:
 	_previous_audio_position = global_position
 	var moving:bool = _audio_sample_valid and traveled.length()>0.02 and traveled.length()<maxf(36.0,_last_requested_velocity.length()*delta*5.0)
 	_audio_sample_valid = true
-	_step_left -= delta
-	if moving and not dizziness and _step_left<=0.0 and not AUDIO.busy(_sound_tickets.get(&"step",{})):
+	# 基础间隔 = max(0.3 秒, 一声脚步时长)，即按基础速度走时保持原来的节奏；
+	# 实际间隔 = 基础间隔 × 基础速度 ÷ 当前移速，可以短于上一声脚步。
+	var walked:float = traveled.length() if moving and not dizziness else 0.0
+	if _step_cadence.tick(walked,delta,FOOTSTEP.base_speed(self),maxf(STEP_BASE_INTERVAL,_step_length)):
 		_emit_audio(&"step")
-		_step_left = 0.30
 	if charge_phase!=Phase.RESTING: return
 	_ambient_left -= delta
 	if _ambient_left<=0.0 and not AUDIO.busy(_sound_tickets.get(&"ambient",{})):
@@ -370,7 +378,8 @@ func _step_creature_audio(delta:float) -> void:
 
 func _emit_audio(event:StringName) -> void:
 	if not is_multiplayer_authority(): return
-	if event in [&"step",&"ambient",&"charge_start"] and AUDIO.busy(_sound_tickets.get(event,{})): return
+	# 脚步不在此排队等上一声（节奏由 _step_cadence 决定）；闲聊/蓄力声仍等上一声播完。
+	if event in [&"ambient",&"charge_start"] and AUDIO.busy(_sound_tickets.get(event,{})): return
 	var index:int = AUDIO.variant(event)
 	if index<0: return
 	_sound_serial += 1
@@ -382,7 +391,13 @@ func _play_audio(event:StringName,index:int,point:Vector2,serial:int) -> void:
 	if serial<=_last_remote_sound: return
 	_last_remote_sound = serial
 	var ticket:Dictionary = AUDIO.play(self,event,point,index)
-	if not ticket.is_empty(): _sound_tickets[event] = ticket
+	if ticket.is_empty(): return
+	_sound_tickets[event] = ticket
+	if event == &"step":
+		_step_length = (ticket.stream as AudioStream).get_length()
+		for i:int in range(_step_tickets.size()-1,-1,-1):
+			if not AUDIO.busy(_step_tickets[i]): _step_tickets.remove_at(i)
+		_step_tickets.append(ticket)
 
 func mc_play(event:String,_volume:float = -4.0) -> AudioStreamPlayer2D:
 	_emit_audio(StringName(event))
@@ -392,6 +407,8 @@ func Die() -> void:
 	if _source_dead: return
 	_source_dead = true
 	for event:StringName in [&"step",&"ambient",&"charge_start"]: AUDIO.cancel(_sound_tickets.get(event,{}))
+	for ticket:Dictionary in _step_tickets: AUDIO.cancel(ticket)
+	_step_tickets.clear()
 	# A confirmed COPY_REQUEST owns its own lifecycle ticket and may finish;
 	# unconfirmed energy alone cannot keep a dead character alive.
 	super.Die()

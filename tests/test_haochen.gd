@@ -90,6 +90,28 @@ func run() -> void:
 	check(load("res://scripts/characters/我的世界/苦力怕.gd").SHARED_BAR==hero.BAR,"the actual Creeper now uses that exact same painter")
 	var rect:Rect2 = hero.BAR.below_body(hero,hero.collision_shape_2d)
 	check(rect.position.y>hero.collision_shape_2d.shape.get_rect().end.y and rect.size==Vector2(110,16),"reusable bar layout sits below the physical body")
+	# 脚步按当前移速计步：起步先响一步，半个步幅不响，快走时下一步不等上一声播完。
+	var home:Vector2 = hero.global_position
+	hero._previous_audio_position = home
+	hero._audio_sample_valid = true
+	hero._step_creature_audio(0.4)
+	check(hero._step_tickets.is_empty(),"standing still plays no footstep")
+	hero.global_position.x += 4.0
+	hero._step_creature_audio(0.05)
+	check(hero._step_tickets.size()==1,"first real walking displacement plays a footstep")
+	var stride:float = hero.FOOTSTEP.base_speed(hero)*maxf(hero.STEP_BASE_INTERVAL,hero._step_length)
+	for i:int in range(9):
+		hero.global_position.x += stride*0.05
+		hero._step_creature_audio(0.01)
+	check(hero._step_tickets.size()==1,"half a stride adds no footstep")
+	for i:int in range(12):
+		hero.global_position.x += stride*0.05
+		hero._step_creature_audio(0.01)
+	check(hero._step_tickets.size()==2 and hero.AUDIO.busy(hero._step_tickets[0]),"fast walking starts the next footstep while the previous still plays")
+	for ticket:Dictionary in hero._step_tickets: hero.AUDIO.cancel(ticket)
+	hero._step_tickets.clear()
+	hero.global_position = home
+	hero._previous_audio_position = home
 
 	var hp:float = donor_a.health
 	hero._step_energy(3.0)
