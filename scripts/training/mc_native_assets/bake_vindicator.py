@@ -47,12 +47,24 @@ def bake(output):
     b.render('vindicator','idle',0).save(output/'idle.png')
     for bone in b.models['vindicator']:bone['neverRender']=bone['name']!='rightArm'
     arm=b.render('vindicator','idle',0);arm.save(output/'arm.png')
-    shoulder=b.project([-5,22,0]);hand=b.project([-6,32,0])
-    geom={'shoulder':shoulder.tolist(),'hand':hand.tolist(),'canvas':[160,224]}
+    shoulder=b.project([-5,22,0]);hand=b.project([-6,31,0])
+    geom={'shoulder':shoulder.tolist(),'hand':hand.tolist(),'canvas':[160,224],'axe_grip':[5.5,11.5],'axe_blade':[9.0,4.0],'arm_depth':'behind_body','item_depth':'behind_hand'}
     (output/'rig.json').write_text(json.dumps(geom,indent=2))
-    preview=Image.open(output/'idle.png').convert('RGBA');preview.alpha_composite(arm)
-    axe=Image.open(output/'iron_axe.png').convert('RGBA').resize((48,48),Image.Resampling.NEAREST).rotate(45,resample=Image.Resampling.NEAREST,expand=True)
-    preview.alpha_composite(axe,(round(hand[0]-axe.width/2),round(hand[1]-axe.height+12)))
+    grip=np.array([5.5,11.5])
+    theta=-math.pi/4
+    basis=3*np.array([[math.cos(theta),-math.sin(theta)],[math.sin(theta),math.cos(theta)]])
+    inverse=np.linalg.inv(basis)
+    translation=grip-inverse@hand
+    affine=(inverse[0,0],inverse[0,1],translation[0],inverse[1,0],inverse[1,1],translation[1])
+    axe=Image.open(output/'iron_axe.png').convert('RGBA')
+    preview=axe.transform((160,224),Image.Transform.AFFINE,affine,Image.Resampling.NEAREST)
+    preview.alpha_composite(arm)
+    angle=-0.38
+    inverse=np.array([[math.cos(angle),math.sin(angle)],[-math.sin(angle),math.cos(angle)]])
+    translation=shoulder-inverse@shoulder
+    affine=(inverse[0,0],inverse[0,1],translation[0],inverse[1,0],inverse[1,1],translation[1])
+    preview=preview.transform((160,224),Image.Transform.AFFINE,affine,Image.Resampling.NEAREST)
+    preview.alpha_composite(Image.open(output/'idle.png').convert('RGBA'))
     preview.save(output/'preview.png')
     resources=['idle.png']+files
     text='[gd_resource type="SpriteFrames" format=3]\n'+''.join(f'[ext_resource type="Texture2D" path="res://Images/characters/我的世界/vindicator/{n}" id="{i+1}"]\n' for i,n in enumerate(resources))

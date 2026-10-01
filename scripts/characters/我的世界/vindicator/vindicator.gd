@@ -8,7 +8,9 @@ const VOICE = preload("res://scripts/effects/我的世界/mc_creature_voice.gd")
 const AUDIO = preload("res://scripts/characters/我的世界/new5/audio.gd")
 const SWEEP = preload("res://classes/weapon_tip_sweep.gd")
 const SHOULDER:Vector2 = Vector2(60.297922,98.722430)
-const HAND:Vector2 = Vector2(56.357506,53.743715)
+const HAND:Vector2 = Vector2(56.357506,58.194286)
+const AXE_GRIP:Vector2 = Vector2(5.5,11.5)
+const AXE_BLADE:Vector2 = Vector2(9.0,4.0)
 enum Phase { IDLE, CHARGE, DASH, SWING, RECOVER }
 @export var full_charge_seconds:float = 1.6
 @export var maximum_damage_multiplier:float = 4.0
@@ -47,6 +49,7 @@ func _ready() -> void:
 	image.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_arm = Node2D.new()
 	_arm.name = "AxeArm"
+	_arm.show_behind_parent = true
 	image.add_child(_arm)
 	_arm_sprite = Sprite2D.new()
 	_arm_sprite.texture = ARM
@@ -56,11 +59,12 @@ func _ready() -> void:
 	_axe = Sprite2D.new()
 	_axe.texture = AXE
 	_axe.centered = false
-	_axe.offset = -Vector2(3.5,12.5)
+	_axe.offset = -AXE_GRIP
 	_axe.scale = Vector2(3,3)
 	_axe.position = HAND-SHOULDER
 	_axe.rotation = -PI/4.0
 	_arm.add_child(_axe)
+	_arm.move_child(_axe,0)
 	_charge_bar = Line2D.new()
 	_charge_bar.width = 3.0
 	_charge_bar.default_color = Color(0.1,0.1,0.1,0.85)
@@ -155,7 +159,8 @@ func tick_physics(state:State,delta:float) -> void:
 		return
 	match phase:
 		Phase.IDLE:
-			_aim_at_target()
+			var travel:Vector2 = player_control_direction if is_player_controlled() else direction
+			if not travel.is_zero_approx(): facing = travel.normalized()
 			if not is_player_controlled():
 				var enemy:ball = mc_nearest(delta)
 				if enemy != null:
@@ -186,17 +191,10 @@ func tick_physics(state:State,delta:float) -> void:
 	_sync_visual(false)
 
 func move(speed:float,delta:float) -> void:
-	if phase in [Phase.DASH,Phase.SWING]:
-		velocity = Vector2.ZERO
-		return
-	if not is_player_controlled() and can_act():
-		var enemy:ball = mc_nearest()
-		if enemy != null: direction = global_position.direction_to(ball.body_point(enemy,global_position))
-	super.move(speed*(0.35 if phase == Phase.CHARGE else 0.5 if phase == Phase.RECOVER else 1.0),delta)
+	if phase == Phase.DASH: return
+	super.move(speed,delta)
 func stand(delta:float) -> void:
-	if phase in [Phase.DASH,Phase.SWING]:
-		velocity = Vector2.ZERO
-		return
+	if phase == Phase.DASH: return
 	super.stand(delta)
 
 func _advance_dash(delta:float) -> void:
@@ -275,25 +273,35 @@ func cancel_attack() -> void:
 
 func _update_pose() -> void:
 	if not is_instance_valid(_arm) or health<=0: return
-	var walking:bool = velocity.length_squared()>1.0 and phase not in [Phase.SWING,Phase.RECOVER]
+	var walking:bool = velocity.length_squared()>1.0
 	image.texture = FRAMES.get_frame_texture(&"walk",int(_walk_clock*12.0)%12) if walking else FRAMES.get_frame_texture(&"idle",0)
 	set_character_visual_flip_h(facing.x>=0.0)
 	var shoulder:Vector2 = SHOULDER-Vector2(80,112)
 	if is_character_visual_flipped_h(): shoulder.x = -shoulder.x
-	_arm.position = shoulder+image.offset
-	var offset:float = 0.65
-	if phase in [Phase.CHARGE,Phase.DASH]: offset = lerpf(0.65,-1.95,minf(charge_ratio()*4.0,1.0))
-	elif phase == Phase.SWING: offset = lerpf(-1.95,1.15,clampf(phase_elapsed/maxf(swing_seconds,0.01),0.0,1.0))
-	elif phase == Phase.RECOVER: offset = lerpf(1.15,0.65,clampf(phase_elapsed/maxf(recovery_seconds,0.01),0.0,1.0))
 	var side:float = 1.0 if facing.x>=0.0 else -1.0
-	_arm.global_rotation = facing.angle()+PI/2.0+offset*side
+	var rest:float = (PI-0.15)*side
+	var raised:float = 0.38*side
+	var aimed:float = facing.angle()+PI/2.0
+	if side<0.0 and aimed>0.0: aimed-=TAU
+	var finish:float = aimed+0.65*side
+	var angle:float = rest
+	if phase in [Phase.CHARGE,Phase.DASH]:
+		angle = lerpf(rest,raised,minf(charge_ratio()*4.0,1.0))
+	elif phase == Phase.SWING:
+		var start:float = lerpf(rest,raised,minf(released_charge*4.0,1.0))
+		angle = lerpf(start,finish,clampf(phase_elapsed/maxf(swing_seconds,0.01),0.0,1.0))
+	elif phase == Phase.RECOVER:
+		angle = lerpf(finish,rest,clampf(phase_elapsed/maxf(recovery_seconds,0.01),0.0,1.0))
+	angle -= image.global_rotation
+	var mirror:Vector2 = Vector2(-1,1) if is_character_visual_flipped_h() else Vector2.ONE
+	_arm.transform = Transform2D(angle,mirror,0.0,shoulder+image.offset)
 	_charge_bar.position = Vector2(0,-90)+image.offset
 	_charge_bar.visible = phase in [Phase.CHARGE,Phase.DASH]
 	_charge_fill.points = PackedVector2Array([Vector2(-22,0),Vector2(-22+44*charge_ratio(),0)])
 	_charge_fill.default_color = Color(1,0.25,0.08) if charge_ratio()>=0.75 else Color(1,0.8,0.1) if charge_ratio()>=0.5 else Color(0.45,0.8,1)
 
 func blade_center() -> Vector2:
-	return _axe.to_global(Vector2(10.5,4.5)+_axe.offset)
+	return _axe.to_global(AXE_BLADE+_axe.offset)
 func blade_radius() -> float:
 	return maxf(_axe.global_scale.abs().x*4.5,0.3)
 func melee_reach() -> float:

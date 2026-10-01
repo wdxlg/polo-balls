@@ -200,6 +200,8 @@ func run() -> void:
 	unit._receive_visual(19,unit.Phase.IDLE,0,0,0,Vector2.RIGHT,0)
 	check(unit.phase==unit.Phase.CHARGE,"stale visual packet cannot rewind state")
 	await extra_runtime_checks()
+	await corrected_rig_and_movement_checks()
+	await normal_wall_bounce_checks()
 	if DisplayServer.get_name()!="headless": await gpu_checks()
 	for warm:int in 6: await process_frame
 	current_scene = null
@@ -265,6 +267,7 @@ func gpu_checks() -> void:
 	check(before.get_data()!=raised.get_data(),"GPU charge visibly changes original-model arm and axe")
 	check(raised.get_size()==Vector2i(640,480),"GPU capture uses the isolated unscaled viewport")
 	model.phase = model.Phase.SWING
+	model.released_charge = 0.8
 	model.phase_elapsed = model.swing_seconds*0.7
 	model._update_pose()
 	await RenderingServer.frame_post_draw
@@ -272,6 +275,16 @@ func gpu_checks() -> void:
 	check(raised.get_data()!=swung.get_data() and model.blade_center().distance_to(high)>10,"GPU swing follows actual axe hit geometry")
 	swung.save_png("user://vindicator_swing.png")
 	raised.save_png("user://vindicator_charge.png")
+	for heading:Vector2 in [Vector2.RIGHT,Vector2.LEFT,Vector2.UP,Vector2.DOWN]:
+		for pose:int in [model.Phase.CHARGE,model.Phase.SWING]:
+			model.facing = heading
+			model.phase = pose
+			model.charge_elapsed = model.full_charge_seconds*0.8
+			model.released_charge = 0.8
+			model.phase_elapsed = model.swing_seconds*0.7 if pose==model.Phase.SWING else 0.0
+			model._update_pose()
+			await RenderingServer.frame_post_draw
+			view.get_texture().get_image().save_png("user://vindicator_fix_%d_%d_%d.png"%[pose,int(heading.x),int(heading.y)])
 	view.queue_free()
 	await process_frame
 
@@ -319,5 +332,92 @@ func extra_runtime_checks() -> void:
 	unit.Skill_Cooling = old_cooldown
 	tick(0.6)
 	check(unit.global_position.x<50 and unit.phase==unit.Phase.SWING and unit.released_charge<1.0,"real wall collision stops rush and releases only accumulated charge")
+	wall.free()
+	reset_attack()
+
+func corrected_rig_and_movement_checks() -> void:
+	reset_attack()
+	unit.global_position = Vector2.ZERO
+	enemy.global_position = Vector2(1000,0)
+	unit.set_player_control_peer(0)
+	unit.Repel = Vector2.ZERO
+	unit.direction = Vector2(-0.6,-0.8)
+	unit.phase = unit.Phase.IDLE
+	tick(0.01)
+	check(unit.facing.is_equal_approx(unit.direction),"idle facing follows normal travel rather than a distant enemy")
+	var expected:Vector2 = unit.direction*unit.Speed*ball_type.CHARACTER_BASE_MOVE_SPEED_MULTIPLIER
+	for state:int in [unit.Phase.IDLE,unit.Phase.CHARGE,unit.Phase.SWING,unit.Phase.RECOVER]:
+		unit.phase = state
+		unit.move(unit.Speed,1.0/60.0)
+		check(unit.direction.is_equal_approx(Vector2(-0.6,-0.8)) and unit.velocity.is_equal_approx(expected),"normal movement preserves direction and speed in phase "+str(state))
+	unit.set_player_control_peer(1)
+	unit.player_control_direction = Vector2.UP
+	unit.set_player_control_aim_position(Vector2(1000,0))
+	unit.phase = unit.Phase.SWING
+	unit.move(unit.Speed,1.0/60.0)
+	check(unit.velocity.is_equal_approx(Vector2.UP*unit.Speed*ball_type.CHARACTER_BASE_MOVE_SPEED_MULTIPLIER),"WASD movement remains independent of attack aim while swinging")
+	unit.Repel = Vector2(20,0)
+	unit.stand(1.0/60.0)
+	check(unit.velocity.is_equal_approx(unit.Repel),"normal stand preserves common knockback during a swing")
+	unit.Repel = Vector2.ZERO
+	unit.velocity = Vector2.ZERO
+	check(unit._arm.show_behind_parent,"original far arm renders behind torso and head")
+	check(unit._axe.get_index()<unit._arm_sprite.get_index(),"hand occludes the axe handle instead of the handle covering the hand")
+	var skin:Color = unit.ARM.get_image().get_pixelv(unit.HAND.floor())
+	check(skin.a>0.9 and absf(skin.r-skin.g)<0.08 and skin.r>0.25,"grip anchor lies inside the native gray hand, not at the sleeve or fingertips")
+	for heading:Vector2 in [Vector2.RIGHT,Vector2.LEFT,Vector2.UP,Vector2.DOWN]:
+		unit.facing = heading
+		unit.phase = unit.Phase.CHARGE
+		unit.charge_elapsed = unit.full_charge_seconds*0.8
+		unit._update_pose()
+		var hand:Vector2 = unit._arm.to_global(unit.HAND-unit.SHOULDER)
+		check(unit._axe.to_global(unit.AXE_GRIP+unit._axe.offset).distance_to(hand)<0.001,"axe grip follows palm for heading "+str(heading))
+		check(hand.y<unit._arm.global_position.y-5,"charge raises hand above shoulder for heading "+str(heading))
+		if not is_zero_approx(heading.x):
+			var neck:Vector2 = unit._axe.to_global(Vector2(11.5,5.5)+unit._axe.offset)
+			check((unit.blade_center()-neck).dot(heading)>0,"cutting edge faces the attack, not backward: "+str(heading))
+	for pose:int in [unit.Phase.CHARGE,unit.Phase.SWING,unit.Phase.RECOVER]:
+		unit.phase = pose
+		unit.released_charge = 0.8
+		unit.phase_elapsed = unit.swing_seconds*0.65
+		unit.facing = Vector2.RIGHT
+		unit._update_pose()
+		var axis:Vector2 = unit.image.to_global(unit.image.offset)
+		var right:Vector2 = unit.blade_center()-axis
+		unit.facing = Vector2.LEFT
+		unit._update_pose()
+		var left:Vector2 = unit.blade_center()-axis
+		check(left.distance_to(Vector2(-right.x,right.y))<0.001,"entire arm and axe geometry mirrors in phase "+str(pose))
+	reset_attack()
+
+func normal_wall_bounce_checks() -> void:
+	reset_attack()
+	unit.set_player_control_peer(0)
+	unit.Repel = Vector2.ZERO
+	enemy.global_position = Vector2(1000,0)
+	var wall:StaticBody2D = StaticBody2D.new()
+	wall.collision_layer = 1
+	wall.disable_mode = CollisionObject2D.DISABLE_MODE_KEEP_ACTIVE
+	var shape:CollisionShape2D = CollisionShape2D.new()
+	var rectangle:RectangleShape2D = RectangleShape2D.new()
+	rectangle.size = Vector2(20,240)
+	shape.shape = rectangle
+	wall.add_child(shape)
+	arena.add_child(wall)
+	wall.global_position = Vector2(60,0)
+	await physics_frame
+	for state:int in [unit.Phase.IDLE,unit.Phase.CHARGE]:
+		unit.global_position = Vector2.ZERO
+		unit.phase = state
+		unit.direction = Vector2.RIGHT
+		for frame:int in 120:
+			await physics_frame
+			unit.move(unit.Speed,1.0/60.0)
+			if unit.direction.x<0: break
+		check(unit.direction.x<0,"normal physical wall collision reflects direction in phase "+str(state))
+		var point:Vector2 = unit.global_position
+		await physics_frame
+		unit.move(unit.Speed,1.0/60.0)
+		check(unit.global_position.x<point.x and unit.direction.x<0,"enemy aiming cannot overwrite wall bounce in phase "+str(state))
 	wall.free()
 	reset_attack()
