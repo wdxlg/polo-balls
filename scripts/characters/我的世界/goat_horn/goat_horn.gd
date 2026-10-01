@@ -13,7 +13,7 @@ const BELL_OUTWARD:Vector2 = Vector2(-0.6,-0.8)
 const BLOW_TILT:float = 0.4
 const RING_DELAYS:Array[float] = [0.0,0.15,0.3]
 const SYNC_INTERVAL:float = 0.075
-const STEP_TOKENS_PER_SECOND:float = 6.0
+const STEP_TOKENS_PER_SECOND:float = 24.0
 
 enum BlowPhase { IDLE, WINDUP, HOLD }
 

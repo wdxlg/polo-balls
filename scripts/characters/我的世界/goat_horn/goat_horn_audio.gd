@@ -35,10 +35,10 @@ const KIND_CALL:int = 0
 const KIND_STEP:int = 1
 const KIND_PRE_RAM:int = 2
 const KIND_IMPACT:int = 3
-# 号角声需要全场可闻（原版 item.goat_horn.sound.* 衰减距离 256 格）；山羊群脚步较轻，避免盖过战斗声。
+# 号角声需要全场可闻（原版 item.goat_horn.sound.* 衰减距离 256 格）；脚步略低于冲撞声，避免一群山羊盖过战斗声。
 const OPTIONS:Array[Dictionary] = [
 	{"event":"item.goat_horn.sound","volume_db":-2.0,"max_distance":6000.0,"attenuation":0.3,"priority":true,"keep_after_source":true},
-	{"event":"entity.goat.step","volume_db":-15.0},
+	{"event":"entity.goat.step","volume_db":-8.0},
 	{"event":"entity.goat.prepare_ram","volume_db":-7.0},
 	{"event":"entity.goat.ram_impact","volume_db":-3.0,"priority":true,"keep_after_source":true},
 ]

@@ -152,7 +152,7 @@ func run() -> void:
 	check(view.size.x > 1.0 and seen_start.all(func(p:Vector2): return not view.has_point(p)),"every goat enters from off-screen")
 	check(any_goat_scale_ok(horn),"goat size follows the horn's character scale")
 	check(goats_above_outside_mask(),"goats draw above the map-outside mask so they stay visible off the map")
-	check(goats().all(func(g:Node): return g.CHARGE_MAX_SPEED <= 400.0 and g.EXIT_MAX_SPEED <= 800.0),"goat speeds stay moderate")
+	check(goats().all(func(g:Node): return g.CHARGE_MAX_SPEED <= 250.0 and g.EXIT_MAX_SPEED <= 500.0),"goat speeds stay moderate")
 	check(get_nodes_in_group("GoatHornGoat").all(func(g:Node): return not g is CollisionObject2D and not g.is_in_group("Ball")),"goats are bodiless, untargetable transients")
 	var any_goat:Node = goats()[0] if not goats().is_empty() else null
 	check(any_goat != null and any_goat.is_in_group("AI_Hazard") and is_equal_approx(any_goat.get_ai_hazard_info().get("radius",0.0),any_goat.body_radius) and any_goat.get_ai_hazard_info().get("source") == horn,"goat registers its real ram circle as AI hazard")
@@ -169,11 +169,11 @@ func run() -> void:
 	var g_slow:Node2D = GOAT.new()
 	g_slow.setup_authority(horn,9001,slow_target,slow_target.global_position - Vector2(40,0),1)
 	world.add_child(g_slow)
-	g_slow.speed = 150.0
+	g_slow.speed = 90.0
 	var g_fast:Node2D = GOAT.new()
 	g_fast.setup_authority(horn,9002,fast_target,fast_target.global_position - Vector2(40,0),2)
 	world.add_child(g_fast)
-	g_fast.speed = 360.0
+	g_fast.speed = 220.0
 	g_slow.set_physics_process(false)
 	g_fast.set_physics_process(false)
 	var hs:float = slow_target.health
@@ -184,7 +184,7 @@ func run() -> void:
 	var loss_fast:float = hf - fast_target.health
 	check(loss_slow > 0.0 and loss_fast > loss_slow,"ram damage grows with goat speed (%.1f slow vs %.1f fast)" % [loss_slow,loss_fast])
 	check(has_knockback(slow_target) and has_knockback(fast_target),"ram applies shared knockback")
-	check(g_fast.speed < 360.0,"goat loses momentum on impact")
+	check(g_fast.speed < 220.0,"goat loses momentum on impact")
 	await process_frame
 	await process_frame
 	check(sound_events().has("entity.goat.ram_impact"),"native goat ram impact plays")
@@ -198,7 +198,7 @@ func run() -> void:
 	g_push.setup_authority(horn,9003,push_target,push_target.global_position,3)
 	world.add_child(g_push)
 	g_push.set_physics_process(false)
-	g_push.speed = 300.0
+	g_push.speed = 180.0
 	var id:int = push_target.get_instance_id()
 	g_push._contacts[id] = 0.0
 	var h0:float = push_target.health
@@ -233,14 +233,14 @@ func run() -> void:
 	var g_run:Node2D = GOAT.new()
 	g_run.setup_authority(horn,9005,run_target,run_target.global_position - Vector2(120,0),5)
 	world.add_child(g_run)
-	g_run.speed = 360.0
+	g_run.speed = 220.0
 	var rammed:bool = false
 	for i:int in range(90):
 		await physics_frame
 		if not is_instance_valid(g_run): break
-		if g_run._rammed_target: rammed = true
+		if g_run._rammed: rammed = true
 		if rammed and g_run.phase == GOAT.Phase.EXIT: break
-	check(rammed and is_instance_valid(g_run) and g_run.phase == GOAT.Phase.EXIT,"after ramming its target the goat switches to exit")
+	check(rammed and is_instance_valid(g_run) and g_run.phase == GOAT.Phase.EXIT,"after ramming the goat switches to exit")
 	if is_instance_valid(g_run):
 		var before:float = g_run.speed
 		await frames(10)
@@ -250,6 +250,46 @@ func run() -> void:
 		g_run.global_position = far.end + Vector2(400,400)
 		await frames(2)
 	check(not is_instance_valid(g_run) or g_run.is_queued_for_deletion(),"exiting goat is freed once off-screen")
+
+	# --- 锁定出现时的位置：目标移走后仍冲向原位置，越过后离场 ---
+	var lock_target:Node2D = dummy(center + Vector2(-120,200))
+	await physics_frame
+	var locked_at:Vector2 = lock_target.global_position
+	var g_lock:Node2D = GOAT.new()
+	g_lock.setup_authority(horn,9007,lock_target,locked_at - Vector2(160,0),7)
+	world.add_child(g_lock)
+	var lock_heading:Vector2 = g_lock.heading
+	lock_target.global_position = locked_at + Vector2(0,-120)
+	var lock_hp:float = lock_target.health
+	var steps_before:int = sound_events().count("entity.goat.step")
+	var particles:int = 0
+	var lock_exit:bool = false
+	for i:int in range(120):
+		await physics_frame
+		particles = maxi(particles,get_nodes_in_group("MCBlockFragments").size())
+		if not is_instance_valid(g_lock): break
+		if g_lock.phase == GOAT.Phase.EXIT and g_lock.global_position.x > locked_at.x:
+			lock_exit = true
+			break
+	check(is_instance_valid(g_lock) and g_lock.aim_point.is_equal_approx(locked_at) and g_lock.heading.is_equal_approx(lock_heading),"goat keeps the target position from when it appeared (no homing)")
+	check(lock_exit,"goat passes the locked point and switches to exit")
+	check(is_equal_approx(lock_target.health,lock_hp),"a target that moved away is not hit")
+	await process_frame
+	check(sound_events().count("entity.goat.step") > steps_before or sound_events().has("entity.goat.step"),"running goat plays native footsteps")
+	check(particles > 0,"running goat kicks up block particles from the floor")
+	if is_instance_valid(g_lock): g_lock.queue_free()
+	lock_target.queue_free()
+
+	# --- 脚下地面取样：格子地图取瓦片，方块主题取主题地板，墙上/地图外没有 ---
+	var tile_floor:Dictionary = GOAT.floor_sample(horn,center + Vector2(0,-200))
+	check(not tile_floor.is_empty() and tile_floor.texture != null and float(tile_floor.block_px) > 1.0,"floor sample reads the map tile under the goat")
+	var outside_floor:Dictionary = GOAT.floor_sample(horn,center + Vector2(5000,0))
+	check(outside_floor.is_empty(),"no floor particles outside the map")
+	var old_bg:Variant = game.Game_Settings.get("Map_Background","blue")
+	game.Game_Settings["Map_Background"] = "grass"
+	var grass_floor:Dictionary = GOAT.floor_sample(horn,center + Vector2(0,-200))
+	game.Game_Settings["Map_Background"] = old_bg
+	check(not grass_floor.is_empty() and grass_floor.texture == GOAT.MAP_THEMES.floor_texture("grass") and grass_floor.modulate == GOAT.MAP_THEMES.theme("grass").floor_modulate,"block themes use the themed floor texture and tint")
 
 	# --- 冻结：战斗暂停时山羊不动 ---
 	var g_freeze:Node2D = GOAT.new()

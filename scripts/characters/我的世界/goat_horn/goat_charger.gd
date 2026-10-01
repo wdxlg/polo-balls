@@ -1,11 +1,15 @@
 extends Node2D
 ## 山羊角召来的山羊：瞬时技能实体（无生命、不可选中、不计存续），全程穿过墙体与障碍。
-## 权威端真实移动与结算：从屏幕外加速冲向目标，首次冲撞按速度结算伤害与击退，
-## 持续重叠时周期推撞；撞到目标或错过后不再转向，加速冲出屏幕后释放。
+## 权威端真实移动与结算：出现时锁定目标当时的位置，从屏幕外沿直线加速冲向该点（不追踪），
+## 途中首次冲撞按速度结算伤害与击退，持续重叠时周期推撞；撞完或越过锁定点后加速冲出屏幕后释放。
+## 脚步按实际移动距离计步：权威端下发原版脚步声，各端在地图地面上本地生成脚下方块粒子。
 ## 客户端只按山羊角下发的状态外推显示。伤害与击退来源始终是山羊角本体。
 const U = preload("res://scripts/characters/我的世界/new5/utils.gd")
 const AUDIO = preload("res://scripts/characters/我的世界/goat_horn/goat_horn_audio.gd")
 const FRAMES:SpriteFrames = preload("res://Images/characters/我的世界/goat_horn/goat/goat_frames.tres")
+const FOOTSTEP = preload("res://scripts/effects/我的世界/footstep_cadence.gd")
+const BLOCK_FRAGMENTS = preload("res://scripts/effects/我的世界/block_fragments.gd")
+const MAP_THEMES = preload("res://scripts/effects/我的世界/地图背景主题.gd")
 
 enum Phase { CHARGE, EXIT }
 
@@ -15,13 +19,12 @@ const BODY_RADIUS_UNIT:float = 48.0
 const SPRITE_SCALE:float = 1.1
 # 帧画布 176×176，身体包围盒中心在 (85.5,103)：偏移后节点原点就是身体中心（判定圆心）。
 const SPRITE_OFFSET:Vector2 = Vector2(2.5,-15.0)
-const ENTER_SPEED:float = 150.0
-const CHARGE_ACCEL:float = 220.0
-const CHARGE_MAX_SPEED:float = 360.0
-const TURN_RATE:float = 3.0
-const EXIT_ACCEL:float = 500.0
-const EXIT_MAX_SPEED:float = 760.0
-const IMPACT_REFERENCE_SPEED:float = 400.0
+const ENTER_SPEED:float = 90.0
+const CHARGE_ACCEL:float = 130.0
+const CHARGE_MAX_SPEED:float = 220.0
+const EXIT_ACCEL:float = 300.0
+const EXIT_MAX_SPEED:float = 480.0
+const IMPACT_REFERENCE_SPEED:float = 245.0
 const IMPACT_RATIO_MAX:float = 1.3
 const RAM_SPEED_KEEP:float = 0.72
 const PUSH_INTERVAL:float = 0.16
@@ -32,7 +35,16 @@ const MAX_LIFE:float = 16.0
 const DRAW_Z:int = 91
 const OFFSCREEN_MARGIN:float = 140.0
 const PRE_RAM_CHANCE:float = 0.38
-const STEP_STRIDE_AT_500:float = 0.2
+# 步幅 = 4 个身体半径（按根缩放换算）；实际间隔随当前移速变化，见 footstep_cadence.gd。
+const STEP_STRIDE_RADII:float = 4.0
+# 脚下方块粒子：每步从脚下地面贴图取一小块 4×4 像素，碎成几颗小方块弹起落地。
+const STEP_PARTICLE_TEXELS:int = 4
+const STEP_PARTICLE_PIECES:int = 4
+const STEP_PARTICLE_BLOCK_RATIO:float = 0.2
+# 原版 TerrainParticle 的 rCol/gCol/bCol = 0.6：地面碎屑比地面暗，和地面区分开。
+const STEP_PARTICLE_SHADE:float = 0.6
+const STEP_PARTICLE_Z:int = -1
+static var _step_piece_cache:Dictionary = {}
 
 var goat_id:int = 0
 var heading:Vector2 = Vector2.LEFT
@@ -44,12 +56,14 @@ var unit_scale:float = 1.0
 var body_radius:float = BODY_RADIUS_UNIT
 
 var _horn_ref:WeakRef
-var _target_ref:WeakRef
+var aim_point:Vector2 = Vector2.ZERO
 var _authority:bool = false
 var _contacts:Dictionary = {}
-var _rammed_target:bool = false
+var _rammed:bool = false
 var _seen_on_screen:bool = false
-var _step_wait:float = 0.0
+var _cadence:RefCounted = FOOTSTEP.new()
+var _step_last:Vector2 = Vector2.ZERO
+var _fx_rng:RandomNumberGenerator = RandomNumberGenerator.new()
 var _sprite:AnimatedSprite2D
 var _rng:RandomNumberGenerator = RandomNumberGenerator.new()
 # 客户端外推：最近一次网络位置与其之后经过的时间。
@@ -62,11 +76,13 @@ func setup_authority(horn:Node2D,id:int,target:Node2D,start:Vector2,seed_value:i
 	goat_id = id
 	_horn_ref = weakref(horn)
 	_adopt_scale(horn)
-	_target_ref = weakref(target) if is_instance_valid(target) else null
 	position = start
 	_net_position = start
+	_step_last = start
 	_rng.seed = seed_value
-	var aim:Vector2 = (U.point(target,start) - start) if is_instance_valid(target) else Vector2.ZERO
+	# 只在出现时取一次目标位置，之后不再追踪。
+	aim_point = U.point(target,start) if is_instance_valid(target) else start + Vector2.LEFT * 800.0
+	var aim:Vector2 = aim_point - start
 	heading = aim.normalized() if aim.length_squared() > 0.01 else Vector2.LEFT
 	speed = ENTER_SPEED
 	name = "GoatHornGoat_%d" % id
@@ -81,6 +97,7 @@ func setup_puppet(horn:Node2D,id:int,start:Vector2,direction:Vector2,speed_value
 	_adopt_scale(horn)
 	position = start
 	_net_position = start
+	_step_last = start
 	heading = direction.normalized() if direction.length_squared() > 0.0001 else Vector2.LEFT
 	speed = speed_value
 	_apply_flags(flags)
@@ -104,6 +121,7 @@ func _ready() -> void:
 	_sprite.scale = Vector2.ONE * SPRITE_SCALE * unit_scale
 	_sprite.offset = SPRITE_OFFSET
 	add_child(_sprite)
+	_fx_rng.randomize()
 	_sprite.play(&"run")
 	_sprite.frame = goat_id % FRAMES.get_frame_count(&"run")
 	_update_visual()
@@ -145,7 +163,7 @@ func _physics_process(delta:float) -> void:
 	if not _runtime_active(owner_horn): return
 	life += delta
 	if not _hostile(owner_horn) and phase == Phase.CHARGE: begin_exit()
-	if phase == Phase.CHARGE: _steer(owner_horn,delta)
+	if phase == Phase.CHARGE and (aim_point - global_position).dot(heading) <= 0.0: begin_exit()
 	if phase == Phase.CHARGE: speed = minf(speed + CHARGE_ACCEL * delta,CHARGE_MAX_SPEED)
 	else: speed = minf(speed + EXIT_ACCEL * delta,EXIT_MAX_SPEED)
 	var from:Vector2 = global_position
@@ -153,38 +171,14 @@ func _physics_process(delta:float) -> void:
 	global_position = to
 	if _hostile(owner_horn): _resolve_contacts(owner_horn,from,to,delta)
 	else: _contacts.clear()
-	if phase == Phase.CHARGE and _rammed_target and _contacts.is_empty(): begin_exit()
+	if phase == Phase.CHARGE and _rammed and _contacts.is_empty(): begin_exit()
 	_update_bow()
-	_step_sounds(owner_horn,delta)
+	_announce(owner_horn)
 	var view:Rect2 = view_rect(self)
 	if phase == Phase.EXIT and view.size.x > 1.0 and not view.grow(OFFSCREEN_MARGIN).has_point(global_position):
 		queue_free()
 	elif life >= MAX_LIFE:
 		queue_free()
-
-
-func _target() -> ball:
-	var node:Variant = _target_ref.get_ref() if _target_ref != null else null
-	return node as ball if is_instance_valid(node) else null
-
-
-func _steer(owner_horn:Node2D,delta:float) -> void:
-	var target:ball = _target()
-	if target == null or not U.enemy(owner_horn as ball,target) or target.health <= 0:
-		target = owner_horn.call(&"pick_goat_target") as ball
-		_target_ref = weakref(target) if target != null else null
-		if target == null:
-			begin_exit()
-			return
-	var to_target:Vector2 = U.point(target,global_position) - global_position
-	var reach:float = body_radius + U.radius(target)
-	# 已从目标身边冲过（目标落到身后）就不再回头，直接加速离场。
-	if to_target.dot(heading) < 0.0 and to_target.length() > reach:
-		begin_exit()
-		return
-	if to_target.length_squared() < 0.01: return
-	var turn:float = clampf(heading.angle_to(to_target),-TURN_RATE * delta,TURN_RATE * delta)
-	heading = heading.rotated(turn).normalized()
 
 
 func begin_exit() -> void:
@@ -231,7 +225,7 @@ func _ram(source:ball,victim:ball,point:Vector2) -> void:
 			{"source":source,"max_wall_bounces":1,"collision_damage":source.attack_damage(0.25 + 0.8 * r),"collision_damage_wall_only":true,"redirect_blend_time":0.0})
 		source.call(&"emit_goat_sound",AUDIO.KIND_IMPACT,_rng.randi_range(0,AUDIO.variant_count(AUDIO.KIND_IMPACT) - 1),point)
 	speed *= RAM_SPEED_KEEP
-	if victim == _target(): _rammed_target = true
+	_rammed = true
 
 
 func _push(source:ball,victim:ball) -> void:
@@ -242,25 +236,119 @@ func _push(source:ball,victim:ball) -> void:
 
 
 func _update_bow() -> void:
-	var target:ball = _target()
-	bowed = not _contacts.is_empty() or (phase == Phase.CHARGE and target != null and global_position.distance_to(U.point(target,global_position)) <= body_radius + U.radius(target) + speed * BOW_LEAD_TIME)
-
-
-func _step_sounds(owner_horn:Node2D,delta:float) -> void:
-	var view:Rect2 = view_rect(self)
-	var visible_now:bool = view.size.x > 1.0 and view.has_point(global_position)
-	if visible_now and not _seen_on_screen:
-		_seen_on_screen = true
-		if phase == Phase.CHARGE and _rng.randf() < PRE_RAM_CHANCE:
-			owner_horn.call(&"emit_goat_sound",AUDIO.KIND_PRE_RAM,_rng.randi_range(0,AUDIO.variant_count(AUDIO.KIND_PRE_RAM) - 1),global_position)
-	_step_wait = maxf(_step_wait - delta,0.0)
-	if not visible_now or _step_wait > 0.0 or speed <= 1.0: return
-	var index:int = _rng.randi_range(0,AUDIO.variant_count(AUDIO.KIND_STEP) - 1)
-	if not bool(owner_horn.call(&"emit_goat_sound",AUDIO.KIND_STEP,index,global_position)):
-		_step_wait = 0.05
+	if not _contacts.is_empty():
+		bowed = true
 		return
-	# 跑得越快步点越密，但同一只羊两次脚步开始的间隔不短于上一声实际时长。
-	_step_wait = maxf(AUDIO.length(AUDIO.KIND_STEP,index),STEP_STRIDE_AT_500 * 500.0 / maxf(speed,1.0))
+	bowed = false
+	if phase != Phase.CHARGE: return
+	var lead:float = speed * BOW_LEAD_TIME
+	if global_position.distance_to(aim_point) <= body_radius * 2.0 + lead:
+		bowed = true
+		return
+	var owner_horn:Node2D = horn()
+	for node:Node in get_tree().get_nodes_in_group("Ball"):
+		if not U.enemy(owner_horn as ball,node) or U.wall_node(node): continue
+		var to_victim:Vector2 = U.point(node,global_position) - global_position
+		if to_victim.dot(heading) > 0.0 and to_victim.length() <= body_radius + U.radius(node) + lead:
+			bowed = true
+			return
+
+
+## 权威端：第一次进入镜头时按概率发出原版蓄力咩声。
+func _announce(owner_horn:Node2D) -> void:
+	if _seen_on_screen or not _on_screen(): return
+	_seen_on_screen = true
+	if phase == Phase.CHARGE and _rng.randf() < PRE_RAM_CHANCE:
+		owner_horn.call(&"emit_goat_sound",AUDIO.KIND_PRE_RAM,_rng.randi_range(0,AUDIO.variant_count(AUDIO.KIND_PRE_RAM) - 1),global_position)
+
+
+func _on_screen() -> bool:
+	var view:Rect2 = view_rect(self)
+	return view.size.x > 1.0 and view.has_point(global_position)
+
+
+## 各端：按实际走过的距离计步。权威端发脚步声（变体由权威端挑选并下发），粒子各端本地生成。
+func _step_tick(owner_horn:Node2D,delta:float) -> void:
+	var moved:float = global_position.distance_to(_step_last)
+	_step_last = global_position
+	if moved > body_radius * STEP_STRIDE_RADII * 3.0: moved = 0.0
+	if not _cadence.tick_stride(moved,delta,body_radius * STEP_STRIDE_RADII): return
+	if not _on_screen(): return
+	var feet:Vector2 = global_position + Vector2(0.0,body_radius * 0.7) - heading * body_radius * 0.4
+	spawn_step_particles(self,feet,body_radius,_fx_rng)
+	if _authority and owner_horn != null:
+		owner_horn.call(&"emit_goat_sound",AUDIO.KIND_STEP,_rng.randi_range(0,AUDIO.variant_count(AUDIO.KIND_STEP) - 1),global_position)
+
+
+## 脚下地面：站在墙/障碍物上或地图外（含传送门岛屿之间的空隙）时没有地面，返回空表。
+## 方块主题地图用主题地板贴图与染色；原版格子地图用该格瓦片的图集区域。
+static func floor_sample(context:Node2D,point:Vector2) -> Dictionary:
+	if context == null or not context.is_inside_tree(): return {}
+	var world:Node = context.get_tree().current_scene
+	if world == null or not world.has_method("_current_map_node"): return {}
+	var map_node:Variant = world.call("_current_map_node")
+	if not map_node is Node: return {}
+	var query:PhysicsPointQueryParameters2D = PhysicsPointQueryParameters2D.new()
+	query.position = point
+	query.collide_with_areas = false
+	query.collision_mask = 0xFFFFFFFF
+	for hit:Dictionary in context.get_world_2d().direct_space_state.intersect_point(query,8):
+		if hit.collider is StaticBody2D or hit.collider is TileMapLayer: return {}
+	var layers:Array[TileMapLayer] = []
+	_collect_layers(map_node,layers)
+	for layer:TileMapLayer in layers:
+		var cell:Vector2i = layer.local_to_map(layer.to_local(point))
+		var source_id:int = layer.get_cell_source_id(cell)
+		if source_id < 0: continue
+		var block_px:float = layer.global_transform.x.length() * float(layer.tile_set.tile_size.x)
+		if world.has_method("map_background_style") and MAP_THEMES.tiled(str(world.call("map_background_style"))):
+			var key:String = str(world.call("map_background_style"))
+			var floor_texture:Texture2D = MAP_THEMES.floor_texture(key)
+			return {"texture":floor_texture,"region":Rect2(Vector2.ZERO,floor_texture.get_size()),"modulate":MAP_THEMES.theme(key).get("floor_modulate",Color.WHITE),"block_px":block_px}
+		var source:TileSetSource = layer.tile_set.get_source(source_id)
+		if not source is TileSetAtlasSource: return {}
+		var atlas:TileSetAtlasSource = source as TileSetAtlasSource
+		return {"texture":atlas.texture,"region":Rect2(atlas.get_tile_texture_region(layer.get_cell_atlas_coords(cell))),"modulate":layer.modulate,"block_px":block_px}
+	return {}
+
+
+static func _collect_layers(node:Node,result:Array[TileMapLayer]) -> void:
+	if node is TileMapLayer and (node as TileMapLayer).tile_set != null: result.append(node)
+	for child:Node in node.get_children(): _collect_layers(child,result)
+
+
+## 公共落地方块小粒子（block_fragments）：取脚下贴图的一个 4×4 小块，弹起后落地淡出。
+static func spawn_step_particles(context:Node2D,feet:Vector2,radius:float,rng:RandomNumberGenerator) -> Node2D:
+	var sample_info:Dictionary = floor_sample(context,feet)
+	if sample_info.is_empty() or sample_info.texture == null: return null
+	var region:Rect2 = sample_info.region
+	var columns:int = maxi(int(region.size.x) / STEP_PARTICLE_TEXELS,1)
+	var rows:int = maxi(int(region.size.y) / STEP_PARTICLE_TEXELS,1)
+	var cx:int = rng.randi_range(0,columns - 1)
+	var cy:int = rng.randi_range(0,rows - 1)
+	var texture:Texture2D = sample_info.texture
+	# 每张地面贴图最多缓存 (宽/4)×(高/4) 个小块，公共切块缓存不会随步数增长。
+	var key:String = "%d:%d:%d:%d:%d" % [texture.get_instance_id(),int(region.position.x),int(region.position.y),cx,cy]
+	var piece:AtlasTexture = _step_piece_cache.get(key)
+	if piece == null:
+		piece = AtlasTexture.new()
+		piece.atlas = texture
+		piece.region = Rect2(region.position + Vector2(cx,cy) * STEP_PARTICLE_TEXELS,Vector2.ONE * STEP_PARTICLE_TEXELS)
+		piece.filter_clip = true
+		_step_piece_cache[key] = piece
+	var sprite:Sprite2D = Sprite2D.new()
+	sprite.texture = piece
+	var tint:Color = sample_info.modulate
+	sprite.modulate = Color(tint.r * STEP_PARTICLE_SHADE,tint.g * STEP_PARTICLE_SHADE,tint.b * STEP_PARTICLE_SHADE,tint.a)
+	context.add_child(sprite)
+	sprite.global_position = feet
+	sprite.global_rotation = 0.0
+	sprite.global_scale = Vector2.ONE * maxf(float(sample_info.block_px) * STEP_PARTICLE_BLOCK_RATIO,1.0)
+	var effect:Node2D = BLOCK_FRAGMENTS.spawn_obstacle(sprite,{},{"seed":rng.randi(),"max_pieces":STEP_PARTICLE_PIECES,
+		"scatter_radius":radius * 0.7,"arc_height_min":radius * 0.15,"arc_height_max":radius * 0.45,"flight_min":0.18,"flight_max":0.32,
+		"ground_hold":0.12,"fade_time":0.22,"spin_speed":0.0,"z_layer":STEP_PARTICLE_Z})
+	sprite.free()
+	return effect
 
 
 ## 客户端：收到权威状态。
@@ -279,6 +367,8 @@ func _process(delta:float) -> void:
 		_net_age = minf(_net_age + delta,0.25)
 		var predicted:Vector2 = _net_position + heading * speed * _net_age
 		global_position = global_position.lerp(predicted,1.0 - exp(-18.0 * delta))
+	if running: _step_tick(owner_horn,delta)
+	else: _step_last = global_position
 	_update_visual(running)
 
 
