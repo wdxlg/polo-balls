@@ -980,9 +980,14 @@ func _sync_random_character_picker() -> void:
 		var character_name:String = str(button.get_meta("choice_value",""))
 		button.button_group = null
 		button.toggle_mode = random_mode
-		button.set_pressed_no_signal(random_mode and draft.is_excluded(draft.picker_exclusion_key(character_name)))
-		button.disabled = random_mode and (not Game.can_local_change_settings() or world.is_placeable_obstacle(character_name,world.character_scene_path(character_name)))
-		button.self_modulate = Color.WHITE if random_mode or world.now_choose_char!=character_name else Color(0.671,0.671,0.671,0.675)
+		var excluded:bool = random_mode and draft.is_excluded(draft.picker_exclusion_key(character_name))
+		button.set_pressed_no_signal(excluded)
+		button.text = ("X " if excluded else "")+Game.ui_t(character_name)
+		var obstacle:bool = random_mode and world.is_placeable_obstacle(character_name,world.character_scene_path(character_name))
+		button.tooltip_text = Game.ui_t("RANDOM_CHARACTER_OBSTACLE" if obstacle else ("RANDOM_CHARACTER_EXCLUDED" if excluded else "RANDOM_CHARACTER_INCLUDED")) if random_mode else ""
+		button.disabled = random_mode and (not Game.can_local_change_settings() or obstacle)
+		# The pixel theme barely distinguishes pressed buttons; exclusion needs a persistent mark and tint.
+		button.self_modulate = Color(1.0,0.42,0.42) if excluded else (Color.WHITE if random_mode or world.now_choose_char!=character_name else Color(0.671,0.671,0.671,0.675))
 	if is_instance_valid(now_char):
 		now_char.text = Game.ui_t("RANDOM_EXCLUDE_PICKER") if random_mode else Game.ui_t("UI_NOW_CHAR")+" "+(Game.ui_t(world.now_choose_char) if not world.now_choose_char.is_empty() else Game.ui_t("UI_NONE"))
 

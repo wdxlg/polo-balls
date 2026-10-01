@@ -554,9 +554,9 @@ RANDOM_CATEGORY_EMPTY,分类全部关闭：请至少开启一个分类，才能�
 RANDOM_CATEGORY_READY,可抽取 %d 位人物；放置虚影后，按 M 收起工具栏开始抽取。,"%d characters available. Place silhouettes, then press M to reveal."
 RANDOM_CHARACTER_UNKNOWN,未知人物,Unknown
 RANDOM_POOL_EMPTY,当前没有可抽取人物：请开启分类或取消部分人物的排除。,No eligible characters. Enable categories or unexclude some characters.
-RANDOM_EXCLUDE_HINT,在“队伍”页点击人物：按下＝排除，再点恢复。切换模式会保留设置。,"In Teams, click characters: pressed = excluded; click again to restore. Settings survive mode changes."
-RANDOM_EXCLUDE_PICKER,按下人物＝排除抽取,Pressed characters are excluded
-RANDOM_CHARACTER_EXCLUDED,已排除：不会被抽到；点击恢复。,Excluded from draws. Click to restore.
+RANDOM_EXCLUDE_HINT,在“队伍”页点击人物：红色 X＝排除，再点恢复。切换模式会保留设置。,"In Teams, red X means excluded. Click again to restore. Settings survive mode changes."
+RANDOM_EXCLUDE_PICKER,红色 X: 排除,X: Excluded
+RANDOM_CHARACTER_EXCLUDED,已排除：不会随机抽到；再次点击恢复。,Excluded from random draws. Click again to restore.
 RANDOM_CHARACTER_INCLUDED,点击排除；再次点击恢复参与抽奖。,Click to exclude; click again to restore eligibility.
 RANDOM_CHARACTER_OBSTACLE,障碍物不参与随机抽取。,Obstacles do not participate in random draws.
 RANDOM_DRAW_TITLE,命运抽选,FATE DRAFT

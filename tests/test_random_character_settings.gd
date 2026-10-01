@@ -47,7 +47,7 @@ func capture(name:String) -> void:
 		image.convert(Image.FORMAT_RGBA8)
 		image.linear_to_srgb()
 	image.resize(540,960,Image.INTERPOLATE_LANCZOS)
-	image.save_jpg("res://tests/"+name+".jpg",0.92)
+	image.save_jpg("user://"+name+".jpg",0.92)
 func run() -> void:
 	visual = "--visual" in OS.get_cmdline_user_args()
 	print("SETTINGS_TEST_USERDATA=",OS.get_user_data_dir())
@@ -101,8 +101,11 @@ func run() -> void:
 	await settle()
 	check(ui.char_search.editable,"search stays enabled in random mode")
 	check(button_named("石头").disabled,"terrain is not an excludable random character")
+	check(button_named("石头").tooltip_text==game.ui_t("RANDOM_CHARACTER_OBSTACLE"),"disabled terrain is not described as eligible")
 	await click_character("剑客")
 	check(button_named("剑客").button_pressed and draft.is_excluded("人物/剑客"),"actual mouse click presses and excludes a character")
+	check(button_named("剑客").text.begins_with("X ") and button_named("剑客").self_modulate.g<0.5,"excluded characters carry a persistent red cross, not just a pressed offset")
+	check(button_named("剑客").tooltip_text==game.ui_t("RANDOM_CHARACTER_EXCLUDED"),"exclusion tooltip explains that this character cannot be drawn")
 	check(world.now_choose_char=="猎人","excluding never changes the custom placement choice")
 	check(draft.pool().size()==4,"exclusion immediately invalidates the cached pool")
 	var duplicate_survives:bool = false
@@ -116,6 +119,7 @@ func run() -> void:
 	ui.character_mode_option.item_selected.emit(1)
 	check(game.Game_Settings.Random_Character_Categories.size()==2 and game.Game_Settings.Random_Character_Excluded.size()==2,"switching to custom retains both independent settings")
 	check(not button_named("剑客").toggle_mode and not button_named("剑客").button_pressed,"custom mode does not display exclusion press states")
+	check(not button_named("剑客").text.begins_with("X ") and button_named("剑客").self_modulate==Color.WHITE,"custom mode removes exclusion marks and colors")
 	await click_character("保安")
 	check(world.now_choose_char=="保安","custom selection still works normally")
 	check(game.Game_Settings.Random_Character_Excluded.size()==2,"custom selection does not edit exclusions")
@@ -135,6 +139,7 @@ func run() -> void:
 	await settle()
 	await click_character("剑客")
 	check(not button_named("剑客").button_pressed and not draft.is_excluded("人物/剑客"),"second click restores eligibility")
+	check(not button_named("剑客").text.begins_with("X ") and button_named("剑客").self_modulate==Color.WHITE,"unexcluding immediately restores the ordinary button appearance")
 	ui.random_category_buttons["动物"].button_pressed = false
 	ui.random_category_buttons["动物"].button_pressed = true
 	check(draft.is_excluded("动物/牛"),"disabling a category does not erase its character exclusions")
@@ -142,6 +147,8 @@ func run() -> void:
 	ui._sync_character_mode_controls()
 	check(draft.is_excluded("动物/牛") and draft.is_excluded("人物/保安"),"language changes cannot change exclusion identity")
 	check(ui.now_char.text==game.ui_t("RANDOM_EXCLUDE_PICKER") and not ui.now_char.text.begins_with("RANDOM_"),"picker explains pressed means excluded in the current language")
+	check(button_named("保安").text.begins_with("X ") and button_named("保安").tooltip_text==game.ui_t("RANDOM_CHARACTER_EXCLUDED"),"language refresh preserves the exclusion cross and translates its explanation")
+	await capture("random_settings_excluded_en")
 	game.set_language("zh",false)
 	game.save_persistent_settings()
 	var expected_categories:Array = game.Game_Settings.Random_Character_Categories.duplicate()
