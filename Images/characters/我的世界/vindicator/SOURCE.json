@@ -2,7 +2,7 @@
   "repository": "https://github.com/Mojang/bedrock-samples",
   "revision": "736072450c26a7c67f07b1661f29d9a5ebaa14b1",
   "license": "Minecraft EULA; original Mojang/Microsoft assets, not freely redistributable artwork.",
-  "derivation": "Official cuboids and UVs rasterized with bake_native_mobs.Baker; official leg walk formula. Separate original arm and iron axe composed at runtime for charged melee.",
+  "derivation": "Official cuboids and UVs rasterized with bake_native_mobs.Baker; official leg walk formula. Original right-arm pixels split losslessly into sleeve and hand; hand and iron axe share a wrist transform at runtime.",
   "files": [
     {
       "file": "vindicator.geo.json",
@@ -34,6 +34,13 @@
       56.357506476684826,
       58.194286336834296
     ],
+    "wrist": [
+      56.357506476684826,
+      64.87014371184253
+    ],
+    "hand_split": "unchanged_original_gray_skin_texels",
+    "grip_parent": "articulated_hand",
+    "rest_wrist_angle": 1.1,
     "canvas": [
       160,
       224

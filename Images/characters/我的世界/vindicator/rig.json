@@ -7,6 +7,13 @@
     56.357506476684826,
     58.194286336834296
   ],
+  "wrist": [
+    56.357506476684826,
+    64.87014371184253
+  ],
+  "hand_split": "unchanged_original_gray_skin_texels",
+  "grip_parent": "articulated_hand",
+  "rest_wrist_angle": 1.1,
   "canvas": [
     160,
     224

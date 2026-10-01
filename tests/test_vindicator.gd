@@ -202,6 +202,7 @@ func run() -> void:
 	await extra_runtime_checks()
 	await corrected_rig_and_movement_checks()
 	await fixed_grip_charge_checks()
+	await low_hand_grip_checks()
 	await heavy_chop_checks()
 	await fast_chop_contact_checks()
 	await normal_wall_bounce_checks()
@@ -304,6 +305,25 @@ func gpu_checks() -> void:
 			if previous!=null: check(frame.get_data()!=previous.get_data(),"GPU charge keeps changing through %d%% facing %d"%[percentage,side])
 			frame.save_png("user://vindicator_upright_%d_%d.png"%[side,percentage])
 			previous = frame
+	for side:int in [-1,1]:
+		for stage_index:int in 5:
+			model.facing = Vector2(side,0)
+			model.phase = model.Phase.RECOVER if stage_index in [2,3] else model.Phase.CHARGE if stage_index==1 else model.Phase.IDLE
+			model.charge_elapsed = model.full_charge_seconds*0.02
+			model.released_charge = 0.4
+			model.phase_elapsed = model.recovery_seconds*(0.75 if stage_index==2 else 1.0)
+			model.velocity = Vector2(85,0) if stage_index==4 else Vector2.ZERO
+			model._update_pose()
+			await RenderingServer.frame_post_draw
+			var frame:Image = view.get_texture().get_image()
+			var shaft:Vector2 = model._axe.get_global_transform_with_canvas()*(model.AXE_GRIP+Vector2(3,-3)+model._axe.offset)
+			var brown:bool = false
+			for y:int in range(-1,2):
+				for x:int in range(-1,2):
+					var pixel:Color = frame.get_pixelv(Vector2i(shaft.round())+Vector2i(x,y))
+					brown = brown or (pixel.r>0.2 and pixel.r>pixel.g*1.1 and pixel.b<pixel.r*0.6)
+			check(brown,"GPU lowered axe has visible wooden shaft above the fist, not hidden by sleeve: side="+str(side)+" stage="+str(stage_index))
+			frame.save_png("user://vindicator_low_grip_%d_%d.png"%[side,stage_index])
 	model.set_player_control_peer(1)
 	for rush:bool in [false,true]:
 		model.global_position = Vector2.ZERO
@@ -400,7 +420,7 @@ func corrected_rig_and_movement_checks() -> void:
 	unit.Repel = Vector2.ZERO
 	unit.velocity = Vector2.ZERO
 	check(unit._arm.show_behind_parent,"resting far arm renders behind torso and head")
-	check(unit._axe.get_index()<unit._arm_sprite.get_index(),"hand occludes the axe handle instead of the handle covering the hand")
+	check(unit._axe.get_parent()==unit._wrist and unit._hand_sprite.get_parent()==unit._wrist and unit._axe.get_index()<unit._hand_sprite.get_index(),"hand occludes the axe handle instead of the handle covering the hand")
 	var skin:Color = unit.ARM.get_image().get_pixelv(unit.HAND.floor())
 	check(skin.a>0.9 and absf(skin.r-skin.g)<0.08 and skin.r>0.25,"grip anchor lies inside the native gray hand, not at the sleeve or fingertips")
 	for heading:Vector2 in [Vector2.RIGHT,Vector2.LEFT,Vector2.UP,Vector2.DOWN,Vector2(1,-1).normalized(),Vector2(-1,-1).normalized(),Vector2(1,1).normalized(),Vector2(-1,1).normalized()]:
@@ -408,7 +428,7 @@ func corrected_rig_and_movement_checks() -> void:
 		unit.phase = unit.Phase.CHARGE
 		unit.charge_elapsed = unit.full_charge_seconds*0.8
 		unit._update_pose()
-		var hand:Vector2 = unit._arm.to_global(unit.HAND-unit.SHOULDER)
+		var hand:Vector2 = unit.hand_center()
 		check(unit._axe.to_global(unit.AXE_GRIP+unit._axe.offset).distance_to(hand)<0.001,"axe grip follows palm for heading "+str(heading))
 		check(hand.y<unit._arm.global_position.y-5,"charge raises hand above shoulder for heading "+str(heading))
 		if is_zero_approx(heading.y):
@@ -471,7 +491,7 @@ func fixed_grip_charge_checks() -> void:
 		unit.facing = heading
 		unit.phase = unit.Phase.IDLE
 		unit._update_pose()
-		check(unit._arm.to_global(unit.HAND-unit.SHOULDER).y>unit._arm.global_position.y+5,"idle hand hangs below shoulder, not an attacking stance: "+str(heading))
+		check(unit.hand_center().y>unit._arm.global_position.y+5,"idle hand hangs below shoulder, not an attacking stance: "+str(heading))
 		check(axe_shaft_direction(unit).dot(Vector2.UP)>0.99999,"idle holds the axe vertically: "+str(heading))
 		check(is_equal_approx(unit._axe.scale.x,5.0) and is_equal_approx(unit.blade_radius(),unit._axe.global_scale.abs().x*4.5),"larger axe and actual blade radius share scale: "+str(heading))
 		for pose:int in [unit.Phase.CHARGE,unit.Phase.DASH]:
@@ -485,12 +505,11 @@ func fixed_grip_charge_checks() -> void:
 				unit.charge_elapsed = unit.full_charge_seconds*float(step)/100.0
 				unit._update_pose()
 				if step==0: first_axis = axe_shaft_direction(unit)
-				if float(step)/100.0>=unit.DRAW_CHARGE_RATIO:
-					fixed_grip = fixed_grip and is_equal_approx(unit._axe.rotation,unit.AXE_HOLD_ANGLE)
-				attached = attached and unit._axe.to_global(unit.AXE_GRIP+unit._axe.offset).distance_to(unit._arm.to_global(unit.HAND-unit.SHOULDER))<0.001
+				fixed_grip = fixed_grip and is_equal_approx(unit._axe.rotation,unit.AXE_HOLD_ANGLE)
+				attached = attached and unit._axe.to_global(unit.AXE_GRIP+unit._axe.offset).distance_to(unit.hand_center())<0.001
 				rises = rises and unit.blade_center().y<previous-0.0001
 				previous = unit.blade_center().y
-			check(fixed_grip and attached,"fixed attack grip after drawing, attached at every charge percentage: "+str(heading)+" phase "+str(pose))
+			check(fixed_grip and attached,"fixed hand-and-axe grip at every charge percentage: "+str(heading)+" phase "+str(pose))
 			check(absf(first_axis.angle_to(axe_shaft_direction(unit)))>0.8,"axe actually rotates with the raising forearm: "+str(heading)+" phase "+str(pose))
 			check(rises,"axe rises throughout 0-100%, including the final quarter: "+str(heading)+" phase "+str(pose))
 		unit.phase = unit.Phase.SWING
@@ -517,7 +536,7 @@ func heavy_chop_checks() -> void:
 	unit.set_player_control_peer(1)
 	unit.set_player_control_aim_position(Vector2(900,0))
 	unit._update_pose()
-	var resting_hand:Vector2 = unit._arm.to_global(unit.HAND-unit.SHOULDER)
+	var resting_hand:Vector2 = unit.hand_center()
 	check(unit.swing_seconds<=0.14,"complete chop takes at most 140 milliseconds")
 	for rush:bool in [false,true]:
 		reset_attack()
@@ -526,7 +545,7 @@ func heavy_chop_checks() -> void:
 		check(unit._begin_charge(rush) and unit.blade_center().distance_to(before)<0.001,"attack draws continuously from lowered idle, rush="+str(rush))
 		if rush:
 			for frame:int in 7: tick(1.0/60.0)
-			var hand:Vector2 = unit._arm.to_global(unit.HAND-unit.SHOULDER)
+			var hand:Vector2 = unit.hand_center()
 			check(unit.phase==unit.Phase.DASH and hand.y<unit._arm.global_position.y-4 and hand.y<resting_hand.y-10,"rush visibly raises hand within seven real physics steps")
 			check(unit.charge_ratio()<0.1 and unit.velocity.length()>unit.Speed,"early high rush pose is not free full charge and movement continues")
 			var before_release:Vector2 = unit.blade_center()
@@ -584,4 +603,39 @@ func fast_chop_contact_checks() -> void:
 			check(absf(loss-expected)<=1.0,"one real blade hit through a whole fast-chop tick: "+str(heading)+" rush="+str(rush)+" actual="+str(loss)+" expected="+str(expected))
 			check(unit._regions.size()>=90,"fast coarse tick retains dense true-blade threat segments")
 	enemy.global_position = Vector2(180,0)
+	reset_attack()
+
+func low_hand_grip_checks() -> void:
+	reset_attack()
+	var original:Image = unit.ARM.get_image()
+	var skin:Image = unit.HAND_TEXTURE.get_image()
+	var sleeve:Image = unit.FOREARM.get_image()
+	var preserved:bool = true
+	for y:int in original.get_height():
+		for x:int in original.get_width():
+			var base:Color = original.get_pixel(x,y)
+			var hand:Color = skin.get_pixel(x,y)
+			var cloth:Color = sleeve.get_pixel(x,y)
+			preserved = preserved and is_equal_approx(base.a,hand.a+cloth.a)
+			if base.a>0.5:
+				var part:Color = hand if hand.a>0.5 else cloth
+				preserved = preserved and part.is_equal_approx(base)
+	check(preserved,"split hand and sleeve preserve every original opaque texel without painting new art")
+	for heading:Vector2 in [Vector2.RIGHT,Vector2.LEFT,Vector2.UP,Vector2.DOWN,Vector2(1,-1).normalized(),Vector2(-1,-1).normalized(),Vector2(1,1).normalized(),Vector2(-1,1).normalized()]:
+		unit.facing = heading
+		for pose:int in [unit.Phase.IDLE,unit.Phase.CHARGE,unit.Phase.DASH,unit.Phase.RECOVER]:
+			var fixed:bool = true
+			var attached:bool = true
+			unit.phase = pose
+			unit.released_charge = 0.4
+			for step:int in 101:
+				unit.charge_elapsed = unit.full_charge_seconds*float(step)/100.0
+				unit.phase_elapsed = unit.recovery_seconds*float(step)/100.0
+				unit._update_pose()
+				var palm:Vector2 = unit.hand_center()
+				var hand_axis:Vector2 = (unit._hand_sprite.to_global(unit.HAND+Vector2(10,0)+unit._hand_sprite.offset)-palm).normalized()
+				var expected:float = absf(unit.AXE_HOLD_ANGLE-PI/4.0)
+				fixed = fixed and absf(absf(hand_axis.angle_to(axe_shaft_direction(unit)))-expected)<0.001
+				attached = attached and palm.distance_to(unit._axe.to_global(unit.AXE_GRIP+unit._axe.offset))<0.001
+			check(fixed and attached,"axe stays clenched in the actual rotating fist throughout lowering/drawing: "+str(heading)+" phase="+str(pose))
 	reset_attack()

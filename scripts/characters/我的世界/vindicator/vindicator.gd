@@ -1,6 +1,8 @@
 extends "res://scripts/characters/我的世界/mc_mob_base.gd"
 const FRAMES:SpriteFrames = preload("res://Images/characters/我的世界/vindicator/frames.tres")
 const ARM:Texture2D = preload("res://Images/characters/我的世界/vindicator/arm.png")
+const FOREARM:Texture2D = preload("res://Images/characters/我的世界/vindicator/forearm.png")
+const HAND_TEXTURE:Texture2D = preload("res://Images/characters/我的世界/vindicator/hand.png")
 const AXE:Texture2D = preload("res://Images/characters/我的世界/vindicator/iron_axe.png")
 const PREVIEW:Texture2D = preload("res://Images/characters/我的世界/vindicator/preview.png")
 const SOUNDS = preload("res://scripts/characters/我的世界/vindicator/sounds.gd")
@@ -9,6 +11,7 @@ const AUDIO = preload("res://scripts/characters/我的世界/new5/audio.gd")
 const SWEEP = preload("res://classes/weapon_tip_sweep.gd")
 const SHOULDER:Vector2 = Vector2(60.297922,98.722430)
 const HAND:Vector2 = Vector2(56.357506,58.194286)
+const WRIST:Vector2 = Vector2(56.357506,64.870144)
 const AXE_GRIP:Vector2 = Vector2(5.5,11.5)
 const AXE_BLADE:Vector2 = Vector2(9.0,4.0)
 const AXE_SCALE:float = 5.0
@@ -38,6 +41,8 @@ var _hits:Dictionary = {}
 var _regions:Array[Dictionary] = []
 var _arm:Node2D
 var _arm_sprite:Sprite2D
+var _wrist:Node2D
+var _hand_sprite:Sprite2D
 var _axe:Sprite2D
 var _charge_bar:Line2D
 var _charge_fill:Line2D
@@ -61,19 +66,28 @@ func _ready() -> void:
 	_arm.show_behind_parent = true
 	image.add_child(_arm)
 	_arm_sprite = Sprite2D.new()
-	_arm_sprite.texture = ARM
+	_arm_sprite.texture = FOREARM
 	_arm_sprite.centered = false
 	_arm_sprite.offset = -SHOULDER
 	_arm.add_child(_arm_sprite)
+	_wrist = Node2D.new()
+	_wrist.name = "AxeWrist"
+	_wrist.position = WRIST-SHOULDER
+	_arm.add_child(_wrist)
+	_hand_sprite = Sprite2D.new()
+	_hand_sprite.texture = HAND_TEXTURE
+	_hand_sprite.centered = false
+	_hand_sprite.offset = -WRIST
+	_wrist.add_child(_hand_sprite)
 	_axe = Sprite2D.new()
 	_axe.texture = AXE
 	_axe.centered = false
 	_axe.offset = -AXE_GRIP
 	_axe.scale = Vector2.ONE*AXE_SCALE
-	_axe.position = HAND-SHOULDER
+	_axe.position = HAND-WRIST
 	_axe.rotation = AXE_HOLD_ANGLE
-	_arm.add_child(_axe)
-	_arm.move_child(_axe,0)
+	_wrist.add_child(_axe)
+	_wrist.move_child(_axe,0)
 	_charge_bar = Line2D.new()
 	_charge_bar.width = 3.0
 	_charge_bar.default_color = Color(0.1,0.1,0.1,0.85)
@@ -327,7 +341,7 @@ func _update_pose() -> void:
 		var settle:float = smoothstep(0.2,1.0,phase_elapsed/maxf(recovery_seconds,0.01))
 		held = Vector2(lerp_angle(end.x,REST_ARM_ANGLE,settle),lerpf(end.y,REST_GRIP_ANGLE,settle))
 	var angle:float = held.x
-	_axe.rotation = held.y
+	_wrist.rotation = held.y-AXE_HOLD_ANGLE
 	var pose:Transform2D = Transform2D(angle,SHOULDER-Vector2(80,112))
 	if mirrored:
 		pose = Transform2D(Vector2(-1,0),Vector2(0,1),Vector2.ZERO)*pose
@@ -340,6 +354,8 @@ func _update_pose() -> void:
 	_charge_fill.points = PackedVector2Array([Vector2(-22,0),Vector2(-22+44*charge_ratio(),0)])
 	_charge_fill.default_color = Color(1,0.25,0.08) if charge_ratio()>=0.75 else Color(1,0.8,0.1) if charge_ratio()>=0.5 else Color(0.45,0.8,1)
 
+func hand_center() -> Vector2:
+	return _wrist.to_global(HAND-WRIST)
 func blade_center() -> Vector2:
 	return _axe.to_global(AXE_BLADE+_axe.offset)
 func blade_radius() -> float:

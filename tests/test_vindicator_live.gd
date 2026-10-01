@@ -27,7 +27,7 @@ func run() -> void:
 		states[unit.phase] = true
 		most_charge = maxf(most_charge,unit.charge_ratio())
 		if unit.phase==unit.Phase.DASH and unit.charge_elapsed>=0.12:
-			raised_while_rushing = raised_while_rushing or (unit._arm.to_global(unit.HAND-unit.SHOULDER).y<unit._arm.global_position.y-4 and unit.velocity.length()>unit.Speed)
+			raised_while_rushing = raised_while_rushing or (unit.hand_center().y<unit._arm.global_position.y-4 and unit.velocity.length()>unit.Speed)
 		if enemy.health<before: break
 	check(unit.global_position.distance_to(start)>50,"autonomous real physics closes distance")
 	check(states.has(unit.Phase.DASH),"AI independently starts the rush")

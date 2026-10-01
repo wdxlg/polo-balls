@@ -87,7 +87,7 @@ func run() -> void:
 	source._update_pose()
 	source._sync_visual(true)
 	check(await until(func():return remote.phase==source.Phase.DASH and is_equal_approx(remote.charge_ratio(),0.1)),"early rush pose reaches replica with actual low charge")
-	check(remote._arm.to_global(remote.HAND-remote.SHOULDER).y<remote._arm.global_position.y-4 and remote.blade_center().distance_to(source.blade_center())<0.1,"guest sees high rush preparation without granting full damage")
+	check(remote.hand_center().y<remote._arm.global_position.y-4 and remote.blade_center().distance_to(source.blade_center())<0.1,"guest sees high rush preparation without granting full damage")
 	var held:Vector2 = source.blade_center()
 	source._release_swing()
 	check(await until(func():return remote.phase==source.Phase.SWING and remote.released_rush),"rush release mode crosses ENet")
@@ -110,6 +110,19 @@ func run() -> void:
 	check(await until(func():return remote.phase==source.Phase.DASH and is_equal_approx(remote.charge_elapsed,0.16)),"rush visual clock is reanchored by host state")
 	remote.tick_physics(load("res://classes/ball.gd").State.Move,0.01)
 	check(is_equal_approx(remote.charge_elapsed,0.17) and remote.global_position==guest_position,"guest keeps lifting through gaps without simulating dash movement")
+	source.phase = source.Phase.RECOVER
+	source.phase_elapsed = source.recovery_seconds*0.85
+	source._update_pose()
+	source._sync_visual(true)
+	check(await until(func():return remote.phase==source.Phase.RECOVER),"lowering wrist pose reaches the guest")
+	check(remote.hand_center().distance_to(source.hand_center())<0.1 and remote._axe.to_global(remote.AXE_GRIP+remote._axe.offset).distance_to(remote.hand_center())<0.001,"guest lowered axe remains attached to the actual moving palm")
+	source.cancel_attack()
+	check(await until(func():return remote.phase==source.Phase.IDLE),"resting wrist pose reaches guest")
+	check(remote.hand_center().distance_to(source.hand_center())<0.1 and is_equal_approx(remote._axe.rotation,remote.AXE_HOLD_ANGLE),"idle hand and axe preserve their rigid grip on both peers")
+	source.attack_wait = 0.0
+	source.rush_wait = 0.0
+	check(source._begin_charge(true),"host restores an active rush before checking stun cancellation")
+	check(await until(func():return remote.phase==source.Phase.DASH),"guest is attacking, not already idle, before cancellation")
 	var stun:Node = source.apply_stun(1.0,target)
 	source.tick_physics(load("res://classes/ball.gd").State.Move,0.01)
 	check(await until(func():return remote.phase==source.Phase.IDLE),"hard-control cancellation is reliably replicated")
