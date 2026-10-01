@@ -260,8 +260,8 @@ var _normal_max_physics_steps_per_frame:int = 8
 const TIME_SCALE_MODULE := preload("res://global/game_time_scale.gd")
 var _time_scale = TIME_SCALE_MODULE.new(self)
 
-func request_time_scale_override(source_key:String,factor:float,tint:Color = Color(0.20,0.55,1.0,0.14)) -> void:
-	_time_scale.request_time_scale_override(source_key, factor, tint)
+func request_time_scale_override(source_key:String,factor:float,tint:Color = Color(0.20,0.55,1.0,0.14),affect_audio:bool = true) -> void:
+	_time_scale.request_time_scale_override(source_key, factor, tint, affect_audio)
 
 func release_time_scale_override(source_key:String) -> void:
 	_time_scale.release_time_scale_override(source_key)

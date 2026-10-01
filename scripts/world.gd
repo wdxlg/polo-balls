@@ -852,11 +852,11 @@ var _damage_shake_elapsed:float = 0.0
 @export_group("命中视觉与重击顿挫")
 @export var impact_visuals_enabled:bool = true
 @export var heavy_hitstop_enabled:bool = true
-@export_range(1.0,200.0,1.0) var heavy_hit_min_damage:float = 20.0
-@export_range(0.05,0.80,0.01) var heavy_hit_health_ratio:float = 0.18
+@export_range(1.0,200.0,1.0) var heavy_hit_min_damage:float = 12.0
+@export_range(0.01,0.80,0.01) var heavy_hit_health_ratio:float = 0.06
 @export_range(0.20,1.0,0.01) var heavy_hitstop_cooldown:float = 0.35
-@export_range(0.01,0.08,0.001) var heavy_hitstop_min_duration:float = 0.035
-@export_range(0.01,0.08,0.001) var heavy_hitstop_max_duration:float = 0.060
+@export_range(0.01,0.5,0.001) var heavy_hitstop_min_duration:float = 0.025
+@export_range(0.01,0.5,0.001) var heavy_hitstop_max_duration:float = 0.090
 @export_range(0.05,0.5,0.01) var heavy_hitstop_time_factor:float = 0.12
 @export_group("")
 var _combat_impact_layer:Node2D = null
@@ -864,6 +864,19 @@ var _heavy_hit_pending_strength:float = -1.0
 var _heavy_hit_end_usec:int = 0
 var _heavy_hit_next_allowed_usec:int = 0
 var _heavy_hit_time_key:String = ""
+# 分级顿挫：门槛 = max(最低伤害, 生命 × 百分比)。达到门槛轻顿，两倍重顿，
+# 四倍或致命一击为暴击档：最长停顿 × 1.8、受击者全白、整屏白闪。震屏仍只走“镜头震动”设置的伤害曲线。
+const HITSTOP_CRIT_RATIO:float = 4.0
+const HITSTOP_CRIT_SCALE:float = 1.8
+const CRIT_FLASH_LAYER:int = 100
+const CRIT_FLASH_ALPHA:float = 0.5
+const CRIT_FLASH_COOLDOWN:float = 0.45
+var _heavy_hit_pending_tier:int = 0
+var _heavy_hit_pending_duration:float = 0.0
+var _heavy_hit_active_tier:int = 0
+var _crit_flash_rect:ColorRect = null
+var _crit_flash_tween:Tween = null
+var _crit_flash_next_usec:int = 0
 
 
 func _impact_is_on_screen(origin:Vector2) -> bool:
@@ -919,23 +932,87 @@ func _clear_high_damage_feedback() -> void:
 	_damage_focus_weight = 0.0
 	_damage_focus_peak_zoom = 1.0
 	_heavy_hit_pending_strength = -1.0
+	_heavy_hit_pending_tier = 0
+	_heavy_hit_pending_duration = 0.0
 	_heavy_hit_next_allowed_usec = 0
 	_release_heavy_hitstop() # Release only our own lease, never another character's slow motion.
 	if is_instance_valid(camera_2d): _apply_camera_zoom()
 
 
-func request_heavy_hitstop(actual_health_damage:float,max_health:float,origin:Vector2) -> void:
-	if not is_finite(actual_health_damage) or actual_health_damage < _heavy_hit_threshold(max_health):
-		return
-	if not _can_play_heavy_hitstop() or not _impact_is_on_screen(origin):
-		return
+func hitstop_tier(actual_health_damage:float,max_health:float,lethal:bool = false) -> int:
+	if not is_finite(actual_health_damage) or actual_health_damage <= 0.0:
+		return 0
+	# 主角色被击倒的最后一下无论伤害大小都按暴击档定格。
+	if lethal:
+		return 3
+	var threshold:float = _heavy_hit_threshold(max_health)
+	if actual_health_damage < threshold:
+		return 0
+	if actual_health_damage >= threshold * HITSTOP_CRIT_RATIO:
+		return 3
+	return 2 if actual_health_damage >= threshold * 2.0 else 1
+
+
+func hitstop_duration(actual_health_damage:float,max_health:float,tier:int) -> float:
+	if tier <= 0:
+		return 0.0
+	if tier >= 3:
+		return clampf(heavy_hitstop_max_duration * HITSTOP_CRIT_SCALE,0.01,0.5)
+	var ratio:float = actual_health_damage / _heavy_hit_threshold(max_health)
+	var weight:float = clampf((ratio - 1.0) / (HITSTOP_CRIT_RATIO - 1.0),0.0,1.0)
+	return clampf(lerpf(heavy_hitstop_min_duration,heavy_hitstop_max_duration,weight),0.01,0.5)
+
+
+## 已确认的攻击命中调用。返回档位：0 不停，1 轻顿，2 重顿，3 暴击/致命。
+func request_heavy_hitstop(actual_health_damage:float,max_health:float,origin:Vector2,lethal:bool = false) -> int:
+	var tier:int = hitstop_tier(actual_health_damage,max_health,lethal)
+	if tier == 0 or not origin.is_finite() or not _impact_is_on_screen(origin):
+		return 0
+	if tier >= 3:
+		_play_crit_flash()
+	if not _can_play_heavy_hitstop():
+		return tier
 	var now:int = Time.get_ticks_usec()
-	if now < _heavy_hit_next_allowed_usec or _heavy_hit_end_usec > 0:
-		return
+	# 冷却与进行中的顿挫只拦普通档；暴击/致命可以插队或延长。
+	if tier < 3 and (now < _heavy_hit_next_allowed_usec or _heavy_hit_end_usec > 0):
+		return tier
+	var duration:float = hitstop_duration(actual_health_damage,max_health,tier)
+	if tier > _heavy_hit_pending_tier or (tier == _heavy_hit_pending_tier and duration > _heavy_hit_pending_duration):
+		_heavy_hit_pending_tier = tier
+		_heavy_hit_pending_duration = duration
 	var threshold:float = _heavy_hit_threshold(max_health)
 	var strength:float = clampf((actual_health_damage - threshold) / maxf(threshold * 2.0,1.0),0.0,1.0)
 	# 不在伤害结算中立刻改时间；同帧群攻只保留最强一次，下一次 always 更新统一消费。
 	_heavy_hit_pending_strength = maxf(_heavy_hit_pending_strength,strength)
+	return tier
+
+
+func _play_crit_flash() -> void:
+	if not _high_damage_feedback_enabled() or not is_combat_runtime_active() or Game.is_training_mode():
+		return
+	var now:int = Time.get_ticks_usec()
+	if now < _crit_flash_next_usec:
+		return
+	_crit_flash_next_usec = now + int(CRIT_FLASH_COOLDOWN * 1000000.0)
+	if not is_instance_valid(_crit_flash_rect):
+		var layer := CanvasLayer.new()
+		layer.name = "CritFlashLayer"
+		layer.layer = CRIT_FLASH_LAYER
+		layer.process_mode = Node.PROCESS_MODE_ALWAYS
+		add_child(layer)
+		_crit_flash_rect = ColorRect.new()
+		_crit_flash_rect.name = "CritFlash"
+		_crit_flash_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_crit_flash_rect.color = Color.WHITE
+		layer.add_child(_crit_flash_rect)
+		_crit_flash_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	if _crit_flash_tween != null and _crit_flash_tween.is_valid():
+		_crit_flash_tween.kill()
+	_crit_flash_rect.modulate.a = CRIT_FLASH_ALPHA
+	_crit_flash_tween = _crit_flash_rect.create_tween()
+	_crit_flash_tween.set_ignore_time_scale(true)
+	_crit_flash_tween.tween_interval(0.035)
+	_crit_flash_tween.tween_property(_crit_flash_rect,"modulate:a",0.0,0.16)
 
 
 func _can_play_heavy_hitstop() -> bool:
@@ -953,6 +1030,7 @@ func _release_heavy_hitstop() -> void:
 		Game.release_time_scale_override(_heavy_hit_time_key)
 	_heavy_hit_time_key = ""
 	_heavy_hit_end_usec = 0
+	_heavy_hit_active_tier = 0
 
 
 func _update_heavy_hitstop() -> void:
@@ -961,17 +1039,30 @@ func _update_heavy_hitstop() -> void:
 	if _heavy_hit_end_usec > 0 and (now >= _heavy_hit_end_usec or not _can_play_heavy_hitstop()):
 		_release_heavy_hitstop()
 	var strength:float = _heavy_hit_pending_strength
+	var tier:int = _heavy_hit_pending_tier
+	var duration:float = _heavy_hit_pending_duration
 	_heavy_hit_pending_strength = -1.0
-	if strength < 0.0 or _heavy_hit_end_usec > 0 or now < _heavy_hit_next_allowed_usec:
+	_heavy_hit_pending_tier = 0
+	_heavy_hit_pending_duration = 0.0
+	if strength < 0.0 or tier <= 0 or not _can_play_heavy_hitstop():
 		return
-	if not _can_play_heavy_hitstop() or Game.get_time_scale_override_factor() < 0.95:
+	if _heavy_hit_end_usec > 0:
+		# 顿挫中只允许更高档延长（如轻顿中接上致命一击），不叠加。
+		if tier > _heavy_hit_active_tier:
+			_heavy_hit_end_usec = maxi(_heavy_hit_end_usec,now + int(duration * 1000000.0))
+			_heavy_hit_active_tier = tier
+		return
+	if tier < 3 and now < _heavy_hit_next_allowed_usec:
+		return
+	if Game.get_time_scale_override_factor() < 0.95:
 		return
 	# 不覆盖已有角色慢动作/电影镜头。只注册自己的 key，释放时由 Game 重算玩家基础倍速。
-	var duration:float = clampf(lerpf(heavy_hitstop_min_duration,heavy_hitstop_max_duration,strength),0.01,0.5)
 	_heavy_hit_end_usec = now + int(duration * 1000000.0)
 	_heavy_hit_next_allowed_usec = now + int(maxf(heavy_hitstop_cooldown,0.0) * 1000000.0)
+	_heavy_hit_active_tier = tier
 	_heavy_hit_time_key = "WorldHeavyHit_%d" % get_instance_id()
-	Game.request_time_scale_override(_heavy_hit_time_key,heavy_hitstop_time_factor,Color(0.0,0.0,0.0,0.0))
+	# 只冻结画面与物理；命中音照常播完，不被慢速拖成闷响。
+	Game.request_time_scale_override(_heavy_hit_time_key,heavy_hitstop_time_factor,Color(0.0,0.0,0.0,0.0),false)
 
 
 @export_group("大伤害定点推镜")

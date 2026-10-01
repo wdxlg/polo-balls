@@ -14,6 +14,7 @@ const DAMAGE_ELEMENT_COLD:StringName = &"cold"
 const KNOCKBACK_EFFECT_SCRIPT = preload("res://scripts/effects/knockback_effect.gd")
 const HIT_BURST_EFFECT_SCRIPT = preload("res://scripts/effects/hit_burst_effect.gd")
 const HURT_SHAKE_SCRIPT = preload("res://scripts/effects/character_hurt_shake.gd")
+const HIT_COMBO = preload("res://scripts/effects/hit_combo.gd")
 const WALL_HIT_BURST_SCRIPT = preload("res://scripts/effects/wall_hit_burst.gd")
 const STUN_VISUAL_SCENE = preload("res://scenes/effects/stun_visual.tscn")
 const AFTER_IMAGE_MATERIAL = preload("res://shaders/after_image_material.tres")
@@ -766,6 +767,19 @@ func _play_confirmed_damage_flash(actual_damage:float) -> void:
 	hit_white_tween.set_ignore_time_scale(true)
 	hit_white_tween.tween_interval(lerpf(0.012,0.025,strength))
 	hit_white_tween.tween_method(hit_white_method,peak,0.0,lerpf(0.045,0.075,strength))
+
+
+## 重顿/暴击档：受击者在顿挫期间保持全白，再快速褪去。
+func _hold_impact_white(hold:float) -> void:
+	if image == null or not is_instance_valid(image) or Type == Ball_Type.Creature or not is_inside_tree():
+		return
+	if hit_white_tween:
+		hit_white_tween.kill()
+	hit_white_method(1.0)
+	hit_white_tween = create_tween()
+	hit_white_tween.set_ignore_time_scale(true)
+	hit_white_tween.tween_interval(maxf(hold,0.0))
+	hit_white_tween.tween_method(hit_white_method,1.0,0.0,0.09)
 
 
 func _schedule_zero_health_resolution() -> void:
@@ -2999,7 +3013,7 @@ func _unique_audio_stream(slot:int) -> AudioStream:
 	return null
 
 
-func _play_unique_audio_local(slot:int,randomize_pitch:bool = true) -> void:
+func _play_unique_audio_local(slot:int,randomize_pitch:bool = true,pitch_mul:float = 1.0) -> void:
 	var stream:AudioStream = _unique_audio_stream(slot)
 	if stream == null:
 		return
@@ -3010,9 +3024,10 @@ func _play_unique_audio_local(slot:int,randomize_pitch:bool = true) -> void:
 	player.volume_db = Unique_Audio_Volume_DB
 	player.pitch_scale = maxf(Unique_Audio_Pitch_Scale,0.01)
 
-	if randomize_pitch:
+	if randomize_pitch and pitch_mul <= 1.0:
 		var pitch_random:float = clampf(Unique_Audio_Random_Pitch,0.0,0.25)
 		player.pitch_scale *= randf_range(1.0 - pitch_random,1.0 + pitch_random)
+	player.pitch_scale *= clampf(pitch_mul,0.25,4.0)
 
 	player.max_distance = maxf(Unique_Audio_Max_Distance,50.0)
 	player.attenuation = 1.0
@@ -3024,15 +3039,15 @@ func _play_unique_audio_local(slot:int,randomize_pitch:bool = true) -> void:
 	player.play()
 
 
-func play_unique_audio(slot:int,randomize_pitch:bool = true) -> void:
-	_play_unique_audio_local(slot,randomize_pitch)
+func play_unique_audio(slot:int,randomize_pitch:bool = true,pitch_mul:float = 1.0) -> void:
+	_play_unique_audio_local(slot,randomize_pitch,pitch_mul)
 	if multiplayer.has_multiplayer_peer():
-		_remote_play_unique_audio.rpc(slot,randomize_pitch)
+		_remote_play_unique_audio.rpc(slot,randomize_pitch,pitch_mul)
 
 
 @rpc("any_peer","call_remote","unreliable")
-func _remote_play_unique_audio(slot:int,randomize_pitch:bool = true) -> void:
-	_play_unique_audio_local(slot,randomize_pitch)
+func _remote_play_unique_audio(slot:int,randomize_pitch:bool = true,pitch_mul:float = 1.0) -> void:
+	_play_unique_audio_local(slot,randomize_pitch,pitch_mul)
 
 
 # V275：公共中毒视觉。只改 Image 自己的 self_modulate，不染血条/名字/状态 UI。
@@ -6253,8 +6268,14 @@ func notify_hit_burst_feedback(
 ) -> void:
 	# 顿挫只来自已确认的攻击命中，不从 health setter 触发，避免复制生命/技能自损误触发。
 	var impact_world:Node = get_tree().current_scene
+	# 被打中的一方连击中断。
+	if health_loss > 0.0: HIT_COMBO.reset(self)
 	if is_instance_valid(impact_world) and impact_world.has_method("request_heavy_hitstop"):
-		impact_world.call("request_heavy_hitstop",health_loss,get_impact_reference_health(),global_position)
+		# 主角色的致命一击算暴击档；召唤物/大混战里的击杀不触发整屏白闪。
+		var lethal:bool = health_loss > 0.0 and health <= 0 and Type == Ball_Type.Ball and not _large_battle_performance_mode
+		var raw_tier:Variant = impact_world.call("request_heavy_hitstop",health_loss,get_impact_reference_health(),global_position,lethal)
+		var impact_tier:int = int(raw_tier) if raw_tier is int else 0
+		if impact_tier >= 2: _hold_impact_white(0.13 if impact_tier >= 3 else 0.05)
 	if state_machine != null and state_machine.current_state == State.Die:
 		return
 
@@ -7388,10 +7409,12 @@ func _on_hitbox_on_hit(hurt: hurtbox) -> void:
 		if float(info.get("shield_bypass",0.0)) > 0.0: target.set_meta("_mc_enchant_shield_bypass",float(info.shield_bypass))
 
 	if outgoing_damage > 0.0 and (target.block < outgoing_damage or ignore_block) and not preload("res://scripts/effects/我的世界/mc_hit_feedback.gd").manages(self):
+		# 连击升调：同一攻击者连续命中，一下比一下高；第一下保持原来的随机音高。
+		var combo_pitch:float = HIT_COMBO.next_pitch(self)
 		if Unique_Hit_Audio != null:
-			play_unique_audio(Character_Audio_Slot.Hit,true)
+			play_unique_audio(Character_Audio_Slot.Hit,true,combo_pitch)
 		elif Hit_Audio != "":
-			Audios.play_sfx.rpc(Hit_Audio,{volume = clampf(outgoing_damage - 12.0,-100.0,0.0)},true)
+			Audios.play_sfx.rpc(Hit_Audio,{volume = clampf(outgoing_damage - 12.0,-100.0,0.0),pitch_mul = combo_pitch},combo_pitch <= 1.0)
 
 	var before_health:float = float(target.health)
 	var before_absorbed:float = float(target.absorbed_health_loss)
@@ -7698,18 +7721,18 @@ var _mc_damage_audio_received:int = 0
 var mc_damage_audio_count:int = 0
 var mc_damage_audio_last:Dictionary = {}
 
-func request_mc_damage_audio(actual:float,point:Vector2) -> void:
+func request_mc_damage_audio(actual:float,point:Vector2,pitch:float = 1.0) -> void:
 	if not is_multiplayer_authority() or not is_inside_tree() or not is_finite(actual) or actual<=0.0: return
 	if not is_combat_runtime_active() or get_tree().paused or Game.now_stop_state: return
 	var feedback:Script = load("res://scripts/effects/我的世界/mc_hit_feedback.gd")
 	var event:String = feedback.GAIN.damage_event(actual)
 	_mc_damage_audio_serial += 1
 	var index:int = feedback.variant(event)
-	_receive_mc_damage_audio(_mc_damage_audio_serial,actual,point,index)
-	if multiplayer.has_multiplayer_peer(): _receive_mc_damage_audio.rpc(_mc_damage_audio_serial,actual,point,index)
+	_receive_mc_damage_audio(_mc_damage_audio_serial,actual,point,index,pitch)
+	if multiplayer.has_multiplayer_peer(): _receive_mc_damage_audio.rpc(_mc_damage_audio_serial,actual,point,index,pitch)
 
 @rpc("authority","call_remote","reliable")
-func _receive_mc_damage_audio(serial:int,actual:float,point:Vector2,index:int) -> void:
+func _receive_mc_damage_audio(serial:int,actual:float,point:Vector2,index:int,pitch:float = 1.0) -> void:
 	if serial<=_mc_damage_audio_received or not is_finite(actual) or actual<=0.0: return
 	if not is_inside_tree() or not is_combat_runtime_active() or get_tree().paused or Game.now_stop_state: return
 	var feedback:Script = load("res://scripts/effects/我的世界/mc_hit_feedback.gd")
@@ -7718,4 +7741,4 @@ func _receive_mc_damage_audio(serial:int,actual:float,point:Vector2,index:int) -
 	_mc_damage_audio_received = serial
 	mc_damage_audio_count += 1
 	mc_damage_audio_last = {"event":event,"actual":actual,"gain":feedback.GAIN.damage_gain(actual),"variant":index,"serial":serial}
-	feedback.play(self,actual,point,index,serial)
+	feedback.play(self,actual,point,index,serial,pitch)

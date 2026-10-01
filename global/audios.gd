@@ -89,14 +89,21 @@ func _process(_delta:float) -> void:
 	# 兜底读取 Engine.time_scale，保证未来即使某个系统绕过 Game.set_speed() 直接改时间，
 	# 游戏声音仍会在下一帧同步。
 	var engine_scale:float = maxf(Engine.time_scale,0.0)
-	if not is_equal_approx(engine_scale,_last_requested_game_time_scale):
+	# Game 声明过的引擎倍率（声音可与画面不同，例如命中顿挫）不算“绕过”。
+	if _expected_engine_time_scale >= 0.0 and is_equal_approx(engine_scale,_expected_engine_time_scale):
+		pass
+	elif not is_equal_approx(engine_scale,_last_requested_game_time_scale):
 		_last_requested_game_time_scale = engine_scale
+		_expected_engine_time_scale = -1.0
 	_sync_audio_clock(false)
 
 # Game._apply_time_scale_overrides() 会在改变 Engine.time_scale 的同一帧调用这里，
 # 避免倍速滑条改变后要等一帧音频才追上。
-func set_game_time_scale(value:float) -> void:
+var _expected_engine_time_scale:float = -1.0
+
+func set_game_time_scale(value:float,engine_scale:float = -1.0) -> void:
 	_last_requested_game_time_scale = maxf(value,0.0)
+	_expected_engine_time_scale = engine_scale if engine_scale >= 0.0 else _last_requested_game_time_scale
 	_sync_audio_clock(true)
 
 # Game.stop_game() 在设置 SceneTree.paused=true 之前调用；continue_game() 在解除暂停后调用。
@@ -250,6 +257,9 @@ func _play_sfx_player(source:AudioStreamPlayer,params:Dictionary = {},random:boo
 	if random:
 		logical_pitch *= randf_range(0.9,1.1)
 		sfx.volume_db *= randf_range(0.9,1.1)
+	# 调用方给的相对音高（连击升调），叠在默认/指定音高之上。
+	if "pitch_mul" in params:
+		logical_pitch *= maxf(float(params.pitch_mul),0.01)
 
 	_set_logical_pitch(sfx,logical_pitch)
 

@@ -6,6 +6,7 @@ const GAIN = preload("res://scripts/effects/我的世界/hit_audio_gain.gd")
 const AUDIO = preload("res://scripts/characters/我的世界/new5/audio.gd")
 const QUEUE = preload("res://scripts/effects/我的世界/mc_native_audio.gd")
 const OWNERS = preload("res://classes/projectile_interactions.gd")
+const COMBO = preload("res://scripts/effects/hit_combo.gd")
 const POLICIES:Dictionary = {
 	"res://scripts/characters/我的世界/vindicator/vindicator.gd": 1,
 	"res://scripts/characters/默认/丁某人睡觉.gd": 1,
@@ -92,16 +93,19 @@ static func actual_loss(target:Node,before:float) -> float:
 	return maxf(maxf(before,0.0)-(maxf(float(target.health),0.0) if is_instance_valid(target) else 0.0),0.0)
 
 static func settled(source:Node,target:Node,before:float,point:Vector2) -> void:
-	if manages(source): emit(target,actual_loss(target,before),point)
+	if not manages(source): return
+	var actual:float = actual_loss(target,before)
+	# 攻击命中计入连击升调；状态/持续伤害走 finish()，不升调。
+	emit(target,actual,point,COMBO.next_pitch(source) if actual > 0.0 else 1.0)
 
 static func finish(source:Node,target:Node,before:float,point:Vector2) -> void:
 	# Explicit status adapter: auto sources were already reported by the receive path.
 	if not manages(source): emit(target,actual_loss(target,before),point)
 
-static func emit(target:Node,actual:float,point:Vector2) -> void:
+static func emit(target:Node,actual:float,point:Vector2,pitch:float = 1.0) -> void:
 	if not is_instance_valid(target) or not target.has_method("request_mc_damage_audio"): return
 	if not is_finite(actual) or actual<=0.0: return
-	target.request_mc_damage_audio(actual,point)
+	target.request_mc_damage_audio(actual,point,pitch)
 
 static func variant(event:String) -> int:
 	if not _seeded:
@@ -109,7 +113,7 @@ static func variant(event:String) -> int:
 		_seeded = true
 	return _rng.randi_range(0,AUDIO.EVENTS[event].size()-1)
 
-static func play(target:Node2D,actual:float,point:Vector2,index:int,serial:int) -> Dictionary:
+static func play(target:Node2D,actual:float,point:Vector2,index:int,serial:int,pitch:float = 1.0) -> Dictionary:
 	if not is_instance_valid(target) or not is_finite(actual) or actual<=0.0: return {}
 	var event:String = GAIN.damage_event(actual)
 	var records:Array = AUDIO.EVENTS[event]
@@ -119,6 +123,6 @@ static func play(target:Node2D,actual:float,point:Vector2,index:int,serial:int) 
 		parent = target
 		while parent.get_parent() is Node2D and parent.get_parent().get_world_2d()==target.get_world_2d(): parent = parent.get_parent()
 	return QUEUE.queue_stream(target,records[index].stream,point,{
-		"audio_parent":parent,"volume_db":GAIN.damage_gain(actual),"pitch":1.0,
+		"audio_parent":parent,"volume_db":GAIN.damage_gain(actual),"pitch":clampf(pitch,0.5,2.0),
 		"priority":true,"keep_after_source":true,
 		"metadata":{"mc_sound_event":event,"mc_actual_damage":actual,"mc_damage_serial":serial,"mc_damage_target":target.get_instance_id(),"mc_unified_hit":true}})

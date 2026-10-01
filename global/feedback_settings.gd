@@ -35,11 +35,11 @@ const SPECS:Dictionary = {
 	"Feedback_Focus_Hold": {"default":0.07,"min":0.0,"max":2.0,"step":0.01,"group":"High_Damage_Feedback","section":"FOCUS","unit":"s"},
 	"Feedback_Focus_Out": {"default":0.3,"min":0.01,"max":3.0,"step":0.01,"group":"High_Damage_Feedback","section":"FOCUS","unit":"s"},
 	"Feedback_Focus_Cooldown": {"default":0.7,"min":0.0,"max":10.0,"step":0.05,"group":"High_Damage_Feedback","section":"FOCUS","unit":"s"},
-	"Feedback_Hitstop_Damage": {"default":20.0,"min":1,"max":100000,"step":1,"group":"High_Damage_Feedback","section":"HITSTOP","unit":""},
-	"Feedback_Hitstop_HealthPercent": {"default":18.0,"min":0.0,"max":100.0,"step":1,"group":"High_Damage_Feedback","section":"HITSTOP","unit":"%"},
+	"Feedback_Hitstop_Damage": {"default":12.0,"min":1,"max":100000,"step":1,"group":"High_Damage_Feedback","section":"HITSTOP","unit":""},
+	"Feedback_Hitstop_HealthPercent": {"default":6.0,"min":0.0,"max":100.0,"step":1,"group":"High_Damage_Feedback","section":"HITSTOP","unit":"%"},
 	"Feedback_Hitstop_Factor": {"default":0.12,"min":0.01,"max":1.0,"step":0.01,"group":"High_Damage_Feedback","section":"HITSTOP","unit":"x"},
-	"Feedback_Hitstop_MinDuration": {"default":0.035,"min":0.01,"max":0.5,"step":0.005,"group":"High_Damage_Feedback","section":"HITSTOP","unit":"s"},
-	"Feedback_Hitstop_MaxDuration": {"default":0.06,"min":0.01,"max":0.5,"step":0.005,"group":"High_Damage_Feedback","section":"HITSTOP","unit":"s"},
+	"Feedback_Hitstop_MinDuration": {"default":0.025,"min":0.01,"max":0.5,"step":0.005,"group":"High_Damage_Feedback","section":"HITSTOP","unit":"s"},
+	"Feedback_Hitstop_MaxDuration": {"default":0.09,"min":0.01,"max":0.5,"step":0.005,"group":"High_Damage_Feedback","section":"HITSTOP","unit":"s"},
 	"Feedback_Hitstop_Cooldown": {"default":0.35,"min":0.0,"max":10.0,"step":0.05,"group":"High_Damage_Feedback","section":"HITSTOP","unit":"s"},
 }
 
@@ -50,7 +50,17 @@ static func number(settings:Dictionary,suffix:String) -> float:
 	if not (raw is float or raw is int) or not is_finite(float(raw)): return float(spec.default)
 	return clampf(float(raw),float(spec.min),float(spec.max))
 
+## 分级顿挫之前的旧默认值。四项都还是旧默认（玩家没动过）时迁移到新的分级默认值。
+const LEGACY_HITSTOP_DEFAULTS:Dictionary = {"Feedback_Hitstop_Damage":20.0,"Feedback_Hitstop_HealthPercent":18.0,"Feedback_Hitstop_MinDuration":0.035,"Feedback_Hitstop_MaxDuration":0.06}
+
+static func _migrate_legacy_hitstop(settings:Dictionary) -> void:
+	for key:String in LEGACY_HITSTOP_DEFAULTS:
+		var raw:Variant = settings.get(key)
+		if not (raw is float or raw is int) or not is_equal_approx(float(raw),float(LEGACY_HITSTOP_DEFAULTS[key])): return
+	for key:String in LEGACY_HITSTOP_DEFAULTS: settings[key] = SPECS[key].default
+
 static func normalize(settings:Dictionary) -> void:
+	_migrate_legacy_hitstop(settings)
 	for key:String in SPECS: settings[key] = number(settings,key)
 	settings.Feedback_Shake_High = maxf(settings.Feedback_Shake_High,settings.Feedback_Shake_Low+1.0)
 	for channel:String in ["Body","Camera"]:

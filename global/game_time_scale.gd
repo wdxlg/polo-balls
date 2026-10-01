@@ -20,6 +20,9 @@ var _time_scale_overrides:Dictionary = {}
 
 var _time_scale_override_tints:Dictionary = {}
 
+# 不拖慢游戏声音的流速覆写（命中顿挫：画面冻结，命中音照常播完）。
+var _audio_exempt_overrides:Dictionary = {}
+
 var _world_slow_tint_layer:CanvasLayer = null
 
 var _world_slow_tint_rect:ColorRect = null
@@ -27,11 +30,13 @@ var _world_slow_tint_rect:ColorRect = null
 var _world_slow_tint_tween:Tween = null
 
 
-func request_time_scale_override(source_key:String,factor:float,tint:Color = Color(0.20,0.55,1.0,0.14)) -> void:
+func request_time_scale_override(source_key:String,factor:float,tint:Color = Color(0.20,0.55,1.0,0.14),affect_audio:bool = true) -> void:
 	if source_key.is_empty():
 		return
 	_time_scale_overrides[source_key] = clampf(factor,0.05,1.0)
 	_time_scale_override_tints[source_key] = tint
+	if affect_audio: _audio_exempt_overrides.erase(source_key)
+	else: _audio_exempt_overrides[source_key] = true
 	_apply_time_scale_overrides()
 
 
@@ -40,6 +45,7 @@ func release_time_scale_override(source_key:String) -> void:
 		return
 	_time_scale_overrides.erase(source_key)
 	_time_scale_override_tints.erase(source_key)
+	_audio_exempt_overrides.erase(source_key)
 	_apply_time_scale_overrides()
 
 
@@ -47,6 +53,14 @@ func get_time_scale_override_factor() -> float:
 	var result:float = 1.0
 	for raw_factor in _time_scale_overrides.values():
 		result = minf(result,clampf(float(raw_factor),0.05,1.0))
+	return result
+
+
+func get_audio_time_scale_override_factor() -> float:
+	var result:float = 1.0
+	for raw_key in _time_scale_overrides.keys():
+		if not _audio_exempt_overrides.has(raw_key):
+			result = minf(result,clampf(float(_time_scale_overrides[raw_key]),0.05,1.0))
 	return result
 
 
@@ -66,7 +80,7 @@ func _apply_time_scale_overrides() -> void:
 	# V415：Engine.time_scale 不会自动改变音频播放速度。把同一有效倍率立即交给 Audios，
 	# 游戏声会按该倍率播放；UI 声音由 Audios 做反向补偿，始终维持正常 1x。
 	if Audios != null and Audios.has_method("set_game_time_scale"):
-		Audios.set_game_time_scale(effective_scale)
+		Audios.set_game_time_scale(_base_game_time_scale * get_audio_time_scale_override_factor() * _development_time_multiplier,effective_scale)
 
 	# Godot 文档指出：单独把 time_scale 拉高会降低物理精度。
 	# 训练模式同步提高 physics_ticks_per_second，使高速投射物/极速闪避在高倍速下仍有足够采样。
