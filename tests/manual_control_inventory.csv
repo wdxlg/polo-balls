@@ -231,3 +231,4 @@
 选角人物,scenes/characters/动漫/魔虚罗.tscn,scripts/characters/动漫/咒术回战/mahoraga.gd,"controlled_attack_action,controlled_skill_action,controlled_middle_action",是,左：退魔之剑；右：突进斩；中：咆哮；适应被动自动；专项见JJK_CHARACTERS.md
 选角人物,scenes/characters/动漫/嵌合暗兽.tscn,scripts/characters/动漫/咒术回战/agito.gd,"controlled_attack_action,controlled_skill_action,controlled_middle_action",是,左：撕咬；右：鵺落雷；中：圆鹿反转治疗；专项见JJK_CHARACTERS.md
 选角人物,scenes/characters/我的世界/时钟.tscn,scripts/characters/我的世界/clock/clock.gd,,是,无独立主动键：时间加速、时光倒流与残影均为被动
+选角人物,scenes/characters/我的世界/卫道士.tscn,scripts/characters/我的世界/vindicator/vindicator.gd,"controlled_attack_action,controlled_skill_action",是,左键按住蓄力松开挥斧；右键冲刺蓄力近敌挥斧

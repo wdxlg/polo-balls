@@ -5858,6 +5858,7 @@ const ARMOR_TEST_ROLE_SUMMARIES:Dictionary = {
 	"res://scripts/characters/我的世界/new6/bow.gd":"MC_ARMOR_INTRO_BOW",
 	"res://scripts/characters/我的世界/皓宸.gd":"MC_ARMOR_INTRO_HAOCHEN",
 	"res://scripts/characters/我的世界/唤魔者.gd":"MC_ARMOR_INTRO_EVOKER",
+	"res://scripts/characters/我的世界/vindicator/vindicator.gd":"MC_ARMOR_INTRO_VINDICATOR",
 	"res://scripts/characters/我的世界/frontier/warden.gd":"MC_ARMOR_INTRO_WARDEN",
 	"res://scripts/characters/我的世界/骷髅.gd":"MC_ARMOR_INTRO_SKELETON",
 	"res://scripts/characters/我的世界/苦力怕.gd":"MC_ARMOR_INTRO_CREEPER",

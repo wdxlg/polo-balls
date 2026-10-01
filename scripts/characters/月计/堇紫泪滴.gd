@@ -394,7 +394,7 @@ func _finish_attack_area(area:Area2D,hold_time:float) -> void:
 func take_damage(damage:float,ignore_block:bool = false) -> void:
 	if damage <= 0.0:
 		return
-	if _rewinding or _stance == Stance.DEFENSE:
+	if _rewinding or (_stance == Stance.DEFENSE and not incoming_damage_bypasses_guard()):
 		hit_white_visual_only()
 		return
 	super.take_damage(damage,ignore_block)
@@ -404,7 +404,7 @@ func receive_positional_damage(damage:float,impact_position:Vector2,ignore_block
 		return false
 	if _rewinding:
 		return true
-	if _stance == Stance.DEFENSE:
+	if _stance == Stance.DEFENSE and not incoming_damage_bypasses_guard():
 		hit_white_visual_only()
 		_reflect_guard_damage(damage,source,impact_position)
 		return true
@@ -428,7 +428,7 @@ func receive_spatial_damage(damage:float,damage_space:Variant,ignore_block:bool 
 		return super.receive_spatial_damage(damage,damage_space,ignore_block,raw_health)
 	if _rewinding:
 		return true
-	if _stance == Stance.DEFENSE:
+	if _stance == Stance.DEFENSE and not incoming_damage_bypasses_guard():
 		hit_white_visual_only()
 		_reflect_guard_damage(damage,source,point)
 		return true
@@ -487,7 +487,7 @@ func _apply_bleed(target:ball,added_stacks:int) -> void:
 func on_actual_health_damage_received(actual_health_damage:float,health_before:float) -> void:
 	if actual_health_damage <= 0.0:
 		return
-	if _rewinding or _stance == Stance.DEFENSE:
+	if _rewinding or (_stance == Stance.DEFENSE and not current_health_damage_bypasses_guard()):
 		health = clampi(int(round(health_before)),1,Max_health)
 		return
 	if not _rewind_used and health <= clampi(rewind_trigger_health,1,Max_health - 1):

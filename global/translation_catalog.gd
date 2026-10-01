@@ -1038,7 +1038,9 @@ const TABLE:Dictionary = {
 		"MC_ARMOR_INTRO_SPIDER": "接触墙面拉出蛛丝，连线与交叉处形成捕猎网络；接触蛛丝或蛛网会受伤并减速，蛛网减速更强。敌人触网后向其扑击，造成额外伤害，墙体会阻挡扑击命中。",
 		"MC_ARMOR_INTRO_MACE": "近身挥锤命中后跃起连砸，落地造成范围伤害与击退；命中可续跳并提高高度、范围、伤害和击退。高度、范围有上限，续跳伤害仍可增长。腾空时眩晕、冰冻等强控暂停连砸，解控后接续进度与层数；普通击退、减速不暂停。砸空结束。",
 		"MC_ARMOR_INTRO_DIAMOND_SWORD": "近身挥斩并向前释放推进的横扫剑气。取得下界合金锭并接触锻造台后停下锻造，升级为下界合金剑，增加当前与最大生命、攻击力和攻速；离开锻造台会中断等待。",
-		"MC_ARMOR_INTRO_DIAMOND_SPEAR": "移动加速，转向损失速度，命中再提速；速度提高刺击伤害与虚影数量，高速虚影升级为贯穿攻击。正面刺击附带定点虚影连刺，侧面半周横扫并击退；目标位于正面且路径可通行时，蓄势瞬移贯穿并留下虚影。"
+		"MC_ARMOR_INTRO_DIAMOND_SPEAR": "移动加速，转向损失速度，命中再提速；速度提高刺击伤害与虚影数量，高速虚影升级为贯穿攻击。正面刺击附带定点虚影连刺，侧面半周横扫并击退；目标位于正面且路径可通行时，蓄势瞬移贯穿并留下虚影。",
+		"卫道士": "卫道士",
+		"MC_ARMOR_INTRO_VINDICATOR": "高抬斧蓄力后挥砍，蓄力越久伤害越高；达到50%时穿透格挡、招架和弹反，达到75%时无视护甲及伤害减免，但仍可被闪避或无敌防住。可加速冲向敌人，冲刺途中蓄力，接近后按实际蓄力挥斧。强控会中断蓄力和冲刺。"
 	},
 	"en": {
 		"FEEDBACK_SIMPLE_FAINT": "Faint shake",
@@ -2074,6 +2076,8 @@ const TABLE:Dictionary = {
 		"MC_ARMOR_INTRO_SPIDER": "Anchors silk to walls, forming a hunting network of strands and webs at intersections. Silk and web contact damage and slow enemies, with stronger slowing in webs. Enemies caught in webs trigger a damaging lunge; walls block its hit.",
 		"MC_ARMOR_INTRO_MACE": "A close-range hit starts rebound slams with area damage and knockback. Successful landings increase height, area, damage and knockback; height and area are capped, but chain damage can keep growing. Stuns and freezes pause an airborne slam, preserving progress and chain level until release. Ordinary knockback and slows do not pause it. Missing ends the chain.",
 		"MC_ARMOR_INTRO_DIAMOND_SWORD": "Slashes nearby enemies and sends a sweeping attack forward. After obtaining a netherite ingot, touching a smithing table starts a stationary upgrade to a netherite sword, increasing current and maximum health, damage and attack speed. Leaving the table interrupts the wait.",
-		"MC_ARMOR_INTRO_DIAMOND_SPEAR": "Movement builds speed, turning loses it, and hits restore more. Speed increases thrust damage and echo count; fast echoes upgrade to piercing attacks. Frontal thrusts trigger fixed-position echo volleys, while side attacks sweep a half-circle with knockback. A frontal target and clear path allow a prepared blink-pierce with echoes."
+		"MC_ARMOR_INTRO_DIAMOND_SPEAR": "Movement builds speed, turning loses it, and hits restore more. Speed increases thrust damage and echo count; fast echoes upgrade to piercing attacks. Frontal thrusts trigger fixed-position echo volleys, while side attacks sweep a half-circle with knockback. A frontal target and clear path allow a prepared blink-pierce with echoes.",
+		"卫道士": "Vindicator",
+		"MC_ARMOR_INTRO_VINDICATOR": "Raises an axe to charge a stronger slash. At 50% charge it bypasses blocks, parries and guard reflections; at 75% it ignores armor and damage reduction, but not dodging or invulnerability. Can rush toward an enemy while charging, then swing using the charge actually accumulated. Hard control interrupts charging and rushing."
 	}
 }

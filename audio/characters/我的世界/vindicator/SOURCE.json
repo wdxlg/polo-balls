@@ -1,0 +1,119 @@
+{
+  "version": "Minecraft Java 1.21.5",
+  "license": "Minecraft EULA; Mojang/Microsoft original audio.",
+  "files": [
+    {
+      "file": "death1.ogg",
+      "key": "minecraft/sounds/mob/vindication_illager/death1.ogg",
+      "sha1": "e864e8ed9a756b9ce4fcf592299579af86f20935",
+      "size": 7650,
+      "url": "https://resources.download.minecraft.net/e8/e864e8ed9a756b9ce4fcf592299579af86f20935"
+    },
+    {
+      "file": "death2.ogg",
+      "key": "minecraft/sounds/mob/vindication_illager/death2.ogg",
+      "sha1": "8da0afea2dcda4ab840e962e0e1616b7c35da228",
+      "size": 7986,
+      "url": "https://resources.download.minecraft.net/8d/8da0afea2dcda4ab840e962e0e1616b7c35da228"
+    },
+    {
+      "file": "hurt1.ogg",
+      "key": "minecraft/sounds/mob/vindication_illager/hurt1.ogg",
+      "sha1": "8d22f72686dcf0e857e35620b7a2a44624471f3a",
+      "size": 6655,
+      "url": "https://resources.download.minecraft.net/8d/8d22f72686dcf0e857e35620b7a2a44624471f3a"
+    },
+    {
+      "file": "hurt2.ogg",
+      "key": "minecraft/sounds/mob/vindication_illager/hurt2.ogg",
+      "sha1": "b9361288a03fad98053bf519ea7eced31e072099",
+      "size": 6860,
+      "url": "https://resources.download.minecraft.net/b9/b9361288a03fad98053bf519ea7eced31e072099"
+    },
+    {
+      "file": "hurt3.ogg",
+      "key": "minecraft/sounds/mob/vindication_illager/hurt3.ogg",
+      "sha1": "2e8e4851fce57c409245a321827275f390158f89",
+      "size": 7242,
+      "url": "https://resources.download.minecraft.net/2e/2e8e4851fce57c409245a321827275f390158f89"
+    },
+    {
+      "file": "idle1.ogg",
+      "key": "minecraft/sounds/mob/vindication_illager/idle1.ogg",
+      "sha1": "786f127c0584048be4308d9722d486b983b927ba",
+      "size": 8393,
+      "url": "https://resources.download.minecraft.net/78/786f127c0584048be4308d9722d486b983b927ba"
+    },
+    {
+      "file": "idle2.ogg",
+      "key": "minecraft/sounds/mob/vindication_illager/idle2.ogg",
+      "sha1": "7daa6b5522fb37adf0ef03065ba93bcdec96668a",
+      "size": 6794,
+      "url": "https://resources.download.minecraft.net/7d/7daa6b5522fb37adf0ef03065ba93bcdec96668a"
+    },
+    {
+      "file": "idle3.ogg",
+      "key": "minecraft/sounds/mob/vindication_illager/idle3.ogg",
+      "sha1": "774f5b188dfc3e1429ed7e4c95c15ad1863efb9b",
+      "size": 6751,
+      "url": "https://resources.download.minecraft.net/77/774f5b188dfc3e1429ed7e4c95c15ad1863efb9b"
+    },
+    {
+      "file": "idle4.ogg",
+      "key": "minecraft/sounds/mob/vindication_illager/idle4.ogg",
+      "sha1": "f1c8a183dba71fbb340e5a6af0db5cccb2079bfa",
+      "size": 8444,
+      "url": "https://resources.download.minecraft.net/f1/f1c8a183dba71fbb340e5a6af0db5cccb2079bfa"
+    },
+    {
+      "file": "idle5.ogg",
+      "key": "minecraft/sounds/mob/vindication_illager/idle5.ogg",
+      "sha1": "ea903c158603f54ca2f72078ff77d0572a7dbb8e",
+      "size": 7784,
+      "url": "https://resources.download.minecraft.net/ea/ea903c158603f54ca2f72078ff77d0572a7dbb8e"
+    },
+    {
+      "file": "stone1.ogg",
+      "key": "minecraft/sounds/step/stone1.ogg",
+      "url": "https://resources.download.minecraft.net/ef/ef859078b24917d4a9d12e84c2a63d08bef04d97",
+      "sha1": "ef859078b24917d4a9d12e84c2a63d08bef04d97",
+      "size": 8657
+    },
+    {
+      "file": "stone2.ogg",
+      "key": "minecraft/sounds/step/stone2.ogg",
+      "url": "https://resources.download.minecraft.net/be/be927139e2936139d4608b8a7645578f95d75dc4",
+      "sha1": "be927139e2936139d4608b8a7645578f95d75dc4",
+      "size": 7689
+    },
+    {
+      "file": "stone3.ogg",
+      "key": "minecraft/sounds/step/stone3.ogg",
+      "url": "https://resources.download.minecraft.net/fe/feaf23df11048587e92792a7afbbeb560c4556f7",
+      "sha1": "feaf23df11048587e92792a7afbbeb560c4556f7",
+      "size": 7428
+    },
+    {
+      "file": "stone4.ogg",
+      "key": "minecraft/sounds/step/stone4.ogg",
+      "url": "https://resources.download.minecraft.net/0e/0e800e8471613ac1d4e75367c9278879115956af",
+      "sha1": "0e800e8471613ac1d4e75367c9278879115956af",
+      "size": 8062
+    },
+    {
+      "file": "stone5.ogg",
+      "key": "minecraft/sounds/step/stone5.ogg",
+      "url": "https://resources.download.minecraft.net/66/66267eada65930c654b94de8876c15f630b097e3",
+      "sha1": "66267eada65930c654b94de8876c15f630b097e3",
+      "size": 8414
+    },
+    {
+      "file": "stone6.ogg",
+      "key": "minecraft/sounds/step/stone6.ogg",
+      "url": "https://resources.download.minecraft.net/58/580e9bb670b8a684f32ae25ef2e9e3c4281e36a9",
+      "sha1": "580e9bb670b8a684f32ae25ef2e9e3c4281e36a9",
+      "size": 8895
+    }
+  ],
+  "footsteps": "No Vindicator-specific step event. Uses original block stone step sounds via the shared distance cadence."
+}

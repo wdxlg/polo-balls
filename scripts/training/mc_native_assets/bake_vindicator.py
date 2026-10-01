@@ -1,0 +1,65 @@
+"""Bake official Vindicator cuboids with the shared native rasterizer."""
+import copy, hashlib, json, math, urllib.request
+from pathlib import Path
+import numpy as np
+from PIL import Image
+import bake_native_mobs as native
+REV='736072450c26a7c67f07b1661f29d9a5ebaa14b1'
+BASE=f'https://raw.githubusercontent.com/Mojang/bedrock-samples/{REV}/resource_pack/'
+
+def bake(output):
+    output=Path(output);output.mkdir(parents=True,exist_ok=True)
+    records=[]
+    def fetch(rel,name):
+        data=urllib.request.urlopen(BASE+rel,timeout=40).read()
+        (output/name).write_bytes(data)
+        records.append({'file':name,'url':BASE+rel,'sha256':hashlib.sha256(data).hexdigest()})
+        return data
+    model=json.loads(fetch('models/entity/vindicator.geo.json','vindicator.geo.json'))['geometry.vindicator.v1.8']['bones']
+    fetch('animations/vindicator.animation.json','vindicator.animation.json')
+    fetch('textures/entity/vindicator.png','vindicator.png')
+    fetch('textures/items/iron_axe.png','iron_axe.png')
+    class Rig(native.Baker):
+        def __init__(self):
+            self.models={'vindicator':copy.deepcopy(model)}
+            self.skins={'vindicator':np.array(Image.open(output/'vindicator.png').convert('RGBA'))}
+            yaw,pitch=np.radians([30,12])
+            self.right=np.array([math.cos(yaw),0,math.sin(yaw)])
+            self.camera=np.array([math.sin(yaw)*math.cos(pitch),math.sin(pitch),-math.cos(yaw)*math.cos(pitch)])
+            self.up=np.cross(self.right,self.camera);self.view=np.array([self.right,-self.up,self.camera])
+            self.scale={'vindicator':4.55};self.foot={'vindicator':199}
+        def pose(self,role,state,t,peek=0):
+            poses={b['name'].lower():{'position':np.zeros(3),'rotation':np.zeros(3),'scale':np.ones(3)} for b in model}
+            poses['arms']['scale']=np.zeros(3)
+            if state=='walk':
+                poses['leg0']['rotation'][0]=math.cos(t*math.tau)*40.105
+                poses['leg1']['rotation'][0]=-math.cos(t*math.tau)*40.105
+            poses['rightarm']['rotation'][0]=-180
+            poses['leftarm']['rotation'][2]=-5.74
+            return poses
+        def project(self,p):return (np.asarray(p)@self.view.T)[:2]*4.55+np.array([80,199])
+    b=Rig()
+    for bone in b.models['vindicator']:
+        if bone['name']=='rightArm':bone['neverRender']=True
+    files=[]
+    for i in range(12):
+        name=f'walk_{i:02}.png';b.render('vindicator','walk',i/12).save(output/name);files.append(name)
+    b.render('vindicator','idle',0).save(output/'idle.png')
+    for bone in b.models['vindicator']:bone['neverRender']=bone['name']!='rightArm'
+    arm=b.render('vindicator','idle',0);arm.save(output/'arm.png')
+    shoulder=b.project([-5,22,0]);hand=b.project([-6,32,0])
+    geom={'shoulder':shoulder.tolist(),'hand':hand.tolist(),'canvas':[160,224]}
+    (output/'rig.json').write_text(json.dumps(geom,indent=2))
+    preview=Image.open(output/'idle.png').convert('RGBA');preview.alpha_composite(arm)
+    axe=Image.open(output/'iron_axe.png').convert('RGBA').resize((48,48),Image.Resampling.NEAREST).rotate(45,resample=Image.Resampling.NEAREST,expand=True)
+    preview.alpha_composite(axe,(round(hand[0]-axe.width/2),round(hand[1]-axe.height+12)))
+    preview.save(output/'preview.png')
+    resources=['idle.png']+files
+    text='[gd_resource type="SpriteFrames" format=3]\n'+''.join(f'[ext_resource type="Texture2D" path="res://Images/characters/我的世界/vindicator/{n}" id="{i+1}"]\n' for i,n in enumerate(resources))
+    text+='\n[resource]\nanimations = [{"name": &"idle", "loop": true, "speed": 1.0, "frames": [{"duration": 1.0,"texture": ExtResource("1")}]}, {"name": &"walk", "loop": true, "speed": 12.0, "frames": ['+','.join('{"duration": 1.0,"texture": ExtResource("%d")}'%(i+2) for i in range(12))+']}]\n'
+    (output/'frames.tres').write_text(text,encoding='utf-8')
+    (output/'SOURCE.json').write_text(json.dumps({'repository':'https://github.com/Mojang/bedrock-samples','revision':REV,'license':'Minecraft EULA; original Mojang/Microsoft assets, not freely redistributable artwork.','derivation':'Official cuboids and UVs rasterized with bake_native_mobs.Baker; official leg walk formula. Separate original arm and iron axe composed at runtime for charged melee.','files':records,'rig':geom},ensure_ascii=False,indent=2),encoding='utf-8')
+    print('VINDICATOR_ART',geom,flush=True)
+if __name__=='__main__':
+    import argparse
+    p=argparse.ArgumentParser();p.add_argument('output');bake(p.parse_args().output)

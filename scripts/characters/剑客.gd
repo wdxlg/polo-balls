@@ -358,7 +358,7 @@ func _try_defend(attacker:ball,source_position:Vector2) -> String:
 		return ""
 	if state_machine == null or state_machine.current_state == State.Die or health <= 0:
 		return ""
-	if _parry_active:
+	if _parry_active and not incoming_damage_bypasses_guard():
 		_trigger_parry_counter(attacker)
 		return "parry"
 	if _dodge_cooldown_left <= 0.0 and not _response_busy:

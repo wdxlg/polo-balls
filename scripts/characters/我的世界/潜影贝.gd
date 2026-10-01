@@ -134,18 +134,22 @@ func on_incoming_hit_rejected(incoming:hitbox) -> void:
 	if is_instance_valid(attacker) and _is_ranged_hit_source(attacker) and should_destroy_projectile_on_rejected_hit(incoming):
 		attacker.on_projectile_blocked_by(self,point)
 func receive_positional_damage(damage:float,point:Vector2,ignore_block:bool = false,source:Node = null) -> bool:
-	if damage > 0.0 and not shell_open:
+	if damage > 0.0 and not shell_open and not incoming_damage_bypasses_guard():
 		var toward:Vector2 = point-global_position
 		var impact:Vector2 = global_position+toward.limit_length(_hit_burst_character_radius())
 		_closed_block_feedback(impact,damage)
 		return false
-	return super.receive_positional_damage(damage,point,ignore_block,source)
+	var suppressed:bool = health_bar.suppress_floating_text if health_bar != null else false
+	if health_bar != null and incoming_damage_bypasses_guard(): health_bar.suppress_floating_text = false
+	var accepted:bool = super.receive_positional_damage(damage,point,ignore_block,source)
+	if health_bar != null: health_bar.suppress_floating_text = suppressed
+	return accepted
 func hit_white(ignore_block:bool = false):
-	if shell_open: super.hit_white(ignore_block)
+	if shell_open or incoming_damage_bypasses_guard(): super.hit_white(ignore_block)
 func hit_white_visual_only() -> void:
-	if shell_open: super.hit_white_visual_only()
+	if shell_open or incoming_damage_bypasses_guard(): super.hit_white_visual_only()
 func hit_white_method(power:float):
-	super.hit_white_method(power if shell_open else 0.0)
+	super.hit_white_method(power if shell_open or incoming_damage_bypasses_guard() else 0.0)
 func _closed_block_feedback(point:Vector2,damage:float) -> void:
 	if not is_inside_tree() or health <= 0 or damage <= 0.0: return
 	var now:int = Time.get_ticks_msec()
@@ -174,7 +178,7 @@ func _play_block_burst_feedback_local(point:Vector2,raw_damage:float,coverage_wi
 	tween.tween_property(ring,"modulate",Color(1.0,1.0,1.0,0.0),0.13).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tween.chain().tween_callback(ring.queue_free)
 func take_damage(damage:float,ignore_block:bool = false) -> void:
-	if damage > 0.0 and not shell_open:
+	if damage > 0.0 and not shell_open and not incoming_damage_bypasses_guard():
 		_closed_block_feedback(global_position,damage)
 		return
 	super.take_damage(damage,ignore_block)
@@ -184,7 +188,7 @@ func receive_spatial_damage(damage:float,space:Variant,ignore_block:bool = false
 func on_actual_health_damage_received(actual_health_damage:float,health_before:float) -> void:
 	if not is_multiplayer_authority(): return
 	if _restoring_closed_health: return
-	if not shell_open:
+	if not shell_open and not current_health_damage_bypasses_guard():
 		# 覆盖毒/流血和旧技能直接写 health 的路径；在 setter 进入死亡调度前恢复。
 		_restoring_closed_health = true
 		health = int(health_before)

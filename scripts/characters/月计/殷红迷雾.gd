@@ -240,7 +240,7 @@ func take_damage(damage:float,ignore_block:bool = false) -> void:
 	elif sanity < 0.0:
 		reduction = negative_max_damage_reduction * clampf(absf(sanity) / SANITY_MAX,0.0,1.0)
 
-	if _guarding:
+	if _guarding and not incoming_damage_bypasses_guard():
 		if ego_active:
 			reduction = 1.0
 		else:

@@ -1,0 +1,42 @@
+{
+  "repository": "https://github.com/Mojang/bedrock-samples",
+  "revision": "736072450c26a7c67f07b1661f29d9a5ebaa14b1",
+  "license": "Minecraft EULA; original Mojang/Microsoft assets, not freely redistributable artwork.",
+  "derivation": "Official cuboids and UVs rasterized with bake_native_mobs.Baker; official leg walk formula. Separate original arm and iron axe composed at runtime for charged melee.",
+  "files": [
+    {
+      "file": "vindicator.geo.json",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/models/entity/vindicator.geo.json",
+      "sha256": "d6eed26f5d983881e1b2d6b9751fd9727e63a368495e05e956e65fc065a0ea7b"
+    },
+    {
+      "file": "vindicator.animation.json",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/animations/vindicator.animation.json",
+      "sha256": "ad19a8d2e280122dc391784a4ae4b0d529b726441c22956ace5ed78e513ea79d"
+    },
+    {
+      "file": "vindicator.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/entity/vindicator.png",
+      "sha256": "f4d29ef8c7aa702e4edb60c5a3f3e4e16c64534dd1d859f91753a6274d65de80"
+    },
+    {
+      "file": "iron_axe.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/items/iron_axe.png",
+      "sha256": "b3216fa9ecf53eb4e158ee9a288acd7eb885b4b9184b9c66b18201ea6509c4ab"
+    }
+  ],
+  "rig": {
+    "shoulder": [
+      60.297922063904025,
+      98.72242968349404
+    ],
+    "hand": [
+      56.357506476684826,
+      53.74371475349548
+    ],
+    "canvas": [
+      160,
+      224
+    ]
+  }
+}

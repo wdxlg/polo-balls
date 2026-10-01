@@ -564,8 +564,16 @@ func pending_health_damage_text_amount() -> int:
 func current_health_damage_request_amount() -> int:
 	return maxi(_current_health_damage_request_amount,0)
 
+var _pending_health_guard_bypass:bool = false
+var _health_guard_bypass:bool = false
+
+func current_health_damage_bypasses_guard() -> bool:
+	return _health_guard_bypass
+
 @onready var health = Max_health:
 	set(v):
+		var guard_bypass:bool = _pending_health_guard_bypass
+		_pending_health_guard_bypass = false
 		# State migration is neither damage nor healing; no camera, passives or death hooks.
 		if has_meta("death_return_restore"):
 			health = clampi(int(v),0,maxi(Max_health,0))
@@ -651,7 +659,10 @@ func current_health_damage_request_amount() -> int:
 			if has_meta("_kill_blood_context"):
 				remove_meta("_kill_blood_context")
 			_last_combat_damage_health_before = float(old_health)
+			var previous_guard_bypass:bool = _health_guard_bypass
+			_health_guard_bypass = guard_bypass
 			on_actual_health_damage_received(actual_health_loss, float(old_health))
+			_health_guard_bypass = previous_guard_bypass
 			# 无敌/防御姿态可能在上面的角色钩子中恢复生命，必须在其后重新取实际损失。
 			var confirmed_loss:float = maxf(float(old_health) - float(health),0.0)
 			if timed_floor_loss > 0.0:
@@ -7159,6 +7170,8 @@ func _receive_classified_damage(damage:float,space:Variant,requested_kind:String
 	if not is_finite(scaled) or scaled <= 0.0: return false
 	var envelope:Dictionary = space.duplicate() if space is Dictionary else {"point":point}
 	envelope["damage_kind"] = kind
+	if bool(envelope.get("bypass_damage_reduction",false)):
+		envelope["unmitigated_amount"] = scaled
 	if is_instance_valid(source): envelope["source"] = source
 	var element:String = COMBAT_CLASSIFICATION.legacy_element(kind)
 	# Legacy enchantment shape tags stay intact; they are not new elements.
@@ -7538,12 +7551,28 @@ func _emit_positional_damage_feedback(
 		)
 
 
+func incoming_damage_bypasses_guard() -> bool:
+	return bool(_incoming_damage_policy().get("bypass_guard",false))
+
+func incoming_damage_ignores_reduction() -> bool:
+	return bool(_incoming_damage_policy().get("bypass_damage_reduction",false))
+
+func _incoming_damage_policy() -> Dictionary:
+	var context:Variant = get_meta("_classified_damage_space",{})
+	return context if context is Dictionary and not bool(context.get("defense_policy_consumed",false)) else {}
+
+func _unmitigated_incoming_amount(damage:float) -> float:
+	var context:Dictionary = _incoming_damage_policy()
+	return float(context.get("unmitigated_amount",damage)) if bool(context.get("bypass_damage_reduction",false)) else damage
+
+
 func receive_positional_damage(
 	damage:float,
 	impact_position:Vector2,
 	ignore_block:bool = false,
 	source:Node = null
 ) -> bool:
+	damage = _unmitigated_incoming_amount(damage)
 	# Consume the spatial/classified handoff before any callbacks or early return.
 	var focus_origin:Vector2 = _pending_positional_focus_origin
 	_pending_positional_focus_origin = Vector2.INF
@@ -7580,14 +7609,19 @@ func receive_positional_damage(
 
 
 func take_damage(damage:float,ignore_block:bool = false) -> void:
+	damage = _unmitigated_incoming_amount(damage)
+	var bypass_reduction:bool = incoming_damage_ignores_reduction()
+	var bypass_guard:bool = incoming_damage_bypasses_guard()
+	var policy:Dictionary = _incoming_damage_policy()
+	if not policy.is_empty(): policy["defense_policy_consumed"] = true
 	var before_health:float = float(health)
 	var before_absorbed:float = absorbed_health_loss
 	var before_block:float = float(block)
-	if damage > 0.0 and (has_meta("mc_enchant_components") or has_node("MinecraftEnchantments")):
+	if not bypass_reduction and damage > 0.0 and (has_meta("mc_enchant_components") or has_node("MinecraftEnchantments")):
 		var enchant_script:Script = load("res://scripts/effects/我的世界/mc_enchantments.gd")
 		var element:String = str(get_meta("_blood_damage_element",get_meta("_mc_enchant_element","physical")))
 		damage = float(enchant_script.resolve_event(self,"damage_in",{"damage":damage,"element":element}).get("damage",damage))
-	var reduction:float = Damage_reduction
+	var reduction:float = 0.0 if bypass_reduction else Damage_reduction
 	var armor_penetration:float = clampf(float(get_meta("_mc_enchant_armor_penetration",0.0)),0.0,1.0)
 	if armor_penetration > 0.0:
 		# Ignore five percentage points of damage reduction per Breach level.
@@ -7618,7 +7652,9 @@ func take_damage(damage:float,ignore_block:bool = false) -> void:
 		health_damage += damage
 	if health_damage > 0.0:
 		var remaining_health_damage:float = _consume_minecraft_absorption(health_damage,float(block) < before_block)
-		if remaining_health_damage > 0.0: health -= remaining_health_damage
+		if remaining_health_damage > 0.0:
+			_pending_health_guard_bypass = bypass_guard
+			health -= remaining_health_damage
 
 	before_health += absorbed_health_loss - before_absorbed
 	# 只有真正被攻击消耗的护盾提供较轻反馈；不把自然衰减/技能消费当作命中。

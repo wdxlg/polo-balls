@@ -9,7 +9,7 @@ func _ready() -> void:
 func take_damage(damage:float,ignore_block:bool = false) -> void:
 	var old_health:float = health
 	var old_block:float = block
-	if _guard_left > 0.0 and damage > 0.0:
+	if _guard_left > 0.0 and damage > 0.0 and not incoming_damage_bypasses_guard():
 		_stored = minf(_stored + damage * 0.45 * (1.0 - Damage_reduction),80.0)
 		damage *= 0.55
 	super.take_damage(damage,ignore_block)

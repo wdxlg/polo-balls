@@ -4,6 +4,7 @@ extends RefCounted
 ## ordinary_or_contextual is an audit summary, NEVER a legal damage-event kind.
 ## Unknown new resources stay unregistered; do not infer fire from names/directories.
 const SCENES:Dictionary = {
+ "res://scenes/characters/我的世界/卫道士.tscn": {"entity_kind": "character", "attack_modes": ["melee"], "carriers": ["weapon_sweep"], "damage_kinds": ["ordinary"], "stage_field": "phase", "stages": {"0": {"entity_kind": "character", "attack_modes": []}, "1": {"entity_kind": "character", "attack_modes": []}, "2": {"entity_kind": "character", "attack_modes": []}, "3": {"entity_kind": "character", "attack_modes": ["melee"], "carriers": ["weapon_sweep"], "damage_kinds": ["ordinary"]}, "4": {"entity_kind": "character", "attack_modes": []}}, "review": "held charge/release; >=50% bypass guard/parry/reflection, >=75% bypass armor/reduction without bypassing dodge/invulnerability; dash accumulates actual charge; native axe-tip sweep", "root_script": "res://scripts/characters/我的世界/vindicator/vindicator.gd"},
  "res://scenes/characters/我的世界/时钟.tscn": {
   "entity_kind": "character",
   "attack_modes": [
@@ -2901,6 +2902,9 @@ const SCENES:Dictionary = {
 }
 
 const SCRIPTS:Dictionary = {
+ "res://scripts/characters/我的世界/vindicator/vindicator.gd": {"entity_kind": "character", "attack_modes": ["melee"], "carriers": ["weapon_sweep"], "damage_kinds": ["ordinary"], "stage_field": "phase", "stages": {"0": {"entity_kind": "character", "attack_modes": []}, "1": {"entity_kind": "character", "attack_modes": []}, "2": {"entity_kind": "character", "attack_modes": []}, "3": {"entity_kind": "character", "attack_modes": ["melee"], "carriers": ["weapon_sweep"], "damage_kinds": ["ordinary"]}, "4": {"entity_kind": "character", "attack_modes": []}}, "review": "held charge/release; >=50% bypass guard/parry/reflection, >=75% bypass armor/reduction without bypassing dodge/invulnerability; dash accumulates actual charge; native axe-tip sweep"},
+ "res://scripts/characters/我的世界/vindicator/sounds.gd": {"entity_kind": "component", "attack_modes": [], "carriers": [], "damage_kinds": [], "review": "original_mojang_audio_bank"},
+
  "res://scripts/characters/我的世界/clock/clock.gd": {
   "entity_kind": "character",
   "attack_modes": [

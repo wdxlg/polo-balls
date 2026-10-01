@@ -7,6 +7,7 @@ const AUDIO = preload("res://scripts/characters/我的世界/new5/audio.gd")
 const QUEUE = preload("res://scripts/effects/我的世界/mc_native_audio.gd")
 const OWNERS = preload("res://classes/projectile_interactions.gd")
 const POLICIES:Dictionary = {
+	"res://scripts/characters/我的世界/vindicator/vindicator.gd": 1,
 	"res://scripts/characters/默认/丁某人睡觉.gd": 1,
 	"res://scripts/characters/默认/ding_sleep/z.gd": 1,
 	"res://scripts/characters/我的世界/cactus_note/cactus.gd": 1,
