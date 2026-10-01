@@ -1,0 +1,32 @@
+{
+  "description": "山羊角 item icon and summoned goat frames",
+  "upstream": "Mojang/bedrock-samples",
+  "commit": "736072450c26a7c67f07b1661f29d9a5ebaa14b1",
+  "license": "Minecraft assets are copyright Mojang Studios/Microsoft and subject to the Minecraft EULA; no general redistribution permission is claimed.",
+  "files": {
+    "goat_horn.png": {
+      "source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/items/goat_horn.png",
+      "sha256": "7311e6afbbe845c57be0f8246c09cd5e6cb1e3e404b4079092a1f27239525867",
+      "modified": false
+    },
+    "goat/goat_*.png, goat/goat_frames.tres": {
+      "generated_by": "scripts/training/mc_native_assets/bake_goat.py",
+      "inputs": "scripts/training/mc_native_assets/resource_pack_goat/ (see sources_goat.json)",
+      "models": [
+        "entity/goat.entity.json (geometry.goat, adult)",
+        "animation.goat.walk legs",
+        "animation.goat.ram_attack head key sampled at 1.1 s"
+      ],
+      "frame_size": [
+        176,
+        176
+      ],
+      "foot_y": 150,
+      "pixels_per_unit": 4.265625,
+      "clips": {
+        "run": "12 frames / 0.4 s stride",
+        "ram": "12 frames / 0.4 s stride, head bowed"
+      }
+    }
+  }
+}

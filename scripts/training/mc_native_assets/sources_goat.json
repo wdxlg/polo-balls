@@ -1,0 +1,23 @@
+{
+  "upstream": "Mojang/bedrock-samples",
+  "commit": "736072450c26a7c67f07b1661f29d9a5ebaa14b1",
+  "license": "Minecraft assets are copyright Mojang Studios/Microsoft and subject to the Minecraft EULA; no general redistribution permission is claimed.",
+  "files": {
+    "entity/goat.entity.json": {
+      "source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/entity/goat.entity.json",
+      "sha256": "af79c533a8cb695216b8c8886ff86eefb14b35c4f8b7fb39f45e92aeeb72ba19"
+    },
+    "models/entity/goat.geo.json": {
+      "source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/models/entity/goat.geo.json",
+      "sha256": "d397aa6727e906e26dd5e75a6d3471d72fac9a3421d3e332ff5a69d98794ea08"
+    },
+    "animations/goat.animation.json": {
+      "source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/animations/goat.animation.json",
+      "sha256": "6f8ad3bae02068ed2ea660b7f497d0559283f7baff98dd395c6a8ce3cb176192"
+    },
+    "textures/entity/goat/goat.png": {
+      "source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/entity/goat/goat.png",
+      "sha256": "76b85155267cc6e8dc8145248ec72dce1984e1d6c08818780854922b4e264c04"
+    }
+  }
+}

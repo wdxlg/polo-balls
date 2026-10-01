@@ -64,6 +64,7 @@ const SCENES:Dictionary = {
  "res://scenes/characters/我的世界/皓宸.tscn": {"entity_kind":"character","attack_modes":["none"],"carriers":["none"],"damage_kinds":[],"review":"passive_enemy_energy; top_contributor_fresh_subordinate; half_combat_stats_except_speed; shared_family; see docs/HAOCHEN.md","root_script":"res://scripts/characters/我的世界/皓宸.gd"},
  "res://scenes/characters/我的世界/流浪商人.tscn": {"entity_kind":"character","attack_modes":["none"],"carriers":["none"],"damage_kinds":[],"review":"summoner_two_leashed_llamas; milk_cleanse_witch_invisibility_wall_phase; no_direct_damage; see docs/WANDERING_TRADER.md","root_script":"res://scripts/characters/我的世界/流浪商人.gd"},
  "res://scenes/creatures/流浪商人_羊驼.tscn": {"entity_kind":"subentity","attack_modes":["ranged"],"carriers":[],"damage_kinds":["ordinary_or_contextual"],"review":"killable_leashed_summon; spit_via_projectile; llama_body_speed_damage; see docs/WANDERING_TRADER.md","root_script":"res://scripts/characters/我的世界/wandering_trader/llama.gd"},
+ "res://scenes/characters/我的世界/山羊角.tscn": {"entity_kind":"character","attack_modes":["melee"],"carriers":["body_contact"],"damage_kinds":["ordinary"],"review":"horn_body_deals_no_damage; periodic_call_summons_transient_goat_hazards; goat_ram_speed_scaled_knockback","root_script":"res://scripts/characters/我的世界/goat_horn/goat_horn.gd"},
  "res://scenes/shooter/我的世界/羊驼口水.tscn": {"entity_kind":"projectile","attack_modes":["ranged"],"carriers":["projectile"],"damage_kinds":[],"review":"llama_spit_snowball_contract; see docs/WANDERING_TRADER.md","root_script":"res://scripts/characters/我的世界/wandering_trader/spit.gd"},
  "res://scenes/effects/我的世界/角色复制请求.tscn": {"entity_kind":"effect","attack_modes":["none"],"carriers":["none"],"damage_kinds":[],"review":"confirmed_spawn_ticket; copy_cast_native_particles; no_damage","root_script":"res://scripts/effects/我的世界/character_copy_request.gd"},
   "res://scenes/characters/动漫/五条悟.tscn": {"entity_kind":"character","attack_modes":["ranged","melee"],"carriers":["projectile","ray_beam","area","body_contact"],"damage_kinds":["magic","ordinary"],"review":"infinity_blocks_non_sure_hit; blue_pull; red; purple_line; unlimited_void_closed_barrier; see docs/JJK_CHARACTERS.md","root_script":"res://scripts/characters/动漫/咒术回战/gojo.gd"},
@@ -2928,6 +2929,10 @@ const SCRIPTS:Dictionary = {
   "review": "visual_plus_static_body; damage_resolved_by_clock"
  },
 	"res://global/feedback_settings.gd": {"entity_kind":"system","attack_modes":[],"carriers":[],"damage_kinds":[],"review":"local_feedback_validation_and_curves; no_combat_state"},
+	"res://global/battle_music.gd": {"entity_kind":"system","attack_modes":[],"carriers":[],"damage_kinds":[],"review":"local_battle_music_playback; no_combat_state"},
+	"res://scripts/characters/我的世界/goat_horn/goat_horn.gd": {"entity_kind":"character","attack_modes":["melee"],"carriers":["body_contact"],"damage_kinds":["ordinary"],"review":"root_of_goat_horn; damage_only_through_goat_charger"},
+	"res://scripts/characters/我的世界/goat_horn/goat_charger.gd": {"entity_kind":"hazard","attack_modes":["melee"],"carriers":["body_contact"],"damage_kinds":["ordinary"],"review":"transient_invulnerable_goat; passes_walls; ram_and_periodic_push_with_shared_knockback; not_survival"},
+	"res://scripts/characters/我的世界/goat_horn/goat_horn_audio.gd": {"entity_kind":"component","attack_modes":[],"carriers":[],"damage_kinds":[],"review":"native_goat_horn_and_goat_audio_table"},
  "res://scripts/characters/默认/丁某人睡觉.gd": {
    "entity_kind": "character",
    "attack_modes": [

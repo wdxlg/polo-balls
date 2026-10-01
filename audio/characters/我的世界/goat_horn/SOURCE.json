@@ -1,0 +1,134 @@
+{
+    "source":  "Locally installed Minecraft Java asset index 1.21.json (used by 1.21.1) and its hashed original objects under .minecraft/assets/objects; bytes copied unchanged",
+    "rights":  "Minecraft assets are copyright Mojang Studios/Microsoft. Use is subject to the Minecraft EULA; no general redistribution permission is claimed.",
+    "used_by":  "scripts/characters/我的世界/goat_horn/goat_horn_audio.gd (山羊角 / summoned goats)",
+    "item_break":  "entity.item.break reuses audio/characters/我的世界/wooden_sword/entity_item_break0.ogg (see that folder)",
+    "files":  [
+                  {
+                      "new_asset":  "goat_horn_call0.ogg",
+                      "original_path":  "minecraft/sounds/item/goat_horn/call0.ogg",
+                      "sha1":  "83f1f1942162c2f164b5746fe5acda1e673a9673",
+                      "event":  "item.goat_horn.sound.0"
+                  },
+                  {
+                      "new_asset":  "goat_horn_call1.ogg",
+                      "original_path":  "minecraft/sounds/item/goat_horn/call1.ogg",
+                      "sha1":  "74affd16eb79df36389bfcfe11ba6e06e0429f1f",
+                      "event":  "item.goat_horn.sound.1"
+                  },
+                  {
+                      "new_asset":  "goat_horn_call2.ogg",
+                      "original_path":  "minecraft/sounds/item/goat_horn/call2.ogg",
+                      "sha1":  "5fcc56a307bcb273fc844aa7ca0e7fd449411704",
+                      "event":  "item.goat_horn.sound.2"
+                  },
+                  {
+                      "new_asset":  "goat_horn_call3.ogg",
+                      "original_path":  "minecraft/sounds/item/goat_horn/call3.ogg",
+                      "sha1":  "cd5c53f69663f3fdcdb4cd43f4d1e187cd2906c4",
+                      "event":  "item.goat_horn.sound.3"
+                  },
+                  {
+                      "new_asset":  "goat_horn_call4.ogg",
+                      "original_path":  "minecraft/sounds/item/goat_horn/call4.ogg",
+                      "sha1":  "551503a0d4dea7a2c3344445ec3c2096bc41d93a",
+                      "event":  "item.goat_horn.sound.4"
+                  },
+                  {
+                      "new_asset":  "goat_horn_call5.ogg",
+                      "original_path":  "minecraft/sounds/item/goat_horn/call5.ogg",
+                      "sha1":  "c46d08ba3d59fde7805e7c453a777dd6e0803af6",
+                      "event":  "item.goat_horn.sound.5"
+                  },
+                  {
+                      "new_asset":  "goat_horn_call6.ogg",
+                      "original_path":  "minecraft/sounds/item/goat_horn/call6.ogg",
+                      "sha1":  "fe55534c1a0a6b659f5b636d239b6eb1e1ec7b83",
+                      "event":  "item.goat_horn.sound.6"
+                  },
+                  {
+                      "new_asset":  "goat_horn_call7.ogg",
+                      "original_path":  "minecraft/sounds/item/goat_horn/call7.ogg",
+                      "sha1":  "1bfa09dff1d869d875e84287364beaa10c6816e5",
+                      "event":  "item.goat_horn.sound.7"
+                  },
+                  {
+                      "new_asset":  "goat_step1.ogg",
+                      "original_path":  "minecraft/sounds/mob/goat/step1.ogg",
+                      "sha1":  "6f55b9599af65593bc5bc3e85e427f2c8a77b0a0",
+                      "event":  "entity.goat.step"
+                  },
+                  {
+                      "new_asset":  "goat_step2.ogg",
+                      "original_path":  "minecraft/sounds/mob/goat/step2.ogg",
+                      "sha1":  "fce3f3ce004f8658189b66f1b1e6c87e86e72a7b",
+                      "event":  "entity.goat.step"
+                  },
+                  {
+                      "new_asset":  "goat_step3.ogg",
+                      "original_path":  "minecraft/sounds/mob/goat/step3.ogg",
+                      "sha1":  "d88b4c715b1efabd3524bd64061e2456ca30d8b7",
+                      "event":  "entity.goat.step"
+                  },
+                  {
+                      "new_asset":  "goat_step4.ogg",
+                      "original_path":  "minecraft/sounds/mob/goat/step4.ogg",
+                      "sha1":  "9b12952ba2da3d9727579f99614858a291fdd1d1",
+                      "event":  "entity.goat.step"
+                  },
+                  {
+                      "new_asset":  "goat_step5.ogg",
+                      "original_path":  "minecraft/sounds/mob/goat/step5.ogg",
+                      "sha1":  "6bd573793439abb44d50b4148912f66128edb683",
+                      "event":  "entity.goat.step"
+                  },
+                  {
+                      "new_asset":  "goat_step6.ogg",
+                      "original_path":  "minecraft/sounds/mob/goat/step6.ogg",
+                      "sha1":  "7fbd5a8249d438fd06898c38454d1f3911a72722",
+                      "event":  "entity.goat.step"
+                  },
+                  {
+                      "new_asset":  "goat_pre_ram1.ogg",
+                      "original_path":  "minecraft/sounds/mob/goat/pre_ram1.ogg",
+                      "sha1":  "7536d1640c5ada4b4174adb964c3f5cea1e3a45e",
+                      "event":  "entity.goat.prepare_ram"
+                  },
+                  {
+                      "new_asset":  "goat_pre_ram2.ogg",
+                      "original_path":  "minecraft/sounds/mob/goat/pre_ram2.ogg",
+                      "sha1":  "84275725de6e8b6a1cb6d6c2bb89011f9352d13a",
+                      "event":  "entity.goat.prepare_ram"
+                  },
+                  {
+                      "new_asset":  "goat_pre_ram3.ogg",
+                      "original_path":  "minecraft/sounds/mob/goat/pre_ram3.ogg",
+                      "sha1":  "d4f4e49b8135bcd9e016f694d7e11661edc239e3",
+                      "event":  "entity.goat.prepare_ram"
+                  },
+                  {
+                      "new_asset":  "goat_pre_ram4.ogg",
+                      "original_path":  "minecraft/sounds/mob/goat/pre_ram4.ogg",
+                      "sha1":  "9462b6e6f844fad8b35a4dda3650c2800cde4f05",
+                      "event":  "entity.goat.prepare_ram"
+                  },
+                  {
+                      "new_asset":  "goat_impact1.ogg",
+                      "original_path":  "minecraft/sounds/mob/goat/impact1.ogg",
+                      "sha1":  "5d1047ea9d5a37a9b6568a5027d809fdbd3bba8c",
+                      "event":  "entity.goat.ram_impact"
+                  },
+                  {
+                      "new_asset":  "goat_impact2.ogg",
+                      "original_path":  "minecraft/sounds/mob/goat/impact2.ogg",
+                      "sha1":  "58df3bb172e31b3e9df0aba6670f6f373bb44f6b",
+                      "event":  "entity.goat.ram_impact"
+                  },
+                  {
+                      "new_asset":  "goat_impact3.ogg",
+                      "original_path":  "minecraft/sounds/mob/goat/impact3.ogg",
+                      "sha1":  "c35193da8c9f0b0ccd1080bee591c645a8c4ef3c",
+                      "event":  "entity.goat.ram_impact"
+                  }
+              ]
+}
