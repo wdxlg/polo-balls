@@ -6271,11 +6271,11 @@ func notify_hit_burst_feedback(
 	# 被打中的一方连击中断。
 	if health_loss > 0.0: HIT_COMBO.reset(self)
 	if is_instance_valid(impact_world) and impact_world.has_method("request_heavy_hitstop"):
-		# 主角色的致命一击算暴击档；召唤物/大混战里的击杀不触发整屏白闪。
+		# 主角色的致命一击算暴击档（顿帧）；击杀不闪白。
 		var lethal:bool = health_loss > 0.0 and health <= 0 and Type == Ball_Type.Ball and not _large_battle_performance_mode
 		var raw_tier:Variant = impact_world.call("request_heavy_hitstop",health_loss,get_impact_reference_health(),global_position,lethal)
 		var impact_tier:int = int(raw_tier) if raw_tier is int else 0
-		if impact_tier >= 2: _hold_impact_white(0.13 if impact_tier >= 3 else 0.05)
+		if impact_tier >= 2 and not lethal: _hold_impact_white(0.13 if impact_tier >= 3 else 0.05)
 	if state_machine != null and state_machine.current_state == State.Die:
 		return
 

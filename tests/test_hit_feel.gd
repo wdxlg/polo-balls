@@ -134,6 +134,12 @@ func run() -> void:
 	await process_frame
 	await create_timer(0.3,true,false,true).timeout
 	check(is_instance_valid(flash) and flash.modulate.a < 0.05,"white flash fades out")
+	# 击杀：仍是暴击档顿帧，但不整屏闪白。
+	reset_feedback()
+	check(world.request_heavy_hitstop(5.0,1000.0,target.global_position,true) == 3 and world._heavy_hit_pending_tier == 3,"a killing blow still queues the crit stop")
+	check(flash.modulate.a < 0.05,"a killing blow does not flash the screen white")
+	world._heavy_hit_pending_tier = 0
+	world._heavy_hit_pending_strength = -1.0
 
 	# 连击升调。
 	COMBO.reset(attacker)

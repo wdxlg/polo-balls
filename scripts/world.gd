@@ -968,7 +968,8 @@ func request_heavy_hitstop(actual_health_damage:float,max_health:float,origin:Ve
 	var tier:int = hitstop_tier(actual_health_damage,max_health,lethal)
 	if tier == 0 or not origin.is_finite() or not _impact_is_on_screen(origin):
 		return 0
-	if tier >= 3:
+	# 击杀只顿帧不闪白；非致命的超大伤害才整屏白闪。
+	if tier >= 3 and not lethal:
 		_play_crit_flash()
 	if not _can_play_heavy_hitstop():
 		return tier

@@ -257,7 +257,11 @@ func _play_random_footstep() -> void:
 		player = footstep_audio.duplicate() as AudioStreamPlayer2D
 		add_child(player)
 		player.finished.connect(player.queue_free,CONNECT_ONE_SHOT)
-		_footstep_overlaps = _footstep_overlaps.filter(func(p:AudioStreamPlayer2D) -> bool: return is_instance_valid(p))
+		# 已播完的叠加脚步会被释放；不能把已释放对象传给带类型的参数，filter 返回的也不是带类型数组。
+		var alive:Array[AudioStreamPlayer2D] = []
+		for p:Variant in _footstep_overlaps:
+			if is_instance_valid(p): alive.append(p)
+		_footstep_overlaps = alive
 		_footstep_overlaps.append(player)
 	player.stream = stream
 	player.pitch_scale = 1.0
@@ -404,8 +408,8 @@ func _rpc_start_death_visual(death_position:Vector2,play_death_audio:bool = true
 		hiss_audio.stop()
 	if footstep_audio != null:
 		footstep_audio.stop()
-	for extra:AudioStreamPlayer2D in _footstep_overlaps:
-		if is_instance_valid(extra): extra.queue_free()
+	for extra:Variant in _footstep_overlaps:
+		if is_instance_valid(extra): (extra as Node).queue_free()
 	_footstep_overlaps.clear()
 	if play_death_audio and death_audio != null:
 		death_audio.stream = DEATH_SOUND
