@@ -71,7 +71,7 @@ static func _smoke_jitter() -> RandomNumberGenerator:
 		_smoke_rng_seeded = true
 	return _smoke_rng
 
-static func smoke_particle(context:Node2D,point:Vector2,source:Texture2D,motion:Vector2,lifetime:float = 0.65,width:float = 12.0,tint:Color = Color(0.22,0.22,0.22,0.85)) -> void:
+static func smoke_particle(context:Node2D,point:Vector2,source:Texture2D,motion:Vector2,lifetime:float = 0.65,width:float = 12.0,tint:Color = Color(0.22,0.22,0.22,0.85),upright:bool = false) -> void:
 	# Reuse the shared native particle motion/fade/cleanup, not a new character-specific simulator.
 	if context.get_tree() == null or context.get_tree().current_scene == null: return
 	if context.get_tree().get_nodes_in_group("MCSmokeTrail").size() >= 256: return
@@ -82,7 +82,8 @@ static func smoke_particle(context:Node2D,point:Vector2,source:Texture2D,motion:
 	# 2026-09-28：凋灵头颅拖尾/冲刺拖尾——每粒随机角度，大小在 ±12% 小范围随机（纯视觉 RNG）。
 	particle._pixel_width = clampf(width*_smoke_jitter().randf_range(0.88,1.12),1.0,32.0)
 	particle.scale = Vector2.ONE*(particle._pixel_width/float(source.get_width()))
-	particle.rotation = _smoke_jitter().randf()*TAU
+	# upright：火焰类粒子保持竖直，不随机旋转。
+	particle.rotation = 0.0 if upright else _smoke_jitter().randf()*TAU
 	particle.self_modulate = tint
 	particle.set_meta("mc_emitter_id",context.get_instance_id())
 	particle.remove_from_group("MCEnderParticle")

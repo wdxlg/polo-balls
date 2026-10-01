@@ -1,0 +1,64 @@
+{
+  "description": "火把 (Torch)：火把/灵魂火把贴图、灵魂火动画、火焰与火星粒子",
+  "origin": "Minecraft Java 1.21.4 assets (mirror InventivetalentDev/minecraft-assets, branch 1.21.4); bytes copied unchanged",
+  "license": "Minecraft assets are copyright Mojang Studios/Microsoft and subject to the Minecraft EULA; no general redistribution permission is claimed.",
+  "used_by": "scripts/characters/我的世界/torch/ (torch.gd, torch_fire.gd, torch_spark.gd), particles/mc_ground_soul_fire.tres",
+  "files": [
+    {
+      "file": "torch.png",
+      "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/torch.png",
+      "sha256": "329db8f31720564ca9c6eeb3bafb98bb30a4d277e958e55806720cc01dbf296d",
+      "use": "火把本体"
+    },
+    {
+      "file": "soul_torch.png",
+      "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/soul_torch.png",
+      "sha256": "728b6cf0e86e190af2d9e069f9732686c9c96b03d0fceb6da17696305e6c5cd3",
+      "use": "灵魂火把本体"
+    },
+    {
+      "file": "soul_fire_0.png",
+      "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/soul_fire_0.png",
+      "sha256": "5239a385a4eca64b7832a8945f99385240e1d54ccbbe7d27dc0fa443effed790",
+      "use": "灵魂火 32 帧（particles/mc_ground_soul_fire.tres 按 mcmeta 帧序 16..31,0..15、20 fps）与连冲火焰形态"
+    },
+    {
+      "file": "soul_fire_0.png.mcmeta",
+      "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/soul_fire_0.png.mcmeta",
+      "sha256": "658d67c1b3206e23a401d04ec196512b72702b7b8c6fa0200c6c66250529bbbb",
+      "use": "灵魂火动画帧序"
+    },
+    {
+      "file": "flame.png",
+      "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/particle/flame.png",
+      "sha256": "2f2efacac134ce943d142d3a40e43f87e80e1e32d7137645bb1268618505e4a7",
+      "use": "火把头部火焰与上升火焰粒子"
+    },
+    {
+      "file": "soul_fire_flame.png",
+      "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/particle/soul_fire_flame.png",
+      "sha256": "e5eb0f6508ed5dee56df19da63ace387b43abd118fff33e92ec3c94dff0fbd72",
+      "use": "灵魂火把头部火焰、灵魂火星与连冲拖尾"
+    },
+    {
+      "file": "lava.png",
+      "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/particle/lava.png",
+      "sha256": "2a01d0a53de286c7acb0417183c492424b278050687d4573d218226ad3b7392f",
+      "use": "普通火星"
+    }
+  ],
+  "reused": [
+    {
+      "file": "res://Images/effects/我的世界/草方块背景/soul_sand.png",
+      "use": "灵魂沙地形（外圈与地图内）",
+      "note": "byte-identical to the same mirror's block/soul_sand.png",
+      "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/soul_sand.png",
+      "sha256": "0b064ae1753254dd4d2f09c793ae368838779c689406dd22156222448d6f698a"
+    },
+    {
+      "file": "res://Images/effects/我的世界/通用粒子/generic_5.png",
+      "use": "火把头部烟",
+      "note": "vanilla generic particle already in the project"
+    }
+  ]
+}

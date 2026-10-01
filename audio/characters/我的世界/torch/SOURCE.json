@@ -1,0 +1,66 @@
+{
+  "source": "Locally installed Minecraft Java asset index 1.21.json and its hashed original objects under .minecraft/assets/objects; bytes copied unchanged",
+  "rights": "Minecraft assets are copyright Mojang Studios/Microsoft. Use is subject to the Minecraft EULA; no general redistribution permission is claimed.",
+  "used_by": "scripts/characters/我的世界/torch/torch_audio.gd (火把)",
+  "event_mapping": "minecraft/sounds.json of the same index; particle.soul_escape has 13 variants, the first 5 are used",
+  "item_break": "entity.item.break reuses audio/characters/我的世界/wooden_sword/entity_item_break0.ogg (see that folder)",
+  "ground_fire_ambient": "the shared Blaze ground fire ambient in 烈焰火场.gd is reused unchanged",
+  "files": [
+    {
+      "new_asset": "ignite.ogg",
+      "original_path": "minecraft/sounds/fire/ignite.ogg",
+      "sha1": "a0d1fbff7e938e92c10c1576339dda668f40e111",
+      "event": "item.flintandsteel.use",
+      "use": "火星落地点火"
+    },
+    {
+      "new_asset": "firecharge_use.ogg",
+      "original_path": "minecraft/sounds/mob/ghast/fireball4.ogg",
+      "sha1": "eafa60d7ec34f86e8f07a001ddcdf5c4600bb174",
+      "event": "item.firecharge.use",
+      "use": "连冲开始与每一跳"
+    },
+    {
+      "new_asset": "fizz.ogg",
+      "original_path": "minecraft/sounds/random/fizz.ogg",
+      "sha1": "c649e60ea9a99c97501a50d2dc4e579343e91ea8",
+      "event": "block.fire.extinguish",
+      "use": "连冲结束恢复火把"
+    },
+    {
+      "new_asset": "soul_escape1.ogg",
+      "original_path": "minecraft/sounds/enchant/soulspeed/soulspeed1.ogg",
+      "sha1": "b7a10eb7a5b4790de396c3fabdf3ed60c2155cc1",
+      "event": "particle.soul_escape",
+      "use": "变成灵魂火把"
+    },
+    {
+      "new_asset": "soul_escape2.ogg",
+      "original_path": "minecraft/sounds/enchant/soulspeed/soulspeed2.ogg",
+      "sha1": "dea18386186cf549385af87f3dd768cf03fd084e",
+      "event": "particle.soul_escape",
+      "use": "变成灵魂火把"
+    },
+    {
+      "new_asset": "soul_escape3.ogg",
+      "original_path": "minecraft/sounds/enchant/soulspeed/soulspeed3.ogg",
+      "sha1": "e8269fbb811a2b27faf8e76146383db076c87685",
+      "event": "particle.soul_escape",
+      "use": "变成灵魂火把"
+    },
+    {
+      "new_asset": "soul_escape4.ogg",
+      "original_path": "minecraft/sounds/enchant/soulspeed/soulspeed4.ogg",
+      "sha1": "ea7439281fef4cc62b47ef360929a57ec0429af1",
+      "event": "particle.soul_escape",
+      "use": "变成灵魂火把"
+    },
+    {
+      "new_asset": "soul_escape5.ogg",
+      "original_path": "minecraft/sounds/enchant/soulspeed/soulspeed5.ogg",
+      "sha1": "8295545fc25a424563095fbe171123c5ae90fe5c",
+      "event": "particle.soul_escape",
+      "use": "变成灵魂火把"
+    }
+  ]
+}
