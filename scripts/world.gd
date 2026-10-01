@@ -37,6 +37,9 @@ const COMBAT_THREAT_ANALYZER_SCRIPT = preload("res://scripts/training/combat_thr
 const BOSS_INTRO_OVERLAY_SCRIPT = preload("res://scripts/ui/boss_intro_overlay.gd")
 const WAITER_DOOR_VISUAL_SCRIPT = preload("res://scripts/effects/服务员门.gd")
 const VICTORY_BELL_AUDIO:AudioStream = preload("res://audio/system/胜利铃声.mp3")
+## 开战钟声：我的世界 block.bell.use（两个采样 × 原版三档音高）。
+const BATTLE_START_BELL_PATHS:Array[String] = ["res://audio/effects/我的世界/bell/bell_use01.ogg","res://audio/effects/我的世界/bell/bell_use02.ogg"]
+const BATTLE_START_BELL_PITCHES:Array[float] = [0.93,0.95,0.97]
 const WORLD_OUTSIDE_GRID_SHADER:Shader = preload("res://shaders/world_outside_checker.gdshader")
 const MAP_BACKGROUND_THEMES = preload("res://scripts/effects/我的世界/地图背景主题.gd")
 const HEAVY_GIRL_GLYPH_SHAKE_EFFECT = preload("res://scripts/effects/重女式逐字颤抖.gd")
@@ -1311,6 +1314,8 @@ var _battle_setup_next_id:int = 1
 # 阵营计算包含 Ball/Creature 型附属，但不把子弹等 Shooter 算成独立阵营。
 var _victory_bell_armed:bool = false
 var _victory_bell_played:bool = false
+## 本场开战钟声已敲过；和胜利铃一起重置（新一局 / 轮换下一场 / 手动模式新对手）。
+var _battle_start_bell_played:bool = false
 var _victory_encounter_limited:bool = false
 var _victory_encounter_setup_ids:Dictionary = {}
 # V434 性能：网格重建时顺带整理一份“当前可被索敌的人物”快照（仍在 Ball 组、is_combat_targetable()）。
@@ -2400,6 +2405,7 @@ func _physics_process(delta: float) -> void:
 	if _victory_bell_poll_elapsed >= VICTORY_BELL_POLL_INTERVAL or set_property_group.size() <= 8:
 		_victory_bell_poll_elapsed = 0.0
 		_update_manual_victory_bell()
+		_update_battle_start_bell()
 
 
 #========================================================
@@ -5434,12 +5440,12 @@ func request_silverfish_extinction_victory_recheck(extinct_side_key:String) -> v
 	# Normal setup/observed sides arm the shared collector, including after reset.
 	_update_manual_victory_bell()
 
-func _trigger_victory_bell() -> void:
+func _trigger_victory_bell(ring:bool = true) -> void:
 	if _victory_bell_played:
 		return
 	_victory_bell_played = true
 	_victory_bell_armed = false
-	play_victory_bell_triplet()
+	if ring: play_victory_bell_triplet()
 	# 整场比赛完整结束才放烟花；轮换中间每一场的结算铃不算（最后一场由 _present_rotation_final 放）。
 	if not _queue_battle_mode_active() or is_queue_battle_finished(): _celebrate_match_end()
 
@@ -5556,6 +5562,7 @@ func _reset_victory_bell_state() -> void:
 	_victory_encounter_setup_ids.clear()
 	_victory_bell_armed = false
 	_victory_bell_played = false
+	_battle_start_bell_played = false
 	_match_fireworks_played = false
 	_victory_bell_sequence_generation += 1
 	if is_instance_valid(duel_top_hud): duel_top_hud.reset_victory_roster()
@@ -5597,7 +5604,32 @@ func _play_victory_bell_once() -> void:
 	else:
 		player.bus = &"Master"
 	# 挂到 SceneTree 根节点，避免比赛结算/World 清理过程中把铃声播放器一起删掉。
-	get_tree().root.add_child(player)
+	get_tree().root.add_child(player,true)
+	player.finished.connect(player.queue_free,CONNECT_ONE_SHOT)
+	player.play()
+
+
+## 开战：时间在走、至少两方在场时敲一下钟。每场一次；轮换每一场等门打开后再敲。
+func _update_battle_start_bell() -> void:
+	if _battle_start_bell_played or _victory_bell_played: return
+	if is_instance_valid(_rotation_door) and not _rotation_combat_released: return
+	if not is_combat_runtime_active(): return
+	if _collect_alive_victory_sides().size() < 2: return
+	_battle_start_bell_played = true
+	_play_battle_start_bell()
+
+
+func _play_battle_start_bell() -> void:
+	if get_tree() == null or get_tree().root == null: return
+	var stream:AudioStream = load(BATTLE_START_BELL_PATHS[randi() % BATTLE_START_BELL_PATHS.size()]) as AudioStream
+	if stream == null: return
+	var player := AudioStreamPlayer.new()
+	player.name = "BattleStartBell"
+	player.stream = stream
+	player.pitch_scale = BATTLE_START_BELL_PITCHES[randi() % BATTLE_START_BELL_PITCHES.size()]
+	player.process_mode = Node.PROCESS_MODE_ALWAYS
+	player.bus = &"GameplayRecord" if AudioServer.get_bus_index(&"GameplayRecord") >= 0 else &"Master"
+	get_tree().root.add_child(player,true)
 	player.finished.connect(player.queue_free,CONNECT_ONE_SHOT)
 	player.play()
 
@@ -7309,7 +7341,8 @@ func _present_rotation_match(dead_sides:Array[String],epoch:int,authority:bool) 
 	_rotation_combat_released=false
 	var winner_side:String="" if dead_sides.size()!=1 else ("right" if dead_sides[0]=="left" else "left")
 	if is_instance_valid(duel_top_hud): duel_top_hud.begin_round_result(winner_side)
-	if authority and not winner_side.is_empty(): _trigger_victory_bell()
+	# 先记下胜负（HUD 照常），铃声等胜利卡片在关好的门上滑下来时再响。
+	if authority and not winner_side.is_empty(): _trigger_victory_bell(false)
 	# Keep the previous scene/actors until the result has arrived and the doors have actually covered a frame.
 	await _rotation_ui_wait(1.20,epoch)
 	if not _rotation_presentation_valid(epoch): return
@@ -7324,11 +7357,22 @@ func _present_rotation_match(dead_sides:Array[String],epoch:int,authority:bool) 
 	var began:bool=_rotation_door.play(_load_rotation_covered.bind(dead_sides,epoch,authority),_release_rotation_combat.bind(epoch))
 	if not began: return
 	_rotation_door.wait_seconds=ROTATION_RESULT_WAIT_SECONDS
+	if authority and not winner_side.is_empty(): _ring_victory_bell_on_card(epoch)
 	await _rotation_door.finished
 	if not _rotation_presentation_valid(epoch): return
 	if is_instance_valid(_rotation_toast_mirror): _rotation_toast_mirror.queue_free()
 	_rotation_toast_mirror=null
 	_rotation_door=null
+## 胜利卡片在门完全关上（COVERED）时开始滑下：这时响三声胜利铃。
+func _ring_victory_bell_on_card(epoch:int) -> void:
+	var door:CanvasLayer=_rotation_door
+	while _rotation_presentation_valid(epoch) and is_instance_valid(door) and door==_rotation_door and int(door.phase)!=int(door.Phase.COVERED): await get_tree().process_frame
+	if not _rotation_presentation_valid(epoch) or not is_instance_valid(door) or door!=_rotation_door: return
+	for ring:int in range(3):
+		if ring>0:
+			await get_tree().create_timer(0.2,true,false,true).timeout
+			if not _rotation_presentation_valid(epoch): return
+		_play_victory_bell_once()
 func _release_rotation_combat(epoch:int) -> void:
 	if not _rotation_presentation_valid(epoch) or not _rotation_load_ready: return
 	_rotation_combat_released=true
