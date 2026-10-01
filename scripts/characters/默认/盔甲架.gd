@@ -169,6 +169,27 @@ func _arm_death_bridge() -> void:
 	set_meta(DEATH_BRIDGE_DISPLAY_META,"盔甲架")
 
 
+# HURT_SOUNDS 就是原版 entity.armor_stand.break 的四个变体；挂到场景上，角色释放后也不断。
+func _play_break_sound(death_position:Vector2) -> void:
+	var scene:Node = get_tree().current_scene if is_inside_tree() else null
+	if scene == null:
+		return
+	var player := AudioStreamPlayer2D.new()
+	player.name = "ArmorStandBreak"
+	player.stream = HURT_SOUNDS[_rng.randi_range(0,HURT_SOUNDS.size() - 1)]
+	player.volume_db = hurt_volume_db
+	player.pitch_scale = _rng.randf_range(hurt_pitch_min,hurt_pitch_max)
+	player.max_distance = 2000.0
+	player.attenuation = 1.0
+	if AudioServer.get_bus_index(&"GameplayRecord") >= 0:
+		player.bus = &"GameplayRecord"
+	scene.add_child(player)
+	player.global_position = death_position
+	player.add_to_group("BattleTransient")
+	player.finished.connect(player.queue_free,CONNECT_ONE_SHOT)
+	player.play()
+
+
 @rpc("authority","call_local","reliable")
 func _rpc_start_death_visual(death_position:Vector2) -> void:
 	if _death_visual_started_local:
@@ -178,6 +199,7 @@ func _rpc_start_death_visual(death_position:Vector2) -> void:
 	Repel = Vector2.ZERO
 	if hurt_audio != null:
 		hurt_audio.stop()
+	_play_break_sound(death_position)
 	if health_bar != null:
 		health_bar.hide()
 	if self_hitbox != null:

@@ -15,7 +15,6 @@ size = Vector2(74, 150)
 [node name="苦力怕" instance=ExtResource("1_base")]
 script = ExtResource("2_script")
 dir_left = true
-Dead_Audio = ""
 Has_Collision_Damage = false
 Type_Tags = PackedStringArray("我的世界", "近战", "爆炸", "雷电", "眩晕", "二阶段")
 Negative_Tags = PackedStringArray("自爆", "贴身")

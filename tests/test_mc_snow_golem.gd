@@ -133,7 +133,7 @@ func run() -> void:
 	for event:String in sounds.EVENTS:
 		for record:Dictionary in sounds.EVENTS[event]: decoded = decoded and record.stream.get_length() > 0.0 and record.stream.resource_path.ends_with(".ogg")
 	check(decoded and sounds.EVENTS.has("entity.snow_golem.shoot") and sounds.EVENTS.has("entity.snow_golem.shear"),"all native sound events decode, including snowball launch and pumpkin removal")
-	check(golem.Hit_Audio.is_empty() and golem.Dead_Audio.is_empty() and golem.Collide_Audio.is_empty(),"generic non-Minecraft impact/death/collision sounds are disabled")
+	check(golem.Hit_Audio.is_empty() and golem.Dead_Audio == "DeadBell" and golem.Collide_Audio.is_empty(),"generic impact/collision sounds disabled; default death bell kept")
 
 	# Full, tile-aligned trail and one shared damage interval per victim.
 	golem.lay_trail()

@@ -54,7 +54,6 @@ var _rest_image_cached:bool = false
 
 func _ready() -> void:
 	Hit_Audio = ""
-	Dead_Audio = ""
 	Collide_Audio = ""
 	Collide_Audio_Node = ""
 	Block_Audio = ""

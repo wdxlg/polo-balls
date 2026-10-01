@@ -3034,7 +3034,14 @@ func _play_unique_audio_local(slot:int,randomize_pitch:bool = true,pitch_mul:flo
 	if AudioServer.get_bus_index(&"GameplayRecord") >= 0:
 		player.bus = &"GameplayRecord"
 
-	add_child(player)
+	# 死亡音挂到场景上：角色本帧就会被释放，挂在自己身上会被立刻掐断。
+	var host:Node = self
+	if slot == Character_Audio_Slot.Death and is_inside_tree() and get_tree().current_scene != null:
+		host = get_tree().current_scene
+	host.add_child(player)
+	if host != self:
+		player.global_position = global_position
+		player.add_to_group("BattleTransient")
 	player.finished.connect(player.queue_free,CONNECT_ONE_SHOT)
 	player.play()
 
@@ -3157,6 +3164,8 @@ func transition_state(from:State,to:State) -> void:
 				# 根本不会进入这里，因此不会被误删。
 				var has_death_animation:bool = _has_death_animation()
 				Die()
+				if Type == Ball_Type.Ball:
+					play_default_death_audio_once()
 				if (
 					Type == Ball_Type.Ball
 					and not has_death_animation
@@ -5347,15 +5356,31 @@ func _set_after_image_shader_progress(value:float,ghost:CanvasItem) -> void:
 
 #死亡
 #Die_next用来辅助Die播放死亡动画后调用关键帧造成真正死亡 
+var _default_death_audio_played:bool = false
+
 func Die() -> void:
-	# V274：老死的死亡音已在 Game.report_combatant_death() 播放；消费标记避免随后进入 Die 再响一次。
-	if bool(get_meta(WILD_DOG_OLD_AGE_AUDIO_PLAYED_META,false)):
-		remove_meta(WILD_DOG_OLD_AGE_AUDIO_PLAYED_META)
+	if _consume_old_age_death_audio():
 		return
 	if Unique_Death_Audio != null:
 		play_unique_audio(Character_Audio_Slot.Death)
-	elif Dead_Audio != "":
+	play_default_death_audio_once()
+
+## 默认死亡音（Dead_Audio，默认 DeadBell）每条命只响一次，与角色专属死亡音叠加。
+## 进入 State.Die 时也会兜底调用，子类 Die() 不调 super 也不会漏掉。
+func play_default_death_audio_once() -> void:
+	if _default_death_audio_played or _consume_old_age_death_audio():
+		return
+	_default_death_audio_played = true
+	if Dead_Audio != "":
 		Audios.play_sfx(Dead_Audio,{},true)
+
+# V274：老死的死亡音已在 Game.report_combatant_death() 播放；消费标记避免再响一次。
+func _consume_old_age_death_audio() -> bool:
+	if not bool(get_meta(WILD_DOG_OLD_AGE_AUDIO_PLAYED_META,false)):
+		return false
+	remove_meta(WILD_DOG_OLD_AGE_AUDIO_PLAYED_META)
+	_default_death_audio_played = true
+	return true
 func Die_next() -> void:
 	
 	pass

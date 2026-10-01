@@ -82,7 +82,6 @@ func _ready() -> void:
 	Attack_Cooling = base_swing_duration
 	# No generic ball sounds mixed into this vanilla-item character.
 	Hit_Audio = ""
-	Dead_Audio = ""
 	Collide_Audio = ""
 	Collide_Audio_Node = ""
 	Block_Audio = ""

@@ -1183,6 +1183,4 @@ func Die() -> void:
 	if is_instance_valid(_block_frames): _block_frames.hide()
 	_restore_slam_collision()
 	super.Die()
-	# mc_mob_base.Die() intentionally supplies the vanilla creature death,
-	# but does not call ball.Die(); keep the normal project death bell as well.
-	if not Dead_Audio.is_empty(): Audios.play_sfx(Dead_Audio,{},true)
+	play_default_death_audio_once()

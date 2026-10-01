@@ -6,7 +6,6 @@
 
 [node name="蠹虫" instance=ExtResource("1_base")]
 script = ExtResource("2_script")
-Dead_Audio = ""
 Has_Collision_Damage = true
 Type_Tags = PackedStringArray("我的世界", "近战", "碰撞", "召唤", "地形")
 Negative_Tags = PackedStringArray("脆弱", "虫子")

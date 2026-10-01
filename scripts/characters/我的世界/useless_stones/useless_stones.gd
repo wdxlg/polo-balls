@@ -91,7 +91,6 @@ func get_preview_texture() -> Texture2D: return BLOCKS[GRANITE]
 
 func _ready() -> void:
 	Hit_Audio = ""
-	Dead_Audio = ""
 	Unique_Death_Audio = null
 	motion_blur_enabled = false
 	motion_blur_effect_strength = 0.0

@@ -407,7 +407,7 @@ func Die() -> void:
 	# unconfirmed energy alone cannot keep a dead character alive.
 	super.Die()
 	_refresh_face()
-	if not Dead_Audio.is_empty(): Audios.play_sfx(Dead_Audio,{},true)
+	play_default_death_audio_once()
 	queue_redraw()
 
 func get_armor_test_effect_summary() -> String:

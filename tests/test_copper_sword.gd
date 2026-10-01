@@ -75,7 +75,7 @@ func run() -> void:
 	check(unit.get_preview_texture().resource_path.ends_with("copper_sword/copper_sword.png"),"menu uses actual vanilla copper sword")
 	check(FileAccess.get_sha256("res://Images/characters/我的世界/copper_sword/copper_sword.png")=="a244ad9554b36ad31ad65b12ef0300de5e762ac7271447191e71e2955fe634dc","official copper-sword PNG is byte-identical")
 	check(not unit.Has_Collision_Damage and not unit.self_hitbox.monitoring,"no passive body-contact damage")
-	check(unit.Hit_Audio.is_empty() and unit.Dead_Audio.is_empty() and unit.Collide_Audio_Node.is_empty(),"generic non-Minecraft character cues disabled")
+	check(unit.Hit_Audio.is_empty() and unit.Dead_Audio == "DeadBell" and unit.Collide_Audio_Node.is_empty(),"generic hit cues disabled; default death bell kept")
 	check(unit.Unique_Death_Audio==unit.AUDIO.EVENTS["entity.item.break"][0].stream,"death uses native item break audio")
 	check(unit._has_swing_target(),"AI sees an actually reachable hurtbox")
 	var friend_hp:float = friend.health

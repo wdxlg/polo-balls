@@ -9,7 +9,6 @@ script = ExtResource("2_p7nsk")
 Has_Collision_Damage = true
 Type_Tags = PackedStringArray("近战", "召唤", "异常")
 Negative_Tags = PackedStringArray("虫子", "蛆")
-Dead_Audio = ""
 Damage = 5
 Max_health = 50
 

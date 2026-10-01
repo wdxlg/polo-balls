@@ -75,7 +75,6 @@ func _ready() -> void:
 	Hit_Audio = ""
 	Collide_Audio = ""
 	Collide_Audio_Node = ""
-	Dead_Audio = ""
 	Block_Audio = ""
 	BlockBreak_Audio = ""
 	cold_effect_ratio = 0.0 # Snow Golem retains cold damage/status immunity.

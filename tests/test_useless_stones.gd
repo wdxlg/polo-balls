@@ -134,7 +134,7 @@ func run() -> void:
 	check(granite.get_collision_exceptions().has(diorite) and diorite.get_collision_exceptions().has(andesite),"no body collision inside the trio")
 	check(diorite.manual_controllable_subentity and andesite.manual_controllable_subentity,"members are individually controllable subentities")
 	check(granite.image.texture == granite.BLOCKS[0] and diorite.image.texture == granite.BLOCKS[1] and andesite.image.texture == granite.BLOCKS[2],"each stone shows its vanilla block cube")
-	check(granite.Unique_Death_Audio == null and granite.Dead_Audio == "" and granite.Hit_Audio == "","generic hit/death audio replaced by native stone sounds")
+	check(granite.Unique_Death_Audio == null and granite.Dead_Audio == "DeadBell" and granite.Hit_Audio == "","generic hit audio replaced by native stone sounds; default death bell kept")
 	var mate:Node2D = dummy(center + Vector2(-90,60),"Team0")
 	var shard_probe:Node = load("res://scenes/shooter/我的世界/废石碎块.tscn").instantiate()
 	shard_probe.Master = granite

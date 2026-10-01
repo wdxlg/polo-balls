@@ -61,7 +61,6 @@ func _ready() -> void:
 	Hit_Audio = ""
 	Collide_Audio = ""
 	Collide_Audio_Node = ""
-	Dead_Audio = ""
 	Block_Audio = ""
 	BlockBreak_Audio = ""
 	super._ready()

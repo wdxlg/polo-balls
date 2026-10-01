@@ -178,7 +178,6 @@ assimilate_health_ratio = 0.2
 assimilate_after_voice_delay = 0.05
 assimilate_scan_interval = 0.1
 victory_scan_interval = 0.2
-Dead_Audio = ""
 Type_Tags = PackedStringArray("Meme", "远程", "高伤", "击退", "同化", "飞踢")
 Negative_Tags = PackedStringArray("只有一块石头", "需要捡回武器", "飞踢冷却较长")
 Attack_Cooling = 1.65

@@ -78,7 +78,6 @@ func _ready() -> void:
 	Has_Collision_Damage = false
 	Skill_Cooling = miss_cooldown
 	Hit_Audio = ""
-	Dead_Audio = ""
 	Collide_Audio = ""
 	Collide_Audio_Node = ""
 	Block_Audio = ""
