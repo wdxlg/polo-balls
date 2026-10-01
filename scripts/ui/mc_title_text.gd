@@ -1,6 +1,6 @@
 extends Control
 ## 我的世界标题立体字，按 honghemc / cube-3d-text 的生成方式：
-## 像素字体按像素格挤出成真正的 3D 网格，透视相机正对着拍——正面上亮下暗渐变，
+## 像素字体按像素格挤出成真正的 3D 网格，透视相机正对着拍——正面上亮下暗的阶梯渐变带颗粒质感与边缘倒角，
 ## 上/左/右侧面深色，底面由前往后变暗，背后一圈放大的描边体。面直接上色不打光，不受场景环境影响。
 ## 含中文的行用 Fusion Pixel 12px，纯英文/数字行用 Mojangles（方块感更强），按同一字高对齐。
 ## 不注册 class_name，用 load() 取脚本：
@@ -27,6 +27,17 @@ const SEGMENT_GAP_EM:float = 0.3
 const CAMERA_DISTANCE_RATIO:float = 0.7
 ## 每行绕自己的水平中线往后仰的角度：每一行都露出底面，像原版标题从下往上看。
 const TILT_DEGREES:float = 16.0
+## 正面质感：每个字体像素细分的小格数、颗粒明暗幅度、侧面颗粒、边缘倒角、斜向光带（单位：小格）。
+const TEXELS:int = 2
+const FRONT_GRAIN:float = 0.11
+const SIDE_GRAIN:float = 0.12
+const BEVEL_TOP:float = 0.42
+const BEVEL_LEFT:float = 0.16
+const BEVEL_BOTTOM:float = 0.24
+const BEVEL_RIGHT:float = 0.1
+const SHINE_PERIOD:int = 26
+const SHINE_WIDTH:int = 5
+const SHINE_AMOUNT:float = 0.1
 
 const GOLD:Dictionary = {"front_top":Color("ffd07b"),"front_bottom":Color("ffaa00"),"side":Color("553800"),"down_front":Color("a56c00"),"down_back":Color("553800"),"outline":Color("291a00")}
 const STONE:Dictionary = {"front_top":Color("ffffff"),"front_bottom":Color("a8a8a8"),"side":Color("3c3c3c"),"down_front":Color("727272"),"down_back":Color("3c3c3c"),"outline":Color("161616")}
@@ -196,28 +207,34 @@ static func _extrude(st:SurfaceTool,mask:Dictionary,origin:Vector2,cell:float,de
 	var side:Color = flat if single else colors.side
 	var down_front:Color = flat if single else colors.down_front
 	var down_back:Color = flat if single else colors.down_back
-	for y:int in range(h):
-		var x:int = 0
-		while x < w:
-			if not _filled(mask,x,y):
-				x += 1; continue
-			var x1:int = x
-			while x1 < w and _filled(mask,x1,y): x1 += 1
-			var top:Color = grad.call(float(y))
-			var bottom:Color = grad.call(float(y + 1))
-			_quad(st,pos.call(x,y,0.0),pos.call(x1,y,0.0),pos.call(x1,y + 1,0.0),pos.call(x,y + 1,0.0),top,top,bottom,bottom)
-			x = x1
+	if not single:
+		_textured_front(st,mask,pos,grad)
+	else:
+		for y:int in range(h):
+			var x:int = 0
+			while x < w:
+				if not _filled(mask,x,y):
+					x += 1; continue
+				var x1:int = x
+				while x1 < w and _filled(mask,x1,y): x1 += 1
+				_quad(st,pos.call(x,y,0.0),pos.call(x1,y,0.0),pos.call(x1,y + 1,0.0),pos.call(x,y + 1,0.0),flat,flat,flat,flat)
+				x = x1
 	for y:int in range(h):
 		for edge:int in [-1,1]:
 			var x:int = 0
 			while x < w:
 				if not (_filled(mask,x,y) and not _filled(mask,x,y + edge)):
 					x += 1; continue
-				var x1:int = x
-				while x1 < w and _filled(mask,x1,y) and not _filled(mask,x1,y + edge): x1 += 1
+				var x1:int = x + 1
+				if single:
+					while x1 < w and _filled(mask,x1,y) and not _filled(mask,x1,y + edge): x1 += 1
 				var yy:float = float(y) if edge < 0 else float(y + 1)
 				var front_color:Color = side if edge < 0 else down_front
 				var back_color:Color = side if edge < 0 else down_back
+				if not single:
+					var grain:float = _hash(x * 7 + edge,y * 5) * SIDE_GRAIN
+					front_color = _shade(front_color,grain)
+					back_color = _shade(back_color,grain)
 				_quad(st,pos.call(x,yy,0.0),pos.call(x1,yy,0.0),pos.call(x1,yy,-depth),pos.call(x,yy,-depth),front_color,front_color,back_color,back_color)
 				x = x1
 	for x:int in range(w):
@@ -226,11 +243,52 @@ static func _extrude(st:SurfaceTool,mask:Dictionary,origin:Vector2,cell:float,de
 			while y < h:
 				if not (_filled(mask,x,y) and not _filled(mask,x + edge,y)):
 					y += 1; continue
-				var y1:int = y
-				while y1 < h and _filled(mask,x,y1) and not _filled(mask,x + edge,y1): y1 += 1
+				var y1:int = y + 1
+				if single:
+					while y1 < h and _filled(mask,x,y1) and not _filled(mask,x + edge,y1): y1 += 1
 				var xx:float = float(x) if edge < 0 else float(x + 1)
-				_quad(st,pos.call(xx,y,0.0),pos.call(xx,y1,0.0),pos.call(xx,y1,-depth),pos.call(xx,y,-depth),side,side,side,side)
+				var wall:Color = side if single else _shade(side,_hash(x * 5 + edge,y * 7 + 3) * SIDE_GRAIN)
+				_quad(st,pos.call(xx,y,0.0),pos.call(xx,y1,0.0),pos.call(xx,y1,-depth),pos.call(xx,y,-depth),wall,wall,wall,wall)
 				y = y1
+
+## 正面质感（参照原版标题与 cube-3d-text 的纹理/高光叠加）：每个字体像素再分 TEXELS×TEXELS 个小格，
+## 每格单色——阶梯渐变 + 固定哈希的颗粒明暗 + 上亮下暗的边缘倒角 + 斜向光带。哈希固定，同一文字每次一样。
+static func _textured_front(st:SurfaceTool,mask:Dictionary,pos:Callable,grad:Callable) -> void:
+	var step:float = 1.0 / float(TEXELS)
+	for y:int in range(int(mask.h)):
+		for x:int in range(int(mask.w)):
+			if not _filled(mask,x,y): continue
+			var open_up:bool = not _filled(mask,x,y - 1)
+			var open_down:bool = not _filled(mask,x,y + 1)
+			var open_left:bool = not _filled(mask,x - 1,y)
+			var open_right:bool = not _filled(mask,x + 1,y)
+			var cell_grain:float = _hash(x,y)
+			for sy:int in range(TEXELS):
+				for sx:int in range(TEXELS):
+					var gx:int = x * TEXELS + sx
+					var gy:int = y * TEXELS + sy
+					var c:Color = grad.call(float(y) + (float(sy) + 0.5) * step)
+					c = _shade(c,(_hash(gx + 101,gy + 57) * 0.65 + cell_grain * 0.35) * FRONT_GRAIN)
+					if posmod(gx + gy,SHINE_PERIOD) < SHINE_WIDTH: c = c.lerp(Color.WHITE,SHINE_AMOUNT)
+					if sy == 0 and open_up: c = c.lerp(Color.WHITE,BEVEL_TOP)
+					elif sx == 0 and open_left: c = c.lerp(Color.WHITE,BEVEL_LEFT)
+					# 一格细的笔画只留高光，不再压暗另一边，免得汉字细笔画变成明暗条纹。
+					if sy == TEXELS - 1 and open_down and not open_up: c = c.darkened(BEVEL_BOTTOM)
+					elif sx == TEXELS - 1 and open_right and not open_left: c = c.darkened(BEVEL_RIGHT)
+					var x0:float = float(x) + float(sx) * step
+					var y0:float = float(y) + float(sy) * step
+					_quad(st,pos.call(x0,y0,0.0),pos.call(x0 + step,y0,0.0),pos.call(x0 + step,y0 + step,0.0),pos.call(x0,y0 + step,0.0),c,c,c,c)
+
+## 固定整数哈希 → [-1, 1]。
+static func _hash(x:int,y:int) -> float:
+	var h:int = (x * 374761393 + y * 668265263) & 0x7fffffff
+	h = ((h ^ (h >> 13)) * 1274126177) & 0x7fffffff
+	h = h ^ (h >> 16)
+	return float(h & 0xffff) / 32767.5 - 1.0
+
+## amount > 0 提亮，< 0 压暗。
+static func _shade(c:Color,amount:float) -> Color:
+	return c.lightened(amount) if amount > 0.0 else c.darkened(-amount)
 
 static func _ink_rows(mask:Dictionary) -> Vector2:
 	var top:int = -1
