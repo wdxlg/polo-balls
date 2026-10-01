@@ -1,5 +1,5 @@
 extends SceneTree
-## 分级顿挫（轻/重/暴击、白闪、声音不随顿挫变慢）与连击升调。
+## 分级顿挫（轻/重/暴击、白闪、声音不随顿挫变慢）与连击计数（命中音不升调）。
 const KEY:String = "High_Damage_Feedback"
 var COMBO:Script
 var game:Node
@@ -141,7 +141,7 @@ func run() -> void:
 	world._heavy_hit_pending_tier = 0
 	world._heavy_hit_pending_strength = -1.0
 
-	# 连击升调。
+	# 连击计数；命中音不随连击升调。
 	COMBO.reset(attacker)
 	var counts:Array[int] = []
 	for i:int in 3:
@@ -149,7 +149,13 @@ func run() -> void:
 		await physics_frame
 	check(counts == [1,2,3],"consecutive hits count up: %s" % [counts])
 	check(COMBO.register(attacker) == 4 and COMBO.register(attacker) == 4,"several hits in one physics frame count once")
-	check(is_equal_approx(COMBO.pitch_for(1),1.0) and is_equal_approx(COMBO.pitch_for(3),pow(2.0,2.0 / 12.0)) and is_equal_approx(COMBO.pitch_for(40),pow(2.0,8.0 / 12.0)),"one semitone per hit, capped at eight")
+	check(is_equal_approx(COMBO.pitch_for(1),1.0) and is_equal_approx(COMBO.pitch_for(3),1.0) and is_equal_approx(COMBO.pitch_for(40),1.0),"combo hits keep the original pitch instead of climbing")
+	COMBO.reset(attacker)
+	var pitches:Array[float] = []
+	for i:int in 6:
+		pitches.append(COMBO.next_pitch(attacker))
+		await physics_frame
+	check(pitches.all(func(p:float) -> bool: return is_equal_approx(p,1.0)),"six consecutive real combo hits all play at pitch 1.0: %s" % [pitches])
 	attacker.set_meta(COMBO.META,[5,Time.get_ticks_usec() - COMBO.WINDOW_USEC - 1000,-1])
 	await physics_frame
 	check(COMBO.register(attacker) == 1,"a gap longer than the window resets the combo")
@@ -167,7 +173,7 @@ func run() -> void:
 	check(COMBO.count_of(attacker) == 1,"Minecraft unified hit audio registers the attacker's combo")
 	await physics_frame
 	hit(10.0)
-	check(COMBO.count_of(attacker) == 2,"second Minecraft hit climbs")
+	check(COMBO.count_of(attacker) == 2,"second Minecraft hit still counts toward the combo")
 	var hit_player:AudioStreamPlayer = game.get_node("/root/Audios").Sfx.get_node_or_null("balls_hit1") as AudioStreamPlayer
 	if hit_player != null:
 		Audios_play(hit_player)
@@ -189,4 +195,3 @@ func Audios_play(player:AudioStreamPlayer) -> void:
 	audios.play_sfx("balls_hit1",{"pitch_mul":1.5},false)
 	check(is_equal_approx(player.pitch_scale,base * 1.5),"play_sfx pitch_mul raises the hit sound (%.3f -> %.3f)" % [base,player.pitch_scale])
 	player.stop()
-

@@ -97,7 +97,7 @@ static func actual_loss(target:Node,before:float) -> float:
 static func settled(source:Node,target:Node,before:float,point:Vector2) -> void:
 	if not manages(source): return
 	var actual:float = actual_loss(target,before)
-	# 攻击命中计入连击升调；状态/持续伤害走 finish()，不升调。
+	# 攻击命中计入连击（不升调，音高恒为原调）；状态/持续伤害走 finish()，不计连击。
 	emit(target,actual,point,COMBO.next_pitch(source) if actual > 0.0 else 1.0)
 
 static func finish(source:Node,target:Node,before:float,point:Vector2) -> void:
