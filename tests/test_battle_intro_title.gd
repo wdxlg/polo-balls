@@ -1,5 +1,5 @@
 extends SceneTree
-## 开战大标题：钟声响起时砸出「A VS B」我的世界立体字（阵营色 + 金色 VS），录像视口里按各自语言各放一份，约 2.3 秒后自动消失；录像码率封顶约 10 Mbps。
+## 开战大标题：钟声响起时砸出「A VS B」我的世界 3D 立体字（像素字按格挤出的真网格）（阵营色 + 金色 VS），录像视口里按各自语言各放一份，约 2.3 秒后自动消失；录像码率封顶约 10 Mbps。
 var world:Node
 var game:Node
 var checks:int = 0
@@ -14,6 +14,12 @@ func check(ok:bool,label:String) -> void:
 func wait_until(cond:Callable,ms:int) -> void:
 	var deadline:int = Time.get_ticks_msec() + ms
 	while Time.get_ticks_msec() < deadline and not cond.call(): await process_frame
+func count_opaque(img:Image) -> int:
+	var opaque:int = 0
+	for y:int in range(0,img.get_height(),4):
+		for x:int in range(0,img.get_width(),4):
+			if img.get_pixel(x,y).a > 0.5: opaque += 1
+	return opaque
 func texts(layer:Node) -> Array:
 	return (layer.lines as Array).map(func(l:Dictionary) -> String: return str(l.text))
 func run() -> void:
@@ -78,12 +84,12 @@ func run() -> void:
 		await create_timer(0.7,true,false,true).timeout
 		var shot:Image = root.get_texture().get_image()
 		shot.save_png(OS.get_environment("TEMP") + "/intro_title_shot.png")
-		var img:Image = title.texture().get_image()
-		var opaque:int = 0
-		for y:int in range(0,img.get_height(),4):
-			for x:int in range(0,img.get_width(),4):
-				if img.get_pixel(x,y).a > 0.5: opaque += 1
-		check(opaque > 200 and is_equal_approx(title.scale.x,1.0) and title.modulate.a > 0.99,"the title has rendered and settled at full size (%d opaque samples)" % opaque)
+		var opaque:int = count_opaque(title.texture().get_image())
+		check(opaque > 200 and is_equal_approx(title.scale.x,1.0) and title.modulate.a > 0.99,"the 3D title has rendered and settled at full size (%d opaque samples)" % opaque)
+		var recorded:int = count_opaque(en[0].title.texture().get_image())
+		check(recorded > 200,"the copy inside a 2D-only recording viewport renders its 3D text too (%d)" % recorded)
+		var mesh_count:int = title.viewport.find_children("*","MeshInstance3D",true,false).size()
+		check(mesh_count == 6 and title.viewport.own_world_3d,"each of the three lines is a real extruded mesh with an outline body (%d meshes)" % mesh_count)
 		await create_timer(2.0,true,false,true).timeout
 		check(get_nodes_in_group(Intro.GROUP).is_empty(),"the title rises away and frees itself")
 	world.reset()

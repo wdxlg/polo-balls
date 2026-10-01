@@ -1,174 +1,322 @@
 extends Control
-## 我的世界标题大字（像 MINECRAFT / JAVA EDITION 那样）：渐变正面 + 朝下方消失点挤出的深色立体面 + 粗黑描边，像素风放大。
-## 配色方案参照 cube-3d-text（MIT, EaseCation）：正面上亮下暗渐变，侧面由浅到深。
-## 每个字单独用字体画（任何语言都行），立体面是一层层往消失点偏移的深色字，所以不会有三角化破面。
+## 我的世界标题立体字，按 honghemc / cube-3d-text 的生成方式：
+## 像素字体按像素格挤出成真正的 3D 网格，透视相机正对着拍——正面上亮下暗渐变，
+## 上/左/右侧面深色，底面由前往后变暗，背后一圈放大的描边体。面直接上色不打光，不受场景环境影响。
+## 含中文的行用 Fusion Pixel 12px，纯英文/数字行用 Mojangles（方块感更强），按同一字高对齐。
 ## 不注册 class_name，用 load() 取脚本：
 ##   var title = load(PATH).new()
-##   title.setup([{"text":"烈焰人","style":Color.RED},{"text":"VS","style":"gold","scale":0.7}])
+##   title.setup([{"text":"烈焰人","style":Color.RED},{"text":"VS","style":"gold","scale":0.62}])
 ##   parent.add_child(title)   # 在自己的 size 里按比例居中绘制
-## 行 style："stone"（原版标题灰石）/ "gold"（JAVA EDITION 金）/ Color（按颜色生成整套渐变）。
-## 选项：font、pixel_scale（像素化倍数，默认 2）、render_width（渲染宽度，默认 1280）。
+## 行 style："stone"（原版标题灰石）/ "gold"（JAVA EDITION 金）/ Color（按颜色生成整套配色）。
+## 选项：render_width（渲染宽度，默认 1280）。
 
-const DEFAULT_FONT:String = "res://fonts/SmileySans-Oblique.ttf"
-const STONE:Dictionary = {"top":Color("f2f2f2"),"bottom":Color("8c8c8c"),"near":Color("5a5a5a"),"far":Color("2a2a2a")}
-const GOLD:Dictionary = {"top":Color("ffe08a"),"bottom":Color("ffaa00"),"near":Color("a56c00"),"far":Color("4a3000")}
-## 立体面厚度 / 描边粗细 / 行距（按字号比例）。
-const DEPTH_RATIO:float = 0.17
-const OUTLINE_RATIO:float = 0.075
-const LINE_GAP_RATIO:float = 0.06
-const OUTLINE_COLOR:Color = Color(0.06,0.05,0.05)
+const CJK_FONT:String = "res://fonts/fusion-pixel-12px-proportional-zh_hans.otf.woff2"
+const LATIN_FONT:String = "res://fonts/Mojangles.ttf"
+const CJK_SIZE:int = 12
+const LATIN_SIZE:int = 8
+## 世界单位：一个字高（em）= 12。
+const EM:float = 12.0
+const DEPTH_EM:float = 0.5
+## 描边半格粗（在 2 倍细分的格子上外扩 1 格）。
+const OUTLINE_CELLS:float = 0.5
+const LINE_GAP_EM:float = 0.2
+## 相机距离 / 画面宽度：越小透视越强（cube-3d-text 默认约 0.8）。
+const CAMERA_DISTANCE_RATIO:float = 0.7
+## 每行绕自己的水平中线往后仰的角度：每一行都露出底面，像原版标题从下往上看。
+const TILT_DEGREES:float = 16.0
 
-const FACE_SHADER:String = """
-shader_type canvas_item;
-uniform vec4 top_color : source_color;
-uniform vec4 bottom_color : source_color;
-uniform float top_y;
-uniform float bottom_y;
-uniform float cell = 4.0;
-varying vec2 local_pos;
-float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-void vertex() { local_pos = VERTEX; }
-void fragment() {
-	float t = clamp((local_pos.y - top_y) / max(bottom_y - top_y, 0.001), 0.0, 1.0);
-	vec3 c = mix(top_color.rgb, bottom_color.rgb, t);
-	// 原版标题石头的像素颗粒。
-	c *= 0.9 + 0.12 * hash(floor(local_pos / cell));
-	COLOR = vec4(c, texture(TEXTURE, UV).a * COLOR.a);
-}
-"""
+const GOLD:Dictionary = {"front_top":Color("ffd07b"),"front_bottom":Color("ffaa00"),"side":Color("553800"),"down_front":Color("a56c00"),"down_back":Color("553800"),"outline":Color("291a00")}
+const STONE:Dictionary = {"front_top":Color("ffffff"),"front_bottom":Color("a8a8a8"),"side":Color("3c3c3c"),"down_front":Color("727272"),"down_back":Color("3c3c3c"),"outline":Color("161616")}
 
-## 一行字分三层画：描边（深色字在每一层四周偏移铺开）→ 立体面 → 正面（渐变 shader）。
-class Line extends Node2D:
-	var font:Font
-	var text:String
-	var font_size:int
-	var depth:int
-	var colors:Dictionary
-	var vanish:Vector2
-	var face:bool = false
-	var outline:float = 0.0
-	func _dir(center_x:float, ascent:float) -> Vector2:
-		return (vanish - (global_position + Vector2(center_x,ascent * 0.6))).normalized()
-	func _draw() -> void:
-		var x:float = 0.0
-		var glyphs:Array = []
-		for ch:String in text:
-			var advance:float = font.get_char_size(ch.unicode_at(0),font_size).x
-			glyphs.append([ch.unicode_at(0),x,advance])
-			x += advance
-		var ascent:float = font.get_ascent(font_size)
-		if face:
-			for g:Array in glyphs: font.draw_char(get_canvas_item(),Vector2(g[1],ascent),g[0],font_size,Color.WHITE)
-			return
-		if outline > 0.0:
-			var ring:Array[Vector2] = []
-			for i:int in range(24): ring.append(Vector2.from_angle(TAU * i / 24.0) * outline)
-			for i:int in range(12): ring.append(Vector2.from_angle(TAU * (i + 0.5) / 12.0) * outline * 0.5)
-			var layers:Array[int] = []
-			for k:int in range(0,depth + 1,2): layers.append(k)
-			if layers[-1] != depth: layers.append(depth)
-			for g:Array in glyphs:
-				var dir:Vector2 = _dir(float(g[1]) + float(g[2]) * 0.5,ascent)
-				for k:int in layers:
-					for offset:Vector2 in ring: font.draw_char(get_canvas_item(),Vector2(g[1],ascent) + dir * float(k) + offset,g[0],font_size,OUTLINE_COLOR)
-			return
-		# 从最深一层往前画，每个字往消失点方向偏移，越深越暗。
-		for k:int in range(depth,0,-1):
-			var shade:Color = (colors.near as Color).lerp(colors.far,float(k) / float(depth))
-			for g:Array in glyphs:
-				var dir:Vector2 = _dir(float(g[1]) + float(g[2]) * 0.5,ascent)
-				font.draw_char(get_canvas_item(),Vector2(g[1],ascent) + dir * float(k),g[0],font_size,shade)
-
-var lines:Array = []
-var font:Font
-var pixel_scale:int = 2
-var render_width:int = 1280
 var viewport:SubViewport
-## 渲染图宽高比（宽/高），布局用。
-var aspect:float = 3.0
+var _lines:Array = []
+var _options:Dictionary = {}
+var _aspect:float = 4.0
 
 static func style_colors(style:Variant) -> Dictionary:
 	if style is Color:
 		var c:Color = style
-		return {"top":c.lerp(Color.WHITE,0.6),"bottom":c,"near":c.darkened(0.3),"far":c.darkened(0.62)}
+		return {"front_top":c.lerp(Color.WHITE,0.6),"front_bottom":c.lightened(0.08),"side":c.darkened(0.74),"down_front":c.darkened(0.5),"down_back":c.darkened(0.78),"outline":c.darkened(0.88)}
 	return GOLD if str(style) == "gold" else STONE
 
-func setup(title_lines:Array, options:Dictionary = {}) -> void:
-	lines = title_lines
-	font = options.get("font",load(DEFAULT_FONT))
-	pixel_scale = maxi(int(options.get("pixel_scale",pixel_scale)),1)
-	render_width = maxi(int(options.get("render_width",render_width)),64)
-
-func _ready() -> void:
-	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	_build()
-
-func _build() -> void:
-	viewport = SubViewport.new()
-	viewport.name = "TitleRender"
-	viewport.disable_3d = true
-	viewport.transparent_bg = true
-	# 和所在视口一致：项目开了 hdr_2d，非 HDR 的子视口贴进来会整体发暗。
-	viewport.use_hdr_2d = get_viewport().use_hdr_2d if is_inside_tree() else false
-	viewport.canvas_item_default_texture_filter = Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_LINEAR
-	viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
-	add_child(viewport)
-	var width:int = render_width / pixel_scale
-	var base_size:int = int(width * 0.2)
-	var margin:float = base_size * (0.08 + OUTLINE_RATIO)
-	var usable:float = width - margin * 2.0
-	# 先量每行：字号按 scale，超宽就缩到放得下（给立体面留出余量）。
-	var plans:Array = []
-	var y:float = margin
-	for line:Dictionary in lines:
-		var text:String = str(line.get("text",""))
-		var size_px:int = maxi(int(base_size * float(line.get("scale",1.0))),8)
-		var text_w:float = font.get_string_size(text,HORIZONTAL_ALIGNMENT_LEFT,-1,size_px).x
-		if text_w > usable:
-			size_px = maxi(int(size_px * usable / text_w),8)
-			text_w = font.get_string_size(text,HORIZONTAL_ALIGNMENT_LEFT,-1,size_px).x
-		var depth:int = maxi(int(round(size_px * DEPTH_RATIO)),2)
-		plans.append({"text":text,"size":size_px,"width":text_w,"depth":depth,"y":y,"colors":style_colors(line.get("style","stone"))})
-		y += font.get_ascent(size_px) + font.get_descent(size_px) * 0.35 + depth + size_px * LINE_GAP_RATIO
-	var height:float = y + margin
-	viewport.size = Vector2i(width,maxi(int(ceil(height)),8))
-	aspect = float(viewport.size.x) / float(viewport.size.y)
-	var vanish:Vector2 = Vector2(width * 0.5,height + width * 1.6)
-	var face_shader := Shader.new()
-	face_shader.code = FACE_SHADER
-	for plan:Dictionary in plans:
-		var origin:Vector2 = Vector2((width - float(plan.width)) * 0.5,float(plan.y))
-		var ascent:float = font.get_ascent(int(plan.size))
-		for layer:int in range(3):
-			var face:bool = layer == 2
-			var node := Line.new()
-			node.font = font; node.text = plan.text; node.font_size = plan.size; node.depth = plan.depth
-			node.colors = plan.colors; node.vanish = vanish; node.face = face
-			node.outline = maxf(base_size * OUTLINE_RATIO,1.5) if layer == 0 else 0.0
-			node.position = origin
-			if face:
-				var mat := ShaderMaterial.new()
-				mat.shader = face_shader
-				mat.set_shader_parameter("top_color",plan.colors.top)
-				mat.set_shader_parameter("bottom_color",plan.colors.bottom)
-				mat.set_shader_parameter("top_y",ascent * 0.18)
-				mat.set_shader_parameter("bottom_y",ascent * 1.02)
-				mat.set_shader_parameter("cell",maxf(float(plan.size) / 16.0,1.0))
-				node.material = mat
-			viewport.add_child(node)
-	queue_redraw()
+func setup(lines:Array,options:Dictionary = {}) -> void:
+	_lines = lines.duplicate(true)
+	_options = options.duplicate()
+	if is_inside_tree(): _build()
 
 func texture() -> Texture2D:
-	return viewport.get_texture() if is_instance_valid(viewport) else null
+	return viewport.get_texture() if viewport != null else null
 
-## 在 area 里按比例居中的绘制区域。
-func draw_rect_for(area:Vector2) -> Rect2:
-	var w:float = minf(area.x,area.y * aspect)
-	var h:float = w / aspect
-	return Rect2((area - Vector2(w,h)) * 0.5,Vector2(w,h))
+func _ready() -> void:
+	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	resized.connect(queue_redraw)
+	if viewport == null: _build()
 
 func _draw() -> void:
 	var tex:Texture2D = texture()
-	if tex != null: draw_texture_rect(tex,draw_rect_for(size),false)
+	if tex == null or size.x <= 0.0 or size.y <= 0.0: return
+	var fit:Vector2 = Vector2(size.x,size.x / _aspect)
+	if fit.y > size.y: fit = Vector2(size.y * _aspect,size.y)
+	draw_texture_rect(tex,Rect2((size - fit) * 0.5,fit),false)
+
+static func _has_cjk(text:String) -> bool:
+	for i:int in range(text.length()):
+		if text.unicode_at(i) >= 0x2E80: return true
+	return false
+
+## 把字形轮廓（含二次/三次曲线控制点）展开成折线。
+static func _flatten(points:PackedVector3Array,from:int,to:int,offset:Vector2) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	var n:int = to - from + 1
+	if n < 2: return out
+	var start:int = 0
+	while start < n and int(points[from + start].z) != 1: start += 1
+	if start >= n: start = 0
+	var p0 := Vector2(points[from + start].x,points[from + start].y)
+	out.append(p0 + offset)
+	var cur:Vector2 = p0
+	var i:int = 1
+	while i <= n:
+		var p:Vector3 = points[from + (start + i) % n]
+		var pv := Vector2(p.x,p.y)
+		if int(p.z) == 1:
+			out.append(pv + offset); cur = pv; i += 1
+		elif int(p.z) == 0:
+			var nxt:Vector3 = points[from + (start + i + 1) % n]
+			var end := Vector2(nxt.x,nxt.y)
+			if int(nxt.z) == 1: i += 2
+			else:
+				end = (pv + end) * 0.5; i += 1
+			for k:int in range(1,5):
+				var t:float = k / 4.0
+				out.append(cur.lerp(pv,t).lerp(pv.lerp(end,t),t) + offset)
+			cur = end
+		else:
+			var c2:Vector3 = points[from + (start + i + 1) % n]
+			var e3:Vector3 = points[from + (start + i + 2) % n]
+			var end3 := Vector2(e3.x,e3.y)
+			for k:int in range(1,7):
+				out.append(cur.bezier_interpolate(pv,Vector2(c2.x,c2.y),end3,k / 6.0) + offset)
+			cur = end3; i += 3
+	return out
+
+## 文字 → 像素格：{w, h, cells(行优先，1=有字), unit(每格世界单位)}。
+static func rasterize(text:String) -> Dictionary:
+	var cjk:bool = _has_cjk(text)
+	var font:Font = load(CJK_FONT if cjk else LATIN_FONT)
+	var font_size:int = CJK_SIZE if cjk else LATIN_SIZE
+	var ts:TextServer = TextServerManager.get_primary_interface()
+	var shaped:RID = ts.create_shaped_text()
+	ts.shaped_text_add_string(shaped,text,font.get_rids(),font_size)
+	var glyphs:Array = ts.shaped_text_get_glyphs(shaped)
+	var ascent:int = int(round(font.get_ascent(font_size)))
+	var height:int = ascent + int(round(font.get_descent(font_size)))
+	var polys:Array = []
+	var pen:float = 0.0
+	for g:Dictionary in glyphs:
+		var offset:Vector2 = g.get("offset",Vector2.ZERO)
+		var rid:RID = g.get("font_rid",RID())
+		if rid.is_valid():
+			var data:Dictionary = ts.font_get_glyph_contours(rid,font_size,int(g.get("index",0)))
+			var points:PackedVector3Array = data.get("points",PackedVector3Array())
+			var from:int = 0
+			var glyph:Array = []
+			for end:int in data.get("contours",PackedInt32Array()):
+				glyph.append(_flatten(points,from,end,Vector2(pen,0.0) + offset))
+				from = end + 1
+			if not glyph.is_empty(): polys.append(glyph)
+		pen += float(g.get("advance",0.0)) * maxi(int(g.get("repeat",1)),1)
+	ts.free_rid(shaped)
+	var width:int = maxi(int(ceil(pen)),1)
+	var cells := PackedByteArray()
+	cells.resize(width * height)
+	for glyph:Array in polys:
+		var lo:float = INF
+		var hi:float = -INF
+		for poly:PackedVector2Array in glyph:
+			for v:Vector2 in poly:
+				lo = minf(lo,v.x); hi = maxf(hi,v.x)
+		for row:int in range(height):
+			var yc:float = row + 0.5 - ascent
+			var hits:Array[Vector2] = []
+			for poly:PackedVector2Array in glyph:
+				var count:int = poly.size()
+				for k:int in range(count):
+					var a:Vector2 = poly[k]
+					var b:Vector2 = poly[(k + 1) % count]
+					if (a.y <= yc and b.y > yc) or (b.y <= yc and a.y > yc):
+						hits.append(Vector2(a.x + (yc - a.y) * (b.x - a.x) / (b.y - a.y),1.0 if b.y > a.y else -1.0))
+			if hits.is_empty(): continue
+			hits.sort_custom(func(p:Vector2,q:Vector2) -> bool: return p.x < q.x)
+			var winding:float = 0.0
+			var h:int = 0
+			for col:int in range(maxi(int(floor(lo)),0),mini(int(ceil(hi)) + 1,width)):
+				var xc:float = col + 0.5
+				while h < hits.size() and hits[h].x < xc:
+					winding += hits[h].y; h += 1
+				if winding != 0.0: cells[row * width + col] = 1
+	return {"w":width,"h":height,"cells":cells,"unit":EM / float(font_size)}
+
+## 描边体：格子 2 倍细分后向外扩 1 个细格（= 半格），四周各多出 1 个细格。
+static func _outline_mask(mask:Dictionary) -> Dictionary:
+	var sw:int = int(mask.w)
+	var w:int = sw * 2 + 2
+	var h:int = int(mask.h) * 2 + 2
+	var src:PackedByteArray = mask.cells
+	var cells := PackedByteArray()
+	cells.resize(w * h)
+	for y:int in range(int(mask.h)):
+		for x:int in range(sw):
+			if src[y * sw + x] == 0: continue
+			for dy:int in range(4):
+				for dx:int in range(4):
+					cells[(y * 2 + dy) * w + x * 2 + dx] = 1
+	return {"w":w,"h":h,"cells":cells,"unit":float(mask.unit) * 0.5}
+
+static func _filled(mask:Dictionary,x:int,y:int) -> bool:
+	return x >= 0 and y >= 0 and x < int(mask.w) and y < int(mask.h) and (mask.cells as PackedByteArray)[y * int(mask.w) + x] != 0
+
+static func _quad(st:SurfaceTool,a:Vector3,b:Vector3,c:Vector3,d:Vector3,ca:Color,cb:Color,cc:Color,cd:Color) -> void:
+	for pair:Array in [[a,ca],[b,cb],[c,cc],[a,ca],[c,cc],[d,cd]]:
+		st.set_color(pair[1]); st.add_vertex(pair[0])
+
+## 一块像素格挤出：正面 + 四周侧面（相机在正前方，看不到背面，不生成）。
+## origin 是格子左上角的世界坐标，cell 每格边长，depth 挤出厚度。
+static func _extrude(st:SurfaceTool,mask:Dictionary,origin:Vector2,cell:float,depth:float,colors:Dictionary,ink_top:float,ink_bottom:float,flat:Color = Color(0,0,0,0)) -> void:
+	var w:int = int(mask.w)
+	var h:int = int(mask.h)
+	var single:bool = flat.a > 0.0
+	var pos := func(x:float,y:float,z:float) -> Vector3: return Vector3(origin.x + x * cell,origin.y - y * cell,z)
+	var grad := func(y:float) -> Color:
+		if single: return flat
+		return (colors.front_top as Color).lerp(colors.front_bottom,clampf((y - ink_top) / maxf(ink_bottom - ink_top,0.001),0.0,1.0))
+	var side:Color = flat if single else colors.side
+	var down_front:Color = flat if single else colors.down_front
+	var down_back:Color = flat if single else colors.down_back
+	for y:int in range(h):
+		var x:int = 0
+		while x < w:
+			if not _filled(mask,x,y):
+				x += 1; continue
+			var x1:int = x
+			while x1 < w and _filled(mask,x1,y): x1 += 1
+			var top:Color = grad.call(float(y))
+			var bottom:Color = grad.call(float(y + 1))
+			_quad(st,pos.call(x,y,0.0),pos.call(x1,y,0.0),pos.call(x1,y + 1,0.0),pos.call(x,y + 1,0.0),top,top,bottom,bottom)
+			x = x1
+	for y:int in range(h):
+		for edge:int in [-1,1]:
+			var x:int = 0
+			while x < w:
+				if not (_filled(mask,x,y) and not _filled(mask,x,y + edge)):
+					x += 1; continue
+				var x1:int = x
+				while x1 < w and _filled(mask,x1,y) and not _filled(mask,x1,y + edge): x1 += 1
+				var yy:float = float(y) if edge < 0 else float(y + 1)
+				var front_color:Color = side if edge < 0 else down_front
+				var back_color:Color = side if edge < 0 else down_back
+				_quad(st,pos.call(x,yy,0.0),pos.call(x1,yy,0.0),pos.call(x1,yy,-depth),pos.call(x,yy,-depth),front_color,front_color,back_color,back_color)
+				x = x1
+	for x:int in range(w):
+		for edge:int in [-1,1]:
+			var y:int = 0
+			while y < h:
+				if not (_filled(mask,x,y) and not _filled(mask,x + edge,y)):
+					y += 1; continue
+				var y1:int = y
+				while y1 < h and _filled(mask,x,y1) and not _filled(mask,x + edge,y1): y1 += 1
+				var xx:float = float(x) if edge < 0 else float(x + 1)
+				_quad(st,pos.call(xx,y,0.0),pos.call(xx,y1,0.0),pos.call(xx,y1,-depth),pos.call(xx,y,-depth),side,side,side,side)
+				y = y1
+
+static func _ink_rows(mask:Dictionary) -> Vector2:
+	var top:int = -1
+	var bottom:int = -1
+	for y:int in range(int(mask.h)):
+		for x:int in range(int(mask.w)):
+			if _filled(mask,x,y):
+				if top < 0: top = y
+				bottom = y + 1
+				break
+	return Vector2(maxi(top,0),maxi(bottom,1))
+
+func _material(priority:int,depth_test:bool) -> StandardMaterial3D:
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.vertex_color_use_as_albedo = true
+	mat.vertex_color_is_srgb = true
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	# 描边先画、不写深度也不做深度测试；正文后画、自己做深度——正文永远盖在描边上（同 three.js 的做法）。
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.render_priority = priority
+	mat.no_depth_test = not depth_test
+	mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_ALWAYS if depth_test else BaseMaterial3D.DEPTH_DRAW_DISABLED
+	return mat
+
+func _build() -> void:
+	if viewport != null: viewport.queue_free()
+	viewport = SubViewport.new()
+	viewport.own_world_3d = true
+	viewport.transparent_bg = true
+	viewport.msaa_3d = Viewport.MSAA_4X
+	viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
+	add_child(viewport)
+	var y:float = 0.0
+	var half_width:float = 0.0
+	var top_y:float = -INF
+	var bottom_y:float = INF
+	var any:bool = false
+	for line:Dictionary in _lines:
+		var text:String = str(line.get("text","")).strip_edges()
+		if text.is_empty(): continue
+		var scale_amount:float = float(line.get("scale",1.0))
+		var mask:Dictionary = rasterize(text)
+		var cell:float = float(mask.unit) * scale_amount
+		var depth:float = DEPTH_EM * EM * scale_amount
+		var colors:Dictionary = style_colors(line.get("style","stone"))
+		var ink:Vector2 = _ink_rows(mask)
+		# 行距按实际有字的行算，字体上下留白不占地方。每行在自己的局部坐标里建（行中线为 y=0），再整体后仰。
+		var ink_height:float = (ink.y - ink.x) * cell
+		var origin := Vector2(-int(mask.w) * cell * 0.5,ink.x * cell + ink_height * 0.5)
+		var main := SurfaceTool.new()
+		main.begin(Mesh.PRIMITIVE_TRIANGLES)
+		_extrude(main,mask,origin,cell,depth,colors,ink.x,ink.y)
+		var rim := SurfaceTool.new()
+		rim.begin(Mesh.PRIMITIVE_TRIANGLES)
+		_extrude(rim,_outline_mask(mask),origin + Vector2(-OUTLINE_CELLS * cell,OUTLINE_CELLS * cell),cell * 0.5,depth,colors,0.0,1.0,colors.outline)
+		for st:SurfaceTool in [rim,main]:
+			var mesh := MeshInstance3D.new()
+			mesh.mesh = st.commit()
+			mesh.material_override = _material(0 if st == rim else 1,st == main)
+			mesh.position = Vector3(0.0,y - ink_height * 0.5,0.0)
+			mesh.rotation.x = -deg_to_rad(TILT_DEGREES)
+			viewport.add_child(mesh)
+		half_width = maxf(half_width,(int(mask.w) * 0.5 + OUTLINE_CELLS) * cell)
+		top_y = maxf(top_y,y + OUTLINE_CELLS * cell)
+		bottom_y = minf(bottom_y,y - (ink.y - ink.x + OUTLINE_CELLS) * cell)
+		y -= (ink.y - ink.x) * cell + LINE_GAP_EM * EM * scale_amount
+		any = true
+	if not any: return
+	# 画面：字块四周留一点边（后仰后行底会往前凸一点）。相机正对字块中心，透视但不裁切。
+	var margin:float = EM * 0.45
+	var view_w:float = half_width * 2.0 + margin * 2.0
+	var view_h:float = (top_y - bottom_y) + margin * 2.0
+	var center_y:float = (top_y + bottom_y) * 0.5
+	var camera_y:float = center_y
+	# 多行时字块高：按高度也拉远一些，免得最上/最下一行透视夸张到看不清字。
+	var distance:float = maxf(view_w * CAMERA_DISTANCE_RATIO,view_h * 1.35)
+	var camera := Camera3D.new()
+	camera.position = Vector3(0.0,camera_y,distance)
+	var near:float = distance * 0.1
+	camera.keep_aspect = Camera3D.KEEP_HEIGHT
+	camera.set_frustum(view_h * near / distance,Vector2(0.0,(center_y - camera_y) * near / distance),near,distance * 4.0)
+	var env := Environment.new()
+	env.background_mode = Environment.BG_CLEAR_COLOR
+	env.tonemap_mode = Environment.TONE_MAPPER_LINEAR
+	camera.environment = env
+	viewport.add_child(camera)
+	_aspect = view_w / view_h
+	var render_width:int = int(_options.get("render_width",1280))
+	viewport.size = Vector2i(render_width,maxi(int(render_width / _aspect),8))
+	queue_redraw()
 
