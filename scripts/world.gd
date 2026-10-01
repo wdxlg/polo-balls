@@ -1077,7 +1077,9 @@ func _update_damage_camera_shake(delta:float) -> void:
 			_damage_shake_time_left = _damage_shake_duration
 	_damage_shake_pending_peak = 0.0
 	_damage_shake_pending_sum = 0.0
-	var legacy_pixels:float = maxf(camera_shake_amount * shake_rate,0.0) * _feedback_number("Camera_Gain")
+	# Skill-authored impulses share the visible strong control instead of masking its changes.
+	var legacy_gain:float = _feedback_number("Body_Strong") / float(FEEDBACK_TUNING.SPECS.Feedback_Body_Strong.default)
+	var legacy_pixels:float = maxf(camera_shake_amount * shake_rate,0.0) * _feedback_number("Camera_Gain") * legacy_gain
 	var amplitude:float = maxf(_damage_shake_pixels,legacy_pixels)
 	# 双向、零中心衰减振荡；不占用战斗 RNG，不影响命中/AI 的随机序列。
 	if amplitude > 0.001:

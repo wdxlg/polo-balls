@@ -14,12 +14,12 @@ const SPECS:Dictionary = {
 	"Feedback_Body_Tiny": {"default":0.08,"min":0.01,"max":64,"step":0.01,"group":"Shaking_Camera","section":"BODY","unit":""},
 	"Feedback_Body_Light": {"default":0.6,"min":0.01,"max":64,"step":0.01,"group":"Shaking_Camera","section":"BODY","unit":""},
 	"Feedback_Body_Strong": {"default":10.0,"min":0.01,"max":64,"step":0.01,"group":"Shaking_Camera","section":"BODY","unit":""},
-	"Feedback_Body_Max": {"default":18.0,"min":0.01,"max":64,"step":0.01,"group":"Shaking_Camera","section":"BODY","unit":""},
+	"Feedback_Body_Max": {"default":18.0,"min":0.01,"max":128,"step":0.01,"group":"Shaking_Camera","section":"BODY","unit":""},
 	"Feedback_Body_Gain": {"default":1.0,"min":0.0,"max":3.0,"step":0.05,"group":"Shaking_Camera","section":"BODY","unit":"x"},
 	"Feedback_Camera_Tiny": {"default":0.08,"min":0.01,"max":64,"step":0.01,"group":"Shaking_Camera","section":"CAMERA","unit":""},
 	"Feedback_Camera_Light": {"default":0.75,"min":0.01,"max":64,"step":0.01,"group":"Shaking_Camera","section":"CAMERA","unit":""},
 	"Feedback_Camera_Strong": {"default":6.0,"min":0.01,"max":64,"step":0.01,"group":"Shaking_Camera","section":"CAMERA","unit":""},
-	"Feedback_Camera_Max": {"default":10.0,"min":0.01,"max":64,"step":0.01,"group":"Shaking_Camera","section":"CAMERA","unit":""},
+	"Feedback_Camera_Max": {"default":10.0,"min":0.01,"max":128,"step":0.01,"group":"Shaking_Camera","section":"CAMERA","unit":""},
 	"Feedback_Camera_Gain": {"default":1.0,"min":0.0,"max":3.0,"step":0.05,"group":"Shaking_Camera","section":"CAMERA","unit":"x"},
 	"Feedback_Shake_Growth": {"default":60.0,"min":1,"max":10000,"step":1,"group":"Shaking_Camera","section":"ENVELOPE","unit":""},
 	"Feedback_Shake_Curve": {"default":0.75,"min":0.1,"max":3.0,"step":0.05,"group":"Shaking_Camera","section":"ENVELOPE","unit":""},
@@ -58,7 +58,7 @@ static func normalize(settings:Dictionary) -> void:
 		var names:Array[String] = ["Tiny","Light","Strong","Max"]
 		for index:int in names.size():
 			var key:String = "Feedback_"+channel+"_"+names[index]
-			settings[key] = clampf(float(settings[key]),previous+0.01,64.0-float(3-index)*0.01)
+			settings[key] = clampf(float(settings[key]),previous+0.01,float(SPECS[key].max)-float(maxi(2-index,0))*0.01)
 			previous = float(settings[key])
 	for pair:Array in [["Shake_MinDuration","Shake_MaxDuration"],["Focus_Damage","Focus_ThresholdCap"],["Focus_MinZoom","Focus_MaxZoom"],["Hitstop_MinDuration","Hitstop_MaxDuration"]]:
 		settings["Feedback_"+str(pair[1])] = maxf(number(settings,pair[0]),number(settings,pair[1]))
@@ -90,7 +90,9 @@ static func amplitude(damage:float,settings:Dictionary,channel:String) -> float:
 		# Asymptotic growth retains differences between large hits, rather than clipping early.
 		var extra:float = damage-high
 		var growth:float = number(settings,"Shake_Growth")
-		result = lerpf(strong,ceiling,pow(1.0-growth/(extra+growth),exponent))
+		# Leave perceptible growth above the heavy threshold, instead of starting near the ceiling.
+		var start:float = maxf(light,strong*(0.55 if channel=="Body" else 0.85))
+		result = lerpf(start,ceiling,pow(1.0-growth/(extra+growth),exponent))
 	return result*number(settings,channel+"_Gain")
 
 static func duration(damage:float,settings:Dictionary) -> float:

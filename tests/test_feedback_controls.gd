@@ -139,6 +139,22 @@ func contract_cases() -> void:
 	reset_feedback()
 	hit(100.0)
 	check(target._hurt_shake_effect.amplitude>12.0 and world._damage_shake_pending_peak>7.2,"simple strong setting changes both real damage feedback channels")
+	for channel:String in ["Body","Camera"]:
+		var weak_heavy:float = TUNING.amplitude(51.0,game.Game_Settings,channel)
+		var stronger_heavy:float = TUNING.amplitude(250.0,game.Game_Settings,channel)
+		check(stronger_heavy>weak_heavy*1.65,"heavy damage has perceptible growth rather than an almost fixed kick: "+channel)
+	var strong_spin:SpinBox = ui._feedback_spins.Feedback_Body_Strong
+	strong_spin.value = 64.0
+	check(game.Game_Settings.Feedback_Body_Strong==64.0 and game.Game_Settings.Feedback_Body_Max>100.0,"maximum visible strength does not flatten against the old hidden 64 cap")
+	check(TUNING.amplitude(250.0,game.Game_Settings,"Body")>TUNING.amplitude(51.0,game.Game_Settings,"Body")*2.0,"damage still grows substantially at the maximum UI strength")
+	for strength:float in [10.0,20.0,40.0]:
+		strong_spin.value = strength
+		reset_feedback()
+		world.camera_shake_amount = 100.0
+		world._damage_shake_elapsed = 0.0
+		world._update_damage_camera_shake(0.0)
+		check(is_equal_approx((world.camera_2d.offset*world.camera_2d.zoom).x,strength),"legacy skill impulses obey the visible strength: "+str(strength))
+	game.reset_feedback_settings("Shaking_Camera",false)
 	game.set_simple_feedback_setting("Feedback_Focus_MaxZoom",1.0,false)
 	check(game.Game_Settings.Feedback_Focus_MinZoom==1.0 and world.damage_focus_max_zoom==1.0,"simple zoom can reach 1 without a hidden minimum blocking it")
 	game.set_simple_feedback_setting("Feedback_Hitstop_MaxDuration",0.02,false)
