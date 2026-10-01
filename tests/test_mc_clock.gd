@@ -94,12 +94,12 @@ func run() -> void:
 	# Speed -> collision damage multiplier.
 	clock._measured_speed = clock.base_travel_speed()
 	check(is_equal_approx(clock.current_hit_damage_multiplier(),1.0),"normal speed x1")
-	clock._measured_speed = clock.base_travel_speed()*2.0
-	check(is_equal_approx(clock.current_hit_damage_multiplier(),2.0),"double speed x2")
+	clock._measured_speed = clock.base_travel_speed()*4.0
+	check(is_equal_approx(clock.current_hit_damage_multiplier(),1.5),"speed bonus at one sixth: 4x speed -> x1.5")
 	clock._measured_speed = clock.base_travel_speed()*9.0
-	check(is_equal_approx(clock.current_hit_damage_multiplier(),9.0),"multiplier uncapped (x9 at 9x)")
+	check(is_equal_approx(clock.current_hit_damage_multiplier(),1.0 + 8.0/6.0),"9x speed -> x2.33")
 	clock._measured_speed = clock.base_travel_speed()*40.0
-	check(is_equal_approx(clock.current_hit_damage_multiplier(),40.0),"multiplier uncapped (x40 at 40x)")
+	check(is_equal_approx(clock.current_hit_damage_multiplier(),7.5),"multiplier uncapped (40x speed -> x7.5)")
 	clock._measured_speed = 0.0
 
 	# Accelerated scope at k = 2.5: clock / projectile / status / world time, not the foe.
@@ -248,4 +248,39 @@ func run() -> void:
 	var left:int = 0
 	for n:Node in arena.get_children(): if n.name.begins_with("ClockAfterimage"): left += 1
 	check(left == 0,"afterimages expire")
+
+	# Time stop: lethal damage locks health at one and opens the frozen circle once per match.
+	foe.Team = "B"
+	clock.time_scale = 1.0
+	clock.timestop_hold = 0.8
+	clock.global_position = Vector2(300,300)
+	foe.global_position = Vector2(330,300)
+	await frames(2)
+	var foe_hp:int = foe.health
+	clock.health = 5
+	clock.take_damage(9999.0,true)
+	check(clock.health == 1 and clock._ts_active,"lethal damage locks health at one and starts time stop (%d)" % clock.health)
+	await frames(30)
+	var stop:Node = arena.get_node_or_null("ClockTimeStop")
+	check(stop != null and stop.z_index > clock._effective_z(foe.image),"time stop circle drawn over the frozen field")
+	check(foe.process_mode == Node.PROCESS_MODE_DISABLED,"enemy inside the circle is frozen")
+	check(clock.can_process() and clock.z_index > (stop.z_index if stop != null else 0),"clock keeps running and stays in colour")
+	check(clock.get_collision_exceptions().has(foe),"clock ignores character collision during time stop")
+	clock.take_damage(500.0,true)
+	check(clock.health == 1,"clock is invulnerable during time stop")
+	clock.global_position = foe.global_position
+	await frames(6)
+	var owed:float = clock.timestop_pending_damage(foe)
+	check(owed > 0.0 and foe.health == foe_hp,"damage during time stop is booked, not applied (%.1f owed)" % owed)
+	for i:int in 120:
+		await frames(1)
+		if not clock._ts_active: break
+	await frames(2)
+	check(not clock._ts_active and arena.get_node_or_null("ClockTimeStop") == null,"time stop ends")
+	check(foe.process_mode != Node.PROCESS_MODE_DISABLED and not clock.get_collision_exceptions().has(foe),"enemy resumes after the circle shrinks")
+	check(foe.health < foe_hp,"booked damage is settled on the enemy (%d -> %d)" % [foe_hp,foe.health])
+	check(clock.health == 1 and not clock.has_meta("clock_dead"),"clock survives at one health")
+	clock.take_damage(9999.0,true)
+	check(clock.health <= 0 and not clock._ts_active,"second lethal blow kills the clock")
+	await frames(20)
 	finish()

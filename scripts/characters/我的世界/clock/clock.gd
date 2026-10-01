@@ -7,6 +7,8 @@ extends ball
 const FIELD = preload("res://scripts/characters/我的世界/clock/time_field.gd")
 const GHOST = preload("res://scripts/characters/我的世界/clock/afterimage.gd")
 const U = preload("res://scripts/characters/我的世界/new5/utils.gd")
+const TIMESTOP = preload("res://scripts/characters/我的世界/clock/timestop.gd")
+const ANCHOR:Array[AudioStream] = [preload("res://audio/characters/我的世界/new6/respawn_anchor_deplete1.ogg"),preload("res://audio/characters/我的世界/new6/respawn_anchor_deplete2.ogg")]
 const STATE = preload("res://scripts/characters/我的世界/clock/rewind_state.gd")
 const ITEM_DEATH = preload("res://scripts/effects/我的世界/item_fragments.gd")
 const SFX = preload("res://scripts/effects/我的世界/mc_native_audio.gd")
@@ -25,12 +27,17 @@ const HURTBOX_MASK:int = 2
 @export var rewind_min_real_gap:float = 3.0
 @export_category("时钟 - 速度与残影")
 @export var speed_damage_min:float = 0.6 # 无上限
+@export var speed_damage_bonus_ratio:float = 1.0 / 6.0 # 超出正常速度的部分按此比例折算成伤害
 @export var ghost_speed_ratio:float = 3.0
 @export var ghost_max_alive:int = 40
 @export var ghost_spacing:float = 16.0
 @export var ghost_life:float = 0.4
 @export var ghost_damage_ratio:float = 0.6
 @export var ghost_hit_guard:float = 0.45
+@export_category("时钟 - 停时")
+@export var timestop_hold:float = 4.0
+@export var timestop_radius_ratio:float = 1.2 # 地图对角线的比例，从角落展开也能盖住整张图
+@export var timestop_hit_guard:float = 0.4
 
 static var _frames:Array[Texture2D] = []
 
@@ -45,6 +52,15 @@ var _snaps:Array[Dictionary] = []
 var _rewind_snap:Dictionary = {}
 var _rewind_hp_from:int = 0
 var _rewind_overlay:Sprite2D
+var timestop_used:bool = false
+var _ts_active:bool = false
+var _ts_starting:bool = false
+var _ts_trigger_hit:bool = false
+var _ts_node:Node2D
+var _ts_pending:Dictionary = {}
+var _ts_hits:Dictionary = {}
+var _ts_saved_z:Array = []
+var _ts_tick_wait:float = 0.0
 var _hist_t:PackedFloat64Array = PackedFloat64Array()
 var _rewind_left:float = 4.5
 var _rewinding:bool = false
@@ -102,7 +118,8 @@ func speed_ratio() -> float:
 
 
 func current_hit_damage_multiplier() -> float:
-	return maxf(speed_ratio(),speed_damage_min)
+	# 只折算速度带来的加成：正常速度一倍，七倍速两倍。
+	return maxf(1.0 + (speed_ratio() - 1.0) * speed_damage_bonus_ratio,speed_damage_min)
 
 
 func ghosts_armed() -> bool:
@@ -135,6 +152,7 @@ func _physics_process(delta:float) -> void:
 			_ghost_travel = 0.0
 		elif not ghosts_armed():
 			_ghost_travel = minf(_ghost_travel,ghost_spacing)
+	if _ts_active: _timestop_contacts(delta)
 	_hit_with_ghosts()
 	_sync_wait -= delta
 	if _sync_wait <= 0.0:
@@ -152,7 +170,7 @@ func tick_physics(state:State,delta:float) -> void:
 	if clock_running() and is_multiplayer_authority():
 		_clock_t += delta
 		_record_history()
-		if not _rewinding and not dizziness:
+		if not _rewinding and not dizziness and not _ts_active:
 			_rewind_left -= delta
 			if _rewind_left <= 0.0 and not _start_rewind(): _rewind_left = 0.5
 	super.tick_physics(state,delta)
@@ -251,7 +269,7 @@ func _set_health_exact(value:int) -> void:
 
 # ---------------------------------------------------------------- 倒流期间无敌
 func _rewind_invincible() -> bool:
-	return _rewinding and health > 0
+	return (_rewinding or _ts_active) and health > 0
 
 
 func can_receive_hit_contact(_incoming_hit:hitbox,_contact_hurtbox:hurtbox) -> bool:
@@ -278,10 +296,129 @@ func take_damage(damage:float,ignore_block:bool = false) -> void:
 
 
 func on_actual_health_damage_received(actual_health_damage:float,health_before:float) -> void:
-	if _rewind_invincible() and actual_health_damage > 0.0:
+	if _ts_trigger_hit:
+		# 触发停时的这一下保留锁血后的一点生命，不被无敌回滚。
+		_ts_trigger_hit = false
+	elif _rewind_invincible() and actual_health_damage > 0.0:
 		health = maxi(int(ceil(health_before)),int(health))
 		return
 	super.on_actual_health_damage_received(actual_health_damage,health_before)
+
+
+# ---------------------------------------------------------------- 停时（死亡时锁血触发，每局一次）
+func health_after_lethal_prevention(health_before:int) -> int:
+	var spared:int = super.health_after_lethal_prevention(health_before)
+	if spared <= 0 and _rewind_invincible(): return 1
+	if spared > 0 or timestop_used or _ts_active or has_meta("clock_dead") or not is_multiplayer_authority(): return spared
+	timestop_used = true
+	_ts_starting = true
+	return 1
+
+
+func on_lethal_health_loss_prevented() -> void:
+	super.on_lethal_health_loss_prevented()
+	if not _ts_starting: return
+	_ts_starting = false
+	_ts_trigger_hit = true
+	var center:Vector2 = global_position
+	var r:float = _timestop_radius()
+	if multiplayer.has_multiplayer_peer(): _clock_timestop.rpc(center,r,timestop_hold)
+	_clock_timestop(center,r,timestop_hold)
+
+
+func _timestop_radius() -> float:
+	var scene:Node = get_tree().current_scene
+	var r:float = 0.0
+	if scene != null and scene.has_method("return_map_world_rect") and "map_group" in scene:
+		var groups:Variant = scene.get("map_group")
+		var key:String = str(scene.get("now_choose_map"))
+		# map_group 的键是节点名（StringName），与 String 不互通。
+		var layer:Variant = groups.get(StringName(key),groups.get(key)) if groups is Dictionary else null
+		if layer is Node:
+			var rect:Rect2 = scene.call("return_map_world_rect",layer)
+			r = rect.size.length() * timestop_radius_ratio
+	return maxf(r,200.0)
+
+
+@rpc("authority","call_remote","reliable")
+func _clock_timestop(center:Vector2,r:float,hold:float) -> void:
+	var scene:Node = get_tree().current_scene if is_inside_tree() else null
+	if scene == null or _ts_active: return
+	_ts_active = true
+	_ts_pending.clear()
+	_ts_hits.clear()
+	if _rewinding: _finish_rewind()
+	_ts_node = TIMESTOP.new()
+	scene.add_child(_ts_node)
+	_ts_node.setup(self,center,r,hold)
+	_ts_node.finished.connect(_on_timestop_finished)
+	# 时钟本体与残影画在黑白圈之上，保持彩色。
+	_ts_saved_z = [z_as_relative,z_index]
+	z_as_relative = false
+	z_index = TIMESTOP.LAYER + 11
+	if self_hitbox != null: self_hitbox.set_deferred(&"monitoring",false)
+	if self_hurtbox != null: self_hurtbox.set_deferred(&"monitorable",false)
+	SFX.queue_stream(self,ANCHOR[0],center,{"volume_db":-2.0,"pitch":0.8,"max_distance":2000.0})
+
+
+func _on_timestop_finished() -> void:
+	_ts_active = false
+	_ts_node = null
+	if _ts_saved_z.size() == 2:
+		z_as_relative = bool(_ts_saved_z[0])
+		z_index = int(_ts_saved_z[1])
+	if self_hitbox != null and has_collision_damage(): self_hitbox.set_deferred(&"monitoring",true)
+	if self_hurtbox != null: self_hurtbox.set_deferred(&"monitorable",true)
+	SFX.queue_stream(self,ANCHOR[1],global_position,{"volume_db":-2.0,"pitch":1.25,"max_distance":2000.0})
+	_hist_pos.clear()
+	_hist_t.clear()
+	_snaps.clear()
+	_rewind_left = rewind_interval
+	_last_pos = global_position
+	if is_multiplayer_authority(): _settle_timestop()
+
+
+## 停时期间造成的伤害全部记账，圈消失后一次性结算到每个敌人身上。
+func _settle_timestop() -> void:
+	var pending:Dictionary = _ts_pending
+	_ts_pending = {}
+	for id:int in pending:
+		var entry:Dictionary = pending[id]
+		var target:Variant = (entry.ref as WeakRef).get_ref()
+		if is_instance_valid(target) and target is ball and target.health > 0:
+			U.damage(self,target,float(entry.damage),Vector2(entry.point))
+
+
+func timestop_pending_damage(target:Node) -> float:
+	return float(_ts_pending.get(target.get_instance_id(),{}).get("damage",0.0)) if is_instance_valid(target) else 0.0
+
+
+func _ts_add(target:Node,amount:float,point:Vector2) -> void:
+	if amount <= 0.0 or not is_instance_valid(target): return
+	var id:int = target.get_instance_id()
+	var entry:Dictionary = _ts_pending.get(id,{"ref":weakref(target),"damage":0.0,"point":point})
+	entry.damage = float(entry.damage) + amount
+	entry.point = point
+	_ts_pending[id] = entry
+	if _ts_tick_wait <= 0.0:
+		_ts_tick_wait = 0.12
+		_emit_tick(1.6)
+
+
+func _timestop_contacts(delta:float) -> void:
+	_ts_tick_wait -= delta
+	if not is_multiplayer_authority(): return
+	_query_shape.radius = ghost_radius()
+	_query.transform = Transform2D(0.0,global_position)
+	for entry:Dictionary in get_world_2d().direct_space_state.intersect_shape(_query,32):
+		var area:Variant = entry.get("collider")
+		if not area is hurtbox: continue
+		var target:Variant = area.get_parent()
+		if not U.enemy(self,target): continue
+		var id:int = target.get_instance_id()
+		if float(_ts_hits.get(id,-INF)) > _real_t: continue
+		_ts_hits[id] = _real_t + timestop_hit_guard
+		_ts_add(target,attack_damage(current_hit_damage_multiplier()),ball.body_point(target,global_position))
 
 
 # ---------------------------------------------------------------- 倒流画面
@@ -400,7 +537,9 @@ func _hit_with_ghosts() -> void:
 			if float(_ghost_hits.get(id,-INF)) > _real_t: continue
 			_ghost_hits[id] = _real_t + ghost_hit_guard
 			var point:Vector2 = ball.body_point(target,Vector2(g.pos))
-			U.damage(self,target,attack_damage(float(g.mult) * ghost_damage_ratio),point)
+			var amount:float = attack_damage(float(g.mult) * ghost_damage_ratio)
+			if _ts_active: _ts_add(target,amount,point)
+			else: U.damage(self,target,amount,point)
 
 
 # ---------------------------------------------------------------- 声音
@@ -465,6 +604,7 @@ func Die() -> void:
 	if has_meta("clock_dead"): return
 	set_meta("clock_dead",true)
 	_rewinding = false
+	if is_instance_valid(_ts_node): _ts_node.queue_free()
 	_clock_rewind_fx(false)
 	ITEM_DEATH.spawn(self)
 	super.Die()
