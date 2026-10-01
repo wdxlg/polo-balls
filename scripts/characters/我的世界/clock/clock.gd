@@ -21,6 +21,7 @@ const HURTBOX_MASK:int = 2
 @export var rewind_interval:float = 4.5
 @export var rewind_span:float = 1.0
 @export var rewind_duration:float = 0.25
+@export var rewind_min_real_gap:float = 3.0
 @export_category("时钟 - 速度与残影")
 @export var speed_damage_min:float = 0.6
 @export var speed_damage_max:float = 3.0
@@ -49,6 +50,11 @@ var _rewind_elapsed:float = 0.0
 var _rewind_idx:int = 0
 var _rewind_hp:int = 0
 var _rewind_armed:bool = false
+var _rewind_start_real:float = 0.0
+var _rewind_ghost_gap:float = 16.0
+var _rewind_ghost_travel:float = 0.0
+var _last_rewind_real:float = -1000.0
+var rewind_real_span:float = 0.0
 var _ghosts:Array[Dictionary] = []
 var _ghost_hits:Dictionary = {}
 var _ghost_travel:float = 0.0
@@ -159,9 +165,9 @@ func move(speed_value:float,delta:float) -> void:
 func _record_history() -> void:
 	_hist_pos.append(global_position)
 	_hist_hp.append(health)
-	_hist_t.append(_clock_t)
+	_hist_t.append(_real_t)
 	var cut:int = 0
-	while cut < _hist_t.size() and _hist_t[cut] < _clock_t - rewind_span: cut += 1
+	while cut + 1 < _hist_t.size() and _hist_t[cut + 1] <= _real_t - rewind_span: cut += 1
 	if cut > 0:
 		_hist_pos = _hist_pos.slice(cut)
 		_hist_hp = _hist_hp.slice(cut)
@@ -170,6 +176,9 @@ func _record_history() -> void:
 
 func _start_rewind() -> bool:
 	if _hist_pos.size() < 8 or apply_transport_pose(): return false
+	# 倒回真实时间 1 秒前；两次倒流至少隔几秒真实时间，否则高速时刚走完就被倒回原地。
+	if _real_t - _hist_t[0] < rewind_span - 0.02: return false
+	if _real_t - _last_rewind_real < rewind_min_real_gap: return false
 	if not _spot_free(_hist_pos[0]): return false
 	_rewind_path = _hist_pos.duplicate()
 	_rewind_path.reverse()
@@ -177,6 +186,12 @@ func _start_rewind() -> bool:
 	_rewind_armed = ghosts_armed()
 	_rewind_elapsed = 0.0
 	_rewind_idx = 0
+	_rewind_start_real = _real_t
+	rewind_real_span = _real_t - _hist_t[0]
+	var length:float = 0.0
+	for i:int in range(1,_rewind_path.size()): length += _rewind_path[i].distance_to(_rewind_path[i - 1])
+	_rewind_ghost_gap = maxf(ghost_spacing,length / float(maxi(ghost_max_alive - 4,1)))
+	_rewind_ghost_travel = 0.0
 	_rewinding = true
 	rewind_count += 1
 	_emit_warp()
@@ -185,12 +200,15 @@ func _start_rewind() -> bool:
 
 func _step_rewind(delta:float) -> void:
 	velocity = Vector2.ZERO
-	_rewind_elapsed += delta
+	_rewind_elapsed = _real_t - _rewind_start_real
 	var n:int = _rewind_path.size()
 	var f:float = clampf(_rewind_elapsed / maxf(rewind_duration,0.01),0.0,1.0)
 	var idx:int = int(round(f * float(n - 1)))
 	for i:int in range(_rewind_idx + 1,idx + 1):
-		if i % 3 == 0: _spawn_ghost(_rewind_path[i - 1],_rewind_armed)
+		_rewind_ghost_travel += _rewind_path[i].distance_to(_rewind_path[i - 1])
+		if _rewind_ghost_travel >= _rewind_ghost_gap:
+			_rewind_ghost_travel = 0.0
+			_spawn_ghost(_rewind_path[i - 1],_rewind_armed)
 	_rewind_idx = idx
 	global_position = _rewind_path[idx]
 	if f >= 1.0: _finish_rewind()
@@ -198,6 +216,7 @@ func _step_rewind(delta:float) -> void:
 
 func _finish_rewind() -> void:
 	_rewinding = false
+	_last_rewind_real = _real_t
 	if health > 0 and _rewind_hp > health: heal(float(_rewind_hp - health))
 	_hist_pos.clear()
 	_hist_hp.clear()

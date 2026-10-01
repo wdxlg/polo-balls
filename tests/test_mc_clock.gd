@@ -152,14 +152,25 @@ func run() -> void:
 	clock.time_scale = 1.0
 
 	# Rewind returns along the path and restores health lost in the window.
-	clock.rewind_interval = 0.6
-	clock._rewind_left = 0.6
+	# At 5x the rewind still reaches back one real second and plays over real time.
+	clock.time_scale = 5.0
+	clock.direction = Vector2(1.0,0.4).normalized()
+	clock.rewind_interval = 999.0
+	clock._rewind_left = 999.0
 	clock.health = clock.Max_health
-	await frames(20)
+	await frames(75)
 	clock.health = clock.Max_health - 100
 	var before:int = clock.rewind_count
-	await frames(40)
+	clock._rewind_left = 0.0
+	var rewind_frames:int = 0
+	for i:int in 60:
+		await frames(1)
+		if clock._rewinding: rewind_frames += 1
+		elif clock.rewind_count > before: break
 	check(clock.rewind_count > before,"rewind fired")
+	check(absf(clock.rewind_real_span - 1.0) < 0.06,"rewind reaches back one real second (%.2f)" % clock.rewind_real_span)
+	check(rewind_frames >= 12,"rewind plays over real time at 5x (%d frames)" % rewind_frames)
+	clock.time_scale = 1.0
 	var trail:int = 0
 	for n:Node in arena.get_children(): if n.name.begins_with("ClockAfterimage"): trail += 1
 	check(trail > 0,"rewind always leaves a visible trail")
