@@ -201,6 +201,7 @@ func run() -> void:
 	check(unit.phase==unit.Phase.CHARGE,"stale visual packet cannot rewind state")
 	await extra_runtime_checks()
 	await corrected_rig_and_movement_checks()
+	await upright_charge_checks()
 	await normal_wall_bounce_checks()
 	if DisplayServer.get_name()!="headless": await gpu_checks()
 	for warm:int in 6: await process_frame
@@ -285,6 +286,18 @@ func gpu_checks() -> void:
 			model._update_pose()
 			await RenderingServer.frame_post_draw
 			view.get_texture().get_image().save_png("user://vindicator_fix_%d_%d_%d.png"%[pose,int(heading.x),int(heading.y)])
+	for side:int in [-1,1]:
+		var previous:Image
+		for percentage:int in [0,25,50,75,100]:
+			model.phase = model.Phase.CHARGE
+			model.facing = Vector2(side,0)
+			model.charge_elapsed = model.full_charge_seconds*float(percentage)/100.0
+			model._update_pose()
+			await RenderingServer.frame_post_draw
+			var frame:Image = view.get_texture().get_image()
+			if previous!=null: check(frame.get_data()!=previous.get_data(),"GPU charge keeps changing through %d%% facing %d"%[percentage,side])
+			frame.save_png("user://vindicator_upright_%d_%d.png"%[side,percentage])
+			previous = frame
 	view.queue_free()
 	await process_frame
 
@@ -420,4 +433,41 @@ func normal_wall_bounce_checks() -> void:
 		unit.move(unit.Speed,1.0/60.0)
 		check(unit.global_position.x<point.x and unit.direction.x<0,"enemy aiming cannot overwrite wall bounce in phase "+str(state))
 	wall.free()
+	reset_attack()
+
+func axe_shaft_direction(model:Node2D) -> Vector2:
+	return (model._axe.to_global(model.AXE_GRIP+Vector2(6,-6)+model._axe.offset)-model._axe.to_global(model.AXE_GRIP+model._axe.offset)).normalized()
+
+func upright_charge_checks() -> void:
+	reset_attack()
+	unit.set_player_control_peer(1)
+	unit.velocity = Vector2.ZERO
+	for heading:Vector2 in [Vector2.RIGHT,Vector2.LEFT,Vector2.UP,Vector2.DOWN]:
+		unit.facing = heading
+		unit.phase = unit.Phase.IDLE
+		unit._update_pose()
+		check(axe_shaft_direction(unit).dot(Vector2.UP)>0.99999,"idle holds the axe vertically: "+str(heading))
+		for pose:int in [unit.Phase.CHARGE,unit.Phase.DASH]:
+			unit.phase = pose
+			var vertical:bool = true
+			var attached:bool = true
+			var rises:bool = true
+			var previous:float = INF
+			for step:int in 101:
+				unit.charge_elapsed = unit.full_charge_seconds*float(step)/100.0
+				unit._update_pose()
+				vertical = vertical and axe_shaft_direction(unit).dot(Vector2.UP)>0.99999
+				attached = attached and unit._axe.to_global(unit.AXE_GRIP+unit._axe.offset).distance_to(unit._arm.to_global(unit.HAND-unit.SHOULDER))<0.001
+				rises = rises and unit.blade_center().y<previous-0.0001
+				previous = unit.blade_center().y
+			check(vertical and attached,"upright palm grip at every charge percentage: "+str(heading)+" phase "+str(pose))
+			check(rises,"axe rises throughout 0-100%, including the final quarter: "+str(heading)+" phase "+str(pose))
+		for ratio:float in [0.0,0.1,0.25,0.5,0.75,1.0]:
+			unit.phase = unit.Phase.CHARGE
+			unit.charge_elapsed = unit.full_charge_seconds*ratio
+			unit._update_pose()
+			var before:Vector2 = unit.blade_center()
+			var shaft:Vector2 = axe_shaft_direction(unit)
+			unit._release_swing()
+			check(unit.blade_center().distance_to(before)<0.001 and axe_shaft_direction(unit).distance_to(shaft)<0.001,"release starts from actual held height and vertical grip: "+str(heading)+" charge "+str(ratio))
 	reset_attack()

@@ -48,22 +48,20 @@ def bake(output):
     for bone in b.models['vindicator']:bone['neverRender']=bone['name']!='rightArm'
     arm=b.render('vindicator','idle',0);arm.save(output/'arm.png')
     shoulder=b.project([-5,22,0]);hand=b.project([-6,31,0])
-    geom={'shoulder':shoulder.tolist(),'hand':hand.tolist(),'canvas':[160,224],'axe_grip':[5.5,11.5],'axe_blade':[9.0,4.0],'arm_depth':'behind_body','item_depth':'behind_hand'}
+    geom={'shoulder':shoulder.tolist(),'hand':hand.tolist(),'canvas':[160,224],'axe_grip':[5.5,11.5],'axe_blade':[9.0,4.0],'arm_depth':'behind_body','item_depth':'behind_hand','held_axe_axis':'screen_up','charge_pose_progress':'full_ratio'}
     (output/'rig.json').write_text(json.dumps(geom,indent=2))
-    grip=np.array([5.5,11.5])
-    theta=-math.pi/4
-    basis=3*np.array([[math.cos(theta),-math.sin(theta)],[math.sin(theta),math.cos(theta)]])
-    inverse=np.linalg.inv(basis)
-    translation=grip-inverse@hand
-    affine=(inverse[0,0],inverse[0,1],translation[0],inverse[1,0],inverse[1,1],translation[1])
-    axe=Image.open(output/'iron_axe.png').convert('RGBA')
-    preview=axe.transform((160,224),Image.Transform.AFFINE,affine,Image.Resampling.NEAREST)
-    preview.alpha_composite(arm)
+    def place(pic,pivot,anchor,angle,scale=1):
+        basis=scale*np.array([[math.cos(angle),-math.sin(angle)],[math.sin(angle),math.cos(angle)]])
+        inverse=np.linalg.inv(basis)
+        translation=anchor-inverse@pivot
+        affine=(inverse[0,0],inverse[0,1],translation[0],inverse[1,0],inverse[1,1],translation[1])
+        return pic.transform((160,224),Image.Transform.AFFINE,affine,Image.Resampling.NEAREST)
     angle=-0.38
-    inverse=np.array([[math.cos(angle),math.sin(angle)],[-math.sin(angle),math.cos(angle)]])
-    translation=shoulder-inverse@shoulder
-    affine=(inverse[0,0],inverse[0,1],translation[0],inverse[1,0],inverse[1,1],translation[1])
-    preview=preview.transform((160,224),Image.Transform.AFFINE,affine,Image.Resampling.NEAREST)
+    rotation=np.array([[math.cos(angle),-math.sin(angle)],[math.sin(angle),math.cos(angle)]])
+    palm=shoulder+rotation@(hand-shoulder)
+    axe=Image.open(output/'iron_axe.png').convert('RGBA')
+    preview=place(axe,np.array([5.5,11.5]),palm,-math.pi/4,3)
+    preview.alpha_composite(place(arm,shoulder,shoulder,angle))
     preview.alpha_composite(Image.open(output/'idle.png').convert('RGBA'))
     preview.save(output/'preview.png')
     resources=['idle.png']+files

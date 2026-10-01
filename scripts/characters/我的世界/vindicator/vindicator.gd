@@ -285,13 +285,18 @@ func _update_pose() -> void:
 	if side<0.0 and aimed>0.0: aimed-=TAU
 	var finish:float = aimed+0.65*side
 	var angle:float = rest
+	var axe_tilt:float = 0.0
+	var start:float = lerpf(rest,raised,clampf(released_charge,0.0,1.0))
 	if phase in [Phase.CHARGE,Phase.DASH]:
-		angle = lerpf(rest,raised,minf(charge_ratio()*4.0,1.0))
+		angle = lerpf(rest,raised,charge_ratio())
 	elif phase == Phase.SWING:
-		var start:float = lerpf(rest,raised,minf(released_charge*4.0,1.0))
 		angle = lerpf(start,finish,clampf(phase_elapsed/maxf(swing_seconds,0.01),0.0,1.0))
+		axe_tilt = angle-start
 	elif phase == Phase.RECOVER:
-		angle = lerpf(finish,rest,clampf(phase_elapsed/maxf(recovery_seconds,0.01),0.0,1.0))
+		var recovery:float = clampf(phase_elapsed/maxf(recovery_seconds,0.01),0.0,1.0)
+		angle = lerpf(finish,rest,recovery)
+		axe_tilt = (finish-start)*(1.0-recovery)
+	_axe.rotation = -PI/4.0+(angle-axe_tilt)*side
 	angle -= image.global_rotation
 	var mirror:Vector2 = Vector2(-1,1) if is_character_visual_flipped_h() else Vector2.ONE
 	_arm.transform = Transform2D(angle,mirror,0.0,shoulder+image.offset)

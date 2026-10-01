@@ -59,8 +59,17 @@ func run() -> void:
 	remote._advance_dash(0.5)
 	remote._advance_swing(0.5)
 	check(remote.charge_elapsed==before_charge and remote.global_position==before_position,"guest cannot run dash or swing simulation")
+	var last_height:float = remote.blade_center().y
+	for ratio:float in [0.8,0.9,0.95]:
+		source.charge_elapsed = source.full_charge_seconds*ratio
+		source._update_pose()
+		source._sync_visual(true)
+		check(await until(func():return is_equal_approx(remote.charge_ratio(),ratio)),"late charge progression reaches replica: "+str(ratio))
+		var shaft:Vector2 = remote._axe.to_global(remote.AXE_GRIP+Vector2(6,-6)+remote._axe.offset)-remote._axe.to_global(remote.AXE_GRIP+remote._axe.offset)
+		check(remote.blade_center().y<last_height and shaft.normalized().dot(Vector2.UP)>0.99999 and remote.blade_center().distance_to(source.blade_center())<0.1,"replica keeps raising the upright axe after 75%: "+str(ratio))
+		last_height = remote.blade_center().y
 	source._release_swing()
-	check(await until(func():return remote.phase==source.Phase.SWING and is_equal_approx(remote.released_charge,0.75)),"release phase and locked charge cross the wire")
+	check(await until(func():return remote.phase==source.Phase.SWING and is_equal_approx(remote.released_charge,0.95)),"release phase and locked charge cross the wire")
 	var before:int = target.health
 	var remote_before:int = replica.health
 	check(not remote.deal_axe_hit(replica,replica.global_position) and replica.health==remote_before,"guest cannot award local damage")

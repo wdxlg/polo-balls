@@ -20,5 +20,7 @@
     4.0
   ],
   "arm_depth": "behind_body",
-  "item_depth": "behind_hand"
+  "item_depth": "behind_hand",
+  "held_axe_axis": "screen_up",
+  "charge_pose_progress": "full_ratio"
 }
