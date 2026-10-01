@@ -141,13 +141,23 @@ func run() -> void:
 	var view:Rect2 = GOAT.view_rect(horn)
 	var seen_start:Array = []
 	var first_ids:Dictionary = {}
-	for i:int in range(120):
+	var spawn_times:Array[float] = []
+	var elapsed:float = 0.0
+	var idle_while_spawning:bool = false
+	for i:int in range(900):
 		await physics_frame
+		elapsed += get_root().get_physics_process_delta_time()
 		for g:Node in goats():
 			if not first_ids.has(g.goat_id):
 				first_ids[g.goat_id] = true
 				seen_start.append(g.global_position)
-		if horn._blow_phase == 0: break
+				spawn_times.append(elapsed)
+		if horn._blow_phase == 0 and not horn._pending_goats.is_empty(): idle_while_spawning = true
+		if horn._pending_goats.is_empty() and horn._blow_phase == 0: break
+	var min_gap:float = INF
+	for k:int in range(1,spawn_times.size()): min_gap = minf(min_gap,spawn_times[k] - spawn_times[k - 1])
+	check(spawn_times.size() >= 2 and min_gap >= horn.goat_spawn_gap - horn.goat_spawn_jitter - 0.05,"goats appear one by one with a clear gap (min %.2f s)" % min_gap)
+	check(idle_while_spawning,"goats keep appearing after the horn finishes blowing (no long slowdown)")
 	check(first_ids.size() == expected,"all scheduled goats spawned (%d/%d)" % [first_ids.size(),expected])
 	check(view.size.x > 1.0 and seen_start.all(func(p:Vector2): return not view.has_point(p)),"every goat enters from off-screen")
 	check(any_goat_scale_ok(horn),"goat size follows the horn's character scale")
@@ -310,7 +320,7 @@ func run() -> void:
 	await process_frame
 	puppet.apply_network_state(center + Vector2(10,0),Vector2.RIGHT,500.0,3)
 	for i:int in range(6): await process_frame
-	check(puppet.global_position.x > center.x and puppet.bowed and puppet.phase == GOAT.Phase.EXIT,"puppet follows network state and flags")
+	check(puppet.global_position.x > center.x and puppet.phase == GOAT.Phase.EXIT,"puppet follows network state and flags")
 	check(puppet.get_node("Sprite").flip_h and puppet.get_node("Sprite").animation == &"ram","puppet faces its heading and plays the ram clip")
 	puppet.apply_network_state(center + Vector2(20,20),Vector2(1,1).normalized(),500.0,0)
 	await process_frame
@@ -318,6 +328,7 @@ func run() -> void:
 	puppet.apply_network_state(center + Vector2(0,40),Vector2(-1,1).normalized(),500.0,0)
 	await process_frame
 	check(not puppet.get_node("Sprite").flip_h and is_zero_approx(puppet.get_node("Sprite").rotation),"diagonal running still faces only left, no tilt")
+	check(puppet.get_node("Sprite").animation == &"ram","goat keeps the head-down ram pose while running")
 	puppet.queue_free()
 
 	# --- 起手被眩晕打断 ---

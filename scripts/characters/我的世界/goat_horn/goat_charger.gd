@@ -3,7 +3,7 @@ extends Node2D
 ## 权威端真实移动与结算：出现时锁定目标当时的位置，从屏幕外沿直线加速冲向该点（不追踪），
 ## 途中首次冲撞按速度结算伤害与击退，持续重叠时周期推撞；撞完或越过锁定点后加速冲出屏幕后释放。
 ## 脚步按实际移动距离计步，由权威端下发原版脚步声；奔跑时各端在身后地面上本地持续生成方块粒子。
-## 贴图只朝左或朝右（按水平方向镜像），不随斜向移动旋转。
+## 贴图只朝左或朝右（按水平方向镜像），不随斜向移动旋转；全程保持低头冲撞姿势。
 ## 客户端只按山羊角下发的状态外推显示。伤害与击退来源始终是山羊角本体。
 const U = preload("res://scripts/characters/我的世界/new5/utils.gd")
 const AUDIO = preload("res://scripts/characters/我的世界/goat_horn/goat_horn_audio.gd")
@@ -30,7 +30,6 @@ const IMPACT_RATIO_MAX:float = 1.3
 const RAM_SPEED_KEEP:float = 0.72
 const PUSH_INTERVAL:float = 0.16
 const CONTACT_RELEASE_MARGIN:float = 6.0
-const BOW_LEAD_TIME:float = 0.12
 const MAX_LIFE:float = 30.0
 # 世界的地图外遮罩在绝对 z=90 用背景快照盖住越界视觉；山羊从屏幕外进出，必须画在它之上。
 const DRAW_Z:int = 91
@@ -52,7 +51,6 @@ var goat_id:int = 0
 var heading:Vector2 = Vector2.LEFT
 var speed:float = ENTER_SPEED
 var phase:int = Phase.CHARGE
-var bowed:bool = false
 var life:float = 0.0
 var unit_scale:float = 1.0
 var body_radius:float = BODY_RADIUS_UNIT
@@ -125,8 +123,8 @@ func _ready() -> void:
 	_sprite.offset = SPRITE_OFFSET
 	add_child(_sprite)
 	_fx_rng.randomize()
-	_sprite.play(&"run")
-	_sprite.frame = goat_id % FRAMES.get_frame_count(&"run")
+	_sprite.play(&"ram")
+	_sprite.frame = goat_id % FRAMES.get_frame_count(&"ram")
 	_update_visual()
 	set_physics_process(_authority)
 
@@ -137,11 +135,10 @@ func horn() -> Node2D:
 
 
 func network_flags() -> int:
-	return (1 if bowed else 0) | (2 if phase == Phase.EXIT else 0)
+	return 2 if phase == Phase.EXIT else 0
 
 
 func _apply_flags(flags:int) -> void:
-	bowed = (flags & 1) != 0
 	phase = Phase.EXIT if (flags & 2) != 0 else Phase.CHARGE
 
 
@@ -175,7 +172,6 @@ func _physics_process(delta:float) -> void:
 	if _hostile(owner_horn): _resolve_contacts(owner_horn,from,to,delta)
 	else: _contacts.clear()
 	if phase == Phase.CHARGE and _rammed and _contacts.is_empty(): begin_exit()
-	_update_bow()
 	_announce(owner_horn)
 	var view:Rect2 = view_rect(self)
 	if phase == Phase.EXIT and view.size.x > 1.0 and not view.grow(OFFSCREEN_MARGIN).has_point(global_position):
@@ -236,25 +232,6 @@ func _push(source:ball,victim:ball) -> void:
 	if not U.damage(source,victim,source.attack_damage(0.12 + 0.30 * r),U.point(victim,global_position)): return
 	victim.apply_knockback(_knockback_direction(victim),16.0 + 44.0 * r,maxf(speed * 1.1,160.0 + 520.0 * r),0.65,0.0,
 		{"source":source,"max_wall_bounces":1,"collision_damage":source.attack_damage(0.1 + 0.3 * r),"collision_damage_wall_only":true,"redirect_blend_time":0.0})
-
-
-func _update_bow() -> void:
-	if not _contacts.is_empty():
-		bowed = true
-		return
-	bowed = false
-	if phase != Phase.CHARGE: return
-	var lead:float = speed * BOW_LEAD_TIME
-	if global_position.distance_to(aim_point) <= body_radius * 2.0 + lead:
-		bowed = true
-		return
-	var owner_horn:Node2D = horn()
-	for node:Node in get_tree().get_nodes_in_group("Ball"):
-		if not U.enemy(owner_horn as ball,node) or U.wall_node(node): continue
-		var to_victim:Vector2 = U.point(node,global_position) - global_position
-		if to_victim.dot(heading) > 0.0 and to_victim.length() <= body_radius + U.radius(node) + lead:
-			bowed = true
-			return
 
 
 ## 权威端：第一次进入镜头时按概率发出原版蓄力咩声。
@@ -384,11 +361,11 @@ func _process(delta:float) -> void:
 
 func _update_visual(running:bool = true) -> void:
 	if _sprite == null: return
-	var clip:StringName = &"ram" if bowed else &"run"
-	if _sprite.animation != clip:
+	# 全程低头冲撞姿势（ram 片段带奔跑腿部循环）。
+	if _sprite.animation != &"ram":
 		var keep:int = _sprite.frame
-		_sprite.play(clip)
-		_sprite.frame = keep % FRAMES.get_frame_count(clip)
+		_sprite.play(&"ram")
+		_sprite.frame = keep % FRAMES.get_frame_count(&"ram")
 	# 腿部动画随实际移速放慢，避免慢跑时原地快速倒腿。
 	_sprite.speed_scale = clampf(speed / 200.0,0.35,2.2) if running else 0.0
 	# 原图朝左；向右跑时镜像。只分左右，不随斜向旋转。

@@ -26,8 +26,9 @@ enum BlowPhase { IDLE, WINDUP, HOLD }
 @export var blow_move_ratio:float = 0.5
 @export var stun_retry_delay:float = 1.0
 @export var goat_spawn_start:float = 0.35
-@export var goat_spawn_spread:float = 0.9
-@export var goat_spawn_jitter:float = 0.08
+# 号声后山羊一只一只陆续出现：相邻两只间隔 goat_spawn_gap ± goat_spawn_jitter 秒；吹奏结束后仍按时间表继续出现。
+@export var goat_spawn_gap:float = 0.8
+@export var goat_spawn_jitter:float = 0.15
 @export var goat_spawn_margin:float = 90.0
 
 var _flip:bool = false
@@ -37,6 +38,7 @@ var _blow_age:float = 0.0
 var _blow_serial:int = 0
 var _manual_request:bool = false
 var _pending_goats:Array[float] = []
+var _goat_clock:float = 0.0
 var _goat_seq:int = 0
 var _goats:Dictionary = {}
 var _client_freed:Dictionary = {}
@@ -83,6 +85,11 @@ func blow_ready() -> bool:
 
 func step_mob(delta:float) -> void:
 	_step_tokens = minf(_step_tokens + STEP_TOKENS_PER_SECOND * delta,STEP_TOKENS_PER_SECOND)
+	if not _pending_goats.is_empty():
+		_goat_clock += delta
+		while not _pending_goats.is_empty() and _pending_goats[0] <= _goat_clock:
+			_pending_goats.pop_front()
+			_spawn_goat()
 	match _blow_phase:
 		BlowPhase.IDLE:
 			_update_facing()
@@ -106,11 +113,7 @@ func step_mob(delta:float) -> void:
 		BlowPhase.HOLD:
 			set_motion_speed_factor(&"goat_horn_blow",self,blow_move_ratio,0.1)
 			_blow_age += delta
-			var since_toot:float = _blow_age - blow_windup
-			while not _pending_goats.is_empty() and _pending_goats[0] <= since_toot:
-				_pending_goats.pop_front()
-				_spawn_goat()
-			if _pending_goats.is_empty() and since_toot >= blow_hold:
+			if _blow_age - blow_windup >= blow_hold:
 				_blow_phase = BlowPhase.IDLE
 				_blow_age = 0.0
 
@@ -139,10 +142,11 @@ func _toot() -> void:
 	_blow_serial += 1
 	_pending_goats.clear()
 	var count:int = rng.randi_range(mini(goats_min,goats_max),maxi(goats_min,goats_max))
+	_goat_clock = 0.0
+	var t:float = goat_spawn_start
 	for i:int in range(count):
-		var t:float = goat_spawn_start + goat_spawn_spread * (float(i) / float(maxi(count - 1,1))) + rng.randf_range(0.0,goat_spawn_jitter)
 		_pending_goats.append(t)
-	_pending_goats.sort()
+		t += maxf(goat_spawn_gap + rng.randf_range(-goat_spawn_jitter,goat_spawn_jitter),0.1)
 	_prune_goats()
 	var call_index:int = _voice_rng.randi_range(0,GOAT_AUDIO.variant_count(GOAT_AUDIO.KIND_CALL) - 1)
 	var bell:Vector2 = bell_world_position()
