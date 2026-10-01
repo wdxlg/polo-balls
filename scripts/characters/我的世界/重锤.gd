@@ -121,6 +121,11 @@ func tick_physics(state:State,delta:float) -> void:
 	_sync_air_visual_followers()
 	if not is_multiplayer_authority() or not _airborne or health <= 0:
 		return
+	# Keep status timers running; pause only the committed jump and its damage.
+	if is_hard_controlled():
+		velocity = Vector2.ZERO
+		Repel = Vector2.ZERO
+		return
 	_update_flight(maxf(delta,0.0))
 	_sync_air_visual_followers()
 
@@ -459,6 +464,7 @@ func _begin_flight(level:int) -> void:
 	Repel = Vector2.ZERO
 
 func _update_flight(delta:float) -> void:
+	if is_hard_controlled(): return
 	_flight_elapsed += delta
 	var p:float = clampf(_flight_elapsed / maxf(_flight_duration,0.05),0.0,1.0)
 
@@ -512,6 +518,7 @@ func _update_flight(delta:float) -> void:
 		_finish_landing()
 
 func _finish_landing() -> void:
+	if is_hard_controlled(): return
 	# _update_flight() 在 p=1 时已经把位置放回地面，同时保留锤头朝下。
 	# 先以这个姿态结算冲击，避免视觉上“正着落地”后才爆炸。
 	if graphics != null:

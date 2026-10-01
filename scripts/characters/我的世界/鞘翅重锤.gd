@@ -80,7 +80,7 @@ func tick_physics(state:State,delta:float) -> void:
 	if is_combat_runtime_active():
 		_rocket_display_left = maxf(_rocket_display_left - delta,0.0)
 	_update_flight_media()
-	if is_combat_runtime_active():
+	if is_combat_runtime_active() and not (_airborne and is_hard_controlled()):
 		_update_wing_animation(delta)
 
 func _update_flight_media() -> void:
@@ -439,6 +439,7 @@ func _end_missed_rebound() -> void:
 	_recover_from_landing_pose()
 
 func _update_flight(delta:float) -> void:
+	if is_hard_controlled(): return
 	if not is_multiplayer_authority() or health<=0 or not is_combat_runtime_active() or delta<=0.0: return
 	# Soft return is steering inside the current smash, not a missed landing.
 	# Keep accepted-hit stacks and the real rebound sweep; only failed attempts reset them.

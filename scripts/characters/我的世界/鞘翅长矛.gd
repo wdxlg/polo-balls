@@ -192,6 +192,7 @@ func _on_pierce_dash_finished(_completed:bool) -> void:
 	pass
 
 func _update_flight(delta:float) -> void:
+	if is_hard_controlled(): return
 	if is_multiplayer_authority() and is_combat_runtime_active(): _pierce_dash_cooldown_left = maxf(_pierce_dash_cooldown_left-delta,0.0)
 	super._update_flight(delta)
 

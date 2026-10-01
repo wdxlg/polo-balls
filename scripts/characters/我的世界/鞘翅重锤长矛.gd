@@ -161,6 +161,7 @@ func _begin_flight(level:int) -> void:
 	_face_flight_direction()
 
 func _finish_landing() -> void:
+	if is_hard_controlled(): return
 	# Same radius, independent post-hit multiplier and retrigger test as Mace.
 	# The Elytra Mace's inherited _update_flight() invokes this on true descent
 	# overlap; each successful landing launches a taller/faster next leap.

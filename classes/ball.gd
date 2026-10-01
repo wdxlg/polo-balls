@@ -1801,6 +1801,19 @@ func wait_for_combat_time(duration:float) -> bool:
 	return is_combat_runtime_active()
 
 @onready var dizziness:bool = false
+
+func is_hard_controlled() -> bool:
+	# dizziness also locks ordinary knockback input; it is not a stun by itself.
+	if not dizziness: return false
+	var locks:int = int(get_meta("generic_motion_lock_count",0))
+	if locks <= 0 or bool(get_meta("generic_motion_lock_baseline",false)): return true
+	# Freeze/grabs/actual stun retain their shared locks; only known soft phases
+	# opt out. This also preserves overlapping controls and legacy direct stuns.
+	for child:Node in get_children():
+		if child.has_method("is_soft_control_lock_active") and bool(child.call("is_soft_control_lock_active")):
+			locks -= 1
+	return locks > 0
+
 var Status_image_tween:Tween
 
 @export_category("受伤特效")

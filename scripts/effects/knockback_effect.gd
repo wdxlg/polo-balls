@@ -261,6 +261,11 @@ func respect_target_displacement_immunity() -> bool:
 	if keep_stun: target.apply_stun(stun_duration,stun_source)
 	return true
 
+func is_soft_control_lock_active() -> bool:
+	# Travel and recovery are input locks, not the subsequent real stun phase.
+	return _lock_acquired and not _finished and _stage != 1
+
+
 func is_active_effect() -> bool:
 	return not _finished
 
