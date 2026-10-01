@@ -3,6 +3,7 @@ extends Node2D
 ## reuse public helpers; policy alone is target-current-HP raw health damage.
 const ARC = preload("res://scripts/effects/我的世界/pixel_arc.gd")
 const SWEEP = preload("res://classes/weapon_tip_sweep.gd")
+const RING_SWEEP = preload("res://classes/expanding_ring_sweep.gd")
 var source:ball
 var max_radius:float = 320.0
 var duration:float = 0.8
@@ -25,32 +26,12 @@ func set_age(value:float,deal:bool) -> void:
 	if deal and is_instance_valid(source) and source.call("_can_act"): _hit_new_contacts()
 	queue_redraw()
 func _segments() -> Array[Dictionary]:
-	var result:Array[Dictionary]=[]
-	var middle:float=(previous_radius+radius)*0.5
-	var width:float=HALF_WIDTH+absf(radius-previous_radius)*0.5
-	for i:int in range(SIDES):
-		result.append({"a":global_position+Vector2.from_angle(TAU*float(i)/SIDES)*middle,"b":global_position+Vector2.from_angle(TAU*float(i+1)/SIDES)*middle,"r":width})
-	return result
+	return RING_SWEEP.segments(global_position,previous_radius,radius,HALF_WIDTH,SIDES)
 func _hit_new_contacts() -> void:
-	# A single coarse exact-shape query, then test the annular swept band only.
-	var candidates:Array[Dictionary]=SWEEP.contacts(source,global_position,global_position,radius+HALF_WIDTH,hit_ids,global_position)
-	if candidates.is_empty(): return
-	var bands:Array[Dictionary]=_segments()
-	for hit:Dictionary in candidates:
-		var target:ball=hit.target
-		if not is_instance_valid(target) or target.is_queued_for_deletion(): continue
-		var touches:bool=false
-		for band:Dictionary in bands:
-			var shape:=CapsuleShape2D.new()
-			shape.radius=band.r
-			shape.height=Vector2(band.a).distance_to(band.b)+shape.radius*2.0
-			var pose:=Transform2D((Vector2(band.b)-Vector2(band.a)).angle()-PI*0.5,(Vector2(band.a)+Vector2(band.b))*0.5)
-			for child:Node in target.self_hurtbox.get_children():
-				if child is CollisionShape2D and not child.disabled and child.shape!=null and shape.collide(pose,child.shape,child.global_transform): touches=true; break
-			if touches: break
-		if not touches: continue
-		hit_ids[target.get_instance_id()]=true
-		var amount:float=source.effective_outgoing_damage(maxf(float(target.health),0.0))
+	for hit:Dictionary in RING_SWEEP.contacts(source,global_position,previous_radius,radius,HALF_WIDTH,hit_ids,SIDES):
+		var target:ball = hit.target
+		hit_ids[target.get_instance_id()] = true
+		var amount:float = source.effective_outgoing_damage(maxf(float(target.health),0.0))
 		if amount>0.0:
 			target.receive_classified_spatial_damage(amount,{"shape":"circle","point":target.global_position,"origin":global_position,"radius":HALF_WIDTH,"source":source,"carrier":"area"},&"ordinary",true,true)
 func threats(receiver:ball) -> Array[Dictionary]:

@@ -6,6 +6,12 @@ const VISUAL = preload("res://Images/characters/我的世界/唤魔者/唤魔者
 const MC_EFFECTS = preload("res://scripts/effects/我的世界/mc_status_effects.gd")
 const TOTEM_FX = preload("res://scripts/effects/我的世界/mc_totem_effect.gd")
 const MC_EXPLOSION = preload("res://scripts/effects/我的世界/mc_explosion.gd")
+const TOTEM_WAVE = preload("res://scripts/effects/我的世界/evoker_totem_wave.gd")
+@export var totem_wave_radius:float = 160.0
+@export var totem_wave_seconds:float = 0.6
+@export var totem_wave_damage_ratio:float = 0.25
+@export var totem_wave_push_distance:float = 60.0
+@export var totem_wave_push_speed:float = 240.0
 const TOTEM_EFFECT_SECONDS:float = 10.0
 @export var fang_interval:float = 2.2
 # 恼鬼不再自然消散，只能被杀死，所以召唤间隔放慢：首次 6 秒、之后每 14 秒补员。
@@ -17,6 +23,8 @@ var _vex:Array[WeakRef] = []
 var _victory_cheered:bool = false
 var _totem_used:bool = false
 var _totem_visual_played:bool = false
+var _totem_wave_played:bool = false
+var _totem_wave:Node2D
 
 func get_preview_texture() -> Texture2D: return VISUAL
 
@@ -29,6 +37,7 @@ func health_after_lethal_prevention(_health_before:int) -> int:
 	return mini(50,Max_health)
 
 func on_lethal_health_loss_prevented() -> void:
+	if not _totem_used or not is_multiplayer_authority(): return
 	# Clear ALL negative Minecraft effects, including layers from other casters;
 	# do not erase existing positive effects. The catalog owns their lifetimes.
 	for kind:String in MC_EFFECTS.all_kinds():
@@ -38,6 +47,9 @@ func on_lethal_health_loss_prevented() -> void:
 	MC_EFFECTS.apply_effect(self,"absorption",2,TOTEM_EFFECT_SECONDS,self)
 	if multiplayer.has_multiplayer_peer(): _show_totem_visual.rpc()
 	_show_totem_visual()
+	var origin:Vector2 = global_position
+	if multiplayer.has_multiplayer_peer(): _show_totem_wave.rpc(origin,totem_wave_radius,totem_wave_seconds)
+	_show_totem_wave(origin,totem_wave_radius,totem_wave_seconds)
 
 @rpc("authority","call_remote","reliable")
 func _show_totem_visual() -> void:
@@ -47,6 +59,20 @@ func _show_totem_visual() -> void:
 	MC_EXPLOSION.runtime_container(self).add_child(fx)
 	fx.call("setup",global_position,self)
 	MC_AUDIO.play(self,"item.totem.use",global_position,-1.0,true,true)
+
+@rpc("authority","call_remote","reliable")
+func _show_totem_wave(point:Vector2,reach:float,seconds:float) -> void:
+	if _totem_wave_played or not is_inside_tree(): return
+	_totem_wave_played = true
+	_totem_wave = TOTEM_WAVE.new()
+	get_parent().add_child(_totem_wave)
+	_totem_wave.setup(self,point,reach,seconds)
+
+func get_debug_attack_regions() -> Array:
+	return _totem_wave.threats() if is_instance_valid(_totem_wave) else []
+
+func get_ai_attack_threats(receiver:ball) -> Array:
+	return _totem_wave.threats(receiver) if is_instance_valid(_totem_wave) else []
 
 func tick_physics(state:State,delta:float) -> void:
 	super.tick_physics(state,delta)

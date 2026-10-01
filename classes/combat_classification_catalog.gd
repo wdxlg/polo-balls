@@ -2978,6 +2978,8 @@ const SCRIPTS:Dictionary = {
    ],
    "review": "flying Z: public projectile ownership/reflection/block; owner current Damage; stun only on effective HP damage"
  },
+ "res://classes/expanding_ring_sweep.gd": {"entity_kind":"component","attack_modes":[],"carriers":[],"damage_kinds":[],"review":"Shared exact swept annulus geometry; no damage or authority policy"},
+ "res://scripts/effects/我的世界/evoker_totem_wave.gd": {"entity_kind":"effect","attack_modes":["ranged"],"carriers":["area"],"damage_kinds":["ordinary"],"review":"Reactive totem ring; caster current attack fraction; ordinary defenses; outward knockback once per enemy; authority only"},
  "res://scripts/characters/默认/ding_sleep/wave.gd": {
    "entity_kind": "effect",
    "attack_modes": [
@@ -4168,10 +4170,10 @@ const SCRIPTS:Dictionary = {
  },
  "res://scripts/characters/我的世界/唤魔者.gd": {
   "entity_kind": "character",
-  "attack_modes": [],
-  "carriers": [],
-  "damage_kinds": [],
-  "review": "entity_registered; attack_summary_not_event_policy"
+  "attack_modes": ["ranged"],
+  "carriers": ["area"],
+  "damage_kinds": ["ordinary"],
+  "review": "Fangs and reactive totem wave use ordinary area damage; autonomous Vex summons keep their own profiles"
  },
  "res://scripts/characters/我的世界/女巫.gd": {
   "entity_kind": "character",
