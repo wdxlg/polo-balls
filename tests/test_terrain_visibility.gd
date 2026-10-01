@@ -297,7 +297,7 @@ func more_native_terrain(center:Vector2,cube:Node2D) -> void:
 	world.add_child(fire)
 	fire.setup(cube,cube.Team,center,20.0,4.5,0.5,0.11,2.2,0.05)
 	fire.set_physics_process(false)
-	fire._main_fire.pause()
+	fire._fire_block.pause()
 	await effect_pixels(fire,"Blaze ground fire","terrain_fire",Rect2(center-Vector2(24,24),Vector2(48,48)))
 	fire.queue_free()
 	var area:Node2D = load("res://scripts/effects/我的世界/女巫药水区域.gd").new()

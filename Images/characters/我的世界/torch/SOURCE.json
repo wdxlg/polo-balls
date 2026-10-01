@@ -2,7 +2,7 @@
   "description": "火把 (Torch)：火把/灵魂火把贴图、灵魂火动画、火焰与火星粒子",
   "origin": "Minecraft Java 1.21.4 assets (mirror InventivetalentDev/minecraft-assets, branch 1.21.4); bytes copied unchanged",
   "license": "Minecraft assets are copyright Mojang Studios/Microsoft and subject to the Minecraft EULA; no general redistribution permission is claimed.",
-  "used_by": "scripts/characters/我的世界/torch/ (torch.gd, torch_fire.gd, torch_spark.gd), particles/mc_ground_soul_fire.tres",
+  "used_by": "scripts/characters/我的世界/torch/ (torch.gd, torch_fire.gd, torch_spark.gd), particles/mc_ground_soul_fire.tres, scripts/effects/我的世界/mc_fire_block_3d.gd",
   "files": [
     {
       "file": "torch.png",
@@ -20,13 +20,25 @@
       "file": "soul_fire_0.png",
       "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/soul_fire_0.png",
       "sha256": "5239a385a4eca64b7832a8945f99385240e1d54ccbbe7d27dc0fa443effed790",
-      "use": "灵魂火 32 帧（particles/mc_ground_soul_fire.tres 按 mcmeta 帧序 16..31,0..15、20 fps）与连冲火焰形态"
+      "use": "灵魂火 32 帧（按 mcmeta 帧序 16..31,0..15、20 fps）：原版 3D 地面灵魂火方块（mc_fire_block_3d.gd）与连冲火焰形态（particles/mc_ground_soul_fire.tres）"
     },
     {
       "file": "soul_fire_0.png.mcmeta",
       "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/soul_fire_0.png.mcmeta",
       "sha256": "658d67c1b3206e23a401d04ec196512b72702b7b8c6fa0200c6c66250529bbbb",
       "use": "灵魂火动画帧序"
+    },
+    {
+      "file": "soul_fire_1.png",
+      "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/soul_fire_1.png",
+      "sha256": "9c20e1da6955ed4b78653e74dcc6edb19d3b50aa9ed54ada9dc16eaec83ece18",
+      "use": "原版 3D 地面灵魂火方块的第二张贴图（soul_fire_floor1 / side1 / side_alt1），32 帧顺序、20 fps"
+    },
+    {
+      "file": "soul_fire_1.png.mcmeta",
+      "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/soul_fire_1.png.mcmeta",
+      "sha256": "802acdb8f55f30146d5ed18414b21ba35650d4e550f81825ea104131c12dc4fc",
+      "use": "soul_fire_1 动画（无帧表，顺序播放）"
     },
     {
       "file": "flame.png",

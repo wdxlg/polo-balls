@@ -6547,6 +6547,13 @@ const SCRIPTS:Dictionary = {
   "damage_kinds": [],
   "review": "entity_registered; attack_summary_not_event_policy"
  },
+ "res://scripts/effects/我的世界/mc_fire_block_3d.gd": {
+  "entity_kind": "visual",
+  "attack_modes": [],
+  "carriers": [],
+  "damage_kinds": [],
+  "review": "native_fire_and_soul_fire_floor_block_model; shared_map_wall_overlay_camera; presentation_only_damage_stays_on_fire_field"
+ },
  "res://scripts/effects/我的世界/mc_native_animation.gd": {
   "entity_kind": "visual",
   "attack_modes": [],

@@ -1,6 +1,6 @@
 extends Node2D
 
-const FIRE_FRAMES:SpriteFrames = preload("res://particles/mc_ground_fire.tres")
+const FIRE_BLOCK_3D:Script = preload("res://scripts/effects/我的世界/mc_fire_block_3d.gd")
 const SHARED_BURN:Script = preload("res://scripts/effects/我的世界/mc_shared_burn.gd")
 const BURN_AMBIENT_SFX:AudioStream = preload("res://audio/sfx/我的世界/烈焰火焰燃烧.ogg")
 const FIRE_AUDIO_NEXT_META:StringName = &"minecraft_blaze_fire_audio_next_msec"
@@ -19,7 +19,7 @@ var _area_tick_damage_multiplier:float = 0.11
 var _burn_duration:float = 2.2
 var _burn_tick_damage_multiplier:float = 0.05
 
-var _main_fire:AnimatedSprite2D = null
+var _fire_block:Node2D = null
 var _fire_base_width:float = 24.0
 var _fire_base_height:float = 24.0
 var _fire_cell_rect:Rect2 = Rect2()
@@ -40,8 +40,8 @@ func setup(source:ball,team:String,world_position:Vector2,radius:float,duration:
 	_burn_duration = maxf(burn_duration,0.1)
 	_burn_tick_damage_multiplier = maxf(burn_tick_damage_multiplier,0.0)
 
-	# 原版MC fire_0逐帧素材；烈焰人火场不复用薇欧拉的“出现/呼吸/收束”演出。
-	# 火焰覆盖落点所在的一格地图方块，底边对齐格子底边；视觉尺寸与伤害半径解耦。
+	# 原版 fire 方块的 3D 地面形态（mc_fire_block_3d.gd）；烈焰人火场不复用薇欧拉的“出现/呼吸/收束”演出。
+	# 火焰方块立在落点所在的一格地图方块上；视觉尺寸与伤害半径解耦。
 	_fire_cell_rect = _fire_cell_rect_at(world_position)
 	_fire_base_width = _fire_cell_rect.size.x
 	_fire_base_height = _fire_cell_rect.size.y
@@ -61,20 +61,21 @@ func setup(source:ball,team:String,world_position:Vector2,radius:float,duration:
 	_register_burn_audio_source()
 
 func _build_fire_visual() -> void:
-	if FIRE_FRAMES == null or FIRE_FRAMES.get_frame_count(&"default") <= 0:
-		return
-	_main_fire = AnimatedSprite2D.new()
-	_main_fire.name = "MainFireSequence"
-	_main_fire.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	_main_fire.sprite_frames = FIRE_FRAMES
-	_main_fire.animation = &"default"
-	_main_fire.frame = _rng.randi_range(0,maxi(FIRE_FRAMES.get_frame_count(&"default") - 1,0))
-	_main_fire.speed_scale = 1.0
-	_main_fire.z_index = 2
-	_main_fire.self_modulate = Color.WHITE
-	add_child(_main_fire)
-	_apply_static_fire_visual()
-	_main_fire.play()
+	_fire_block = FIRE_BLOCK_3D.new() as Node2D
+	_fire_block.name = "NativeFireBlock3D"
+	_fire_block.configure(_fire_visual_rect(),_soul_fire_visual(),_rng.randi_range(0,FIRE_BLOCK_3D.FRAME_COUNT - 1))
+	add_child(_fire_block)
+
+
+## 子类返回 true 即换用原版 soul_fire 贴图；几何、动画与占格不变。
+func _soul_fire_visual() -> bool:
+	return false
+
+
+## 火焰方块的地面占格；根节点仍记录实际撞击点，贴墙时视觉中心已向地图内裁限。
+func _fire_visual_rect() -> Rect2:
+	var base_size := Vector2(_fire_base_width,_fire_base_height)
+	return Rect2(global_position + _fire_visual_local_position - base_size * 0.5,base_size)
 
 func _physics_process(delta:float) -> void:
 	_elapsed += maxf(delta,0.0)
@@ -92,21 +93,6 @@ func _physics_process(delta:float) -> void:
 	while _tick_left <= 0.0:
 		_tick_left += _tick_interval
 		_damage_inside(source)
-
-func _apply_static_fire_visual() -> void:
-	if _main_fire == null or not is_instance_valid(_main_fire):
-		return
-	var reference:Texture2D = FIRE_FRAMES.get_frame_texture(&"default",0)
-	if reference == null:
-		return
-	var tex_size:Vector2 = reference.get_size()
-	_main_fire.scale = Vector2(
-		_fire_base_width / maxf(tex_size.x,1.0),
-		_fire_base_height / maxf(tex_size.y,1.0)
-	)
-	# 子视觉覆盖所在格子，底部落在方块底边；根节点仍记录实际撞击点。
-	_main_fire.position = _fire_visual_local_position
-	_main_fire.modulate = Color.WHITE
 
 func _update_fire_smoke(delta:float) -> void:
 	if MC_SMOKE_SCENE == null or get_tree() == null or get_tree().current_scene == null:

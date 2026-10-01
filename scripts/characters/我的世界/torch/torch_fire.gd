@@ -1,7 +1,6 @@
 extends "res://scripts/effects/我的世界/烈焰火场.gd"
-## 火把火星落地生成的火：复用烈焰人火场的原版火焰帧、地面伤害与共享燃烧（只在权威端结算）。
-## 灵魂火改用原版 soul_fire 帧，伤害与燃烧倍率由火把翻倍后传入。注册为 AI_Hazard，威胁圆即真实伤害圆。
-const SOUL_FRAMES:SpriteFrames = preload("res://particles/mc_ground_soul_fire.tres")
+## 火把火星落地生成的火：复用烈焰人火场的原版 3D 火焰方块、地面伤害与共享燃烧（只在权威端结算）。
+## 灵魂火改用原版 soul_fire_0/1 贴图，伤害与燃烧倍率由火把翻倍后传入。注册为 AI_Hazard，威胁圆即真实伤害圆。
 const U = preload("res://scripts/characters/我的世界/new5/utils.gd")
 
 var soul:bool = false
@@ -27,12 +26,8 @@ static func apply_burn(source:ball,target:ball,seconds:float,tick:float) -> bool
 	return SHARED_BURN.apply_amount(source,target,seconds,tick)
 
 
-func _build_fire_visual() -> void:
-	super._build_fire_visual()
-	if soul and _main_fire != null:
-		_main_fire.sprite_frames = SOUL_FRAMES
-		_main_fire.frame = _rng.randi_range(0,maxi(SOUL_FRAMES.get_frame_count(&"default") - 1,0))
-		_main_fire.play()
+func _soul_fire_visual() -> bool:
+	return soul
 
 
 func _spawn_fire_smoke() -> void:

@@ -76,6 +76,7 @@
 | MC 像素圈/蓄力盘 | `pixel_arc.gd::draw_ring/draw_disk`；持续预警 `mc_combat_abilities.gd::charge_circle` | MC 范围圈不再另写平滑 `draw_arc` |
 | 无伤害扩散像素环 | `mc_combat_abilities.gd::expanding_ring(parent,point,radius,options)` | 支持 `direction/depth_ratio` 伪 3D；真实触发时 RPC 播一次 |
 | 爆炸 | `mc_combat_abilities.gd::explosion(context,point,radius,options)` | 只管表现，伤害归技能 |
+| 原版 3D 地面火（普通/灵魂） | `scripts/effects/我的世界/mc_fire_block_3d.gd`；`烈焰火场.gd::_build_fire_visual` 创建，子类覆写 `_soul_fire_visual()` | 原版 fire/soul_fire 地面模型（fire_floor 四斜面 + 四边 side），按所在格放进共享的地图立体墙 overlay（同一透视相机，z 92）；只管视觉，伤害/威胁仍归火场 |
 | 飞离地图的贴图碎裂 | `item_fragments.gd::spawn/spawn_visual/spawn_texture/spawn_obstacle` | 通用效果，恶魂/凋零破障原调用保持 |
 | 落地方块小粒子 | `block_fragments.gd::spawn_obstacle/spawn_texture` | 抛物线落地停留后淡出，可传 `seed/effect_parent` |
 | 障碍破坏与裂纹 | `ghast_obstacle_damage.gd::ensure` / `mc_combat_abilities.gd::obstacle_blast`；`mc_obstacle_properties.gd` | 0–100 进度，裂纹阈值 34/67；地图安全边界不可破坏 |

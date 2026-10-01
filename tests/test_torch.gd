@@ -260,7 +260,7 @@ func run() -> void:
 	await settle_sparks()
 	await clear_fires(torch)
 	var soul_fire:Variant = await drop_spark(torch)
-	check(soul_fire != null and soul_fire.soul and soul_fire._main_fire.sprite_frames == FIRE.SOUL_FRAMES,"sparks landing on soul sand become soul fire")
+	check(soul_fire != null and soul_fire.soul and soul_fire._fire_block.soul and soul_fire._fire_block.textures() == soul_fire._fire_block.SOUL_FIRE_TEXTURES,"sparks landing on soul sand become soul fire")
 	if soul_fire != null:
 		check(is_equal_approx(soul_fire.tick_damage(),10.0) and is_equal_approx(soul_fire.burn_tick_damage(),6.0),"soul fire doubles ground damage and burn")
 		check(soul_fire.get_ai_hazard_info(null).get("kind") == "torch_soul_fire","soul fire threat is labelled")

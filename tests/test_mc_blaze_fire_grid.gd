@@ -10,18 +10,24 @@ func run() -> void:
 		world.add_child(fire)
 		fire.setup(source,"Team0",center+Vector2(3,5),radius,4.5,0.5,0.11,2.2,0.05)
 		fire.set_physics_process(false)
-		var size:Vector2 = fire.FIRE_FRAMES.get_frame_texture(&"default",0).get_size()*fire._main_fire.scale
+		var block:Node2D = fire._fire_block
+		var size:Vector2 = block.block_rect.size
 		check(size.is_equal_approx(fire._fire_cell_rect.size),"fire visual occupies exactly one map cell")
-		check(is_equal_approx(fire._main_fire.global_position.y+size.y*0.5,fire._fire_cell_rect.end.y),"flame bottom equals block bottom")
-		check(fire._main_fire.global_position.is_equal_approx(fire._fire_cell_rect.get_center()),"sprite is centered horizontally and vertically in its cell")
+		check(block.block_rect.is_equal_approx(fire._fire_cell_rect),"3D fire block stands on its own cell (ground footprint equals the block)")
+		var node:MeshInstance3D = block.mesh_instance()
+		check(node != null and node.position.is_equal_approx(Vector3(fire._fire_cell_rect.position.x,0.0,fire._fire_cell_rect.position.y)),"block geometry starts at the cell ground corner in the shared 3D view")
 		check(fire._radius==radius and fire._duration==4.5,"grid sizing does not change damage radius or lifetime")
 		if first_size.is_zero_approx(): first_size = size
 		else: check(size.is_equal_approx(first_size),"different damage radii no longer stretch the flame")
-		var frame_count:int = fire.FIRE_FRAMES.get_frame_count(&"default")
-		for frame:int in range(frame_count):
-			fire._main_fire.frame = frame
-			var frame_size:Vector2 = fire.FIRE_FRAMES.get_frame_texture(&"default",frame).get_size()*fire._main_fire.scale
-			check(frame_size.is_equal_approx(size),"all native animation frames retain one-cell size")
+		var aabb:AABB = node.mesh.get_aabb() if node != null else AABB()
+		var strips:Array[int] = block.surface_texture_indices()
+		for frame:int in range(block.FRAME_COUNT):
+			block.frame = frame
+			block._apply_frame()
+			var scrolled:bool = node != null and node.mesh.get_aabb().is_equal_approx(aabb) and not strips.is_empty()
+			for surface:int in range(strips.size()):
+				scrolled = scrolled and is_equal_approx(block.surface_material(surface).uv1_offset.y,float(block.frame_row(strips[surface]))/32.0)
+			check(scrolled,"all native animation frames keep the one-block geometry and only scroll their strip row")
 		fire.free()
 	var probe:Node2D = script.new()
 	world.add_child(probe)

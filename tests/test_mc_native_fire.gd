@@ -16,15 +16,19 @@ func run() -> void:
 	large.set_physics_process(false); large.elapsed=0.3; large._update_main_fire_visual()
 	await physics_frame
 	await process_frame
-	check(patch.FIRE_FRAMES==large.FIRE_FRAMES,"Blaze ground fire and Viola large fire share the same new native animation")
-	var frames:SpriteFrames=patch.FIRE_FRAMES
+	var block:Node2D=patch._fire_block
+	check(block.textures()[0]==large.FIRE_FRAMES.get_frame_texture(&"default",0).atlas,"Blaze 3D fire block and Viola large fire use the same native fire_0 strip")
+	var frames:SpriteFrames=large.FIRE_FRAMES
 	check(frames.get_frame_count(&"default")==32 and frames.get_animation_speed(&"default")==20 and frames.get_animation_loop(&"default"),"native ground fire preserves 32-frame looping at one MC tick per frame")
+	check(block.FRAME_COUNT==32 and is_equal_approx(block.FRAMES_PER_SECOND,20.0),"3D fire block animates 32 frames at one MC tick per frame")
 	var first:AtlasTexture=frames.get_frame_texture(&"default",0)
 	var middle:AtlasTexture=frames.get_frame_texture(&"default",16)
 	check(first.atlas.resource_path.ends_with("MCFire/fire_0.png") and first.region==Rect2(0,256,16,16) and middle.region==Rect2(0,0,16,16),"fire_0 follows official mcmeta order 16..31 then 0..15")
-	check(patch._main_fire.texture_filter==CanvasItem.TEXTURE_FILTER_NEAREST and large._main_fire.texture_filter==CanvasItem.TEXTURE_FILTER_NEAREST,"both ground fires preserve pixel texture without blur")
+	block.frame=0
+	check(block.frame_row(0)==16 and block.frame_row(1)==0,"3D block: fire_0 follows mcmeta order, fire_1 plays in order")
+	check(block.surface_material(0).texture_filter==BaseMaterial3D.TEXTURE_FILTER_NEAREST and large._main_fire.texture_filter==CanvasItem.TEXTURE_FILTER_NEAREST,"both ground fires preserve pixel texture without blur")
 	check(patch._radius==34 and patch._duration==4.5 and large.radius==58 and large.duration==5,"visual replacement does not change fire range or duration")
-	check(is_equal_approx(patch._main_fire.global_position.y+patch._fire_base_height*0.5,patch._fire_cell_rect.end.y),"Blaze flame bottom aligns with the map cell bottom")
+	check(block.block_rect.is_equal_approx(patch._fire_cell_rect),"Blaze 3D fire block stands on its map cell")
 	check(large._main_fire.position==Vector2.ZERO,"Viola keeps her original impact-centered large-fire anchoring")
 	var before:float=victim.health
 	var ally_before:float=ally.health
