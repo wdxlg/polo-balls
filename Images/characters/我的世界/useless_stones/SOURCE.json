@@ -1,0 +1,40 @@
+{
+  "description": "三废石 (granite / diorite / andesite) block textures and baked cube sprites",
+  "upstream": "Minecraft Java Edition 1.21.1 client jar (minecraft_1.21.1_client.jar, SHA1 30c73b1c5da787909b2f73340419fdf13b9def88)",
+  "license": "Minecraft assets are copyright Mojang Studios/Microsoft and subject to the Minecraft EULA; no general redistribution permission is claimed.",
+  "files": {
+    "granite.png": {
+      "original_path": "assets/minecraft/textures/block/granite.png",
+      "sha1": "af2518fc3822d9d2909c1c405e9e8aa6210581be",
+      "modified": false
+    },
+    "diorite.png": {
+      "original_path": "assets/minecraft/textures/block/diorite.png",
+      "sha1": "c76fef801da7b088dbbf2b892a09f91b8ea04e57",
+      "modified": false
+    },
+    "andesite.png": {
+      "original_path": "assets/minecraft/textures/block/andesite.png",
+      "sha1": "321f10935fd34e8c0e81dec47f25eca6c6a5f1f7",
+      "modified": false
+    },
+    "granite_block.png": {
+      "generated_by": "scripts/training/mc_native_assets/bake_useless_stones.py --textures Images/characters/我的世界/useless_stones --output Images/characters/我的世界/useless_stones",
+      "input": "granite.png",
+      "projection": "orthographic cube, yaw 30, pitch 25, fixed face lighting (same as the frontier moss block)",
+      "sha256": "102760109aaa3821187955a1dad4dc8e75185429cb76121ea0e6b65046aaf1e2"
+    },
+    "diorite_block.png": {
+      "generated_by": "scripts/training/mc_native_assets/bake_useless_stones.py --textures Images/characters/我的世界/useless_stones --output Images/characters/我的世界/useless_stones",
+      "input": "diorite.png",
+      "projection": "orthographic cube, yaw 30, pitch 25, fixed face lighting (same as the frontier moss block)",
+      "sha256": "5fb142402a9435f506bd79e5da3ae6114f4b832b81f38618d317926b137a1ea0"
+    },
+    "andesite_block.png": {
+      "generated_by": "scripts/training/mc_native_assets/bake_useless_stones.py --textures Images/characters/我的世界/useless_stones --output Images/characters/我的世界/useless_stones",
+      "input": "andesite.png",
+      "projection": "orthographic cube, yaw 30, pitch 25, fixed face lighting (same as the frontier moss block)",
+      "sha256": "5a4464141ecc61e9ce0212727e498d24cfe931599d0b38506dafe9bc436e419d"
+    }
+  }
+}

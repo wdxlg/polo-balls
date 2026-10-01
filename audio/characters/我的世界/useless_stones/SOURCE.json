@@ -1,0 +1,73 @@
+{
+    "source": "Locally installed Minecraft Java asset index 1.21.json (used by 1.21.1) and its hashed original objects under .minecraft/assets/objects; bytes copied unchanged",
+    "rights": "Minecraft assets are copyright Mojang Studios/Microsoft. Use is subject to the Minecraft EULA; no general redistribution permission is claimed.",
+    "used_by": "scripts/characters/我的世界/useless_stones/useless_stones_audio.gd (三废石 stones, thrown stone shards, andesite ripple)",
+    "files": [
+        {
+            "new_asset": "stone_dig1.ogg",
+            "original_path": "minecraft/sounds/dig/stone1.ogg",
+            "sha1": "4e094ed8dfa98656d8fec52a7d20c5ee6098b6ad",
+            "event": "block.stone.break / block.stone.place"
+        },
+        {
+            "new_asset": "stone_dig2.ogg",
+            "original_path": "minecraft/sounds/dig/stone2.ogg",
+            "sha1": "9c92f697142ae320584bf64c0d54381d59703528",
+            "event": "block.stone.break / block.stone.place"
+        },
+        {
+            "new_asset": "stone_dig3.ogg",
+            "original_path": "minecraft/sounds/dig/stone3.ogg",
+            "sha1": "8f23c02475d388b23e5faa680eafe6b991d7a9d4",
+            "event": "block.stone.break / block.stone.place"
+        },
+        {
+            "new_asset": "stone_dig4.ogg",
+            "original_path": "minecraft/sounds/dig/stone4.ogg",
+            "sha1": "363545a76277e5e47538b2dd3a0d6aa4f7a87d34",
+            "event": "block.stone.break / block.stone.place"
+        },
+        {
+            "new_asset": "stone_step1.ogg",
+            "original_path": "minecraft/sounds/step/stone1.ogg",
+            "sha1": "4a2e3795ffd4d3aab0834b7e41903af3a8f7d197",
+            "event": "block.stone.hit / block.stone.step"
+        },
+        {
+            "new_asset": "stone_step2.ogg",
+            "original_path": "minecraft/sounds/step/stone2.ogg",
+            "sha1": "22a383d9c22342305a4f16fec0bb479a885f8da2",
+            "event": "block.stone.hit / block.stone.step"
+        },
+        {
+            "new_asset": "stone_step3.ogg",
+            "original_path": "minecraft/sounds/step/stone3.ogg",
+            "sha1": "a533e7ae975e62592de868e0d0572778614bd587",
+            "event": "block.stone.hit / block.stone.step"
+        },
+        {
+            "new_asset": "stone_step4.ogg",
+            "original_path": "minecraft/sounds/step/stone4.ogg",
+            "sha1": "d5218034051a13322d7b5efc0b5a9af739615f04",
+            "event": "block.stone.hit / block.stone.step"
+        },
+        {
+            "new_asset": "stone_step5.ogg",
+            "original_path": "minecraft/sounds/step/stone5.ogg",
+            "sha1": "48dd05ab2e4626d74206c2b09a628a3d59ce15e9",
+            "event": "block.stone.hit / block.stone.step"
+        },
+        {
+            "new_asset": "stone_step6.ogg",
+            "original_path": "minecraft/sounds/step/stone6.ogg",
+            "sha1": "c4810a3de80cb57f9cdf8deaacfd36cb619cdf0b",
+            "event": "block.stone.hit / block.stone.step"
+        },
+        {
+            "new_asset": "throw.ogg",
+            "original_path": "minecraft/sounds/random/bow.ogg",
+            "sha1": "87edc11141fb5a045f2ed830b545aaa73f96ee99",
+            "event": "entity.snowball.throw"
+        }
+    ]
+}
