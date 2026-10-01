@@ -15,19 +15,21 @@ const BODY_RADIUS_UNIT:float = 48.0
 const SPRITE_SCALE:float = 1.1
 # 帧画布 176×176，身体包围盒中心在 (85.5,103)：偏移后节点原点就是身体中心（判定圆心）。
 const SPRITE_OFFSET:Vector2 = Vector2(2.5,-15.0)
-const ENTER_SPEED:float = 280.0
-const CHARGE_ACCEL:float = 420.0
-const CHARGE_MAX_SPEED:float = 640.0
+const ENTER_SPEED:float = 150.0
+const CHARGE_ACCEL:float = 220.0
+const CHARGE_MAX_SPEED:float = 360.0
 const TURN_RATE:float = 3.0
-const EXIT_ACCEL:float = 1200.0
-const EXIT_MAX_SPEED:float = 1700.0
-const IMPACT_REFERENCE_SPEED:float = 700.0
+const EXIT_ACCEL:float = 500.0
+const EXIT_MAX_SPEED:float = 760.0
+const IMPACT_REFERENCE_SPEED:float = 400.0
 const IMPACT_RATIO_MAX:float = 1.3
 const RAM_SPEED_KEEP:float = 0.72
 const PUSH_INTERVAL:float = 0.16
 const CONTACT_RELEASE_MARGIN:float = 6.0
 const BOW_LEAD_TIME:float = 0.12
-const MAX_LIFE:float = 12.0
+const MAX_LIFE:float = 16.0
+# 世界的地图外遮罩在绝对 z=90 用背景快照盖住越界视觉；山羊从屏幕外进出，必须画在它之上。
+const DRAW_Z:int = 91
 const OFFSCREEN_MARGIN:float = 140.0
 const PRE_RAM_CHANCE:float = 0.38
 const STEP_STRIDE_AT_500:float = 0.2
@@ -93,7 +95,8 @@ func _adopt_scale(horn:Node2D) -> void:
 
 
 func _ready() -> void:
-	z_index = 1
+	z_as_relative = false
+	z_index = DRAW_Z
 	_sprite = AnimatedSprite2D.new()
 	_sprite.name = "Sprite"
 	_sprite.sprite_frames = FRAMES
