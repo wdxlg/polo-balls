@@ -97,7 +97,9 @@ func run() -> void:
 	clock._measured_speed = clock.base_travel_speed()*2.0
 	check(is_equal_approx(clock.current_hit_damage_multiplier(),2.0),"double speed x2")
 	clock._measured_speed = clock.base_travel_speed()*9.0
-	check(is_equal_approx(clock.current_hit_damage_multiplier(),clock.speed_damage_max),"multiplier capped")
+	check(is_equal_approx(clock.current_hit_damage_multiplier(),9.0),"multiplier uncapped (x9 at 9x)")
+	clock._measured_speed = clock.base_travel_speed()*40.0
+	check(is_equal_approx(clock.current_hit_damage_multiplier(),40.0),"multiplier uncapped (x40 at 40x)")
 	clock._measured_speed = 0.0
 
 	# Accelerated scope at k = 2.5: clock / projectile / status / world time, not the foe.
@@ -157,16 +159,50 @@ func run() -> void:
 	clock.direction = Vector2(1.0,0.4).normalized()
 	clock.rewind_interval = 999.0
 	clock._rewind_left = 999.0
-	clock.health = clock.Max_health
+	clock.health = clock.Max_health - 150
+	STATUS.apply_effect(clock,"resistance",1,30.0,null)
 	await frames(75)
-	clock.health = clock.Max_health - 100
+	var resist_then:float = -1.0
+	await frames(1)
+	# Within the last second: healed, lost resistance, gained slowness.
+	clock.health = clock.Max_health
+	STATUS.clear(clock,"resistance")
+	STATUS.apply_effect(clock,"slowness",1,30.0,null)
+	await frames(2)
+	check(STATUS.active(clock,"slowness") and not STATUS.active(clock,"resistance"),"status setup before rewind")
 	var before:int = clock.rewind_count
 	clock._rewind_left = 0.0
 	var rewind_frames:int = 0
+	var invincible_ok:bool = true
+	var overlay_seen:bool = false
+	var rewind_ghost_fx:bool = false
 	for i:int in 60:
 		await frames(1)
-		if clock._rewinding: rewind_frames += 1
+		if clock._rewinding:
+			rewind_frames += 1
+			if resist_then < 0.0:
+				for e:Dictionary in clock._rewind_snap.get("statuses",[]):
+					if str(e.kind) == "resistance": resist_then = float(e.props.get("remaining",-1.0))
+			var hp_before:int = clock.health
+			clock.take_damage(80.0,true)
+			clock.receive_positional_damage(80.0,clock.global_position,true,foe)
+			if clock.health < hp_before: invincible_ok = false
+			var overlay:Node = clock.image.get_parent().get_node_or_null("ClockRewindOverlay")
+			if overlay != null and overlay.material != null and not clock.image.visible: overlay_seen = true
+			for n:Node in arena.get_children():
+				if n.name.begins_with("ClockAfterimage") and n.get_child_count() > 0 and (n.get_child(0) as CanvasItem).material != null: rewind_ghost_fx = true
 		elif clock.rewind_count > before: break
+	check(invincible_ok,"invincible while rewinding")
+	check(overlay_seen,"rewind shader overlay on the clock")
+	check(rewind_ghost_fx,"rewind afterimages carry the rewind shader")
+	check(clock.image.visible and clock.image.get_parent().get_node_or_null("ClockRewindOverlay") == null or clock.image.get_parent().get_node("ClockRewindOverlay").is_queued_for_deletion(),"overlay removed after rewind")
+	check(clock.health == clock.Max_health - 150,"rewind restores exact health, both ways (%d)" % clock.health)
+	check(STATUS.active(clock,"resistance"),"rewind restores a status that was removed")
+	check(not STATUS.active(clock,"slowness"),"rewind removes a status gained afterwards")
+	if STATUS.active(clock,"resistance"):
+		var r:float = float(STATUS.current(clock,"resistance").remaining)
+		check(absf(r - resist_then) < 0.3,"restored status timer matches the past (%.2f vs %.2f)" % [r,resist_then])
+	STATUS.clear(clock,"resistance")
 	check(clock.rewind_count > before,"rewind fired")
 	check(absf(clock.rewind_real_span - 1.0) < 0.06,"rewind reaches back one real second (%.2f)" % clock.rewind_real_span)
 	check(rewind_frames >= 12,"rewind plays over real time at 5x (%d frames)" % rewind_frames)
@@ -174,8 +210,7 @@ func run() -> void:
 	var trail:int = 0
 	for n:Node in arena.get_children(): if n.name.begins_with("ClockAfterimage"): trail += 1
 	check(trail > 0,"rewind always leaves a visible trail")
-	await frames(20)
-	check(clock.health > clock.Max_health - 100,"rewind restores health (%d)" % clock.health)
+	clock.health = clock.Max_health
 	clock.rewind_interval = 999.0
 	clock._rewind_left = 999.0
 

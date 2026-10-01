@@ -2,15 +2,35 @@ extends Node2D
 ## 时钟残影：原版表盘贴图淡出，画在人物下层；带伤残影在权威端附带实体碰撞（时钟自身例外）。
 const ARMED_TINT := Color(1.0,0.86,0.45,0.62)
 const PLAIN_TINT := Color(0.66,0.82,1.0,0.46)
+const REWIND_SHADER:Shader = preload("res://scripts/characters/我的世界/clock/rewind.gdshader")
+const REWIND_PAD:float = 4.0
+static var _rewind_material:ShaderMaterial
 var life:float = 0.4
 var age:float = 0.0
 var armed:bool = false
+var rewind:bool = false
 var _sprite:Sprite2D
 var _body:StaticBody2D
 var _clock_ref:WeakRef
 
 
-func setup(clock:Node2D,texture:Texture2D,sprite_scale:Vector2,point:Vector2,duration:float,is_armed:bool,solid_radius:float,layer:int = -2) -> void:
+## 倒流画面材质（时钟本体与倒流残影共用）。
+static func rewind_material() -> ShaderMaterial:
+	if _rewind_material == null:
+		_rewind_material = ShaderMaterial.new()
+		_rewind_material.shader = REWIND_SHADER
+	return _rewind_material
+
+
+## 外扩透明边距，让撕裂错位不被精灵边框裁掉。
+static func pad_region(sprite:Sprite2D) -> void:
+	if sprite.texture == null: return
+	var size:Vector2 = sprite.texture.get_size()
+	sprite.region_enabled = true
+	sprite.region_rect = Rect2(-REWIND_PAD,-REWIND_PAD,size.x + REWIND_PAD * 2.0,size.y + REWIND_PAD * 2.0)
+
+
+func setup(clock:Node2D,texture:Texture2D,sprite_scale:Vector2,point:Vector2,duration:float,is_armed:bool,solid_radius:float,layer:int = -2,rewind_fx:bool = false) -> void:
 	name = "ClockAfterimage"
 	add_to_group(&"BattleTransient")
 	global_position = point
@@ -24,6 +44,10 @@ func setup(clock:Node2D,texture:Texture2D,sprite_scale:Vector2,point:Vector2,dur
 	_sprite.texture = texture
 	_sprite.scale = sprite_scale
 	_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	rewind = rewind_fx
+	if rewind_fx:
+		_sprite.material = rewind_material()
+		pad_region(_sprite)
 	add_child(_sprite)
 	_apply_fade()
 	if solid_radius > 0.0 and clock is CollisionObject2D:
@@ -50,6 +74,7 @@ func _physics_process(delta:float) -> void:
 func _apply_fade() -> void:
 	if _sprite == null: return
 	var tint:Color = ARMED_TINT if armed else PLAIN_TINT
+	if rewind: tint.a = 0.8
 	var f:float = clampf(1.0 - age / life,0.0,1.0)
 	tint.a *= f * f
 	_sprite.modulate = tint

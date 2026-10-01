@@ -7,6 +7,7 @@ extends ball
 const FIELD = preload("res://scripts/characters/我的世界/clock/time_field.gd")
 const GHOST = preload("res://scripts/characters/我的世界/clock/afterimage.gd")
 const U = preload("res://scripts/characters/我的世界/new5/utils.gd")
+const STATE = preload("res://scripts/characters/我的世界/clock/rewind_state.gd")
 const ITEM_DEATH = preload("res://scripts/effects/我的世界/item_fragments.gd")
 const SFX = preload("res://scripts/effects/我的世界/mc_native_audio.gd")
 const HAT:AudioStream = preload("res://audio/characters/时钟/note_block.hat.ogg")
@@ -23,8 +24,7 @@ const HURTBOX_MASK:int = 2
 @export var rewind_duration:float = 0.25
 @export var rewind_min_real_gap:float = 3.0
 @export_category("时钟 - 速度与残影")
-@export var speed_damage_min:float = 0.6
-@export var speed_damage_max:float = 3.0
+@export var speed_damage_min:float = 0.6 # 无上限
 @export var ghost_speed_ratio:float = 3.0
 @export var ghost_max_alive:int = 40
 @export var ghost_spacing:float = 16.0
@@ -41,14 +41,16 @@ var _last_pos:Vector2
 var _real_t:float = 0.0
 var _clock_t:float = 0.0
 var _hist_pos:PackedVector2Array = PackedVector2Array()
-var _hist_hp:PackedInt32Array = PackedInt32Array()
+var _snaps:Array[Dictionary] = []
+var _rewind_snap:Dictionary = {}
+var _rewind_hp_from:int = 0
+var _rewind_overlay:Sprite2D
 var _hist_t:PackedFloat64Array = PackedFloat64Array()
 var _rewind_left:float = 4.5
 var _rewinding:bool = false
 var _rewind_path:PackedVector2Array = PackedVector2Array()
 var _rewind_elapsed:float = 0.0
 var _rewind_idx:int = 0
-var _rewind_hp:int = 0
 var _rewind_armed:bool = false
 var _rewind_start_real:float = 0.0
 var _rewind_ghost_gap:float = 16.0
@@ -100,7 +102,7 @@ func speed_ratio() -> float:
 
 
 func current_hit_damage_multiplier() -> float:
-	return clampf(speed_ratio(),speed_damage_min,speed_damage_max)
+	return maxf(speed_ratio(),speed_damage_min)
 
 
 func ghosts_armed() -> bool:
@@ -118,6 +120,7 @@ func _physics_process(delta:float) -> void:
 		var sample:float = step.length() / maxf(delta,0.0001)
 		_measured_speed = lerpf(_measured_speed,sample,1.0 - exp(-delta / 0.12))
 	if not is_multiplayer_authority(): return
+	if not _rewinding: _record_snapshot()
 	time_scale += time_accel_per_second * delta
 	if time_scale >= _next_tick_mark:
 		_next_tick_mark = floorf(time_scale) + 1.0
@@ -164,25 +167,24 @@ func move(speed_value:float,delta:float) -> void:
 
 func _record_history() -> void:
 	_hist_pos.append(global_position)
-	_hist_hp.append(health)
 	_hist_t.append(_real_t)
 	var cut:int = 0
 	while cut + 1 < _hist_t.size() and _hist_t[cut + 1] <= _real_t - rewind_span: cut += 1
 	if cut > 0:
 		_hist_pos = _hist_pos.slice(cut)
-		_hist_hp = _hist_hp.slice(cut)
 		_hist_t = _hist_t.slice(cut)
 
 
 func _start_rewind() -> bool:
 	if _hist_pos.size() < 8 or apply_transport_pose(): return false
 	# 倒回真实时间 1 秒前；两次倒流至少隔几秒真实时间，否则高速时刚走完就被倒回原地。
-	if _real_t - _hist_t[0] < rewind_span - 0.02: return false
+	if _real_t - _hist_t[0] < rewind_span - 0.02 or _snaps.is_empty(): return false
 	if _real_t - _last_rewind_real < rewind_min_real_gap: return false
 	if not _spot_free(_hist_pos[0]): return false
 	_rewind_path = _hist_pos.duplicate()
 	_rewind_path.reverse()
-	_rewind_hp = _hist_hp[0]
+	_rewind_snap = _snaps[0]
+	_rewind_hp_from = health
 	_rewind_armed = ghosts_armed()
 	_rewind_elapsed = 0.0
 	_rewind_idx = 0
@@ -195,6 +197,7 @@ func _start_rewind() -> bool:
 	_rewinding = true
 	rewind_count += 1
 	_emit_warp()
+	_emit_rewind_fx(true)
 	return true
 
 
@@ -211,19 +214,112 @@ func _step_rewind(delta:float) -> void:
 			_spawn_ghost(_rewind_path[i - 1],_rewind_armed)
 	_rewind_idx = idx
 	global_position = _rewind_path[idx]
+	_set_health_exact(int(round(lerpf(float(_rewind_hp_from),float(_rewind_snap.hp),f))))
 	if f >= 1.0: _finish_rewind()
 
 
 func _finish_rewind() -> void:
 	_rewinding = false
 	_last_rewind_real = _real_t
-	if health > 0 and _rewind_hp > health: heal(float(_rewind_hp - health))
+	if health > 0 and not _rewind_snap.is_empty():
+		_set_health_exact(int(_rewind_snap.hp))
+		STATE.restore(self,_rewind_snap)
+	_rewind_snap = {}
+	_emit_rewind_fx(false)
 	_hist_pos.clear()
-	_hist_hp.clear()
 	_hist_t.clear()
+	_snaps.clear()
 	_rewind_left = rewind_interval
 	_last_pos = global_position
 	_ghost_travel = 0.0
+
+
+func _record_snapshot() -> void:
+	_snaps.append(STATE.capture(self,_real_t))
+	var cut:int = 0
+	while cut + 1 < _snaps.size() and float(_snaps[cut + 1].t) <= _real_t - rewind_span: cut += 1
+	if cut > 0: _snaps = _snaps.slice(cut)
+
+
+## 倒流写回血量：不是受伤也不是治疗，不触发跳字与受伤钩子。
+func _set_health_exact(value:int) -> void:
+	if health <= 0 or value == health: return
+	set_meta("death_return_restore",true)
+	health = clampi(value,1,Max_health)
+	remove_meta("death_return_restore")
+
+
+# ---------------------------------------------------------------- 倒流期间无敌
+func _rewind_invincible() -> bool:
+	return _rewinding and health > 0
+
+
+func can_receive_hit_contact(_incoming_hit:hitbox,_contact_hurtbox:hurtbox) -> bool:
+	return not _rewind_invincible()
+
+
+func can_receive_hit_from(_incoming_hit:hitbox) -> bool:
+	return not _rewind_invincible()
+
+
+func receive_positional_damage(damage:float,impact_position:Vector2,ignore_block:bool = false,source:Node = null) -> bool:
+	if _rewind_invincible(): return false
+	return super.receive_positional_damage(damage,impact_position,ignore_block,source)
+
+
+func receive_spatial_damage(damage:float,damage_space:Variant,ignore_block:bool = false,raw_health:bool = false) -> bool:
+	if _rewind_invincible(): return false
+	return super.receive_spatial_damage(damage,damage_space,ignore_block,raw_health)
+
+
+func take_damage(damage:float,ignore_block:bool = false) -> void:
+	if _rewind_invincible(): return
+	super.take_damage(damage,ignore_block)
+
+
+func on_actual_health_damage_received(actual_health_damage:float,health_before:float) -> void:
+	if _rewind_invincible() and actual_health_damage > 0.0:
+		health = maxi(int(ceil(health_before)),int(health))
+		return
+	super.on_actual_health_damage_received(actual_health_damage,health_before)
+
+
+# ---------------------------------------------------------------- 倒流画面
+func _emit_rewind_fx(on:bool) -> void:
+	if multiplayer.has_multiplayer_peer(): _clock_rewind_fx.rpc(on)
+	_clock_rewind_fx(on)
+
+
+@rpc("authority","call_remote","reliable")
+func _clock_rewind_fx(on:bool) -> void:
+	if not (image is Sprite2D) or image.get_parent() == null: return
+	if on:
+		if not is_instance_valid(_rewind_overlay):
+			_rewind_overlay = Sprite2D.new()
+			_rewind_overlay.name = "ClockRewindOverlay"
+			_rewind_overlay.material = GHOST.rewind_material()
+			_rewind_overlay.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			image.get_parent().add_child(_rewind_overlay)
+			image.get_parent().move_child(_rewind_overlay,image.get_index() + 1)
+		image.visible = false
+		_sync_rewind_overlay()
+	else:
+		if is_instance_valid(_rewind_overlay): _rewind_overlay.queue_free()
+		_rewind_overlay = null
+		image.visible = true
+
+
+func _sync_rewind_overlay() -> void:
+	if not is_instance_valid(_rewind_overlay) or not (image is Sprite2D): return
+	var src:Sprite2D = image as Sprite2D
+	_rewind_overlay.texture = src.texture
+	_rewind_overlay.transform = src.transform
+	_rewind_overlay.centered = src.centered
+	_rewind_overlay.offset = src.offset
+	_rewind_overlay.modulate = src.modulate
+	_rewind_overlay.self_modulate = src.self_modulate
+	_rewind_overlay.flip_h = src.flip_h != (float(src.get_instance_shader_parameter("sprite_flip_h")) > 0.5)
+	GHOST.pad_region(_rewind_overlay)
 
 
 func _spot_free(point:Vector2) -> bool:
@@ -260,18 +356,18 @@ func _spawn_ghost(point:Vector2,armed:bool) -> void:
 	if _ghosts.size() >= ghost_max_alive: return
 	var mult:float = current_hit_damage_multiplier()
 	_ghosts.append({"pos":point,"until":_real_t + ghost_life,"armed":armed,"mult":mult})
-	if multiplayer.has_multiplayer_peer(): _clock_ghost.rpc(point,_current_frame(),armed)
-	_clock_ghost(point,_current_frame(),armed)
+	if multiplayer.has_multiplayer_peer(): _clock_ghost.rpc(point,_current_frame(),armed,_rewinding)
+	_clock_ghost(point,_current_frame(),armed,_rewinding)
 
 
 @rpc("authority","call_remote","unreliable")
-func _clock_ghost(point:Vector2,frame:int,armed:bool) -> void:
+func _clock_ghost(point:Vector2,frame:int,armed:bool,rewind_fx:bool = false) -> void:
 	var scene:Node = get_tree().current_scene if is_inside_tree() else null
 	if scene == null or not (image is Sprite2D): return
 	var g:Node2D = GHOST.new()
 	scene.add_child(g)
 	var solid:float = ghost_radius() * 0.9 if armed and is_multiplayer_authority() else 0.0
-	g.setup(self,frame_texture(frame),image.global_scale,point,ghost_life,armed,solid,_effective_z(image) - 1)
+	g.setup(self,frame_texture(frame),image.global_scale,point,ghost_life,armed,solid,_effective_z(image) - 1,rewind_fx)
 
 
 ## 残影挂在场景根下，用绝对层级；取本体实际层级减一，保证画在人物下面、地图上面。
@@ -345,6 +441,7 @@ func _process(delta:float) -> void:
 	frame = posmod(frame,64)
 	set_meta("clock_frame",frame)
 	(image as Sprite2D).texture = frame_texture(frame)
+	_sync_rewind_overlay()
 
 
 # ---------------------------------------------------------------- 威胁 / 介绍 / 死亡
@@ -368,5 +465,6 @@ func Die() -> void:
 	if has_meta("clock_dead"): return
 	set_meta("clock_dead",true)
 	_rewinding = false
+	_clock_rewind_fx(false)
 	ITEM_DEATH.spawn(self)
 	super.Die()
