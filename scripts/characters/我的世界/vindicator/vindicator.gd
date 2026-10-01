@@ -12,19 +12,24 @@ const HAND:Vector2 = Vector2(56.357506,58.194286)
 const AXE_GRIP:Vector2 = Vector2(5.5,11.5)
 const AXE_BLADE:Vector2 = Vector2(9.0,4.0)
 const AXE_SCALE:float = 5.0
-const REST_ARM_ANGLE:float = -1.65
+const REST_ARM_ANGLE:float = -2.75
+const READY_ARM_ANGLE:float = -1.65
+const RUSH_READY_ARM_ANGLE:float = -1.00
+const DRAW_CHARGE_RATIO:float = 0.065
 const RAISED_ARM_ANGLE:float = -0.70
-const AXE_HOLD_ANGLE:float = -REST_ARM_ANGLE-PI/4.0
+const AXE_HOLD_ANGLE:float = -READY_ARM_ANGLE-PI/4.0
+const REST_GRIP_ANGLE:float = -REST_ARM_ANGLE-PI/4.0
 enum Phase { IDLE, CHARGE, DASH, SWING, RECOVER }
 @export var full_charge_seconds:float = 1.6
 @export var maximum_damage_multiplier:float = 4.0
-@export var swing_seconds:float = 0.24
+@export var swing_seconds:float = 0.14
 @export var recovery_seconds:float = 0.32
 @export var rush_speed_multiplier:float = 3.6
 var phase:int = Phase.IDLE
 var charge_elapsed:float = 0.0
 var phase_elapsed:float = 0.0
 var released_charge:float = 0.0
+var released_rush:bool = false
 var facing:Vector2 = Vector2.RIGHT
 var attack_wait:float = 0.0
 var rush_wait:float = 2.0
@@ -130,6 +135,7 @@ func _begin_charge(rush:bool) -> bool:
 	charge_elapsed = 0.0
 	phase_elapsed = 0.0
 	released_charge = 0.0
+	released_rush = false
 	_previous_distance = INF
 	_regions.clear()
 	_aim_at_target()
@@ -153,6 +159,12 @@ func tick_physics(state:State,delta:float) -> void:
 	_last_position = global_position
 	if moved<maxf(48.0,Speed*delta*5.0): _walk_clock += moved/maxf(Speed,1.0)
 	if not is_multiplayer_authority():
+		if phase in [Phase.CHARGE,Phase.DASH]:
+			charge_elapsed = minf(charge_elapsed+delta,maxf(full_charge_seconds,0.05))
+		elif phase==Phase.SWING:
+			phase_elapsed = minf(phase_elapsed+delta,maxf(swing_seconds,0.01))
+		elif phase==Phase.RECOVER:
+			phase_elapsed = minf(phase_elapsed+delta,maxf(recovery_seconds,0.01))
 		_update_pose()
 		return
 	_regions.clear()
@@ -206,6 +218,7 @@ func _advance_dash(delta:float) -> void:
 	charge_elapsed = minf(charge_elapsed+delta,maxf(full_charge_seconds,0.05))
 	phase_elapsed += delta
 	_aim_at_target()
+	_update_pose()
 	var speed:float = maxf(Speed,0.0)*lerpf(1.4,maxf(rush_speed_multiplier,1.4),charge_ratio())
 	var step:Vector2 = facing*speed*motion_scaled_delta(delta)
 	velocity = step/maxf(delta,0.00001)
@@ -222,6 +235,7 @@ func _advance_dash(delta:float) -> void:
 func _release_swing() -> void:
 	if not can_act() or phase not in [Phase.CHARGE,Phase.DASH]: return
 	released_charge = charge_ratio()
+	released_rush = phase==Phase.DASH
 	phase = Phase.SWING
 	phase_elapsed = 0.0
 	_manual_held = false
@@ -235,7 +249,8 @@ func _release_swing() -> void:
 func _advance_swing(delta:float) -> void:
 	if not can_act() or phase != Phase.SWING: return
 	var finish:float = minf(phase_elapsed+delta,maxf(swing_seconds,0.01))
-	var steps:int = maxi(1,int(ceil((finish-phase_elapsed)/0.008)))
+	var sweep_step:float = minf(0.004,maxf(swing_seconds,0.01)/96.0)
+	var steps:int = maxi(1,int(ceil((finish-phase_elapsed)/sweep_step)))
 	var begin:float = phase_elapsed
 	_update_pose()
 	var previous:Vector2 = blade_center()
@@ -267,6 +282,7 @@ func cancel_attack() -> void:
 	phase_elapsed = 0.0
 	charge_elapsed = 0.0
 	released_charge = 0.0
+	released_rush = false
 	_manual_held = false
 	_hits.clear()
 	_regions.clear()
@@ -274,6 +290,24 @@ func cancel_attack() -> void:
 	attack_wait = maxf(attack_wait,0.2)
 	if is_instance_valid(_arm): _update_pose()
 	_sync_visual(true)
+
+func _charge_pose(ratio:float,rush:bool) -> Vector2:
+	var draw:float = smoothstep(0.0,DRAW_CHARGE_RATIO,ratio)
+	var ready:float = RUSH_READY_ARM_ANGLE if rush else READY_ARM_ANGLE
+	return Vector2(lerpf(REST_ARM_ANGLE,lerpf(ready,RAISED_ARM_ANGLE,ratio),draw),lerpf(REST_GRIP_ANGLE,AXE_HOLD_ANGLE,draw))
+
+func _swing_pose(aim:Vector2,progress:float) -> Vector2:
+	var start:Vector2 = _charge_pose(clampf(released_charge,0.0,1.0),released_rush)
+	var ready:Vector2 = Vector2(maxf(start.x,-1.05),AXE_HOLD_ANGLE)
+	var draw_end:float = 0.18 if not start.is_equal_approx(ready) else 0.0
+	if progress<draw_end:
+		return start.lerp(ready,smoothstep(0.0,draw_end,progress))
+	var blade:Vector2 = HAND-SHOULDER+(AXE_BLADE-AXE_GRIP).rotated(AXE_HOLD_ANGLE)*AXE_SCALE
+	var turn:float = wrapf(aim.angle()-blade.angle()-ready.x,-PI,PI)
+	var side:float = -1.0 if turn<0.0 else 1.0
+	var finish:float = ready.x+side*maxf(absf(turn)+0.95,2.1)
+	var cut:float = pow(clampf((progress-draw_end)/(0.82-draw_end),0.0,1.0),1.6)
+	return Vector2(lerpf(ready.x,finish,cut),AXE_HOLD_ANGLE)
 
 func _update_pose() -> void:
 	if not is_instance_valid(_arm) or health<=0: return
@@ -283,23 +317,23 @@ func _update_pose() -> void:
 	var mirrored:bool = local_aim.x>=0.0
 	set_character_visual_flip_h(mirrored)
 	var canonical_aim:Vector2 = Vector2(-absf(local_aim.x),local_aim.y)
-	var aimed:float = canonical_aim.angle()+PI/2.0
-	if aimed>0.0: aimed-=TAU
-	var start:float = lerpf(REST_ARM_ANGLE,RAISED_ARM_ANGLE,clampf(released_charge,0.0,1.0))
-	var finish:float = aimed+0.65*signf(aimed-start)
-	var angle:float = REST_ARM_ANGLE
+	var held:Vector2 = Vector2(REST_ARM_ANGLE,REST_GRIP_ANGLE)
 	if phase in [Phase.CHARGE,Phase.DASH]:
-		angle = lerpf(REST_ARM_ANGLE,RAISED_ARM_ANGLE,charge_ratio())
+		held = _charge_pose(charge_ratio(),phase==Phase.DASH)
 	elif phase == Phase.SWING:
-		angle = lerpf(start,finish,clampf(phase_elapsed/maxf(swing_seconds,0.01),0.0,1.0))
+		held = _swing_pose(canonical_aim,phase_elapsed/maxf(swing_seconds,0.01))
 	elif phase == Phase.RECOVER:
-		angle = lerpf(finish,REST_ARM_ANGLE,clampf(phase_elapsed/maxf(recovery_seconds,0.01),0.0,1.0))
+		var end:Vector2 = _swing_pose(canonical_aim,1.0)
+		var settle:float = smoothstep(0.2,1.0,phase_elapsed/maxf(recovery_seconds,0.01))
+		held = Vector2(lerp_angle(end.x,REST_ARM_ANGLE,settle),lerpf(end.y,REST_GRIP_ANGLE,settle))
+	var angle:float = held.x
+	_axe.rotation = held.y
 	var pose:Transform2D = Transform2D(angle,SHOULDER-Vector2(80,112))
 	if mirrored:
 		pose = Transform2D(Vector2(-1,0),Vector2(0,1),Vector2.ZERO)*pose
 	pose.origin += image.offset
 	_arm.transform = pose
-	var reaching_front:bool = local_aim.y>0.15 and (phase==Phase.RECOVER or (phase==Phase.SWING and phase_elapsed>=maxf(swing_seconds,0.01)*0.12))
+	var reaching_front:bool = local_aim.y>=-0.15 and (phase==Phase.RECOVER or (phase==Phase.SWING and phase_elapsed>=maxf(swing_seconds,0.01)*0.12))
 	_arm.show_behind_parent = not reaching_front
 	_charge_bar.position = Vector2(0,-90)+image.offset
 	_charge_bar.visible = phase in [Phase.CHARGE,Phase.DASH]
@@ -326,15 +360,16 @@ func _sync_visual(force:bool) -> void:
 	if not force and _sync_wait>0.0: return
 	_sync_wait = 0.05
 	_visual_serial += 1
-	_receive_visual.rpc(_visual_serial,phase,charge_elapsed,phase_elapsed,released_charge,facing,_walk_clock)
+	_receive_visual.rpc(_visual_serial,phase,charge_elapsed,phase_elapsed,released_charge,facing,_walk_clock,released_rush)
 @rpc("authority","call_remote","reliable")
-func _receive_visual(serial:int,next_phase:int,charge:float,elapsed:float,released:float,aim:Vector2,walk:float) -> void:
+func _receive_visual(serial:int,next_phase:int,charge:float,elapsed:float,released:float,aim:Vector2,walk:float,rush_release:bool=false) -> void:
 	if serial<=_received_serial: return
 	_received_serial = serial
 	phase = next_phase
 	charge_elapsed = charge
 	phase_elapsed = elapsed
 	released_charge = released
+	released_rush = rush_release
 	facing = aim
 	_walk_clock = walk
 	_update_pose()

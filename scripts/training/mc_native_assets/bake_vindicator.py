@@ -48,7 +48,7 @@ def bake(output):
     for bone in b.models['vindicator']:bone['neverRender']=bone['name']!='rightArm'
     arm=b.render('vindicator','idle',0);arm.save(output/'arm.png')
     shoulder=b.project([-5,22,0]);hand=b.project([-6,31,0])
-    geom={'shoulder':shoulder.tolist(),'hand':hand.tolist(),'canvas':[160,224],'axe_grip':[5.5,11.5],'axe_blade':[9.0,4.0],'arm_depth':'behind_body_at_rest','front_swing_depth':'in_front_of_body','item_depth':'behind_hand','rest_axe_axis':'screen_up','axe_scale':5.0,'rest_arm_angle':-1.65,'raised_arm_angle':-0.70,'axe_hold_angle':1.65-math.pi/4,'rig_space':'canonical_left_mirror_all','charge_pose_progress':'full_ratio'}
+    geom={'shoulder':shoulder.tolist(),'hand':hand.tolist(),'canvas':[160,224],'axe_grip':[5.5,11.5],'axe_blade':[9.0,4.0],'arm_depth':'behind_body_at_rest','front_swing_depth':'in_front_of_body','item_depth':'behind_hand','rest_axe_axis':'screen_up','axe_scale':5.0,'rest_arm_angle':-2.75,'ready_arm_angle':-1.65,'rush_ready_arm_angle':-1.00,'rest_grip_angle':2.75-math.pi/4,'draw_charge_ratio':0.065,'raised_arm_angle':-0.70,'axe_hold_angle':1.65-math.pi/4,'rig_space':'canonical_left_mirror_all','charge_pose_progress':'full_ratio'}
     (output/'rig.json').write_text(json.dumps(geom,indent=2))
     def place(pic,pivot,anchor,angle,scale=1):
         basis=scale*np.array([[math.cos(angle),-math.sin(angle)],[math.sin(angle),math.cos(angle)]])

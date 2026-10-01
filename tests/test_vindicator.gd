@@ -202,6 +202,8 @@ func run() -> void:
 	await extra_runtime_checks()
 	await corrected_rig_and_movement_checks()
 	await fixed_grip_charge_checks()
+	await heavy_chop_checks()
+	await fast_chop_contact_checks()
 	await normal_wall_bounce_checks()
 	if DisplayServer.get_name()!="headless": await gpu_checks()
 	for warm:int in 6: await process_frame
@@ -233,6 +235,7 @@ func gpu_checks() -> void:
 	arena = stage
 	var model:Node2D = actor("卫道士",Vector2.ZERO)
 	arena = previous_arena
+	model.disable_mode = CollisionObject2D.DISABLE_MODE_KEEP_ACTIVE
 	model.stun_shake_enabled = false
 	model.hurt_shake_enabled = false
 	for warm:int in 8: await process_frame
@@ -301,6 +304,25 @@ func gpu_checks() -> void:
 			if previous!=null: check(frame.get_data()!=previous.get_data(),"GPU charge keeps changing through %d%% facing %d"%[percentage,side])
 			frame.save_png("user://vindicator_upright_%d_%d.png"%[side,percentage])
 			previous = frame
+	model.set_player_control_peer(1)
+	for rush:bool in [false,true]:
+		model.global_position = Vector2.ZERO
+		model.set_player_control_aim_position(Vector2(400,0))
+		model.cancel_attack()
+		model.attack_wait = 0.0
+		model.rush_wait = 0.0
+		for frame:int in 90:
+			if frame==12: model.player_control_action(1 if rush else 0)
+			if frame==48:
+				if rush: model.set_player_control_aim_position(model.global_position+Vector2(8,0))
+				else: model.player_control_action_released(0)
+			model.tick_physics(ball_type.State.Move,1.0/60.0)
+			if rush and frame==47: check(model.global_position.x>30 and model.phase==model.Phase.DASH,"GPU rush sequence uses actual moving physics, not a stationary pose")
+			camera.position = model.global_position
+			camera.force_update_scroll()
+			await RenderingServer.frame_post_draw
+			view.get_texture().get_image().save_png("user://vindicator_motion_%d_%03d.png"%[int(rush),frame])
+		check(model.phase==model.Phase.IDLE,"GPU full input-driven action finishes in lowered idle, rush="+str(rush))
 	view.queue_free()
 	await process_frame
 
@@ -449,6 +471,7 @@ func fixed_grip_charge_checks() -> void:
 		unit.facing = heading
 		unit.phase = unit.Phase.IDLE
 		unit._update_pose()
+		check(unit._arm.to_global(unit.HAND-unit.SHOULDER).y>unit._arm.global_position.y+5,"idle hand hangs below shoulder, not an attacking stance: "+str(heading))
 		check(axe_shaft_direction(unit).dot(Vector2.UP)>0.99999,"idle holds the axe vertically: "+str(heading))
 		check(is_equal_approx(unit._axe.scale.x,5.0) and is_equal_approx(unit.blade_radius(),unit._axe.global_scale.abs().x*4.5),"larger axe and actual blade radius share scale: "+str(heading))
 		for pose:int in [unit.Phase.CHARGE,unit.Phase.DASH]:
@@ -462,11 +485,12 @@ func fixed_grip_charge_checks() -> void:
 				unit.charge_elapsed = unit.full_charge_seconds*float(step)/100.0
 				unit._update_pose()
 				if step==0: first_axis = axe_shaft_direction(unit)
-				fixed_grip = fixed_grip and is_equal_approx(unit._axe.rotation,unit.AXE_HOLD_ANGLE)
+				if float(step)/100.0>=unit.DRAW_CHARGE_RATIO:
+					fixed_grip = fixed_grip and is_equal_approx(unit._axe.rotation,unit.AXE_HOLD_ANGLE)
 				attached = attached and unit._axe.to_global(unit.AXE_GRIP+unit._axe.offset).distance_to(unit._arm.to_global(unit.HAND-unit.SHOULDER))<0.001
 				rises = rises and unit.blade_center().y<previous-0.0001
 				previous = unit.blade_center().y
-			check(fixed_grip and attached,"fixed hand-relative grip at every charge percentage: "+str(heading)+" phase "+str(pose))
+			check(fixed_grip and attached,"fixed attack grip after drawing, attached at every charge percentage: "+str(heading)+" phase "+str(pose))
 			check(absf(first_axis.angle_to(axe_shaft_direction(unit)))>0.8,"axe actually rotates with the raising forearm: "+str(heading)+" phase "+str(pose))
 			check(rises,"axe rises throughout 0-100%, including the final quarter: "+str(heading)+" phase "+str(pose))
 		unit.phase = unit.Phase.SWING
@@ -476,7 +500,7 @@ func fixed_grip_charge_checks() -> void:
 		var swing_axis:Vector2 = axe_shaft_direction(unit)
 		unit.phase_elapsed = unit.swing_seconds*0.75
 		unit._update_pose()
-		check(unit._arm.show_behind_parent==(heading.y<=0.15),"swing depth follows front/back direction "+str(heading))
+		check(unit._arm.show_behind_parent==(heading.y< -0.15),"swing depth follows front/back direction "+str(heading))
 		check(absf(swing_axis.angle_to(axe_shaft_direction(unit)))>0.2 and is_equal_approx(unit._axe.rotation,unit.AXE_HOLD_ANGLE),"swing rotates arm and axe together in direction "+str(heading))
 		for ratio:float in [0.0,0.1,0.25,0.5,0.75,1.0]:
 			unit.phase = unit.Phase.CHARGE
@@ -486,4 +510,78 @@ func fixed_grip_charge_checks() -> void:
 			var shaft:Vector2 = axe_shaft_direction(unit)
 			unit._release_swing()
 			check(unit.blade_center().distance_to(before)<0.001 and axe_shaft_direction(unit).distance_to(shaft)<0.001,"release starts from actual held height and hand-relative grip: "+str(heading)+" charge "+str(ratio))
+	reset_attack()
+
+func heavy_chop_checks() -> void:
+	reset_attack()
+	unit.set_player_control_peer(1)
+	unit.set_player_control_aim_position(Vector2(900,0))
+	unit._update_pose()
+	var resting_hand:Vector2 = unit._arm.to_global(unit.HAND-unit.SHOULDER)
+	check(unit.swing_seconds<=0.14,"complete chop takes at most 140 milliseconds")
+	for rush:bool in [false,true]:
+		reset_attack()
+		unit._update_pose()
+		var before:Vector2 = unit.blade_center()
+		check(unit._begin_charge(rush) and unit.blade_center().distance_to(before)<0.001,"attack draws continuously from lowered idle, rush="+str(rush))
+		if rush:
+			for frame:int in 7: tick(1.0/60.0)
+			var hand:Vector2 = unit._arm.to_global(unit.HAND-unit.SHOULDER)
+			check(unit.phase==unit.Phase.DASH and hand.y<unit._arm.global_position.y-4 and hand.y<resting_hand.y-10,"rush visibly raises hand within seven real physics steps")
+			check(unit.charge_ratio()<0.1 and unit.velocity.length()>unit.Speed,"early high rush pose is not free full charge and movement continues")
+			var before_release:Vector2 = unit.blade_center()
+			unit._release_swing()
+			check(unit.released_rush and unit.blade_center().distance_to(before_release)<0.001,"rush release preserves its distinct raised pose without snapping")
+		else:
+			tick(0.7)
+			unit._release_swing()
+		var at_release:Vector2 = unit.blade_center()
+		unit.phase_elapsed = unit.swing_seconds
+		unit._update_pose()
+		var at_end:Vector2 = unit.blade_center()
+		check(at_end.y>at_release.y+10,"side chop follows through visibly downward, rush="+str(rush))
+		unit.phase = unit.Phase.RECOVER
+		unit.phase_elapsed = 0.0
+		unit._update_pose()
+		check(unit.blade_center().distance_to(at_end)<0.001,"follow-through joins recovery without a position jump")
+		unit.phase_elapsed = unit.recovery_seconds*0.15
+		unit._update_pose()
+		check(unit.blade_center().distance_to(at_end)<0.001,"brief low follow-through holds only the arm, not the world")
+		unit.phase_elapsed = unit.recovery_seconds
+		unit._update_pose()
+		var recovered:Vector2 = unit.blade_center()
+		unit.phase = unit.Phase.IDLE
+		unit._update_pose()
+		check(unit.blade_center().distance_to(recovered)<0.001,"recovery returns continuously to lowered idle")
+	for aim:Vector2 in [Vector2.LEFT,Vector2.UP,Vector2.DOWN,Vector2(-1,-1).normalized(),Vector2(-1,1).normalized()]:
+		unit.released_charge = 1.0
+		unit.released_rush = false
+		var start:Vector2 = unit._swing_pose(aim,0.0)
+		var early:Vector2 = unit._swing_pose(aim,0.2)
+		var middle:Vector2 = unit._swing_pose(aim,0.4)
+		var end:Vector2 = unit._swing_pose(aim,1.0)
+		check(absf(end.x-start.x)>=2.09,"large committed chop arc, not a small wrist wag: "+str(aim))
+		check(absf(middle.x-early.x)>absf(early.x-start.x)*1.4,"downstroke visibly accelerates rather than moving at constant speed: "+str(aim))
+	reset_attack()
+
+func fast_chop_contact_checks() -> void:
+	unit.global_position = Vector2.ZERO
+	enemy.block = 0
+	enemy.Damage_reduction = 0
+	for rush:bool in [false,true]:
+		for heading:Vector2 in [Vector2.RIGHT,Vector2.LEFT,Vector2.UP,Vector2.DOWN,Vector2(1,-1).normalized(),Vector2(-1,-1).normalized(),Vector2(1,1).normalized(),Vector2(-1,1).normalized()]:
+			reset_attack()
+			unit.facing = heading
+			unit.phase = unit.Phase.DASH if rush else unit.Phase.CHARGE
+			unit.charge_elapsed = unit.full_charge_seconds*(0.1 if rush else 1.0)
+			enemy.global_position = heading*26.0
+			await physics_frame
+			unit._release_swing()
+			var before:float = enemy.health_loss_reading()
+			var expected:float = unit.attack_damage(unit.damage_multiplier(unit.released_charge))
+			unit._advance_swing(unit.swing_seconds)
+			var loss:float = before-enemy.health_loss_reading()
+			check(absf(loss-expected)<=1.0,"one real blade hit through a whole fast-chop tick: "+str(heading)+" rush="+str(rush)+" actual="+str(loss)+" expected="+str(expected))
+			check(unit._regions.size()>=90,"fast coarse tick retains dense true-blade threat segments")
+	enemy.global_position = Vector2(180,0)
 	reset_attack()

@@ -21,13 +21,17 @@ func run() -> void:
 	var before:int = enemy.health
 	var start:Vector2 = unit.global_position
 	var most_charge:float = 0.0
+	var raised_while_rushing:bool = false
 	for frame:int in range(480):
 		await physics_frame
 		states[unit.phase] = true
 		most_charge = maxf(most_charge,unit.charge_ratio())
+		if unit.phase==unit.Phase.DASH and unit.charge_elapsed>=0.12:
+			raised_while_rushing = raised_while_rushing or (unit._arm.to_global(unit.HAND-unit.SHOULDER).y<unit._arm.global_position.y-4 and unit.velocity.length()>unit.Speed)
 		if enemy.health<before: break
 	check(unit.global_position.distance_to(start)>50,"autonomous real physics closes distance")
 	check(states.has(unit.Phase.DASH),"AI independently starts the rush")
+	check(raised_while_rushing,"autonomous moving rush actually raises the hand above shoulder, not just a charge timer")
 	check(most_charge>0.1,"AI rush actually accumulates charge over physics frames")
 	check(states.has(unit.Phase.SWING) and enemy.health<before,"AI reaches the target and its real axe sweep deals damage")
 	print("VINDICATOR_LIVE_HIT loss=",before-enemy.health," charge=",unit.released_charge," states=",states.keys())

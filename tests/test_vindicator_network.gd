@@ -78,6 +78,38 @@ func run() -> void:
 	check(source.deal_axe_hit(target,target.global_position) and target.health<before,"only authority settles charged melee damage")
 	check(await until(func():return replica.health_bar.get_node("TextureRect/Label").text==target.health_bar.get_node("TextureRect/Label").text and absf(replica.health_bar.health_bar.value-float(target.health)/float(target.Max_health))<0.000001 and target.health_bar.label.text==str(target.health)),"settled health display reaches the replica without replaying damage")
 	check(replica.health==remote_before,"replica keeps gameplay health host-owned, as required by base replication")
+	source.cancel_attack()
+	source.attack_wait = 0.0
+	source.rush_wait = 0.0
+	source.set_player_control_aim_position(Vector2(700,0))
+	check(source._begin_charge(true),"host begins separate rush windup")
+	source.charge_elapsed = source.full_charge_seconds*0.1
+	source._update_pose()
+	source._sync_visual(true)
+	check(await until(func():return remote.phase==source.Phase.DASH and is_equal_approx(remote.charge_ratio(),0.1)),"early rush pose reaches replica with actual low charge")
+	check(remote._arm.to_global(remote.HAND-remote.SHOULDER).y<remote._arm.global_position.y-4 and remote.blade_center().distance_to(source.blade_center())<0.1,"guest sees high rush preparation without granting full damage")
+	var held:Vector2 = source.blade_center()
+	source._release_swing()
+	check(await until(func():return remote.phase==source.Phase.SWING and remote.released_rush),"rush release mode crosses ENet")
+	check(remote.blade_center().distance_to(held)<0.1,"guest starts the rush chop at the exact raised hand position")
+	for progress:float in [0.2,0.6,0.9]:
+		source.phase_elapsed = source.swing_seconds*progress
+		source._update_pose()
+		source._sync_visual(true)
+		check(await until(func():return is_equal_approx(remote.phase_elapsed,source.phase_elapsed)),"fast chop clock reaches replica: "+str(progress))
+		check(remote.blade_center().distance_to(source.blade_center())<0.1,"fast chop geometry matches the host: "+str(progress))
+	var guest_position:Vector2 = remote.global_position
+	var guest_health:int = replica.health
+	var guest_clock:float = remote.phase_elapsed
+	remote.tick_physics(load("res://classes/ball.gd").State.Move,0.01)
+	check(remote.phase_elapsed>guest_clock and remote.phase==source.Phase.SWING,"guest visually advances the fast chop between RPC packets")
+	check(remote.global_position==guest_position and replica.health==guest_health and remote.get_debug_attack_regions().is_empty(),"visual interpolation never simulates movement or awards damage")
+	source.phase = source.Phase.DASH
+	source.charge_elapsed = 0.16
+	source._sync_visual(true)
+	check(await until(func():return remote.phase==source.Phase.DASH and is_equal_approx(remote.charge_elapsed,0.16)),"rush visual clock is reanchored by host state")
+	remote.tick_physics(load("res://classes/ball.gd").State.Move,0.01)
+	check(is_equal_approx(remote.charge_elapsed,0.17) and remote.global_position==guest_position,"guest keeps lifting through gaps without simulating dash movement")
 	var stun:Node = source.apply_stun(1.0,target)
 	source.tick_physics(load("res://classes/ball.gd").State.Move,0.01)
 	check(await until(func():return remote.phase==source.Phase.IDLE),"hard-control cancellation is reliably replicated")
