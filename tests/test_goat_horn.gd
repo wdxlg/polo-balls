@@ -276,7 +276,7 @@ func run() -> void:
 	check(is_equal_approx(lock_target.health,lock_hp),"a target that moved away is not hit")
 	await process_frame
 	check(sound_events().count("entity.goat.step") > steps_before or sound_events().has("entity.goat.step"),"running goat plays native footsteps")
-	check(particles > 0,"running goat kicks up block particles from the floor")
+	check(particles > 1,"running goat keeps leaving block particles behind on the floor")
 	if is_instance_valid(g_lock): g_lock.queue_free()
 	lock_target.queue_free()
 
@@ -312,6 +312,12 @@ func run() -> void:
 	for i:int in range(6): await process_frame
 	check(puppet.global_position.x > center.x and puppet.bowed and puppet.phase == GOAT.Phase.EXIT,"puppet follows network state and flags")
 	check(puppet.get_node("Sprite").flip_h and puppet.get_node("Sprite").animation == &"ram","puppet faces its heading and plays the ram clip")
+	puppet.apply_network_state(center + Vector2(20,20),Vector2(1,1).normalized(),500.0,0)
+	await process_frame
+	check(puppet.get_node("Sprite").flip_h and is_zero_approx(puppet.get_node("Sprite").rotation),"diagonal running still faces only right, no tilt")
+	puppet.apply_network_state(center + Vector2(0,40),Vector2(-1,1).normalized(),500.0,0)
+	await process_frame
+	check(not puppet.get_node("Sprite").flip_h and is_zero_approx(puppet.get_node("Sprite").rotation),"diagonal running still faces only left, no tilt")
 	puppet.queue_free()
 
 	# --- 起手被眩晕打断 ---

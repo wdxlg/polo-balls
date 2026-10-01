@@ -2,7 +2,8 @@ extends Node2D
 ## 山羊角召来的山羊：瞬时技能实体（无生命、不可选中、不计存续），全程穿过墙体与障碍。
 ## 权威端真实移动与结算：出现时锁定目标当时的位置，从屏幕外沿直线加速冲向该点（不追踪），
 ## 途中首次冲撞按速度结算伤害与击退，持续重叠时周期推撞；撞完或越过锁定点后加速冲出屏幕后释放。
-## 脚步按实际移动距离计步：权威端下发原版脚步声，各端在地图地面上本地生成脚下方块粒子。
+## 脚步按实际移动距离计步，由权威端下发原版脚步声；奔跑时各端在身后地面上本地持续生成方块粒子。
+## 贴图只朝左或朝右（按水平方向镜像），不随斜向移动旋转。
 ## 客户端只按山羊角下发的状态外推显示。伤害与击退来源始终是山羊角本体。
 const U = preload("res://scripts/characters/我的世界/new5/utils.gd")
 const AUDIO = preload("res://scripts/characters/我的世界/goat_horn/goat_horn_audio.gd")
@@ -37,9 +38,10 @@ const OFFSCREEN_MARGIN:float = 140.0
 const PRE_RAM_CHANCE:float = 0.38
 # 步幅 = 4 个身体半径（按根缩放换算）；实际间隔随当前移速变化，见 footstep_cadence.gd。
 const STEP_STRIDE_RADII:float = 4.0
-# 脚下方块粒子：每步从脚下地面贴图取一小块 4×4 像素，碎成几颗小方块弹起落地。
+# 身后方块粒子：每跑过 TRAIL_SPACING_RADII 个身体半径，从身后地面贴图取一小块 4×4 像素，碎成几颗小方块弹起落地。
 const STEP_PARTICLE_TEXELS:int = 4
-const STEP_PARTICLE_PIECES:int = 4
+const STEP_PARTICLE_PIECES:int = 2
+const TRAIL_SPACING_RADII:float = 1.2
 const STEP_PARTICLE_BLOCK_RATIO:float = 0.2
 # 原版 TerrainParticle 的 rCol/gCol/bCol = 0.6：地面碎屑比地面暗，和地面区分开。
 const STEP_PARTICLE_SHADE:float = 0.6
@@ -63,6 +65,7 @@ var _rammed:bool = false
 var _seen_on_screen:bool = false
 var _cadence:RefCounted = FOOTSTEP.new()
 var _step_last:Vector2 = Vector2.ZERO
+var _trail_progress:float = 0.0
 var _fx_rng:RandomNumberGenerator = RandomNumberGenerator.new()
 var _sprite:AnimatedSprite2D
 var _rng:RandomNumberGenerator = RandomNumberGenerator.new()
@@ -267,15 +270,22 @@ func _on_screen() -> bool:
 	return view.size.x > 1.0 and view.has_point(global_position)
 
 
-## 各端：按实际走过的距离计步。权威端发脚步声（变体由权威端挑选并下发），粒子各端本地生成。
+## 各端：按实际走过的距离计步与撒粒子。权威端发脚步声（变体由权威端挑选并下发），粒子各端本地生成。
 func _step_tick(owner_horn:Node2D,delta:float) -> void:
 	var moved:float = global_position.distance_to(_step_last)
 	_step_last = global_position
 	if moved > body_radius * STEP_STRIDE_RADII * 3.0: moved = 0.0
+	var on_screen:bool = _on_screen()
+	_trail_progress += moved
+	var spacing:float = maxf(body_radius * TRAIL_SPACING_RADII,0.5)
+	if _trail_progress >= spacing:
+		# 每帧最多撒一次，避免掉帧后一次补出一大团。
+		_trail_progress = fmod(_trail_progress,spacing)
+		if on_screen:
+			var rear:Vector2 = global_position + Vector2(0.0,body_radius * 0.7) - heading * body_radius * 0.9
+			spawn_step_particles(self,rear,body_radius,_fx_rng)
 	if not _cadence.tick_stride(moved,delta,body_radius * STEP_STRIDE_RADII): return
-	if not _on_screen(): return
-	var feet:Vector2 = global_position + Vector2(0.0,body_radius * 0.7) - heading * body_radius * 0.4
-	spawn_step_particles(self,feet,body_radius,_fx_rng)
+	if not on_screen: return
 	if _authority and owner_horn != null:
 		owner_horn.call(&"emit_goat_sound",AUDIO.KIND_STEP,_rng.randi_range(0,AUDIO.variant_count(AUDIO.KIND_STEP) - 1),global_position)
 
@@ -380,11 +390,10 @@ func _update_visual(running:bool = true) -> void:
 		_sprite.play(clip)
 		_sprite.frame = keep % FRAMES.get_frame_count(clip)
 	_sprite.speed_scale = clampf(speed / 500.0,0.5,2.2) if running else 0.0
-	# 原图朝左；向右跑时镜像。按竖直分量轻微低头/抬头，表达斜向冲刺。
+	# 原图朝左；向右跑时镜像。只分左右，不随斜向旋转。
 	var flip:bool = heading.x > 0.0
 	_sprite.flip_h = flip
-	var tilt:float = atan2(heading.y,absf(heading.x)) * 0.3
-	_sprite.rotation = tilt if flip else -tilt
+	_sprite.rotation = 0.0
 
 
 func get_ai_hazard_info(_receiver:ball = null) -> Dictionary:
