@@ -3,12 +3,13 @@ extends Node2D
 ## 不注册 class_name，用 load() 取脚本：
 ##   FW.launch(parent, from, options)  火箭从 from 升空，飞行结束后炸开
 ##   FW.burst(parent, at, options)     直接在 at 炸开（只要最后的特效）
-##   FW.celebrate(parent, options)     比赛结束：随机放一批火箭；给 area（地图范围）就从画面外飞到地图上空炸开
+##   FW.celebrate(parent, options)     比赛结束：随机放一批火箭；给 area 就放在世界里，从画面底边外飞进来，在整个画面上空（地图内外都行）炸开
 ## 选项都可省略（缺省随机）：
 ##   explosions:Array[Dictionary] 每个 {shape, colors, fade_colors, trail, twinkle}；只有一个爆炸时可直接写在 options 里
 ##   shape: small_ball / large_ball / star / creeper / burst；colors / fade_colors: Color 或染料名
 ##   flight:int 1..3（火药数）；velocity:Vector2 初速度（格/tick，y 向上为正）
 ##   target:Vector2 火箭飞到这一点炸开（仍按原版加速曲线，飞行时间不变）；rocket_speed: 火箭飞行倍速
+##   rocket_trail:bool 火箭沿途喷一串粒子拖尾（默认开；关掉就是原版每 tick 一颗火花）
 ##   unit: 每格像素；particle_scale: 粒子放大；screen_space: 坐标按屏幕像素，节点挂在世界画布里跟随镜头（录制画面也能拍到）
 ##   sound:bool；listener_distance: 听者距离（格），≥16 用远处音效，>10 声音按距离延迟；volume_db；seed；pausable
 
@@ -146,7 +147,7 @@ static func burst(parent:Node, at:Vector2, options:Dictionary = {}) -> Node2D:
 	return node
 
 ## 随机放 count 支火箭（duration 秒内放完，开头先齐射几支）。
-## area（父节点坐标里的地图范围）：火箭从当前画面底边外飞进来，在地图上空炸开；不给就按屏幕底部放。
+## area（父节点坐标里的地图范围）：烟花放在世界里，火箭从当前画面底边外飞进来，炸点铺满画面（不受地图边界限制）；不给就按屏幕底部放。
 static func celebrate(parent:Node, options:Dictionary = {}) -> Node2D:
 	var settings:Dictionary = options.duplicate()
 	settings["screen_space"] = not (settings.get("area",Rect2()) as Rect2).has_area()
@@ -217,6 +218,7 @@ func add_rocket(from:Vector2, options:Dictionary = {}) -> void:
 	# mvx/mvy 是原版每 tick 的速度；vx/vy 是这一帧实际位移（画朝向、喷尾迹用）。
 	var rocket:Dictionary = {"x":start.x,"y":start.y,"ox":start.x,"oy":start.y,"mvx":velocity.x,"mvy":velocity.y,"vx":velocity.x,"vy":velocity.y,
 		"life":0,"lifetime":lifetime,"accelerate":accelerate,"speed":maxf(float(options.get("rocket_speed",1.0)),0.01),"rt":0.0,
+		"rocket_trail":bool(options.get("rocket_trail",true)),
 		"target":false,"explosions":_explosions_from(options)}
 	if options.has("target"):
 		# 沿起点→目标的直线走原版的加速曲线，正好在寿命结束那一 tick 到达目标。
@@ -234,9 +236,10 @@ func add_burst(at:Vector2, options:Dictionary = {}) -> void:
 func plan_show(count:int, duration:float, options:Dictionary = {}) -> void:
 	_show_view = get_viewport_rect().size if is_inside_tree() else Vector2(540,960)
 	_show_area = options.get("area",Rect2())
-	unit = float(options.get("unit",minf(_show_area.size.x,_show_area.size.y) / 24.0 if _show_area.has_area() else _show_view.y / 40.0))
+	# 世界里按当前画面高度定大小：一格 = 画面高的 1/28，镜头远近都一样显眼。
+	unit = float(options.get("unit",visible_rect().size.y / 28.0 if _show_area.has_area() else _show_view.y / 40.0))
 	_show_rocket_speed = float(options.get("rocket_speed",2.2))
-	particle_scale = float(options.get("particle_scale",1.5))
+	particle_scale = float(options.get("particle_scale",2.0 if _show_area.has_area() else 1.5))
 	var opening:int = mini(3,count)
 	for i:int in range(count):
 		var at:float = 0.0 if i < opening else rng.randf_range(0.25,maxf(duration,0.3))
@@ -300,7 +303,8 @@ func _tick() -> void:
 			exploded = int(rocket.life) > int(rocket.lifetime)
 		rocket.vx = float(rocket.x) - float(rocket.ox); rocket.vy = float(rocket.y) - float(rocket.oy)
 		var exhaust:Vector2 = (-Vector2(rocket.vx,rocket.vy) * 0.5).limit_length(1.2)
-		_add_spark(sparks,rocket.x,rocket.y,exhaust.x + rng.randfn(0.0,1.0) * 0.05,exhaust.y,Color.WHITE,[],false,false)
+		if rocket.rocket_trail: _emit_rocket_trail(rocket,exhaust)
+		else: _add_spark(sparks,rocket.x,rocket.y,exhaust.x + rng.randfn(0.0,1.0) * 0.05,exhaust.y,Color.WHITE,[],false,false)
 		if exploded:
 			rockets.remove_at(i)
 			var push:Vector2 = Vector2(rocket.mvx,rocket.mvy)
@@ -321,16 +325,18 @@ func _tick() -> void:
 			_start_player(str(row.name),float(row.db),float(row.pitch))
 
 func _launch_show_rocket() -> void:
+	var explosion:Dictionary = random_explosion(rng)
+	explosion.trail = rng.randf() < 0.6
 	if _show_area.has_area():
-		# 地图上空随机一点炸开；火箭从当前画面底边外飞进来（镜头移动后按当时的画面算）。
-		var a:Rect2 = _show_area
-		var target:Vector2 = Vector2(rng.randf_range(a.position.x + a.size.x * 0.12,a.end.x - a.size.x * 0.12),rng.randf_range(a.position.y + a.size.y * 0.12,a.position.y + a.size.y * 0.6))
-		var from:Vector2 = Vector2(target.x + rng.randf_range(-0.06,0.06) * a.size.x,maxf(visible_rect().end.y,target.y) + unit * 3.0)
-		add_rocket(from,{"flight":rng.randi_range(1,2),"target":target,"rocket_speed":_show_rocket_speed})
+		# 炸点在当前画面上半部随机（地图内外都行）；火箭从画面底边外飞进来（镜头移动后按当时的画面算）。
+		var view:Rect2 = visible_rect()
+		var target:Vector2 = Vector2(rng.randf_range(view.position.x + view.size.x * 0.08,view.end.x - view.size.x * 0.08),rng.randf_range(view.position.y + view.size.y * 0.1,view.position.y + view.size.y * 0.55))
+		var from:Vector2 = Vector2(target.x + rng.randf_range(-0.08,0.08) * view.size.x,view.end.y + unit * 3.0)
+		add_rocket(from,{"flight":rng.randi_range(1,2),"target":target,"rocket_speed":_show_rocket_speed,"explosions":[explosion]})
 		return
 	var view:Vector2 = _show_view if _show_view.x > 0.0 else get_viewport_rect().size
 	var start:Vector2 = Vector2(rng.randf_range(view.x * 0.15,view.x * 0.85),view.y + unit * 3.0)
-	add_rocket(start,{"flight":rng.randi_range(1,2),"rocket_speed":_show_rocket_speed})
+	add_rocket(start,{"flight":rng.randi_range(1,2),"rocket_speed":_show_rocket_speed,"explosions":[explosion]})
 
 ## 当前画面在本节点坐标里的范围。
 func visible_rect() -> Rect2:
@@ -412,6 +418,17 @@ func _burst(x:float, y:float, vx:float, vy:float, colors:Array, fades:Array, tra
 	for i:int in range(70):
 		_add_spark(sparks,x,y,vx * 0.5 + rng.randfn(0.0,1.0) * 0.15 + drift,vy * 0.5 + rng.randf() * 0.5,colors,fades,trail,twinkle)
 
+## 火箭尾焰：沿这一帧走过的路径每 0.3 格喷一颗白→暖黄的短命火花，连成一条拖尾。
+func _emit_rocket_trail(rocket:Dictionary, exhaust:Vector2) -> void:
+	var from:Vector2 = Vector2(rocket.ox,rocket.oy)
+	var to:Vector2 = Vector2(rocket.x,rocket.y)
+	var count:int = clampi(int(ceil(from.distance_to(to) / 0.3)),2,12)
+	for i:int in range(count):
+		var p:Vector2 = from.lerp(to,float(i + 1) / float(count))
+		var color:Color = Color(1.0,1.0,1.0) if rng.randf() < 0.6 else Color(1.0,0.86,0.55)
+		sparks.add(p.x + rng.randfn(0.0,1.0) * 0.06,p.y + rng.randfn(0.0,1.0) * 0.06,exhaust.x * 0.4 + rng.randfn(0.0,1.0) * 0.04,exhaust.y * 0.4 + rng.randfn(0.0,1.0) * 0.04,
+			8 + rng.randi_range(0,8),0,color,Color(1.0,0.6,0.25),SparkSet.FADE,0.1 * (rng.randf() * 0.5 + 0.5) * 2.0 * 0.5)
+
 func _add_spark(target:SparkSet, x:float, y:float, vx:float, vy:float, color_value:Variant, fades:Array, trail:bool, twinkle:bool) -> void:
 	var color:Color = color_value as Color if color_value is Color else (color_value as Array)[rng.randi() % (color_value as Array).size()] as Color
 	var flags:int = (SparkSet.TRAIL if trail else 0) | (SparkSet.TWINKLE if twinkle else 0)
@@ -485,7 +502,7 @@ func _draw() -> void:
 		draw_texture_rect(_flash_texture,Rect2(center - extent,extent * 2.0),false,color)
 	sparks.draw_on(self,_frames,unit,unit * particle_scale,partial)
 	if _rocket_texture != null:
-		var rocket_size:Vector2 = Vector2.ONE * unit * 0.75 * particle_scale
+		var rocket_size:Vector2 = Vector2.ONE * unit * 0.85 * particle_scale
 		for rocket:Dictionary in rockets:
 			var p:Vector2 = to_local_px(Vector2(lerpf(rocket.ox,rocket.x,partial),lerpf(rocket.oy,rocket.y,partial)))
 			draw_set_transform(p,Vector2(float(rocket.vx),-float(rocket.vy)).angle() + PI * 0.5)
@@ -494,5 +511,6 @@ func _draw() -> void:
 
 func _draw_trail_layer() -> void:
 	trail_sparks.draw_on(_trail_layer,_frames,unit,unit * particle_scale,1.0)
+
 
 

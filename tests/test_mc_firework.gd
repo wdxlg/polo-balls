@@ -46,7 +46,12 @@ func run() -> void:
 	var lifetime:int = int(rocket.rockets[0].lifetime)
 	check(lifetime >= 20 and lifetime <= 31,"flight 1 lifetime in Java range: %d" % lifetime)
 	rocket.step_ticks(5)
-	check(rocket.rockets.size() == 1 and float(rocket.rockets[0].y) > 0.5 and rocket.sparks.count() == 5,"rocket rises and drops one white spark per tick")
+	check(rocket.rockets.size() == 1 and float(rocket.rockets[0].y) > 0.5 and rocket.sparks.count() >= 10,"rocket rises and leaves a particle trail (%d)" % rocket.sparks.count())
+	var classic = FW.launch(host,Vector2(0,0),{"flight":1,"rocket_trail":false,"sound":false,"seed":11})
+	classic.set_process(false)
+	classic.step_ticks(5)
+	check(classic.sparks.count() == 5,"rocket_trail off keeps the vanilla one spark per tick")
+	classic.free()
 	rocket.step_ticks(lifetime - 4)
 	var height:float = 0.05 * (lifetime + 1) + 0.02 * (lifetime + 1) * (lifetime + 2)
 	check(rocket.rockets.is_empty() and rocket.flashes.size() == 1 and absf(float(rocket.flashes[0].y) - height) < 0.01,"rocket explodes at Java height %.1f blocks" % height)
@@ -81,18 +86,21 @@ func run() -> void:
 	show.step_ticks(120)
 	check(show.is_finished(),"show finishes and can free itself")
 	show.free()
-	# 地图上庆祝：火箭从画面外飞进来，炸点在地图范围内，比原版飞得快。
-	var area := Rect2(-200,-250,700,700)
+	# 世界里庆祝：火箭从画面外飞进来，炸点铺满画面（可以在地图外），比原版飞得快。
+	var area := Rect2(100,300,200,200)
 	var map_show = FW.celebrate(host,{"area":area,"count":10,"sound":false,"seed":9})
 	map_show.set_process(false)
 	var visible:Rect2 = map_show.visible_rect()
 	var from_outside:bool = true
-	var inside_area:bool = true
+	var on_view:bool = true
+	var outside_map:int = 0
+	var trail_ok:bool = true
 	var quick:bool = true
 	var map_explosions:int = 0
 	for t:int in range(200):
 		map_show.step_ticks(1)
 		for r:Dictionary in map_show.rockets:
+			trail_ok = trail_ok and bool(r.rocket_trail)
 			if not r.has("checked"):
 				r["checked"] = true
 				from_outside = from_outside and map_show.to_local_px(Vector2(r.sx,r.sy)).y > visible.end.y
@@ -100,10 +108,14 @@ func run() -> void:
 		for f:Dictionary in map_show.flashes:
 			if int(f.age) == 1:
 				map_explosions += 1
-				inside_area = inside_area and area.has_point(map_show.to_local_px(Vector2(f.x,f.y)))
+				var at:Vector2 = map_show.to_local_px(Vector2(f.x,f.y))
+				on_view = on_view and visible.has_point(at)
+				if not area.has_point(at): outside_map += 1
 	check(not map_show.screen_space and map_show.global_transform == Transform2D.IDENTITY,"map show lives in world coordinates, not on the screen")
+	check(is_equal_approx(map_show.unit,visible.size.y / 28.0) and map_show.particle_scale >= 2.0,"map show is sized from the visible view, not the map")
 	check(map_explosions == 10 and from_outside,"every map rocket starts below the visible screen and explodes (%d)" % map_explosions)
-	check(inside_area,"every map explosion happens over the map")
+	check(on_view and outside_map > 0,"explosions cover the whole view, including outside the map (%d outside)" % outside_map)
+	check(trail_ok,"show rockets leave particle trails")
 	check(quick,"map rockets reach their burst within about one second")
 	map_show.free()
 	host.free()
@@ -132,5 +144,6 @@ func run() -> void:
 	await process_frame
 	print("MC_FIREWORK_RESULT checks=%d failures=%d" % [checks,failures])
 	quit(0 if failures == 0 else 1)
+
 
 
