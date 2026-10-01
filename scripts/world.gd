@@ -5880,6 +5880,7 @@ const ARMOR_TEST_ROLE_SUMMARIES:Dictionary = {
 	"res://scripts/characters/我的世界/new5/guardian.gd":"MC_ARMOR_INTRO_GUARDIAN",
 	"res://scripts/characters/我的世界/frontier/moss.gd":"MC_ARMOR_INTRO_MOSS_BLOCK",
 	"res://scripts/characters/我的世界/new6/heavenfall_longbow.gd":"MC_ARMOR_INTRO_LONGBOW_OF_THE_HEAVENS",
+	"res://scripts/characters/我的世界/goat_horn/goat_horn.gd":"MC_ARMOR_INTRO_GOAT_HORN",
 	"res://scripts/characters/我的世界/铁匠村民.gd":"MC_ARMOR_INTRO_BLACKSMITH_VILLAGER",
 	"res://scripts/characters/我的世界/铁傀儡.gd":"MC_ARMOR_INTRO_IRON_GOLEM",
 	"res://scripts/characters/我的世界/铁砧.gd":"MC_ARMOR_INTRO_ANVIL",
@@ -9374,6 +9375,7 @@ func _apply_boss_training_scaling(character:ball, factor:float) -> void:
 	# 从一开始就读取强化后的基础值。
 	character.Max_health = maxi(1,roundi(float(character.Max_health) * mult))
 	character.Damage = maxi(1,roundi(float(character.Damage) * mult))
+	if not character.has_meta("training_boss_base_speed"): character.set_meta("training_boss_base_speed",character.Speed)
 	character.Speed = maxf(character.Speed * mult,0.0)
 	character.Health_Restore = maxi(0,roundi(float(character.Health_Restore) * mult))
 	character.max_block = maxi(0,roundi(float(character.max_block) * mult))

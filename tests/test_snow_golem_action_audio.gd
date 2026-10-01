@@ -152,7 +152,6 @@ func run() -> void:
 	check(seen.any(func(s):return s.reason=="wall"),"real contact requests one cadence-limited snow impact cue")
 	await pcm("wall_rebound")
 	check(unit.rng.state==gameplay_rng,"movement variants do not consume the volley gameplay RNG")
-	# 行走脚步按移速计步，可与上一声重叠，但不会快过最短间隔。
 	var previous:Dictionary = {}
 	var spaced:bool = true
 	for sound:Dictionary in seen:

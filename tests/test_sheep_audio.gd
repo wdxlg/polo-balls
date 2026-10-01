@@ -93,7 +93,6 @@ func run() -> void:
 	sheep.global_position.x += 2
 	sheep._step_sheep_sounds(0.01)
 	check(sounds("entity.sheep.step").size()==1,"actual movement makes footstep")
-	# 脚步按走过的距离计步：步幅 = 基础速度 × 基础间隔。
 	var stride:float = sheep.FOOTSTEP.base_speed(sheep)*sheep.footstep_base_interval
 	sheep.global_position.x += stride*0.5
 	sheep._step_sheep_sounds(0.1)

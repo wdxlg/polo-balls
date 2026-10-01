@@ -10,7 +10,6 @@ const FOOTSTEP = preload("res://scripts/effects/我的世界/footstep_cadence.gd
 @export var visual_rage:bool = false
 var pair_frames:SpriteFrames
 @export var breath_silence:Vector2 = Vector2(2.0,5.0)
-# 脚步基础间隔 = 一声脚步 + step_silence 平均值；实际间隔随当前移速缩放（越快越密，可重叠）。
 @export var step_silence:Vector2 = Vector2(0.25,0.7)
 var _breath_wait:float = 0.0
 var _step_cadence = FOOTSTEP.new()
@@ -75,7 +74,6 @@ func _stop_sound(player:Variant) -> void:
 		player.stop()
 		player.queue_free()
 
-# 脚步可以重叠，停步/死亡时要把本角色所有还在响的脚步一起停掉。
 func _stop_all_steps() -> void:
 	_stop_sound(_step_player)
 	for node:Node in get_tree().get_nodes_in_group("GolemPairAudio"):
@@ -95,7 +93,6 @@ func tick_pair_audio(delta:float,walking:bool) -> void:
 	_breath_wait = maxf(_breath_wait-maxf(delta,0.0),0.0)
 	if mc_audio_role=="villager" and _breath_wait<=0.0 and not _audio_busy(_voice_player):
 		mc_play("ambient",-8.0)
-	# 脚步：按当前实际移速计步，越快越密、越慢越稀；下一步不等上一声播完。
 	var moved:float = global_position.distance_to(_step_last_position)
 	_step_last_position = global_position
 	if not walking:
@@ -184,7 +181,6 @@ func _pair_audio_local(event:String,point:Vector2,volume:float,index:int = -1) -
 	player.set_meta("mc_pair_variant",choice)
 	player.finished.connect(player.queue_free,CONNECT_ONE_SHOT)
 	player.play()
-	# 嗓音仍以"正在播放"为第二道闸，不会叠音；脚步不受此限，可以重叠。
 	if vocal:
 		_voice_player = player
 		_breath_wait = _audio_duration(player)+_random_gap(breath_silence)

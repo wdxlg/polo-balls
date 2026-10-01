@@ -8,7 +8,6 @@ var last_duration:Dictionary={}
 var counts:Dictionary={}
 var tendril_chance:float=0.35
 const FOOTSTEP=preload("res://scripts/effects/我的世界/footstep_cadence.gd")
-## 按基础速度行走时的脚步间隔；实际间隔随当前移速缩放（越快越密、越慢越稀），脚步可与上一声重叠。
 var step_base_interval:float=1.0
 var _step_cadence=FOOTSTEP.new()
 var _previous_position:Vector2
@@ -39,7 +38,6 @@ func _process(delta:float) -> void:
 	for key:Variant in waits: waits[key]=maxf(0.0,float(waits[key])-delta)
 	if actor.form!=actor.Form.AWAKE: return
 	if float(waits.breath)<=0.0: play_channel("breath","angry" if actor.rage_left>0.0 else "ambient",-4.0)
-	# 脚步按当前实际移速计步（footstep_cadence.gd）。
 	var walking:bool=moved and actor.velocity.length_squared()>4.0 and not actor.dizziness
 	if _step_cadence.tick(moved_px if walking else 0.0,delta,FOOTSTEP.base_speed(actor),step_base_interval): play_channel("step","step",-4.0)
 func heard() -> void:
@@ -49,7 +47,6 @@ func roar() -> void:
 	if running() and actor.is_multiplayer_authority(): play_channel("roar","roar",0.0)
 func play_channel(channel:String,event:String,volume:float) -> bool:
 	if not running() or not actor.is_multiplayer_authority(): return false
-	# 嗓音声道要等上一声播完；脚步声道由移速节奏控制，可以重叠。
 	if channel!="step":
 		if float(waits.get(channel,0.0))>0.0: return false
 		var previous:Variant=players.get(channel)

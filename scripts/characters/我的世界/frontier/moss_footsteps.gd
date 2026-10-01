@@ -1,7 +1,5 @@
 extends Node
 ## One per-world scheduler, one cadence per walking enemy, even across moss owners.
-## 脚步节奏按踩踏者当前实际移速计步（footstep_cadence.gd）：越快越密、越慢越稀，可与上一声重叠。
-## 基础间隔 = 最长一声苔藓脚步 + 随机停顿区间的平均值。
 const FOOTSTEP = preload("res://scripts/effects/我的世界/footstep_cadence.gd")
 const AUDIO = preload("res://scripts/characters/我的世界/new5/audio.gd")
 const U = preload("res://scripts/characters/我的世界/new5/utils.gd")
@@ -20,7 +18,6 @@ static func ensure(context:Node) -> Node:
 func _ready() -> void:
 	add_to_group("MCMossFootsteps")
 	add_to_group("BattleTransient")
-	# 用最长一声（含音高）来换算基础间隔，各端选到不同变体时节奏一致。
 	for record:Dictionary in AUDIO.EVENTS["block.moss.step"]:
 		longest_step = maxf(longest_step,record.stream.get_length()/maxf(float(record.pitch),0.01))
 func base_interval() -> float:

@@ -36,7 +36,6 @@ const DEATH_BRIDGE_DISPLAY_META:StringName = &"battle_death_bridge_display_name"
 var _rng := RandomNumberGenerator.new()
 var _hiss_time_left:float = 1.0
 const FOOTSTEP = preload("res://scripts/effects/我的世界/footstep_cadence.gd")
-# 按基础速度行走时的脚步间隔；实际间隔随当前移速缩放（越快越密、越慢越稀，可与上一声重叠）。
 @export var footstep_base_interval:float = 0.61
 var _footstep_cadence = FOOTSTEP.new()
 var _footstep_overlaps:Array[AudioStreamPlayer2D] = []
@@ -234,7 +233,6 @@ func _update_living_audio(delta:float) -> void:
 	if _hiss_time_left <= 0.0 and hiss_audio != null and not hiss_audio.playing:
 		_play_random_hiss()
 
-	# 脚步按当前实际移速计步：越快越密、越慢越稀；停下后下一次起步先响一声。
 	if _footstep_cadence.tick(moved_distance if moving else 0.0,delta,FOOTSTEP.base_speed(self),footstep_base_interval):
 		_play_random_footstep()
 
@@ -256,7 +254,6 @@ func _play_random_footstep() -> void:
 	var stream:AudioStream = FOOTSTEP_SOUNDS[_rng.randi_range(0,FOOTSTEP_SOUNDS.size() - 1)]
 	var player:AudioStreamPlayer2D = footstep_audio
 	if footstep_audio.playing:
-		# 跑得快时下一步可在上一声结束前开始：另开临时播放器叠加，播完自动释放。
 		player = footstep_audio.duplicate() as AudioStreamPlayer2D
 		add_child(player)
 		player.finished.connect(player.queue_free,CONNECT_ONE_SHOT)

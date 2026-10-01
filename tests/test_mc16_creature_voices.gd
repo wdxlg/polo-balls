@@ -73,7 +73,6 @@ func run() -> void:
 		f.advance(0.05)
 		var foot:AudioStreamPlayer2D = last_voice(actor,step)
 		check(is_instance_valid(foot),role+" walking even a short distance can trigger a footstep")
-		# 脚步按走过的距离计步：步幅 = 基础速度 × (一声脚步 + 平均停顿)。
 		var stride:float = f.FOOTSTEP.base_speed(actor)*(f._step_length+(actor.footstep_gap_min+actor.footstep_gap_max)*0.5)
 		actor.global_position += Vector2(2,0)
 		f.advance(0.01)

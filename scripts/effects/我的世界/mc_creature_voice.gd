@@ -3,7 +3,6 @@ extends Node
 ## bus, priority, global voice budget and scene safety belong to MCNativeAudio.
 const QUEUE = preload("res://scripts/effects/我的世界/mc_native_audio.gd")
 const FOOTSTEP = preload("res://scripts/effects/我的世界/footstep_cadence.gd")
-## 原节奏：脚步至少隔 0.3 秒且等上一声播完。现在它只作为"按基础速度行走"时的基础间隔。
 const STEP_BASE_INTERVAL:float = 0.3
 var unit:ball
 var events:Dictionary = {}
@@ -14,10 +13,8 @@ var _received:int = 0
 var _tickets:Array[Dictionary] = []
 var _channels:Dictionary = {}
 var _ambient_left:float = 3.0
-# 脚步按当前移速计步（见 footstep_cadence.gd）：越快越密、越慢越稀，
-# 下一步不等上一声播完，允许重叠。
 var _step_cadence = FOOTSTEP.new()
-var _step_length:float = 0.0 # 最近一声脚步的实际时长
+var _step_length:float = 0.0
 var _previous:Vector2
 var _dying:bool = false
 
@@ -31,7 +28,6 @@ func request(kind:String,point:Vector2,gain:float = 0.0) -> bool:
 	if not is_instance_valid(unit) or not unit.is_multiplayer_authority() or not events.has(kind): return false
 	if _dying or get_tree().paused or Game.now_stop_state: return false
 	if kind != "death" and (unit.health <= 0 or not unit.is_combat_runtime_active()): return false
-	# 只有闲聊声要等上一声播完；脚步可以叠在上一声上（节奏由 _step_cadence 决定）。
 	if kind == "ambient" and QUEUE.channel_busy(_channels.get(kind,{})): return false
 	var records:Array = events[kind]
 	if records.is_empty(): return false
@@ -84,10 +80,7 @@ func _physics_process(delta:float) -> void:
 	if not running or _dying or unit.health <= 0 or not unit.is_multiplayer_authority(): return
 	_ambient_left = maxf(0.0,_ambient_left-delta)
 	if _ambient_left <= 0.0 and request("ambient",unit.global_position,-5.0): _ambient_left = _rng.randf_range(3.0,7.0)
-	# 只算真实行走（排除眩晕、瞬移/击飞这类超大位移）。
 	var walking:bool = not unit.dizziness and moved > 0.03 and moved < maxf(48.0,unit.Speed*delta*5.0)
-	# 基础间隔 = max(0.3 秒, 一声脚步时长)，即按基础速度走时保持原来的节奏；
-	# 实际间隔 = 基础间隔 × 基础速度 ÷ 当前移速，可以短于上一声脚步。
 	if _step_cadence.tick(moved if walking else 0.0,delta,FOOTSTEP.base_speed(unit),step_base_interval()):
 		request("step",unit.global_position,-5.0)
 

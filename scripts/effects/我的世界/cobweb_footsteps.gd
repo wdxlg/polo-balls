@@ -1,7 +1,5 @@
 extends Node
 # One per-world cadence per walking target, shared across overlapping webs/owners.
-# 脚步节奏按踩踏者当前实际移速计步（footstep_cadence.gd）：越快越密、越慢越稀，可与上一声重叠。
-# 基础间隔 = 最长一声蛛网脚步 + 随机停顿区间的平均值。
 const FOOTSTEP = preload("res://scripts/effects/我的世界/footstep_cadence.gd")
 const BANK = preload("res://scripts/effects/我的世界/mc16_sound_bank.gd")
 const GEOMETRY = preload("res://scripts/effects/我的世界/mc16_geometry.gd")

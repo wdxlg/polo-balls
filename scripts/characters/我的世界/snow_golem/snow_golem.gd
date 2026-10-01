@@ -36,9 +36,7 @@ var _burst_point:Vector2 = Vector2.ZERO
 var _burst_target:WeakRef
 var _burst_manual:bool = false
 @export_category("雪傀儡 / 移动与动作声音")
-# 按基础速度行走时的脚步间隔；实际间隔随当前移速缩放（越快越密、越慢越稀，可与上一声重叠）。
 @export var footstep_base_interval:float = 0.32
-# 撞墙脚步的最短间隔（贴墙推挤时不会每帧响）。
 @export var footstep_min_interval:float = 0.28
 @export var footstep_volume_db:float = -3.0
 @export var shoot_volume_db:float = 0.0
@@ -49,7 +47,7 @@ var _wall_step_due:bool = false
 var _wall_contact_this_step:bool = false
 var _walking_right:bool = false
 var _step_audio:Dictionary = {}
-var _step_voices:Array[Dictionary] = [] # 所有还在响的脚步（脚步可以重叠）
+var _step_voices:Array[Dictionary] = []
 var _shoot_audio:Dictionary = {} # Latest launch remains available to action observers.
 var _shoot_voices:Array[Dictionary] = [] # One transient for every actual projectile.
 var _break_audio:Dictionary = {}
@@ -372,7 +370,6 @@ func _step_movement_audio(start:Vector2,delta:float) -> void:
 		_wall_step_due = false # Never replay a stale collision while stationary.
 		_footstep_cadence.tick(0.0,delta,1.0,1.0)
 		return
-	# 行走脚步：按当前实际移速计步（footstep_cadence.gd），不等上一声播完。
 	var walk_due:bool = _footstep_cadence.tick(moved,delta,FOOTSTEP.base_speed(self),footstep_base_interval)
 	var wall_due:bool = _wall_step_due and _footstep_wait<=0.0
 	if not walk_due and not wall_due: return
@@ -398,7 +395,6 @@ func _receive_action_sound(serial:int,event:String,variant:int,point:Vector2,gai
 	if serial<=_last_sound_serial or event not in ["block.snow.step","entity.snow_golem.shoot"]: return
 	_last_sound_serial = serial
 	if health<=0 or is_queued_for_deletion(): return
-	# 脚步与每发投射物的发射声都允许重叠（脚步节奏由移速决定）。
 	# Per-projectile launch events may overlap, even in a late reliable batch.
 	var ticket:Dictionary = SNOW_AUDIO.queue_action(self,event,variant,point,gain,reason)
 	if event=="block.snow.step":

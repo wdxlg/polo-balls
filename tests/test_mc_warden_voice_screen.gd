@@ -37,7 +37,6 @@ func run() -> void:
 	voice._step_cadence.ready_now(); reset_channel(voice,"step")
 	w.velocity=Vector2(30,0); w.global_position+=Vector2(3,0); voice._process(0.1)
 	check(int(voice.counts.get("step",0))==1,"actual walking emits native footsteps")
-	# 脚步按走过的距离计步：步幅 = 基础速度 × 基础间隔；快速走完一步时可与上一声重叠。
 	var stride:float=voice.FOOTSTEP.base_speed(w)*voice.step_base_interval
 	w.global_position+=Vector2(stride*0.5,0); voice._process(0.1)
 	check(int(voice.counts.step)==1,"half a stride adds no footstep")

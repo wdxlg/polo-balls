@@ -101,7 +101,6 @@ func run() -> void:
 	var player:AudioStreamPlayer2D = ref.get_ref()
 	check(player.get_meta("mc16_web_walker")==target.get_instance_id(),"footstep is tracked per walker")
 	check(manager.base_interval()>=manager.longest_step,"base interval at base speed covers the longest native clip")
-	# 脚步按踩踏者走过的距离计步：步幅 = 基础速度 × 基础间隔。
 	var stride:float = manager.FOOTSTEP.base_speed(target)*manager.base_interval()
 	target.global_position += Vector2(1,0)
 	manager.sample(0.08)

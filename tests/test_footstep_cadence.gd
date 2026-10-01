@@ -1,5 +1,4 @@
 extends SceneTree
-## 脚步节奏：间隔 = 基础间隔 × 基础速度 ÷ 当前移速；可短于上一声脚步；停下不响。
 var checks:int = 0
 var failures:int = 0
 var C:GDScript
@@ -11,7 +10,6 @@ func check(ok:bool,label:String) -> void:
 		failures += 1
 		push_error("FAIL: "+label)
 
-## 以恒定速度走 seconds 秒，返回相邻两步的间隔。
 func intervals(speed:float,speed_base:float,interval_base:float,seconds:float = 6.0) -> Array[float]:
 	var dt:float = 1.0/120.0
 	var cadence:RefCounted = C.new()
@@ -54,5 +52,10 @@ func _init() -> void:
 	probe.source_code = "extends RefCounted\nvar Speed:float = 200.0\nvar default_properties:Dictionary = {\"Speed\":80.0}\n"
 	probe.reload()
 	check(is_equal_approx(C.base_speed(probe.new()),80.0),"base speed ignores temporary speed buffs")
+	var boss:RefCounted = probe.new()
+	boss.set_meta("training_boss_base_speed",8.0)
+	check(is_equal_approx(C.base_speed(boss),8.0),"boss speed multiplier is not part of the base speed")
+	var boss_fast:float = avg(intervals(80.0,C.base_speed(boss),0.3))
+	check(absf(boss_fast-C.MIN_INTERVAL) < 0.02,"10x boss walks with 10x denser steps, capped at MIN_INTERVAL (%.3f)" % boss_fast)
 	print("FOOTSTEP_CADENCE checks=",checks," failures=",failures)
 	quit(0 if failures == 0 else 1)

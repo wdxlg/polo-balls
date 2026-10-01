@@ -62,7 +62,6 @@ func run() -> void:
 		p = actor._step_player
 		check(is_instance_valid(p) and p.playing,"walking starts step "+actor.mc_audio_role)
 		duration = actor._audio_duration(p)
-		# 脚步按走过的距离计步：步幅 = 基础速度 × (一声脚步 + 平均停顿)。
 		var stride:float = actor.FOOTSTEP.base_speed(actor)*(duration+(actor.step_silence.x+actor.step_silence.y)*0.5)
 		actor.global_position.x += stride*0.5
 		actor.tick_pair_audio(0.1,true)

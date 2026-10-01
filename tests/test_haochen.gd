@@ -90,7 +90,6 @@ func run() -> void:
 	check(load("res://scripts/characters/我的世界/苦力怕.gd").SHARED_BAR==hero.BAR,"the actual Creeper now uses that exact same painter")
 	var rect:Rect2 = hero.BAR.below_body(hero,hero.collision_shape_2d)
 	check(rect.position.y>hero.collision_shape_2d.shape.get_rect().end.y and rect.size==Vector2(110,16),"reusable bar layout sits below the physical body")
-	# 脚步按当前移速计步：起步先响一步，半个步幅不响，快走时下一步不等上一声播完。
 	var home:Vector2 = hero.global_position
 	hero._previous_audio_position = home
 	hero._audio_sample_valid = true

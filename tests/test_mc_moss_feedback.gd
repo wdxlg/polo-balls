@@ -71,7 +71,6 @@ func run() -> void:
 	scheduler.sample(1.0)
 	check(sounds("block.moss.step").is_empty(),"stationary enemies do not produce steps even with fake velocity")
 	check(scheduler.base_interval()>=scheduler.longest_step,"base interval at base speed covers the longest native clip")
-	# 脚步按踩踏者走过的距离计步：步幅 = 基础速度 × 基础间隔。
 	var stride:float = scheduler.FOOTSTEP.base_speed(target)*scheduler.base_interval()
 	target.global_position += Vector2(1,0)
 	friendly.global_position += Vector2(1,0)

@@ -55,7 +55,6 @@ var _bite_serial:int = 0
 var _seen_bite_serial:int = 0
 var _ambient_cd:float = 3.0
 const FOOTSTEP = preload("res://scripts/effects/我的世界/footstep_cadence.gd")
-# 按基础速度行走时的脚步间隔；冲锋更快，脚步自然更密。
 @export var footstep_base_interval:float = 0.55
 var _footstep_cadence = FOOTSTEP.new()
 var _breath_player:AudioStreamPlayer2D
@@ -157,7 +156,6 @@ func _step_sheep_sounds(delta:float) -> void:
 		var breath:AudioStreamPlayer2D = play_sound("entity.sheep.ambient",-6.0)
 		_ambient_cd = _sound_duration(breath)+rng.randf_range(2.0,5.0)
 	var charging:bool = ram_state == RamState.CHARGE
-	# 脚步按当前实际移速计步（footstep_cadence.gd）：越快越密、越慢越稀，可与上一声重叠。
 	var walking:bool = moved and not is_transport_mounted() and not dizziness and ram_state not in [RamState.GRAZE,RamState.RECOVER]
 	if not _footstep_cadence.tick(moved_px if walking else 0.0,delta,FOOTSTEP.base_speed(self),footstep_base_interval): return
 	play_sound("entity.sheep.step",-8.0 if not charging else -5.0)

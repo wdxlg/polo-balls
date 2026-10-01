@@ -64,7 +64,6 @@ var _desired_speed:float = 0.0
 var _stuck_time:float = 0.0
 var _ghost_time:float = 0.0
 const FOOTSTEP = preload("res://scripts/effects/我的世界/footstep_cadence.gd")
-# 每走 18px 响一步：间隔随当前移速缩放，越快越密、越慢越稀，可与上一声重叠。
 const STEP_STRIDE:float = 18.0
 var _step_cadence = FOOTSTEP.new()
 var _retired:bool = false
