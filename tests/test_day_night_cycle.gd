@@ -20,6 +20,7 @@ func _run() -> void:
 	var old_stop:bool = game.now_stop_state
 	var old_scale:float = Engine.time_scale
 	game.Game_Settings.Map_Background = "blue"
+	game.Game_Settings.Day_Night_Cycle = true
 	game.Game_Settings.Training_Mode = false
 	game.now_stop_state = false
 	paused = false
@@ -138,6 +139,19 @@ func _run() -> void:
 	check(cycle.time_text()=="18:20","empty rematch leaves current time alone")
 	world.reset()
 	check(cycle.time_text()=="12:00" and not cycle.tint.visible,"clear/reset restores noon without leftover darkness")
+	# 时间开关：关闭后隐藏右上角时间、固定正午、不推进；重新打开恢复。
+	cycle.set_minutes(1100)
+	game.set_runtime_game_setting("Day_Night_Cycle",false,false)
+	check(not cycle.clock_layer.visible and cycle.time_text()=="12:00" and not cycle.tint.visible,"time off hides the clock and holds noon lighting")
+	cycle.advance(120.0)
+	cycle.set_minutes(0)
+	check(cycle.time_text()=="12:00" and cycle.daylight==1.0 and not cycle.tint.visible,"time off: no advancing and no night")
+	world.reset()
+	check(not cycle.clock_layer.visible and cycle.time_text()=="12:00","time stays off across reset")
+	game.set_runtime_game_setting("Day_Night_Cycle",true,false)
+	check(cycle.clock_layer.visible,"time on shows the clock again")
+	cycle.advance(60.0)
+	check(cycle.time_text()=="13:00","time on resumes advancing")
 	game.Game_Settings=old
 	game.now_stop_state=old_stop
 	Engine.time_scale=old_scale

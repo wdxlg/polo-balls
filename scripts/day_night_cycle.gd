@@ -6,10 +6,13 @@ const START_MINUTES:float = 720.0
 const MINUTES_PER_SECOND:float = 1.0
 const NIGHT_TINT:Color = Color(0.48,0.54,0.68,1.0)
 const CLOCK_FONT:Font = preload("res://fonts/Mojangles.ttf")
+## 设置里的“时间与昼夜”开关。关闭后隐藏右上角时间，固定正午，不再有昼夜变化。
+const SETTING:String = "Day_Night_Cycle"
 
 var world:Node
 var minutes:float = START_MINUTES
 var advancing:bool = true
+var enabled:bool = true
 var daylight:float = 1.0
 var tint:Polygon2D
 var clock_layer:CanvasLayer
@@ -38,6 +41,7 @@ func _ready() -> void:
 	tint.material = multiply
 	add_child(tint)
 	_create_clock()
+	refresh_enabled()
 	_apply_state()
 
 func _create_clock() -> void:
@@ -82,16 +86,22 @@ func time_text() -> String:
 	var whole:int = int(floor(minutes+0.000001)) % int(DAY_MINUTES)
 	return "%02d:%02d" % [whole/60,whole%60]
 
+func refresh_enabled() -> void:
+	var game:Node = get_node_or_null("/root/Game")
+	enabled = game == null or bool(game.Game_Settings.get(SETTING,true))
+	if is_instance_valid(clock_layer): clock_layer.visible = enabled
+	if not enabled: set_minutes(START_MINUTES)
+
 func set_minutes(value:float) -> void:
 	if not is_finite(value): return
-	minutes = fposmod(value,DAY_MINUTES)
+	minutes = fposmod(value,DAY_MINUTES) if enabled else START_MINUTES
 	_apply_state()
 
 func reset_to_noon() -> void:
 	set_minutes(START_MINUTES)
 
 func advance(delta:float) -> void:
-	if not advancing or not is_finite(delta) or delta<=0.0: return
+	if not enabled or not advancing or not is_finite(delta) or delta<=0.0: return
 	if not is_inside_tree() or get_tree().paused or Engine.time_scale<=0.000001: return
 	var game:Node = get_node_or_null("/root/Game")
 	if game == null or game.now_stop_state: return

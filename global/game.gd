@@ -472,7 +472,7 @@ func release_character_control_for_death(target:Node) -> void:
 
 func _is_network_shared_setting(setting:String) -> bool:
 	# 语言显示域、水印和“跟随我控制的角色”属于每台机器自己的表现设置；其它玩法设置跟随房主房间。
-	return not FEEDBACK_SETTINGS.SPECS.has(setting) and setting not in ["Only_In_Game_Translation","Show_Center_Watermark","Follow_Controlled_Character","Map_Background","Minecraft_Clouds","Show_Armor_Stand_Intro","Battle_Music","Battle_Music_Volume","High_Damage_Feedback"]
+	return not FEEDBACK_SETTINGS.SPECS.has(setting) and setting not in ["Only_In_Game_Translation","Show_Center_Watermark","Follow_Controlled_Character","Map_Background","Minecraft_Clouds","Day_Night_Cycle","Show_Armor_Stand_Intro","Battle_Music","Battle_Music_Volume","High_Damage_Feedback"]
 
 func _shared_settings_snapshot() -> Dictionary:
 	var snapshot:Dictionary = {}
@@ -785,6 +785,8 @@ func _on_speed_slider_drag_ended(value_changed:bool) -> void:
 	Map_Background = "blue",
 	# Local visual preference, persisted by the existing settings path.
 	Minecraft_Clouds = true,
+	# 本机表现：右上角时间与昼夜变化。关闭后固定正午并隐藏时间。
+	Day_Night_Cycle = true,
 	# 本机战斗音乐：曲目登记在 res://global/battle_music.gd，默认“无”。
 	Battle_Music = "none",
 	Battle_Music_Volume = 100.0,

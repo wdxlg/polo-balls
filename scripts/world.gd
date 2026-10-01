@@ -6584,6 +6584,9 @@ func _on_training_game_setting_changed(setting:String,_value:Variant) -> void:
 	if setting == "Minecraft_Clouds":
 		if is_instance_valid(minecraft_clouds): minecraft_clouds.refresh()
 		return
+	if setting == "Day_Night_Cycle":
+		if is_instance_valid(day_night_cycle): day_night_cycle.refresh_enabled()
+		return
 	if setting == "Map_Background":
 		refresh_map_presentation()
 		return
