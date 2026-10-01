@@ -19,8 +19,8 @@ enum BlowPhase { IDLE, WINDUP, HOLD }
 
 @export var first_blow_delay:float = 4.0
 @export var blow_interval:float = 15.0
-@export var goats_min:int = 8
-@export var goats_max:int = 10
+@export var goats_min:int = 14
+@export var goats_max:int = 16
 @export var blow_windup:float = 0.35
 @export var blow_hold:float = 1.4
 @export var blow_move_ratio:float = 0.5
@@ -84,7 +84,6 @@ func blow_ready() -> bool:
 
 
 func step_mob(delta:float) -> void:
-	_step_tokens = minf(_step_tokens + STEP_TOKENS_PER_SECOND * delta,STEP_TOKENS_PER_SECOND)
 	if not _pending_goats.is_empty():
 		_goat_clock += delta
 		while not _pending_goats.is_empty() and _pending_goats[0] <= _goat_clock:
@@ -248,6 +247,8 @@ func _receive_goat_sound(serial:int,kind:int,index:int,point:Vector2) -> void:
 
 func _process(delta:float) -> void:
 	super._process(delta)
+	# 脚步配额按真实战斗时间回充，不依赖本体状态机（本体被控时山羊照样有脚步声）。
+	if is_combat_runtime_active(): _step_tokens = minf(_step_tokens + STEP_TOKENS_PER_SECOND * delta,STEP_TOKENS_PER_SECOND)
 	if not is_multiplayer_authority() or not multiplayer.has_multiplayer_peer(): return
 	_sync_wait -= delta
 	if _sync_wait > 0.0: return

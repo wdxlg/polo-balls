@@ -137,14 +137,14 @@ func run() -> void:
 	check(get_nodes_in_group("GoatHornCallRing").size() >= 1,"call ring spawned at the bell")
 	check(is_equal_approx(horn._blow_wait,horn.blow_interval) or horn._blow_wait > horn.blow_interval - 1.0,"next blow scheduled after the 15 s interval")
 	var expected:int = horn._pending_goats.size()
-	check(expected >= 8 and expected <= 10,"each blow schedules 8-10 goats (got %d)" % expected)
+	check(expected >= 14 and expected <= 16,"each blow schedules 14-16 goats (got %d)" % expected)
 	var view:Rect2 = GOAT.view_rect(horn)
 	var seen_start:Array = []
 	var first_ids:Dictionary = {}
 	var spawn_times:Array[float] = []
 	var elapsed:float = 0.0
 	var idle_while_spawning:bool = false
-	for i:int in range(900):
+	for i:int in range(1200):
 		await physics_frame
 		elapsed += get_root().get_physics_process_delta_time()
 		for g:Node in goats():
