@@ -5617,6 +5617,45 @@ func _update_battle_start_bell() -> void:
 	if _collect_alive_victory_sides().size() < 2: return
 	_battle_start_bell_played = true
 	_play_battle_start_bell()
+	_present_battle_intro_title()
+
+
+## 开战大标题：各方名字用阵营颜色的我的世界立体字，中间金色 VS；录像里中英文各一份。
+func _present_battle_intro_title() -> void:
+	var by_locale:Dictionary = {}
+	for locale:String in ["zh","en"]: by_locale[locale] = _battle_intro_title_lines(locale)
+	load("res://scripts/ui/battle_intro_title.gd").present(self,by_locale,str(Game.current_locale))
+
+
+func _battle_intro_title_lines(locale:String) -> Array:
+	var battle_data:Dictionary = return_battle_sides()
+	var side_order:Array = battle_data["order"]
+	var side_members:Dictionary = battle_data["members"]
+	var active_team_count:int = 0
+	for side_key:String in side_order:
+		if _versus_is_named_team(side_key): active_team_count += 1
+	var lines:Array = []
+	var team_index:int = 0
+	for side_key:String in side_order:
+		var counts:Dictionary = {}
+		var names:PackedStringArray = PackedStringArray()
+		for member in side_members[side_key]:
+			var raw:String = str(member)
+			if not counts.has(raw):
+				counts[raw] = 0
+				names.append(raw)
+			counts[raw] = int(counts[raw]) + 1
+		var parts:PackedStringArray = PackedStringArray()
+		for raw:String in names:
+			var text:String = Game._localization._t_for_locale(raw,locale,false).replace("_"," ")
+			if int(counts[raw]) > 1: text += " * %d" % int(counts[raw])
+			parts.append(text)
+		var color:Color = _versus_side_color(side_key,active_team_count,team_index)
+		if _versus_is_named_team(side_key): team_index += 1
+		if not lines.is_empty(): lines.append({"text":"VS","style":"gold","scale":0.62})
+		# 中立/白色阵营用原版标题的灰石配色。
+		lines.append({"text":" + ".join(parts),"style":color if color.s > 0.2 else "stone"})
+	return lines
 
 
 func _play_battle_start_bell() -> void:

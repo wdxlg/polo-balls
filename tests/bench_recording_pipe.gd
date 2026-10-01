@@ -202,9 +202,9 @@ func _spawn(codec:String, out_path:String) -> Dictionary:
 		"-an", "-c:v", codec,
 	]
 	if codec == "h264_nvenc":
-		args.append_array(["-preset", "p4", "-tune", "ull", "-zerolatency", "1", "-delay", "0", "-rc", "constqp", "-qp", "16", "-bf", "0"])
+		args.append_array(["-preset", "p4", "-tune", "ll", "-zerolatency", "1", "-delay", "0", "-rc", "vbr", "-cq", RecorderScript.VIDEO_NVENC_CQ, "-b:v", "0", "-maxrate", RecorderScript.VIDEO_MAXRATE, "-bufsize", RecorderScript.VIDEO_BUFSIZE, "-spatial-aq", "1", "-bf", "0"])
 	else:
-		args.append_array(["-preset", "ultrafast", "-threads", "2", "-crf", RecorderScript.VIDEO_CRF])
+		args.append_array(["-preset", "ultrafast", "-threads", "2", "-crf", RecorderScript.VIDEO_CRF, "-maxrate", RecorderScript.VIDEO_MAXRATE, "-bufsize", RecorderScript.VIDEO_BUFSIZE])
 	args.append_array(["-pix_fmt", "yuv420p", "-movflags", "+faststart", out_path])
 	var result:Variant = OS.execute_with_pipe(_ffmpeg, args, true)
 	if typeof(result) != TYPE_DICTIONARY: return {}

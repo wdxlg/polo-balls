@@ -22,7 +22,12 @@ const LIVE_OUTPUT_FPS:float = 60.0
 ## time. This is a temporary render budget, never a physics/time-scale change.
 const LIVE_RENDER_MAX_FPS:int = 60
 const OUTPUT_SIZE:Vector2i = Vector2i(1080, 1920)
-const VIDEO_CRF:String = "14"
+## 约 10 Mbps 封顶：画质接近原来、体积小 4~5 倍（原来 constqp 16 / crf 14 动辄 30~50 Mbps）。
+const VIDEO_CRF:String = "22"
+const VIDEO_NVENC_CQ:String = "23"
+const VIDEO_MAXRATE:String = "10M"
+const VIDEO_BUFSIZE:String = "20M"
+const IntroTitleScript = preload("res://scripts/ui/battle_intro_title.gd")
 # NVENC still performs RGBA -> YUV preprocessing on CPU. Two auto-sized filter
 # pools can starve each other/the editor; bound these separately from x264 threads.
 const ENCODER_FILTER_THREADS:int = 2
@@ -477,10 +482,10 @@ func _open_pipe_encoder() -> bool:
 	_video_codec = _select_video_codec(ffmpeg)
 	args.append(_video_codec)
 	if _video_codec == "h264_nvenc":
-		args.append_array(["-preset", "p4", "-tune", "ull", "-zerolatency", "1", "-delay", "0", "-rc", "constqp", "-qp", "16", "-bf", "0"])
+		args.append_array(["-preset", "p4", "-tune", "ll", "-zerolatency", "1", "-delay", "0", "-rc", "vbr", "-cq", VIDEO_NVENC_CQ, "-b:v", "0", "-maxrate", VIDEO_MAXRATE, "-bufsize", VIDEO_BUFSIZE, "-spatial-aq", "1", "-bf", "0"])
 	else:
 		# Bound CPU contention; two veryfast encoders used to starve game physics.
-		args.append_array(["-preset", "ultrafast", "-threads", "2", "-crf", VIDEO_CRF])
+		args.append_array(["-preset", "ultrafast", "-threads", "2", "-crf", VIDEO_CRF, "-maxrate", VIDEO_MAXRATE, "-bufsize", VIDEO_BUFSIZE])
 	args.append("-pix_fmt")
 	args.append("yuv420p")
 	args.append("-movflags")
@@ -1340,6 +1345,8 @@ func _setup_sim_capture_viewport() -> void:
 	_capture_vignette.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_sync_capture_vignette()
 	_setup_recording_composition(sub)
+	# 开战大标题是屏幕层，共享 World2D 拍不到：这条录像的视口按自己的语言另放一份。
+	IntroTitleScript.register_capture(sub,_locale)
 	if sub.use_hdr_2d:
 		_setup_color_resolve(sub)
 	if not _is_variant and is_instance_valid(_secondary):
@@ -1662,7 +1669,7 @@ func _mux_png_sequence(ffmpeg:String, dir_path:String, out_path:String, fps:floa
 		"-i", ProjectSettings.globalize_path(dir_path) + "/frame_%05d.png",
 		"-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2:out_color_matrix=bt709:out_range=tv",
 		"-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709",
-		"-c:v", "libx264", "-preset", "veryfast", "-crf", VIDEO_CRF,
+		"-c:v", "libx264", "-preset", "veryfast", "-crf", VIDEO_CRF, "-maxrate", VIDEO_MAXRATE, "-bufsize", VIDEO_BUFSIZE,
 		"-pix_fmt", "yuv420p", "-movflags", "+faststart",
 		ProjectSettings.globalize_path(out_path),
 	])
