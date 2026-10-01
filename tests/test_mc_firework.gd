@@ -81,6 +81,31 @@ func run() -> void:
 	show.step_ticks(120)
 	check(show.is_finished(),"show finishes and can free itself")
 	show.free()
+	# 地图上庆祝：火箭从画面外飞进来，炸点在地图范围内，比原版飞得快。
+	var area := Rect2(-200,-250,700,700)
+	var map_show = FW.celebrate(host,{"area":area,"count":10,"sound":false,"seed":9})
+	map_show.set_process(false)
+	var visible:Rect2 = map_show.visible_rect()
+	var from_outside:bool = true
+	var inside_area:bool = true
+	var quick:bool = true
+	var map_explosions:int = 0
+	for t:int in range(200):
+		map_show.step_ticks(1)
+		for r:Dictionary in map_show.rockets:
+			if not r.has("checked"):
+				r["checked"] = true
+				from_outside = from_outside and map_show.to_local_px(Vector2(r.sx,r.sy)).y > visible.end.y
+				quick = quick and float(r.lifetime) / float(r.speed) <= 19.0
+		for f:Dictionary in map_show.flashes:
+			if int(f.age) == 1:
+				map_explosions += 1
+				inside_area = inside_area and area.has_point(map_show.to_local_px(Vector2(f.x,f.y)))
+	check(not map_show.screen_space and map_show.global_transform == Transform2D.IDENTITY,"map show lives in world coordinates, not on the screen")
+	check(map_explosions == 10 and from_outside,"every map rocket starts below the visible screen and explodes (%d)" % map_explosions)
+	check(inside_area,"every map explosion happens over the map")
+	check(quick,"map rockets reach their burst within about one second")
+	map_show.free()
 	host.free()
 	# 比赛结束挂钩：普通模式结算放烟花；重置会停掉。
 	var game:Node = root.get_node("Game")
@@ -95,7 +120,7 @@ func run() -> void:
 	await process_frame
 	await process_frame
 	world._trigger_victory_bell()
-	check(is_instance_valid(world._match_fireworks) and world._match_fireworks.get_parent() == world,"normal match end launches fireworks in the world canvas")
+	check(is_instance_valid(world._match_fireworks) and world._match_fireworks.get_parent() == world and not world._match_fireworks.screen_space,"normal match end launches fireworks on the map")
 	var first_show:Node = world._match_fireworks
 	world._trigger_victory_bell()
 	check(world._match_fireworks == first_show,"one show per finished match")
@@ -107,4 +132,5 @@ func run() -> void:
 	await process_frame
 	print("MC_FIREWORK_RESULT checks=%d failures=%d" % [checks,failures])
 	quit(0 if failures == 0 else 1)
+
 

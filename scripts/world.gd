@@ -5564,7 +5564,9 @@ func _celebrate_match_end() -> void:
 	if _match_fireworks_played or not is_inside_tree(): return
 	_match_fireworks_played = true
 	_stop_match_fireworks()
-	_match_fireworks = load(MC_FIREWORK_SCRIPT).celebrate(self)
+	# 烟花在地图上：从画面外飞进来，在地图上空炸开，跟随镜头和录制画面。
+	var map_node:Node = _current_map_node()
+	_match_fireworks = load(MC_FIREWORK_SCRIPT).celebrate(self,{"area":return_map_world_rect(map_node) if map_node != null else Rect2()})
 
 func _stop_match_fireworks() -> void:
 	if is_instance_valid(_match_fireworks): _match_fireworks.queue_free()
