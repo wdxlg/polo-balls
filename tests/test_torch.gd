@@ -143,6 +143,7 @@ func run() -> void:
 	var parked:Vector2 = torch.global_position
 	check(world.return_all_character_names().has("火把"),"火把 appears in the Minecraft roster")
 	check(torch.Unique_Death_Audio == torch.AUDIO.EVENTS["entity.item.break"][0].stream,"death uses native item break")
+	check(torch.Dead_Audio == "DeadBell","death also plays the default death sound")
 	check(str(classifier.profile_of(torch).get("entity_kind","")) == "character","torch classified as character")
 	check(not torch.get_armor_test_effect_summary().is_empty(),"armor-stand introduction resolves")
 	check(torch.call("is_combat_runtime_active"),"real World combat is active")

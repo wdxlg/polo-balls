@@ -10,7 +10,7 @@ const RING_Z:int = -4 # 与立体墙同层：墙/墙影/云是 top_level，同�
 const RING_INSET_CELLS:float = 0.5
 ## 新格在这么多秒内按像素随机慢慢长满；整格长满才是正式灵魂沙（减速、火把充能、灵魂火）。
 ## 取得和"一格前沿多久被选中一次"同量级，许多格同时在长，前沿持续缓慢爬，而不是长一下停一下。
-const GROW_SECONDS:float = 10.0
+const GROW_SECONDS:float = 5.0
 ## 每长一个像素，有这个概率顺带向相邻、还没轮到的格子溢出一个像素；溢出最多占那格的比例（不算正式灵魂沙）。
 const SPILL_CHANCE:float = 0.35
 const SPILL_CAP:float = 0.35
@@ -25,7 +25,7 @@ const FADE_SECONDS:float = 0.8
 const DIRS:Array[Vector2i] = [Vector2i.LEFT,Vector2i.RIGHT,Vector2i.UP,Vector2i.DOWN]
 
 ## 从开始蔓延到铺满全图大约需要的战斗秒数。
-@export var full_cover_seconds:float = 150.0
+@export var full_cover_seconds:float = 60.0
 ## 每次从前沿随机抽几个候选、取阻力最低者：1 为均匀随机，越大越容易长出伸向内部的细枝。
 @export var tournament_size:int = 3
 
