@@ -52,7 +52,7 @@ func run() -> void:
 	game.Game_Settings.Have_Team_Damage = false
 	game.now_stop_state = false
 	AudioServer.set_bus_mute(0,true)
-	create_timer(110.0).timeout.connect(func(): finish(2))
+	create_timer(150.0).timeout.connect(func(): finish(2))
 	world = load("res://scenes/world.tscn").instantiate()
 	world.tree_entered.connect(func(): current_scene = world,CONNECT_ONE_SHOT)
 	root.add_child(world)
@@ -167,6 +167,7 @@ func run() -> void:
 	check(cg.at_rest and ca.current_clip == &"idle","evoker rests after cast + stop")
 	# --- second wave: spider / drowned (mc_native_animation) + witch / skeleton / creeper (batch2)
 	await action_suite(center)
+	await pair_suite(center)
 	# --- cache bound
 	var cache:Dictionary = LEGS._cache.get("enderman",{})
 	check(cache.is_empty() or (cache["order"] as Array).size() <= LEGS.CACHE_PER_SET,"composite cache bounded")
@@ -263,6 +264,80 @@ func action_suite(center:Vector2) -> void:
 				d._action_left = 0.4,&"catch")
 			check(rr.clip_ok >= 25 and rr.legs.size() >= 8 and not rr.legs.has(-1),"drowned: catch while moving keeps legs walking")
 		u.queue_free()
+
+## Iron golem / villager pair (pair_base.gd): clip chosen by the scripts, legs by the gait.
+func pair_step(u:Node2D,ratio:float,frames_n:int,clip:String,clock:Variant = null) -> Dictionary:
+	var v:float = LEGS.standard_speed(u)*ratio
+	var out:Dictionary = {"legs":{},"tex":{},"walk_frames":{}}
+	for i:int in range(frames_n):
+		u.set_pair_clip(clip)
+		if clock != null: u.visual_clock = float(clock)
+		u.global_position.x += v/60.0
+		u._pair_gait().tick(u,1.0/60.0,true)
+		u.update_pair_visual()
+		out.legs[u._leg_index] = true
+		out.tex[u.image.texture.get_rid()] = true
+	return out
+
+func pair_suite(center:Vector2) -> void:
+	var g:Node2D = spawn("res://scenes/characters/我的世界/铁傀儡.tscn",center+Vector2(400,-500))
+	var v:Node2D = spawn("res://scenes/creatures/铁傀儡村民.tscn",center+Vector2(400,-200))
+	await process_frame
+	await process_frame
+	check(g._pair_legs_key() == "golem_0" and v._pair_legs_key() == "villager" and LEGS.layer_data("golem_3") != null and LEGS.layer_data("villager") != null,"pair: leg layer sets for golem stages + villager")
+	var gg:RefCounted = g._pair_gait()
+	check(absf(gg.cycle-1.0) < 0.001 and gg.neutral.size() == 2,"pair: golem gait = 16-frame / 1 s walk, 2 rest phases")
+	# walking: walk frames follow the gait (all 16 visited in one stride at 1x)
+	var walk_tex:Dictionary = {}
+	for i:int in range(60):
+		g.set_pair_clip("walk")
+		g.global_position.x += LEGS.standard_speed(g)/60.0
+		gg.tick(g,1.0/60.0,true)
+		g.update_pair_visual()
+		walk_tex[gg.walk_index(16)] = g.image.texture == g.pair_frames.get_frame_texture("walk",gg.walk_index(16))
+	check(walk_tex.size() >= 15 and not walk_tex.values().has(false) and g._leg_index == -1,"golem: walk frames driven by gait (%d of 16 indices)" % walk_tex.size())
+	# charge + swing while moving: composited, legs keep cycling
+	var rc:Dictionary = pair_step(g,1.0,20,"charge",0.2)
+	check(rc.legs.size() >= 6 and not rc.legs.has(-1) and rc.tex.size() >= 6,"golem: charging while moving keeps legs walking (%d phases)" % rc.legs.size())
+	check(LEGS.cached_source_image(g.image.texture) != null,"golem: charge frame is a leg composite")
+	var rs:Dictionary = pair_step(g,1.0,20,"swing",0.3)
+	check(rs.legs.size() >= 6 and not rs.legs.has(-1),"golem: swing while moving keeps legs walking")
+	# crack stage switches leg set
+	g.visual_stage = 2
+	g.pair_frames = g.GOLEM_FRAMES[2]
+	var r2:Dictionary = pair_step(g,1.0,10,"swing",0.3)
+	check(g._pair_legs_key() == "golem_2" and not r2.legs.has(-1),"golem: cracked stage uses its own leg layers")
+	# stop: settle -> original charge frame
+	for i:int in range(60):
+		g.set_pair_clip("charge")
+		g.visual_clock = 0.2
+		gg.tick(g,1.0/60.0,true)
+		g.update_pair_visual()
+	check(gg.at_rest and g._leg_index == -1 and g.image.texture == g.pair_frames.get_frame_texture("charge",int(0.2*g.pair_frames.get_animation_speed("charge"))),"golem: charge while still = stock frame")
+	# steering into a wall (walk clip, no displacement): legs stand -> idle frame
+	for i:int in range(30):
+		g.set_pair_clip("walk")
+		gg.tick(g,1.0/60.0,true)
+		g.update_pair_visual()
+	check(g.image.texture == g.pair_frames.get_frame_texture("idle",0),"golem: walk clip without displacement shows standing legs")
+	# 2x speed
+	pair_step(g,1.0,10,"walk")
+	var p0:float = gg.phase
+	pair_step(g,2.0,30,"walk")
+	check(absf(wrapf(gg.phase-p0,-0.5,0.5)) < 0.02,"golem: 2x speed -> full stride in 0.5 s")
+	# villager throw while moving
+	var vg:RefCounted = v._pair_gait()
+	pair_step(v,1.0,20,"carry_walk")
+	var rv:Dictionary = pair_step(v,1.0,20,"throw",0.2)
+	check(rv.legs.size() >= 6 and not rv.legs.has(-1),"villager: throw while moving keeps legs walking")
+	# real tick_physics hook advances the gait from displacement
+	var before:float = vg.phase
+	for i:int in range(20):
+		v.global_position.x += LEGS.standard_speed(v)/60.0
+		v.tick_physics(v.State.Stand,1.0/60.0)
+	check(absf(wrapf(vg.phase-before,-0.5,0.5)) > 0.2,"villager: tick_physics advances legs from real displacement")
+	g.queue_free()
+	v.queue_free()
 
 func finish(code:int) -> void:
 	if finishing: return

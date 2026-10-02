@@ -151,6 +151,89 @@ def bake_creeper():
     return ls
 
 
+def _pair_module():
+    """golem_pair/bake_pair.py bakes + downloads at import; load only its PairBaker class."""
+    import os
+    path = TRAINING / 'golem_pair' / 'bake_pair.py'
+    src = path.read_text(encoding='utf8')
+    ns = {'__file__': str(path), '__name__': 'bake_pair_classes'}
+    exec(compile(src[:src.index("b=PairBaker();folder=")], str(path), 'exec'), ns)
+    return ns
+
+
+GOLEM_CROUCH = [i / 7 for i in range(8)]  # one exact crouch level per baked charge frame (f = i/7)
+
+
+def bake_golem(stage):
+    """Iron golem crack stage `stage`. Variant 0 = baked walk legs (body sway, verify only);
+    variants 1.. = walk leg swing on an un-swayed body at charge crouch levels (swing uses level 0)."""
+    import math
+    from PIL import Image
+    ns = _pair_module(); n = ns['n']; SRC = ns['SRC']
+
+    class Mix(ns['PairBaker']):
+        mix = None   # (state, action t, leg t)
+        def pose(self, role, state, t, peek=0):
+            if self.mix is None: return super().pose(role, state, t, peek)
+            st, at, lt = self.mix
+            p = super().pose(role, st, at, peek)
+            v = math.cos(lt * math.tau) * 6
+            p['leg0']['rotation'][0] = v * 6; p['leg1']['rotation'][0] = -v * 6
+            return p
+
+    b = Mix()
+    n.W, n.H = 448, 384; b.foot['golem'] = 275
+    skin = Image.fromarray(b.skins['golem'])
+    if stage:
+        skin = Image.alpha_composite(skin, Image.open(SRC / f'textures/entity/iron_golem/cracked_{["", "low", "medium", "high"][stage]}.png').convert('RGBA'))
+    b.skins['golem'] = np.array(skin)
+    bones = b.models['golem']; legs = ('leg0', 'leg1'); trunk = ('body',)
+    walk_t = mc16_times(16, 1, True)
+    ls = bake_generic(f'golem_{stage}', b, bones, legs, trunk, lambda t: b.render('golem', 'walk', t), walk_t,
+                      lambda: b.render('golem', 'idle', 0), {})
+    for level in GOLEM_CROUCH:
+        phases = []
+        for t in walk_t:
+            b.mix = ('charge', level * .38, t)
+            phases.append(split_render(b, bones, legs, lambda: b.render('golem', 'charge', 0), trunk)['legs'])
+        b.mix = None
+        ls.legs.append(phases); ls.rest.append(ls.rest[0])
+    for clip, (count, duration, loop) in {'charge': (8, .38, False), 'swing': (24, .48, False)}.items():
+        frames = []
+        for t in mc16_times(count, duration, loop):
+            r = split_render(b, bones, legs, lambda t=t: b.render('golem', clip, t), trunk)
+            level = 0 if clip == 'swing' else min(range(len(GOLEM_CROUCH)), key=lambda i: abs(GOLEM_CROUCH[i] - t / .38))
+            frames.append((r['upper'][0], r['upper'][1], 1 + level, r['upper_trunk']))
+        ls.add_upper(clip, frames)
+    return ls
+
+
+def bake_villager():
+    """Golem-pair toolsmith villager: walking legs under the iron-ingot throw."""
+    import math
+    from PIL import Image
+    ns = _pair_module(); n = ns['n']; SRC = ns['SRC']
+    b = ns['PairBaker']()
+    n.W, n.H = 160, 224; b.foot['villager'] = 195
+    ingot = Image.open(SRC / 'textures/items/iron_ingot.png').convert('RGBA').resize((30, 30), Image.Resampling.NEAREST)
+    def throw(t):
+        im = b.render('villager', 'throw', t)
+        mode = b.__dict__['cube'].__kwdefaults__.get('_m') if 'cube' in b.__dict__ else None
+        if mode in (None, 'upper'):
+            # ingot is pasted after the 3D render: upper layer only, in front of everything
+            y = 123 - int(7 * math.sin(t / .36 * math.pi))
+            im.alpha_composite(ingot, (51, y))
+            mask = np.zeros(np.array(b.depth).shape, bool)
+            a = np.array(ingot)[..., 3] > 0
+            mask[y:y + 30, 51:81] = a[:max(0, min(30, mask.shape[0] - y)), :]
+            b.depth = np.where(mask, 1e9, b.depth)
+        return im
+    uppers = {'throw': [lambda t=t: throw(t) for t in mc16_times(10, .36, False)]}
+    return bake_generic('villager', b, b.models['villager'], ('leg0', 'leg1'), ('body',),
+                        lambda t: b.render('villager', 'walk', t), mc16_times(16, 1, True),
+                        lambda: b.render('villager', 'idle', 0), uppers)
+
+
 SETS = {
     'enderman': lambda: bake_native_mobs_set('enderman', ['attack', 'angry_attack']),
     'evoker': lambda: bake_native_mobs_set('evoker', ['cast', 'celebrate']),
@@ -159,6 +242,11 @@ SETS = {
     'witch': lambda: bake_batch2_set('witch', ('leg0', 'leg1'), ('body',), ['hold', 'drink']),
     'skeleton': lambda: bake_batch2_set('skeleton', HUMANOID_LEGS, ('body', 'waist'), ['shoot']),
     'creeper': bake_creeper,
+    'golem_0': lambda: bake_golem(0),
+    'golem_1': lambda: bake_golem(1),
+    'golem_2': lambda: bake_golem(2),
+    'golem_3': lambda: bake_golem(3),
+    'villager': bake_villager,
 }
 
 COMMENTS = {
@@ -169,6 +257,11 @@ COMMENTS = {
     'witch': 'Witch: walking legs under hold / drink upper body.',
     'skeleton': 'Skeleton: walking legs under the bow shoot upper body.',
     'creeper': 'Creeper: fuse upper body + swollen walking legs; variants 0-4 plain swell levels, 5-7 charged.',
+    'golem_0': 'Iron golem (intact): charge / swing upper body over un-swayed walking legs (variants 1-8 = crouch, per charge frame).',
+    'golem_1': 'Iron golem (cracked low): charge / swing upper body over un-swayed walking legs (variants 1-8 = crouch, per charge frame).',
+    'golem_2': 'Iron golem (cracked medium): charge / swing upper body over un-swayed walking legs (variants 1-8 = crouch, per charge frame).',
+    'golem_3': 'Iron golem (cracked high): charge / swing upper body over un-swayed walking legs (variants 1-8 = crouch, per charge frame).',
+    'villager': 'Golem-pair villager: walking legs under the iron-ingot throw.',
 }
 
 

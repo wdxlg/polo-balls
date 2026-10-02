@@ -2,6 +2,7 @@ extends "res://scripts/characters/我的世界/mc_mob_base.gd"
 const AUDIO_PLAYER:Script = preload("res://scripts/characters/我的世界/iron_golem/native_audio_player.gd")
 const PAIR_SOUNDS = preload("res://scripts/characters/我的世界/iron_golem/native_sounds.gd")
 const FOOTSTEP = preload("res://scripts/effects/我的世界/footstep_cadence.gd")
+const MC_LEGS = preload("res://scripts/effects/我的世界/mc_legs.gd")
 @export var continuation_victory_key:String = ""
 @export var continuation_presentation_key:String = ""
 @export var visual_clip:String = "idle"
@@ -20,6 +21,9 @@ var _step_player:AudioStreamPlayer2D
 var _death_voice_played:bool = false
 var _pair_audio_rng := RandomNumberGenerator.new()
 var _pair_death_done:bool = false
+## 独立腿部步态（mc_legs.gd）：腿由真实位移/自身标准移速推进；蓄力、挥击、投掷时照常迈步，停下回到站姿。
+var gait:RefCounted
+var _leg_index:int = -1
 
 func _ready() -> void:
 	super._ready()
@@ -57,6 +61,11 @@ func tick_physics(state:State,delta:float) -> void:
 	if is_multiplayer_authority() and health > 0 and is_combat_runtime_active():
 		if not dizziness: visual_clock += delta
 	super.tick_physics(state,delta)
+	var legs:RefCounted = _pair_gait()
+	if health > 0 and is_combat_runtime_active():
+		legs.tick(self,delta,not dizziness and float(get_meta("golem_air_height",0.0))<=0.001)
+	else:
+		legs.observe(self)
 	update_pair_visual()
 	var walking:bool = from.distance_squared_to(global_position)>0.000001 and not dizziness and not direction.is_zero_approx() and Speed>0.0 and bool(Game.Game_Settings.get("Ball_Can_Move",true)) and float(get_meta("golem_air_height",0.0))<=0.001
 	tick_pair_audio(delta,walking)
@@ -101,12 +110,51 @@ func tick_pair_audio(delta:float,walking:bool) -> void:
 	var base_interval:float = _step_length+(step_silence.x+step_silence.y)*0.5
 	if _step_cadence.tick(moved,delta,FOOTSTEP.base_speed(self),base_interval): mc_play("step",-10.0)
 
+func _pair_legs_key() -> String:
+	match mc_audio_role:
+		"iron_golem": return "golem_%d" % clampi(visual_stage,0,3)
+		"villager": return "villager"
+	return ""
+
+func _pair_gait() -> RefCounted:
+	if gait == null:
+		var cycle:float = 1.0
+		if pair_frames != null and pair_frames.has_animation("walk"):
+			cycle = float(pair_frames.get_frame_count("walk"))/maxf(pair_frames.get_animation_speed("walk"),0.001)
+		var key:String = _pair_legs_key()
+		gait = MC_LEGS.for_set(key,cycle) if MC_LEGS.layer_data(key) != null else MC_LEGS.create(cycle)
+		gait.observe(self)
+		# Decode every crack stage up front: a stage change mid-fight must not hitch.
+		for k:String in (["golem_0","golem_1","golem_2","golem_3"] if mc_audio_role == "iron_golem" else [key]): MC_LEGS.prewarm(k)
+	return gait
+
 func update_pair_visual() -> void:
 	if pair_frames == null or not pair_frames.has_animation(visual_clip): return
-	var count:int = pair_frames.get_frame_count(visual_clip)
-	var frame:int = int(visual_clock * pair_frames.get_animation_speed(visual_clip))
-	frame = frame % count if pair_frames.get_animation_loop(visual_clip) else mini(frame,count-1)
-	(image as Sprite2D).texture = pair_frames.get_frame_texture(visual_clip,maxi(frame,0))
+	var clip:String = visual_clip
+	var count:int = pair_frames.get_frame_count(clip)
+	var frame:int = int(visual_clock * pair_frames.get_animation_speed(clip))
+	frame = frame % count if pair_frames.get_animation_loop(clip) else mini(frame,count-1)
+	var legs:RefCounted = _pair_gait()
+	var key:String = _pair_legs_key()
+	var tex:Texture2D = null
+	_leg_index = -1
+	if MC_LEGS.layer_data(key) != null:
+		if clip in ["walk","carry_walk"]:
+			if legs.at_rest:
+				# Steering into a wall / no real displacement: legs stand still.
+				var rest_clip:String = "carry" if clip == "carry_walk" else "idle"
+				if pair_frames.has_animation(rest_clip):
+					clip = rest_clip
+					frame = 0
+			else:
+				frame = legs.walk_index(count)
+		elif not legs.at_rest and MC_LEGS.has_upper(key,StringName(clip)):
+			# Charge / swing / throw while moving: upper-body action over walking legs.
+			_leg_index = legs.walk_index(int(MC_LEGS.layer_data(key).WALK))
+			tex = MC_LEGS.compose(key,StringName(clip),maxi(frame,0),_leg_index)
+			if tex == null: _leg_index = -1
+	if tex == null: tex = pair_frames.get_frame_texture(clip,maxi(frame,0))
+	(image as Sprite2D).texture = tex
 	image.self_modulate = Color(1.0,0.38,0.33) if visual_rage else Color.WHITE
 
 func overlaps_target(target:ball,point:Vector2,radius:float) -> bool:
