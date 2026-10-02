@@ -28,6 +28,58 @@ var _floor_shadow:MeshInstance3D
 var _ground_shadow:MeshInstance3D
 var _dirty:bool = true
 var _last_renderer:Node2D
+## Materials of the warm draw, kept so their compiled pipelines stay alive.
+static var _warm_materials:Array[Material] = []
+
+
+## Wall-top snow material setup shared by the real layer and the warm-up draw.
+static func configure_snow_material(material:StandardMaterial3D) -> void:
+	material.emission_enabled = false
+	material.vertex_color_use_as_albedo = true
+	# Lit surfaces fade continuously, just like the 2D snow. Back-face culling
+	# prevents rear cube faces from adding opacity back into a half-faded tile.
+	material.cull_mode = BaseMaterial3D.CULL_BACK
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+
+
+## Draws one hidden snow layer through a private renderer for a few frames, so the snow
+## surface and its shadow pipelines compile when snow is chosen instead of freezing the
+## battle when the first wall-top snow appears.
+static func prewarm_pipelines(host:Node) -> void:
+	if host == null or not host.is_inside_tree() or DisplayServer.get_name() == "headless": return
+	if not _warm_materials.is_empty(): return
+	var warm:Node2D = WALL_RENDERER.new()
+	warm.name = "SnowSurfacePipelineWarmup"
+	host.add_child(warm)
+	var tile:Vector2 = Vector2.ONE*16.0
+	warm.configure_surface_overlay(tile,Vector2(1.0,-1.0))
+	warm.visible = false
+	warm.shadow_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	var view:Viewport = host.get_viewport()
+	var center:Vector2 = view.get_canvas_transform().affine_inverse() * (view.get_visible_rect().size*0.5)
+	var surface := SurfaceTool.new()
+	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	surface.set_color(Color.WHITE)
+	warm.append_world_cuboid(surface,surface,surface,Rect2(center,tile),center,tile,float(warm.block_height),tile.y*LAYER_HEIGHT,SIDE_UV)
+	var mesh:ArrayMesh = surface.commit()
+	var material:StandardMaterial3D = warm._new_material(NATIVE_SNOW)
+	configure_snow_material(material)
+	var shadow_material:StandardMaterial3D = material.duplicate()
+	shadow_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_HASH
+	mesh.surface_set_material(0,material)
+	_warm_materials.append_array([material,shadow_material])
+	var solid := MeshInstance3D.new()
+	solid.mesh = mesh
+	solid.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	solid.layers = warm.mesh_node.layers
+	warm.viewport.add_child(solid)
+	var caster := MeshInstance3D.new()
+	caster.mesh = mesh
+	caster.material_override = shadow_material
+	caster.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+	warm.shadow_viewport.add_child(caster)
+	for _i:int in range(3): await RenderingServer.frame_post_draw
+	if is_instance_valid(warm): warm.queue_free()
 
 func _ready() -> void:
 	name = "EnvironmentSnowView"
@@ -162,12 +214,7 @@ func _sync_geometry() -> void:
 		renderer.append_world_cuboid(surface,surface,surface,piece.rect,piece.corner,tile_size,snow_base_height,thickness,SIDE_UV)
 	var mesh:ArrayMesh = surface.commit()
 	var material:StandardMaterial3D = mesh_node.mesh.surface_get_material(0) if reusable else renderer._new_material(NATIVE_SNOW)
-	material.emission_enabled = false
-	material.vertex_color_use_as_albedo = true
-	# Lit surfaces fade continuously, just like the 2D snow. Back-face culling
-	# prevents rear cube faces from adding opacity back into a half-faded tile.
-	material.cull_mode = BaseMaterial3D.CULL_BACK
-	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	configure_snow_material(material)
 	var shadow_material:StandardMaterial3D = _ground_shadow.material_override if reusable and is_instance_valid(_ground_shadow) else material.duplicate()
 	shadow_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_HASH
 	mesh.surface_set_material(0,material)

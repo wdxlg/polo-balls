@@ -103,6 +103,46 @@ static func find_in(node:Node) -> Node2D:
 	return null
 
 
+## Materials of the load-time warm draw, kept so their compiled pipelines stay alive.
+static var _warm_materials:Array[Material] = []
+
+
+## Draws one hidden block through a private renderer for a few frames, so the block shader,
+## its shadow pass and the ground shadow catcher compile while the world loads instead of
+## freezing the battle the first time a block appears.
+static func prewarm_pipelines(host:Node) -> void:
+	if host == null or not host.is_inside_tree() or DisplayServer.get_name() == "headless": return
+	if not _warm_materials.is_empty(): return
+	var size:float = map_cell(host)
+	var warm:Node2D = RENDERER.new()
+	warm.name = "MCBlock3DPipelineWarmup"
+	host.add_child(warm)
+	warm.configure_block_overlay(size,RENDERER.GROUND)
+	warm.set_active(true)
+	warm.visible = false
+	var view:Viewport = host.get_viewport()
+	var center:Vector2 = view.get_canvas_transform().affine_inverse() * (view.get_visible_rect().size*0.5)
+	var built:Dictionary = build_mesh(&"crafting_table",size)
+	var solid := MeshInstance3D.new()
+	solid.mesh = built.mesh
+	solid.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	var caster := MeshInstance3D.new()
+	caster.mesh = built.mesh
+	caster.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+	for surface:int in range(built.textures.size()):
+		var material:ShaderMaterial = new_material(TEXTURES[built.textures[surface]])
+		material.set_shader_parameter("fade",1.0)
+		_warm_materials.append(material)
+		solid.set_surface_override_material(surface,material)
+		caster.set_surface_override_material(surface,material)
+	if warm.ground_node.material_override != null: _warm_materials.append(warm.ground_node.material_override)
+	for node:MeshInstance3D in [solid,caster]: node.position = Vector3(center.x-size*0.5,0.0,center.y-size*0.5)
+	warm.viewport.add_child(solid)
+	warm.shadow_viewport.add_child(caster)
+	for _i:int in range(3): await RenderingServer.frame_post_draw
+	if is_instance_valid(warm): warm.queue_free()
+
+
 static func block_shader() -> Shader:
 	if _shader == null:
 		_shader = Shader.new()

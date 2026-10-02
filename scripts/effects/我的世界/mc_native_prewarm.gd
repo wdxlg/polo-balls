@@ -47,6 +47,10 @@ func _ready() -> void:
 	_status.hide()
 	layer.add_child(_status)
 	call_deferred("_begin")
+	call_deferred("_warm_block_pipelines")
+
+func _warm_block_pipelines() -> void:
+	load("res://scripts/effects/我的世界/mc_block_3d.gd").prewarm_pipelines(get_parent())
 
 func _begin() -> void:
 	for character:String in CHARACTERS:

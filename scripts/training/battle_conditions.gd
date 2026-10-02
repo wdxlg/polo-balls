@@ -86,6 +86,8 @@ func refresh_layout(force:bool = false) -> void:
 		_wall_candidates.clear()
 		return
 	_load_profile()
+	# Compile the 3D wall-top snow now, not when the first snow lands mid-battle.
+	load("res://scripts/training/snow_wall_view.gd").prewarm_pipelines(world)
 	var previous:String = environment
 	environment = choice
 	var replaced:bool = not is_instance_valid(field) or field.is_queued_for_deletion()
