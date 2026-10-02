@@ -221,7 +221,7 @@ func tick_physics(state:State,delta:float) -> void:
 			_windup_head = -1
 			_manual_skull_windup = false
 		else:
-			_windup = maxf(_windup-delta,0.0)
+			_windup = maxf(_windup-delta*preload("res://scripts/effects/我的世界/mc_enchantments.gd").charge_speed(self),0.0)
 			if _windup <= 0.0:
 				var firing_head:int = _windup_head
 				_windup_head = -1
@@ -238,7 +238,7 @@ func tick_physics(state:State,delta:float) -> void:
 				_windup = SKULL_WINDUP
 				break
 	if _charge_windup > 0:
-		_charge_windup -= delta
+		_charge_windup -= delta*preload("res://scripts/effects/我的世界/mc_enchantments.gd").charge_speed(self)
 		velocity = Vector2.ZERO
 		if _charge_windup <= 0:
 			_charge_remaining = _charge_wall_distance(global_position,_charge_dir)

@@ -128,7 +128,7 @@ func _advance_enchantment(delta:float) -> void:
 	if flight_state!=Phase.HELD and flight_state!=Phase.STUCK:
 		_enchant_elapsed = 0.0
 		return
-	_enchant_elapsed += maxf(delta,0.0)
+	_enchant_elapsed += maxf(delta,0.0)*preload("res://scripts/effects/我的世界/mc_enchantments.gd").charge_speed(unit)
 	var duration:float = unit.held_enchant_delay if flight_state==Phase.HELD else unit.stuck_enchant_delay
 	if _enchant_elapsed>=maxf(duration,0.1): charge()
 func launch(direction:Vector2,origin:Variant = null,aim:Variant = null) -> void:

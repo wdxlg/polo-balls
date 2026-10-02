@@ -226,6 +226,7 @@ func _begin_fuse(target:ball) -> void:
 	var duration:float = maxf(fuse_duration,0.1)
 	if _charged:
 		duration *= clampf(charged_fuse_duration_ratio,0.2,1.0)
+	duration /= preload("res://scripts/effects/我的世界/mc_enchantments.gd").charge_speed(self)
 	var target_id:int = target.get_instance_id()
 	if multiplayer.has_multiplayer_peer():
 		_rpc_begin_fuse.rpc(duration,target_id)

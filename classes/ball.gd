@@ -7522,6 +7522,18 @@ func _receive_spatial_damage_untyped(damage:float,damage_space:Variant,ignore_bl
 	if is_guarded_from_friendly_copy(source): return false
 	if raw_health:
 		if _route_boat_damage(damage,impact_position,true,source,true,"",damage_space if damage_space is Dictionary else {}): return true
+		# Raw health damage keeps the attacker's offensive enchantments (it only skips defences).
+		var raw_enchant_script:Script = null
+		var raw_enchant_info:Dictionary = {}
+		var raw_enchant_source:Node = source
+		if is_instance_valid(source) and int(Engine.get_meta(&"mc_enchant_live_components",0)) > 0:
+			raw_enchant_script = load("res://scripts/effects/我的世界/mc_enchantments.gd")
+			raw_enchant_source = raw_enchant_script.hit_carrier(source,self,impact_position)
+			if not bool(raw_enchant_script.allow_projectile_hit(raw_enchant_source,self)): return false
+			raw_enchant_info = raw_enchant_script.outgoing(raw_enchant_source,self,damage,str(get_meta("_combat_damage_kind","ordinary")))
+			if not raw_enchant_info.is_empty():
+				damage = float(raw_enchant_info.get("damage",damage))
+				if damage <= 0.0: return false
 		var before_health:float = float(health)
 		var before_absorbed:float = absorbed_health_loss
 		var before_block:float = float(block)
@@ -7544,6 +7556,13 @@ func _receive_spatial_damage_untyped(damage:float,damage_space:Variant,ignore_bl
 		)
 		if actual_health_damage > 0.0 and source != null and Game.has_method("report_combat_damage"):
 			Game.report_combat_damage(source, self, actual_health_damage, before_health)
+		if raw_enchant_script != null and actual_health_damage > 0.0 and is_instance_valid(raw_enchant_source):
+			if not raw_enchant_info.is_empty() and raw_enchant_info.caster is ball:
+				raw_enchant_script.apply_hit_effects(raw_enchant_info.caster,raw_enchant_source,self,str(raw_enchant_info.mode),raw_enchant_info.tags)
+			if raw_enchant_script.target_has_retaliation(self):
+				var raw_attacker:Node = raw_enchant_script._caster_of(raw_enchant_source)
+				if raw_attacker is ball: raw_enchant_script.apply_retaliation(self,raw_attacker,actual_health_damage)
+			raw_enchant_script.note_projectile_hit(raw_enchant_source,self)
 		return actual_health_damage > 0.0 or remaining_amount < float(raw_amount)
 	# Area/skill callers may tag explosion, fall, projectile, etc.; restore the
 	# context immediately so a later unrelated hit cannot inherit that resistance.
@@ -7593,17 +7612,22 @@ func _on_hitbox_on_hit(hurt: hurtbox) -> void:
 	# Enchantment modifiers run at the authoritative damage point, before block/HP;
 	# weapons under a character register their component on the combat owner.
 	var enchant_caster:ball = Master if Master != null and is_instance_valid(Master) else self
-	var enchanted_attack:bool = enchant_caster.has_meta("mc_enchant_components") or enchant_caster.has_node("MinecraftEnchantments") or has_meta("mc_enchant_components") or has_node("MinecraftEnchantments")
 	var enchant_script:Script = null
 	var shot_mode:String = "ranged" if _is_ranged_hit_source(self) else "melee"
 	var tags:Array = []
-	if outgoing_damage > 0.0 and enchanted_attack:
+	var enchanted_attack:bool = false
+	if outgoing_damage > 0.0 and int(Engine.get_meta(&"mc_enchant_live_components",0)) > 0:
 		enchant_script = load("res://scripts/effects/我的世界/mc_enchantments.gd")
-		tags = enchant_script.target_tags_for(target)
-		var info:Dictionary = enchant_script.resolve_combat_event(enchant_caster,self,"damage_out",{"damage":outgoing_damage,"mode":shot_mode,"target_tags":tags,"base_damage":outgoing_damage,"current_speed":enchant_caster.Speed})
-		outgoing_damage = float(info.get("damage",outgoing_damage))
-		if float(info.get("armor_penetration",0.0)) > 0.0: target.set_meta("_mc_enchant_armor_penetration",float(info.armor_penetration))
-		if float(info.get("shield_bypass",0.0)) > 0.0: target.set_meta("_mc_enchant_shield_bypass",float(info.shield_bypass))
+		# Piercing continuations skip targets already pierced; inverse Piercing / Multishot shots fizzle.
+		if not bool(enchant_script.allow_projectile_hit(self,target)): return
+		var info:Dictionary = enchant_script.outgoing(self,target,outgoing_damage,"ordinary")
+		if not info.is_empty():
+			enchanted_attack = true
+			if info.caster is ball: enchant_caster = info.caster
+			shot_mode = str(info.mode)
+			tags = info.tags
+			outgoing_damage = float(info.get("damage",outgoing_damage))
+			_set_mc_enchant_hit_metas(target,info)
 
 	if outgoing_damage > 0.0 and (target.block < outgoing_damage or ignore_block) and not preload("res://scripts/effects/我的世界/mc_hit_feedback.gd").manages(self):
 		var combo_pitch:float = HIT_COMBO.next_pitch(self)
@@ -7650,6 +7674,7 @@ func _on_hitbox_on_hit(hurt: hurtbox) -> void:
 	if health_loss + block_loss > 0.0 and (target.has_meta("mc_enchant_components") or target.has_node("MinecraftEnchantments")):
 		if enchant_script == null: enchant_script = load("res://scripts/effects/我的世界/mc_enchantments.gd")
 		enchant_script.apply_retaliation(target,enchant_caster,health_loss + block_loss)
+	if enchant_script != null and health_loss + block_loss > 0.0: enchant_script.note_projectile_hit(self,target)
 	# Allay-owned projectiles report real dealt damage for vanilla hit/crit feedback.
 	var allay_master:Node = Master if is_instance_valid(Master) else null
 	if health_loss>0.0 and allay_master != null and allay_master.is_in_group("MinecraftAllay") and not preload("res://scripts/effects/我的世界/mc_hit_feedback.gd").manages(self):
@@ -7804,15 +7829,36 @@ func receive_positional_damage(
 		return false
 	if _route_boat_damage(damage,impact_position,ignore_block,source,false,"",focus_space): return true
 	if is_guarded_from_friendly_copy(source): return false
+	# Shared enchantment hook: every script/area/projectile hit that names its source lands here.
+	var enchant_script:Script = null
+	var enchant_info:Dictionary = {}
+	var enchant_source:Node = source
+	if is_instance_valid(source) and int(Engine.get_meta(&"mc_enchant_live_components",0)) > 0:
+		enchant_script = load("res://scripts/effects/我的世界/mc_enchantments.gd")
+		# Shots that name their shooter as source still count as ranged via their carrier.
+		enchant_source = enchant_script.hit_carrier(source,self,impact_position)
+		if not bool(enchant_script.allow_projectile_hit(enchant_source,self)): return false
+		enchant_info = enchant_script.outgoing(enchant_source,self,damage,str(get_meta("_combat_damage_kind","ordinary")))
+		if not enchant_info.is_empty():
+			damage = float(enchant_info.get("damage",damage))
+			if damage <= 0.0: return false
+			_set_mc_enchant_hit_metas(self,enchant_info)
 	var before_health:float = float(health)
 	var before_absorbed:float = absorbed_health_loss
 	var before_block:float = float(block)
 	var absorption_status:Node = get_node_or_null("MinecraftStatus_absorption")
 	var before_absorption:float = float(absorption_status.get("absorption_remaining")) if absorption_status != null else 0.0
+	# Projectile Protection also covers shots that report through this entry.
+	var projectile_element:bool = enchant_script != null and not has_meta("_mc_enchant_element") and (COMBAT_CLASSIFICATION.is_projectile(enchant_source) or enchant_script.carrier_tag(self) == "projectile")
+	if projectile_element: set_meta("_mc_enchant_element","projectile")
 	var focus_previous:Vector2 = push_damage_focus_position(focus_origin)
 	hit_white(ignore_block)
 	take_damage(damage,ignore_block)
 	restore_damage_focus_position(focus_previous)
+	if projectile_element: remove_meta("_mc_enchant_element")
+	if not enchant_info.is_empty():
+		remove_meta("_mc_enchant_armor_penetration")
+		remove_meta("_mc_enchant_shield_bypass")
 	before_health += absorbed_health_loss - before_absorbed
 	var actual_health_damage:float = maxf(before_health - float(health), 0.0)
 	_emit_positional_damage_feedback(
@@ -7826,7 +7872,20 @@ func receive_positional_damage(
 	if actual_health_damage > 0.0 and source != null and Game.has_method("report_combat_damage"):
 		Game.report_combat_damage(source, self, actual_health_damage, before_health)
 	var after_absorption:float = float(absorption_status.get("absorption_remaining")) if is_instance_valid(absorption_status) else 0.0
+	var landed:float = actual_health_damage + maxf(before_block - float(block),0.0)
+	if enchant_script != null and landed > 0.0 and is_instance_valid(enchant_source):
+		if not enchant_info.is_empty() and enchant_info.caster is ball:
+			enchant_script.apply_hit_effects(enchant_info.caster,enchant_source,self,str(enchant_info.mode),enchant_info.tags)
+		if enchant_script.target_has_retaliation(self):
+			var attacker:Node = enchant_script._caster_of(enchant_source)
+			if attacker is ball: enchant_script.apply_retaliation(self,attacker,landed)
+		enchant_script.note_projectile_hit(enchant_source,self)
 	return actual_health_damage > 0.0 or float(block) < before_block or after_absorption < before_absorption
+
+## Breach / inverse Breach metas consumed by take_damage for exactly one hit.
+static func _set_mc_enchant_hit_metas(target:Node,info:Dictionary) -> void:
+	if not is_zero_approx(float(info.get("armor_penetration",0.0))): target.set_meta("_mc_enchant_armor_penetration",float(info.armor_penetration))
+	if float(info.get("shield_bypass",0.0)) > 0.0: target.set_meta("_mc_enchant_shield_bypass",float(info.shield_bypass))
 
 
 func take_damage(damage:float,ignore_block:bool = false) -> void:
@@ -7841,12 +7900,16 @@ func take_damage(damage:float,ignore_block:bool = false) -> void:
 	if not bypass_reduction and damage > 0.0 and (has_meta("mc_enchant_components") or has_node("MinecraftEnchantments")):
 		var enchant_script:Script = load("res://scripts/effects/我的世界/mc_enchantments.gd")
 		var element:String = str(get_meta("_blood_damage_element",get_meta("_mc_enchant_element","physical")))
-		damage = float(enchant_script.resolve_event(self,"damage_in",{"damage":damage,"element":element}).get("damage",damage))
+		# The roll drives Unbreaking (1%/level immunity; inverse: 1%/level double damage).
+		damage = float(enchant_script.resolve_event(self,"damage_in",{"damage":damage,"element":element,"roll":randf()}).get("damage",damage))
 	var reduction:float = 0.0 if bypass_reduction else Damage_reduction
-	var armor_penetration:float = clampf(float(get_meta("_mc_enchant_armor_penetration",0.0)),0.0,1.0)
+	var armor_penetration:float = clampf(float(get_meta("_mc_enchant_armor_penetration",0.0)),-1.0,1.0)
 	if armor_penetration > 0.0:
 		# Ignore five percentage points of damage reduction per Breach level.
 		reduction = maxf(reduction-armor_penetration,0.0)
+	elif armor_penetration < 0.0 and not bypass_reduction:
+		# Inverse Breach raises the target's damage reduction instead.
+		reduction = minf(maxf(reduction,0.0)-armor_penetration,1.0)
 	damage *= 1.0-reduction
 	var bypass_health:float = 0.0
 	if not ignore_block and block > 0.0 and damage > 0.0:

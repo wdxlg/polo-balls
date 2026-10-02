@@ -147,7 +147,7 @@ func tick_physics(state:State,delta:float) -> void:
 		return
 
 	if _fire_charging:
-		_fire_charge_left = maxf(_fire_charge_left - delta,0.0)
+		_fire_charge_left = maxf(_fire_charge_left - delta*preload("res://scripts/effects/我的世界/mc_enchantments.gd").charge_speed(self),0.0)
 		if _fire_charge_left <= 0.0:
 			_finish_fire_charge()
 		return

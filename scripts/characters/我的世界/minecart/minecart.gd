@@ -169,7 +169,7 @@ func step_mob(delta:float) -> void:
 	for id:Variant in _hit_until.keys():
 		if float(_hit_until[id]) <= clock: _hit_until.erase(id)
 	if rush_phase == RushPhase.CHARGING:
-		charge_left = maxf(0,charge_left-delta)
+		charge_left = maxf(0,charge_left-delta*preload("res://scripts/effects/我的世界/mc_enchantments.gd").charge_speed(self))
 		if charge_left <= 0.0: launch_rush()
 	elif rush_phase in [RushPhase.IDLE,RushPhase.COASTING]:
 		_check_rails(global_position,global_position)

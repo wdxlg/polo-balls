@@ -1,0 +1,56 @@
+{
+    "source":  "Locally installed Minecraft Java asset index 1.21.json (used by 1.21.1) and its hashed original objects under .minecraft/assets/objects; bytes copied unchanged",
+    "rights":  "Minecraft assets are copyright Mojang Studios/Microsoft. Use is subject to the Minecraft EULA; no general redistribution permission is claimed.",
+    "used_by":  "scripts/characters/我的世界/enchanting_table/enchanting_table_audio.gd (附魔台)",
+    "reused":  "Stone block sounds (block.stone.hit/break/place/step) reuse audio/characters/我的世界/useless_stones (see that folder)",
+    "files":  [
+                  {
+                      "new_asset":  "enchant1.ogg",
+                      "original_path":  "minecraft/sounds/block/enchantment_table/enchant1.ogg",
+                      "sha1":  "f05f55328f2b98b3c7d881fcdef7e7964d8082fa",
+                      "event":  "block.enchantment_table.use"
+                  },
+                  {
+                      "new_asset":  "enchant2.ogg",
+                      "original_path":  "minecraft/sounds/block/enchantment_table/enchant2.ogg",
+                      "sha1":  "2568ad69e8c6b393bc64745ee825c4026a0cc06d",
+                      "event":  "block.enchantment_table.use"
+                  },
+                  {
+                      "new_asset":  "enchant3.ogg",
+                      "original_path":  "minecraft/sounds/block/enchantment_table/enchant3.ogg",
+                      "sha1":  "ca7a734d03d0deaa89a9d7f786e5c827f62f442d",
+                      "event":  "block.enchantment_table.use"
+                  },
+                  {
+                      "new_asset":  "book_page_turn1.ogg",
+                      "original_path":  "minecraft/sounds/item/book/open_flip1.ogg",
+                      "sha1":  "234d6a686516c264a370ea834b87d47ae7334ef7",
+                      "event":  "item.book.page_turn"
+                  },
+                  {
+                      "new_asset":  "book_page_turn2.ogg",
+                      "original_path":  "minecraft/sounds/item/book/open_flip2.ogg",
+                      "sha1":  "c7d1608c706d75df8f074fd04da027fdbf9ec5c1",
+                      "event":  "item.book.page_turn"
+                  },
+                  {
+                      "new_asset":  "book_page_turn3.ogg",
+                      "original_path":  "minecraft/sounds/item/book/open_flip3.ogg",
+                      "sha1":  "95f697cb272bb10a744a5062463a6e737a1c4ec2",
+                      "event":  "item.book.page_turn"
+                  },
+                  {
+                      "new_asset":  "book_put1.ogg",
+                      "original_path":  "minecraft/sounds/item/book/close_put1.ogg",
+                      "sha1":  "1bd5a33c1b50627d5fd45a44cf78ad6d96f483dd",
+                      "event":  "item.book.put"
+                  },
+                  {
+                      "new_asset":  "book_put2.ogg",
+                      "original_path":  "minecraft/sounds/item/book/close_put2.ogg",
+                      "sha1":  "eefec8ea4c0e3a2cf4357226bdcc1b2b7919e8ac",
+                      "event":  "item.book.put"
+                  }
+              ]
+}

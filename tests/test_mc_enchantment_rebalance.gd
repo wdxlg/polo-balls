@@ -72,7 +72,7 @@ func run() -> void:
 	enchant.apply(attacker,"density",2)
 	hp = float(defender.health)
 	hit(attacker,defender)
-	check(close(hp - float(defender.health),104.0),"density adds two percent of current Speed to outgoing damage")
+	check(close(hp - float(defender.health),100.0+float(attacker.Speed)*0.10),"density adds ten percent of current Speed to outgoing damage at level two")
 	enchant.remove(attacker,"density")
 
 	defender.health = 10000

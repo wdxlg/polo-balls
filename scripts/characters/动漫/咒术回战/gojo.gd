@@ -164,9 +164,9 @@ func jjk_step(delta:float) -> void:
 	punch_cd = maxf(0.0,punch_cd - delta)
 	_ripple_cd = maxf(0.0,_ripple_cd - delta)
 	_step_blue(delta)
-	if red_charge >= 0.0: red_charge += delta
+	if red_charge >= 0.0: red_charge += delta*preload("res://scripts/effects/我的世界/mc_enchantments.gd").charge_speed(self)
 	if purple_charge >= 0.0:
-		purple_charge += delta
+		purple_charge += delta*preload("res://scripts/effects/我的世界/mc_enchantments.gd").charge_speed(self)
 		_step_chant()
 	Speed = _base_speed * (0.25 if purple_charge >= 0.0 or purple_cast_left >= 0.0 else 1.0)
 	if purple_cast_left >= 0.0:

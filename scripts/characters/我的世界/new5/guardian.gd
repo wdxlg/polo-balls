@@ -193,7 +193,7 @@ func step_spikes(delta:float) -> void:
 		_spike_delay_left=0.0
 		_spike_delay_total=0.0
 		return
-	_spike_charge+=consume_attack_delay(delta,false)
+	_spike_charge+=consume_attack_delay(delta,false)*preload("res://scripts/effects/我的世界/mc_enchantments.gd").charge_speed(self)
 	if _spike_charge<spike_charge_time: return
 	spike_charging=false
 	_spike_charge=0.0
@@ -402,7 +402,7 @@ func client_visual_step(delta:float) -> void:
 	if is_combat_runtime_active():
 		_spike_burst_age+=delta
 		advance_spike_phase()
-		if spike_charging: _spike_charge=minf(_spike_charge+consume_attack_delay(delta,false),spike_charge_time)
+		if spike_charging: _spike_charge=minf(_spike_charge+consume_attack_delay(delta,false)*preload("res://scripts/effects/我的世界/mc_enchantments.gd").charge_speed(self),spike_charge_time)
 	if beam_active and is_combat_runtime_active(): _tick_left=maxf(0,_tick_left-consume_attack_delay(delta,true))
 
 func start_charge_sound() -> void:

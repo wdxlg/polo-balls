@@ -158,7 +158,7 @@ func Attack() -> void:
 	_broadcast_visual_state(VISUAL_WINDUP)
 	_show_windup_everywhere(_locked_attack_offset,_attack_radius())
 
-	await get_tree().create_timer(maxf(hammer_windup,0.05)).timeout
+	await get_tree().create_timer(maxf(hammer_windup/preload("res://scripts/effects/我的世界/mc_enchantments.gd").charge_speed(self),0.05)).timeout
 	if not is_instance_valid(self) or token != _attack_serial or health <= 0:
 		_hammer_threat_impact_msec = -1
 		return

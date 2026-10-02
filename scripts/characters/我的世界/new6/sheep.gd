@@ -274,7 +274,7 @@ func _begin_charge(point:Vector2,target:ball = null) -> void:
 	_retreat_current_speed = retreat_speed
 	facing = _charge_dir
 	ram_state = RamState.WINDUP
-	_phase_left = ram_windup
+	_phase_left = ram_windup/preload("res://scripts/effects/我的世界/mc_enchantments.gd").charge_speed(self)
 	_ram_left = ram_cooldown
 	_charge_speed = 0.0
 

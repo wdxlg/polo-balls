@@ -103,6 +103,7 @@
 选角人物,scenes/characters/我的世界/天堂陨落长弓.tscn,scripts/characters/我的世界/new6/heavenfall_longbow.gd,,是,自定义或被动机制；待逐角色识别手动入口
 选角人物,scenes/characters/我的世界/山羊角.tscn,scripts/characters/我的世界/goat_horn/goat_horn.gd,controlled_attack_action,是,左键：冷却就绪时吹响山羊角召来山羊；右键与中键空；山羊是瞬时技能实体不可选控；专项夹具验证手控停止自动吹奏
 选角人物,scenes/characters/我的世界/三废石.tscn,scripts/characters/我的世界/useless_stones/useless_stones.gd,controlled_attack_action,是,左键：冷却就绪时朝鼠标投掷石块；右键与中键空；三块石头均可单独选控；安山岩的治疗与急迫是被动；专项夹具验证
+选角人物,scenes/characters/我的世界/附魔台.tscn,scripts/characters/我的世界/enchanting_table/enchanting_table.gd,controlled_attack_action,是,左键：书翻开且冷却就绪时朝鼠标射出附魔符文（命中第一个敌人或友军）；书本开合是固定周期被动；右键与中键空；符文是投射物不可选控；专项夹具验证
 选角人物,scenes/characters/我的世界/火把.tscn,scripts/characters/我的世界/torch/torch.gd,,是,无独立主动键：掉火星、灵魂沙充能与灵魂火连冲均为被动，手控只接管移动；专项夹具验证
 选角人物,scenes/characters/我的世界/女巫.tscn,scripts/characters/我的世界/女巫.gd,,是,自定义或被动机制；待逐角色识别手动入口
 选角人物,scenes/characters/我的世界/守卫者.tscn,scripts/characters/我的世界/new5/guardian.gd,,是,自定义或被动机制；待逐角色识别手动入口

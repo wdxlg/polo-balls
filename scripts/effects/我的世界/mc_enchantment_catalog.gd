@@ -63,8 +63,10 @@ static func display_name(kind:String,english:bool = false) -> String:
 	if not NAMES.has(id): return ""
 	return str(NAMES[id][1 if english else 0])
 
+## Negative levels (inverse enchantments from the Enchanting Table) use "-N" in arabic numerals.
 static func display_level(level:int) -> String:
-	if level <= 0: return ""
+	if level == 0: return ""
+	if level < 0: return "-"+str(-level)
 	# Do not construct unbounded-length roman numerals for arbitrary high levels.
 	if level > 3999: return str(level)
 	var value:int = level
@@ -79,4 +81,8 @@ static func display_level(level:int) -> String:
 
 static func display_line(kind:String,level:int,english:bool = false) -> String:
 	var name:String = display_name(kind,english)
-	return "" if name.is_empty() or level <= 0 else name+" "+display_level(level)
+	return "" if name.is_empty() or level == 0 else name+" "+display_level(level)
+
+## Vanilla tooltip grey for positive levels; inverse (negative) levels are red.
+static func level_color(level:int) -> Color:
+	return Color("ff5555") if level < 0 else Color("aaaaaa")

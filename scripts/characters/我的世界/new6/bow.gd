@@ -125,7 +125,7 @@ func step_mob(delta: float) -> void:
 			facing = (ball.body_point(target,global_position) - global_position).normalized()
 			want_fire = true
 	if want_fire and can_act() and _cool <= 0.0:
-		drawing += delta
+		drawing += delta * preload("res://scripts/effects/我的世界/mc_enchantments.gd").charge_speed(self)
 		_set_draw_audio_stage(1 if drawing < draw_time * 0.5 else 2)
 		if drawing >= total_draw_time():
 			_fire(1.0, true)

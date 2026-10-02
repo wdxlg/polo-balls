@@ -21,6 +21,7 @@ const POLICIES:Dictionary = {
 	"res://scripts/characters/我的世界/new6/heavenfall_longbow.gd": 1,
 	"res://scripts/characters/我的世界/goat_horn/goat_horn.gd": 1,
 	"res://scripts/characters/我的世界/useless_stones/useless_stones.gd": 1,
+	"res://scripts/characters/我的世界/enchanting_table/enchanting_table.gd": 1,
 	"res://scripts/characters/我的世界/torch/torch.gd": 1,
 	"res://scripts/characters/我的世界/女巫.gd": 1,
 	"res://scripts/characters/我的世界/new5/guardian.gd": 1,

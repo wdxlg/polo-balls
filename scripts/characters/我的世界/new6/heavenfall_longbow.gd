@@ -138,7 +138,7 @@ func step_mob(delta: float) -> void:
 			facing = (ball.body_point(target,global_position) - global_position).normalized()
 			want_fire = true
 	if want_fire and can_act() and _cool <= 0.0:
-		drawing += delta
+		drawing += delta * preload("res://scripts/effects/我的世界/mc_enchantments.gd").charge_speed(self)
 		if drawing >= draw_time:
 			drawing = 0.0
 			_cool = cooldown

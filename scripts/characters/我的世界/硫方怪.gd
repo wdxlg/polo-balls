@@ -1044,7 +1044,7 @@ func _damage_with_impact(target:ball,amount:float,point:Vector2,fire:bool = fals
 	if not is_multiplayer_authority() or not is_combat_runtime_active() or is_damage_output_disabled() or not mc_enemy(target) or amount <= 0.0: return false
 	var before:float = maxf(target.health,0.0)
 	var hit_point:Vector2 = ball.body_point(target,global_position)
-	var applied:bool = target.receive_fire_positional_damage(amount,point,false,self) if fire else target.receive_positional_damage(amount,point,false,self)
+	var applied:bool = target.receive_fire_positional_damage(amount,point,false,self,{"carrier":"body_contact"}) if fire else target.receive_positional_damage(amount,point,false,self)
 	var remaining:float = maxf(target.health,0.0) if is_instance_valid(target) else 0.0
 	var actual:float = maxf(before-remaining,0.0)
 	if actual > 0.0:

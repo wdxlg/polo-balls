@@ -1,0 +1,325 @@
+{
+  "description": "附魔台 (Enchanting Table) block, book and enchanting glyph textures, plus baked table/book sprites",
+  "upstream": "Minecraft Java Edition 1.21.1 client jar (minecraft_1.21.1_client.jar, SHA1 30c73b1c5da787909b2f73340419fdf13b9def88)",
+  "license": "Minecraft assets are copyright Mojang Studios/Microsoft and subject to the Minecraft EULA; no general redistribution permission is claimed.",
+  "files": {
+    "enchanting_table_book.png": {
+      "original_path": "assets/minecraft/textures/entity/enchanting_table_book.png",
+      "sha1": "32993a9709a767e09dceaaa02491ceef93e43666",
+      "modified": false
+    },
+    "enchanting_table_bottom.png": {
+      "original_path": "assets/minecraft/textures/block/enchanting_table_bottom.png",
+      "sha1": "9d87480d5ed773de1b05c2ca05293e46575910d0",
+      "modified": false
+    },
+    "enchanting_table_side.png": {
+      "original_path": "assets/minecraft/textures/block/enchanting_table_side.png",
+      "sha1": "66aab0a398bb4b805144b000a997ebedc4f7a999",
+      "modified": false
+    },
+    "enchanting_table_top.png": {
+      "original_path": "assets/minecraft/textures/block/enchanting_table_top.png",
+      "sha1": "56140da872251ad6556a85423c0c306ef0dd3cae",
+      "modified": false
+    },
+    "sga_a.png": {
+      "original_path": "assets/minecraft/textures/particle/sga_a.png",
+      "sha1": "4b7ce6fa2f1a705864dffd29f526e8ef837680a4",
+      "modified": false
+    },
+    "sga_b.png": {
+      "original_path": "assets/minecraft/textures/particle/sga_b.png",
+      "sha1": "647fcb351365afca0af17a128db686b5fe56c662",
+      "modified": false
+    },
+    "sga_c.png": {
+      "original_path": "assets/minecraft/textures/particle/sga_c.png",
+      "sha1": "d48c936ea0fa37522717b3db905aabffb729f22a",
+      "modified": false
+    },
+    "sga_d.png": {
+      "original_path": "assets/minecraft/textures/particle/sga_d.png",
+      "sha1": "6f03e779f76b0cf3a344525c9c3a77147c815858",
+      "modified": false
+    },
+    "sga_e.png": {
+      "original_path": "assets/minecraft/textures/particle/sga_e.png",
+      "sha1": "221137da9c8a609daccb5913448a022de04f55e3",
+      "modified": false
+    },
+    "sga_f.png": {
+      "original_path": "assets/minecraft/textures/particle/sga_f.png",
+      "sha1": "7cfabceed5e2f9a163cf427811e071ebb53b43a7",
+      "modified": false
+    },
+    "sga_g.png": {
+      "original_path": "assets/minecraft/textures/particle/sga_g.png",
+      "sha1": "ebda76b6333b9f4bb953a8f09611b3b1db2bc806",
+      "modified": false
+    },
+    "sga_h.png": {
+      "original_path": "assets/minecraft/textures/particle/sga_h.png",
+      "sha1": "ba8991f9292d7d0e65dd98a1a0179f6abf12acaf",
+      "modified": false
+    },
+    "sga_i.png": {
+      "original_path": "assets/minecraft/textures/particle/sga_i.png",
+      "sha1": "4d1c0fe04d500c8a37d80d74d6a95e262f98c1f0",
+      "modified": false
+    },
+    "sga_j.png": {
+      "original_path": "assets/minecraft/textures/particle/sga_j.png",
+      "sha1": "146ff8dddbe4ad57f42d2eb16fc8485f3ae7cc6e",
+      "modified": false
+    },
+    "sga_k.png": {
+      "original_path": "assets/minecraft/textures/particle/sga_k.png",
+      "sha1": "2c006527efdee16f1bdb1be66d242aff9e7ec6f3",
+      "modified": false
+    },
+    "sga_l.png": {
+      "original_path": "assets/minecraft/textures/particle/sga_l.png",
+      "sha1": "8cac9369815fc06095571df4fb8ea353703ce967",
+      "modified": false
+    },
+    "sga_m.png": {
+      "original_path": "assets/minecraft/textures/particle/sga_m.png",
+      "sha1": "358b9d4cc896e0d1262c0e4ce11cc92471efc55c",
+      "modified": false
+    },
+    "sga_n.png": {
+      "original_path": "assets/minecraft/textures/particle/sga_n.png",
+      "sha1": "52c710026a1146ab43bb9c1e8a709ec53e0e37c9",
+      "modified": false
+    },
+    "sga_o.png": {
+      "original_path": "assets/minecraft/textures/particle/sga_o.png",
+      "sha1": "c482ff8ec58cfe07741c7d2ea51aabefb76117b8",
+      "modified": false
+    },
+    "sga_p.png": {
+      "original_path": "assets/minecraft/textures/particle/sga_p.png",
+      "sha1": "36764756d9b7fed66a60c790b76b819a1da9dd6e",
+      "modified": false
+    },
+    "sga_q.png": {
+      "original_path": "assets/minecraft/textures/particle/sga_q.png",
+      "sha1": "d160f7e37d1d4b1b29f380025769c9755800217d",
+      "modified": false
+    },
+    "sga_r.png": {
+      "original_path": "assets/minecraft/textures/particle/sga_r.png",
+      "sha1": "75780e7dec2a060170def6041ec314ff8839f6e6",
+      "modified": false
+    },
+    "sga_s.png": {
+      "original_path": "assets/minecraft/textures/particle/sga_s.png",
+      "sha1": "2bcd4fec6e49024cf4d4452b2a37cead3e77dd69",
+      "modified": false
+    },
+    "sga_t.png": {
+      "original_path": "assets/minecraft/textures/particle/sga_t.png",
+      "sha1": "e32f762262ddf21ec1753e11d450b90aee7a49a5",
+      "modified": false
+    },
+    "sga_u.png": {
+      "original_path": "assets/minecraft/textures/particle/sga_u.png",
+      "sha1": "431fa2ef5ede1cacc1a3dcf4abff25e9dcb07ae9",
+      "modified": false
+    },
+    "sga_v.png": {
+      "original_path": "assets/minecraft/textures/particle/sga_v.png",
+      "sha1": "25662bc8857fa06b3663e92adf12e5397bef6f11",
+      "modified": false
+    },
+    "sga_w.png": {
+      "original_path": "assets/minecraft/textures/particle/sga_w.png",
+      "sha1": "14773aeb664b83216a3164dc54342c86bb004b9e",
+      "modified": false
+    },
+    "sga_x.png": {
+      "original_path": "assets/minecraft/textures/particle/sga_x.png",
+      "sha1": "a3624cc98de0addf83c0401035432f34ca605389",
+      "modified": false
+    },
+    "sga_y.png": {
+      "original_path": "assets/minecraft/textures/particle/sga_y.png",
+      "sha1": "72124b01da84662116045c574474d3ee350accad",
+      "modified": false
+    },
+    "sga_z.png": {
+      "original_path": "assets/minecraft/textures/particle/sga_z.png",
+      "sha1": "f5908311e7bd013f6ab55b46c57794acc7d39eb4",
+      "modified": false
+    },
+    "book_flip_0.png": {
+      "generated_by": "scripts/training/mc_native_assets/bake_enchanting_table.py --textures Images/characters/我的世界/enchanting_table --output Images/characters/我的世界/enchanting_table",
+      "input": "enchanting_table_book.png",
+      "projection": "orthographic, yaw 30, pitch 25, fixed face lighting (same as the useless stones blocks); book uses the vanilla EnchantTableRenderer/BookModel parts, facing -60 degrees",
+      "sha256": "22ed3a45f5db7e61153b2ac4cb4c40322695528a4aa7831c27138c891e632ec5"
+    },
+    "book_flip_1.png": {
+      "generated_by": "scripts/training/mc_native_assets/bake_enchanting_table.py --textures Images/characters/我的世界/enchanting_table --output Images/characters/我的世界/enchanting_table",
+      "input": "enchanting_table_book.png",
+      "projection": "orthographic, yaw 30, pitch 25, fixed face lighting (same as the useless stones blocks); book uses the vanilla EnchantTableRenderer/BookModel parts, facing -60 degrees",
+      "sha256": "89f514c9fdc74b2c2a2121b878b0abbb705a84e23f4d553eb562e5d7698c54d7"
+    },
+    "book_flip_2.png": {
+      "generated_by": "scripts/training/mc_native_assets/bake_enchanting_table.py --textures Images/characters/我的世界/enchanting_table --output Images/characters/我的世界/enchanting_table",
+      "input": "enchanting_table_book.png",
+      "projection": "orthographic, yaw 30, pitch 25, fixed face lighting (same as the useless stones blocks); book uses the vanilla EnchantTableRenderer/BookModel parts, facing -60 degrees",
+      "sha256": "98bc2343d87b044531a88f412bfffcf1b37c7fa63aec9e4ebbb14d7ae95e373f"
+    },
+    "book_flip_3.png": {
+      "generated_by": "scripts/training/mc_native_assets/bake_enchanting_table.py --textures Images/characters/我的世界/enchanting_table --output Images/characters/我的世界/enchanting_table",
+      "input": "enchanting_table_book.png",
+      "projection": "orthographic, yaw 30, pitch 25, fixed face lighting (same as the useless stones blocks); book uses the vanilla EnchantTableRenderer/BookModel parts, facing -60 degrees",
+      "sha256": "2f3edc036c23632c3eba26782f99b2c178fc2f0cd632e11991b0eda55b44d238"
+    },
+    "book_flip_4.png": {
+      "generated_by": "scripts/training/mc_native_assets/bake_enchanting_table.py --textures Images/characters/我的世界/enchanting_table --output Images/characters/我的世界/enchanting_table",
+      "input": "enchanting_table_book.png",
+      "projection": "orthographic, yaw 30, pitch 25, fixed face lighting (same as the useless stones blocks); book uses the vanilla EnchantTableRenderer/BookModel parts, facing -60 degrees",
+      "sha256": "22ed3a45f5db7e61153b2ac4cb4c40322695528a4aa7831c27138c891e632ec5"
+    },
+    "book_flip_5.png": {
+      "generated_by": "scripts/training/mc_native_assets/bake_enchanting_table.py --textures Images/characters/我的世界/enchanting_table --output Images/characters/我的世界/enchanting_table",
+      "input": "enchanting_table_book.png",
+      "projection": "orthographic, yaw 30, pitch 25, fixed face lighting (same as the useless stones blocks); book uses the vanilla EnchantTableRenderer/BookModel parts, facing -60 degrees",
+      "sha256": "89f514c9fdc74b2c2a2121b878b0abbb705a84e23f4d553eb562e5d7698c54d7"
+    },
+    "book_flip_6.png": {
+      "generated_by": "scripts/training/mc_native_assets/bake_enchanting_table.py --textures Images/characters/我的世界/enchanting_table --output Images/characters/我的世界/enchanting_table",
+      "input": "enchanting_table_book.png",
+      "projection": "orthographic, yaw 30, pitch 25, fixed face lighting (same as the useless stones blocks); book uses the vanilla EnchantTableRenderer/BookModel parts, facing -60 degrees",
+      "sha256": "98bc2343d87b044531a88f412bfffcf1b37c7fa63aec9e4ebbb14d7ae95e373f"
+    },
+    "book_flip_7.png": {
+      "generated_by": "scripts/training/mc_native_assets/bake_enchanting_table.py --textures Images/characters/我的世界/enchanting_table --output Images/characters/我的世界/enchanting_table",
+      "input": "enchanting_table_book.png",
+      "projection": "orthographic, yaw 30, pitch 25, fixed face lighting (same as the useless stones blocks); book uses the vanilla EnchantTableRenderer/BookModel parts, facing -60 degrees",
+      "sha256": "2f3edc036c23632c3eba26782f99b2c178fc2f0cd632e11991b0eda55b44d238"
+    },
+    "book_open_0.png": {
+      "generated_by": "scripts/training/mc_native_assets/bake_enchanting_table.py --textures Images/characters/我的世界/enchanting_table --output Images/characters/我的世界/enchanting_table",
+      "input": "enchanting_table_book.png",
+      "projection": "orthographic, yaw 30, pitch 25, fixed face lighting (same as the useless stones blocks); book uses the vanilla EnchantTableRenderer/BookModel parts, facing -60 degrees",
+      "sha256": "208d610d5b4cec39df8f704d4f11b712566d612e6e838f8d91011ab48330eb60"
+    },
+    "book_open_1.png": {
+      "generated_by": "scripts/training/mc_native_assets/bake_enchanting_table.py --textures Images/characters/我的世界/enchanting_table --output Images/characters/我的世界/enchanting_table",
+      "input": "enchanting_table_book.png",
+      "projection": "orthographic, yaw 30, pitch 25, fixed face lighting (same as the useless stones blocks); book uses the vanilla EnchantTableRenderer/BookModel parts, facing -60 degrees",
+      "sha256": "00bb4dc8aa8370f74f4efe7770d544ce4c6854e892013b169ce0f014c89aeec0"
+    },
+    "book_open_2.png": {
+      "generated_by": "scripts/training/mc_native_assets/bake_enchanting_table.py --textures Images/characters/我的世界/enchanting_table --output Images/characters/我的世界/enchanting_table",
+      "input": "enchanting_table_book.png",
+      "projection": "orthographic, yaw 30, pitch 25, fixed face lighting (same as the useless stones blocks); book uses the vanilla EnchantTableRenderer/BookModel parts, facing -60 degrees",
+      "sha256": "410ca162b96e85c7d333a3e360319ed7daed2fe810133e5b0f1c26a04c9d0e37"
+    },
+    "book_open_3.png": {
+      "generated_by": "scripts/training/mc_native_assets/bake_enchanting_table.py --textures Images/characters/我的世界/enchanting_table --output Images/characters/我的世界/enchanting_table",
+      "input": "enchanting_table_book.png",
+      "projection": "orthographic, yaw 30, pitch 25, fixed face lighting (same as the useless stones blocks); book uses the vanilla EnchantTableRenderer/BookModel parts, facing -60 degrees",
+      "sha256": "607e4ecb53889f5d4881c42962901fe96ad43d1ae90e20fdbdded1c9cb73d7ed"
+    },
+    "book_open_4.png": {
+      "generated_by": "scripts/training/mc_native_assets/bake_enchanting_table.py --textures Images/characters/我的世界/enchanting_table --output Images/characters/我的世界/enchanting_table",
+      "input": "enchanting_table_book.png",
+      "projection": "orthographic, yaw 30, pitch 25, fixed face lighting (same as the useless stones blocks); book uses the vanilla EnchantTableRenderer/BookModel parts, facing -60 degrees",
+      "sha256": "425a27d7197dc15170b763dedaa9836a45177e837aa595684b0b1cc60d8f3720"
+    },
+    "book_open_5.png": {
+      "generated_by": "scripts/training/mc_native_assets/bake_enchanting_table.py --textures Images/characters/我的世界/enchanting_table --output Images/characters/我的世界/enchanting_table",
+      "input": "enchanting_table_book.png",
+      "projection": "orthographic, yaw 30, pitch 25, fixed face lighting (same as the useless stones blocks); book uses the vanilla EnchantTableRenderer/BookModel parts, facing -60 degrees",
+      "sha256": "d99af3f430083cd1d609fd26a83cf331d6b304448237946e42eac511202ecae0"
+    },
+    "book_open_6.png": {
+      "generated_by": "scripts/training/mc_native_assets/bake_enchanting_table.py --textures Images/characters/我的世界/enchanting_table --output Images/characters/我的世界/enchanting_table",
+      "input": "enchanting_table_book.png",
+      "projection": "orthographic, yaw 30, pitch 25, fixed face lighting (same as the useless stones blocks); book uses the vanilla EnchantTableRenderer/BookModel parts, facing -60 degrees",
+      "sha256": "98bc2343d87b044531a88f412bfffcf1b37c7fa63aec9e4ebbb14d7ae95e373f"
+    },
+    "book_spin_0.png": {
+      "generated_by": "scripts/training/mc_native_assets/bake_enchanting_table.py --textures Images/characters/我的世界/enchanting_table --output Images/characters/我的世界/enchanting_table",
+      "input": "enchanting_table_book.png",
+      "projection": "orthographic, yaw 30, pitch 25, fixed face lighting (same as the useless stones blocks); book uses the vanilla EnchantTableRenderer/BookModel parts, facing -60 degrees",
+      "sha256": "208d610d5b4cec39df8f704d4f11b712566d612e6e838f8d91011ab48330eb60"
+    },
+    "book_spin_1.png": {
+      "generated_by": "scripts/training/mc_native_assets/bake_enchanting_table.py --textures Images/characters/我的世界/enchanting_table --output Images/characters/我的世界/enchanting_table",
+      "input": "enchanting_table_book.png",
+      "projection": "orthographic, yaw 30, pitch 25, fixed face lighting (same as the useless stones blocks); book uses the vanilla EnchantTableRenderer/BookModel parts, facing -60 degrees",
+      "sha256": "ecfe634414b550a891924da6a101a258624cd424aae9fe906416f02e0fff5107"
+    },
+    "book_spin_2.png": {
+      "generated_by": "scripts/training/mc_native_assets/bake_enchanting_table.py --textures Images/characters/我的世界/enchanting_table --output Images/characters/我的世界/enchanting_table",
+      "input": "enchanting_table_book.png",
+      "projection": "orthographic, yaw 30, pitch 25, fixed face lighting (same as the useless stones blocks); book uses the vanilla EnchantTableRenderer/BookModel parts, facing -60 degrees",
+      "sha256": "e4b0e42c195b9575913524a24f17d84958e873288f76baa63d86f27f8d38b878"
+    },
+    "book_spin_3.png": {
+      "generated_by": "scripts/training/mc_native_assets/bake_enchanting_table.py --textures Images/characters/我的世界/enchanting_table --output Images/characters/我的世界/enchanting_table",
+      "input": "enchanting_table_book.png",
+      "projection": "orthographic, yaw 30, pitch 25, fixed face lighting (same as the useless stones blocks); book uses the vanilla EnchantTableRenderer/BookModel parts, facing -60 degrees",
+      "sha256": "dfd4c311b68a48bb49b8b9cd3bd69b140b35d46718ea50fe4408a8243fb6bb44"
+    },
+    "book_spin_4.png": {
+      "generated_by": "scripts/training/mc_native_assets/bake_enchanting_table.py --textures Images/characters/我的世界/enchanting_table --output Images/characters/我的世界/enchanting_table",
+      "input": "enchanting_table_book.png",
+      "projection": "orthographic, yaw 30, pitch 25, fixed face lighting (same as the useless stones blocks); book uses the vanilla EnchantTableRenderer/BookModel parts, facing -60 degrees",
+      "sha256": "1d18c1133f87d8834c081c8c69d93953453def36eab51bc8d556f69d79c783a3"
+    },
+    "book_spin_5.png": {
+      "generated_by": "scripts/training/mc_native_assets/bake_enchanting_table.py --textures Images/characters/我的世界/enchanting_table --output Images/characters/我的世界/enchanting_table",
+      "input": "enchanting_table_book.png",
+      "projection": "orthographic, yaw 30, pitch 25, fixed face lighting (same as the useless stones blocks); book uses the vanilla EnchantTableRenderer/BookModel parts, facing -60 degrees",
+      "sha256": "bde82e154073a800c13fe40c7bc3e4adcf3f0059c253d526f7443381ec8eef3d"
+    },
+    "book_spin_6.png": {
+      "generated_by": "scripts/training/mc_native_assets/bake_enchanting_table.py --textures Images/characters/我的世界/enchanting_table --output Images/characters/我的世界/enchanting_table",
+      "input": "enchanting_table_book.png",
+      "projection": "orthographic, yaw 30, pitch 25, fixed face lighting (same as the useless stones blocks); book uses the vanilla EnchantTableRenderer/BookModel parts, facing -60 degrees",
+      "sha256": "c6eca1bce80b100a40aaac46e24ec6d830983acde405a091588078fc31c96a93"
+    },
+    "book_spin_7.png": {
+      "generated_by": "scripts/training/mc_native_assets/bake_enchanting_table.py --textures Images/characters/我的世界/enchanting_table --output Images/characters/我的世界/enchanting_table",
+      "input": "enchanting_table_book.png",
+      "projection": "orthographic, yaw 30, pitch 25, fixed face lighting (same as the useless stones blocks); book uses the vanilla EnchantTableRenderer/BookModel parts, facing -60 degrees",
+      "sha256": "32ca3171582d92282d8720d3256d409988cdd80da20d7f6f72e6393889a8825c"
+    },
+    "book_spin_8.png": {
+      "generated_by": "scripts/training/mc_native_assets/bake_enchanting_table.py --textures Images/characters/我的世界/enchanting_table --output Images/characters/我的世界/enchanting_table",
+      "input": "enchanting_table_book.png",
+      "projection": "orthographic, yaw 30, pitch 25, fixed face lighting (same as the useless stones blocks); book uses the vanilla EnchantTableRenderer/BookModel parts, facing -60 degrees",
+      "sha256": "365739aaf9c843e287de1da47962a4df62ce86ef60069625fb412fa74fcb38b8"
+    },
+    "book_spin_9.png": {
+      "generated_by": "scripts/training/mc_native_assets/bake_enchanting_table.py --textures Images/characters/我的世界/enchanting_table --output Images/characters/我的世界/enchanting_table",
+      "input": "enchanting_table_book.png",
+      "projection": "orthographic, yaw 30, pitch 25, fixed face lighting (same as the useless stones blocks); book uses the vanilla EnchantTableRenderer/BookModel parts, facing -60 degrees",
+      "sha256": "c6415f2496df49853df56208f46c61478c9c2cc9604930cae97337dad2dd5229"
+    },
+    "book_spin_10.png": {
+      "generated_by": "scripts/training/mc_native_assets/bake_enchanting_table.py --textures Images/characters/我的世界/enchanting_table --output Images/characters/我的世界/enchanting_table",
+      "input": "enchanting_table_book.png",
+      "projection": "orthographic, yaw 30, pitch 25, fixed face lighting (same as the useless stones blocks); book uses the vanilla EnchantTableRenderer/BookModel parts, facing -60 degrees",
+      "sha256": "8407d1ec0779a1527950479e36c1888eba1682179b52d055419020a89e0aaf2d"
+    },
+    "book_spin_11.png": {
+      "generated_by": "scripts/training/mc_native_assets/bake_enchanting_table.py --textures Images/characters/我的世界/enchanting_table --output Images/characters/我的世界/enchanting_table",
+      "input": "enchanting_table_book.png",
+      "projection": "orthographic, yaw 30, pitch 25, fixed face lighting (same as the useless stones blocks); book uses the vanilla EnchantTableRenderer/BookModel parts, facing -60 degrees",
+      "sha256": "43a5aeb6b852e239efd9289dfb4bf6710dbfa3aa9205b51f862d9b43f2f2ec8b"
+    },
+    "table_block.png": {
+      "generated_by": "scripts/training/mc_native_assets/bake_enchanting_table.py --textures Images/characters/我的世界/enchanting_table --output Images/characters/我的世界/enchanting_table",
+      "input": "enchanting_table_top.png, enchanting_table_side.png, enchanting_table_bottom.png",
+      "projection": "orthographic, yaw 30, pitch 25, fixed face lighting (same as the useless stones blocks); book uses the vanilla EnchantTableRenderer/BookModel parts, facing -60 degrees",
+      "sha256": "c3664e697028e41a24186a0ea5772a3f4892a5afa4614c1a0552e52d8d761c06"
+    }
+  }
+}

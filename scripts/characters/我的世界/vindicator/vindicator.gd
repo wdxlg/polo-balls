@@ -173,7 +173,7 @@ func tick_physics(state:State,delta:float) -> void:
 	if moved<maxf(48.0,Speed*delta*5.0): _walk_clock += moved/maxf(Speed,1.0)
 	if not is_multiplayer_authority():
 		if phase in [Phase.CHARGE,Phase.DASH]:
-			charge_elapsed = minf(charge_elapsed+delta,maxf(full_charge_seconds,0.05))
+			charge_elapsed = minf(charge_elapsed+delta*preload("res://scripts/effects/我的世界/mc_enchantments.gd").charge_speed(self),maxf(full_charge_seconds,0.05))
 		elif phase==Phase.SWING:
 			phase_elapsed = minf(phase_elapsed+delta,maxf(swing_seconds,0.01))
 		elif phase==Phase.RECOVER:
@@ -197,7 +197,7 @@ func tick_physics(state:State,delta:float) -> void:
 					if distance<melee_reach()+24.0: _begin_charge(false)
 					elif distance<420.0 and rush_wait<=0.0: _begin_charge(true)
 		Phase.CHARGE:
-			charge_elapsed = minf(charge_elapsed+delta,maxf(full_charge_seconds,0.05))
+			charge_elapsed = minf(charge_elapsed+delta*preload("res://scripts/effects/我的世界/mc_enchantments.gd").charge_speed(self),maxf(full_charge_seconds,0.05))
 			_aim_at_target()
 			if charge_ratio()>=1.0: _release_swing()
 			elif not is_player_controlled():
@@ -228,7 +228,7 @@ func stand(delta:float) -> void:
 
 func _advance_dash(delta:float) -> void:
 	if not can_act() or phase != Phase.DASH: return
-	charge_elapsed = minf(charge_elapsed+delta,maxf(full_charge_seconds,0.05))
+	charge_elapsed = minf(charge_elapsed+delta*preload("res://scripts/effects/我的世界/mc_enchantments.gd").charge_speed(self),maxf(full_charge_seconds,0.05))
 	phase_elapsed += delta
 	_aim_at_target()
 	_update_pose()

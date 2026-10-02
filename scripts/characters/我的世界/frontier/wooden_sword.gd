@@ -161,7 +161,7 @@ func step_mob(delta:float) -> void:
 		cancel_attack()
 		if can_keep_charging_through_knockback():
 			if not is_player_controlled() or _manual_charging:
-				sword_charge = minf(1.0,sword_charge+delta/maxf(charge_duration,0.1))
+				sword_charge = minf(1.0,sword_charge+delta*preload("res://scripts/effects/我的世界/mc_enchantments.gd").charge_speed(self)/maxf(charge_duration,0.1))
 		else:
 			player_control_action_cancelled(0)
 		if _split_requested: call_deferred("split_sword")
@@ -175,11 +175,11 @@ func step_mob(delta:float) -> void:
 			_manual_release_pending = false
 			if not begin_swing(): sword_charge = 0.0
 			return
-		if _manual_charging: sword_charge = minf(1.0,sword_charge+delta/maxf(charge_duration,0.1))
+		if _manual_charging: sword_charge = minf(1.0,sword_charge+delta*preload("res://scripts/effects/我的世界/mc_enchantments.gd").charge_speed(self)/maxf(charge_duration,0.1))
 		return
 	if _manual_charging or _manual_release_pending:
 		player_control_action_cancelled(0)
-	sword_charge = minf(1.0,sword_charge+delta/maxf(charge_duration,0.1))
+	sword_charge = minf(1.0,sword_charge+delta*preload("res://scripts/effects/我的世界/mc_enchantments.gd").charge_speed(self)/maxf(charge_duration,0.1))
 	var target:ball = nearest_foe()
 	if is_instance_valid(target) and global_position.distance_to(ball.body_point(target,global_position)) <= attack_trigger_reach()+U.radius(target) and has_reachable_swing_target():
 		begin_swing()

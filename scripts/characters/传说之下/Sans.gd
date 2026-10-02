@@ -2494,7 +2494,7 @@ func apply_sans_frame_hit(target:ball,_impact_position:Vector2,karma_amount:floa
 
 	# Sans 的攻击是“帧伤”：每个实际重叠的 physics frame 固定扣 1 HP，
 	# 不为每帧创建通用 HitBurst/攻击 Tween/受击音；血条数字反馈单独节流。
-	target.health = maxi(int(target.health) - 1,0)
+	target.health = maxi(int(target.health) - preload("res://scripts/effects/我的世界/mc_enchantments.gd").direct_health_loss(self,target,1.0),0)
 
 	if target.health_bar != null:
 		target.health_bar.suppress_floating_text = false

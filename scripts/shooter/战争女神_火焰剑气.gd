@@ -151,7 +151,7 @@ func _apply_projectile_hit(target:ball,impact_position:Vector2) -> void:
 		return
 	var before_health:float = float(target.health)
 	var before_block:float = float(target.block)
-	var applied:bool = target.receive_fire_positional_damage(outgoing,impact_position,false,owner_ball)
+	var applied:bool = target.receive_fire_positional_damage(outgoing,impact_position,false,owner_ball,{"carrier":"projectile"})
 	var health_loss:float = maxf(before_health - float(target.health),0.0)
 	var block_loss:float = maxf(before_block - float(target.block),0.0)
 	if health_loss > 0.0:

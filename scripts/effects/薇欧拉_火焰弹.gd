@@ -203,7 +203,7 @@ func _apply_explosion_damage(owner_node:Node,impact_position:Vector2) -> void:
             continue
         var applied:bool = target.receive_fire_spatial_damage(
             damage_amount,
-            {"point":target.global_position,"source":owner_node},
+            {"point":target.global_position,"source":owner_node,"carrier":"projectile"},
             false,
             false
         )

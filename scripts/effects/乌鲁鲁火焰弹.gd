@@ -78,7 +78,7 @@ func _land(source:ball) -> void:
 		var impact_radius:float = maxf(float(area_config.get("impact_radius",36.0)),8.0)
 		var impact_damage:float = source.attack_damage(impact_damage_multiplier)
 		for target:ball in SUBMISSION_TOOLS.enemies_in_radius(source,target_position,impact_radius):
-			target.receive_fire_positional_damage(impact_damage,target_position,false,source)
+			target.receive_fire_positional_damage(impact_damage,target_position,false,source,{"carrier":"projectile"})
 	_spawn_area(source)
 	_play_impact_sfx(source)
 	queue_free()

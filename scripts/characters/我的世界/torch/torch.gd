@@ -184,7 +184,7 @@ func stand(delta:float) -> void:
 func _charge_soul(delta:float) -> void:
 	if soul_form or not is_instance_valid(_field): return
 	if not bool(_field.call("touches_rect",body_rect())): return
-	soul_charge = minf(soul_charge + delta / maxf(soul_charge_seconds,0.1),1.0)
+	soul_charge = minf(soul_charge + delta * preload("res://scripts/effects/我的世界/mc_enchantments.gd").charge_speed(self) / maxf(soul_charge_seconds,0.1),1.0)
 	if soul_charge >= 1.0: _become_soul()
 
 
@@ -412,7 +412,7 @@ func _dash_sweep(a:Vector2,b:Vector2) -> void:
 ## 每轮连冲每个敌人一次：直接穿过，造成火焰伤害和灵魂火强度的燃烧，没有击退。
 func _dash_strike(target:ball,point:Vector2,_heading:Vector2) -> void:
 	if not U.enemy(self,target): return
-	if not target.receive_fire_positional_damage(attack_damage(dash_damage_multiplier),point,false,self): return
+	if not target.receive_fire_positional_damage(attack_damage(dash_damage_multiplier),point,false,self,{"carrier":"body_contact"}): return
 	FIRE.apply_burn(self,target,burn_seconds,attack_damage(burn_tick_multiplier * soul_multiplier),true)
 	_emit_dash_event(3)
 

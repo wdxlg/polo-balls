@@ -81,7 +81,7 @@ func _physics_process(delta:float) -> void:
 	var target:ball = _resolve_ball_from_collider(collider)
 	if target != null and _can_damage(target):
 		var health_before:float = maxf(float(target.health),0.0)
-		var applied:bool = target.receive_fire_positional_damage(source.attack_damage(_damage_multiplier),global_position,false,source)
+		var applied:bool = target.receive_fire_positional_damage(source.attack_damage(_damage_multiplier),global_position,false,source,{"carrier":"projectile"})
 		var actual_damage:float = maxf(health_before - maxf(float(target.health),0.0),0.0)
 		if applied:
 			MC_DAMAGE_SFX.play_scaled(target,global_position,actual_damage,source,"blaze_fireball")

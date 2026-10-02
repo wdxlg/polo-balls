@@ -87,9 +87,9 @@ func run() -> void:
 	var blank := Node.new()
 	world.add_child(blank)
 	var preset:Node = load("res://scripts/effects/我的世界/mc_enchantments.gd").new()
-	preset.enchantments = {"minecraft:thorns":17,"sharpness":-1}
+	preset.enchantments = {"minecraft:thorns":17,"sharpness":-1,"power":0,"binding_curse":2}
 	blank.add_child(preset)
-	check(enchant.levels_of(blank)=={"thorns":17},"editor-style component works on any Node and sanitizes presets")
+	check(enchant.levels_of(blank)=={"thorns":17,"sharpness":-1},"editor-style component works on any Node, keeps inverse levels and sanitizes presets")
 	check(enchant.ensure(blank)==preset and enchant.apply(blank,"lunge",200) and enchant.levels_of(blank).lunge==200,"manually named component is reused rather than duplicated")
 	enchant.remove(blank,"lunge")
 	check(not enchant.levels_of(blank).has("lunge"),"removal finds manually named components too")

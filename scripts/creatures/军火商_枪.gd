@@ -478,7 +478,7 @@ func _process_gatling(delta:float) -> void:
 		# 里立刻 stop，重新进入时从声音开头重新蓄力。
 		_set_gatling_fire_audio(false)
 		_set_gatling_charge_audio(true)
-		_gatling_charge_left = maxf(_gatling_charge_left - delta,0.0)
+		_gatling_charge_left = maxf(_gatling_charge_left - delta*preload("res://scripts/effects/我的世界/mc_enchantments.gd").charge_speed(self),0.0)
 		_show_charge_visual(delta)
 		return
 

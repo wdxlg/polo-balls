@@ -54,7 +54,7 @@ static func hit(source:ball,target:ball,amount:float,point:Vector2,kind:StringNa
 	var previous:Variant = target.get_meta(CTX) if had else null
 	target.set_meta(CTX,c)
 	var ignore_block:bool = bool(ctx.get("ignore_block",false)) or bool(ctx.get("sure_hit",false))
-	var accepted:bool = target.receive_classified_positional_damage(amount,point,kind,ignore_block,source)
+	var accepted:bool = target.receive_classified_positional_damage(amount,point,kind,ignore_block,source,{"carrier":str(ctx.get("carrier","area"))})
 	if had: target.set_meta(CTX,previous)
 	elif target.has_meta(CTX): target.remove_meta(CTX)
 	return accepted
