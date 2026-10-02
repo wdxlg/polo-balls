@@ -1,7 +1,8 @@
 shader_type canvas_item;
 // Soul sand pixel coverage: TEXTURE is an L8 mask chunk (one texel per soul sand texture pixel);
 // covered texels show the tiled vanilla soul_sand.png, the rest stays transparent.
-uniform sampler2D sand_texture : filter_nearest, repeat_enable;
+// source_color: the project uses hdr_2d, so the sRGB texture must be linearized like built-in TEXTURE draws.
+uniform sampler2D sand_texture : source_color, filter_nearest, repeat_enable;
 uniform float cells_per_chunk = 8.0;
 varying vec4 tint;
 
