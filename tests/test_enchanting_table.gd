@@ -122,7 +122,7 @@ func run() -> void:
 	check(sound_events().has("item.book.page_turn"),"opening plays the native page turn")
 	check(table.get_node_or_null("Graphics/Image/附魔书") != null,"the floating book is drawn above the table")
 
-	# --- 符文：出生在书周围，飞向最近目标；敌人受伤，友军回复 ---
+	# --- 符文：从书页边上出来，飞向最近目标；敌人受伤，友军回复 ---
 	check(table.nearest_rune_target() != null,"open book finds the nearest enemy or ally")
 	table.set("attack_range",0.0)
 	check(table.nearest_rune_target() == null,"nothing in range means no rune")
@@ -130,7 +130,13 @@ func run() -> void:
 	var enemy_before:float = float(enemy.health)
 	check(table.fire_rune(enemy,enemy.global_position),"a rune fires at the enemy while the book is open")
 	var shot:Node = runes()[0] if not runes().is_empty() else null
-	check(shot != null and shot.global_position.distance_to(table.book_world_position()) <= table.rune_spawn_radius*table._unit_scale() + 0.5,"the rune appears within the radius around the book")
+	var page_rect:Rect2 = table.BOOK_PAGES_RECT
+	var on_edge:bool = true
+	for i:int in range(40):
+		var local:Vector2 = table.get_node("Graphics/Image/附魔书").to_local(table.rune_spawn_point())
+		var inner:Rect2 = page_rect.grow(-table.RUNE_EDGE_DEPTH - 0.01)
+		if not page_rect.grow(0.01).has_point(local) or (inner.has_point(local) and absf(local.y - page_rect.position.y) > table.RUNE_EDGE_DEPTH + 0.01): on_edge = false
+	check(shot != null and on_edge and shot.global_position.distance_to(table.book_world_position()) <= 40.0*0.225,"runes come out from the edges of the open book's pages")
 	check(shot != null and float(shot.Speed) <= 140.0 and float(shot.get("turn_rate")) > 0.0 and float(shot.get("turn_rate")) <= 2.0,"runes fly slowly and home only slightly")
 	await wait_until(func(): return float(enemy.health) < enemy_before,240)
 	check(is_equal_approx(enemy_before - float(enemy.health),4.0),"a rune deals the table's current attack to an enemy")

@@ -1,6 +1,6 @@
 extends "res://scripts/characters/我的世界/new5/base.gd"
 ## 附魔台：书本按固定周期开合。合上时获得 25% 免伤（Damage_reduction Buff）；翻开时失去免伤，
-## 每次攻击冷却在书周围一定范围内生成一枚原版附魔符文，飞向最近的敌人或友军（含召唤物）。
+## 每次攻击冷却从翻开的书页边上冒出一枚原版附魔符文，飞向最近的敌人或友军（含召唤物）。
 ## 符文命中敌人造成低伤害（走公共 hitbox / 投射物附魔），命中友军回复等量生命。
 ## 每个目标对每张附魔台各有一个计数，显示在目标左上角（罗马数字 I–X）；到 X 时清零并按
 ## mc_enchant_support.gd::pool_for(目标) 随机一个对该目标真实生效的附魔：友军 +1 级、敌人 -1 级，
@@ -53,6 +53,9 @@ const GUARD_BUFF_KEY:String = "附魔台_合书免伤"
 ## 书在 table_block.png 里的位置（贴图像素，相对贴图中心）：桌面中心上方 0.85 格，
 ## 同一 yaw 30 / pitch 25 正交投影（4.25 px/方块像素）。
 const BOOK_ANCHOR:Vector2 = Vector2(0.0,-17.4)
+## 翻开的书页在书贴图里的范围（贴图像素，贴图居中）；符文从这圈书页边上冒出来。
+const BOOK_PAGES_RECT:Rect2 = Rect2(-28.0,-19.0,56.0,31.0)
+const RUNE_EDGE_DEPTH:float = 3.0
 
 @export_category("附魔台 / 书本周期")
 @export var closed_time:float = 4.0
@@ -62,8 +65,6 @@ const BOOK_ANCHOR:Vector2 = Vector2(0.0,-17.4)
 @export var book_turn_time:float = 0.35
 @export_category("附魔台 / 符文")
 @export var attack_range:float = 520.0
-## 符文出生在书周围这个半径内（角色单位 1 时的世界像素，随根缩放）。
-@export var rune_spawn_radius:float = 46.0
 @export var rune_speed:float = 120.0
 ## 略微追踪：每秒最多转向的弧度。
 @export var rune_turn_rate:float = 1.4
@@ -210,13 +211,23 @@ func book_world_position() -> Vector2:
 	if is_instance_valid(_book): return _book.global_position
 	return image.to_global(BOOK_ANCHOR) if image != null else global_position
 
+## 书页边上的随机一点（世界坐标）：多数在左右两侧书页外缘，少数在上缘。
+func rune_spawn_point() -> Vector2:
+	var r:Rect2 = BOOK_PAGES_RECT
+	var local:Vector2
+	if rng.randf() < 0.7:
+		var side:float = -1.0 if rng.randf() < 0.5 else 1.0
+		local = Vector2(side*(r.size.x*0.5 - rng.randf()*RUNE_EDGE_DEPTH),rng.randf_range(r.position.y,r.end.y))
+	else:
+		local = Vector2(rng.randf_range(r.position.x,r.end.x),r.position.y + rng.randf()*RUNE_EDGE_DEPTH)
+	if is_instance_valid(_book): return _book.to_global(local)
+	return image.to_global(BOOK_ANCHOR + local) if image != null else global_position
+
 func fire_rune(target:ball,point:Vector2) -> bool:
 	if not can_act() or not book_open or not point.is_finite(): return false
 	var parent:Node = get_parent()
 	if not is_instance_valid(parent): return false
-	var center:Vector2 = book_world_position()
-	var radius:float = rune_spawn_radius*_unit_scale()*sqrt(rng.randf())
-	var start:Vector2 = center + Vector2.RIGHT.rotated(rng.randf()*TAU)*radius
+	var start:Vector2 = rune_spawn_point()
 	var aim:Vector2 = start.direction_to(point)
 	if aim.is_zero_approx(): aim = Vector2.RIGHT
 	# 近处目标偏转收窄，否则慢速小转向的符文会绕着目标打转。
