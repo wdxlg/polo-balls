@@ -39,7 +39,7 @@ func run() -> void:
 	check(block.block_rect() == Rect2(o-Vector2.ONE*cell*0.5,Vector2.ONE*cell),"2D footprint is exactly one cell")
 	var renderer:Node2D = block.renderer()
 	check(is_instance_valid(renderer) and renderer.get_script() == RENDERER and renderer.visible,"block renders in the dedicated block overlay")
-	check(not renderer.z_as_relative and renderer.z_index == -4,"blocks share the map walls' layer, under the characters")
+	check(not renderer.z_as_relative and renderer.z_index == RENDERER.BLOCK_Z and renderer.z_index > 0 and renderer.shadow_picture.z_index == -4,"blocks draw above the characters while their ground shadow stays under them")
 	var mesh_node:MeshInstance3D = block.mesh_instance()
 	check(is_instance_valid(mesh_node) and mesh_node.get_parent() == renderer.viewport and mesh_node.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_ON,"mesh lives in the overlay viewport and casts shadows on other blocks")
 	var shadow_node:MeshInstance3D = block.shadow_instance()

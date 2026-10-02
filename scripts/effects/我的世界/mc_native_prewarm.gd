@@ -1,6 +1,6 @@
 extends Node
 ## Resources only: no character instantiation, _ready(), combat or random draws.
-const CHARACTERS:Array[String] = ["骷髅","女巫","烈焰人","苦力怕","蠹虫","末影人","唤魔者","潜影贝","史莱姆","守卫者","恶魂","粘性活塞","钓鱼竿","蝙蝠","仙人掌","唱片机","弓","天堂陨落长弓","羊","木船","雪傀儡","铜剑","铁砧"]
+const CHARACTERS:Array[String] = ["骷髅","女巫","烈焰人","苦力怕","蠹虫","末影人","唤魔者","潜影贝","史莱姆","守卫者","恶魂","粘性活塞","钓鱼竿","蝙蝠","仙人掌","唱片机","弓","天堂陨落长弓","羊","木船","雪傀儡","铜剑","铁砧","水桶","岩浆桶"]
 var scenes:Dictionary = {}
 var finished:Dictionary = {}
 var failed:Dictionary = {}
@@ -51,6 +51,7 @@ func _ready() -> void:
 
 func _warm_block_pipelines() -> void:
 	load("res://scripts/effects/我的世界/mc_block_3d.gd").prewarm_pipelines(get_parent())
+	load("res://scripts/characters/我的世界/bucket/fluid_mesh.gd").prewarm_pipelines(get_parent())
 
 func _begin() -> void:
 	for character:String in CHARACTERS:

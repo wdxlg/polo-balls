@@ -62,7 +62,7 @@ func run() -> void:
 	var BLOCK3D:Script = load("res://scripts/effects/我的世界/mc_block_3d.gd")
 	var table:Node2D = BLOCK3D.create(&"crafting_table",moss.CELL)
 	world.add_child(table)
-	check(table.renderer() != renderer and table.renderer().z_index == -4,"workbench-type blocks stay on the wall layer under characters")
+	check(table.renderer() != renderer and table.renderer().z_index > moss.z_index+36 and table.renderer().z_index < renderer.z_index,"workbench-type blocks draw above characters, under the azalea canopy")
 	table.free()
 	var fx_source:String = FileAccess.get_file_as_string("res://scripts/characters/我的世界/frontier/fx.gd")
 	var moss_draw:String = fx_source.split("func _draw_moss")[1].split("func _draw_sword")[0]

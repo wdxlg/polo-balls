@@ -2,7 +2,7 @@ extends "res://scripts/effects/我的世界/地图立体墙.gd"
 ## 单格 3D 方块障碍专用的透视 overlay（工作台/锻造台/仙人掌/杜鹃花丛）。
 ## 与地图立体墙同一相机、投影、受光材质；太阳、环境光与地影强度每帧照抄地图墙体
 ## （随昼夜转向，按地图主题换能量），没有墙的蓝色主题用地图墙默认光和同一个昼夜太阳方向。
-## 两层：GROUND 和墙一样画在角色之下（z -4）；CANOPY（苔藓杜鹃花丛）画在角色之上、血条之下，
+## 两层：GROUND（工作台等实心方块）画在角色之上（BLOCK_Z）、影子在角色之下；CANOPY（苔藓杜鹃花丛）画在方块之上、血条之下，
 ## 影子仍落在苔藓地皮(-3)之上、角色之下。方块的真实影子投到 2D 地面上。
 ## SEE_THROUGH：花丛"半透明"副本层（含全部花丛，z 41，整张画面 2D 不透明度 SEE_THROUGH_ALPHA）。
 ## 有人靠近的花丛从 CANOPY 层溶解掉，只剩这一层的半透明像素；其余花丛两层像素完全相同，看不出叠加。
@@ -18,6 +18,7 @@ const CANOPY_Z:int = 40
 ## 苔藓地皮在绝对 -3：花丛地影要在它之上、角色(0)之下。
 const CANOPY_SHADOW_Z:int = -2
 const GROUND_Z:int = -4
+const BLOCK_Z:int = 39
 const USERS_META:StringName = &"mc_block_3d_users"
 ## 与地图立体墙 configure_regions 的默认（草/石/下界）一致。
 const DEFAULT_AMBIENT_COLOR:Color = Color(0.72,0.79,0.89)
@@ -67,9 +68,9 @@ func configure_block_overlay(cell:float,overlay_layer:StringName = GROUND) -> vo
 	var host:Node = get_parent()
 	var light:Variant = host.get("map_wall_light_direction") if host != null else null
 	configure_surface_overlay(Vector2.ONE*cell,light if light is Vector2 else Vector2(1.0,-1.0))
-	# 墙是背景：地面(-5) < 墙/地影(-4) < 人物。方块障碍同层，晚于地图墙加入，画在墙之上。
+	# 地面(-5) < 墙/方块地影(-4) < 人物 < 方块(BLOCK_Z) < 花丛(CANOPY_Z) < 血条。
 	z_as_relative = false
-	z_index = GROUND_Z
+	z_index = BLOCK_Z
 	if layer == CANOPY: z_index = CANOPY_Z
 	elif layer == SEE_THROUGH: z_index = CANOPY_Z+1
 	shadow_picture.z_as_relative = false

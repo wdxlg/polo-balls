@@ -141,6 +141,20 @@ func run() -> void:
 	var mesh:MeshInstance3D = field.mesh_instance(field.WATER)
 	check(mesh != null and mesh.mesh != null and mesh.mesh.get_surface_count() >= 1 and field.renderer(field.WATER).visible,"3D water mesh is built in the block renderer")
 	check(field.renderer(field.WATER).z_index == -3 and is_equal_approx(field.renderer(field.WATER).picture.modulate.a,0.78),"water renderer is translucent at fluid layer")
+	check(field.levels[field.LAVA].is_empty() and field.renderer(field.LAVA) != null and field.renderer(field.LAVA).viewport != null,"both fluid renderers are prepared up front, before the first pour")
+	var caster:MeshInstance3D = field.shadow_instance(field.WATER)
+	check(caster != null and caster.mesh == mesh.mesh and caster.get_parent() == field.renderer(field.WATER).shadow_viewport and caster.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY and field.renderer(field.WATER).shadow_picture.visible and field.renderer(field.WATER).shadow_picture.z_index < field.z_index,"water throws a real ground shadow under itself")
+	var MESH_SCRIPT:Script = load("res://scripts/characters/我的世界/bucket/fluid_mesh.gd")
+	check(is_equal_approx(MESH_SCRIPT.DEPTH_SCALE,1.0) and field.fluid_height(field.WATER,c + Vector2i(7,0)) >= MESH_SCRIPT.LOW_HEIGHT * MESH_SCRIPT.FULL_HEIGHT - 0.001,"full vanilla depth, and the thinnest edge still stands as a visible wall")
+	check(is_equal_approx(MESH_SCRIPT.face_shade(Vector3.UP),1.0) and is_equal_approx(MESH_SCRIPT.face_shade(Vector3.BACK),0.8) and is_equal_approx(MESH_SCRIPT.face_shade(Vector3.RIGHT),0.6),"vanilla face shading: top 1.0, north/south 0.8, east/west 0.6")
+	var min_shade:float = 1.0
+	for s:int in range(mesh.mesh.get_surface_count()):
+		var colors:PackedColorArray = mesh.mesh.surface_get_arrays(s)[Mesh.ARRAY_COLOR]
+		for col:Color in colors: min_shade = minf(min_shade,col.r)
+	check(min_shade < 0.65,"side walls are darker than the top (min shade %.2f)" % min_shade)
+	check(MESH_SCRIPT.height_shade(0.0,10.0) < MESH_SCRIPT.height_shade(5.0,10.0) and is_equal_approx(MESH_SCRIPT.height_shade(10.0,10.0),1.0),"higher fluid is brighter, so the mound reads as 3D from above")
+	var prewarm_source:String = FileAccess.get_file_as_string("res://scripts/effects/我的世界/mc_native_prewarm.gd")
+	check(MESH_SCRIPT.has_method("prewarm_pipelines") and prewarm_source.contains("fluid_mesh.gd") and prewarm_source.contains("\"水桶\"") and prewarm_source.contains("\"岩浆桶\""),"fluid shaders and bucket resources are prewarmed at startup")
 
 	# --- merging and infinite source ---
 	check(field.place_source(field.WATER,c + Vector2i(2,0),water),"second water source placed two cells away")
@@ -208,6 +222,7 @@ func run() -> void:
 	field.sources[field.LAVA][l].until = field.clock
 	await sim(0.05)
 	check(not field.is_source(field.LAVA,l) and field.drains.size() == 1,"lava source expires")
+	check(is_equal_approx(field.DRAIN_STEP_SECONDS,field.STEP_SECONDS[field.LAVA]),"lava recedes exactly as fast as it spreads")
 	field._step_drains()
 	check(not field.levels[field.LAVA].has(l + Vector2i(1,0)) and field.levels[field.LAVA].has(l + Vector2i(3,0)),"lava recedes from the centre outward")
 	for i:int in range(6): field._step_drains()
