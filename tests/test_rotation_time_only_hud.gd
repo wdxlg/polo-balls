@@ -5,8 +5,8 @@ func run() -> void:
 	create_timer(60.0,true,false,true).timeout.connect(func(): quit(2))
 	game = root.get_node("Game")
 	saved = game.Game_Settings.duplicate(true)
-	var saved_storage:String = game._settings_storage_path
 	var temp_settings:String = OS.get_temp_dir().path_join("rotation_time_only_hud_settings.cfg")
+	# Game saves settings again on exit, so the redirect stays until quit.
 	game._settings_storage_path = temp_settings
 	game.Game_Settings.Training_Mode = false
 	game.Game_Settings.Training_Boss_Intro = false
@@ -57,7 +57,6 @@ func run() -> void:
 	world.queue_free()
 	await process_frame
 	game.Game_Settings = saved
-	game._settings_storage_path = saved_storage
 	if FileAccess.file_exists(temp_settings): DirAccess.remove_absolute(temp_settings)
 	print("ROTATION_TIME_ONLY_HUD checks=%d failures=%d" % [checks,failures])
 	quit(1 if failures > 0 else 0)

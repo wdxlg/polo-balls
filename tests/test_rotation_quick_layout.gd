@@ -21,8 +21,8 @@ func shot(label:String) -> void:
 func run() -> void:
 	create_timer(90,true,false,true).timeout.connect(func():push_error("QUICK_LAYOUT_TIMEOUT");quit(2))
 	game=root.get_node("Game");saved=game.Game_Settings.duplicate(true)
-	var saved_storage:String=game._settings_storage_path
 	var scratch_settings:String=OS.get_temp_dir().path_join("quick_layout_test_settings.cfg")
+	# Game saves settings again on exit, so the redirect stays until quit.
 	game._settings_storage_path=scratch_settings
 	game.Game_Settings.Training_Mode=false;game.Game_Settings.Development_Mode=false;game.Game_Settings.Training_Mode_Type="rotation"
 	game.Game_Settings.Rotation_Match_Type="challenge";game.Game_Settings.Training_Wheel_Battle=false
@@ -95,6 +95,5 @@ func run() -> void:
 	check(button.text==game.ui_t("UI_ROTATION_QUICK_LAYOUT") and "Quick layout" in [game.ui_t("UI_ROTATION_QUICK_LAYOUT"),game.t("UI_ROTATION_QUICK_LAYOUT")],"English label")
 	game.set_language("zh",false)
 	world.reset();await process_frame;world.queue_free();await process_frame;game.Game_Settings=saved
-	game._settings_storage_path=saved_storage
 	if FileAccess.file_exists(scratch_settings): DirAccess.remove_absolute(scratch_settings)
 	print("ROTATION_QUICK_LAYOUT checks=%d failures=%d"%[checks,failures]);quit(1 if failures else 0)

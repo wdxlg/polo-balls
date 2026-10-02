@@ -12,16 +12,14 @@ func _ready() -> void:
 	name = "MinecraftNetheriteArenaManager"
 	_rng.seed = Game.battle_rng_seed_or("scripts/effects/我的世界/下界合金竞技场.gd:_rng.seed",int(Time.get_ticks_usec()) ^ get_instance_id())
 	set_process(true)
-	call_deferred("_ensure_table")
+	call_deferred("_sync_presence")
 
 
 func _process(delta:float) -> void:
 	if not _is_spawning_authority():
 		return
-	if not _has_active_diamond_sword():
-		_cooldown_left = INGOT_COOLDOWN
+	if not _sync_presence():
 		return
-	_ensure_table()
 	# 任意存活钻石剑一旦已经捡到下界合金锭（或已经完成升级），本轮不再刷新第二枚。
 	# 这样锭被捡起 queue_free 后不会重新进入 10 秒刷新循环。
 	if _has_claimed_or_upgraded_sword():
@@ -39,6 +37,22 @@ func _process(delta:float) -> void:
 		_cooldown_left = INGOT_COOLDOWN
 
 
+## The table and loose ingots exist only while a living diamond sword is on the field
+## (a rotation formation preview counts; queued rounds that have not entered do not).
+func _sync_presence() -> bool:
+	if not _is_spawning_authority() or get_tree() == null:
+		return false
+	if _has_active_diamond_sword():
+		_ensure_table()
+		return true
+	_cooldown_left = INGOT_COOLDOWN
+	for group:StringName in [&"MinecraftSmithingTable",&"MinecraftNetheriteIngot"]:
+		for node:Node in get_tree().get_nodes_in_group(group):
+			if is_instance_valid(node) and not node.is_queued_for_deletion():
+				node.queue_free()
+	return false
+
+
 func _is_spawning_authority() -> bool:
 	# 单机没有 multiplayer peer 时本机就是玩法 authority；联网时只让服务器刷新。
 	return not multiplayer.has_multiplayer_peer() or multiplayer.is_server()
@@ -46,7 +60,7 @@ func _is_spawning_authority() -> bool:
 
 func _has_active_diamond_sword() -> bool:
 	for node:Node in get_tree().get_nodes_in_group("MinecraftDiamondSword"):
-		if node is ball and is_instance_valid(node) and (node as ball).health > 0:
+		if node is ball and is_instance_valid(node) and node.is_inside_tree() and not node.is_queued_for_deletion() and (node as ball).health > 0:
 			return true
 	return false
 
