@@ -9,10 +9,13 @@ var actor:CharacterBody2D
 var motor:Vector2 = Vector2.ZERO
 var current_velocity:Vector2 = Vector2.ZERO
 var impulses:Dictionary = {}
+var contact_frame:int = -1
+var contacts:Array[Dictionary] = []
 var _initialized:bool = false
 var _advance_frame:int = -1
 var _compose_frame:int = -1
 var _direct_frame:int = -1
+var _was_direct:bool = false
 var _correction_frame:int = -1
 var _correction_used:float = 0.0
 var _last_position:Vector2
@@ -24,15 +27,27 @@ func _ready() -> void:
 	process_physics_priority = 1000
 	_last_position = actor.global_position
 func live() -> bool:
-	return is_instance_valid(actor) and actor.is_inside_tree() and actor.is_multiplayer_authority() and actor.health > 0 and actor.is_combat_runtime_active() and not get_tree().paused
+	return is_instance_valid(actor) and not actor.is_queued_for_deletion() and actor.is_inside_tree() and actor.is_multiplayer_authority() and actor.health > 0 and actor.is_combat_runtime_active() and not get_tree().paused
 func inverse_mass() -> float:
 	if bool(actor.get_meta("body_motion_immovable",false)): return 0.0
 	if actor.has_method("is_knockback_displacement_immune") and actor.is_knockback_displacement_immune(): return 0.0
 	return 1.0
 func physical_body() -> bool:
 	return actor.collision_shape_2d != null and actor.collision_shape_2d.shape != null and not actor.collision_shape_2d.disabled and (actor.collision_layer & 2)!=0 and (actor.collision_mask & 2)!=0
+func held() -> bool:
+	return actor.is_transport_mounted() or actor.has_meta("mc_sticky_hold") or (actor.dizziness and actor.collision_layer==0 and actor.collision_mask==0)
+func reset_motion() -> void:
+	impulses.clear()
+	motor = Vector2.ZERO
+	current_velocity = Vector2.ZERO
+	_initialized = false
+	_was_direct = false
+func transform_motion(map_vector:Callable) -> void:
+	motor = map_vector.call(motor)
+	current_velocity = map_vector.call(current_velocity)
+	for entry:Dictionary in impulses.values(): entry.velocity = map_vector.call(entry.velocity)
 func externally_driven() -> bool:
-	return actor.has_meta("map_rescue_animating") or actor.has_meta("airborne_height") or bool(actor.get_meta("mc_ignore_character_body_collision",false))
+	return held() or actor.has_meta("map_rescue_animating") or actor.has_meta("airborne_height") or bool(actor.get_meta("mc_ignore_character_body_collision",false))
 static func _begin_frame() -> void:
 	var frame:int = Engine.get_physics_frames()
 	if _pair_frame != frame:
@@ -65,11 +80,18 @@ func impulse_velocity() -> Vector2:
 func compose(desired:Vector2,other:Vector2,delta:float) -> Vector2:
 	if not live(): return Vector2.ZERO
 	advance(delta)
-	if not _initialized:
+	if held():
+		motor = Vector2.ZERO
+		current_velocity = Vector2.ZERO
+		return Vector2.ZERO
+	if not _initialized or _was_direct:
+		_was_direct = false
 		motor = desired
 		_initialized = true
 	elif actor.dizziness:
 		motor = Vector2.ZERO
+	elif desired.is_zero_approx() or impulses.is_empty():
+		motor = desired
 	else:
 		var acceleration:float = maxf(maxf(desired.length(),actor.Speed*0.6),40.0)*16.0
 		motor = motor.move_toward(desired,acceleration*maxf(delta,0.0))
@@ -79,6 +101,11 @@ func compose(desired:Vector2,other:Vector2,delta:float) -> Vector2:
 func compose_direct(value:Vector2,delta:float) -> Vector2:
 	if not live(): return Vector2.ZERO
 	advance(delta)
+	if held():
+		motor = Vector2.ZERO
+		current_velocity = Vector2.ZERO
+		return Vector2.ZERO
+	_was_direct = true
 	_direct_frame = Engine.get_physics_frames()
 	_compose_frame = _direct_frame
 	_initialized = true
@@ -96,10 +123,20 @@ func resolve_contact(collision:KinematicCollision2D) -> void:
 	var other:Object = collision.get_collider()
 	var normal:Vector2 = collision.get_normal().normalized()
 	if not is_instance_valid(other) or normal.is_zero_approx(): return
+	if contact_frame != Engine.get_physics_frames():
+		contact_frame = Engine.get_physics_frames()
+		contacts.clear()
+	if contacts.size()<32:
+		contacts.append({"collider":weakref(other),"normal":normal,"point":collision.get_position(),"incoming":current_velocity})
 	if other.has_method("get_body_motion"):
 		resolve_pair(other,normal)
 		return
-	if actor._is_external_gravity_quiet_support_collision(collision): return
+	if actor._is_external_gravity_quiet_support_collision(collision) and collision.get_normal().dot(normal)>0.99: return
+	# Native directional-gravity locomotion owns landing/ceiling cancellation and its hop.
+	# Reflecting that same integrated gravity again would manufacture a second launch.
+	if actor.is_external_directional_gravity_locomotion_enabled():
+		var gravity_axis:float = actor.get_external_directional_gravity_velocity().dot(normal)
+		if gravity_axis<0.0: current_velocity -= gravity_axis*normal
 	var approach:float = current_velocity.dot(normal)
 	if approach < -0.1:
 		# Transform owned momentum in place, so ending one effect cannot expose an opposite
@@ -141,7 +178,7 @@ func resolve_pair(other:Node,normal:Vector2) -> void:
 	other.velocity = b.current_velocity
 	reflect_motor(normal)
 	b.reflect_motor(-normal)
-func _safe_shift(unit:Node,offset:Vector2,partner:Node) -> Vector2:
+func _safe_shift(unit:Node,offset:Vector2,_partner:Node) -> Vector2:
 	if offset.length_squared()<0.000001: return Vector2.ZERO
 	var owner_motion:Node = unit.get_body_motion()
 	if owner_motion._correction_frame != Engine.get_physics_frames():
@@ -153,11 +190,10 @@ func _safe_shift(unit:Node,offset:Vector2,partner:Node) -> Vector2:
 	query.shape = cs.shape
 	query.transform = cs.global_transform
 	query.motion = offset
-	query.collision_mask = 3
-	var ignored:Array[RID] = [unit.get_rid(),partner.get_rid()]
-	for exception:PhysicsBody2D in unit.get_collision_exceptions():
-		if is_instance_valid(exception): ignored.append(exception.get_rid())
-	query.exclude = ignored
+	# Neighbor contacts are solved iteratively with the shared displacement budget.
+	# Treating every touching neighbor as terrain deadlocks a packed but escapable cluster.
+	query.collision_mask = 1
+	query.exclude = [unit.get_rid()]
 	var space:PhysicsDirectSpaceState2D = unit.get_world_2d().direct_space_state
 	var cast:PackedFloat32Array = space.cast_motion(query)
 	var move:Vector2 = offset*(cast[0] if not cast.is_empty() else 0.0)
@@ -192,7 +228,7 @@ func separate_overlaps() -> void:
 			var offset:Vector2 = points[i+1]-points[i]
 			if offset.length_squared()>correction.length_squared(): correction = offset
 		if correction.length()<=POSITION_SLOP: continue
-		correction = correction.limit_length(MAX_CORRECTION)
+		correction = correction.normalized()*minf((correction.length()+POSITION_SLOP)*1.1,MAX_CORRECTION)
 		var normal:Vector2 = correction.normalized()
 		resolve_pair(other,normal)
 		var ia:float = inverse_mass()
@@ -202,8 +238,9 @@ func separate_overlaps() -> void:
 		var second:Vector2 = _safe_shift(other,-(correction-first),actor) if ib>0.0 else Vector2.ZERO
 		if ia>0.0: _safe_shift(actor,correction-first+second,other)
 func _physics_process(delta:float) -> void:
-	if not live() or externally_driven(): return
+	if not live(): return
 	advance(delta)
+	if externally_driven(): return
 	# Explicit skill movement remains owned by that skill; ordinary forces still compose.
 	if _compose_frame != Engine.get_physics_frames() and impulse_velocity().length_squared()>0.01:
 		var incoming:Vector2 = actor.velocity+impulse_velocity()

@@ -5025,6 +5025,7 @@ var _body_motion:Node
 func get_body_motion() -> Node:
 	if Type not in [Ball_Type.Ball,Ball_Type.Creature]: return null
 	if not is_instance_valid(_body_motion):
+		if not is_inside_tree() or is_queued_for_deletion(): return null
 		_body_motion = load("res://classes/character_motion.gd").new()
 		_body_motion.name = "BodyMotion"
 		_body_motion.actor = self
@@ -5081,7 +5082,7 @@ func move(speed:float,delta:float):
 		move_speed,
 		Repel
 	)
-	var drive:Vector2 = effective_direction*move_speed
+	var drive:Vector2 = velocity-Repel-_crowd_separation_velocity
 	velocity = _compose_body_motion(drive,velocity-drive+surface_motion_velocity+KNOCKBACK_EFFECT_SCRIPT.pull_velocity(self),delta)
 	velocity *= motion_speed_factor()
 	_last_requested_velocity = velocity

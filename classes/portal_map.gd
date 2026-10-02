@@ -1245,6 +1245,8 @@ func _try_transit_ball(b:ball,delta:float,is_character:bool,now:int) -> bool:
 		b.direction = _map_vector(gate,b.direction)
 	if b.Repel.length_squared() > 0.0001:
 		b.Repel = _map_vector(gate,b.Repel)
+	if b.get_body_motion()!=null:
+		b.get_body_motion().transform_motion(func(value:Vector2)->Vector2:return _map_vector(gate,value))
 	b.reset_physics_interpolation()
 	# 残影 / 运动模糊按“画面实际位移”采样；瞬移后清空历史，避免拉出一条跨岛长线。
 	if b.has_method("_clear_after_image_path"):

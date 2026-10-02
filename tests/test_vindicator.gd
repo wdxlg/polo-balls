@@ -395,6 +395,7 @@ func extra_runtime_checks() -> void:
 
 func corrected_rig_and_movement_checks() -> void:
 	reset_attack()
+	unit.get_body_motion().reset_motion()
 	unit.global_position = Vector2.ZERO
 	enemy.global_position = Vector2(1000,0)
 	unit.set_player_control_peer(0)

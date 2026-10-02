@@ -115,7 +115,7 @@ func move(speed:float,delta:float):
 		if rush==Rush.MIST:
 			var before:Vector2 = global_position
 			velocity = dash_direction*360.0
-			move_and_slide()
+			move_with_body_slide(delta)
 			dash_remaining -= before.distance_to(global_position)
 			if before.distance_to(global_position)<0.1: dash_remaining = 0.0
 			sweep_mist_damage(before,global_position)

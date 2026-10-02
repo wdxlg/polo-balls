@@ -11,10 +11,12 @@ func run() -> void:
 	var o:Vector2=await setup_world()
 	create_timer(60).timeout.connect(func(): finish(2))
 	var w:Node2D=actor("监守者",o)
+	w.set_player_control_peer(0)
 	var probe_target:Node2D=dummy(o+Vector2(120,0))
 	await physics_frame
 	await process_frame
 	world.get_node("MCBattleNoise").set_physics_process(false)
+	w.hear_noise(probe_target,probe_target.global_position,"attack",120)
 	w.alert_level=100; w.begin_probe(); w.listen_heading=Vector2.RIGHT; w.emit_probe(); halt_waves(w)
 	var hp:float=probe_target.health
 	latest(w,"probe").advance(0.62); halt_waves(w)

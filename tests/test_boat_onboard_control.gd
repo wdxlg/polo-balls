@@ -197,7 +197,7 @@ func run() -> void:
 	active_push.target = boat2
 	active_push.source = piston2
 	boat2.add_child(active_push)
-	check(active_push.is_active_effect() and boat2.dizziness,"external derived push is effective")
+	check(active_push.is_active_effect() and not boat2.dizziness and boat2.get_body_motion().impulse_velocity().length()>0,"external derived push stays effective without locking controls")
 	check(boat2.board_unit(piston2),"push source boards")
 	active_push._physics_process(DT)
 	check(not active_push.is_active_effect() and not boat2.dizziness and boat2.Repel == Vector2.ZERO,"boarding cancels existing derived push and releases lock")

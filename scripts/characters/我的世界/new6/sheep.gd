@@ -431,7 +431,7 @@ func move(speed_value:float,delta:float) -> void:
 	if ram_state == RamState.BRAKE_GRAZE:
 		_graze_velocity = _graze_velocity.move_toward(Vector2.ZERO,graze_braking*delta)
 		velocity = _graze_velocity+Repel
-		move_and_collide(velocity*delta)
+		move_with_body_collision(velocity*delta,delta)
 		if _graze_velocity.length() <= 2.0:
 			ram_state = RamState.GRAZE
 		return
@@ -442,7 +442,7 @@ func move(speed_value:float,delta:float) -> void:
 		var braking_time:float = minf(delta,_retreat_current_speed/maxf(retreat_deceleration,0.01))
 		var retreat_travel:float = _retreat_current_speed*braking_time-0.5*retreat_deceleration*braking_time*braking_time
 		velocity = _retreat_dir*next_retreat+Repel
-		move_and_collide(_retreat_dir*retreat_travel+Repel*delta)
+		move_with_body_collision(_retreat_dir*retreat_travel+Repel*delta,delta)
 		_retreat_current_speed = next_retreat
 		return
 	if ram_state == RamState.CHARGE and not dizziness:
@@ -455,7 +455,7 @@ func move(speed_value:float,delta:float) -> void:
 		var travel:float = old_speed*accelerating_time+0.5*accel*accelerating_time*accelerating_time+next_speed*(delta-accelerating_time)
 		velocity = _charge_dir*old_speed
 		var start:Vector2 = global_position
-		var collision:KinematicCollision2D = move_and_collide(_charge_dir*travel)
+		var collision:KinematicCollision2D = move_with_body_collision(_charge_dir*travel,delta)
 		var moved:float = start.distance_to(global_position)
 		_charge_distance += moved
 		# 撞到障碍前实际走了多少，决定接触瞬间剩余速度。

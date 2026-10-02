@@ -537,7 +537,7 @@ func tick_physics(state:State,delta:float) -> void:
 
 	var requested_velocity:Vector2 = velocity
 	var position_before_move:Vector2 = global_position
-	move_and_slide()
+	move_with_body_slide(delta)
 	var actual_displacement:Vector2 = global_position - position_before_move
 	var actual_move_distance:float = actual_displacement.length()
 	# V141 保留：按真实车身从上一位置扫到当前位置，补足车侧/车角擦过时的离散碰撞漏判。
@@ -698,7 +698,7 @@ func _tick_player_controlled_vehicle(delta:float) -> void:
 		return
 
 	var position_before_move:Vector2 = global_position
-	move_and_slide()
+	move_with_body_slide(delta)
 	_process_ram_swept_contacts(position_before_move,global_position,absf(_vehicle_speed))
 	_process_physical_contact_hits()
 	_process_wall_hit_bursts_from_slide_collisions(absf(_vehicle_speed))

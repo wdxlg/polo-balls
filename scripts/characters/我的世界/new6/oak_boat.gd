@@ -782,7 +782,7 @@ func move(_speed:float,delta:float) -> void:
 	var motion:Vector2 = _integrate_drive(controls.x,controls.y,delta)
 	velocity = facing*_forward_speed+Repel
 	var impact_speed:float = _forward_speed
-	var collision:KinematicCollision2D = move_and_collide(motion+Repel*delta)
+	var collision:KinematicCollision2D = move_with_body_collision(motion+Repel*delta,delta)
 	_ram_path(start,global_position,impact_speed)
 	_paddle_attack(start,old_facing,_angular_speed)
 	if collision != null:

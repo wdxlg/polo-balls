@@ -46,6 +46,7 @@ func _physics_process(delta:float) -> void:
 	target.collision_layer=0
 	target.collision_mask=0
 	target.Repel=Vector2.ZERO
+	if target.get_body_motion()!=null: target.get_body_motion().reset_motion()
 	target.velocity=Vector2.ZERO
 	target.global_position=source.sticky_anchor(target)
 func clear_at(point:Vector2) -> bool:

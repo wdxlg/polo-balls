@@ -260,6 +260,7 @@ func _enter_arena(reference:TileMapLayer) -> void:
 		unit.global_position = base_rect.position + uv*base_rect.size
 		unit.velocity = Vector2.ZERO
 		unit.Repel = Vector2.ZERO
+		if unit.get_body_motion()!=null: unit.get_body_motion().reset_motion()
 		unit.clear_external_directional_gravity_velocity()
 	anchor = Vector2(base_rect.get_center().x,base_rect.position.y-maxf(30.0,base_rect.size.y*0.10))
 	_update_arena_geometry()
@@ -378,6 +379,7 @@ func _hold_source() -> void:
 		source.global_position = anchor
 		source.velocity = Vector2.ZERO
 		source.Repel = Vector2.ZERO
+		if source.get_body_motion()!=null: source.get_body_motion().reset_motion()
 
 func _set_gravity(direction:Vector2,terminal:float,strength:float) -> void:
 	_clear_slams()
@@ -593,6 +595,7 @@ func _restore_map() -> void:
 			unit.global_position = entry.position
 			unit.velocity = Vector2.ZERO
 			unit.Repel = Vector2.ZERO
+			if unit.get_body_motion()!=null: unit.get_body_motion().reset_motion()
 	original_positions_restored = true
 	anchor = Vector2(original_rect.get_center().x,original_rect.position.y-maxf(30.0,original_rect.size.y*0.10))
 	world.call("refresh_map_presentation")

@@ -16,10 +16,10 @@ func check_cohort_collisions(b:Node2D,label:String) -> void:
 func crowd_pair(a:Node2D,b:Node2D) -> Vector2:
 	a.set_large_battle_performance_mode(true)
 	b.set_large_battle_performance_mode(true)
-	world._large_battle_mode_active = true
-	world._rebuild_battle_spatial_grid([a,b])
-	world._update_large_battle_crowd_separation([a,b],1.0)
-	var push:Vector2 = a._crowd_separation_velocity
+	await physics_frame
+	var before:Vector2 = a.global_position
+	a.get_body_motion().separate_overlaps()
+	var push:Vector2 = a.global_position-before
 	a.set_large_battle_performance_mode(false)
 	b.set_large_battle_performance_mode(false)
 	world._large_battle_mode_active = false
@@ -184,9 +184,9 @@ func run() -> void:
 	check(contact != null and contact.get_collider() == wall,"terrain remains solid after same-cohort exclusions")
 	wall.free()
 	sibling.global_position = center+Vector2(1,0)
-	check(crowd_pair(b,sibling).is_zero_approx(),"crowd mode also skips same-cohort soft separation")
+	check((await crowd_pair(b,sibling)).is_zero_approx(),"crowd mode also skips same-cohort position correction")
 	other.global_position = center+Vector2(1,0)
-	check(not crowd_pair(b,other).is_zero_approx(),"crowd mode still separates different cohorts")
+	check(not (await crowd_pair(b,other)).is_zero_approx(),"crowd mode still separates different cohorts")
 	other.global_position = center+Vector2(180,0)
 	settle_fusion(b)
 	b.assign_vitals(250,250)

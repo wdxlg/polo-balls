@@ -244,7 +244,7 @@ func run() -> void:
 	target.global_position = zombie.global_position+Vector2(15,0)
 	zombie._mc_target_wait = 0.0
 	zombie.step_zombie(0.0)
-	check(zombie.direction.x < -0.9 and not zombie._hold_distance,"over-close zombie backs away rather than pinning its victim")
+	check(zombie._hold_distance,"over-close zombie stops propulsion and delegates separation to the shared solver")
 	target.global_position = center+Vector2(24,0)
 	var enchants:Script = load("res://scripts/effects/我的世界/mc_enchantments.gd")
 	var support:Script = load("res://scripts/effects/我的世界/mc_enchant_support.gd")
@@ -309,7 +309,7 @@ func verify_wall_escape(zombie:Node2D,target:Node2D,center:Vector2) -> void:
 		zombie.tick_physics(0,1.0/60.0)
 		target.move(target.Speed,1.0/60.0)
 		await physics_frame
-	check(target.global_position.x < start.x-25.0,"real colliding victim can move away from the wall past a retreating zombie")
+	check(target.global_position.x < start.x-25.0,"real colliding victim can move away from the wall by pushing the zombie through the shared body response")
 	check(zombie.collision_mask == mask and (mask & 2) != 0,"escape fix retains physical character collisions")
 	barrier.queue_free()
 	target.player_control_peer_id = 0

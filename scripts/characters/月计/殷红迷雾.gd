@@ -1106,7 +1106,7 @@ func _dash_to_point(point:Vector2,speed:float,invulnerable:bool) -> void:
 			break
 		var dt:float = maxf(get_physics_process_delta_time(),0.001)
 		var step:float = minf(distance,speed * dt)
-		var collision:KinematicCollision2D = move_and_collide(to_point.normalized() * step)
+		var collision:KinematicCollision2D = move_with_body_collision(to_point.normalized()*step,dt)
 		afterimage_elapsed += dt
 		if afterimage_elapsed >= displacement_afterimage_interval:
 			_spawn_displacement_afterimage()

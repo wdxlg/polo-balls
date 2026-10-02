@@ -290,7 +290,7 @@ func _dash_to(destination:Vector2,duration:float,serial:int) -> void:
 		if motion.length_squared() <= 0.000001:
 			return
 		AfterImage()
-		var collision:KinematicCollision2D = move_and_collide(motion)
+		var collision:KinematicCollision2D = move_with_body_collision(motion,get_physics_process_delta_time())
 		if collision != null:
 			return
 		await get_tree().physics_frame

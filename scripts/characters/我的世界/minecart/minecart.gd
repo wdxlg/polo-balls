@@ -471,7 +471,7 @@ func _drive_step(delta:float) -> void:
 			destination = global_position+rush_direction*amount
 		velocity = rush_direction*drive_speed
 		_last_requested_velocity = velocity
-		var contact:KinematicCollision2D = move_and_collide(destination-global_position)
+		var contact:KinematicCollision2D = move_with_body_collision(destination-global_position,amount/maxf(drive_speed,0.001))
 		_sweep_enemies(from,global_position)
 		remaining -= amount
 		if contact != null: wall_contact(contact.get_normal(),contact.get_position()); return
@@ -618,7 +618,7 @@ func _move_coast(delta:float) -> void:
 		var from:Vector2 = global_position
 		velocity = rush_direction*drive_speed
 		_last_requested_velocity = velocity
-		var collision:KinematicCollision2D = move_and_collide(velocity*step)
+		var collision:KinematicCollision2D = move_with_body_collision(velocity*step,step)
 		_sweep_enemies(from,global_position)
 		if collision != null:
 			rush_direction = rush_direction.bounce(collision.get_normal()).normalized()

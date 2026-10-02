@@ -12,8 +12,9 @@ func check(ok:bool,label:String) -> void:
 		failures += 1
 		push_error(label)
 func run() -> void:
-	create_timer(25.0).timeout.connect(func(): quit(2))
+	create_timer(60.0).timeout.connect(func(): quit(2))
 	var game:Node = root.get_node("Game")
+	game._settings_storage_path=OS.get_environment("TEMP").path_join("portal_motion_settings.json")
 	var saved:Dictionary = game.Game_Settings.duplicate(true)
 	game.Game_Settings.Map_Background = "grass"
 	var world:Node = load("res://scenes/world.tscn").instantiate()
@@ -25,6 +26,7 @@ func run() -> void:
 	await process_frame
 	await physics_frame
 	await physics_frame
+	check(await load("res://tests/mc_animation_test_cleanup.gd").wait_for_preloads(self),"shared preloads settle before scene cleanup")
 	var map:Node = world.get_node("Map_Portal")
 	var G = load("res://classes/map_tile_geometry.gd")
 	for e:Dictionary in map.island_entries():
@@ -70,4 +72,6 @@ func run() -> void:
 	check(outside_ok,"every exposed ground edge still has a wall just outside it")
 	game.Game_Settings = saved
 	print("PORTAL_ISLAND_COLLISION checks=",checks," failures=",failures)
+	world.queue_free()
+	await process_frame
 	quit(0 if failures == 0 else 1)

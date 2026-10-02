@@ -684,7 +684,7 @@ func _attack3_sequence_manual(serial:int,aim_direction:Vector2) -> void:
 		var physics_delta:float = maxf(get_physics_process_delta_time(),0.000001)
 		dash_elapsed += physics_delta
 		velocity = dash_dir * maxf(attack3_dash_speed,0.0)
-		move_and_slide()
+		move_with_body_slide(physics_delta)
 		for collision_index:int in range(get_slide_collision_count()):
 			var dash_collision:KinematicCollision2D = get_slide_collision(collision_index)
 			if dash_collision != null and dash_collision.get_collider() is ball:
@@ -749,7 +749,7 @@ func _attack3_sequence(target:ball,serial:int) -> void:
 			)
 			if max_motion > 0.0:
 				velocity = to_target.normalized() * (max_motion / physics_delta)
-				move_and_slide()
+				move_with_body_slide(physics_delta)
 				for collision_index:int in range(get_slide_collision_count()):
 					var dash_collision:KinematicCollision2D = get_slide_collision(collision_index)
 					if dash_collision != null and dash_collision.get_collider() is ball:
@@ -1638,6 +1638,7 @@ func _begin_attack3_pin(target:ball,serial:int) -> void:
 	target.direction = Vector2.ZERO
 	target.velocity = Vector2.ZERO
 	target.Repel = Vector2.ZERO
+	if target.get_body_motion()!=null: target.get_body_motion().reset_motion()
 	# 伞夫本体也停止普通移动，Attack3 后半段只播放动作，不再推着目标挤墙。
 	direction = Vector2.ZERO
 	velocity = Vector2.ZERO
@@ -1766,6 +1767,7 @@ func _update_attack3_pinned_target() -> void:
 	_attack3_pinned_target.direction = Vector2.ZERO
 	_attack3_pinned_target.velocity = Vector2.ZERO
 	_attack3_pinned_target.Repel = Vector2.ZERO
+	if _attack3_pinned_target.get_body_motion()!=null: _attack3_pinned_target.get_body_motion().reset_motion()
 	_attack3_pinned_target.global_position = _attack3_pin_global_position(_attack3_pinned_target)
 
 
@@ -1790,6 +1792,7 @@ func _release_attack3_pin(serial:int = -1,apply_release_stun:bool = false) -> vo
 	_attack3_collision_filter_saved = false
 
 	target.Repel = Vector2.ZERO
+	if target.get_body_motion()!=null: target.get_body_motion().reset_motion()
 	target.velocity = Vector2.ZERO
 
 	# V81：先完整恢复目标进入固定前的 CharacterBody2D 碰撞配置，再交回正常控制/眩晕。

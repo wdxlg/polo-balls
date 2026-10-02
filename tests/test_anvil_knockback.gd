@@ -5,6 +5,10 @@ func knockbacks(target:Node) -> Array[Node]:
 	for child:Node in target.get_children():
 		if child.get_script()==target.KNOCKBACK_EFFECT_SCRIPT and child.is_active_effect(): effects.append(child)
 	return effects
+func settle_knockback(target:Node2D) -> void:
+	var until:int=Time.get_ticks_msec()+7000
+	while Time.get_ticks_msec()<until and (not knockbacks(target).is_empty() or target.get_body_motion().impulse_velocity().length()>0.1):
+		await physics_frame
 func prepare_drop(unit:Node2D,target:Node2D,speed:float) -> void:
 	unit._active_slam = false
 	unit._drop_connected = false
@@ -51,7 +55,7 @@ func run() -> void:
 	check(effects.size()==1,"real anvil damage creates exactly one public knockback controller")
 	if not effects.is_empty():
 		var effect:Node = effects[0]
-		check(effect.source==unit and effect.direction.is_equal_approx(Vector2.DOWN) and target.Repel.y>0.0,"slam pushes downward through the real physics impulse channel")
+		check(effect.source==unit and effect.direction.is_equal_approx(Vector2.DOWN) and target.get_body_motion().impulse_velocity().y>0.0,"slam pushes downward through the real physics impulse channel")
 		check(is_equal_approx(effect.distance,unit.impact_knockback_distance(unit.last_impact_speed)),"knockback strength uses the confirmed pre-impact fall speed")
 		check(effect.collision_damage==0.0 and effect.stun_duration==0.0 and effect.wall_bounce_strength==0.0,"push adds no hidden collision damage, extra stun or wall launch")
 	check(clangs(unit).is_empty() and unit.obstacle_impact_count==0,"enemy knockback does not ring the anvil")
@@ -60,7 +64,8 @@ func run() -> void:
 	await create_timer(0.4).timeout
 	check(target.global_position.y>before.y+10.0 and absf(target.global_position.x-before.x)<0.2,"normal engine ticks really displace the struck enemy downward")
 	check(target.health==hp,"knockback movement does not duplicate slam damage")
-	check(knockbacks(target).is_empty() and not target.dizziness,"knockback finishes and releases its real control lock")
+	await settle_knockback(target)
+	check(knockbacks(target).is_empty() and not target.dizziness,"impulse decays naturally without acquiring a control lock")
 	check(knockbacks(friend).is_empty(),"nearby friendly units receive no incidental knockback")
 	check(unit.impact_knockback_distance(600)>unit.impact_knockback_distance(200) and unit.impact_knockback_distance(100000)<=unit.maximum_knockback_distance,"fall-speed knockback increases but has a finite cap")
 
@@ -77,6 +82,7 @@ func run() -> void:
 	hp = target.health
 	await create_timer(0.4).timeout
 	check(absf(target.global_position.x-before.x)>5.0 and target.global_position.y+half_height<=wall.global_position.y-2.0+0.2,"blocked-downward pressure redirects sideways without crossing the real platform")
+	await settle_knockback(target)
 	check(target.health==hp and knockbacks(target).is_empty(),"wall stopping adds no second damage and leaves no stuck knockback controller")
 	wall.queue_free()
 	await process_frame

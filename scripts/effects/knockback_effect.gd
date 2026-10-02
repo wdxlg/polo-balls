@@ -77,6 +77,7 @@ var _motion_done:bool = false
 var _drag:float = 1.0
 var _lifetime:float = 0.0
 var _contacts:Dictionary = {}
+var _last_contact_frame:int = -1
 
 func _ready() -> void:
 	if target == null and get_parent() is ball: target = get_parent() as ball
@@ -103,7 +104,7 @@ func _ready() -> void:
 	_last_position = target.global_position
 	_motion_done = distance<=0.0 or _current_speed<=0.0
 	if not _motion_done:
-		_motion.add_impulse(get_instance_id(),_current_direction*_current_speed,_drag,wall_bounce_strength)
+		_motion.add_impulse(get_instance_id(),_current_direction*_current_speed,_drag,wall_bounce_strength if max_wall_bounces>0 else 0.0)
 	if stun_duration>0.0 and not stun_only_on_collision: _start_stun()
 	if _motion_done and _stage!=1: _finish(false)
 
@@ -137,25 +138,26 @@ func _physics_process(delta:float) -> void:
 	if _stage == 1 and not _finished: _process_stun(delta)
 
 func _handle_collisions() -> bool:
-	if _motion._compose_frame!=Engine.get_physics_frames(): return false
-	for index:int in range(target.get_slide_collision_count()):
-		var contact:KinematicCollision2D=target.get_slide_collision(index)
-		if contact == null: continue
-		var collider:Object=contact.get_collider()
+	if _motion.contact_frame<Engine.get_physics_frames()-1 or _last_contact_frame==_motion.contact_frame: return false
+	_last_contact_frame=_motion.contact_frame
+	for contact:Dictionary in _motion.contacts:
+		var collider:Object=contact.collider.get_ref()
 		if not is_instance_valid(collider): continue
 		var key:int=collider.get_instance_id()
-		if _contacts.has(key): continue
-		# The body solver has already reflected momentum. Use the requested incoming direction.
-		if target._last_requested_velocity.dot(contact.get_normal())>=-0.1: continue
-		_contacts[key]=true
-		_current_speed=maxf(_current_speed,minf(speed,target._last_requested_velocity.length()))
-		if collider is ball: _handle_character_collision(contact.get_normal(),contact.get_position())
-		else: _handle_wall_collision(contact.get_normal(),contact.get_position())
+		var previous:int=int(_contacts.get(key,-100))
+		_contacts[key]=_motion.contact_frame
+		if previous>=_motion.contact_frame-1: continue
+		if Vector2(contact.incoming).dot(contact.normal)>=-0.1: continue
+		_current_speed=maxf(_current_speed,minf(speed,Vector2(contact.incoming).length()))
+		if collider is ball: _handle_character_collision(contact.normal,contact.point)
+		else: _handle_wall_collision(contact.normal,contact.point)
 		if _finished: return true
 	return false
 func _handle_wall_collision(_normal:Vector2,impact_position:Vector2) -> bool:
 	_had_collision=true
 	_wall_bounces+=1
+	if _wall_bounces>=maxi(max_wall_bounces,0) and _motion.impulses.has(get_instance_id()):
+		_motion.impulses[get_instance_id()].wall_bounce=0.0
 	_apply_collision_damage(impact_position)
 	if stun_duration>0.0: _start_stun()
 	if not _motion.impulses.has(get_instance_id()) or Vector2(_motion.impulses[get_instance_id()].velocity).length_squared()<0.01:

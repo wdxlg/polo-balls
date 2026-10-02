@@ -159,7 +159,7 @@ func move(_speed:float,_delta:float) -> void:
 	velocity=(jump_direction*distance+lift_motion)/maxf(_delta,0.00001)+Repel
 	_last_requested_velocity=velocity
 	if velocity.length_squared()>0.001:
-		move_and_slide()
+		move_with_body_slide(_delta)
 		# Process all contacts so a character cannot hide a wall hit in the same tick.
 		for collision_index:int in range(get_slide_collision_count()):
 			when_collide(_speed,get_slide_collision(collision_index))

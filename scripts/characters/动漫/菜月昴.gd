@@ -521,7 +521,7 @@ func _on_fist_area_entered(area:Area2D) -> void:
 			var knock_dir:Vector2 = target.global_position - global_position
 			if knock_dir.length_squared() <= 0.000001:
 				knock_dir = direction
-			target.Repel += knock_dir.normalized() * maxf(fist_knockback_strength,0.0)
+			target.apply_knockback(knock_dir,maxf(fist_knockback_strength,0.0)/60.0,maxf(fist_knockback_strength,0.0),0.0,0.0,{"source":self,"minimum_motion_time":0.0})
 			_play_fist_sfx(PUNCH_HIT_SFX)
 			target.notify_hit_burst_feedback(
 				impact_world,damage_value,health_loss,block_loss,fist_hand_hit_radius * 2.0,

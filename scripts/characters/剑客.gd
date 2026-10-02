@@ -538,7 +538,7 @@ func _move_in_steps(motion:Vector2,duration:float,serial:int) -> float:
 	for _i:int in range(steps):
 		if not _response_is_valid(serial):
 			break
-		var collision:KinematicCollision2D = move_and_collide(per_step)
+		var collision:KinematicCollision2D = move_with_body_collision(per_step,get_physics_process_delta_time())
 		if collision != null:
 			break
 		await get_tree().physics_frame
@@ -554,7 +554,7 @@ func _move_toward_point_in_steps(destination:Vector2,duration:float,serial:int) 
 		var motion:Vector2 = (destination - global_position) / float(remain_steps)
 		if motion.length_squared() <= 0.000001:
 			return
-		var collision:KinematicCollision2D = move_and_collide(motion)
+		var collision:KinematicCollision2D = move_with_body_collision(motion,get_physics_process_delta_time())
 		if collision != null:
 			return
 		await get_tree().physics_frame

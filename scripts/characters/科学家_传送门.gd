@@ -170,6 +170,7 @@ func _teleport_body(body:ball) -> void:
 	body.direction = old_dir.normalized().rotated(rotate_delta).normalized()
 	body.velocity = Vector2.ZERO
 	body.Repel = Vector2.ZERO
+	if body.get_body_motion()!=null: body.get_body_motion().reset_motion()
 
 	if body.Type != ball.Ball_Type.Ball:
 		body.global_rotation = body.Default_Rotation + body.direction.angle()

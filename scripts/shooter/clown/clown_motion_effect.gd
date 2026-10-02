@@ -5,6 +5,7 @@ extends Node
 # res://scripts/effects/knockback_effect.gd
 # 并由 ball.apply_knockback() 给所有角色复用。
 
+const FORCE = preload("res://scripts/effects/knockback_effect.gd")
 var target:ball = null
 var target_point:Vector2 = Vector2.ZERO
 var pull_radius:float = 260.0
@@ -35,6 +36,7 @@ func _physics_process(delta:float) -> void:
 		_finish(false)
 		return
 
+	if not target.is_multiplayer_authority() or not target.is_combat_runtime_active(): return
 	_elapsed += delta
 	if _elapsed >= maxf(duration,0.01):
 		_finish(false)
@@ -43,6 +45,7 @@ func _physics_process(delta:float) -> void:
 	var to_center:Vector2 = target_point - target.global_position
 	var distance_to_center:float = to_center.length()
 	if distance_to_center <= 1.0 or distance_to_center > maxf(pull_radius,1.0):
+		FORCE.release_pull(target,self)
 		return
 
 	var normalized_distance:float = clampf(
@@ -57,11 +60,11 @@ func _physics_process(delta:float) -> void:
 		center_factor
 	)
 
-	target.Repel += (
+	FORCE.set_pull(target,self,(
 		to_center.normalized()
 		* maxf(motion_speed,0.0)
 		* strength_factor
-	)
+	))
 
 
 func _target_is_usable() -> bool:
@@ -80,6 +83,7 @@ func _finish(from_exit:bool) -> void:
 	if _finished:
 		return
 	_finished = true
+	FORCE.release_pull(target,self)
 	if not from_exit:
 		queue_free()
 

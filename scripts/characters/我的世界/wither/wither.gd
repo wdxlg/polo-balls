@@ -273,7 +273,7 @@ func tick_physics(state:State,delta:float) -> void:
 					if Geometry2D.get_closest_point_to_segment(ball.body_point_seg(enemy,old,next),old,next).distance_to(ball.body_point(enemy,Geometry2D.get_closest_point_to_segment(ball.body_point_seg(enemy,old,next),old,next))) <= enemy.get_crowd_separation_radius_world()+42.0:
 						_charge_hits[enemy.get_instance_id()] = true
 						impact(enemy,charge_damage(),enemy.global_position,true)
-						enemy.Repel += _charge_dir*60.0
+						enemy.apply_knockback(_charge_dir,1.0,60.0,0.0,0.0,{"source":self,"minimum_motion_time":0.0})
 			# Builder walls inherit ball and cannot be mined by the static-body
 			# manager. They are obstacles, not another charge-damage combat target.
 			_break_charge_builder_walls(old,next)

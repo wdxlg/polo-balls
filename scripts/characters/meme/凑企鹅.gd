@@ -690,7 +690,7 @@ func _tick_fly_kick(delta:float) -> void:
 	var swept_target:ball = _find_swept_fly_kick_target(requested_motion,delta)
 
 	# 第二层：冲刺改用 move_and_collide；实体身体真正撞到敌人就立即结算，不再自动沿敌人表面滑过去。
-	var body_collision:KinematicCollision2D = move_and_collide(requested_motion)
+	var body_collision:KinematicCollision2D = move_with_body_collision(requested_motion,get_physics_process_delta_time())
 	if body_collision != null:
 		var collider:Variant = body_collision.get_collider()
 

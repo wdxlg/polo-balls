@@ -117,4 +117,4 @@ func _hit_segment(start:Vector2,end:Vector2) -> void:
 		var shield:float = enemy.block
 		enemy.receive_positional_damage(fighter.effective_outgoing_damage(float(fighter.get("whip_damage"))),end,false,fighter)
 		if is_instance_valid(enemy) and (enemy.health < hp or enemy.block < shield):
-			enemy.Repel += fighter.global_position.direction_to(enemy.global_position)*float(fighter.get("whip_knockback"))
+			enemy.apply_knockback(fighter.global_position.direction_to(enemy.global_position),float(fighter.get("whip_knockback"))/60.0,float(fighter.get("whip_knockback")),0.0,0.0,{"source":fighter,"minimum_motion_time":0.0})

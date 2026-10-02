@@ -241,7 +241,7 @@ func _advance_dash(delta:float) -> void:
 	var speed:float = maxf(Speed,0.0)*lerpf(1.4,maxf(rush_speed_multiplier,1.4),charge_ratio())
 	var step:Vector2 = facing*speed*motion_scaled_delta(delta)
 	velocity = step/maxf(delta,0.00001)
-	var collision:KinematicCollision2D = move_and_collide(step)
+	var collision:KinematicCollision2D = move_with_body_collision(step,delta)
 	var close:bool = false
 	if has_player_control_aim(): close = global_position.distance_to(player_control_aim_world_position())<melee_reach()
 	elif not is_player_controlled():

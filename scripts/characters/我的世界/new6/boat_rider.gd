@@ -49,6 +49,7 @@ func apply_pose() -> bool:
 	_pose_ready = true
 	actor.velocity = boat.velocity
 	actor.Repel = Vector2.ZERO
+	if actor.get_body_motion()!=null: actor.get_body_motion().reset_motion()
 	actor.direction = boat.facing
 	actor.graphics.z_as_relative = false
 	actor.graphics.z_index = mini(boat.graphics.z_index+2,89)
@@ -99,6 +100,7 @@ func release() -> void:
 		actor.remove_meta("mc_boat_rider")
 		actor.velocity = Vector2.ZERO
 		actor.Repel = Vector2.ZERO
+		if actor.get_body_motion()!=null: actor.get_body_motion().reset_motion()
 		if is_instance_valid(boat) and boat.is_inside_tree() and actor.is_inside_tree():
 			actor.global_position = boat.disembark_position(actor,slot)
 	queue_free()
