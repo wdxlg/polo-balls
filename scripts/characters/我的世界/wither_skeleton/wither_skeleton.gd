@@ -21,6 +21,10 @@ const VOICE = preload("res://scripts/effects/我的世界/mc_creature_voice.gd")
 const SOUNDS = preload("res://scripts/characters/我的世界/wither_skeleton/sounds.gd")
 const GAIN = preload("res://scripts/effects/我的世界/hit_audio_gain.gd")
 const COPY_SCALE = preload("res://scripts/characters/我的世界/haochen/copy_body_scale.gd")
+## Independent legs: walk phase follows real displacement against this unit's own base speed;
+## the combo shows the arm-less attack body over those walking legs instead of freezing them.
+const MC_LEGS = preload("res://scripts/effects/我的世界/mc_legs.gd")
+const LEGS_KEY:String = "wither_skeleton"
 const WITHER_SECONDS:float = 3.0
 const MAX_WITHER_LEVEL:int = 255 # Existing public potency limit, not a new balance cap.
 const WINDOWS:Array[Vector2] = [Vector2(0.15,0.31),Vector2(0.41,0.57)]
@@ -80,6 +84,9 @@ var bolts_fired:int = 0
 var bolt_hits:int = 0
 var _bolt_serial:int = 0
 var _visual_bolts:Dictionary = {}
+var gait:RefCounted
+var _legs_delta:float = 0.0
+var _leg_index:int = -1
 
 func _ready() -> void:
 	Can_Attack = true
@@ -373,6 +380,7 @@ func tick_physics(state:State,delta:float) -> void:
 	super.tick_physics(state,delta)
 
 func _process(delta:float) -> void:
+	_legs_delta += maxf(delta,0.0)
 	_render_process = true
 	super._process(delta)
 	_render_process = false
@@ -399,8 +407,21 @@ func _draw_combo_time(subframe:float = -1.0) -> float:
 func body_pose(time:float) -> Dictionary:
 	if time >= 0.0 and time < RECOVER_END:
 		return {"clip":&"attack","index":_attack_index(time)}
-	var clip:StringName = &"walk" if _walking else &"idle"
-	return {"clip":clip,"index":int(_view_clock*FRAMES.get_animation_speed(clip))%FRAMES.get_frame_count(clip)}
+	return _rest_pose()
+
+func _wither_gait() -> RefCounted:
+	if gait == null:
+		gait = MC_LEGS.for_set(LEGS_KEY,float(FRAMES.get_frame_count(&"walk"))/maxf(FRAMES.get_animation_speed(&"walk"),0.001))
+		gait.observe(self)
+		MC_LEGS.prewarm(LEGS_KEY)
+	return gait
+
+## Walk/idle body frame outside the combo; the resting sword hand reads the same frame.
+func _rest_pose() -> Dictionary:
+	var legs:RefCounted = _wither_gait()
+	if legs.at_rest:
+		return {"clip":&"idle","index":int(_view_clock*FRAMES.get_animation_speed(&"idle"))%FRAMES.get_frame_count(&"idle")}
+	return {"clip":&"walk","index":legs.walk_index(FRAMES.get_frame_count(&"walk"))}
 
 func _geometry_aim(aim:Vector2) -> Vector2:
 	return combo_heading if aim.is_zero_approx() else aim.normalized()
@@ -480,9 +501,8 @@ func attack_arm_transform(time:float) -> Transform2D:
 	return transform
 
 func _rest_hand(aim:Vector2 = Vector2.ZERO) -> Vector2:
-	var clip:StringName = &"walk" if _walking else &"idle"
-	var index:int = int(_view_clock*FRAMES.get_animation_speed(clip))%FRAMES.get_frame_count(clip)
-	return _hand_pixel(POSES.HANDS[str(clip)][index],aim)
+	var pose:Dictionary = _rest_pose()
+	return _hand_pixel(POSES.HANDS[str(pose.clip)][int(pose.index)],aim)
 
 func hand_position(time:float,aim:Vector2 = Vector2.ZERO) -> Vector2:
 	# The same shoulder-anchored arm extension supplies the visible and damage grip.
@@ -533,6 +553,11 @@ func blade_segment(time:float,aim:Vector2 = Vector2.ZERO) -> Dictionary:
 
 func visual_mob() -> void:
 	if not is_instance_valid(_sword) or health <= 0: return
+	var legs:RefCounted = _wither_gait()
+	var legs_step:float = _legs_delta
+	_legs_delta = 0.0
+	if is_combat_runtime_active(): legs.tick(self,legs_step,dizziness != true)
+	else: legs.observe(self)
 	if combo_time < 0.0 and absf(direction.x) > 0.01: _face_right = direction.x > 0.0
 	set_character_visual_flip_h(_face_right)
 	var draw_time:float = _draw_combo_time()
@@ -546,7 +571,14 @@ func visual_mob() -> void:
 	_prev_clip = pose.clip
 	_body_clip = pose.clip
 	_body_frame = pose.index
-	image.texture = ATTACK_PARTS.get_frame_texture(&"body",_body_frame) if _body_clip == &"attack" else FRAMES.get_frame_texture(_body_clip,_body_frame)
+	var composed:Texture2D = null
+	_leg_index = -1
+	if _body_clip == &"attack" and not legs.at_rest and MC_LEGS.has_upper(LEGS_KEY,&"attack"):
+		_leg_index = legs.walk_index(int(MC_LEGS.layer_data(LEGS_KEY).WALK))
+		composed = MC_LEGS.compose(LEGS_KEY,&"attack",_body_frame,_leg_index)
+		if composed == null: _leg_index = -1
+	if composed != null: image.texture = composed
+	else: image.texture = ATTACK_PARTS.get_frame_texture(&"body",_body_frame) if _body_clip == &"attack" else FRAMES.get_frame_texture(_body_clip,_body_frame)
 	_arm.visible = _body_clip == &"attack"
 	if _arm.visible:
 		var arm_index:int = _arm_source_index(draw_time)

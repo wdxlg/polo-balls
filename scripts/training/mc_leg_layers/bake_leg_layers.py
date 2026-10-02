@@ -304,6 +304,43 @@ def bake_llama(skin):
     return ls
 
 
+def _wither_baker():
+    """tools/build_wither_skeleton_assets.py builds its rig inside bake(): exec only that set-up."""
+    import importlib.util
+    path = REPO / 'tools' / 'build_wither_skeleton_assets.py'
+    spec = importlib.util.spec_from_file_location('wither_skeleton_assets', path)
+    mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
+    src = path.read_text(encoding='utf8')
+    body = src[src.index('def bake():'):src.index(' files=[];clips=[]')].replace('def bake():', 'def _rig():', 1) + ' return b\n'
+    exec(compile(body, str(path), 'exec'), mod.__dict__)
+    b = mod.__dict__['_rig']()
+    # BatchBaker later gained the plain skeleton's held bow; the wither art never had one.
+    b.bows = {k: np.zeros_like(v) for k, v in b.bows.items()}
+    return b
+
+
+def bake_wither_skeleton():
+    """Wither skeleton: the combo shows the arm-less attack body + a separately aimed sword arm,
+    and the attack pose keeps the legs still, so walking legs go under the arm-less attack body."""
+    import copy
+    b = _wither_baker()
+    full = b.models['skeleton']
+    ls = bake_generic('wither_skeleton', b, full, HUMANOID_LEGS, ('body', 'waist'),
+                      lambda t: b.render('skeleton', 'walk', t), mc16_times(16, 1.0, True),
+                      lambda: b.render('skeleton', 'idle', 0), {})
+    armless = copy.deepcopy(full)
+    for bone in armless:
+        if bone['name'].lower() == 'rightarm': bone['cubes'] = []
+    b.models['skeleton'] = armless
+    frames = []
+    for t in mc16_times(50, .98, False):
+        r = split_render(b, armless, HUMANOID_LEGS, lambda t=t: b.render('skeleton', 'attack', t), ('body', 'waist'))
+        frames.append((r['upper'][0], r['upper'][1], 0, r['upper_trunk']))
+    b.models['skeleton'] = full
+    ls.add_upper('attack', frames)
+    return ls
+
+
 SETS = {
     'enderman': lambda: bake_native_mobs_set('enderman', ['attack', 'angry_attack']),
     'evoker': lambda: bake_native_mobs_set('evoker', ['cast', 'celebrate']),
@@ -321,6 +358,7 @@ SETS = {
     'trader': bake_trader,
     'llama_creamy': lambda: bake_llama('llama_creamy'),
     'llama_brown': lambda: bake_llama('llama_brown'),
+    'wither_skeleton': bake_wither_skeleton,
 }
 
 COMMENTS = {
@@ -340,6 +378,7 @@ COMMENTS = {
     'trader': 'Wandering trader: walking legs under the looping drink upper body.',
     'llama_creamy': 'Trader llama (creamy): spit over walking legs; variant 0 walk amplitude, 1 run amplitude.',
     'llama_brown': 'Trader llama (brown): spit over walking legs; variant 0 walk amplitude, 1 run amplitude.',
+    'wither_skeleton': 'Wither skeleton: walking legs under the arm-less attack body (the sword arm stays a separate aimed sprite).',
 }
 
 

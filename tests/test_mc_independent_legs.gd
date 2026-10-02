@@ -170,6 +170,7 @@ func run() -> void:
 	await pair_suite(center)
 	await warden_suite(center)
 	await trader_suite(center)
+	await wither_suite(center)
 	# --- cache bound
 	var cache:Dictionary = LEGS._cache.get("enderman",{})
 	check(cache.is_empty() or (cache["order"] as Array).size() <= LEGS.CACHE_PER_SET,"composite cache bounded")
@@ -383,6 +384,62 @@ func warden_suite(center:Vector2) -> void:
 	w._legs_delta = 1.0/60.0
 	w.visual_mob()
 	check(w.image.texture == w.WARDEN.get_frame_texture(&"idle",int(w._view_clock*w.WARDEN.get_animation_speed(&"idle"))%w.WARDEN.get_frame_count(&"idle")),"warden: still -> idle clip")
+	w.queue_free()
+
+func wither_step(w:Node2D,ratio:float,frames_n:int,combo:float) -> Dictionary:
+	var v:float = LEGS.standard_speed(w)*ratio
+	var out:Dictionary = {"legs":{},"stock":0}
+	for i:int in range(frames_n):
+		w.combo_time = combo
+		w.global_position.x += v/60.0
+		w._legs_delta = 1.0/60.0
+		w.visual_mob()
+		out.legs[w._leg_index] = true
+		if w.image.texture == w.ATTACK_PARTS.get_frame_texture(&"body",w._body_frame): out.stock += 1
+	return out
+
+func wither_suite(center:Vector2) -> void:
+	var w:Node2D = spawn("res://scenes/characters/我的世界/凋灵骷髅.tscn",center+Vector2(-500,300))
+	await process_frame
+	await process_frame
+	w.set_process(false)
+	w.set_physics_process(false)
+	var g:RefCounted = w._wither_gait()
+	check(is_equal_approx(LEGS.standard_speed(w),float(w.default_properties.Speed)*0.6) and (g.neutral as Array).size() == 2,"wither: own base speed x 0.6, 2 rest phases")
+	var idx:Dictionary = {}
+	var hands_ok:bool = true
+	for i:int in range(60):
+		w.combo_time = -1.0
+		w.global_position.x += LEGS.standard_speed(w)/60.0
+		w._legs_delta = 1.0/60.0
+		w.visual_mob()
+		var k:int = g.walk_index(16)
+		idx[k] = w.image.texture == w.FRAMES.get_frame_texture(&"walk",k)
+		hands_ok = hands_ok and w._rest_hand().is_equal_approx(w._hand_pixel(w.POSES.HANDS["walk"][k]))
+	check(idx.size() >= 15 and not idx.values().has(false),"wither: walk frames follow the gait (%d of 16)" % idx.size())
+	check(hands_ok,"wither: resting sword hand follows the shown walk frame")
+	var p0:float = g.phase
+	for i:int in range(12):
+		w.global_position.x += LEGS.standard_speed(w)*0.5/60.0
+		w._legs_delta = 1.0/60.0
+		w.visual_mob()
+	var slow:float = fposmod(g.phase-p0,1.0)
+	p0 = g.phase
+	for i:int in range(12):
+		w.global_position.x += LEGS.standard_speed(w)*1.5/60.0
+		w._legs_delta = 1.0/60.0
+		w.visual_mob()
+	var fast:float = fposmod(g.phase-p0,1.0)
+	check(slow > 0.0 and absf(fast/slow-3.0) < 0.15,"wither: leg rate scales with speed (x%.2f for x3)" % (fast/maxf(slow,0.0001)))
+	var ra:Dictionary = wither_step(w,0.3,40,0.3)
+	check(ra.legs.size() >= 4 and not ra.legs.has(-1) and ra.stock == 0,"wither: sword combo while moving (slowed) keeps legs walking (%d phases)" % ra.legs.size())
+	check(w._body_clip == &"attack" and LEGS.cached_source_image(w.image.texture) != null,"wither: combo while moving shows the composited attack body")
+	var rs:Dictionary = wither_step(w,0.0,60,0.3)
+	check(g.at_rest and w._leg_index == -1 and w.image.texture == w.ATTACK_PARTS.get_frame_texture(&"body",w._body_frame),"wither: combo while still -> stock attack body, legs at rest")
+	w.combo_time = -1.0
+	w._legs_delta = 1.0/60.0
+	w.visual_mob()
+	check(w._body_clip == &"idle" and w.image.texture == w.FRAMES.get_frame_texture(&"idle",w._body_frame),"wither: still -> idle clip")
 	w.queue_free()
 
 func vis_step(u:Node2D,vis:Node,ratio:float,frames_n:int,setup:Callable) -> Dictionary:
