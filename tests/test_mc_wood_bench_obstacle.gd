@@ -47,7 +47,7 @@ func run() -> void:
 		manager.apply_updates(updates)
 		if n<2:
 			check(not bench.is_queued_for_deletion(),"workbench survives before third obstacle blast")
-			check(bench.block.crack_texture!=null and bench.block.crack_instance().visible and bench.find_child("MCBlockCracks",true,false)==null,"cracks are drawn on the 3D block faces, not as a flat 2D patch")
+			check(bench.block.crack_texture!=null and bool(bench.block.surface_material(0).get_shader_parameter("cracked")) and bench.find_child("MCBlockCracks",true,false)==null,"cracks are drawn on the 3D block faces, not as a flat 2D patch")
 	check(bench.is_queued_for_deletion() and sword.bench_destroyed and parts[1].bench_destroyed,"third blast destroys obstacle and invalidates its family's repair bench")
 	await process_frame
 	sword.ensure_workbench()

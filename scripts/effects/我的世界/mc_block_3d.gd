@@ -1,15 +1,13 @@
 extends Node2D
-## 原版单格 3D 方块：按原版方块模型 JSON（elements/faces/uv/rotation）生成网格，放进与 3D 地面火
-## 共享的地图立体墙 overlay（同一透视相机与投影），离地部分随镜头产生真实视差。
-## 明暗用原版方块面亮度（上 1.0 / 南北 0.8 / 东西 0.6 / 下 0.5，shade:false 为 1.0）烘进顶点色，
-## 贴图保持原版颜色，不会被 overlay 的太阳照过曝；昼夜仍由世界画布统一调色。
-## overlay 的 3D 输出直接当显示色合成到 2D，所以着色器按原值采样贴图（不做 sRGB→线性），
-## 否则颜色会被平方压暗。
+## 原版单格 3D 方块障碍：按原版方块模型 JSON（elements/faces/uv/rotation）生成网格，放进
+## mc_block_3d_renderer.gd 的透视 overlay —— 与地图立体墙同一相机/投影、同一受光材质与太阳
+## （随昼夜转向），画在角色之下，并把真实影子投到地面。离地部分随镜头产生真实视差。
 ## 只负责视觉：碰撞仍是宿主自己的 2D 形状。节点原点 = 方块格中心，边长 = 一格（地图格）。
-## 透明度（set_alpha）、破坏裂纹（set_cracks，原版 destroy_stage 贴在同一组模型面上）与隐藏都跟随宿主。
+## 破坏裂纹（set_cracks）在方块着色器里按原版 destroy_stage 乘到同一组模型面上（无叠加网格，不会 z 闪烁）。
+## 显现/消失（set_alpha）用固定在贴图像素上的溶解，不做半透明混合（overlay 合成半透明 3D 像素会发白），
+## 也不用屏幕空间抖动（镜头移动时会闪）。
 ## 碎片：附带一张透明的原版 particle 贴图 Sprite2D，公共碎片切割仍能切出方块碎片。
-const FIRE = preload("res://scripts/effects/我的世界/mc_fire_block_3d.gd")
-const WALL_RENDERER:Script = preload("res://scripts/effects/我的世界/地图立体墙.gd")
+const RENDERER = preload("res://scripts/effects/我的世界/mc_block_3d_renderer.gd")
 const DEFAULT_CELL:float = 16.0
 const TEXTURES:Dictionary = {
 	&"crafting_table_top":preload("res://Images/effects/我的世界/obstacle_blocks/crafting_table_top.png"),
@@ -28,49 +26,36 @@ const TEXTURES:Dictionary = {
 	&"azalea_plant":preload("res://Images/effects/我的世界/obstacle_blocks/azalea_plant.png"),
 	&"flowering_azalea_top":preload("res://Images/effects/我的世界/obstacle_blocks/flowering_azalea_top.png"),
 	&"flowering_azalea_side":preload("res://Images/effects/我的世界/obstacle_blocks/flowering_azalea_side.png"),
-	&"short_grass":preload("res://Images/effects/我的世界/obstacle_blocks/short_grass.png"),
 }
-## 原版 short_grass 的 tintindex 0：平原草色 #91BD59。
-const GRASS_TINT:Color = Color8(0x91,0xBD,0x59)
 const FACES:Array[String] = ["down","up","north","south","west","east"]
-## 原版 Java 方块面亮度（主世界）。
-const FACE_SHADE:Dictionary = {"down":0.5,"up":1.0,"north":0.8,"south":0.8,"west":0.6,"east":0.6}
-## 不透明：原版 cutout（透明像素丢弃），走不透明队列。
-const OPAQUE_SHADER_CODE:String = """shader_type spatial;
-render_mode unshaded, cull_back, shadows_disabled;
-uniform sampler2D albedo_tex : filter_nearest;
-void fragment() {
-	vec4 texel = texture(albedo_tex, UV);
-	if (texel.a < 0.1) discard;
-	ALBEDO = texel.rgb * COLOR.rgb;
-}
-"""
-## 淡出：屏幕像素 4×4 有序抖动（仍走不透明队列）。overlay 合成对半透明 3D 像素的颜色处理与不透明
-## 不一致（会发白），抖动不经过混合；同一屏幕像素的阈值相同，前后各层同时镂空，整格像一张半透明方块。
-const FADE_SHADER_CODE:String = """shader_type spatial;
-render_mode unshaded, cull_back, shadows_disabled;
-uniform sampler2D albedo_tex : filter_nearest;
+## 与地图立体墙 _new_material 同一受光模型（Burley 漫反射、粗糙度 1、非金属、sRGB 贴图），
+## 另加原版 cutout、像素溶解与破坏裂纹。
+const SHADER_CODE:String = """shader_type spatial;
+render_mode cull_back, diffuse_burley, specular_schlick_ggx;
+uniform sampler2D albedo_tex : source_color, filter_nearest;
+uniform sampler2D crack_tex : filter_nearest;
+uniform bool cracked = false;
 uniform float fade = 1.0;
-const float BAYER[16] = float[16](0.0,8.0,2.0,10.0,12.0,4.0,14.0,6.0,3.0,11.0,1.0,9.0,15.0,7.0,13.0,5.0);
+float texel_hash(vec2 texel) {
+	return fract(sin(dot(texel, vec2(12.9898, 78.233))) * 43758.5453);
+}
 void fragment() {
 	vec4 texel = texture(albedo_tex, UV);
 	if (texel.a < 0.1) discard;
-	ivec2 p = ivec2(FRAGCOORD.xy) % 4;
-	if ((BAYER[p.y * 4 + p.x] + 0.5) / 16.0 > fade) discard;
-	ALBEDO = texel.rgb * COLOR.rgb;
+	if (fade < 0.999 && texel_hash(floor(UV * 16.0)) >= fade) discard;
+	vec3 color = texel.rgb;
+	if (cracked) {
+		vec4 crack = texture(crack_tex, UV);
+		// 原版 crumbling：DST_COLOR * SRC_COLOR * 2，透明处不变。
+		if (crack.a > 0.1) color *= min(crack.rgb * 2.0, vec3(1.0));
+	}
+	ALBEDO = color;
+	ROUGHNESS = 1.0;
+	METALLIC = 0.0;
+	SPECULAR = 0.5;
 }
 """
-## 原版破坏裂纹：乘法混合（DST_COLOR）贴在方块模型面上，透明像素丢弃。
-const CRACK_SHADER_CODE:String = """shader_type spatial;
-render_mode unshaded, cull_back, shadows_disabled, blend_mul, depth_draw_never;
-uniform sampler2D albedo_tex : filter_nearest;
-void fragment() {
-	vec4 texel = texture(albedo_tex, UV);
-	if (texel.a < 0.1) discard;
-	ALBEDO = texel.rgb;
-}
-"""
-static var _shaders:Dictionary = {}
+static var _shader:Shader = null
 
 var model:StringName = &""
 var cell:float = DEFAULT_CELL
@@ -78,9 +63,8 @@ var alpha:float = 1.0
 var crack_texture:Texture2D = null
 var debris_sample:Sprite2D = null
 var _mesh_node:MeshInstance3D = null
-var _crack_node:MeshInstance3D = null
+var _shadow_node:MeshInstance3D = null
 var _materials:Array[ShaderMaterial] = []
-var _crack_material:ShaderMaterial = null
 var _renderer:Node2D = null
 
 
@@ -93,7 +77,7 @@ static func create(model_name:StringName,size:float = DEFAULT_CELL) -> Node2D:
 	return block
 
 
-## 当前地图的一格（与地图立体墙、3D 地面火同一尺寸）；没有地图时为 16。
+## 当前地图的一格（与地图立体墙同一尺寸）；没有地图时为 16。
 static func map_cell(context:Node) -> float:
 	if context == null or not context.is_inside_tree(): return DEFAULT_CELL
 	var scene:Node = context.get_tree().current_scene
@@ -112,19 +96,31 @@ static func find_in(node:Node) -> Node2D:
 	return null
 
 
+static func block_shader() -> Shader:
+	if _shader == null:
+		_shader = Shader.new()
+		_shader.code = SHADER_CODE
+	return _shader
+
+
+static func new_material(texture:Texture2D) -> ShaderMaterial:
+	var material := ShaderMaterial.new()
+	material.shader = block_shader()
+	material.set_shader_parameter("albedo_tex",texture)
+	return material
+
+
 func set_alpha(value:float) -> void:
 	value = clampf(value,0.0,1.0)
 	if is_equal_approx(value,alpha): return
 	alpha = value
-	_apply_alpha()
+	_apply_material_state()
 
 
 func set_cracks(texture:Texture2D) -> void:
 	if texture == crack_texture: return
 	crack_texture = texture
-	if is_instance_valid(_crack_node):
-		if crack_texture != null: _crack_material.set_shader_parameter("albedo_tex",crack_texture)
-	_sync_visibility()
+	_apply_material_state()
 
 
 func set_model(model_name:StringName) -> void:
@@ -137,8 +133,8 @@ func mesh_instance() -> MeshInstance3D:
 	return _mesh_node
 
 
-func crack_instance() -> MeshInstance3D:
-	return _crack_node
+func shadow_instance() -> MeshInstance3D:
+	return _shadow_node
 
 
 func renderer() -> Node2D:
@@ -188,88 +184,63 @@ func _ensure_debris_sample() -> void:
 func _rebuild() -> void:
 	_release()
 	if not is_inside_tree() or not MODELS.has(model): return
-	var shared:Node2D = _shared_renderer()
+	var shared:Node2D = RENDERER.shared_for(_renderer_host(),cell)
 	if shared == null: return
 	var built:Dictionary = build_mesh(model,cell)
 	_mesh_node = MeshInstance3D.new()
 	_mesh_node.name = "NativeBlock_%s" % model
 	_mesh_node.mesh = built.mesh
-	_mesh_node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# 主通道里方块之间互相投影（与墙同一太阳）；地面影子由影子通道的同网格代理投出。
+	_mesh_node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	_shadow_node = MeshInstance3D.new()
+	_shadow_node.name = "NativeBlockGroundShadow_%s" % model
+	_shadow_node.mesh = built.mesh
+	_shadow_node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
 	var surface_textures:Array = built.textures
 	for surface:int in range(surface_textures.size()):
-		var texture:Texture2D = TEXTURES[surface_textures[surface]]
-		var material:ShaderMaterial = new_material(texture)
+		var material:ShaderMaterial = new_material(TEXTURES[surface_textures[surface]])
 		_materials.append(material)
 		_mesh_node.set_surface_override_material(surface,material)
+		# 同一材质：仙人掌侧面内缩、杜鹃镂空与溶解在影子里也一致。
+		_shadow_node.set_surface_override_material(surface,material)
 	shared.viewport.add_child(_mesh_node)
-	_crack_node = MeshInstance3D.new()
-	_crack_node.name = "NativeBlockCracks"
-	_crack_node.mesh = built.crack_mesh
-	_crack_node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	_crack_material = new_crack_material()
-	_crack_node.material_override = _crack_material
-	shared.viewport.add_child(_crack_node)
+	shared.shadow_viewport.add_child(_shadow_node)
 	_renderer = shared
-	FIRE._add_renderer_user(shared,1)
+	RENDERER.add_user(shared,1)
 	_sync_position()
-	_apply_alpha()
-	if crack_texture != null: _crack_material.set_shader_parameter("albedo_tex",crack_texture)
-	_sync_visibility()
+	_apply_material_state()
 
 
 func _release() -> void:
-	for node:MeshInstance3D in [_mesh_node,_crack_node]:
+	for node:MeshInstance3D in [_mesh_node,_shadow_node]:
 		if is_instance_valid(node):
 			if node.get_parent() != null: node.get_parent().remove_child(node)
 			node.queue_free()
 	_mesh_node = null
-	_crack_node = null
+	_shadow_node = null
 	_materials.clear()
-	_crack_material = null
-	if is_instance_valid(_renderer): FIRE._add_renderer_user(_renderer,-1)
+	if is_instance_valid(_renderer): RENDERER.add_user(_renderer,-1)
 	_renderer = null
 
 
 func _sync_position() -> void:
 	var corner:Vector2 = global_position-Vector2.ONE*cell*0.5
-	for node:MeshInstance3D in [_mesh_node,_crack_node]:
+	for node:MeshInstance3D in [_mesh_node,_shadow_node]:
 		if is_instance_valid(node): node.position = Vector3(corner.x,0.0,corner.y)
 
 
 func _sync_visibility() -> void:
 	var shown:bool = is_visible_in_tree() and alpha > 0.001
-	if is_instance_valid(_mesh_node): _mesh_node.visible = shown
-	# 抖动淡出时乘法裂纹会透过镂空压暗地面，只在实心方块上显示。
-	if is_instance_valid(_crack_node): _crack_node.visible = shown and crack_texture != null and alpha >= 0.999
+	for node:MeshInstance3D in [_mesh_node,_shadow_node]:
+		if is_instance_valid(node): node.visible = shown
 
 
-func _apply_alpha() -> void:
-	var faded:bool = alpha < 0.999
+func _apply_material_state() -> void:
 	for material:ShaderMaterial in _materials:
-		# 不透明时用原版 cutout；淡出时改为有序抖动。
-		material.shader = shader_for("fade" if faded else "opaque")
 		material.set_shader_parameter("fade",alpha)
+		material.set_shader_parameter("cracked",crack_texture != null)
+		if crack_texture != null: material.set_shader_parameter("crack_tex",crack_texture)
 	_sync_visibility()
-
-
-func _shared_renderer() -> Node2D:
-	var host:Node = _renderer_host()
-	if host == null: return null
-	var existing:Node = host.get_node_or_null(NodePath(String(FIRE.RENDERER_NAME)))
-	if existing != null:
-		if existing.is_queued_for_deletion() or not is_instance_valid(existing.get("viewport")): return null
-		return existing as Node2D
-	# 与 3D 地面火共用同一个 overlay：一条整屏 3D 通道，火与方块之间也有正确的深度遮挡。
-	var shared:Node2D = WALL_RENDERER.new() as Node2D
-	shared.name = FIRE.RENDERER_NAME
-	shared.set_meta(FIRE.USERS_META,0)
-	host.add_child(shared)
-	var light:Variant = host.get("map_wall_light_direction")
-	shared.configure_surface_overlay(Vector2.ONE*cell,light if light is Vector2 else Vector2(1.0,-1.0))
-	shared.z_as_relative = false
-	shared.z_index = FIRE.RENDERER_Z
-	FIRE._set_renderer_active(shared,false)
-	return shared
 
 
 func _renderer_host() -> Node:
@@ -280,33 +251,8 @@ func _renderer_host() -> Node:
 	return get_viewport()
 
 
-static func shader_for(kind:String) -> Shader:
-	if not _shaders.has(kind):
-		var shader := Shader.new()
-		match kind:
-			"fade": shader.code = FADE_SHADER_CODE
-			"crack": shader.code = CRACK_SHADER_CODE
-			_: shader.code = OPAQUE_SHADER_CODE
-		_shaders[kind] = shader
-	return _shaders[kind]
-
-
-static func new_material(texture:Texture2D) -> ShaderMaterial:
-	var material := ShaderMaterial.new()
-	material.shader = shader_for("opaque")
-	material.set_shader_parameter("albedo_tex",texture)
-	return material
-
-
-static func new_crack_material() -> ShaderMaterial:
-	var material := ShaderMaterial.new()
-	material.shader = shader_for("crack")
-	material.render_priority = 1
-	return material
-
-
 ## 原版模型（minecraft 1.21.4 models/block/*.json 的 elements 逐项照抄）。
-## 元素：{from, to, faces:{面:[贴图, uv(u0,v0,u1,v1)]}, rotation:[轴 0=x/1=y/2=z, 角度, rescale]}，tint=tintindex 0。
+## 元素：{from, to, faces:{面:[贴图, uv(u0,v0,u1,v1)]}, rotation:[轴 0=x/1=y/2=z, 角度, rescale]}。
 const CUBE_UV:Vector4 = Vector4(0,0,16,16)
 const MODELS:Dictionary = {
 	# block/crafting_table.json（parent block/cube）
@@ -332,11 +278,6 @@ const MODELS:Dictionary = {
 	# block/template_azalea.json + azalea.json / flowering_azalea.json
 	&"azalea":{"particle":&"azalea_top","elements":"azalea"},
 	&"flowering_azalea":{"particle":&"flowering_azalea_top","elements":"flowering_azalea"},
-	# block/short_grass.json（parent block/tinted_cross）
-	&"short_grass":{"particle":&"short_grass","elements":[
-		{"from":Vector3(0.8,0,8),"to":Vector3(15.2,16,8),"rotation":[1,45.0,true],"shade":false,"tint":true,"faces":{"north":[&"short_grass",CUBE_UV],"south":[&"short_grass",CUBE_UV]}},
-		{"from":Vector3(8,0,0.8),"to":Vector3(8,16,15.2),"rotation":[1,45.0,true],"shade":false,"tint":true,"faces":{"west":[&"short_grass",CUBE_UV],"east":[&"short_grass",CUBE_UV]}},
-	]},
 }
 
 
@@ -361,17 +302,13 @@ static func model_elements(model_name:StringName) -> Array:
 	return elements if elements is Array else []
 
 
-## 返回 {mesh, textures(每个表面的贴图键), crack_mesh}；网格原点在格子西北角地面。
+## 返回 {mesh, textures(每个表面的贴图键)}；网格原点在格子西北角地面。
 static func build_mesh(model_name:StringName,size:float) -> Dictionary:
 	var scale:float = size/16.0
 	var tools:Dictionary = {} # 贴图 -> SurfaceTool
 	var order:Array[String] = []
-	var crack := SurfaceTool.new()
-	crack.begin(Mesh.PRIMITIVE_TRIANGLES)
 	for element:Dictionary in model_elements(model_name):
 		var rotation:Array = element.get("rotation",[])
-		var tint:Color = GRASS_TINT if bool(element.get("tint",false)) else Color.WHITE
-		var shade:bool = bool(element.get("shade",true))
 		var faces:Dictionary = element.faces
 		for face:String in FACES:
 			if not faces.has(face): continue
@@ -386,16 +323,13 @@ static func build_mesh(model_name:StringName,size:float) -> Dictionary:
 				tool.begin(Mesh.PRIMITIVE_TRIANGLES)
 				tools[key] = tool
 				order.append(key)
-			var light:float = float(FACE_SHADE[face]) if shade else 1.0
-			add_quad(tools[key],corners,uv,scale,0.0,Color(tint.r*light,tint.g*light,tint.b*light))
-			# 裂纹沿外法线抬起 1/64 格，避免与方块面 z-fighting。
-			add_quad(crack,corners,uv,scale,0.25,Color.WHITE)
+			add_quad(tools[key],corners,uv,scale)
 	var mesh := ArrayMesh.new()
 	var textures:Array[StringName] = []
 	for key:String in order:
 		(tools[key] as SurfaceTool).commit(mesh)
 		textures.append(StringName(key))
-	return {"mesh":mesh,"textures":textures,"crack_mesh":crack.commit()}
+	return {"mesh":mesh,"textures":textures}
 
 
 ## 原版 FaceInfo 顶点顺序（从面外看逆时针），UV 依次取 (u0,v0)(u0,v1)(u1,v1)(u1,v0)。
@@ -432,15 +366,12 @@ static func element_rotate(point:Vector3,axis:int,degrees:float,rescale:bool) ->
 
 
 ## 与地图立体墙/3D 火同一绕序：(p1-p0)x(p2-p0) 为外法线，按 0,2,1,0,3,2 输出即 Godot 正面。
-static func add_quad(tool:SurfaceTool,corners:Array[Vector3],uv:Vector4,scale:float,lift:float,color:Color) -> void:
+static func add_quad(tool:SurfaceTool,corners:Array[Vector3],uv:Vector4,scale:float) -> void:
 	var points:Array[Vector3] = []
 	for corner:Vector3 in corners: points.append(corner*scale)
 	var normal:Vector3 = (points[1]-points[0]).cross(points[2]-points[0]).normalized()
-	if lift != 0.0:
-		for i:int in range(4): points[i] += normal*lift
 	var uvs:Array[Vector2] = [Vector2(uv.x,uv.y)/16.0,Vector2(uv.x,uv.w)/16.0,Vector2(uv.z,uv.w)/16.0,Vector2(uv.z,uv.y)/16.0]
 	for i:int in [0,2,1,0,3,2]:
-		tool.set_color(color)
 		tool.set_normal(normal)
 		tool.set_uv(uvs[i])
 		tool.add_vertex(points[i])

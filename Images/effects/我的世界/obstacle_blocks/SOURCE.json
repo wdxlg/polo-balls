@@ -1,6 +1,6 @@
 {
  "source": "Minecraft Java Edition 1.21.4 client textures (assets/minecraft/textures/block), mirrored by InventivetalentDev/minecraft-assets",
- "models": "assets/minecraft/models/block: crafting_table, smithing_table, cactus, template_azalea, azalea, flowering_azalea, short_grass/tinted_cross (elements transcribed in scripts/effects/我的世界/mc_block_3d.gd)",
+ "models": "assets/minecraft/models/block: crafting_table, smithing_table, cactus, template_azalea, azalea, flowering_azalea (elements transcribed in scripts/effects/我的世界/mc_block_3d.gd)",
  "files": {
   "azalea_plant.png": {
    "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/azalea_plant.png",
@@ -49,10 +49,6 @@
   "oak_planks.png": {
    "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/oak_planks.png",
    "sha1": "00ee799274746088244510dfb2d708507a7ca75b"
-  },
-  "short_grass.png": {
-   "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/short_grass.png",
-   "sha1": "8229e9e04b4d7b08d316968a25ab368fb1e9dc75"
   },
   "smithing_table_bottom.png": {
    "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/smithing_table_bottom.png",
