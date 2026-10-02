@@ -46,6 +46,16 @@ const NAMES:Dictionary = {
 	"wind_burst": ["风爆","Wind Burst"],
 }
 
+## 正面效果不分等级的附魔：只有 1 级，不能升级，也没有负等级；显示时不带等级数字。
+const LEVELLESS:Array[String] = ["impaling","infinity","silk_touch"]
+
+static func is_levelless(kind:String) -> bool:
+	return LEVELLESS.has(canonical(kind))
+
+## 把等级收进该附魔允许的范围：无等级附魔只剩 0 或 1，其余原样。
+static func clamp_level(kind:String,level:int) -> int:
+	return clampi(level,0,1) if is_levelless(kind) else level
+
 static func canonical(kind:String) -> String:
 	return kind.strip_edges().to_lower().trim_prefix("minecraft:")
 
@@ -81,7 +91,8 @@ static func display_level(level:int) -> String:
 
 static func display_line(kind:String,level:int,english:bool = false) -> String:
 	var name:String = display_name(kind,english)
-	return "" if name.is_empty() or level == 0 else name+" "+display_level(level)
+	if name.is_empty() or level == 0: return ""
+	return name if is_levelless(kind) else name+" "+display_level(level)
 
 ## Vanilla tooltip grey for positive levels; inverse (negative) levels are red.
 static func level_color(level:int) -> Color:

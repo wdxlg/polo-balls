@@ -81,6 +81,8 @@ const RUNE_EDGE_DEPTH:float = 3.0
 ## 命中友军的回复量 = 当前攻击力 × 该倍率。
 @export var rune_heal_ratio:float = 1.0
 @export var hits_per_enchant:int = 10
+## 符文出书的紫水晶共鸣声最短间隔（符文很密，不是每发都响）。
+@export var rune_sound_interval:float = 0.3
 @export_category("附魔台 / 声音")
 @export var footstep_base_interval:float = 0.42
 @export var footstep_volume_db:float = -8.0
@@ -101,6 +103,7 @@ var _overlay:Node2D
 var _break_done:bool = false
 var _landed_sound_done:bool = false
 var _hit_sound_gap:float = 0.0
+var _rune_sound_left:float = 0.0
 var _footstep_cadence = FOOTSTEP.new()
 var _glyph_float_left:float = 0.0
 var _glyph_float_rng := RandomNumberGenerator.new()
@@ -148,6 +151,7 @@ func step_mob(delta:float) -> void:
 	phase_left -= delta
 	if phase_left <= 0.0: set_book_open(not book_open)
 	_shot_left = maxf(_shot_left-delta,0.0)
+	_rune_sound_left = maxf(_rune_sound_left-delta,0.0)
 	if not book_open or dizziness or is_damage_output_disabled() or not Can_Attack:
 		_manual_request = false
 		return
@@ -248,6 +252,9 @@ func fire_rune(target:ball,point:Vector2) -> bool:
 	_spawn_rune(rune_name,start,aim,damage,polarity,target_path,glyph,shade)
 	if multiplayer.has_multiplayer_peer(): _spawn_rune.rpc(rune_name,start,aim,damage,polarity,target_path,glyph,shade)
 	_shot_left = maxf(Attack_Cooling,0.0)
+	if _rune_sound_left <= 0.0:
+		_rune_sound_left = rune_sound_interval
+		_play_table_sound(TABLE_AUDIO.RUNE,_voice_rng.randi_range(0,3),start)
 	return true
 
 @rpc("authority","call_remote","reliable")
@@ -309,11 +316,12 @@ func counter_of(target:Node) -> int:
 	return int((counters.get(target.get_instance_id(),{}) as Dictionary).get("count",0))
 
 ## 友军 +1、敌人 -1；池子只含对该目标真实生效的附魔，为空时本次不附魔。
+## 无等级附魔（穿刺等）只给友军且只给一次，敌人不会抽到。
 func grant_random_enchant(target:ball) -> String:
-	var pool:Array[String] = SUPPORT.pool_for(target)
+	var delta:int = -1 if is_rune_enemy(target) else 1
+	var pool:Array[String] = SUPPORT.pool_for(target,delta)
 	if pool.is_empty(): return ""
 	var kind:String = pool[rng.randi_range(0,pool.size()-1)]
-	var delta:int = -1 if is_rune_enemy(target) else 1
 	var level:int = ENCHANTS.add(target,kind,delta)
 	enchants_granted += 1
 	_receive_enchant(target.get_path(),kind,delta,level)
@@ -356,7 +364,9 @@ func _unit_scale() -> float:
 
 func _play_table_sound(kind:int,index:int,point:Vector2) -> void:
 	if not is_multiplayer_authority(): return
-	var pitch:float = _voice_rng.randf_range(0.9,1.1) if kind == TABLE_AUDIO.ENCHANT else 1.0
+	var pitch:float = 1.0
+	if kind == TABLE_AUDIO.ENCHANT: pitch = _voice_rng.randf_range(0.9,1.1)
+	elif kind == TABLE_AUDIO.RUNE: pitch = _voice_rng.randf_range(0.85,1.45)
 	if multiplayer.has_multiplayer_peer(): _receive_table_sound.rpc(kind,index,point,pitch)
 	_receive_table_sound(kind,index,point,pitch)
 

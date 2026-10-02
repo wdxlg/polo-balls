@@ -43,7 +43,6 @@ var _rescan_left:float = 0.0
 var _buff_refresh_left:float = 0.0
 var _combat_actor:Node = null
 var _impaling_peers:Dictionary = {} # instance id -> weakref(other body) with a collision lease
-var _impaling_contacts:Dictionary = {}
 var _counted_live:bool = false
 static var _retaliation_depth:int = 0
 ## Support audits (tests/audit_mc_enchant_support.gd) collect every hook call here; null in play.
@@ -307,6 +306,7 @@ static func preview_entries(target:Node) -> Array[MCPreviewEnchantment]:
 		row.enchantment_name = CATALOG.display_name(id)
 		row.english_name = CATALOG.display_name(id,true)
 		row.level = int(values[id])
+		row.hide_level = CATALOG.is_levelless(id)
 		if row.level > 3999 or row.level < 0: row.level_text_override = CATALOG.display_level(row.level)
 		row.text_color = CATALOG.level_color(row.level)
 		result.append(row)
@@ -316,7 +316,7 @@ func _ready() -> void:
 	var valid:Dictionary = {}
 	for raw:Variant in enchantments:
 		var id:String = CATALOG.canonical(str(raw))
-		if CATALOG.has_id(id) and enchantments[raw] is int and int(enchantments[raw]) != 0 and absi(int(enchantments[raw])) <= MAX_LEVEL: valid[id] = enchantments[raw]
+		if CATALOG.has_id(id) and enchantments[raw] is int and absi(int(enchantments[raw])) <= MAX_LEVEL and CATALOG.clamp_level(id,int(enchantments[raw])) != 0: valid[id] = CATALOG.clamp_level(id,int(enchantments[raw]))
 	enchantments = valid
 	_register_combat_actor()
 	_reconcile()
@@ -342,6 +342,7 @@ func _register_combat_actor() -> void:
 func set_level(kind:String,level:int) -> bool:
 	var id:String = CATALOG.canonical(kind)
 	if not CATALOG.has_id(id) or absi(level) > MAX_LEVEL: return false
+	level = CATALOG.clamp_level(id,level)
 	if level == 0: enchantments.erase(id)
 	else: enchantments[id] = level # No item class or mutual-exclusion restrictions.
 	_reconcile()
@@ -352,7 +353,7 @@ func set_level(kind:String,level:int) -> bool:
 func add_level(kind:String,delta:int) -> int:
 	var id:String = CATALOG.canonical(kind)
 	if not CATALOG.has_id(id): return 0
-	var next:int = clampi(int(enchantments.get(id,0))+delta,-MAX_LEVEL,MAX_LEVEL)
+	var next:int = CATALOG.clamp_level(id,clampi(int(enchantments.get(id,0))+delta,-MAX_LEVEL,MAX_LEVEL))
 	set_level(id,next)
 	return next
 
@@ -365,7 +366,6 @@ func _on_levels_changed() -> void:
 	_refresh_combat_buffs()
 	_refresh_body_rules()
 	set_process(not enchantments.is_empty())
-	set_physics_process(int(enchantments.get("impaling",0)) < 0)
 	if int(enchantments.get("multishot",0)) != 0 or int(enchantments.get("piercing",0)) != 0:
 		var tree:SceneTree = get_tree() if is_inside_tree() else null
 		if tree != null: load(PROJECTILES_PATH).ensure(tree)
@@ -459,8 +459,7 @@ func _on_combatant_died(victim:Node,killer:Node,_health_before:float) -> void:
 	if amount > 0.0: actor.heal(amount)
 	elif amount < 0.0: actor.health -= int(round(-amount))
 
-## Impaling: positive levels lease body-pair exclusions with every other character;
-## negative levels bounce the actor away from any character it collides with.
+## Impaling: positive levels lease body-pair exclusions with every other character.
 func _refresh_body_rules() -> void:
 	var actor:ball = _combat_actor as ball
 	if not is_instance_valid(actor) or not actor.is_inside_tree() or _primary_component(actor) != self:
@@ -489,21 +488,6 @@ func _release_impaling() -> void:
 		var other:Node = _impaling_peers[id].get_ref()
 		if is_instance_valid(actor) and is_instance_valid(other): BODY_EXCLUSIONS.release(actor,other as PhysicsBody2D,self)
 	_impaling_peers.clear()
-
-func _physics_process(_delta:float) -> void:
-	var actor:ball = _combat_actor as ball
-	if not is_instance_valid(actor) or not actor.is_multiplayer_authority() or actor.health <= 0 or not actor.is_combat_runtime_active(): return
-	var proc:Dictionary = resolve_event(actor,"body")
-	if not bool(proc.get("bounce_on_character",false)): return
-	var contacts:Dictionary = {}
-	for index:int in range(actor.get_slide_collision_count()):
-		var collision:KinematicCollision2D = actor.get_slide_collision(index)
-		if collision == null or not (collision.get_collider() is ball): continue
-		var id:int = collision.get_collider_id()
-		contacts[id] = true
-		if _impaling_contacts.has(id): continue
-		actor.apply_knockback(collision.get_normal(),float(proc.get("bounce_distance",0.0)),520.0,0.0,0.0,{"source":actor})
-	_impaling_contacts = contacts
 
 func _reconcile() -> void:
 	if not is_inside_tree() or get_parent() == null: return

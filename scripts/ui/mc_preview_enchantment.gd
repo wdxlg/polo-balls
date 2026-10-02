@@ -8,4 +8,6 @@ extends Resource
 @export var english_name:String = ""
 @export_range(1,3999,1) var level:int = 4
 @export var level_text_override:String = ""
+## Levelless enchantments (e.g. Impaling here) show the name only.
+@export var hide_level:bool = false
 @export var text_color:Color = Color("aaaaaa")

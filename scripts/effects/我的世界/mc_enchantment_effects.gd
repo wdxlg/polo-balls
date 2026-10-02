@@ -11,8 +11,8 @@ static func clean(values:Dictionary) -> Dictionary:
 	var result:Dictionary = {}
 	for raw:Variant in values:
 		var id:String = CATALOG.canonical(str(raw))
-		if CATALOG.has_id(id) and values[raw] is int and int(values[raw]) != 0 and absi(int(values[raw])) <= MAX_LEVEL:
-			result[id] = values[raw]
+		if CATALOG.has_id(id) and values[raw] is int and absi(int(values[raw])) <= MAX_LEVEL and CATALOG.clamp_level(id,int(values[raw])) != 0:
+			result[id] = CATALOG.clamp_level(id,int(values[raw]))
 	return result
 
 static func level(values:Dictionary,id:String) -> int:
@@ -164,11 +164,8 @@ static func resolve(values:Dictionary,event:String,context:Dictionary = {}) -> D
 			result["charge_time_multiplier"] = 1.0/charge_speed(level(v,"quick_charge"))
 			result["consume_ammo"] = level(v,"infinity") <= 0 or not bool(context.get("is_arrow",true))
 		"body":
-			# Impaling: ignore body collision with characters; inverse bounces off them.
-			var impaling:int = level(v,"impaling")
-			result["ignore_character_collision"] = impaling > 0
-			result["bounce_on_character"] = impaling < 0
-			result["bounce_distance"] = _bounded(-24.0*impaling,0.0,320.0)
+			# Impaling (levelless): ignore body collision with characters.
+			result["ignore_character_collision"] = level(v,"impaling") > 0
 		"projectile":
 			result["return_speed_multiplier"] = _bounded(1.0+0.1*level(v,"loyalty"),0.1,5.0)
 			result["water_dash_speed_multiplier"] = _bounded(1.0+0.1*level(v,"riptide"),0.1,5.0) if bool(context.get("wet",false)) else 1.0

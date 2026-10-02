@@ -18,6 +18,7 @@ const U = preload("res://scripts/characters/我的世界/new5/utils.gd")
 const SOUL_SAND_FIELD_PATH:String = "res://scripts/characters/我的世界/torch/soul_sand_field.gd"
 const TORCH_SCENE:String = "res://scenes/characters/我的世界/火把.tscn"
 const ENCHANTS_PATH:String = "res://scripts/effects/我的世界/mc_enchantments.gd"
+const CATALOG_PATH:String = "res://scripts/effects/我的世界/mc_enchantment_catalog.gd"
 
 const SUPPORT:Dictionary = {
 	"res://scenes/characters/meme/不坏煎饼.tscn": ["ranged"],
@@ -226,8 +227,8 @@ static func _soul_sand_possible(target:ball) -> bool:
 		if raw is ball and raw.scene_file_path == TORCH_SCENE and (raw as ball).health > 0: return true
 	return false
 
-## Impaling (positive) lets the unit pass through characters; inverse Impaling only matters
-## for the same bodies, so both need a live character it can physically touch.
+## Impaling lets the unit pass through characters, so it needs a live character it can
+## physically touch.
 static func _collides_with_characters(target:ball) -> bool:
 	for raw:Node in target.get_tree().get_nodes_in_group("Ball"):
 		if raw == target or not (raw is ball) or (raw as ball).health <= 0 or CLASSIFY.is_projectile(raw): continue
@@ -236,7 +237,9 @@ static func _collides_with_characters(target:ball) -> bool:
 
 ## Enchantments that actually change something for target right now. The same pool is used
 ## for positive (ally) and inverse (enemy) levels: both only matter where the effect exists.
-static func pool_for(target:ball) -> Array[String]:
+## delta is the level about to be added: levelless enchantments (CATALOG.LEVELLESS) never go
+## negative and never upgrade, so they leave the pool for delta < 0 and once already owned.
+static func pool_for(target:ball,delta:int = 0) -> Array[String]:
 	# Every id below is also listed in COMBAT_POOL (checked by tests/verify_mc_enchant_support.gd).
 	var pool:Array[String] = []
 	if not is_instance_valid(target): return pool
@@ -276,4 +279,9 @@ static func pool_for(target:ball) -> Array[String]:
 	if has_quick_charge(target): pool.append("quick_charge")
 	if _collides_with_characters(target): pool.append("impaling")
 	if float(target.Speed) > 0.0 and _soul_sand_possible(target): pool.append("soul_speed")
+	if delta != 0:
+		var catalog:Script = load(CATALOG_PATH)
+		var owned:Dictionary = enchants.levels_of(target)
+		for i:int in range(pool.size()-1,-1,-1):
+			if catalog.is_levelless(pool[i]) and (delta < 0 or int(owned.get(pool[i],0)) >= 1): pool.remove_at(i)
 	return pool

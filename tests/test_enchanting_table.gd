@@ -48,6 +48,12 @@ func runes() -> Array:
 func sound_events() -> Array:
 	return get_nodes_in_group("MCNativeSFX").map(func(n:Node): return str(n.get_meta("mc_sound_event","")))
 
+func sound_volume(event:String) -> float:
+	var best:float = -INF
+	for n:Node in get_nodes_in_group("MCNativeSFX"):
+		if str(n.get_meta("mc_sound_event","")) == event and n is AudioStreamPlayer2D: best = maxf(best,(n as AudioStreamPlayer2D).volume_db)
+	return best
+
 func frames(n:int) -> void:
 	for i:int in range(n): await physics_frame
 
@@ -119,7 +125,7 @@ func run() -> void:
 	table.phase_left = 0.0
 	await wait_until(func(): return table.book_open,10)
 	check(table.book_open and not table.has_closed_guard() and is_equal_approx(table.Damage_reduction,0.0),"opening the book removes the damage reduction")
-	check(sound_events().has("item.book.page_turn"),"opening plays the native page turn")
+	check(sound_events().has("item.book.page_turn") and sound_volume("item.book.page_turn") > 0.0,"opening plays the native page turn, boosted to be audible")
 	check(table.get_node_or_null("Graphics/Image/附魔书") != null,"the floating book is drawn above the table")
 
 	# --- 符文：从书页边上出来，飞向最近目标；敌人受伤，友军回复 ---
@@ -139,6 +145,7 @@ func run() -> void:
 	check(shot != null and on_edge and shot.global_position.distance_to(table.book_world_position()) <= 40.0*0.225,"runes come out from the edges of the open book's pages")
 	check(shot != null and float(shot.Speed) <= 140.0 and float(shot.get("turn_rate")) > 0.0 and float(shot.get("turn_rate")) <= 2.0,"runes fly slowly and home only slightly")
 	await wait_until(func(): return float(enemy.health) < enemy_before,240)
+	check(sound_events().has("block.amethyst_block.resonate"),"launching a rune plays the amethyst resonate chime")
 	check(is_equal_approx(enemy_before - float(enemy.health),4.0),"a rune deals the table's current attack to an enemy")
 	var fx:Node = world.get_node_or_null("MCEnchantRuneParticles")
 	check(fx != null and int(fx.count(0)) > 0,"a flying rune leaves a trail of vanilla glyph particles")
@@ -153,8 +160,9 @@ func run() -> void:
 	check(load("res://scripts/characters/我的世界/enchanting_table/enchant_counter_overlay.gd").roman(9) == "IX","counters are written in roman numerals")
 
 	# --- 计数到 X：随机生效附魔，友军正、敌人负 ---
-	var enemy_pool:Array = SUPPORT.pool_for(enemy)
-	var ally_pool:Array = SUPPORT.pool_for(ally)
+	var enemy_pool:Array = SUPPORT.pool_for(enemy,-1)
+	var ally_pool:Array = SUPPORT.pool_for(ally,1)
+	check(SUPPORT.pool_for(enemy).has("impaling") and not enemy_pool.has("impaling") and ally_pool.has("impaling"),"levelless Impaling is never rolled as a negative level")
 	check(enemy_pool.has("projectile_protection") and not enemy_pool.has("sharpness") and not enemy_pool.has("power"),"enemy pool: defences against the ranged table, no attack enchantments for a passive dummy")
 	check(not ally_pool.has("protection"),"ally pool has no defences when no enemy can deal damage")
 	table.counters[enemy.get_instance_id()] = {"ref":weakref(enemy),"count":9}
@@ -173,6 +181,11 @@ func run() -> void:
 	await frames(15)
 	var glints:Array = ally.find_children("MCEnchantGlint*","",true,false)
 	check(not glints.is_empty() and glints.all(func(g:Node): return ally.graphics.is_ancestor_of(g)),"the enchantment glint covers only the body art, never the health bar, status icon or shadow")
+	var had_impaling:bool = ally_levels.has("impaling")
+	ENCHANTS.add(ally,"impaling",1)
+	check(not SUPPORT.pool_for(ally,1).has("impaling") and ENCHANTS.add(ally,"impaling",1) == 1 and ENCHANTS.add(ally,"impaling",-3) == 0,"levelless Impaling cannot be upgraded or pushed below zero")
+	ENCHANTS.remove(ally,"impaling")
+	if had_impaling: ENCHANTS.add(ally,"impaling",1)
 	var overlay:Node = table.overlay()
 	check(overlay != null and overlay.z_index == 90 and not overlay.z_as_relative,"counters draw on a world overlay above characters, below health bars")
 	check(overlay != null and overlay.NUMBER_COLOR == Color("ff5555"),"roman numeral counters are red")
@@ -209,7 +222,7 @@ func run() -> void:
 	table.phase_left = 0.0
 	await wait_until(func(): return not table.book_open,10)
 	check(not table.book_open and table.has_closed_guard() and is_equal_approx(table.Damage_reduction,0.25),"closing restores the damage reduction")
-	check(sound_events().has("item.book.put"),"closing plays the native book put")
+	check(sound_events().has("item.book.put") and sound_volume("item.book.put") > 0.0,"closing plays the native book put, boosted to be audible")
 	check(not table.fire_rune(enemy,enemy.global_position),"no runes while the book is closed")
 	table.receive_positional_damage(100000.0,table.global_position,true,enemy)
 	await frames(3)

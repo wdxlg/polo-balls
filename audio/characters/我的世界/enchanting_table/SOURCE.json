@@ -51,6 +51,30 @@
                       "original_path":  "minecraft/sounds/item/book/close_put2.ogg",
                       "sha1":  "eefec8ea4c0e3a2cf4357226bdcc1b2b7919e8ac",
                       "event":  "item.book.put"
+                  },
+                  {
+                      "new_asset":  "amethyst_resonate1.ogg",
+                      "original_path":  "minecraft/sounds/block/amethyst/resonate1.ogg",
+                      "sha1":  "d6e0763301604f7d590138a22c74fb27887ecc3c",
+                      "event":  "block.amethyst_block.resonate (rune launch)"
+                  },
+                  {
+                      "new_asset":  "amethyst_resonate2.ogg",
+                      "original_path":  "minecraft/sounds/block/amethyst/resonate2.ogg",
+                      "sha1":  "11441b2f310118f69108d1f9b0a1737ce6e1a061",
+                      "event":  "block.amethyst_block.resonate (rune launch)"
+                  },
+                  {
+                      "new_asset":  "amethyst_resonate3.ogg",
+                      "original_path":  "minecraft/sounds/block/amethyst/resonate3.ogg",
+                      "sha1":  "b7166666221c7e01cfae96b85cc3e082ebb6e20e",
+                      "event":  "block.amethyst_block.resonate (rune launch)"
+                  },
+                  {
+                      "new_asset":  "amethyst_resonate4.ogg",
+                      "original_path":  "minecraft/sounds/block/amethyst/resonate4.ogg",
+                      "sha1":  "ba549d193fe9b04c5777d146285ccdfb5758854a",
+                      "event":  "block.amethyst_block.resonate (rune launch)"
                   }
               ]
 }

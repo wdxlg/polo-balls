@@ -449,6 +449,6 @@ func _potion_name(effect:MCPreviewPotionEffect) -> String:
 
 
 func _enchant_name(enchant:MCPreviewEnchantment) -> String:
-	var suffix:String = enchant.level_text_override if not enchant.level_text_override.is_empty() else _roman(enchant.level)
+	var suffix:String = "" if enchant.hide_level else enchant.level_text_override if not enchant.level_text_override.is_empty() else _roman(enchant.level)
 	var name:String = _localized(enchant.enchantment_name,enchant.english_name)
 	return name if suffix.is_empty() else name + " " + suffix
