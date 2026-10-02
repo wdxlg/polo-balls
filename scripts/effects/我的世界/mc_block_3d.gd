@@ -30,6 +30,7 @@ const TEXTURES:Dictionary = {
 	&"obsidian":preload("res://Images/effects/我的世界/obstacle_blocks/obsidian.png"),
 }
 const FACES:Array[String] = ["down","up","north","south","west","east"]
+const MODEL_BRIGHTNESS:Dictionary = {&"stone":0.7,&"obsidian":0.7}
 ## 与地图立体墙 _new_material 同一受光模型（Burley 漫反射、粗糙度 1、非金属、sRGB 贴图），
 ## 另加原版 cutout、像素溶解与破坏裂纹。
 const SHADER_CODE:String = """shader_type spatial;
@@ -38,6 +39,7 @@ uniform sampler2D albedo_tex : source_color, filter_nearest;
 uniform sampler2D crack_tex : filter_nearest;
 uniform bool cracked = false;
 uniform float fade = 1.0;
+uniform float brightness = 1.0;
 float texel_hash(vec2 texel) {
 	return fract(sin(dot(texel, vec2(12.9898, 78.233))) * 43758.5453);
 }
@@ -51,7 +53,7 @@ void fragment() {
 		// 原版 crumbling：DST_COLOR * SRC_COLOR * 2，透明处不变。
 		if (crack.a > 0.1) color *= min(crack.rgb * 2.0, vec3(1.0));
 	}
-	ALBEDO = color;
+	ALBEDO = color * brightness;
 	ROUGHNESS = 1.0;
 	METALLIC = 0.0;
 	SPECULAR = 0.5;
@@ -349,6 +351,7 @@ func _apply_material_state() -> void:
 
 func _set_material_state(material:ShaderMaterial,fade:float) -> void:
 	material.set_shader_parameter("fade",fade)
+	material.set_shader_parameter("brightness",float(MODEL_BRIGHTNESS.get(model,1.0)))
 	material.set_shader_parameter("cracked",crack_texture != null)
 	if crack_texture != null: material.set_shader_parameter("crack_tex",crack_texture)
 

@@ -243,6 +243,14 @@ func run() -> void:
 	await physics_frame
 	check(obsidian != null and obsidian.trapped_units().has(stuck),"a unit standing in the new block is trapped")
 	check(obsidian.block != null and obsidian.collision_layer == 1,"block is a solid 3D block")
+	var stone_mat:ShaderMaterial = field.blocks[o + Vector2i(3,0)].block._materials[0]
+	var obsidian_mat:ShaderMaterial = obsidian.block._materials[0]
+	check(float(stone_mat.get_shader_parameter("brightness")) < 0.8 and float(obsidian_mat.get_shader_parameter("brightness")) < 0.8,"stone and obsidian are toned down so they don't look white under the block light")
+	var plain:Node2D = load("res://scripts/effects/我的世界/mc_block_3d.gd").create(&"crafting_table",field.grid_size.x)
+	world.add_child(plain)
+	check(is_equal_approx(float((plain._materials[0] as ShaderMaterial).get_shader_parameter("brightness")),1.0),"other blocks keep full brightness")
+	plain.free()
+	check(is_equal_approx(field.WATER_PUSH,30.0),"water current pushes at half the old strength")
 	check(is_equal_approx(obsidian.duration,10.0) and is_equal_approx(field.blocks[o + Vector2i(3,0)].duration,5.0),"obsidian lasts longer than stone")
 	var pos:Vector2 = stuck.global_position
 	var stuck_burn:Node = stuck.get_node_or_null("MinecraftBlazeBurn")
