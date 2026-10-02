@@ -770,7 +770,8 @@ var _rotation_door:CanvasLayer
 ## 轮换切换时门上的胜利卡片（rotation_result_card.gd）。
 var _rotation_toast_mirror:Control
 ## 轮换切换：门关上后保持的秒数，底部经验条按这段时间充满后开门。
-const ROTATION_RESULT_WAIT_SECONDS:float = 3.0
+const ROTATION_RESULT_WAIT_SECONDS:float = 2.0
+const ROTATION_PRE_DOOR_SECONDS:float = 0.6
 ## 比赛完整结束时从屏幕下方放的我的世界烟花（scripts/effects/我的世界/mc_firework.gd）。
 const MC_FIREWORK_SCRIPT:String = "res://scripts/effects/我的世界/mc_firework.gd"
 var _match_fireworks:Node2D
@@ -7642,7 +7643,7 @@ func _present_rotation_match(dead_sides:Array[String],epoch:int,authority:bool) 
 	# 先记下胜负（HUD 照常），铃声等胜利卡片在关好的门上滑下来时再响。
 	if authority and not winner_side.is_empty(): _trigger_victory_bell(false)
 	# Keep the previous scene/actors until the result has arrived and the doors have actually covered a frame.
-	await _rotation_ui_wait(1.20,epoch)
+	await _rotation_ui_wait(ROTATION_PRE_DOOR_SECONDS,epoch)
 	if not _rotation_presentation_valid(epoch): return
 	_rotation_door=load("res://scripts/ui/dark_oak_transition.gd").ensure(get_tree())
 	while _rotation_presentation_valid(epoch) and _rotation_door.is_busy(): await get_tree().process_frame
@@ -7651,6 +7652,7 @@ func _present_rotation_match(dead_sides:Array[String],epoch:int,authority:bool) 
 		# 门关上后从上方滑下胜利卡片（人物/队伍 + 提示文字），开门时随门滑回。
 		_rotation_toast_mirror=load("res://scripts/ui/rotation_result_card.gd").new()
 		_rotation_toast_mirror.call("setup",duel_top_hud,_rotation_door)
+		_rotation_toast_mirror.set("next_matchup",rotation_next_matchup(dead_sides))
 		_rotation_door.shield.add_child(_rotation_toast_mirror)
 	var began:bool=_rotation_door.play(_load_rotation_covered.bind(dead_sides,epoch,authority),_release_rotation_combat.bind(epoch))
 	if not began: return
@@ -7676,6 +7678,29 @@ func _release_rotation_combat(epoch:int) -> void:
 	_rotation_combat_released=true
 	_rotation_combat_blocked=false
 	if is_instance_valid(duel_top_hud): duel_top_hud.end_round_result()
+func rotation_next_matchup(dead_sides:Array[String]) -> Dictionary:
+	var result:Dictionary={"left":[],"right":[]}
+	var mode:String=Game.get_rotation_match_type()
+	var starts_fresh:bool=mode=="challenge" and (dead_sides.has("left") or (dead_sides.has("right") and int(_rotation_next_index.right)>=_rotation_rosters.right.size()))
+	if starts_fresh and int(_rotation_next_index.left)>=_rotation_rosters.left.size(): return result
+	for side:String in ["left","right"]:
+		var roster:Array=_rotation_rosters[side]
+		var replaced:bool=starts_fresh or mode=="duel" or dead_sides.has(side)
+		var index:int=int(_rotation_next_index[side])
+		if starts_fresh and side=="right": index=0
+		elif not replaced:
+			index-=1
+			if index>=0 and index<roster.size():
+				var current_round:int=int(roster[index].get("round",index+1))
+				while index>0 and int(roster[index-1].get("round",index))==current_round: index-=1
+		if index<0 or index>=roster.size(): continue
+		var names:Array=[]
+		var round_number:int=int(roster[index].get("round",index+1))
+		while index<roster.size() and int(roster[index].get("round",index+1))==round_number:
+			names.append(Game.t(str(roster[index].get("char",""))).replace("_"," "))
+			index+=1
+		result[side]=names
+	return result
 func _rotation_next_scene_paths(dead_sides:Array[String]) -> Array[String]:
 	var paths:Array[String]=[]
 	var mode:String=Game.get_rotation_match_type()

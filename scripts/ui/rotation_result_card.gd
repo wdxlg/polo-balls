@@ -1,5 +1,5 @@
 extends Control
-## 轮换切换的胜利卡片：门完全关上后从屏幕上方滑下（原版成就框放大），显示胜利的人物或队伍和提示文字；
+## 轮换切换的胜利卡片：门完全关上后从屏幕上方滑下（原版成就框放大），显示胜利的人物或队伍，下方写明下一场对阵；
 ## 开门时随门一起滑回上方。只读取 duel_top_hud 的回合结果快照，不改任何对局状态。
 const FONT:Font = preload("res://fonts/Mojangles.ttf")
 const TOAST:Texture2D = preload("res://Images/UI/minecraft_hud/toast_advancement.png")
@@ -9,8 +9,8 @@ const TITLE_COLOR:Color = Color("ff88ff")
 const BODY_COLOR:Color = Color("ffffff")
 const HINT_COLOR:Color = Color("e0e0e0")
 const TEXT:Dictionary = {
-	"zh":{"title":"挑战已完成！","none":"本局结束","hint":"下一场即将开始"},
-	"en":{"title":"Challenge Complete!","none":"Round Complete","hint":"Next round starting soon"},
+	"zh":{"title":"挑战已完成！","none":"本局结束","hint":"下一场即将开始","next":"下一场：","join":"、"},
+	"en":{"title":"Challenge Complete!","none":"Round Complete","hint":"Next round starting soon","next":"Next: ","join":", "},
 }
 var hud:Control
 var door:CanvasLayer
@@ -24,6 +24,7 @@ var _winner:Dictionary = {}
 var _body:String = ""
 ## 开门时改用缓入曲线，门一动卡片就往上收，而不是停到最后一刻。
 var _leaving:bool = false
+var next_matchup:Dictionary = {}
 
 func setup(result_hud:Control,transition:CanvasLayer) -> void:
 	hud = result_hud
@@ -84,7 +85,22 @@ func body_text() -> String:
 	return _body
 
 func hint_text() -> String:
-	return str((TEXT[locale()] if TEXT.has(locale()) else TEXT.zh).hint)
+	var strings:Dictionary = TEXT[locale()] if TEXT.has(locale()) else TEXT.zh
+	var left:Array = next_matchup.get("left",[])
+	var right:Array = next_matchup.get("right",[])
+	if left.is_empty() or right.is_empty(): return str(strings.hint)
+	return str(strings.next) + _join_names(left,str(strings.join)) + " vs " + _join_names(right,str(strings.join))
+
+func _join_names(names:Array,separator:String) -> String:
+	var order:Array[String] = []
+	var counts:Dictionary = {}
+	for raw:Variant in names:
+		var name:String = str(raw)
+		if not counts.has(name): order.append(name)
+		counts[name] = int(counts.get(name,0)) + 1
+	var parts:PackedStringArray = []
+	for name:String in order: parts.append(name if int(counts[name]) == 1 else "%s ×%d" % [name,int(counts[name])])
+	return separator.join(parts)
 
 func _wool(name:String) -> Texture2D:
 	if not _wool_cache.has(name): _wool_cache[name] = load("res://Images/UI/team_victory/" + name + "_wool.png")
@@ -129,8 +145,9 @@ func _draw() -> void:
 	var body:String = body_text()
 	draw_string(FONT,Vector2(text_x,rect.position.y + 26.0 * p),body,HORIZONTAL_ALIGNMENT_LEFT,text_width,_fit(body,text_width,int(7.0 * p)),BODY_COLOR)
 	var hint:String = hint_text()
-	var hint_size:int = int(6.0 * p)
-	var baseline:Vector2 = Vector2(rect.position.x,rect.end.y + 12.0 * p)
-	draw_string_outline(FONT,baseline,hint,HORIZONTAL_ALIGNMENT_CENTER,rect.size.x,hint_size,maxi(2,int(p)),Color(0,0,0,0.85))
-	draw_string(FONT,baseline,hint,HORIZONTAL_ALIGNMENT_CENTER,rect.size.x,hint_size,HINT_COLOR)
+	var hint_width:float = get_viewport_rect().size.x * 0.92
+	var hint_size:int = _fit(hint,hint_width,int(6.0 * p))
+	var baseline:Vector2 = Vector2(rect.get_center().x - hint_width * 0.5,rect.end.y + 12.0 * p)
+	draw_string_outline(FONT,baseline,hint,HORIZONTAL_ALIGNMENT_CENTER,hint_width,hint_size,maxi(2,int(p)),Color(0,0,0,0.85))
+	draw_string(FONT,baseline,hint,HORIZONTAL_ALIGNMENT_CENTER,hint_width,hint_size,HINT_COLOR)
 

@@ -83,12 +83,12 @@ func run() -> void:
 	var card:Node = door.shield.get_node_or_null("RotationResultCard") if door != null else null
 	check(card != null,"the result card sits on the closed doors")
 	if card != null:
-		await create_timer(1.0,true,false,true).timeout
+		await create_timer(0.6,true,false,true).timeout
 		check(card.slide >= 0.99 and card.card_rect().position.y > 0.0,"card slid down from the top")
-		check(card.body_text() == "苦力怕 获得了胜利" and card.title_text() == "挑战已完成！" and card.hint_text() == "下一场即将开始","card shows the winner and the hint: "+card.body_text())
+		check(card.body_text() == "苦力怕 获得了胜利" and card.title_text() == "挑战已完成！" and ["下一场：苦力怕 vs 苦力怕","下一场：骷髅 vs 苦力怕"].has(card.hint_text()),"card shows the winner and the next matchup: "+card.body_text()+" / "+card.hint_text())
 		var early:float = door.loading_progress
-		check(door.phase == door.Phase.COVERED and early > 0.2 and early < 0.6,"experience bar fills with the waiting time: %.2f" % early)
-		await create_timer(1.2,true,false,true).timeout
+		check(door.phase == door.Phase.COVERED and early > 0.15 and early < 0.6,"experience bar fills with the waiting time: %.2f" % early)
+		await create_timer(0.5,true,false,true).timeout
 		check(door.phase == door.Phase.COVERED and door.loading_progress > early,"doors stay closed while the bar fills")
 		deadline = Time.get_ticks_msec() + 4000
 		while Time.get_ticks_msec() < deadline and door.phase == door.Phase.COVERED: await process_frame
