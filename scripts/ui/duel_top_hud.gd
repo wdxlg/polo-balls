@@ -141,6 +141,11 @@ var outro_active:bool = false
 # Only a matchup actually displayed before the verdict may animate out.
 var _matchup_was_visible:bool = false
 var _outro_show_panels:bool = false
+# 不是 1v1 时只显示中间的时间 + VS 面板；同样只有实际显示过才在结算时上移退场。
+var _center_was_visible:bool = false
+var _outro_show_center:bool = false
+## 最近一次扫描到的阵营数（主角色，召唤物不算）。
+var _side_count:int = 0
 var outro_elapsed:float = 0.0
 var winner_index:int = -1
 var victory_result:Dictionary = {}
@@ -290,6 +295,7 @@ func _update_clock(delta:float) -> void:
 		_serial = serial
 		elapsed = 0.0
 		_clear_pair()
+		_forget_center_panel()
 	if bool(world.get("_victory_bell_played")):
 		return
 	if bool(world.call("is_combat_runtime_active")):
@@ -337,7 +343,9 @@ func _process(delta:float) -> void:
 		visible = shown_now
 	if not outro_active:
 		_matchup_was_visible = visible and is_visible_in_tree() and sides.size()==2
-	_sync_versus_title(visible)
+		_center_was_visible = visible and is_visible_in_tree() and sides.size()!=2 and not round_result_locked
+	# 只有中间面板时普通 VS 文字（各方名字）照常显示；左右面板或结算成就框出现时才隐藏。
+	_sync_versus_title(visible and not _center_only_now())
 	_update_world_clock(delta)
 	if visible:
 		queue_redraw()
@@ -352,10 +360,36 @@ func _should_show() -> bool:
 		return false
 	if not victory_result.is_empty() and outro_active: return true
 	if sides.size()!=2:
-		return timed_mode and (bool(world.get("_timed_running")) or bool(world.get("_timed_finished")))
-	# 普通 VS 标题因布阵/盔甲架/Boss 车轮战等模式主动隐藏时，本 HUD 同样不出现。
+		if timed_mode:
+			return bool(world.get("_timed_running")) or bool(world.get("_timed_finished"))
+		return _center_panel_wanted()
+	return _versus_title_visible()
+
+
+# 普通 VS 标题因布阵/盔甲架/Boss 车轮战等模式主动隐藏时，本 HUD 同样不出现。
+func _versus_title_visible() -> bool:
 	var title:Variant = world.get("versus_label")
 	return title is CanvasItem and is_instance_valid(title) and (title as CanvasItem).visible
+
+
+## 不是 1v1 的对局：开场后（World 的开战边沿）只要场上至少两方就显示中间面板；
+## 胜负已分后保持到结算退场或重置。
+func _center_panel_wanted() -> bool:
+	if not _versus_title_visible():
+		return false
+	if bool(world.get("_victory_bell_played")):
+		return _center_was_visible
+	return _side_count >= 2 and bool(world.get("_character_dialogue_battle_was_active"))
+
+
+## 扫描时的 _clear_pair 每次都会跑，中间面板的“显示过”只在重置/新一局时清掉。
+func _forget_center_panel() -> void:
+	_center_was_visible = false
+	_side_count = 0
+
+
+func _center_only_now() -> bool:
+	return sides.size()!=2 and not outro_active and not round_result_locked
 
 
 func _apply_layout() -> void:
@@ -525,6 +559,7 @@ static func ease_out(t:float) -> float:
 func reset_victory_roster() -> void:
 	_victory_roster.clear()
 	_clear_pair() # Do not let a stale one-survivor pair recreate the old achievement.
+	_forget_center_panel()
 	elapsed=0.0
 	_scan_elapsed=999.0
 	visible=false
@@ -632,6 +667,7 @@ func _update_outro(delta:float) -> void:
 		return
 	if not bool(world.get("_victory_bell_played")): return
 	_outro_show_panels = _can_exit_matchup()
+	_outro_show_center = _center_was_visible and visible and sides.size()!=2 and _should_show()
 	if not Game.is_rotation_training_mode(): victory_result=_build_victory_result()
 	if victory_result.is_empty() and (not visible or sides.size()!=2): return
 	var alive:Array[int] = []
@@ -666,6 +702,7 @@ func _reset_outro() -> void:
 	outro_active = false
 	_matchup_was_visible = false
 	_outro_show_panels = false
+	_outro_show_center = false
 	outro_elapsed = 0.0
 	winner_index = -1
 
@@ -685,6 +722,7 @@ func _outro_panel_shift(data) -> float:
 ## 成就框矩形；未到出场时间返回空矩形。
 func begin_round_result(winner_side:String) -> void:
 	var show_exiting_panels:bool = _can_exit_matchup()
+	var show_exiting_center:bool = not show_exiting_panels and not outro_active and _center_was_visible and visible and sides.size()!=2
 	# Snapshot real roster identities before the old units are cleared, even if a summon finished the round.
 	var entries:Dictionary={}
 	var order:Array=["Team0","Team1"]
@@ -711,6 +749,7 @@ func begin_round_result(winner_side:String) -> void:
 	winner_index=0 if winner_side=="left" else 1 if winner_side=="right" else -1
 	outro_active=true
 	_outro_show_panels=show_exiting_panels
+	_outro_show_center=show_exiting_center
 	outro_elapsed=0.0
 	visible=true
 ## 轮换名单里与 index 同一波的不同角色数（按场景，缺场景时按名字）。
@@ -812,6 +851,7 @@ func _refresh_pair() -> void:
 	var collected:Dictionary = _collect_battle_sides()
 	var order:Array = collected.order
 	var entries:Dictionary = collected.entries
+	_side_count = order.size()
 	if timed_mode:
 		# 计时模式按队伍组对：本局正好 2 个队伍才显示对战面板（多于 2 队只显示计时器）。
 		_refresh_timed_team_pair(order,entries)
@@ -1117,8 +1157,8 @@ func _draw() -> void:
 	var data = _data()
 	if not is_instance_valid(data): return
 	if not _matchup_panels_visible():
-		if bool(data.timed_mode) and not data.outro_active:
-			_panel_shift=0.0
+		if not data.outro_active or data._outro_show_center:
+			_panel_shift=_outro_panel_shift(data)
 			_draw_patch(_effect_box,_panel_rects()[1],GUI_PIXEL)
 		_draw_toast_graphics()
 		return
@@ -1261,8 +1301,8 @@ func _draw_text() -> void:
 	var data = _data()
 	if not is_instance_valid(data): return
 	if not _matchup_panels_visible():
-		if bool(data.timed_mode) and not data.outro_active:
-			_panel_shift=0.0
+		if not data.outro_active or data._outro_show_center:
+			_panel_shift=_outro_panel_shift(data)
 			_draw_clock_text(_panel_rects()[1])
 		_draw_toast_text()
 		return
