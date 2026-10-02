@@ -171,6 +171,7 @@ func run() -> void:
 	await warden_suite(center)
 	await trader_suite(center)
 	await wither_suite(center)
+	await vindicator_suite(center)
 	# --- cache bound
 	var cache:Dictionary = LEGS._cache.get("enderman",{})
 	check(cache.is_empty() or (cache["order"] as Array).size() <= LEGS.CACHE_PER_SET,"composite cache bounded")
@@ -441,6 +442,52 @@ func wither_suite(center:Vector2) -> void:
 	w.visual_mob()
 	check(w._body_clip == &"idle" and w.image.texture == w.FRAMES.get_frame_texture(&"idle",w._body_frame),"wither: still -> idle clip")
 	w.queue_free()
+
+func vind_move(v:Node2D,speed:float,frames_n:int) -> Dictionary:
+	var g:RefCounted = v._vindicator_gait()
+	var out:Dictionary = {"idx":{},"ok":true}
+	for i:int in range(frames_n):
+		v.global_position.x += speed/60.0
+		g.tick(v,1.0/60.0,true)
+		v._update_pose()
+		var k:int = g.walk_index(12)
+		out.idx[k] = true
+		out.ok = out.ok and (v.image.texture == (v.FRAMES.get_frame_texture(&"idle",0) if g.at_rest else v.FRAMES.get_frame_texture(&"walk",k)))
+	return out
+
+func vindicator_suite(center:Vector2) -> void:
+	var v:Node2D = spawn("res://scenes/characters/我的世界/卫道士.tscn",center+Vector2(-500,-300))
+	await process_frame
+	await process_frame
+	v.set_process(false)
+	v.set_physics_process(false)
+	var g:RefCounted = v._vindicator_gait()
+	var std:float = LEGS.standard_speed(v)
+	check(is_equal_approx(std,float(v.default_properties.Speed)*0.6) and is_equal_approx(g.cycle,1.0),"vindicator: own base speed x 0.6, 1 s walk cycle")
+	var r:Dictionary = vind_move(v,std,60)
+	check(r.ok and r.idx.size() >= 11,"vindicator: walk frames follow the gait (%d of 12)" % r.idx.size())
+	v.phase = v.Phase.CHARGE
+	v.charge_elapsed = 0.3
+	r = vind_move(v,std*0.5,40)
+	check(r.ok and r.idx.size() >= 4 and not g.at_rest,"vindicator: axe charge while moving keeps legs walking (%d phases)" % r.idx.size())
+	v.phase = v.Phase.IDLE
+	var p0:float = g.phase
+	vind_move(v,std*0.5,12)
+	var slow:float = fposmod(g.phase-p0,1.0)
+	p0 = g.phase
+	vind_move(v,std*1.5,12)
+	var fast:float = fposmod(g.phase-p0,1.0)
+	check(slow > 0.0 and absf(fast/slow-3.0) < 0.15,"vindicator: leg rate scales with speed (x%.2f for x3)" % (fast/maxf(slow,0.0001)))
+	var base_speed:float = v.Speed
+	v.Speed = base_speed*2.0
+	p0 = g.phase
+	vind_move(v,std,12)
+	var buffed:float = fposmod(g.phase-p0,1.0)
+	v.Speed = base_speed
+	check(absf(buffed/maxf(slow,0.0001)-2.0) < 0.15,"vindicator: a Speed buff does not re-normalise the tempo (standard = base speed)")
+	r = vind_move(v,0.0,90)
+	check(g.at_rest and v.image.texture == v.FRAMES.get_frame_texture(&"idle",0) and r.ok,"vindicator: still -> legs settle back to the idle pose")
+	v.queue_free()
 
 func vis_step(u:Node2D,vis:Node,ratio:float,frames_n:int,setup:Callable) -> Dictionary:
 	var v:float = LEGS.standard_speed(u)*ratio

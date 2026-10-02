@@ -1,5 +1,8 @@
 extends "res://scripts/characters/我的世界/mc_mob_base.gd"
 const FRAMES:SpriteFrames = preload("res://Images/characters/我的世界/vindicator/frames.tres")
+## Independent legs: phase follows real displacement against the OWN base speed (buffs / slows
+## change the tempo), keeps stepping through charge / swing, and settles on walk 3 / 9 (= idle).
+const MC_LEGS = preload("res://scripts/effects/我的世界/mc_legs.gd")
 const ARM:Texture2D = preload("res://Images/characters/我的世界/vindicator/arm.png")
 const FOREARM:Texture2D = preload("res://Images/characters/我的世界/vindicator/forearm.png")
 const HAND_TEXTURE:Texture2D = preload("res://Images/characters/我的世界/vindicator/hand.png")
@@ -47,6 +50,7 @@ var _charge_bar:Line2D
 var _charge_fill:Line2D
 var voice:Node
 var _walk_clock:float = 0.0
+var gait:RefCounted
 var _last_position:Vector2
 var _previous_distance:float = INF
 var _visual_serial:int = 0
@@ -166,8 +170,10 @@ func _aim_at_target() -> void:
 
 func tick_physics(state:State,delta:float) -> void:
 	super.tick_physics(state,delta)
-	if not is_combat_runtime_active() or delta<=0.0: return
-	if health<=0: return
+	if not is_combat_runtime_active() or delta<=0.0 or health<=0:
+		_vindicator_gait().observe(self)
+		return
+	_vindicator_gait().tick(self,delta,dizziness != true)
 	var moved:float = global_position.distance_to(_last_position)
 	_last_position = global_position
 	if moved<maxf(48.0,Speed*delta*5.0): _walk_clock += moved/maxf(Speed,1.0)
@@ -322,10 +328,16 @@ func _swing_pose(aim:Vector2,progress:float) -> Vector2:
 	var cut:float = pow(clampf((progress-draw_end)/(0.82-draw_end),0.0,1.0),1.6)
 	return Vector2(lerpf(ready.x,finish,cut),AXE_HOLD_ANGLE)
 
+func _vindicator_gait() -> RefCounted:
+	if gait == null:
+		gait = MC_LEGS.create(float(FRAMES.get_frame_count(&"walk"))/maxf(FRAMES.get_animation_speed(&"walk"),0.001),[0.25,0.75])
+		gait.observe(self)
+	return gait
+
 func _update_pose() -> void:
 	if not is_instance_valid(_arm) or health<=0: return
-	var walking:bool = velocity.length_squared()>1.0
-	image.texture = FRAMES.get_frame_texture(&"walk",int(_walk_clock*12.0)%12) if walking else FRAMES.get_frame_texture(&"idle",0)
+	var legs:RefCounted = _vindicator_gait()
+	image.texture = FRAMES.get_frame_texture(&"idle",0) if legs.at_rest else FRAMES.get_frame_texture(&"walk",legs.walk_index(FRAMES.get_frame_count(&"walk")))
 	var local_aim:Vector2 = image.to_local(image.global_position+facing).normalized()
 	var mirrored:bool = local_aim.x>=0.0
 	set_character_visual_flip_h(mirrored)
