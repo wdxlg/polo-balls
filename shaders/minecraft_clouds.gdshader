@@ -12,6 +12,9 @@ uniform float parallax : hint_range(0.0, 2.0) = 1.25;
 uniform float travel = 0.0;
 uniform vec2 height_shift = vec2(0.0, 10.6666667);
 uniform float cloud_alpha : hint_range(0.0, 1.0) = 1.0;
+// Local cloud patches (minecraft_clouds.gd::make_patch): mask cell (0,0) sits at this world point.
+uniform vec2 cell_origin = vec2(0.0);
+uniform vec4 cloud_tint : source_color = vec4(1.0);
 varying vec2 world_point;
 varying vec2 view_center_world;
 
@@ -33,7 +36,7 @@ void fragment() {
 	// A straight lower edge provides thickness without tilting the cloud plane.
 	vec2 plane_cell = vec2(cell_size, cell_size * plane_depth);
 	vec2 sky_point = world_point - view_center_world * (1.0 - parallax);
-	vec2 origin = (sky_point + vec2(travel, 0.0)) / plane_cell;
+	vec2 origin = (sky_point + vec2(travel, 0.0) - cell_origin) / plane_cell;
 	vec2 ray = -height_shift / plane_cell;
 	vec2 cell = floor(origin);
 	vec2 step_dir = sign(ray);
@@ -58,5 +61,5 @@ void fragment() {
 		}
 		hit = occupied(cell);
 	}
-	COLOR = hit ? vec4(summit_focus_grade(vec3(face_light), world_point, 3.0), cloud_alpha) : vec4(0.0);
+	COLOR = hit ? vec4(summit_focus_grade(vec3(face_light), world_point, 3.0) * cloud_tint.rgb, cloud_alpha * cloud_tint.a) : vec4(0.0);
 }

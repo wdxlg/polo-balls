@@ -40,6 +40,10 @@ const EXPLOSION_SOUNDS:Array[AudioStream] = [
 @export_range(-30.0,12.0,0.5) var thunder_volume_db:float = -5.0
 @export_range(-30.0,12.0,0.5) var explosion_volume_db:float = -2.5
 @export_range(100.0,2400.0,25.0) var audio_max_distance:float = 1200.0
+## 劈下的起点（例如角色召来的云）；默认 INF = 从屏幕顶部竖直劈下。整条光柱随之旋转。
+var origin_world:Vector2 = Vector2.INF
+## 为 true 时随战斗时停/暂停冻结。
+var pause_with_battle:bool = false
 var _target_world:Vector2 = Vector2.ZERO
 var _seed_value:int = 1
 var _configured:bool = false
@@ -79,6 +83,7 @@ func _ready() -> void:
 	_play_random_spatial_sfx(THUNDER_SOUNDS,thunder_volume_db,"CreeperThunderWarning")
 	queue_redraw()
 func _process(delta:float) -> void:
+	if pause_with_battle and _battle_paused(): return
 	_elapsed += maxf(delta,0.0)
 	if not _impact_started: _follow_parent_foot_until_impact()
 	if not _impact_started and _elapsed>=warning_delay: _start_impact()
@@ -94,6 +99,9 @@ func _process(delta:float) -> void:
 		_glow.queue_redraw()
 		queue_redraw()
 	if _impact_started and _impact_elapsed()>=presentation_lifetime(): queue_free()
+func _battle_paused() -> bool:
+	var game:Node = get_node_or_null("/root/Game")
+	return get_tree().paused or (game != null and bool(game.get("now_stop_state")))
 func _start_impact() -> void:
 	if _impact_started: return
 	_follow_parent_foot_until_impact()
@@ -126,6 +134,9 @@ func _follow_parent_foot_until_impact() -> void:
 	var resolved:Variant = owner_node.call("_self_foot_world_position")
 	if resolved is Vector2: global_position = resolved
 func _resolve_window_top_world(target_world:Vector2) -> Vector2:
+	if origin_world.is_finite():
+		rotation = (origin_world-target_world).angle()+PI*0.5
+		return target_world+Vector2(0.0,-target_world.distance_to(origin_world))
 	var viewport:Viewport = get_viewport()
 	if viewport==null: return target_world+Vector2(0.0,-900.0)
 	var canvas:Transform2D = viewport.get_canvas_transform()

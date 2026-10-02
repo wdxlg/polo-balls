@@ -65,14 +65,19 @@ func advance(delta:float) -> void:
 	_last_end = end
 	queue_redraw()
 func _draw() -> void:
-	var normal:Vector2 = (end-start).normalized().orthogonal()
-	var points := PackedVector2Array([start])
-	for i:int in range(1,12):
-		var fraction:float = float(i)/12.0
-		var jitter:float = sin(float(seed_value%997)+i*8.3+floor(_clock*24.0)*5.2)*3.0*sin(PI*fraction)
-		points.append(start.lerp(end,fraction)+normal*jitter)
-	points.append(end)
-	var fade:float = clampf(left/lifetime,0.0,1.0)
-	draw_polyline(points,Color(PALETTE.OUTER,0.18*fade),8.0,true)
-	draw_polyline(points,Color(PALETTE.MIDDLE,0.55*fade),3.0,true)
-	draw_polyline(points,Color(PALETTE.CORE,fade),1.0,true)
+	paint(self,start,end,seed_value,_clock,clampf(left/lifetime,0.0,1.0))
+
+## 抖动电弧连线（三层电光色），纯绘制。三叉戟电网、避雷针电网与放电共用。
+static func paint(canvas:CanvasItem,from:Vector2,to:Vector2,arc_seed:int,clock:float,fade:float,jitter_scale:float = 3.0,segments:int = 12) -> void:
+	if fade<=0.0: return
+	var normal:Vector2 = (to-from).normalized().orthogonal()
+	var count:int = maxi(segments,2)
+	var points := PackedVector2Array([from])
+	for i:int in range(1,count):
+		var fraction:float = float(i)/float(count)
+		var jitter:float = sin(float(arc_seed%997)+i*8.3+floor(clock*24.0)*5.2)*jitter_scale*sin(PI*fraction)
+		points.append(from.lerp(to,fraction)+normal*jitter)
+	points.append(to)
+	canvas.draw_polyline(points,Color(PALETTE.OUTER,0.18*fade),8.0,true)
+	canvas.draw_polyline(points,Color(PALETTE.MIDDLE,0.55*fade),3.0,true)
+	canvas.draw_polyline(points,Color(PALETTE.CORE,fade),1.0,true)

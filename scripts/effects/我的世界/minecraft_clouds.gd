@@ -25,6 +25,66 @@ var cloud_material:ShaderMaterial
 var regions:Array[Rect2] = []
 var _parts:Array[Polygon2D] = []
 
+## 局部云块（例如角色召来的云）：与天空云同一原版贴图、着色器、格子尺寸和厚度，只画 mask 里的格子。
+## region 是 clouds.png 的像素范围，取其中最大的四连通云块；四周留一圈空格给厚度和平铺。
+static func cloud_piece(region:Rect2i,transpose:bool = false) -> Image:
+	var source:Image = CLOUD_TEXTURE.get_image()
+	if source == null: return null
+	if source.is_compressed(): source.decompress()
+	region = region.intersection(Rect2i(Vector2i.ZERO,source.get_size()))
+	var seen:Dictionary = {}
+	var best:Array[Vector2i] = []
+	for y:int in range(region.position.y,region.end.y):
+		for x:int in range(region.position.x,region.end.x):
+			var start := Vector2i(x,y)
+			if seen.has(start) or source.get_pixelv(start).a <= 0.5: continue
+			var group:Array[Vector2i] = [start]
+			seen[start] = true
+			var index:int = 0
+			while index < group.size():
+				var cell:Vector2i = group[index]
+				index += 1
+				for step:Vector2i in [Vector2i.LEFT,Vector2i.RIGHT,Vector2i.UP,Vector2i.DOWN]:
+					var next:Vector2i = cell+step
+					if region.has_point(next) and not seen.has(next) and source.get_pixelv(next).a > 0.5:
+						seen[next] = true
+						group.append(next)
+			if group.size() > best.size(): best = group
+	if best.is_empty(): return null
+	var low := Vector2i(1 << 30,1 << 30)
+	var high := Vector2i(-1,-1)
+	for cell:Vector2i in best:
+		low = Vector2i(mini(low.x,cell.x),mini(low.y,cell.y))
+		high = Vector2i(maxi(high.x,cell.x),maxi(high.y,cell.y))
+	var size:Vector2i = high-low+Vector2i(3,3)
+	var mask := Image.create(size.y if transpose else size.x,size.x if transpose else size.y,false,Image.FORMAT_RGBA8)
+	for cell:Vector2i in best:
+		var local:Vector2i = cell-low+Vector2i.ONE
+		mask.set_pixelv(Vector2i(local.y,local.x) if transpose else local,Color.WHITE)
+	return mask
+
+static func make_patch(mask:Image,tint:Color = Color.WHITE) -> Polygon2D:
+	var patch := Polygon2D.new()
+	var shader_material := ShaderMaterial.new()
+	shader_material.shader = CLOUD_SHADER
+	shader_material.set_shader_parameter("cloud_mask",ImageTexture.create_from_image(mask))
+	shader_material.set_shader_parameter("cell_size",CELL_SIZE)
+	shader_material.set_shader_parameter("height_shift",Vector2(0.0,THICKNESS))
+	shader_material.set_shader_parameter("plane_depth",PLANE_DEPTH)
+	shader_material.set_shader_parameter("parallax",1.0)
+	shader_material.set_shader_parameter("cloud_tint",tint)
+	patch.material = shader_material
+	patch.color = Color.WHITE
+	var size := Vector2(mask.get_size())*CELL_SIZE
+	patch.polygon = PackedVector2Array([Vector2.ZERO,Vector2(size.x,0.0),size,Vector2(0.0,size.y)])
+	return patch
+
+## 把云块的格子中心放到 center（世界坐标）。
+static func place_patch(patch:Polygon2D,center:Vector2) -> void:
+	var top_left:Vector2 = center-patch.polygon[2]*0.5
+	patch.global_position = top_left
+	(patch.material as ShaderMaterial).set_shader_parameter("cell_origin",top_left)
+
 func _init(owner_world:Node = null) -> void:
 	world = owner_world
 

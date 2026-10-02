@@ -92,6 +92,15 @@ func run() -> void:
 	check(rod.call("is_combat_runtime_active"),"real World combat is active")
 	check(rod.dir_index >= 0 and rod.dir_index < 4,"a random direction is chosen at once")
 	check(rod.cloud_position.distance_to(rod.global_position) > 100.0,"cloud gathers away from the rod")
+	var map_rect:Rect2 = world.return_map_world_rect(world.map_group["Map50x50"])
+	for side:int in range(4):
+		rod._apply_direction(side,rod.cloud_serial + 1)
+		var half:Vector2 = load("res://scripts/characters/我的世界/lightning_rod/storm_visual.gd").cloud_half_extent(side)
+		var footprint := Rect2(rod.cloud_position - half,half * 2.0)
+		check(not footprint.intersects(map_rect),"cloud on side %d sits wholly outside the map" % side)
+		var along:float = rod.cloud_position.x - rod.global_position.x if side < 2 else rod.cloud_position.y - rod.global_position.y
+		check(absf(along) < 1.0,"cloud on side %d lines up with the rod" % side)
+	check(rod.charge_bar.BAR == load("res://scripts/characters/我的世界/frontier/creeper_style_bar.gd"),"charge bar paints with the shared bar")
 	check(rod.time_to_next_volley() > 2.5 and rod.time_to_next_volley() <= 3.0,"first volley about 3 s after the cloud appears")
 	check(rod.get_node("LightningRodChargeBar").get_parent() == rod and rod.get_node_or_null("Graphics/LightningRodChargeBar") == null,"charge bar lives outside Graphics")
 	check(rod.bar_alpha() == 0.0,"charge bar hidden while idle")
@@ -104,11 +113,17 @@ func run() -> void:
 	check(rod._volley_serial == serial_before + 1,"one volley fires at the gather time")
 	var queued:int = rod._pending_bolts.size() + rod.nets.size()
 	check(queued >= 2 and queued <= 5,"volley holds 2-5 bolts (got %d)" % queued)
+	var shared_bolts:int = 0
 	for i:int in range(30):
 		hold(near,center + Vector2(70,0))
 		await physics_frame
+		for child:Node in rod.storm.get_children():
+			if child.get_script() == load("res://scripts/effects/我的世界/雷电.gd") and child.get_meta("counted",false) == false:
+				child.set_meta("counted",true)
+				shared_bolts += 1
 		if rod._pending_bolts.is_empty(): break
 	await frames(2)
+	check(shared_bolts == queued,"every bolt is the shared lightning effect (%d/%d)" % [shared_bolts,queued])
 	var lost:float = hp - near.health
 	check(lost >= 30.0 and is_equal_approx(fposmod(lost - 30.0,3.0),0.0) and lost < 60.0,"impact deals 30 once per volley, the rest are net ticks (lost %.1f)" % lost)
 	check(near.dizziness,"impact stuns")
@@ -123,14 +138,14 @@ func run() -> void:
 	# --- 电网：沿路径高频伤害 + 短眩晕 ---
 	var net:Dictionary = rod.nets[0]
 	var a:Vector2 = rod.cloud_position + Vector2(net.offset)
-	var mid:Vector2 = a.lerp(rod.tip_world_position(),0.35)
+	var mid:Vector2 = a.lerp(rod.tip_world_position(),0.8)
 	var on_net:Node2D = dummy(mid)
 	var net_hp:float = on_net.health
 	var hits:int = 0
 	var last:float = net_hp
 	for i:int in range(18):
 		var n0:Dictionary = rod.nets[0] if not rod.nets.is_empty() else net
-		hold(on_net,(rod.cloud_position + Vector2(n0.offset)).lerp(rod.tip_world_position(),0.35))
+		hold(on_net,(rod.cloud_position + Vector2(n0.offset)).lerp(rod.tip_world_position(),0.8))
 		await physics_frame
 		if on_net.health < last:
 			hits += 1

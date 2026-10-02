@@ -1,6 +1,6 @@
 extends RefCounted
 ## 避雷针的原版 Java 音效（来源与 SHA1 见 audio/characters/我的世界/lightning_rod/SOURCE.json）。
-## 雷声与雷击爆裂直接复用苦力怕目录里同一批原版文件（ambient/weather/thunder*、random/explode*）。
+## 雷声与雷击爆裂复用苦力怕目录里同一批原版文件（ambient/weather/thunder*、random/explode*），放电嘶声复用火把的 random/fizz。
 const NATIVE = preload("res://scripts/effects/我的世界/mc_native_audio.gd")
 const THUNDER:Array[AudioStream] = [
 	preload("res://audio/characters/我的世界/苦力怕/thunder1.ogg"),
@@ -33,7 +33,7 @@ const BREAK:Array[AudioStream] = [
 	preload("res://audio/characters/我的世界/lightning_rod/copper_break3.ogg"),
 	preload("res://audio/characters/我的世界/lightning_rod/copper_break4.ogg"),
 ]
-const FIZZ:Array[AudioStream] = [preload("res://audio/characters/我的世界/lightning_rod/fizz.ogg")]
+const FIZZ:Array[AudioStream] = [preload("res://audio/characters/我的世界/torch/fizz.ogg")]
 enum Kind { THUNDER, IMPACT, RAIN, HIT, BREAK, FIZZ }
 const EVENTS:Array[String] = ["entity.lightning_bolt.thunder","entity.lightning_bolt.impact","weather.rain","block.copper.hit","block.copper.break","block.redstone_torch.burnout"]
 

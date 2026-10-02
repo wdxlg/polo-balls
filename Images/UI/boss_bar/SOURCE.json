@@ -1,0 +1,18 @@
+{
+  "description": "Vanilla boss bar sprites used by the shared energy/progress bar",
+  "upstream": "Minecraft Java Edition 1.21.1 client jar (minecraft_1.21.1_client.jar, SHA1 30c73b1c5da787909b2f73340419fdf13b9def88)",
+  "license": "Minecraft assets are copyright Mojang Studios/Microsoft and subject to the Minecraft EULA; no general redistribution permission is claimed.",
+  "used_by": "scripts/characters/我的世界/frontier/creeper_style_bar.gd",
+  "files": {
+    "white_background.png": {
+      "original_path": "assets/minecraft/textures/gui/sprites/boss_bar/white_background.png",
+      "sha1": "be4ccc9b8166cb67b5b3accfff40d0dc0a1b191a",
+      "modified": false
+    },
+    "white_progress.png": {
+      "original_path": "assets/minecraft/textures/gui/sprites/boss_bar/white_progress.png",
+      "sha1": "1f37a8e95c5af6339080594cd49457708e20fa08",
+      "modified": false
+    }
+  }
+}

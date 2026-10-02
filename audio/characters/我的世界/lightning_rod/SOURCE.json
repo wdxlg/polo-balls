@@ -1,7 +1,7 @@
 {
     "source": "Locally installed Minecraft Java asset index 1.21.json (used by 1.21.1) and its hashed original objects under .minecraft/assets/objects; bytes copied unchanged",
     "rights": "Minecraft assets are copyright Mojang Studios/Microsoft. Use is subject to the Minecraft EULA; no general redistribution permission is claimed.",
-    "used_by": "scripts/characters/我的世界/lightning_rod/lightning_rod_audio.gd (避雷针 storm rain, copper hits and death, discharge fizz); thunder and impact reuse audio/characters/我的世界/苦力怕/thunder*.ogg and explode*.ogg",
+    "used_by": "scripts/characters/我的世界/lightning_rod/lightning_rod_audio.gd (避雷针 storm rain, copper hits and death); thunder and impact reuse audio/characters/我的世界/苦力怕/thunder*.ogg and explode*.ogg, discharge fizz reuses audio/characters/我的世界/torch/fizz.ogg",
     "files": [
         {
             "new_asset": "rain1.ogg",
@@ -86,12 +86,6 @@
             "original_path": "minecraft/sounds/block/copper/step6.ogg",
             "sha1": "63417f028c4720bd91b1974ef67c93546ac4f3b6",
             "event": "block.copper.hit"
-        },
-        {
-            "new_asset": "fizz.ogg",
-            "original_path": "minecraft/sounds/random/fizz.ogg",
-            "sha1": "c649e60ea9a99c97501a50d2dc4e579343e91ea8",
-            "event": "block.lava.extinguish / entity.generic.extinguish_fire"
         }
     ]
 }

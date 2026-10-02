@@ -2,6 +2,7 @@ extends Node2D
 ## 避雷针能量充满时释放的扩散雷圈：几道电环从释放点先后向外扩散。
 ## 环带扫过敌人时按固定间隔高频结算小伤害并刷新短眩晕；同一目标的间隔在各道环之间共享。
 ## 伤害、威胁显示与渲染共用同一扩张时钟和真实环带（expanding_ring_sweep），权威端结算、客机只播放。
+## 画面用共享像素圈（pixel_arc）：环带范围一层淡色，加原版式三层电光圈。
 const PALETTE = preload("res://scripts/effects/我的世界/mc_electric_palette.gd")
 const ARC = preload("res://scripts/effects/我的世界/pixel_arc.gd")
 const RING_SWEEP = preload("res://classes/expanding_ring_sweep.gd")
@@ -101,23 +102,10 @@ func threats(receiver:ball = null) -> Array[Dictionary]:
 
 
 func _draw() -> void:
-	var flicker:int = int(floor(age * 24.0))
+	var palette := PackedColorArray([PALETTE.OUTER,PALETTE.MIDDLE,PALETTE.CORE])
 	for i:int in range(waves):
 		var radius:float = wave_radius(i)
 		if radius < 0.0: continue
-		var p:float = radius / max_radius
-		var alpha:float = clampf(1.0 - pow(p,2.2),0.0,1.0)
-		ARC.draw(self,Vector2.ZERO,radius,0.0,TAU,96,Color(PALETTE.OUTER,0.22 * alpha),half_width * 2.0,true)
-		ARC.draw(self,Vector2.ZERO,radius,0.0,TAU,96,Color(PALETTE.MIDDLE,0.5 * alpha),half_width * 0.7,true)
-		ARC.draw(self,Vector2.ZERO,radius,0.0,TAU,96,Color(PALETTE.CORE,0.95 * alpha),2.0,true)
-		# 环上一圈沿径向抖动的电弧，每秒换形 24 次；幅度留在判定环带之内。
-		var count:int = clampi(int(radius * TAU / 26.0),12,96)
-		var random := RandomNumberGenerator.new()
-		random.seed = flicker * 977 + i * 131 + 1
-		var points := PackedVector2Array()
-		for k:int in range(count + 1):
-			var angle:float = TAU * float(k) / float(count)
-			points.append(Vector2.from_angle(angle) * (radius + random.randf_range(-half_width,half_width) * 0.8))
-		points[count] = points[0]
-		draw_polyline(points,Color(PALETTE.MIDDLE,0.55 * alpha),5.0,false)
-		draw_polyline(points,Color(PALETTE.CORE,alpha),1.8,false)
+		var alpha:float = clampf(1.0 - pow(radius / max_radius,2.2),0.0,1.0)
+		ARC.draw(self,Vector2.ZERO,radius,0.0,TAU,96,Color(PALETTE.OUTER,0.22 * alpha),half_width * 2.0)
+		ARC.draw_ring(self,Vector2.ZERO,radius,Color.WHITE,alpha,palette)

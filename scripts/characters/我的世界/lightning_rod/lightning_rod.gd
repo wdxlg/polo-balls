@@ -4,7 +4,7 @@ extends "res://scripts/characters/我的世界/new5/base.gd"
 # 闪电落到针上时对避雷针周围小范围造成伤害并眩晕（同一轮每个敌人只结算一次）；
 # 每条闪电的路径留下一段连着云与针尖的电网，碰到的敌人受高频小伤和短眩晕。
 # 针下能量条靠落雷充能：受到伤害时朝周围小范围放电并消耗能量；充满时释放大范围扩散雷圈。
-# 能量接近满时针体颤抖，越接近满幅度越大。乌云在天上，闪电与电网不被墙阻挡。
+# 能量接近满时针体颤抖，越接近满幅度越大。乌云在所选一侧的地图墙外、与针对齐，闪电与电网从外面进来，不被墙阻挡。
 const STORM = preload("res://scripts/characters/我的世界/lightning_rod/storm_visual.gd")
 const RING = preload("res://scripts/characters/我的世界/lightning_rod/thunder_ring.gd")
 const BAR = preload("res://scripts/characters/我的世界/lightning_rod/charge_bar.gd")
@@ -22,9 +22,9 @@ const BAR_OFFSET:Vector2 = Vector2(0.0,66.0)
 @export var bolts_min:int = 2
 @export var bolts_max:int = 5
 @export var bolt_stagger:float = 0.07
-@export var cloud_distance:float = 250.0
+## 云与地图边缘之间的距离（云整块在墙外）。
+@export var cloud_outside_gap:float = 56.0
 @export var cloud_follow:float = 5.0
-@export var cloud_map_margin:float = 70.0
 @export_category("避雷针 / 落雷")
 @export var impact_radius:float = 80.0
 @export var impact_damage_ratio:float = 1.0
@@ -146,13 +146,19 @@ func time_to_next_volley() -> float:
 	return maxf(at - cycle_age,0.0)
 
 
+## 云心：所选一侧地图边缘之外，沿这条边与避雷针对齐（不超出这条边的两端）。
 func cloud_target() -> Vector2:
-	var goal:Vector2 = global_position + direction_vector() * cloud_distance
+	var dir:Vector2 = direction_vector()
+	var half:Vector2 = STORM.cloud_half_extent(dir_index)
 	var rect:Rect2 = SubmissionCharacterTools.map_rect(self)
-	if rect.size.x > cloud_map_margin * 2.0 and rect.size.y > cloud_map_margin * 2.0:
-		rect = rect.grow(-cloud_map_margin)
-		goal = Vector2(clampf(goal.x,rect.position.x,rect.end.x),clampf(goal.y,rect.position.y,rect.end.y))
-	return goal
+	if rect.size.x <= 1.0 or rect.size.y <= 1.0: return global_position + dir * (300.0 + half.y)
+	var x:float = clampf(global_position.x,rect.position.x + half.x,maxf(rect.end.x - half.x,rect.position.x + half.x))
+	var y:float = clampf(global_position.y,rect.position.y + half.y,maxf(rect.end.y - half.y,rect.position.y + half.y))
+	match dir_index:
+		0: return Vector2(x,rect.position.y - cloud_outside_gap - half.y)
+		1: return Vector2(x,rect.end.y + cloud_outside_gap + half.y)
+		2: return Vector2(rect.position.x - cloud_outside_gap - half.x,y)
+		_: return Vector2(rect.end.x + cloud_outside_gap + half.x,y)
 
 
 # ---------------------------------------------------------------- 权威端循环
@@ -269,11 +275,15 @@ func _land_bolt(bolt:Dictionary) -> void:
 	var start:Vector2 = cloud_position + Vector2(bolt.offset)
 	nets.append({"offset":Vector2(bolt.offset),"seed":int(bolt.seed),"age":0.0})
 	_struck_flash = 0.1
-	if is_instance_valid(storm): storm.add_bolt(start,tip,int(bolt.seed))
-	if bool(bolt.first): ROD_AUDIO.play(self,ROD_AUDIO.Kind.THUNDER,tip,-8.0)
-	ROD_AUDIO.play(self,ROD_AUDIO.Kind.IMPACT,tip,-13.0 if bool(bolt.first) else -17.0,-1,randf_range(0.95,1.08))
-	if not is_multiplayer_authority(): return
-	_impact_damage(int(bolt.volley))
+	if not is_instance_valid(storm): return
+	var effect:Node2D = storm.add_bolt(start,tip,int(bolt.seed),impact_radius,bool(bolt.first))
+	if effect != null and is_multiplayer_authority(): effect.impact_started.connect(_on_bolt_impact.bind(int(bolt.volley)),CONNECT_ONE_SHOT)
+
+
+## 共享雷电命中瞬间（权威端）：落点小范围伤害与充能。
+func _on_bolt_impact(point:Vector2,volley:int) -> void:
+	if health <= 0 or not is_combat_runtime_active(): return
+	_impact_damage(volley,point)
 	_add_charge(charge_per_bolt)
 
 
@@ -303,11 +313,10 @@ func _enemies() -> Array[ball]:
 	return result
 
 
-func _impact_damage(volley:int) -> void:
+func _impact_damage(volley:int,center:Vector2) -> void:
 	if health <= 0 or is_damage_output_disabled(): return
 	var hit:Dictionary = _volley_hits.get(volley,{})
 	if _volley_hits.size() > 8: _volley_hits.clear()
-	var center:Vector2 = global_position
 	var amount:float = attack_damage(impact_damage_ratio)
 	for target:ball in _enemies():
 		var id:int = target.get_instance_id()
@@ -397,8 +406,6 @@ func _receive_ring(center:Vector2) -> void:
 	world.add_child(ring,true)
 	ROD_AUDIO.play(self,ROD_AUDIO.Kind.THUNDER,center,-1.0)
 	ROD_AUDIO.play(self,ROD_AUDIO.Kind.IMPACT,center,-3.0,-1,0.85)
-	if is_instance_valid(storm):
-		for i:int in range(16): storm.add_spark(center,260.0)
 
 
 func _send_rod_sound(kind:int,point:Vector2,volume_db:float) -> void:
@@ -419,7 +426,7 @@ func get_ai_attack_threats(receiver:ball = null) -> Array[Dictionary]:
 	if is_instance_valid(receiver) and not U.enemy(self,receiver): return result
 	var until:float = 0.0 if not _pending_bolts.is_empty() else time_to_next_volley()
 	if until >= 0.0:
-		result.append({"shape":"circle","position":global_position,"radius":impact_radius,"damage":attack_damage(impact_damage_ratio),"source":self,
+		result.append({"shape":"circle","position":tip_world_position(),"radius":impact_radius,"damage":attack_damage(impact_damage_ratio),"source":self,
 			"kind":"lightning_rod_impact","danger_in":until,"danger_duration":0.1,"control":0.8})
 	var tip:Vector2 = tip_world_position()
 	var net_amount:float = attack_damage(net_damage_ratio)
