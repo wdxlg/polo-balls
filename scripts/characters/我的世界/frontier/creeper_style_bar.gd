@@ -1,5 +1,5 @@
 extends RefCounted
-## 共享能量/进度条：苦力怕、火把、皓宸、木剑、避雷针等都调用这里。
+## 局内所有能量/进度/充能条的唯一实现（tests/verify_shared_bar.py 检查）；改外观只改这里，所有调用方一起变。
 ## 外观是原版 Boss 条（gui/sprites/boss_bar/white_*）：两端各 CAP 个原版像素，中段水平拉伸，
 ## 进度按比例裁切；白色原图乘调用方的颜色，配色由调用方决定。
 ## 分格条传 segments：6/10/12/20 格叠原版 notched 刻痕图，其他格数按同样的刻痕样式画分隔。
@@ -14,12 +14,9 @@ const NOTCHES:Dictionary = {
 }
 ## 原版刻痕像素的颜色（notched_* 图里 2,2,2 半透明）。
 const NOTCH_COLOR:Color = Color(0.008,0.008,0.008,0.5)
-const OUTER_COLOR:Color = Color(0.02,0.02,0.025,0.92)
-const BACKGROUND_COLOR:Color = Color(0.12,0.12,0.14,1.0)
-const BORDER_COLOR:Color = Color(0.78,0.82,0.88,0.86)
 const START_COLOR:Color = Color(1,1,1,1)
 const END_COLOR:Color = Color(1,0.08,0.04,1)
-## 白色底槽主色 57/255：乘上它的倒数让底槽主色正好等于 BACKGROUND_COLOR。
+## 白色底槽主色 57/255：乘它后底槽主色为 (0.12,0.12,0.14)。
 const TROUGH_TINT:Color = Color(0.5368,0.5368,0.6263,1.0)
 
 static func paint(canvas:CanvasItem,rect:Rect2,ratio:float,warning:float,fill_color:Color = Color(-1,-1,-1,-1),trough_tint:Color = Color(-1,-1,-1,-1),opacity:float = 1.0,segments:int = 0) -> void:

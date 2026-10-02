@@ -8,6 +8,9 @@ extends ball
 # - V89：锻造阶段格固定为 3 个并与主进度条严格居中；已点亮阶段格带辉光，装备满级后阶段格消失。
 # - V89：场景内新增“锻造_可视调整”预览节点，运行时直接读取这些节点的位置/旋转/缩放/Skew，允许在 2D 编辑器里拖拽调整锻造动画关键姿态。
 
+const BAR = preload("res://scripts/characters/我的世界/frontier/creeper_style_bar.gd")
+## 共享条底槽乘色：原版底槽主色 57/255 乘它后约等于原来的 (0.03,0.03,0.035)。
+const FORGE_BAR_TROUGH_TINT:Color = Color(0.134,0.134,0.157,0.9)
 const TIER_NONE:int = 0
 const TIER_IRON:int = 1
 const TIER_DIAMOND:int = 2
@@ -1005,13 +1008,7 @@ func _update_local_visual_clock(delta:float) -> void:
 
 func _draw() -> void:
 	# 脚下锻造主进度条。阶段格永远是 3 个，中央格的几何中心严格对齐主进度条 X=0。
-	var bar_rect := Rect2(-34.0,66.0,68.0,7.0)
-	draw_rect(bar_rect,Color(0.03,0.03,0.035,0.90),true)
-	var progress_width:float = 64.0 * clampf(_forge_progress,0.0,1.0)
-	if progress_width > 0.0:
-		# 主条也给一点柔和外辉光，跟下面阶段格的发光语言一致。
-		draw_rect(Rect2(-32.5,67.5,progress_width + 1.0,4.0),Color(COLOR_FORGE.r,COLOR_FORGE.g,COLOR_FORGE.b,0.15),true)
-	draw_rect(Rect2(-32.0,68.0,progress_width,3.0),COLOR_FORGE,true)
+	BAR.paint(self,Rect2(-34.0,66.0,68.0,7.0),clampf(_forge_progress,0.0,1.0),0.0,COLOR_FORGE,FORGE_BAR_TROUGH_TINT)
 
 	# 装备全部锻造到下界合金后，三枚阶段格完全消失；之后只保留主条表示永久成长的下一锤。
 	if not _all_equipment_maxed():

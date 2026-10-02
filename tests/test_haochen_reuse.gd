@@ -51,7 +51,7 @@ func run() -> void:
 	var creeper:Node2D=load("res://scenes/characters/我的世界/苦力怕.tscn").instantiate()
 	creeper.Team="Team0";creeper.position=center+Vector2(0,40)
 	world.add_child(creeper);creeper.state_machine.set_physics_process(false);creeper.set_physics_process(false)
-	check(creeper.FUSE_BAR_RECT==Rect2(-55,92,110,16) and creeper.FUSE_BAR_OUTER_PAD==4.0 and creeper.FUSE_BAR_BORDER_WIDTH==2.5,"Creeper's exact established bar geometry remains unchanged")
+	check(creeper.FUSE_BAR_RECT==Rect2(-55,92,110,16),"Creeper's exact established bar geometry remains unchanged")
 	check(creeper.FUSE_BAR_START_COLOR==creeper.SHARED_BAR.START_COLOR and creeper.FUSE_BAR_END_COLOR==creeper.SHARED_BAR.END_COLOR,"Creeper and other callers share the same palette instead of parallel approximations")
 	check(creeper.fuse_duration==2.5 and creeper.fuse_start_radius==50.0,"extracting the painter does not change Creeper fuse timing or detection radius")
 	world.queue_free()

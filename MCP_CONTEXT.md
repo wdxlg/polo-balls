@@ -15,6 +15,7 @@
 - 新增或修改技能、特效、UI 条、素材前，**先在下表和已有角色里找现成实现**。同一语义（例如"闪电""云""能量条""扩散环""电弧"）必须调用公共实现，差异用参数、回调或子类保留，**不得复制近似算法、自绘替代品或复制一份同样的素材**。
 - 新角色动手前，先把它的每个机制/表现逐条对照下表列出"用哪个公共入口"；表里没有的，先确认确实是新机制（必要时问用户），再把它写成公共实现并补一行。
 - 技能只在权威端结算，RPC 同步视觉和破坏。纯视觉的环、粒子、爆炸不得暗带另一套伤害。
+- 局内的能量/进度/充能条一律调用共享条 `paint`，只传位置、比例、颜色、透明度、格数；禁止自画矩形条、自建 ColorRect/ProgressBar 条或自定义条的边框/底色常量。换外观只改共享条，所有调用方同步变化。`python tests/verify_shared_bar.py` 必须通过；确属不同元素的条写进它的 `ALLOWED` 并注明原因。
 - 默认移动：没有明确的特殊移动说明就沿用公共正常移动（`ball.move/stand`、碰撞反弹、手控 WASD）；索敌和瞄准只决定攻击朝向，不改移动方向、不擅自追敌或停步。特殊阶段（冲刺、飞行等）结束后恢复公共移动。
 
 | 需求 | 唯一入口 | 要点 |
@@ -22,7 +23,7 @@
 | 雷电 | `mc_combat_abilities.gd::lightning(parent,point,seed,radius,warning,options)` | `tuning` 调表现；`fields.origin_world` 从指定点（如云）劈下，默认从屏幕顶；`fields.pause_with_battle` 随时停冻结；`on_impact` 只在权威端接伤害；落点冲击圈就是伤害半径 |
 | 电弧连线 | `trident_arc.gd::paint(canvas,from,to,seed,clock,fade,jitter,segments)` | 电网、放电等两点间抖动电弧 |
 | 原版方块云 | `minecraft_clouds.gd`（天空云）；局部云块 `cloud_piece(region,transpose)` + `make_patch(mask,tint)` + `place_patch(patch,center)` | 原版 `clouds.png`、同一着色器（`cloud_tint` 染色、`cloud_alpha` 渐隐）、32 像素格、厚度 1/3 格 |
-| 能量/进度条 | `frontier/creeper_style_bar.gd::paint(canvas,rect,ratio,warning,fill,trough,opacity)` / `below_body` | 原版 Boss 条外观（`Images/UI/boss_bar/white_*` 三段式、进度裁切），颜色由调用方传入；分格条传 `segments`（6/10/12/20 用原版刻痕图） |
+| 能量/进度/充能条（局内所有条） | `frontier/creeper_style_bar.gd::paint(canvas,rect,ratio,warning,fill,trough,opacity,segments)` / `below_body` | 原版 Boss 条外观（`Images/UI/boss_bar/white_*` 三段式、进度裁切），颜色由调用方传入；分格条传 `segments`（6/10/12/20 用原版刻痕图） |
 | MC 像素圈/蓄力盘 | `pixel_arc.gd::draw/draw_ring/draw_disk`；持续预警 `mc_combat_abilities.gd::charge_circle` | 不另写平滑 `draw_arc` |
 | 无伤害扩散像素环 | `mc_combat_abilities.gd::expanding_ring(parent,point,radius,options)` | `palette`、`direction/depth_ratio` 伪 3D |
 | 扩张圆环连续扫掠 | `classes/expanding_ring_sweep.gd::segments/contacts` | 真实环带几何；调用方负责伤害、权威结算、去重 |
@@ -86,7 +87,7 @@
 
 ## 8. 统一分类（强制）
 
-- 所有角色、招式、召唤物、投射物、障碍、状态、特效在 `classes/combat_classification_catalog.gd` 登记（实体身份、攻击方式、载体、伤害类型、状态与控制），不凭目录或名字判定。新增脚本/场景必须通过 `python tests/verify_combat_classification_registry.py`。修同类问题先查公共入口和所有调用方。
+- 所有角色、招式、召唤物、投射物、障碍、状态、特效在 `classes/combat_classification_catalog.gd` 登记（实体身份、攻击方式、载体、伤害类型、状态与控制），不凭目录或名字判定。新增脚本/场景必须通过 `python tests/verify_combat_classification_registry.py`和 `python tests/verify_shared_bar.py`。修同类问题先查公共入口和所有调用方。
 
 ## 9. 状态与净化
 

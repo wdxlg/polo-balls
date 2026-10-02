@@ -34,11 +34,6 @@ const DEATH_BRIDGE_DISPLAY_META:StringName = &"battle_death_bridge_display_name"
 # V115：进度条移到角色脚下；按角色碰撞体下缘留少量间距，不再悬在头顶。
 # 内部填充色不再使用 ProgressBar 默认主题，而是随引信进度从白色连续过渡到红色。
 const FUSE_BAR_RECT:Rect2 = Rect2(-55.0,92.0,110.0,16.0)
-const FUSE_BAR_OUTER_PAD:float = 4.0
-const FUSE_BAR_BORDER_WIDTH:float = 2.5
-const FUSE_BAR_OUTER_COLOR:Color = SHARED_BAR.OUTER_COLOR
-const FUSE_BAR_BACKGROUND_COLOR:Color = SHARED_BAR.BACKGROUND_COLOR
-const FUSE_BAR_BORDER_COLOR:Color = SHARED_BAR.BORDER_COLOR
 const FUSE_BAR_START_COLOR:Color = SHARED_BAR.START_COLOR
 const FUSE_BAR_END_COLOR:Color = SHARED_BAR.END_COLOR
 

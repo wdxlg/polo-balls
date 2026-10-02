@@ -207,7 +207,7 @@ func run() -> void:
 	check(charged._status_removed and charged._status_text.is_empty(),"character status descriptions removed")
 	var bar:Script=load("res://scripts/characters/我的世界/frontier/creeper_style_bar.gd")
 	var creeper:Script=load("res://scripts/characters/我的世界/苦力怕.gd")
-	check(bar.OUTER_COLOR==creeper.FUSE_BAR_OUTER_COLOR and bar.BACKGROUND_COLOR==creeper.FUSE_BAR_BACKGROUND_COLOR and bar.BORDER_COLOR==creeper.FUSE_BAR_BORDER_COLOR,"bar uses actual creeper frame/trough/outline colors")
+	check(creeper.SHARED_BAR==bar,"creeper fuse bar uses the shared bar")
 	check(charged.FRONTIER_FX.BAR==charged.BENCH.BAR,"durability and workbench use the same bar renderer")
 	var close:Node2D=victim(Vector2(12,0))
 	await physics_frame
