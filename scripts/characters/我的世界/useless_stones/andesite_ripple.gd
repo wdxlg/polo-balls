@@ -1,17 +1,13 @@
 extends Node2D
 ## 安山岩的地面石头波纹：波头从安山岩脚下出发，沿地面追向队友当前位置，一路隆起
 ## 安山岩像素小石块（升起、落下、淡出）。波头抵达队友时才生效：权威端结算治疗或急迫，
-## 并在队友脚下炸开一圈安山岩色涟漪；客机只播放同一段表现。目标死亡或消失时波纹作废。
+## 并在队友脚下冒出几个石头凸起（不画扩散圆圈）；客机只播放同一段表现。目标死亡或消失时波纹作废。
 ## 治疗量在抵达时按目标当时的缺血比例计算：base × (1 + heal_missing_scale × 缺血比例)。
 const STATUS = preload("res://scripts/effects/我的世界/mc_status_effects.gd")
-const RING = preload("res://scripts/effects/我的世界/mc_combat_abilities.gd")
 const STONE_AUDIO = preload("res://scripts/characters/我的世界/useless_stones/useless_stones_audio.gd")
 const FACE:Texture2D = preload("res://Images/characters/我的世界/useless_stones/andesite.png")
 const HEAL:int = 0
 const HASTE:int = 1
-const RING_PALETTE:Array[Color] = [Color(0.86,0.86,0.84,0.95),Color(0.62,0.62,0.6,0.9),Color(0.42,0.42,0.41,0.8)]
-const HEAL_RING_PALETTE:Array[Color] = [Color(0.86,0.86,0.84,0.95),Color(0.62,0.66,0.6,0.9),Color(0.45,0.78,0.42,0.85)]
-const HASTE_RING_PALETTE:Array[Color] = [Color(0.95,0.9,0.62,0.95),Color(0.7,0.68,0.6,0.9),Color(0.45,0.45,0.43,0.8)]
 ## 以下尺寸都是“单位缩放 1”下的世界像素，实际按安山岩根缩放换算。
 const BUMP_SPACING:float = 6.0
 const BUMP_SIZE:float = 5.5
@@ -124,8 +120,7 @@ func _arrive(target:Node2D) -> void:
 	if arrived: return
 	arrived = true
 	if authoritative: _deliver(target)
-	var palette:Array[Color] = HEAL_RING_PALETTE if kind == HEAL else HASTE_RING_PALETTE
-	RING.expanding_ring(get_parent(),target.global_position,7.0*unit_scale,{"lifetime":0.42,"end_scale":2.0,"palette":palette,"depth_ratio":0.42,"z_index":1})
+	# 抵达只冒三个石头凸起并响放置声；治疗与急迫不画扩散圆圈（user 2026-10-02）。
 	for i:int in range(3): _add_bump(target.global_position+Vector2.RIGHT.rotated(TAU*float(i)/3.0+0.4)*5.0*unit_scale)
 	STONE_AUDIO.play(self,STONE_AUDIO.PLACE_SOUND,_serial,target.global_position,1.15 if kind == HEAL else 0.95,{"keep_after_source":true,"volume_db":-6.0})
 

@@ -35,7 +35,7 @@ const FLAME_FORM_CELLS:float = 1.3
 ## 火星抛物线顶点高度 = spark_arc + 水平距离 × spark_arc_per_distance（先升后落）。
 @export var spark_arc:float = 12.0
 @export var spark_arc_per_distance:float = 0.55
-@export var fire_duration:float = 5.0
+@export var fire_duration:float = 8.0
 ## 火的伤害半径（格）：0.5 即火焰所在那一格的内切圆。
 @export var fire_radius_cells:float = 0.5
 @export var fire_tick_multiplier:float = 0.5
