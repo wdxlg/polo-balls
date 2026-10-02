@@ -2,7 +2,7 @@ extends ball
 ## 附魔台射出的原版附魔符文（particle/sga_*.png，颜色按原版 EnchantmentTableParticle：
 ## 灰度取原版范围的亮端 0.65–1.0，红绿 ×0.9）。投射物契约与三废石石块一致：逐帧扫掠接触、权威端 RPC 生成、
 ## 名字确定。符文穿过墙体，出生后在书旁悬停 hover_time 再慢速飞出，按较小的 turn_rate 略微追踪目标
-## （目标急转可能被甩开）。飞行时字形轻微脉动，身后飘出原版附魔字形碎片和星芒（rune_particles.gd），
+## （目标急转可能被甩开），寿命最后 fade_time 秒逐渐透明，到寿命结束消失。飞行时字形轻微脉动，身后飘出原版附魔字形碎片和星芒（rune_particles.gd），
 ## 送达时散开一圈；粒子各端本地生成。
 ## polarity  1：只接触敌人，走公共 hitbox 造成伤害（投射物附魔、护盾、格挡照常）。
 ## polarity -1：只接触友军，送达时回复 heal_amount。
@@ -42,7 +42,9 @@ const PARTICLES_PATH:String = "res://scripts/characters/我的世界/enchanting_
 const TRAIL_INTERVAL:float = 0.045
 @export var polarity:int = 1
 @export var heal_amount:float = 0.0
-@export var life:float = 5.5
+@export var life:float = 3.5
+## 寿命最后这段时间里逐渐变透明，到寿命结束正好消失（仍可命中）。
+@export var fade_time:float = 1.0
 @export var hover_time:float = 0.25
 @export var turn_rate:float = 1.4
 @export var glyph:int = 0
@@ -54,8 +56,10 @@ var _age:float = 0.0
 var _spent:bool = false
 var _resolving_hit:bool = false
 var _fx_clock:float = 0.0
+var _life_total:float = 0.0
 var _trail_left:float = 0.0
 var _last_fx_position:Vector2 = Vector2.INF
+var rng_fx := RandomNumberGenerator.new()
 
 func _ready() -> void:
 	Hit_Audio = ""
@@ -81,6 +85,8 @@ func _ready() -> void:
 	self_hitbox.set_deferred("monitoring",false)
 	add_to_group(&"MCEnchantingRune")
 	add_to_group(&"BattleTransient")
+	_life_total = life
+	rng_fx.randomize()
 	if image is Sprite2D:
 		image.texture = GLYPHS[posmod(glyph,GLYPHS.size())]
 		image.rotation = 0.0
@@ -90,8 +96,14 @@ func _refresh_color() -> void:
 	if image == null: return
 	var color:Color = Color(shade*0.9,shade*0.9,shade)
 	if polarity < 0: color *= HEAL_TINT
-	color.a = clampf(_age/maxf(hover_time,0.01),0.0,1.0) if hover_time > 0.0 else 1.0
+	color.a = fade_alpha()
 	image.self_modulate = color
+
+## 出生淡入 × 寿命末段淡出。用各端本地的飞行时钟，客户端也同样渐隐。
+func fade_alpha() -> float:
+	var fade_in:float = clampf(_fx_clock/hover_time,0.0,1.0) if hover_time > 0.0 else 1.0
+	var fade_out:float = clampf((_life_total - _fx_clock)/fade_time,0.0,1.0) if fade_time > 0.0 and _life_total > 0.0 else 1.0
+	return fade_in*fade_out
 
 func owner_unit() -> ball:
 	return Master if is_instance_valid(Master) else self
@@ -128,6 +140,7 @@ func _process(delta:float) -> void:
 	_trail_left -= delta
 	if _trail_left > 0.0 or moved.length_squared() <= 0.0001: return
 	_trail_left = TRAIL_INTERVAL
+	if rng_fx.randf() > fade_alpha(): return # 渐隐时拖尾也随之变稀
 	var fx:Node2D = (load(PARTICLES_PATH) as Script).call("find_or_create",self)
 	if fx != null: fx.call("trail",global_position,moved,shade,polarity < 0,_fx_scale())
 

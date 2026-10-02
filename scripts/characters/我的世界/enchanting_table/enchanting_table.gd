@@ -64,13 +64,16 @@ const RUNE_EDGE_DEPTH:float = 3.0
 ## 开合动画时长（包含在周期内，只影响画面）。
 @export var book_turn_time:float = 0.35
 @export_category("附魔台 / 符文")
-@export var attack_range:float = 520.0
+## 符文寿命内大约能飞到的距离；更远的目标不选。
+@export var attack_range:float = 400.0
 @export var rune_speed:float = 120.0
 ## 略微追踪：每秒最多转向的弧度。
 @export var rune_turn_rate:float = 1.4
 ## 自动射出的符文初始方向在朝向目标的基础上随机偏转（弧度），配合略微追踪画出弧线。
 @export var rune_spread:float = 0.6
-@export var rune_life:float = 5.5
+@export var rune_life:float = 3.5
+## 符文寿命最后这段时间渐隐消失。
+@export var rune_fade_time:float = 1.0
 @export var rune_hover_time:float = 0.25
 ## 常驻上浮字形粒子：合书/开书时每秒生成的数量（纯视觉，各端本地随机）。
 @export var ambient_glyphs_closed:float = 12.0
@@ -262,6 +265,7 @@ func _spawn_rune(rune_name:String,start:Vector2,heading:Vector2,damage:float,pol
 	rune.set("polarity",polarity)
 	rune.set("heal_amount",maxf(damage*rune_heal_ratio,0.0))
 	rune.set("life",rune_life)
+	rune.set("fade_time",rune_fade_time)
 	rune.set("hover_time",rune_hover_time)
 	rune.set("turn_rate",rune_turn_rate)
 	rune.set("glyph",glyph)

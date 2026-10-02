@@ -1,12 +1,12 @@
 extends Node2D
 ## 一张附魔台的计数显示（World 下的 top_level 画布，绝对 z 90：在人物之上、血条之下）。
-## 每个被符文命中的目标左上角显示原版附魔台等级绿色的罗马数字 I–X；多张附魔台同时计数时
+## 每个被符文命中的目标左上角显示红色（原版 GUI 红 ff5555）的罗马数字 I–X；多张附魔台同时计数时
 ## 按附魔台名字顺序向下错开。计数到 X 时数字消失，原位置浮起获得的附魔名（正面灰色、负面红色），
 ## 1.2 秒内上升淡出。纯表现，各端按附魔台同步的计数各自绘制。
 const NUMBER_FONT:Font = preload("res://fonts/Mojangles.ttf")
 const TEXT_FONT:Font = preload("res://fonts/BoutiqueBitmap9x9_1.92.ttf")
 const CATALOG = preload("res://scripts/effects/我的世界/mc_enchantment_catalog.gd")
-const NUMBER_COLOR:Color = Color("80ff20")
+const NUMBER_COLOR:Color = Color("ff5555")
 const OVERLAY_Z:int = 90
 const FONT_SIZE:int = 10
 ## 罗马数字按 COUNTER_RASTER 字号栅格化后缩到 COUNTER_SIZE 世界像素高，比附魔名小一号且保持清晰。

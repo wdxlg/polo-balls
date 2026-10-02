@@ -175,6 +175,7 @@ func run() -> void:
 	check(not glints.is_empty() and glints.all(func(g:Node): return ally.graphics.is_ancestor_of(g)),"the enchantment glint covers only the body art, never the health bar, status icon or shadow")
 	var overlay:Node = table.overlay()
 	check(overlay != null and overlay.z_index == 90 and not overlay.z_as_relative,"counters draw on a world overlay above characters, below health bars")
+	check(overlay != null and overlay.NUMBER_COLOR == Color("ff5555"),"roman numeral counters are red")
 
 	# --- 投射物附魔作用于符文 ---
 	ENCHANTS.add(table,"multishot",1)
@@ -185,6 +186,21 @@ func run() -> void:
 	await frames(3)
 	check(runes().size() - count_before == 2,"Multishot I on the table splits each rune in two")
 	ENCHANTS.remove(table,"multishot")
+
+	# --- 符文飞一会渐隐消失 ---
+	table.phase_left = 10.0
+	table._shot_left = 0.0
+	var before_set:Array = runes()
+	table.fire_rune(null,table.global_position + Vector2(0.0,-2000.0))
+	await frames(2)
+	var lone:Array = runes().filter(func(n:Node): return not before_set.has(n))
+	var fader:Node = lone[0] if not lone.is_empty() else null
+	check(fader != null and float(fader.get("_life_total")) <= 4.0 and float(fader.get("fade_time")) > 0.0,"runes only live a short while")
+	await wait_until(func(): return not is_instance_valid(fader) or float(fader.get("_fx_clock")) >= float(fader.get("_life_total")) - float(fader.get("fade_time"))*0.5,400)
+	var mid_alpha:float = fader.image.self_modulate.a if is_instance_valid(fader) else -1.0
+	check(mid_alpha > 0.05 and mid_alpha < 0.8,"a rune fades out near the end of its flight")
+	await wait_until(func(): return not is_instance_valid(fader) or fader.is_queued_for_deletion(),240)
+	check(not is_instance_valid(fader) or fader.is_queued_for_deletion(),"and disappears when its life runs out")
 
 	# --- 手控：左键朝鼠标射出 ---
 	check(table.player_control_action_ids() == [&"controlled_attack_action"],"manual control binds only the rune shot to the left button")
