@@ -157,13 +157,10 @@ const DODGE_FACE_INDEX:int = 3 # Boss Faces 中闭着左眼、另一只眼睁开
 # V165：脚下闪避次数条，视觉结构沿用苦力怕的“近黑外框 + 灰白描边”。
 # 内部每一个白色格代表 1 次剩余闪避；格子之间用黑线分隔。
 const DODGE_BAR_RECT:Rect2 = Rect2(-55.0,112.0,110.0,14.0)
-const DODGE_BAR_OUTER_PAD:float = 4.0
-const DODGE_BAR_BORDER_WIDTH:float = 2.5
-const DODGE_BAR_OUTER_COLOR:Color = Color(0.02,0.02,0.025,0.92)
-const DODGE_BAR_BACKGROUND_COLOR:Color = Color(0.10,0.10,0.115,1.0)
-const DODGE_BAR_BORDER_COLOR:Color = Color(0.78,0.82,0.88,0.90)
 const DODGE_BAR_FILL_COLOR:Color = Color(1.0,1.0,1.0,1.0)
-const DODGE_BAR_SEPARATOR_COLOR:Color = Color(0.01,0.01,0.012,1.0)
+## 共享条底槽乘色：原版底槽主色 57/255 乘它后等于原来的 (0.10,0.10,0.115)。
+const DODGE_BAR_TROUGH_TINT:Color = Color(0.4474,0.4474,0.5145,1.0)
+const BAR = preload("res://scripts/characters/我的世界/frontier/creeper_style_bar.gd")
 
 enum SansVisual { IDLE, DODGE, GRAVITY_UP, GRAVITY_DOWN, GRAVITY_RIGHT, GRAVITY_LEFT }
 enum SansAttack { GRAVITY, BONES, GASTER }
@@ -2877,53 +2874,13 @@ func _update_dodge_bar_visual(delta:float) -> void:
 	queue_redraw()
 
 
-func _dodge_bar_color(color:Color) -> Color:
-	return Color(color.r,color.g,color.b,color.a * clampf(_dodge_bar_alpha,0.0,1.0))
-
-
 func _draw() -> void:
 	if _dodge_bar_alpha <= 0.001 or _death_visual_started_local:
 		return
 	var max_count:int = maxi(max_dodge_count,1)
 	var remaining:int = clampi(_dodge_count,0,max_count)
-	var pad_vec:=Vector2(DODGE_BAR_OUTER_PAD,DODGE_BAR_OUTER_PAD)
-
-	draw_rect(
-		Rect2(DODGE_BAR_RECT.position - pad_vec,DODGE_BAR_RECT.size + pad_vec * 2.0),
-		_dodge_bar_color(DODGE_BAR_OUTER_COLOR),
-		true
-	)
-	draw_rect(DODGE_BAR_RECT,_dodge_bar_color(DODGE_BAR_BACKGROUND_COLOR),true)
-
-	# 每一个完整白格 = 一次仍可使用的闪避。
-	# 先按剩余次数填白，再在每个格子边界画黑线，20 格在视觉上始终清晰可数。
-	if remaining > 0:
-		var filled_ratio:float = float(remaining) / float(max_count)
-		draw_rect(
-			Rect2(
-				DODGE_BAR_RECT.position,
-				Vector2(DODGE_BAR_RECT.size.x * filled_ratio,DODGE_BAR_RECT.size.y)
-			),
-			_dodge_bar_color(DODGE_BAR_FILL_COLOR),
-			true
-		)
-
-	var segment_width:float = DODGE_BAR_RECT.size.x / float(max_count)
-	for i:int in range(1,max_count):
-		var x:float = DODGE_BAR_RECT.position.x + segment_width * float(i)
-		draw_line(
-			Vector2(x,DODGE_BAR_RECT.position.y),
-			Vector2(x,DODGE_BAR_RECT.end.y),
-			_dodge_bar_color(DODGE_BAR_SEPARATOR_COLOR),
-			1.5
-		)
-
-	draw_rect(
-		DODGE_BAR_RECT,
-		_dodge_bar_color(DODGE_BAR_BORDER_COLOR),
-		false,
-		DODGE_BAR_BORDER_WIDTH
-	)
+	# 每一格 = 一次仍可使用的闪避，格数用共享条的刻痕表示。
+	BAR.paint(self,DODGE_BAR_RECT,float(remaining) / float(max_count),0.0,DODGE_BAR_FILL_COLOR,DODGE_BAR_TROUGH_TINT,clampf(_dodge_bar_alpha,0.0,1.0),max_count)
 
 
 func _pick_random_dodge_position() -> Vector2:

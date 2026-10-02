@@ -1,6 +1,7 @@
 extends ball
 
 const TOOLS = preload("res://scripts/characters/投稿角色工具.gd")
+const BAR = preload("res://scripts/characters/我的世界/frontier/creeper_style_bar.gd")
 const BURN_SCRIPT = preload("res://scripts/status/锻刀师_燃烧.gd")
 const STEAM_SCENE = preload("res://scenes/effects/锻刀师_蒸汽.tscn")
 const SHOCKWAVE_SCENE = preload("res://scenes/effects/锻刀师_震荡波.tscn")
@@ -1046,8 +1047,6 @@ func _draw_sword_texture_at_angle(angle:float,tint:Color) -> void:
 
 func _draw_progress_bar() -> void:
 	var bar_rect := Rect2(-155.0,166.0,310.0,26.0)
-	draw_rect(Rect2(bar_rect.position - Vector2(6.0,6.0),bar_rect.size + Vector2(12.0,12.0)),Color(0.02,0.02,0.025,0.92),true)
-	draw_rect(bar_rect,Color(0.12,0.12,0.14,1.0),true)
 	var blade_phase:bool = _phase == ForgePhase.SHOWCASE or _phase == ForgePhase.BLADE_READY
 	var value:float = _blade_durability if blade_phase else _forge_progress
 	var ratio:float = clampf(value / 100.0,0.0,1.0)
@@ -1056,9 +1055,7 @@ func _draw_progress_bar() -> void:
 		fill_color = Color(0.76,0.88,1.0,1.0) if ratio > 0.25 else Color(1.0,0.20,0.12,1.0)
 	else:
 		fill_color = Color(lerpf(0.38,1.0,ratio),lerpf(0.08,0.72,ratio),lerpf(0.04,0.18,ratio),1.0)
-	if ratio > 0.0:
-		draw_rect(Rect2(bar_rect.position,Vector2(bar_rect.size.x * ratio,bar_rect.size.y)),fill_color,true)
-	draw_rect(bar_rect,Color(0.78,0.82,0.88,0.86),false,4.0)
+	BAR.paint(self,bar_rect,ratio,0.0,fill_color)
 
 
 func _draw_break_flash() -> void:

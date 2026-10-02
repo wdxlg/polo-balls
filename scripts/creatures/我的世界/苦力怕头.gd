@@ -12,13 +12,7 @@ const EXPLOSION_VISUAL_HOLD:float = 1.02
 
 # V114：二阶段苦力怕头沿用本体的新引信条视觉，保持前后阶段一致。
 const FUSE_BAR_RECT:Rect2 = Rect2(-65.0,52.0,130.0,17.0)
-const FUSE_BAR_OUTER_PAD:float = 4.0
-const FUSE_BAR_BORDER_WIDTH:float = 2.5
-const FUSE_BAR_OUTER_COLOR:Color = Color(0.02,0.02,0.025,0.92)
-const FUSE_BAR_BACKGROUND_COLOR:Color = Color(0.12,0.12,0.14,1.0)
-const FUSE_BAR_BORDER_COLOR:Color = Color(0.78,0.82,0.88,0.86)
-const FUSE_BAR_START_COLOR:Color = Color(1.0,1.0,1.0,1.0)
-const FUSE_BAR_END_COLOR:Color = Color(1.0,0.08,0.04,1.0)
+const BAR = preload("res://scripts/characters/我的世界/frontier/creeper_style_bar.gd")
 
 @export_category("苦力怕头 / 视觉")
 # V85：苦力怕本体场景的正常碰撞宽度为 78；头的独立贴图按同一局部宽度适配，
@@ -567,21 +561,7 @@ func _draw() -> void:
 
 func _draw_fuse_progress_bar() -> void:
 	var ratio:float = clampf(_fuse_elapsed / maxf(_current_fuse_duration,0.05),0.0,1.0)
-	var pad_vec:= Vector2(FUSE_BAR_OUTER_PAD,FUSE_BAR_OUTER_PAD)
-	draw_rect(
-		Rect2(FUSE_BAR_RECT.position - pad_vec,FUSE_BAR_RECT.size + pad_vec * 2.0),
-		FUSE_BAR_OUTER_COLOR,
-		true
-	)
-	draw_rect(FUSE_BAR_RECT,FUSE_BAR_BACKGROUND_COLOR,true)
-	if ratio > 0.0:
-		var fill_color:Color = FUSE_BAR_START_COLOR.lerp(FUSE_BAR_END_COLOR,ratio)
-		draw_rect(
-			Rect2(FUSE_BAR_RECT.position,Vector2(FUSE_BAR_RECT.size.x * ratio,FUSE_BAR_RECT.size.y)),
-			fill_color,
-			true
-		)
-	draw_rect(FUSE_BAR_RECT,FUSE_BAR_BORDER_COLOR,false,FUSE_BAR_BORDER_WIDTH)
+	BAR.paint(self,FUSE_BAR_RECT,ratio,ratio)
 
 
 func _reset_fuse_visual() -> void:

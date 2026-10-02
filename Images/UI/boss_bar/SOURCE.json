@@ -13,6 +13,46 @@
       "original_path": "assets/minecraft/textures/gui/sprites/boss_bar/white_progress.png",
       "sha1": "1f37a8e95c5af6339080594cd49457708e20fa08",
       "modified": false
+    },
+    "notched_6_background.png": {
+      "original_path": "assets/minecraft/textures/gui/sprites/boss_bar/notched_6_background.png",
+      "sha1": "5f8a4470753e764a52ba8dd1ae0c1ed08a4e8162",
+      "modified": false
+    },
+    "notched_6_progress.png": {
+      "original_path": "assets/minecraft/textures/gui/sprites/boss_bar/notched_6_progress.png",
+      "sha1": "4ac20cd338fed9266d452e2d681d8a0cdae55857",
+      "modified": false
+    },
+    "notched_10_background.png": {
+      "original_path": "assets/minecraft/textures/gui/sprites/boss_bar/notched_10_background.png",
+      "sha1": "30d5463b44f9696ba9dd86325541a3747a794e48",
+      "modified": false
+    },
+    "notched_10_progress.png": {
+      "original_path": "assets/minecraft/textures/gui/sprites/boss_bar/notched_10_progress.png",
+      "sha1": "1e8043569094b849de3cd79fdb40140ea2a40c0e",
+      "modified": false
+    },
+    "notched_12_background.png": {
+      "original_path": "assets/minecraft/textures/gui/sprites/boss_bar/notched_12_background.png",
+      "sha1": "85a3d06872e463a8f3deb6fd90ab6b605c17d070",
+      "modified": false
+    },
+    "notched_12_progress.png": {
+      "original_path": "assets/minecraft/textures/gui/sprites/boss_bar/notched_12_progress.png",
+      "sha1": "692678ecbf9f7237686dde550a0fbeed10399b2b",
+      "modified": false
+    },
+    "notched_20_background.png": {
+      "original_path": "assets/minecraft/textures/gui/sprites/boss_bar/notched_20_background.png",
+      "sha1": "7fbf65353cf857f914a4d78a0e918928a1fb1020",
+      "modified": false
+    },
+    "notched_20_progress.png": {
+      "original_path": "assets/minecraft/textures/gui/sprites/boss_bar/notched_20_progress.png",
+      "sha1": "aabfeb105fc72e13fbc1521ec7d898ccbcc2e40c",
+      "modified": false
     }
   }
 }

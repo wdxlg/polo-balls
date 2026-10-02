@@ -7,11 +7,10 @@ const BIG_ATTACK_BARK:AudioStream = preload("res://audio/characters/meme/大狗�
 const SMALL_ATTACK_BARK:AudioStream = preload("res://audio/characters/meme/大狗叫/小狗叫.MP3")
 const WAVE_VISUAL_SCRIPT = preload("res://scripts/effects/狗叫声波.gd")
 
-const PROGRESS_BAR_OUTER_COLOR:Color = Color(0.02,0.02,0.025,0.92)
-const PROGRESS_BAR_BACKGROUND_COLOR:Color = Color(0.10,0.10,0.115,1.0)
-const PROGRESS_BAR_BORDER_COLOR:Color = Color(0.78,0.82,0.88,0.90)
+const BAR = preload("res://scripts/characters/我的世界/frontier/creeper_style_bar.gd")
 const PROGRESS_BAR_FILL_COLOR:Color = Color(1.0,1.0,1.0,1.0)
-const PROGRESS_BAR_SEPARATOR_COLOR:Color = Color(0.01,0.01,0.012,1.0)
+## 共享条底槽乘色：原版底槽主色 57/255 乘它后等于原来的 (0.10,0.10,0.115)。
+const PROGRESS_BAR_TROUGH_TINT:Color = Color(0.4474,0.4474,0.5145,1.0)
 
 @export_category("狗叫机制 - 碰撞蓄力")
 # 只有实际碰撞才会播放短叫并增加一次进度，不再存在定时自动短叫。
@@ -219,10 +218,6 @@ func _update_collision_progress_bar(delta:float) -> void:
 	queue_redraw()
 
 
-func _progress_bar_color(color:Color) -> Color:
-	return Color(color.r,color.g,color.b,color.a * clampf(_progress_bar_alpha,0.0,1.0))
-
-
 # BarkMechanic 会继承大小狗根节点不同的缩放；这里用 global_scale 反算局部尺寸，
 # 确保大小狗脚下的条在世界空间里保持清楚、接近一致的像素粗细。
 func _progress_bar_world_rect() -> Rect2:
@@ -239,53 +234,13 @@ func _progress_bar_world_rect() -> Rect2:
 	)
 
 
-func _progress_bar_world_line_width(world_width:float) -> float:
-	var scale_value:Vector2 = global_scale.abs()
-	var max_scale:float = maxf(maxf(scale_value.x,scale_value.y),0.0001)
-	return maxf(world_width,0.25) / max_scale
-
-
 func _draw() -> void:
 	if _progress_bar_alpha <= 0.001 or not _enabled:
 		return
 	var max_count:int = maxi(collisions_before_howl,1)
 	var count:int = clampi(_progress_visual_count,0,max_count)
 	var rect:Rect2 = _progress_bar_world_rect()
-	var outer_pad:float = _progress_bar_world_line_width(2.0)
-	var border_width:float = _progress_bar_world_line_width(1.5)
-	var separator_width:float = _progress_bar_world_line_width(0.9)
-
-	draw_rect(
-		Rect2(rect.position - Vector2.ONE * outer_pad,rect.size + Vector2.ONE * outer_pad * 2.0),
-		_progress_bar_color(PROGRESS_BAR_OUTER_COLOR),
-		true
-	)
-	draw_rect(rect,_progress_bar_color(PROGRESS_BAR_BACKGROUND_COLOR),true)
-
-	if count > 0:
-		var filled_ratio:float = float(count) / float(max_count)
-		draw_rect(
-			Rect2(rect.position,Vector2(rect.size.x * filled_ratio,rect.size.y)),
-			_progress_bar_color(PROGRESS_BAR_FILL_COLOR),
-			true
-		)
-
-	var segment_width:float = rect.size.x / float(max_count)
-	for i:int in range(1,max_count):
-		var x:float = rect.position.x + segment_width * float(i)
-		draw_line(
-			Vector2(x,rect.position.y),
-			Vector2(x,rect.end.y),
-			_progress_bar_color(PROGRESS_BAR_SEPARATOR_COLOR),
-			separator_width
-		)
-
-	draw_rect(
-		rect,
-		_progress_bar_color(PROGRESS_BAR_BORDER_COLOR),
-		false,
-		border_width
-	)
+	BAR.paint(self,rect,float(count) / float(max_count),0.0,PROGRESS_BAR_FILL_COLOR,PROGRESS_BAR_TROUGH_TINT,clampf(_progress_bar_alpha,0.0,1.0),max_count)
 
 
 # 每个物理帧只维护待攻击和持续攻击；碰撞蓄力本身没有任何定时自动推进。

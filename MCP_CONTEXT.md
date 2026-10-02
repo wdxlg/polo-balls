@@ -22,7 +22,7 @@
 | 雷电 | `mc_combat_abilities.gd::lightning(parent,point,seed,radius,warning,options)` | `tuning` 调表现；`fields.origin_world` 从指定点（如云）劈下，默认从屏幕顶；`fields.pause_with_battle` 随时停冻结；`on_impact` 只在权威端接伤害；落点冲击圈就是伤害半径 |
 | 电弧连线 | `trident_arc.gd::paint(canvas,from,to,seed,clock,fade,jitter,segments)` | 电网、放电等两点间抖动电弧 |
 | 原版方块云 | `minecraft_clouds.gd`（天空云）；局部云块 `cloud_piece(region,transpose)` + `make_patch(mask,tint)` + `place_patch(patch,center)` | 原版 `clouds.png`、同一着色器（`cloud_tint` 染色、`cloud_alpha` 渐隐）、32 像素格、厚度 1/3 格 |
-| 能量/进度条 | `frontier/creeper_style_bar.gd::paint(canvas,rect,ratio,warning,fill,trough,opacity)` / `below_body` | 原版 Boss 条外观（`Images/UI/boss_bar/white_*` 三段式、进度裁切），颜色由调用方传入 |
+| 能量/进度条 | `frontier/creeper_style_bar.gd::paint(canvas,rect,ratio,warning,fill,trough,opacity)` / `below_body` | 原版 Boss 条外观（`Images/UI/boss_bar/white_*` 三段式、进度裁切），颜色由调用方传入；分格条传 `segments`（6/10/12/20 用原版刻痕图） |
 | MC 像素圈/蓄力盘 | `pixel_arc.gd::draw/draw_ring/draw_disk`；持续预警 `mc_combat_abilities.gd::charge_circle` | 不另写平滑 `draw_arc` |
 | 无伤害扩散像素环 | `mc_combat_abilities.gd::expanding_ring(parent,point,radius,options)` | `palette`、`direction/depth_ratio` 伪 3D |
 | 扩张圆环连续扫掠 | `classes/expanding_ring_sweep.gd::segments/contacts` | 真实环带几何；调用方负责伤害、权威结算、去重 |

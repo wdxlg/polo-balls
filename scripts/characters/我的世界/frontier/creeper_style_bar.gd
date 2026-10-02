@@ -2,9 +2,18 @@ extends RefCounted
 ## 共享能量/进度条：苦力怕、火把、皓宸、木剑、避雷针等都调用这里。
 ## 外观是原版 Boss 条（gui/sprites/boss_bar/white_*）：两端各 CAP 个原版像素，中段水平拉伸，
 ## 进度按比例裁切；白色原图乘调用方的颜色，配色由调用方决定。
+## 分格条传 segments：6/10/12/20 格叠原版 notched 刻痕图，其他格数按同样的刻痕样式画分隔。
 const BACKGROUND:Texture2D = preload("res://Images/UI/boss_bar/white_background.png")
 const PROGRESS:Texture2D = preload("res://Images/UI/boss_bar/white_progress.png")
 const CAP:float = 3.0
+const NOTCHES:Dictionary = {
+	6:[preload("res://Images/UI/boss_bar/notched_6_background.png"),preload("res://Images/UI/boss_bar/notched_6_progress.png")],
+	10:[preload("res://Images/UI/boss_bar/notched_10_background.png"),preload("res://Images/UI/boss_bar/notched_10_progress.png")],
+	12:[preload("res://Images/UI/boss_bar/notched_12_background.png"),preload("res://Images/UI/boss_bar/notched_12_progress.png")],
+	20:[preload("res://Images/UI/boss_bar/notched_20_background.png"),preload("res://Images/UI/boss_bar/notched_20_progress.png")],
+}
+## 原版刻痕像素的颜色（notched_* 图里 2,2,2 半透明）。
+const NOTCH_COLOR:Color = Color(0.008,0.008,0.008,0.5)
 const OUTER_COLOR:Color = Color(0.02,0.02,0.025,0.92)
 const BACKGROUND_COLOR:Color = Color(0.12,0.12,0.14,1.0)
 const BORDER_COLOR:Color = Color(0.78,0.82,0.88,0.86)
@@ -13,15 +22,32 @@ const END_COLOR:Color = Color(1,0.08,0.04,1)
 ## 白色底槽主色 57/255：乘上它的倒数让底槽主色正好等于 BACKGROUND_COLOR。
 const TROUGH_TINT:Color = Color(0.5368,0.5368,0.6263,1.0)
 
-static func paint(canvas:CanvasItem,rect:Rect2,ratio:float,warning:float,fill_color:Color = Color(-1,-1,-1,-1),trough_tint:Color = Color(-1,-1,-1,-1),opacity:float = 1.0) -> void:
+static func paint(canvas:CanvasItem,rect:Rect2,ratio:float,warning:float,fill_color:Color = Color(-1,-1,-1,-1),trough_tint:Color = Color(-1,-1,-1,-1),opacity:float = 1.0,segments:int = 0) -> void:
 	if rect.size.x <= 0.0 or rect.size.y <= 0.0 or opacity <= 0.0: return
 	var back:Color = trough_tint if trough_tint.a >= 0.0 else TROUGH_TINT
 	back.a *= opacity
 	_slice(canvas,BACKGROUND,rect,rect.size.x,back)
-	if ratio <= 0.0: return
-	var fill:Color = fill_color if fill_color.a >= 0.0 else START_COLOR.lerp(END_COLOR,clampf(warning,0,1))
-	fill.a *= opacity
-	_slice(canvas,PROGRESS,rect,rect.size.x * clampf(ratio,0,1),fill)
+	var visible_width:float = rect.size.x * clampf(ratio,0,1)
+	if visible_width > 0.0:
+		var fill:Color = fill_color if fill_color.a >= 0.0 else START_COLOR.lerp(END_COLOR,clampf(warning,0,1))
+		fill.a *= opacity
+		_slice(canvas,PROGRESS,rect,visible_width,fill)
+	if segments > 1: _notches(canvas,rect,segments,opacity)
+
+
+## 原版先画底槽、底槽刻痕，再画进度、进度刻痕；两张刻痕图相同，所以整条叠一次即可。
+static func _notches(canvas:CanvasItem,rect:Rect2,segments:int,opacity:float) -> void:
+	var tint:Color = Color(1,1,1,opacity)
+	if NOTCHES.has(segments):
+		var texture:Texture2D = NOTCHES[segments][0]
+		canvas.draw_texture_rect(texture,rect,false,tint)
+		return
+	var texel:float = rect.size.y / float(BACKGROUND.get_height())
+	var color:Color = NOTCH_COLOR
+	color.a *= opacity
+	for i:int in range(1,segments):
+		var x:float = rect.position.x + rect.size.x * float(i) / float(segments)
+		canvas.draw_rect(Rect2(x - texel * 0.5,rect.position.y + texel,texel,rect.size.y - texel * 2.0),color,true)
 
 
 ## 按整条的三段式几何绘制，只画到 visible_width 为止（原版进度条就是裁切而不是缩短）。
