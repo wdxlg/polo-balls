@@ -180,6 +180,8 @@ func run() -> void:
 	game.reset_feedback_settings("Shaking_Camera",false)
 	game.reset_feedback_settings("High_Damage_Feedback",false)
 	game.Game_Settings.Training_Mode = false
+	# 本测试验证全局顿帧；玩家本机若开了局部顿帧，这里固定关掉。
+	game.Game_Settings.Local_Hitstop = false
 	game.Game_Settings.Training_Mode_Type = "manual"
 	game.Game_Settings.Development_Mode = false
 	game.Game_Settings.Map_Background = "blue"

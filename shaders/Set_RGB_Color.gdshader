@@ -40,6 +40,12 @@ instance uniform float snow_cold:hint_range(0.0, 1.0) = 0.0;
 // Default-zero, per-instance visual-only freeze tremor. It never moves physics
 // or the Graphics transform used by the independent ordinary-stun system.
 instance uniform vec2 snow_freeze_offset = vec2(0.0);
+// 形变外扩：UV 形变会把人物画到原贴图矩形之外，而像素只在绘制矩形内产生。
+// 形变期间由 ball.gd 填入图片局部绘制矩形（xy=中心，zw=尺寸），顶点每边外扩 DEFORM_PAD，
+// 越界的部分才能画出来；zw 为 0 时不外扩，与原来完全一致。
+instance uniform vec4 deform_rect = vec4(0.0);
+const float DEFORM_PAD = 0.35;
+varying vec2 deform_local_uv;
 
 varying vec4 sprite_modulate;
 
@@ -67,6 +73,14 @@ void bounce_curves(float t, out float impact, out float rebound, out float jelly
 void vertex() {
 	// V9：反弹不再整体平移/旋转整张人物图片。
 	// 所有“弹性”都留在 fragment UV 的局部软体形变里，角色视觉锚点始终固定。
+	deform_local_uv = vec2(0.0);
+	if (deform_rect.z > 0.0 && deform_rect.w > 0.0) {
+		// 原始顶点在矩形哪个角（0 或 1）；外扩后局部坐标落在 [-PAD, 1+PAD]，片元里照常判越界。
+		vec2 corner = step(deform_rect.xy, VERTEX);
+		vec2 grow = (corner * 2.0 - 1.0) * DEFORM_PAD;
+		VERTEX += grow * deform_rect.zw;
+		deform_local_uv = corner + grow;
+	}
 	VERTEX += snow_freeze_offset;
 	sprite_modulate = COLOR;
 }
@@ -99,6 +113,9 @@ void fragment() {
 	vec2 region_origin = min(region_a, region_b);
 	vec2 region_size = max(abs(REGION_RECT.zw), vec2(0.000001));
 	vec2 local_uv = (UV - region_origin) / region_size;
+	if (deform_rect.z > 0.0 && deform_rect.w > 0.0) {
+		local_uv = deform_local_uv;
+	}
 	vec2 p = local_uv - vec2(0.5);
 
 	// ------------------------------------------------------------

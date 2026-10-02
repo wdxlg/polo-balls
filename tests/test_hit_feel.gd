@@ -54,6 +54,8 @@ func run() -> void:
 	game = root.get_node("Game")
 	var saved:Dictionary = game.Game_Settings.duplicate(true)
 	var saved_stop:bool = game.now_stop_state
+	# 本测试验证全局顿帧；玩家本机若开了局部顿帧，这里固定关掉。
+	game.Game_Settings.Local_Hitstop = false
 	var tuning:Script = load("res://global/feedback_settings.gd")
 	COMBO = load("res://scripts/effects/hit_combo.gd")
 

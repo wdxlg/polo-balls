@@ -4699,6 +4699,7 @@ func _set_motion_shader_values(direction_value:Vector2,strength_value:float) -> 
 	_motion_shader_last_direction = shader_dir
 	_motion_shader_last_strength = safe_strength
 	_motion_shader_last_shape = current_shape
+	_sync_deform_rect()
 
 
 func _update_motion_inertia_visual(state:State,delta:float) -> void:
@@ -6067,6 +6068,7 @@ func _configure_impact_shader(
 	image.set_instance_shader_parameter("bounce_direction",shader_dir)
 	image.set_instance_shader_parameter("bounce_params_a",_bounce_shader_params_a)
 	image.set_instance_shader_parameter("bounce_params_b",_bounce_shader_params_b)
+	_sync_deform_rect()
 
 
 func _configure_collision_shader(dir:Vector2,strength:float) -> void:
@@ -6095,6 +6097,45 @@ func _reset_collision_shader() -> void:
 	image.set_instance_shader_parameter("bounce_params_a",_bounce_shader_params_a)
 	image.set_instance_shader_parameter("bounce_params_b",_bounce_shader_params_b)
 	image.set_instance_shader_parameter("bounce_direction",Vector2.RIGHT)
+	_sync_deform_rect()
+
+
+# 形变外扩：Shader 的软体形变只重映射 UV，像素只在原绘制矩形里产生，鼓出、拉长的部分会被
+# 矩形边界切掉。形变进行时把图片局部绘制矩形交给 Shader（deform_rect），顶点外扩后再画；
+# 没有形变时清零，绘制面积与原来一致。
+var _deform_rect_applied:Vector4 = Vector4.ZERO
+var _deform_rect_shader_id:int = 0
+var _deform_rect_shader_ok:bool = false
+
+func _image_supports_deform_rect() -> bool:
+	var canvas_item := image as CanvasItem
+	if canvas_item == null:
+		return false
+	var material := canvas_item.material as ShaderMaterial
+	if material == null or material.shader == null:
+		return false
+	var shader_id:int = material.shader.get_instance_id()
+	if shader_id != _deform_rect_shader_id:
+		_deform_rect_shader_id = shader_id
+		_deform_rect_shader_ok = material.shader.code.find("deform_rect") >= 0
+	return _deform_rect_shader_ok
+
+
+func _sync_deform_rect() -> void:
+	if image == null or not is_instance_valid(image):
+		return
+	if not (image is Sprite2D or image is AnimatedSprite2D) or not _image_supports_deform_rect():
+		return
+	var deforming:bool = (_bounce_shader_params_a.y > 0.0 and _bounce_shader_params_a.x < 1.0) or _motion_shader_last_strength > 0.001
+	var value:Vector4 = Vector4.ZERO
+	if deforming:
+		var rect:Rect2 = _hit_effect_visual_rect()
+		if rect.size.x > 0.0 and rect.size.y > 0.0:
+			var center:Vector2 = rect.get_center()
+			value = Vector4(center.x,center.y,rect.size.x,rect.size.y)
+	if value != _deform_rect_applied:
+		_deform_rect_applied = value
+		image.set_instance_shader_parameter("deform_rect",value)
 
 
 func Figure_collide_transform(Dir:Vector2,Power:float) -> void:
