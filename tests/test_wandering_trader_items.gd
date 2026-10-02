@@ -30,6 +30,8 @@ func run() -> void:
 	game.now_stop_state=false
 	game.Game_Settings.Training_Mode=true
 	game.Game_Settings.Training_Mode_Type="manual"
+	# Fixed battle seed: mob RNGs otherwise fall back to instance ids, so any unrelated extra object reshuffles the fish / slime rolls.
+	game.begin_battle_random(424242)
 	AudioServer.set_bus_mute(0,true)
 	node_added.connect(_on_node_added)
 	world=load("res://scenes/world.tscn").instantiate()
@@ -268,7 +270,8 @@ func run() -> void:
 				rammed=true
 				break
 		else:
-			calm.global_position=fish.global_position+Vector2(0,-40)
+			# parked well clear: a random slow hop into it would spend the ram cooldown below the speed threshold
+			calm.global_position=fish.global_position+Vector2(0,-160)
 			await physics_frame
 	check(rammed and fish.stings==0,"tropical fish rams an enemy (no sting / poison)")
 	check(fish.last_ram_damage>=fish.ram_damage(fish.ram_min_speed+40.0)-0.01 and absf((hpc-calm.health)-fish.last_ram_damage)<0.01,"ram damage from its speed (%.1f)" % fish.last_ram_damage)

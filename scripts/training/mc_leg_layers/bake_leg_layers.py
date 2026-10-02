@@ -263,6 +263,47 @@ def bake_warden():
     return ls
 
 
+def bake_trader():
+    """Wandering trader (villager_v2 rig): walking legs under the looping potion/milk drink."""
+    import bake_wandering_trader as wt
+    b = wt.Baker(wt.ROOT / 'resource_pack_trader'); clips = wt.CLIPS['trader']
+    uppers = {'drink': [lambda t=t: b.render('trader', 'drink', t, 'trader') for t in mc16_times(*clips['drink'])]}
+    return bake_generic('trader', b, b.models['trader'], ('leg0', 'leg1'), ('body',),
+                        lambda t: b.render('trader', 'walk', t, 'trader'), mc16_times(*clips['walk']),
+                        lambda: b.render('trader', 'idle', 0, 'trader'), uppers)
+
+
+def bake_llama(skin):
+    """Trader llama. Variant 0 = walk-amplitude legs, variant 1 = run-amplitude legs (same 24-phase
+    gait; the runtime picks 1 while the run clip would play). Spit composites over either."""
+    import math
+    import bake_wandering_trader as wt
+
+    class Mix(wt.Baker):
+        weight = None
+        def pose(self, role, state, t):
+            p = super().pose(role, state, t)
+            if self.weight is not None:
+                c = math.cos(math.radians(t * 360 / 38.17 * 38.17))
+                for leg, sign in (('leg0', 1), ('leg1', -1), ('leg2', -1), ('leg3', 1)):
+                    p[leg]['rotation'][0] = c * 80.0 * sign * self.weight
+            return p
+
+    b = Mix(wt.ROOT / 'resource_pack_trader'); clips = wt.CLIPS['llama']
+    bones = b.models['llama']; legs = tuple(f'leg{i}' for i in range(4)); trunk = ('body',)
+    walk_t = mc16_times(*clips['walk'])
+    uppers = {'spit': [lambda t=t: b.render('llama', 'spit', t, skin) for t in mc16_times(*clips['spit'])]}
+    ls = bake_generic(skin, b, bones, legs, trunk, lambda t: b.render('llama', 'walk', t, skin), walk_t,
+                      lambda: b.render('llama', 'idle', 0, skin), uppers)
+    phases = []
+    for t in walk_t:
+        b.weight = 0.75
+        phases.append(split_render(b, bones, legs, lambda t=t: b.render('llama', 'walk', t, skin), trunk)['legs'])
+    b.weight = None
+    ls.legs.append(phases); ls.rest.append(ls.rest[0])
+    return ls
+
+
 SETS = {
     'enderman': lambda: bake_native_mobs_set('enderman', ['attack', 'angry_attack']),
     'evoker': lambda: bake_native_mobs_set('evoker', ['cast', 'celebrate']),
@@ -277,6 +318,9 @@ SETS = {
     'golem_3': lambda: bake_golem(3),
     'villager': bake_villager,
     'warden': bake_warden,
+    'trader': bake_trader,
+    'llama_creamy': lambda: bake_llama('llama_creamy'),
+    'llama_brown': lambda: bake_llama('llama_brown'),
 }
 
 COMMENTS = {
@@ -293,6 +337,9 @@ COMMENTS = {
     'golem_3': 'Iron golem (cracked high): charge / swing upper body over un-swayed walking legs (variants 1-8 = crouch, per charge frame).',
     'villager': 'Golem-pair villager: walking legs under the iron-ingot throw.',
     'warden': 'Warden: walking legs under the melee attack / sonic boom upper body.',
+    'trader': 'Wandering trader: walking legs under the looping drink upper body.',
+    'llama_creamy': 'Trader llama (creamy): spit over walking legs; variant 0 walk amplitude, 1 run amplitude.',
+    'llama_brown': 'Trader llama (brown): spit over walking legs; variant 0 walk amplitude, 1 run amplitude.',
 }
 
 

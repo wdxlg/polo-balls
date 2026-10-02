@@ -52,7 +52,7 @@ func run() -> void:
 	game.Game_Settings.Have_Team_Damage = false
 	game.now_stop_state = false
 	AudioServer.set_bus_mute(0,true)
-	create_timer(150.0).timeout.connect(func(): finish(2))
+	create_timer(180.0).timeout.connect(func(): finish(2))
 	world = load("res://scenes/world.tscn").instantiate()
 	world.tree_entered.connect(func(): current_scene = world,CONNECT_ONE_SHOT)
 	root.add_child(world)
@@ -169,6 +169,7 @@ func run() -> void:
 	await action_suite(center)
 	await pair_suite(center)
 	await warden_suite(center)
+	await trader_suite(center)
 	# --- cache bound
 	var cache:Dictionary = LEGS._cache.get("enderman",{})
 	check(cache.is_empty() or (cache["order"] as Array).size() <= LEGS.CACHE_PER_SET,"composite cache bounded")
@@ -383,6 +384,55 @@ func warden_suite(center:Vector2) -> void:
 	w.visual_mob()
 	check(w.image.texture == w.WARDEN.get_frame_texture(&"idle",int(w._view_clock*w.WARDEN.get_animation_speed(&"idle"))%w.WARDEN.get_frame_count(&"idle")),"warden: still -> idle clip")
 	w.queue_free()
+
+func vis_step(u:Node2D,vis:Node,ratio:float,frames_n:int,setup:Callable) -> Dictionary:
+	var v:float = LEGS.standard_speed(u)*ratio
+	var out:Dictionary = {"legs":{},"clips":{},"idx":{}}
+	for i:int in range(frames_n):
+		setup.call()
+		u.global_position.x += v/60.0
+		vis._process(1.0/60.0)
+		out.legs[vis._leg_index] = true
+		out.clips[vis.clip] = true
+		out.idx[vis.frame_index] = true
+	return out
+
+func trader_suite(center:Vector2) -> void:
+	var t:Node2D = spawn("res://scenes/characters/我的世界/流浪商人.tscn",center+Vector2(-600,500))
+	var l:Node2D = spawn("res://scenes/creatures/流浪商人_羊驼.tscn",center+Vector2(-300,500))
+	await process_frame
+	await process_frame
+	var tv:Node = t.visual
+	var lv:Node = l.visual
+	check(is_instance_valid(tv) and is_instance_valid(lv),"trader/llama: visual drivers attached")
+	if not (is_instance_valid(tv) and is_instance_valid(lv)): return
+	tv.set_process(false)
+	lv.set_process(false)
+	var none:Callable = func(): pass
+	var rw:Dictionary = vis_step(t,tv,1.0,60,none)
+	check(rw.clips.has(&"walk") and rw.idx.size() >= 22,"trader: walk frames follow the gait (%d)" % rw.idx.size())
+	var rd:Dictionary = vis_step(t,tv,1.0,24,func(): t._drink_visual_left = 0.5)
+	check(rd.clips.has(&"drink") and rd.legs.size() >= 8 and not rd.legs.has(-1),"trader: drinking while moving keeps legs walking (%d phases)" % rd.legs.size())
+	for i:int in range(60):
+		t._drink_visual_left = 0.5
+		tv._process(1.0/60.0)
+	check(tv.gait.at_rest and tv._leg_index == -1 and t.image.texture == tv.frames.get_frame_texture(&"drink",tv.frame_index),"trader: drinking while still -> stock frame")
+	t._drink_visual_left = 0.0
+	for i:int in range(3): tv._process(1.0/60.0)
+	check(tv.clip == &"idle","trader: still -> idle")
+	# llama: walk, run (fast) and spit over walking / running legs
+	var lw:Dictionary = vis_step(l,lv,1.0,30,none)
+	check(lw.clips.has(&"walk") or lw.clips.has(&"run"),"llama: moving selects walk/run")
+	var p0:float = lv.gait.phase
+	vis_step(l,lv,2.0,30,none)
+	check(absf(wrapf(lv.gait.phase-p0,-0.5,0.5)) < 0.02,"llama: 2x speed -> full stride in 0.5 s")
+	var rs:Dictionary = vis_step(l,lv,1.0,20,func(): l._spit_anim = 0.3)
+	check(rs.clips.has(&"spit") and rs.legs.size() >= 6 and not rs.legs.has(-1),"llama: spit while moving keeps legs walking")
+	l._spit_anim = 0.0
+	for i:int in range(60): lv._process(1.0/60.0)
+	check(lv.gait.at_rest and lv.clip == &"idle","llama: still -> idle (%s, emerging=%s)" % [lv.clip,str(l.get("emerging"))])
+	t.queue_free()
+	l.queue_free()
 
 func finish(code:int) -> void:
 	if finishing: return

@@ -11,6 +11,7 @@ const FRAMES:Dictionary = {
 const MILK_TEXTURE = preload("res://Images/characters/我的世界/流浪商人/items/milk_bucket.png")
 const POTION_EFFECTS = preload("res://scripts/effects/我的世界/女巫药水效果.gd")
 const WALK_SPEED_REFERENCE:float = 46.0 # world px/s that plays the walk clip at 1x
+const MC_LEGS = preload("res://scripts/effects/我的世界/mc_legs.gd")
 
 var unit:Node2D
 var frame_set_name:StringName
@@ -20,6 +21,9 @@ var clip:StringName = &""
 var clip_time:float = 0.0
 var frame_index:int = -1
 var observed_speed:float = 0.0
+## 独立腿部步态（mc_legs.gd）：走/跑帧由真实位移 / 自身标准移速推进；喝药、吐口水时腿照常迈，停下回到站姿。
+var gait:RefCounted
+var _leg_index:int = -1
 var _last_position:Vector2
 var _has_last:bool = false
 var _frozen:bool = false
@@ -57,8 +61,16 @@ func _process(delta:float) -> void:
 		observed_speed = lerpf(observed_speed,instant,clampf(delta*12.0,0.0,1.0))
 	_last_position = now
 	_has_last = true
+	var legs:RefCounted = _gait()
+	legs.tick(unit,delta,unit.get("dizziness") != true)
 	var wanted:StringName = &"walk" if observed_speed > 6.0 else &"idle"
-	if unit.has_method(&"wt_visual_clip"): wanted = StringName(unit.call(&"wt_visual_clip",observed_speed))
+	var forced_walk:bool = false
+	if unit.has_method(&"wt_visual_clip"):
+		wanted = StringName(unit.call(&"wt_visual_clip",observed_speed))
+		# Wall entry / emerging request walk even without displacement: keep their old timing.
+		forced_walk = StringName(unit.call(&"wt_visual_clip",0.0)) == &"walk"
+	if not forced_walk and wanted in [&"walk",&"idle"]:
+		wanted = &"walk" if not legs.at_rest else &"idle" # real displacement, settle to the rest pose
 	if not frames.has_animation(wanted): wanted = &"idle"
 	if wanted != clip:
 		clip = wanted
@@ -69,12 +81,45 @@ func _process(delta:float) -> void:
 	var count:int = frames.get_frame_count(clip)
 	var index:int = int(floor(clip_time*frames.get_animation_speed(clip)))
 	index = posmod(index,count) if frames.get_animation_loop(clip) else mini(index,count-1)
+	if not forced_walk:
+		if clip == &"walk": index = legs.walk_index(count)
+		# The baked run clip spans half a leg cycle (diagonal pairs swap): 2 run loops per stride.
+		elif clip == &"run": index = legs.walk_index(count*2) % count
+	var leg:int = -1
+	var key:String = str(frame_set_name)
+	if not legs.at_rest and MC_LEGS.has_upper(key,clip): leg = legs.walk_index(int(MC_LEGS.layer_data(key).WALK))
+	if leg >= 0:
+		if _composite_drawn and clip == _last_clip_drawn and index == frame_index and leg == _leg_index: return
+		var running:bool = observed_speed > 110.0 and (MC_LEGS.layer_data(key).LEGS as Array).size() > 1
+		var composed:Texture2D = MC_LEGS.compose(key,clip,index,leg,1 if running else 0)
+		if composed != null:
+			frame_index = index
+			_leg_index = leg
+			_last_clip_drawn = clip
+			_composite_drawn = true
+			sprite.texture = composed
+			return
+	_leg_index = -1
 	_apply(clip,index)
+
+var _last_clip_drawn:StringName = &""
+var _composite_drawn:bool = false
+
+func _gait() -> RefCounted:
+	if gait == null:
+		var cycle:float = float(frames.get_frame_count(&"walk"))/maxf(frames.get_animation_speed(&"walk"),0.001) if frames.has_animation(&"walk") else 1.0
+		var key:String = str(frame_set_name)
+		gait = MC_LEGS.for_set(key,cycle) if MC_LEGS.layer_data(key) != null else MC_LEGS.create(cycle)
+		gait.observe(unit)
+		MC_LEGS.prewarm(key)
+	return gait
 
 func _apply(clip_name:StringName,index:int) -> void:
 	if sprite == null or not frames.has_animation(clip_name): return
-	if clip_name == clip and index == frame_index and sprite.texture != null: return
+	if clip_name == clip and clip_name == _last_clip_drawn and index == frame_index and sprite.texture != null and not _composite_drawn: return
 	frame_index = index
+	_last_clip_drawn = clip_name
+	_composite_drawn = false
 	sprite.texture = frames.get_frame_texture(clip_name,clampi(index,0,frames.get_frame_count(clip_name)-1))
 
 # ------------------------------------------------------------------ held item
