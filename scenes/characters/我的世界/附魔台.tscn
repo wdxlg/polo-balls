@@ -6,7 +6,7 @@
 
 [sub_resource type="RectangleShape2D" id="BodyShape"]
 resource_local_to_scene = true
-size = Vector2(70, 58)
+size = Vector2(105, 87)
 
 [node name="附魔台" instance=ExtResource("1_base")]
 script = ExtResource("2_script")
@@ -23,7 +23,7 @@ Can_Skill = false
 [node name="Image" parent="Graphics" index="0"]
 texture = ExtResource("3_visual")
 texture_filter = 1
-scale = Vector2(0.75, 0.75)
+scale = Vector2(1.125, 1.125)
 offset = Vector2(0, -2)
 
 [node name="CollisionShape2D" parent="." index="1"]

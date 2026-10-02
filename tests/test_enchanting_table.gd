@@ -112,6 +112,10 @@ func run() -> void:
 	table.receive_positional_damage(100.0,table.global_position,true,enemy)
 	check(is_equal_approx(before - float(table.health),75.0),"closed book takes 75 from a 100 hit")
 	check(is_equal_approx(table.closed_time,4.0) and is_equal_approx(table.open_time,6.0),"fixed cycle: closed 4 s, open 6 s")
+	check(table.image.scale.x >= 1.1,"the table is drawn at the enlarged size")
+	await frames(20)
+	var ambient_fx:Node = world.get_node_or_null("MCEnchantRuneParticles")
+	check(ambient_fx != null and int(ambient_fx.count(2)) > 0,"glyph particles keep floating up around the table even with the book closed")
 	table.phase_left = 0.0
 	await wait_until(func(): return table.book_open,10)
 	check(table.book_open and not table.has_closed_guard() and is_equal_approx(table.Damage_reduction,0.0),"opening the book removes the damage reduction")

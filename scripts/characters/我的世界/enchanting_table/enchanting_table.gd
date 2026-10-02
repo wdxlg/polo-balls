@@ -8,6 +8,7 @@ extends "res://scripts/characters/我的世界/new5/base.gd"
 const RUNE_SCENE:PackedScene = preload("res://scenes/shooter/我的世界/附魔符文.tscn")
 const TABLE_AUDIO = preload("res://scripts/characters/我的世界/enchanting_table/enchanting_table_audio.gd")
 const STONE_AUDIO = preload("res://scripts/characters/我的世界/useless_stones/useless_stones_audio.gd")
+const RUNE_PARTICLES = preload("res://scripts/characters/我的世界/enchanting_table/rune_particles.gd")
 const COUNTER_OVERLAY = preload("res://scripts/characters/我的世界/enchanting_table/enchant_counter_overlay.gd")
 const SUPPORT = preload("res://scripts/effects/我的世界/mc_enchant_support.gd")
 const ENCHANTS = preload("res://scripts/effects/我的世界/mc_enchantments.gd")
@@ -62,7 +63,7 @@ const BOOK_ANCHOR:Vector2 = Vector2(0.0,-17.4)
 @export_category("附魔台 / 符文")
 @export var attack_range:float = 520.0
 ## 符文出生在书周围这个半径内（角色单位 1 时的世界像素，随根缩放）。
-@export var rune_spawn_radius:float = 34.0
+@export var rune_spawn_radius:float = 46.0
 @export var rune_speed:float = 120.0
 ## 略微追踪：每秒最多转向的弧度。
 @export var rune_turn_rate:float = 1.4
@@ -70,6 +71,9 @@ const BOOK_ANCHOR:Vector2 = Vector2(0.0,-17.4)
 @export var rune_spread:float = 0.6
 @export var rune_life:float = 5.5
 @export var rune_hover_time:float = 0.25
+## 常驻上浮字形粒子：合书/开书时每秒生成的数量（纯视觉，各端本地随机）。
+@export var ambient_glyphs_closed:float = 12.0
+@export var ambient_glyphs_open:float = 22.0
 ## 命中友军的回复量 = 当前攻击力 × 该倍率。
 @export var rune_heal_ratio:float = 1.0
 @export var hits_per_enchant:int = 10
@@ -94,6 +98,8 @@ var _break_done:bool = false
 var _landed_sound_done:bool = false
 var _hit_sound_gap:float = 0.0
 var _footstep_cadence = FOOTSTEP.new()
+var _glyph_float_left:float = 0.0
+var _glyph_float_rng := RandomNumberGenerator.new()
 
 func get_preview_texture() -> Texture2D: return TABLE_TEXTURE
 
@@ -415,6 +421,23 @@ func visual_mob() -> void:
 		_book.texture = BOOK_SPIN[int(_book_clock*4.0) % BOOK_SPIN.size()]
 	_book.position = BOOK_ANCHOR + Vector2(0.0,sin(_book_clock*2.0)*1.2)
 	_book.visible = image.visible
+	_emit_ambient_glyphs(dt)
+
+## 原版附魔台旁的字形粒子：从台子四周和下半部飘起，缓慢上浮并略向书靠拢，左右轻摆后淡出。
+func _emit_ambient_glyphs(dt:float) -> void:
+	if dt <= 0.0 or image == null or not image.visible or not is_inside_tree(): return
+	var rate:float = ambient_glyphs_open if book_open else ambient_glyphs_closed
+	if rate <= 0.0: return
+	_glyph_float_left -= dt
+	if _glyph_float_left > 0.0: return
+	var fx:Node2D = RUNE_PARTICLES.find_or_create(self)
+	if fx == null: return
+	var unit:float = _unit_scale()
+	var book:Vector2 = book_world_position()
+	while _glyph_float_left <= 0.0:
+		_glyph_float_left += 1.0/rate
+		var start:Vector2 = global_position + Vector2(_glyph_float_rng.randf_range(-18.0,18.0),_glyph_float_rng.randf_range(-4.0,13.0))*unit
+		fx.call("float_glyph",start,book,_glyph_float_rng.randf()*0.35 + 0.65,unit)
 
 func visual_state() -> Dictionary: return {"time":clock,"open":book_open}
 func accept_visual(data:Dictionary) -> void:

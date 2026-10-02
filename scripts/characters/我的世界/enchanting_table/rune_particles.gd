@@ -3,6 +3,7 @@ extends Node2D
 ## - 字形碎片（原版 enchant 粒子 particle/sga_*）：从符文身后飘出，减速、缩小、淡出。
 ## - 附魔星芒（原版 enchanted_hit 粒子，CritParticle 的魔法青色；原版靠发光叠加显亮，这里不叠加，
 ##   取浅一些的青色并去掉逐 tick 变暗，深色地图上也看得见）：尺寸在寿命前 1/32 长满，按 0.7/tick 阻尼。
+## - 上浮字形（附魔台常驻）：从台子周围升起，向书的方向略收拢，左右正弦轻摆，淡入淡出。
 ## 回复符文的粒子染成绿色，便于和伤害符文区分。
 const GLYPH_SCRIPT_PATH:String = "res://scripts/characters/我的世界/enchanting_table/enchanting_rune.gd"
 const SPARK:Texture2D = preload("res://Images/characters/我的世界/enchanting_table/enchanted_hit.png")
@@ -11,6 +12,7 @@ const DRAW_Z:int = 93
 const CAP:int = 1600
 const KIND_GLYPH:int = 0
 const KIND_SPARK:int = 1
+const KIND_FLOAT:int = 2
 const TICK:float = 0.05
 const HEAL_TINT:Color = Color(0.55,1.0,0.55)
 
@@ -50,8 +52,19 @@ func trail(pos:Vector2,heading:Vector2,shade:float,heal:bool,unit_scale:float = 
 	if heal: color *= HEAL_TINT
 	_add({"kind":KIND_GLYPH,"glyph":rng.randi_range(0,25),"pos":pos + back*rng.randf_range(1.0,4.0)*unit_scale,
 		"vel":(back*rng.randf_range(10.0,22.0) + side)*unit_scale + Vector2(0.0,-rng.randf_range(2.0,7.0))*unit_scale,
-		"drag":0.12,"age":0.0,"life":rng.randf_range(0.45,0.8),"size":rng.randf_range(2.6,4.2)*unit_scale,"color":color})
+		"drag":0.12,"age":0.0,"life":rng.randf_range(0.45,0.8),"size":rng.randf_range(3.5,5.0)*unit_scale,"color":color})
 	if rng.randf() < 0.45: spark(pos,back*rng.randf_range(6.0,16.0)*unit_scale + side*0.6*unit_scale,heal,unit_scale)
+
+
+## 附魔台常驻上浮字形：start 处出现，向上飘过 toward（书）附近后淡出。
+func float_glyph(start:Vector2,toward:Vector2,shade:float,unit_scale:float = 1.0) -> void:
+	var life:float = rng.randf_range(1.3,2.1)
+	var rise:float = rng.randf_range(11.0,19.0)*unit_scale
+	var pull:float = (toward.x - start.x)*rng.randf_range(0.35,0.7)/life
+	var bright:float = maxf(shade,0.85)
+	_add({"kind":KIND_FLOAT,"glyph":rng.randi_range(0,25),"pos":start,"vel":Vector2(pull,-rise),"drag":0.8,"age":0.0,"life":life,
+		"size":rng.randf_range(4.5,6.5)*unit_scale,"color":Color(bright*0.88,bright*0.82,bright),
+		"sway":rng.randf_range(0.8,2.0)*unit_scale,"phase":rng.randf()*TAU,"freq":rng.randf_range(2.0,3.5)})
 
 
 ## 原版附魔星芒。
@@ -103,14 +116,21 @@ func _draw() -> void:
 		var color:Color = p.color
 		var s:float = float(p.size)
 		var tex:Texture2D
+		var draw_pos:Vector2 = p.pos
 		if int(p.kind) == KIND_GLYPH:
 			if _glyphs.is_empty(): continue
 			tex = _glyphs[posmod(int(p.glyph),_glyphs.size())]
 			s *= 1.0 - k*0.55
 			color.a = 1.0 - smoothstep(0.35,1.0,k)
+		elif int(p.kind) == KIND_FLOAT:
+			if _glyphs.is_empty(): continue
+			tex = _glyphs[posmod(int(p.glyph),_glyphs.size())]
+			draw_pos.x += sin(float(p.age)*float(p.freq) + float(p.phase))*float(p.sway)
+			s *= 1.0 - k*0.35
+			color.a = smoothstep(0.0,0.15,k)*(1.0 - smoothstep(0.6,1.0,k))
 		else:
 			tex = SPARK
 			s *= clampf(k*32.0,0.0,1.0)
 			color.a = 1.0 - smoothstep(0.7,1.0,k)
 		if s <= 0.05: continue
-		draw_texture_rect(tex,Rect2((p.pos as Vector2) - Vector2(s,s)*0.5,Vector2(s,s)),false,color)
+		draw_texture_rect(tex,Rect2(draw_pos - Vector2(s,s)*0.5,Vector2(s,s)),false,color)
