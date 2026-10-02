@@ -568,9 +568,11 @@ func _finish_session() -> void:
 	if _audio != null:
 		_audio.finish()
 		if not _audio.error.is_empty(): _fail(_audio.error)
-	# 一直没等到开场时刻（没开战就停止等）：用最后一帧的画面做封面。
-	if is_instance_valid(_cover) and _frame_index > 0 and _cover.state == CoverScript.State.WAITING and is_instance_valid(_sim_viewport):
-		_capture_cover()
+	if is_instance_valid(_cover):
+		# 整段都没有可用的对战画面（没开战、开场镜头没结束）：用最后一帧兜底。
+		if _frame_index > 0 and is_instance_valid(_sim_viewport):
+			_cover.offer_fallback(_world(), get_viewport(), _sim_viewport.canvas_transform, _capture_size, _map_visual_rect(), _cover_labels)
+		_cover.finish()
 	_release_sim_world_state()
 	_free_sim_capture_viewport()
 	if is_instance_valid(_locale_mirror):
@@ -624,8 +626,8 @@ func _finish_cover() -> void:
 		last_folder = ""
 
 
-## 封面时刻：用这一帧录像的相机抓纯战场画面。标题文字同文件夹/文件名的对阵名，各方配色取自对局 VS 立体字。
-func _capture_cover() -> void:
+## 封面标题：文字同文件夹/文件名的对阵名，各方配色取自对局 VS 立体字。
+func _cover_labels() -> Dictionary:
 	var world:Node = _world()
 	var label:RichTextLabel = world.get("versus_label") as RichTextLabel if world != null else null
 	var source:String = label.text if is_instance_valid(label) else ""
@@ -640,7 +642,7 @@ func _capture_cover() -> void:
 		if colored.size() == names.size():
 			for i:int in range(names.size()): colored[i] = {"text":names[i], "style":colored[i].style}
 		sides[locale] = colored
-	_cover.capture(get_viewport(), _sim_viewport.canvas_transform, _capture_size, _map_visual_rect(), sides, titles)
+	return {"sides":sides, "titles":titles}
 
 
 func _finish_video_output() -> String:
@@ -1062,8 +1064,9 @@ func _prepare_next_capture() -> void:
 		var camera := Transform2D.IDENTITY.scaled(Vector2.ONE * _follow_zoom)
 		camera.origin = anchor - _follow_screen_center * _follow_zoom
 		_sim_viewport.canvas_transform = camera * base
-	if not _is_variant and is_instance_valid(_cover) and _cover.should_capture(_world()):
-		_capture_cover()
+	# 封面候选：用这一帧录像的相机取样（每 0.5 秒一次，抽中才渲染）。
+	if not _is_variant and is_instance_valid(_cover) and _cover.wants_sample():
+		_cover.offer(_world(), get_viewport(), _sim_viewport.canvas_transform, _capture_size, _map_visual_rect(), _cover_labels)
 	if is_instance_valid(_overview_viewport):
 		_update_overview_camera()
 		_overview_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
