@@ -335,6 +335,9 @@ func run() -> void:
 	sheep.wool=0
 	sheep.velocity=Vector2(60,0)
 	sheep.step_mob(0.016)
+	# Legs follow real displacement (independent legs), not a bare velocity value.
+	sheep.global_position+=Vector2(1.0,0)
+	sheep._legs_delta=0.016
 	sheep.visual_mob()
 	check(is_equal_approx(sheep.image.texture.region.position.y,256.0),"naked sheep plays the sheared walk clip")
 	check(sheep.image.scale.is_equal_approx(Vector2(1.82,1.82)),"shearing and walking preserve enlarged sheep scale")

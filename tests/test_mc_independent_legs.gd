@@ -173,6 +173,7 @@ func run() -> void:
 	await wither_suite(center)
 	await vindicator_suite(center)
 	await goat_suite(center)
+	await sheep_suite(center)
 	# --- cache bound
 	var cache:Dictionary = LEGS._cache.get("enderman",{})
 	check(cache.is_empty() or (cache["order"] as Array).size() <= LEGS.CACHE_PER_SET,"composite cache bounded")
@@ -508,6 +509,51 @@ func goat_suite(center:Vector2) -> void:
 	goat._update_visual(false)
 	check(goat._sprite.speed_scale == 0.0,"goat: paused -> legs frozen")
 	goat.queue_free()
+
+func sheep_move(sh:Node2D,speed:float,frames_n:int) -> Dictionary:
+	var g:RefCounted = sh._sheep_gait()
+	var out:Dictionary = {"idx":{},"ok":true}
+	for i:int in range(frames_n):
+		sh.global_position.x += speed/60.0
+		sh._legs_delta = 1.0/60.0
+		sh.visual_mob()
+		if not g.at_rest:
+			var k:int = g.walk_index(8)
+			out.idx[k] = true
+			out.ok = out.ok and sh.image.texture == sh.FRAMES.get_frame_texture(&"sheared_walk",k) and sh._wool_visual.texture == sh._wool_body_frames[k] and sh._wool_fixed_visual.texture == sh._wool_fixed_frames[k]
+	return out
+
+func sheep_suite(center:Vector2) -> void:
+	var sh:Node2D = spawn("res://scenes/characters/我的世界/羊.tscn",center+Vector2(500,-300))
+	await process_frame
+	await process_frame
+	sh.set_process(false)
+	sh.set_physics_process(false)
+	var g:RefCounted = sh._sheep_gait()
+	var std:float = LEGS.standard_speed(sh)
+	check(is_equal_approx(std,float(sh.default_properties.Speed)*0.6) and is_equal_approx(g.cycle,0.8),"sheep: own base speed x 0.6, 0.8 s walk cycle")
+	var r:Dictionary = sheep_move(sh,std,60)
+	check(r.ok and r.idx.size() >= 7,"sheep: body + both wool layers step on one gait phase (%d of 8)" % r.idx.size())
+	var p0:float = g.phase
+	sheep_move(sh,std*0.5,12)
+	var slow:float = fposmod(g.phase-p0,1.0)
+	p0 = g.phase
+	sheep_move(sh,std*1.5,12)
+	var fast:float = fposmod(g.phase-p0,1.0)
+	check(slow > 0.0 and absf(fast/slow-3.0) < 0.15,"sheep: leg rate scales with speed (x%.2f for x3)" % (fast/maxf(slow,0.0001)))
+	sh.ram_state = sh.RamState.CHARGE
+	p0 = g.phase
+	sheep_move(sh,std*3.0,6)
+	var charge:float = fposmod(g.phase-p0,1.0)
+	check(absf(charge/maxf(slow,0.0001)-3.0) < 0.2,"sheep: a fast charge strides proportionally faster (x%.2f of the x0.5 rate per frame, for x6 speed / half the frames)" % (charge/maxf(slow,0.0001)))
+	sh.ram_state = sh.RamState.GRAZE
+	r = sheep_move(sh,std,60)
+	check(g.at_rest,"sheep: grazing never steps, even when shoved")
+	sh.ram_state = sh.RamState.ROAM
+	r = sheep_move(sh,0.0,60)
+	var idle_k:int = int(sh._view_clock*sh.FRAMES.get_animation_speed(&"wool_idle"))%8
+	check(g.at_rest and sh.image.texture == sh.FRAMES.get_frame_texture(&"sheared_idle",idle_k) and sh._wool_visual.texture == sh._wool_body_frames[idle_k+8],"sheep: still -> idle clip on body and wool")
+	sh.queue_free()
 
 func vis_step(u:Node2D,vis:Node,ratio:float,frames_n:int,setup:Callable) -> Dictionary:
 	var v:float = LEGS.standard_speed(u)*ratio

@@ -5,6 +5,10 @@ const WOOL_BODY_ATLAS:Texture2D = preload("res://Images/characters/我的世界/
 const WOOL_FIXED_ATLAS:Texture2D = preload("res://Images/characters/我的世界/new6/sheep_wool_fixed.png")
 const FX = preload("res://scripts/characters/我的世界/new6/fx_burst.gd")
 const WOOL_PROJECTILE = preload("res://scripts/characters/我的世界/new6/wool_projectile.gd")
+## Independent legs: body + both wool layers step on one gait phase driven by real displacement
+## against the OWN base speed (a 520 px/s charge strides fast, a slow brake slowly) and settle on
+## walk 2 / 6 (closest to idle) before the idle clip resumes. Standing states (graze / recover) never step.
+const MC_LEGS = preload("res://scripts/effects/我的世界/mc_legs.gd")
 enum RamState { ROAM, WINDUP, CHARGE, RECOVER, GRAZE, BRAKE_GRAZE }
 @export var wool_max:int = 3
 @export var wool_trigger_radius:float = 32.0
@@ -61,6 +65,8 @@ var _breath_player:AudioStreamPlayer2D
 var _footstep_player:AudioStreamPlayer2D
 var _sound_position:Vector2
 var _moving:bool = false
+var gait:RefCounted
+var _legs_delta:float = 0.0
 var _visual_rest:Vector2
 var _graze_velocity:Vector2 = Vector2.ZERO
 var _observed_health:int = 0
@@ -661,17 +667,33 @@ func _apply_wall_squash() -> void:
 	var pose:Transform2D = image.transform
 	image.transform = Transform2D(squash.basis_xform(pose.x),squash.basis_xform(pose.y),pose.origin)
 
+func _process(delta:float) -> void:
+	_legs_delta += maxf(delta,0.0)
+	super._process(delta)
+
+func _sheep_gait() -> RefCounted:
+	if gait == null:
+		gait = MC_LEGS.create(float(FRAMES.get_frame_count(&"sheared_walk"))/maxf(FRAMES.get_animation_speed(&"sheared_walk"),0.001),[0.25,0.75])
+		gait.observe(self)
+	return gait
+
 func visual_mob() -> void:
 	# 每帧从原始尺寸重新叠加压缩，避免积累变形；不修改实体碰撞。
 	image.transform = Transform2D(0.0,_visual_base_scale,0.0,_visual_rest)
 	_update_graze_grass()
-	var moving:bool = _moving or ram_state in [RamState.WINDUP,RamState.CHARGE]
+	var legs:RefCounted = _sheep_gait()
+	var legs_step:float = _legs_delta
+	_legs_delta = 0.0
+	if health > 0 and is_combat_runtime_active():
+		legs.tick(self,legs_step,dizziness != true and not is_transport_mounted() and ram_state not in [RamState.GRAZE,RamState.RECOVER])
+	else: legs.observe(self)
+	var moving:bool = not legs.at_rest
 	# 弹胀材质只含躯干，没有任何头部像素，避免白色脸部被误判为羊毛。
-	var clip:StringName = &"wool_walk" if moving else &"wool_idle"
-	var frame_index:int = int(_view_clock*FRAMES.get_animation_speed(clip))%8+(0 if moving else 8)
+	var frame_index:int = legs.walk_index(8) if moving else int(_view_clock*FRAMES.get_animation_speed(&"wool_idle"))%8+8
 	if is_instance_valid(_wool_visual): _wool_visual.texture = _wool_body_frames[frame_index]
 	if is_instance_valid(_wool_fixed_visual): _wool_fixed_visual.texture = _wool_fixed_frames[frame_index]
-	frame(FRAMES,&"sheared_walk" if moving else &"sheared_idle")
+	if moving and image is Sprite2D: image.texture = FRAMES.get_frame_texture(&"sheared_walk",legs.walk_index(FRAMES.get_frame_count(&"sheared_walk")))
+	else: frame(FRAMES,&"sheared_idle")
 	face_horizontal(facing,true)
 	image.position = _visual_rest
 	if is_instance_valid(_wool_visual):
