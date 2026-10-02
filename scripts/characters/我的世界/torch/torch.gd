@@ -17,8 +17,13 @@ const RUNTIME = preload("res://scripts/effects/我的世界/mc_explosion.gd")
 const SOUL_TORCH_TEXTURE:Texture2D = preload("res://Images/characters/我的世界/torch/soul_torch.png")
 const FLAME:Texture2D = preload("res://Images/characters/我的世界/torch/flame.png")
 const SOUL_FLAME:Texture2D = preload("res://Images/characters/我的世界/torch/soul_fire_flame.png")
-const SMOKE:Texture2D = preload("res://Images/effects/我的世界/通用粒子/generic_5.png")
-const SOUL_FIRE_FRAMES:SpriteFrames = preload("res://particles/mc_ground_soul_fire.tres")
+const PARTICLES = preload("res://scripts/characters/我的世界/torch/torch_particles.gd")
+## 冲刺火焰形态：OpenGameArt CC0 像素火球（Umplix）按原版 soul_fire_flame 配色重绘，4 帧，火头朝 -X。
+const DASH_FLAME:Texture2D = preload("res://Images/characters/我的世界/torch/soul_dash_flame.png")
+const DASH_FLAME_FRAMES:int = 4
+const DASH_FLAME_FPS:float = 12.0
+const DASH_FLAME_HEAD:Vector2 = Vector2(10.0,10.0) # 帧内火头圆心（贴图像素）
+const DASH_FLAME_HEAD_PX:float = 20.0 # 火头直径（贴图像素）
 ## 火焰尖端（贴图第 6–7 行）相对 Image 的局部坐标，已含场景里的 offset，单位为贴图像素。
 const TIP_TEXEL:Vector2 = Vector2(0.0,-4.0)
 const TIP_FLAME_TEXEL:Vector2 = Vector2(0.0,-6.2)
@@ -30,8 +35,10 @@ const FLAME_FORM_CELLS:float = 1.3
 @export var soul_spark_interval:float = 0.3
 @export var spark_min_cells:float = 0.6
 @export var spark_max_cells:float = 2.6
-@export var spark_flight:float = 0.45
-@export var spark_arc:float = 7.0
+@export var spark_flight:float = 0.6
+## 火星抛物线顶点高度 = spark_arc + 水平距离 × spark_arc_per_distance（先升后落）。
+@export var spark_arc:float = 12.0
+@export var spark_arc_per_distance:float = 0.55
 @export var fire_duration:float = 5.0
 ## 火的伤害半径（格）：0.5 即火焰所在那一格的内切圆。
 @export var fire_radius_cells:float = 0.5
@@ -43,9 +50,9 @@ const FLAME_FORM_CELLS:float = 1.3
 ## 站在灵魂沙上积满进度条所需秒数（离开不回退）。
 @export var soul_charge_seconds:float = 8.0
 @export var dash_speed:float = 420.0
-@export var dash_damage_multiplier:float = 1.5
-@export var dash_knockback:float = 60.0
-@export var dash_knockback_speed:float = 380.0
+@export var dash_damage_multiplier:float = 3.0
+@export var dash_knockback:float = 20.0
+@export var dash_knockback_speed:float = 240.0
 @export var dash_cooldown:float = 3.0
 @export var dash_max_hops:int = 32
 @export var dash_max_seconds:float = 8.0
@@ -71,13 +78,17 @@ var _dash_age:float = 0.0
 var _dash_cooldown_left:float = 0.0
 var _dash_pairs:Array[PhysicsBody2D] = []
 var _tip_flame:Sprite2D
-var _flame_form:AnimatedSprite2D
+var _flame_form:Sprite2D
 var _shown_dash:bool = false
 var _fx_rng := RandomNumberGenerator.new()
 var _flame_wait:float = 0.0
 var _smoke_wait:float = 0.4
 var _trail_from:Vector2 = Vector2.INF
 var _trail_carry:float = 0.0
+var _trail_count:int = 0
+var _form_heading:float = 0.0
+var _form_last:Vector2 = Vector2.INF
+var _form_clock:float = 0.0
 var _drawn_charge:float = -1.0
 var _drawn_soul:bool = false
 
@@ -109,10 +120,12 @@ func _build_flame_visuals() -> void:
 	_tip_flame.position = TIP_FLAME_TEXEL
 	_tip_flame.scale = Vector2.ONE * TIP_FLAME_SCALE
 	image.add_child(_tip_flame)
-	_flame_form = AnimatedSprite2D.new()
+	_flame_form = Sprite2D.new()
 	_flame_form.name = "FlameForm"
-	_flame_form.sprite_frames = SOUL_FIRE_FRAMES
-	_flame_form.animation = &"default"
+	_flame_form.texture = DASH_FLAME
+	_flame_form.hframes = DASH_FLAME_FRAMES
+	var frame_size:Vector2 = Vector2(DASH_FLAME.get_width() / DASH_FLAME_FRAMES,DASH_FLAME.get_height())
+	_flame_form.offset = frame_size * 0.5 - DASH_FLAME_HEAD
 	_flame_form.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_flame_form.visible = false
 	graphics.add_child(_flame_form)
@@ -188,7 +201,7 @@ func stand(delta:float) -> void:
 func _charge_soul(delta:float) -> void:
 	if soul_form or not is_instance_valid(_field): return
 	if not bool(_field.call("touches_rect",body_rect())): return
-	soul_charge = minf(soul_charge + delta / maxf(soul_charge_seconds,0.1),1.0)
+	soul_charge = minf(soul_charge + delta * preload("res://scripts/effects/我的世界/mc_enchantments.gd").charge_speed(self) / maxf(soul_charge_seconds,0.1),1.0)
 	if soul_charge >= 1.0: _become_soul()
 
 
@@ -256,7 +269,7 @@ func launch_spark() -> void:
 func _receive_spark(id:int,from:Vector2,land:Vector2,soul_fire:bool,sound:bool) -> void:
 	if not is_inside_tree() or get_tree().current_scene == null: return
 	var spark := SPARK.new()
-	spark.setup(self,id,from,land,spark_flight,spark_arc,soul_fire,sound)
+	spark.setup(self,id,from,land,spark_flight,spark_arc + from.distance_to(land) * spark_arc_per_distance,soul_fire,sound)
 	RUNTIME.runtime_container(self).add_child(spark)
 
 
@@ -415,7 +428,7 @@ func _dash_sweep(a:Vector2,b:Vector2) -> void:
 ## 每轮连冲每个敌人一次：火焰伤害、灵魂火强度的燃烧，并从冲刺路线向外击退。
 func _dash_strike(target:ball,point:Vector2,heading:Vector2) -> void:
 	if not U.enemy(self,target): return
-	if not target.receive_fire_positional_damage(attack_damage(dash_damage_multiplier),point,false,self): return
+	if not target.receive_fire_positional_damage(attack_damage(dash_damage_multiplier),point,false,self,{"carrier":"body_contact"}): return
 	FIRE.apply_burn(self,target,burn_seconds,attack_damage(burn_tick_multiplier * soul_multiplier),true)
 	var away:Vector2 = target.global_position - point
 	if away.length_squared() < 0.01: away = heading
@@ -484,11 +497,8 @@ func visual_mob() -> void:
 		image.visible = not dashing
 		if is_instance_valid(_flame_form):
 			_flame_form.visible = dashing
-			if dashing:
-				var parent_scale:float = maxf(absf(graphics.global_scale.x),0.001)
-				_flame_form.scale = Vector2.ONE * cell_size() * FLAME_FORM_CELLS / 16.0 / parent_scale
-				_flame_form.play()
-			else: _flame_form.stop()
+			_form_last = Vector2.INF
+			_form_clock = 0.0
 	if is_instance_valid(_tip_flame):
 		var t:float = Time.get_ticks_msec() * 0.001 + float(get_instance_id() % 97)
 		var flicker:float = 1.0 + 0.1 * sin(t * 21.0) + 0.06 * sin(t * 37.0 + 1.3)
@@ -496,33 +506,58 @@ func visual_mob() -> void:
 		_tip_flame.position = TIP_FLAME_TEXEL + Vector2(0.0,-0.6 * (flicker - 1.0) * 4.0)
 
 
+## 原版火把：尖端持续冒火苗和烟（火苗原地缩小，烟 generic_7→0 向上飘散）。
 func _update_flame_particles(delta:float) -> void:
 	if health <= 0 or dashing or not image.visible or not is_combat_runtime_active(): return
+	var fx:Node2D = PARTICLES.find_or_create(self)
+	if fx == null: return
 	var tip:Vector2 = tip_world_position()
 	_flame_wait -= delta
 	if _flame_wait <= 0.0:
-		_flame_wait = _fx_rng.randf_range(0.07,0.12) * (0.75 if soul_form else 1.0)
-		VFX.smoke_particle(self,tip + Vector2(_fx_rng.randf_range(-1.0,1.0),-1.0),SOUL_FLAME if soul_form else FLAME,
-			Vector2(_fx_rng.randf_range(-1.6,1.6),-_fx_rng.randf_range(5.0,8.0)),_fx_rng.randf_range(0.35,0.55),_fx_rng.randf_range(2.6,3.6),Color(1,1,1,0.95),true)
+		_flame_wait = _fx_rng.randf_range(0.1,0.2) * (0.75 if soul_form else 1.0)
+		fx.flame(tip + Vector2(_fx_rng.randf_range(-0.8,0.8),_fx_rng.randf_range(-1.5,0.0)),soul_form,_fx_rng.randf_range(2.6,3.4))
 	_smoke_wait -= delta
 	if _smoke_wait <= 0.0:
-		_smoke_wait = _fx_rng.randf_range(0.35,0.7)
-		VFX.smoke_particle(self,tip + Vector2(0.0,-3.0),SMOKE,Vector2(_fx_rng.randf_range(-2.0,2.0),-_fx_rng.randf_range(7.0,11.0)),0.8,3.2)
+		_smoke_wait = _fx_rng.randf_range(0.12,0.22)
+		fx.smoke(tip + Vector2(_fx_rng.randf_range(-1.0,1.0),-3.0))
 
 
+## 冲刺火焰：贴图朝运动方向旋转（火头在前、尾巴在后），按移动距离密集留下灵魂火苗与烟。
 func _update_dash_trail() -> void:
 	if not dashing or health <= 0:
 		_trail_from = Vector2.INF
 		return
+	_update_flame_form()
 	if _trail_from == Vector2.INF:
 		_trail_from = global_position
 		return
-	var sample:Dictionary = VFX.sample_smoke_trail(_trail_from,global_position,3.0,0.0,_trail_carry)
+	var fx:Node2D = PARTICLES.find_or_create(self)
+	var sample:Dictionary = VFX.sample_smoke_trail(_trail_from,global_position,1.4,0.0,_trail_carry)
 	_trail_carry = float(sample.distance)
 	_trail_from = global_position
+	if fx == null: return
+	var back:Vector2 = -Vector2.from_angle(_form_heading)
+	var side:Vector2 = back.orthogonal()
+	var half:float = cell_size() * FLAME_FORM_CELLS * 0.4
 	for point:Vector2 in sample.points:
-		VFX.smoke_particle(self,point + Vector2(_fx_rng.randf_range(-2.0,2.0),_fx_rng.randf_range(-2.0,2.0)),SOUL_FLAME,
-			Vector2(0.0,-_fx_rng.randf_range(4.0,8.0)),_fx_rng.randf_range(0.3,0.5),_fx_rng.randf_range(3.0,4.5),Color(1,1,1,0.9),true)
+		_trail_count += 1
+		var at:Vector2 = point + side * _fx_rng.randf_range(-half,half)
+		fx.moving_flame(at,true,back * _fx_rng.randf_range(8.0,26.0) + side * _fx_rng.randf_range(-6.0,6.0),_fx_rng.randf_range(0.35,0.75),_fx_rng.randf_range(3.5,6.0))
+		if _trail_count % 3 == 0: fx.smoke(at + back * 4.0)
+
+
+func _update_flame_form() -> void:
+	if not is_instance_valid(_flame_form): return
+	var pos:Vector2 = global_position
+	if _form_last != Vector2.INF and pos.distance_squared_to(_form_last) > 0.04:
+		_form_heading = (pos - _form_last).angle()
+	elif _form_last == Vector2.INF and _dash_goal.is_finite() and _dash_goal.distance_squared_to(pos) > 0.04:
+		_form_heading = (_dash_goal - pos).angle()
+	_form_last = pos
+	_form_clock += get_process_delta_time()
+	_flame_form.frame = int(_form_clock * DASH_FLAME_FPS) % DASH_FLAME_FRAMES
+	var s:float = cell_size() * FLAME_FORM_CELLS / DASH_FLAME_HEAD_PX
+	_flame_form.global_transform = Transform2D(_form_heading + PI,Vector2(s,s),0.0,pos)
 
 
 func _draw() -> void:

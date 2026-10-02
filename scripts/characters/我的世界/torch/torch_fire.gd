@@ -2,10 +2,13 @@ extends "res://scripts/effects/我的世界/烈焰火场.gd"
 ## 火把火星落地生成的火：复用烈焰人火场的原版 3D 火焰方块、地面伤害与共享燃烧（只在权威端结算）。
 ## 灵魂火改用原版 soul_fire_0/1 贴图，伤害与燃烧倍率由火把翻倍后传入。注册为 AI_Hazard，威胁圆即真实伤害圆。
 const U = preload("res://scripts/characters/我的世界/new5/utils.gd")
+const PARTICLES = preload("res://scripts/characters/我的世界/torch/torch_particles.gd")
 
 var soul:bool = false
 var fire_id:int = 0
 var cell:Vector2i = Vector2i.ZERO
+var _fx_rng := RandomNumberGenerator.new()
+var _fx_wait:float = -1.0
 
 
 func setup_torch(source:ball,id:int,point:Vector2,soul_fire:bool,radius:float,duration:float,area_multiplier:float,burn_seconds:float,burn_multiplier:float) -> void:
@@ -33,10 +36,20 @@ func _soul_fire_visual() -> bool:
 	return soul
 
 
-func _spawn_fire_smoke() -> void:
-	# 火把场上火比烈焰人多，烟只保留约四成，避免整片烟雾。
-	if _rng.randf() < 0.6: return
-	super._spawn_fire_smoke()
+## 火把的火持续冒原版大烟（共用火把粒子发射器，纯视觉本地随机），不再用烈焰人火场的稀疏烟。
+func _update_fire_smoke(delta:float) -> void:
+	if _fx_wait < 0.0:
+		_fx_rng.randomize()
+		_fx_wait = _fx_rng.randf_range(0.0,0.2)
+	_fx_wait -= delta
+	if _fx_wait > 0.0: return
+	_fx_wait = _fx_rng.randf_range(0.14,0.26)
+	var fx:Node2D = PARTICLES.find_or_create(self)
+	if fx == null: return
+	var base:Vector2 = global_position + _fire_visual_local_position
+	var top:Vector2 = base + Vector2(_fx_rng.randf_range(-_fire_base_width * 0.32,_fire_base_width * 0.32),-_fire_base_height * _fx_rng.randf_range(0.2,0.5))
+	fx.smoke(top,true)
+	if _fx_rng.randf() < 0.5: fx.flame(top + Vector2(0.0,3.0),soul,_fx_rng.randf_range(2.4,3.2))
 
 
 func damage_center() -> Vector2:

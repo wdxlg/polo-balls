@@ -2,7 +2,7 @@
   "description": "火把 (Torch)：火把/灵魂火把贴图、灵魂火动画、火焰与火星粒子",
   "origin": "Minecraft Java 1.21.4 assets (mirror InventivetalentDev/minecraft-assets, branch 1.21.4); bytes copied unchanged",
   "license": "Minecraft assets are copyright Mojang Studios/Microsoft and subject to the Minecraft EULA; no general redistribution permission is claimed.",
-  "used_by": "scripts/characters/我的世界/torch/ (torch.gd, torch_fire.gd, torch_spark.gd), particles/mc_ground_soul_fire.tres, particles/mc_burning_soul_fire.tres, scripts/effects/我的世界/mc_fire_block_3d.gd",
+  "used_by": "scripts/characters/我的世界/torch/ (torch.gd, torch_fire.gd, torch_spark.gd, torch_particles.gd), particles/mc_ground_soul_fire.tres, particles/mc_burning_soul_fire.tres, scripts/effects/我的世界/mc_fire_block_3d.gd",
   "files": [
     {
       "file": "torch.png",
@@ -57,6 +57,14 @@
       "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/particle/lava.png",
       "sha256": "2a01d0a53de286c7acb0417183c492424b278050687d4573d218226ad3b7392f",
       "use": "普通火星"
+    },
+    {
+      "file": "soul_dash_flame.png",
+      "url": "https://opengameart.org/content/fireball-spritesheet (https://opengameart.org/sites/default/files/fireball_10.png)",
+      "license": "CC0 1.0 (author Umplix; credit not required)",
+      "source_sha256": "8421175c879d2569fd5a7f49ee719313e41c45aa7723e817830c9424b5135a57",
+      "sha256": "3797336abcf0d0012d3878605378a0936fc11b8214f73fa843097112729c8f25",
+      "use": "灵魂火把冲刺火焰形态（4 帧 50×20，火头朝 -X）；由原图 4 帧裁到火球范围、按 2 像素格缩回、3 种橙黄色映射为原版 soul_fire_flame 粒子的 3 种青白色"
     }
   ],
   "reused": [
@@ -68,8 +76,8 @@
       "sha256": "0b064ae1753254dd4d2f09c793ae368838779c689406dd22156222448d6f698a"
     },
     {
-      "file": "res://Images/effects/我的世界/通用粒子/generic_5.png",
-      "use": "火把头部烟",
+      "file": "res://Images/effects/我的世界/通用粒子/generic_0.png .. generic_7.png",
+      "use": "火把、火与冲刺拖尾的烟（原版 smoke 粒子按寿命 7→0 播放）",
       "note": "vanilla generic particle already in the project"
     }
   ]
