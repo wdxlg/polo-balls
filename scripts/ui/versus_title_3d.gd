@@ -17,9 +17,12 @@ const VS_WIDTH_EM:float = 1.6
 ## 单行绘制高度 = 字号行高 × 这个倍数，且至少是宽度的 ROW_HEIGHT_PER_WIDTH——立体字比平面字大一号。
 const HEIGHT_RATIO:float = 1.8
 const ROW_HEIGHT_PER_WIDTH:float = 0.16
-## 底边固定在单行标题的位置；人多折行时往上长，用掉顶部空白，最高到屏幕高度的这个比例
-## （时钟下面；本体还会避开顶部工具栏）。放不下就整体缩小，绝不往下压到战场。
-const TOP_SAFE_FRACTION:float = 0.04
+## 标题固定画在顶部时间/VS 面板下方到默认地图上沿之间的这条带里（1080 宽设计坐标，按视口宽度
+## 等比换算，不随地图大小变化）；本体还会避开顶部工具栏和缩小后的面板。人多就折行并整体缩小，竖直居中。
+const DESIGN_WIDTH:float = 1080.0
+const BAND_TOP:float = 216.0 # 顶部面板底边 32 + 176，再空 8
+const BAND_BOTTOM:float = 462.0 # 默认地图上沿约 474，再空 12
+const BAND_MIN_HEIGHT:float = 96.0
 const RELAYOUT_TOLERANCE:float = 0.08
 const WRAP_CANDIDATES:Array[float] = [13.0,16.0,20.0,25.0,32.0,44.0,64.0]
 const VS_INLINE_SCALE:float = 0.68
@@ -152,14 +155,17 @@ func sync_now() -> void:
 			title.queue_free()
 			title = null
 		return
-	# 区域：底边 = 单行标题底边（以一行字的中线为准上下外扩），顶边 = 屏幕安全线（换算到标签本地坐标）。
+	# 区域：屏幕上固定的标题带（换算到标签本地坐标）；单行高度仍以 row 为上限。
 	var line_height:float = float(label.get_theme_font_size("bold_font_size")) * 1.4
 	var row:float = maxf(line_height * HEIGHT_RATIO,label.size.x * ROW_HEIGHT_PER_WIDTH)
-	var bottom:float = line_height * 0.5 + row * 0.5
-	var screen_top:float = label.get_viewport_rect().size.y * TOP_SAFE_FRACTION
+	var factor:float = maxf(label.get_viewport_rect().size.x,1.0) / DESIGN_WIDTH
+	var screen_top:float = BAND_TOP * factor
+	var screen_bottom:float = BAND_BOTTOM * factor
 	if top_limit_provider.is_valid(): screen_top = maxf(screen_top,float(top_limit_provider.call()))
-	var canvas:Transform2D = label.get_global_transform_with_canvas()
-	var top:float = minf((canvas.affine_inverse() * Vector2(0.0,screen_top)).y,bottom - row)
+	screen_top = minf(screen_top,screen_bottom - BAND_MIN_HEIGHT * factor)
+	var to_local:Transform2D = label.get_global_transform_with_canvas().affine_inverse()
+	var top:float = (to_local * Vector2(0.0,screen_top)).y
+	var bottom:float = (to_local * Vector2(0.0,screen_bottom)).y
 	var area := Vector2(label.size.x,bottom - top)
 	# 只有文字变了、或区域变化超过 8% 时才重新挑折行；折行结果和现在一样就不动网格（只改绘制大小）。
 	var relayout:bool = _layout_area == Vector2.ZERO or not is_instance_valid(title) \
@@ -172,7 +178,7 @@ func sync_now() -> void:
 			title = TITLE_SCRIPT.new()
 			title.name = "Title"
 			title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			title.valign = 1.0
+			title.valign = 0.5
 			title.setup(lines)
 			add_child(title)
 		elif lines != title._lines:

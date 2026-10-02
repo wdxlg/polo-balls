@@ -4978,16 +4978,21 @@ func refresh_top_text_layout() -> void:
 	_layout_timed_training_hud()
 	_layout_character_dialogue_hud()
 
-## VS 立体字人多折行时往上长；顶部工具栏显示时不盖住它（返回屏幕 y，0 = 不限制）。
+## VS 立体字标题带的最高位置（屏幕 y，0 = 不限制）：在顶部时间/VS 面板（工具栏打开时会缩小下移）
+## 下方，也不被顶部工具栏盖住。
 func _versus_title_top_limit() -> float:
-	if not is_instance_valid(control): return 0.0
+	var limit:float = 0.0
+	if is_instance_valid(duel_top_hud):
+		var hud_bottom:float = (duel_top_hud.get_global_transform_with_canvas() * Vector2(0.0,DUEL_TOP_HUD_SCRIPT.TOP + DUEL_TOP_HUD_SCRIPT.PANEL_HEIGHT)).y
+		limit = hud_bottom + 8.0
+	if not is_instance_valid(control): return limit
 	var bar:Control = control.get_node_or_null("Settings") as Control
-	if bar == null or not bar.is_visible_in_tree(): return 0.0
+	if bar == null or not bar.is_visible_in_tree(): return limit
 	var bar_layer:CanvasLayer = bar.get_canvas_layer_node()
-	if bar_layer != null and not bar_layer.visible: return 0.0
+	if bar_layer != null and not bar_layer.visible: return limit
 	var bar_canvas:Transform2D = bar.get_global_transform_with_canvas()
 	var bottom:float = maxf((bar_canvas * Vector2(0.0,bar.size.y)).y,(bar_canvas * bar.size).y)
-	return bottom + 12.0 if bottom > 0.0 else 0.0
+	return maxf(limit,bottom + 12.0) if bottom > 0.0 else limit
 
 func _anchor_versus_to_screen() -> void:
 	if not is_inside_tree() or not is_instance_valid(versus_label):

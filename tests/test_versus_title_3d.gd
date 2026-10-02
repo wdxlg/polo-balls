@@ -96,7 +96,7 @@ func run() -> void:
 	check(count_opaque(adaptor) > 400,"3D title rendered (%d)" % count_opaque(adaptor))
 	check(get_nodes_in_group("BattleIntroTitle").is_empty(),"no intro popup after the battle starts")
 
-	# 人多时往上长：底边不低于单行标题，顶边不越过屏幕安全线，字仍然够大。
+	# 标题始终在顶部面板下方到默认地图上沿之间的固定带里，人多就折行缩小。
 	var canvas:Transform2D = label.get_global_transform_with_canvas()
 	var single_bottom:float = (canvas * (adaptor.position + adaptor.title.content_rect().end)).y
 	var single_top:float = (canvas * (adaptor.position + adaptor.title.content_rect().position)).y
@@ -108,10 +108,14 @@ func run() -> void:
 	canvas = label.get_global_transform_with_canvas()
 	var crowd_top:float = (canvas * (adaptor.position + adaptor.title.content_rect().position)).y
 	var crowd_bottom:float = (canvas * (adaptor.position + adaptor.title.content_rect().end)).y
-	var screen_h:float = label.get_viewport_rect().size.y
 	print("VERSUS_3D_METRIC single=",single_top,"..",single_bottom," crowd=",crowd_top,"..",crowd_bottom," rows=",adaptor.title._lines.size())
-	check(crowd_bottom <= single_bottom + 1.0,"crowded title does not push down into the battle")
-	check(crowd_top < single_top - 20.0 and crowd_top >= screen_h * 0.04 - 1.0,"crowded title grows upward into the empty header, below the safe line")
+	var band_factor:float = label.get_viewport_rect().size.x / Adaptor.DESIGN_WIDTH
+	var band_top:float = Adaptor.BAND_TOP * band_factor
+	var band_bottom:float = Adaptor.BAND_BOTTOM * band_factor
+	check(single_top >= band_top - 1.0 and single_bottom <= band_bottom + 1.0,"single-line title sits inside the band below the top panel")
+	check(crowd_top >= band_top - 1.0 and crowd_bottom <= band_bottom + 1.0,"crowded title stays inside the band, never above it into the top panel or down into the map")
+	check(absf((crowd_top + crowd_bottom) - (band_top + band_bottom)) <= 4.0,"title is vertically centered in the band")
+	check(world._versus_title_top_limit() >= (world.duel_top_hud.get_global_transform_with_canvas() * Vector2(0.0,world.duel_top_hud.TOP + world.duel_top_hud.PANEL_HEIGHT)).y,"band starts below the top time/VS panel")
 	check(adaptor.title._lines.size() >= 2 and count_opaque(adaptor) > 400,"crowded title wraps and renders")
 	root.get_texture().get_image().save_png(OS.get_environment("TEMP") + "/versus3d_crowd.png")
 	# 卡顿回归：人多时某一方数量变化，主线程只做排版/组装，网格在后台生成（旧画面继续显示）。
