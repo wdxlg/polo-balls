@@ -4,6 +4,10 @@ func run() -> void:
 	create_timer(70.0,true,false,true).timeout.connect(func():push_error("ARMOR_TOGGLE_TIMEOUT");quit(2))
 	game=root.get_node("Game")
 	var saved:Dictionary=game.Game_Settings.duplicate(true)
+	# 设置读写全部走临时文件，不改玩家自己的 settings.cfg。
+	var saved_settings_path:String=game._settings_storage_path
+	game._settings_storage_path="user://test_armor_intro_toggle_settings.cfg"
+	game.save_persistent_settings()
 	var locale_before:String=game.current_locale
 	check(game.Game_Settings.get(KEY,false)==true,"new preference defaults on")
 	check(not game._is_network_shared_setting(KEY) and not game._shared_settings_snapshot().has(KEY),"local display preference is not sent as a room gameplay setting")
@@ -63,12 +67,12 @@ func run() -> void:
 		save_capture(root,"armor-toggle-"+str(value))
 	check(actor.get_instance_id()==actor_id and actor.health==health,"toggle neither resets nor heals the character")
 	game.set_runtime_game_setting(KEY,false)
-	var config:=ConfigFile.new();var err:Error=config.load(game.SETTINGS_PATH)
+	var config:=ConfigFile.new();var err:Error=config.load(game._settings_storage_path)
 	check(err==OK and config.get_value("game_settings",KEY,true)==false,"off choice saved via standard settings file")
 	game.Game_Settings[KEY]=true;game.load_persistent_settings();world.refresh_versus_text()
 	check(game.Game_Settings[KEY]==false and not world.armor_intro_label.visible,"saved off choice survives settings reload")
 	# Missing preference in an old save retains the declared default.
-	config.erase_section_key("game_settings",KEY);config.save(game.SETTINGS_PATH)
+	config.erase_section_key("game_settings",KEY);config.save(game._settings_storage_path)
 	game.Game_Settings[KEY]=true;game.load_persistent_settings();world.refresh_versus_text()
 	check(game.Game_Settings[KEY]==true and world.armor_intro_label.visible,"old save missing the new key remains enabled")
 	game.set_runtime_game_setting(KEY,false,false)
@@ -90,4 +94,6 @@ func run() -> void:
 	for view:SubViewport in views.values():view.queue_free()
 	world.queue_free();await process_frame
 	game.Game_Settings=saved;game.set_language(locale_before,false)
+	game._settings_storage_path=saved_settings_path
+	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_armor_intro_toggle_settings.cfg"))
 	print("ARMOR_INTRO_TOGGLE checks=%d failures=%d"%[checks,failures]);quit(1 if failures else 0)

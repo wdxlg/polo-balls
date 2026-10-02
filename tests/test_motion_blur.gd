@@ -48,7 +48,7 @@ func _initialize() -> void:
 	var original_value:Variant = game.Game_Settings.get("Motion_Blur",false)
 	var original_locale:String = game.current_locale
 	game._settings_storage_path = "user://test_motion_blur_settings.cfg"
-	check(FileAccess.get_file_as_string("res://global/game.gd").contains("\tMotion_Blur = false,"),"motion blur is off by default")
+	check(FileAccess.get_file_as_string("res://global/game.gd").contains("\tMotion_Blur = true,"),"motion blur is on by default")
 	check(not game._is_network_shared_setting("Motion_Blur"),"motion blur is a local preference, not synced to the room")
 	for lang:String in ["zh","en"]:
 		game.set_language(lang,false)

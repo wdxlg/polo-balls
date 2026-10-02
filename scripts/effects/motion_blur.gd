@@ -32,7 +32,7 @@ static func attach(parent:Node,viewport:Viewport) -> Node:
 	return node
 
 static func enabled() -> bool:
-	return bool(Game.Game_Settings.get("Motion_Blur",false))
+	return bool(Game.Game_Settings.get("Motion_Blur",true))
 
 func _ready() -> void:
 	layer = LAYER

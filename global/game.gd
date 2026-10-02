@@ -782,14 +782,14 @@ func _on_speed_slider_drag_ended(value_changed:bool) -> void:
 	# V128：控制角色时是否让本地 Camera2D 强制以该角色为中心。
 	Follow_Controlled_Character = false,
 	# 英文模式下只翻译战斗内文本；工具栏、设置和选人面板继续保持中文。
-	Only_In_Game_Translation = false,
+	Only_In_Game_Translation = true,
 	# 仅影响本机地图外观，旧存档缺少此项时仍使用原蓝色背景。
 	Map_Background = "blue",
 	# Local visual preference, persisted by the existing settings path.
 	Minecraft_Clouds = true,
 	# 本机表现：右上角时间与昼夜变化。关闭后固定正午并隐藏时间。
 	Day_Night_Cycle = true,
-	Motion_Blur = false,
+	Motion_Blur = true,
 	# 本机战斗音乐：曲目登记在 res://global/battle_music.gd，默认“无”。
 	Battle_Music = "none",
 	Battle_Music_Volume = 100.0,

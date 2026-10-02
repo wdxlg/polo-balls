@@ -1629,7 +1629,7 @@ func _build_parameter_settings(parent_box:VBoxContainer) -> void:
 	_create_bool_setting_row(parent_box,"Minecraft_Clouds")
 	if not Game.Game_Settings.has("Day_Night_Cycle"): Game.Game_Settings["Day_Night_Cycle"] = true
 	_create_bool_setting_row(parent_box,"Day_Night_Cycle")
-	if not Game.Game_Settings.has("Motion_Blur"): Game.Game_Settings["Motion_Blur"] = false
+	if not Game.Game_Settings.has("Motion_Blur"): Game.Game_Settings["Motion_Blur"] = true
 	_create_bool_setting_row(parent_box,"Motion_Blur")
 	var excluded:Dictionary = {
 		"Minecraft_Clouds": true,
@@ -1666,7 +1666,7 @@ func _build_parameter_settings(parent_box:VBoxContainer) -> void:
 	# 明确放在参数页最上方，保证一打开“参数”就能看到。
 	# 旧存档不会包含新 key，这里也做一次兼容兜底。
 	if not Game.Game_Settings.has("Only_In_Game_Translation"):
-		Game.Game_Settings["Only_In_Game_Translation"] = false
+		Game.Game_Settings["Only_In_Game_Translation"] = true
 	_create_bool_setting_row(parent_box, "Only_In_Game_Translation")
 
 	for raw_setting:Variant in Game.Game_Settings.keys():

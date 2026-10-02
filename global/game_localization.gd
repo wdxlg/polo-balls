@@ -251,7 +251,7 @@ func resolve_translation_key(source:String) -> String:
 
 
 func is_only_in_game_translation_enabled() -> bool:
-	return bool(_game.Game_Settings.get("Only_In_Game_Translation", false))
+	return bool(_game.Game_Settings.get("Only_In_Game_Translation", true))
 
 
 func get_ui_locale() -> String:
