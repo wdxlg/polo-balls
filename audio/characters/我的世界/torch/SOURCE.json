@@ -4,7 +4,7 @@
   "used_by": "scripts/characters/我的世界/torch/torch_audio.gd (火把)",
   "event_mapping": "minecraft/sounds.json of the same index; particle.soul_escape has 13 variants, the first 5 are used",
   "item_break": "entity.item.break reuses audio/characters/我的世界/wooden_sword/entity_item_break0.ogg (see that folder)",
-  "ground_fire_ambient": "the shared Blaze ground fire ambient in 烈焰火场.gd is reused unchanged",
+  "ground_fire_ambient": "torch fires play their own block.fire.ambient (fire_ambient.ogg); the shared Blaze ground fire ambient is no longer used for them",
   "files": [
     {
       "new_asset": "ignite.ogg",
@@ -61,6 +61,41 @@
       "sha1": "8295545fc25a424563095fbe171123c5ae90fe5c",
       "event": "particle.soul_escape",
       "use": "变成灵魂火把"
+    },
+    {
+      "new_asset": "lava_pop.ogg",
+      "original_path": "minecraft/sounds/liquid/lavapop.ogg",
+      "sha1": "19a5aae31c3e0018a960b709a9f0240d8d47dda7",
+      "event": "block.lava.pop",
+      "use": "火星飞出"
+    },
+    {
+      "new_asset": "fire_ambient.ogg",
+      "original_path": "minecraft/sounds/fire/fire.ogg",
+      "sha1": "8b260108a73470c16cd244325242d4780cfb7d78",
+      "event": "block.fire.ambient",
+      "use": "地上的火噼啪燃烧"
+    },
+    {
+      "new_asset": "fire_hurt1.ogg",
+      "original_path": "minecraft/sounds/entity/player/hurt/fire_hurt1.ogg",
+      "sha1": "6c5e816813bc17b1d7b65676e1ee29496d88015b",
+      "event": "entity.player.hurt_on_fire",
+      "use": "冲刺火焰烧伤敌人"
+    },
+    {
+      "new_asset": "fire_hurt2.ogg",
+      "original_path": "minecraft/sounds/entity/player/hurt/fire_hurt2.ogg",
+      "sha1": "ee8edac9e045dbc0417c4f8bec83d291df40da61",
+      "event": "entity.player.hurt_on_fire",
+      "use": "冲刺火焰烧伤敌人"
+    },
+    {
+      "new_asset": "fire_hurt3.ogg",
+      "original_path": "minecraft/sounds/entity/player/hurt/fire_hurt3.ogg",
+      "sha1": "d5a6435947ff3b0b2a161cc37d419cd7c49cf8b4",
+      "event": "entity.player.hurt_on_fire",
+      "use": "冲刺火焰烧伤敌人"
     }
   ]
 }

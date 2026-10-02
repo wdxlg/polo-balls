@@ -270,6 +270,7 @@ func run() -> void:
 		var flying:Node2D = sparks[0]
 		var apex:Vector2 = flying.point_at(0.5)
 		check(apex.y < minf(flying._from.y,flying._to.y) - 4.0 and flying._arc >= torch.spark_arc,"the spark flies up first and then falls to the ground (apex %.1f, from %.1f, to %.1f)" % [apex.y,flying._from.y,flying._to.y])
+	check(sound_events().has("block.lava.pop"),"a native lava pop plays when the spark flies out")
 	var fire:Variant = null
 	for i:int in range(90):
 		await physics_frame
@@ -290,6 +291,7 @@ func run() -> void:
 			# 火冒的是原版大烟（尺寸 >= 6.5），火把尖端的烟更小。
 			if int(p.kind) == fx.KIND_SMOKE and float(p.size) >= 6.5 and absf((p.pos as Vector2).x - land.x) < 20.0: fire_smoke += 1
 	check(fire_smoke >= 2,"the ground fire gives off smoke (%d puffs)" % fire_smoke)
+	check(sound_events().has("block.fire.ambient"),"the ground fire crackles with the native fire ambient sound")
 	var cell:float = 16.0
 	check(land.distance_to(origin) <= torch.spark_max_cells * cell + cell and land.distance_to(field.cell_center(field.cell_of(land))) < 0.01,"fire lands near the torch on a map cell centre")
 	check(not fire.soul and is_equal_approx(fire.damage_radius(),cell * 0.5) and is_equal_approx(fire.tick_damage(),5.0),"normal fire: one-cell circle, Damage x 0.5 per tick")
@@ -374,35 +376,38 @@ func run() -> void:
 	var knocked:bool = false
 	var form_seen:bool = false
 	var segment_ok:bool = false
-	var heading_ok:bool = false
+	var body_peak:int = 0
+	var hurt_sound:bool = false
 	var trail_peak:int = 0
 	var fx2:Node = null
 	for i:int in range(180):
 		await physics_frame
 		if torch.dashing:
 			started = true
-			var form:Node2D = torch.get_node("Graphics/FlameForm")
-			form_seen = form_seen or (not torch.image.visible and form.visible and form.texture == torch.DASH_FLAME)
-			if torch.dash_hops == 0 and torch.global_position.distance_to(t) > 8.0:
-				heading_ok = heading_ok or Vector2.from_angle(form.global_rotation + PI).dot(Vector2.RIGHT) > 0.95
 			fx2 = world.get_node_or_null("MCTorchParticles")
-			if fx2 != null: trail_peak = maxi(trail_peak,fx2.count(fx2.KIND_FLAME))
+			if fx2 != null:
+				trail_peak = maxi(trail_peak,fx2.count(fx2.KIND_FLAME))
+				var near:int = 0
+				for p:Dictionary in fx2.particles:
+					if int(p.kind) == fx2.KIND_FLAME and bool(p.soul) and (p.pos as Vector2).distance_to(torch.global_position) < 14.0: near += 1
+				body_peak = maxi(body_peak,near)
+			form_seen = form_seen or (not torch.image.visible and body_peak >= 25 and torch.get_node_or_null("Graphics/FlameForm") == null)
+			hurt_sound = hurt_sound or sound_events().has("entity.player.hurt_on_fire")
 			for region:Dictionary in torch.get_debug_attack_regions():
 				if region.get("kind") == "torch_flame_dash" and region.get("shape") == "segment" and is_equal_approx(float(region.get("radius",0.0)),8.0): segment_ok = true
 		knocked = knocked or has_knockback(victim)
 		if started and not torch.dashing: break
 	var drop:float = victim_before - victim.health
 	check(started,"touching its own soul fire turns the torch into a dashing flame")
-	check(form_seen,"the torch shows as a dashing soul flame while dashing")
-	check(heading_ok,"the dashing flame points its head along the dash direction")
+	check(form_seen,"while dashing the torch becomes a dense cluster of soul flame particles (%d near it)" % body_peak)
 	check(trail_peak >= 40,"the dash leaves a dense trail of soul flame particles (%d)" % trail_peak)
 	check(is_equal_approx(torch.attack_damage(torch.dash_damage_multiplier),30.0) and drop >= 29.0,"a dash hit deals 30 damage (%.1f)" % drop)
-	check(is_equal_approx(torch.dash_knockback,20.0),"dash knockback is a light 20 px push")
+	check(hurt_sound,"burning an enemy with the dash plays the native hurt-on-fire sound")
 	check(segment_ok,"the dash path is shown as a real threat segment")
 	check(drop > 0.0 and torch._dash_hit.size() == 1 and torch._dash_hit.has(victim.get_instance_id()),"each enemy on the path is hit once per chain (%.1f damage)" % drop)
 	var victim_burn:Node = victim.get_node_or_null("MinecraftBlazeBurn")
 	check(victim_burn != null and is_equal_approx(float(victim_burn.tick_damage),6.0) and soul_look(victim,victim_burn),"dash hits apply soul-strength burn with the soul fire look")
-	check(knocked,"dash knocks the enemy away")
+	check(not knocked,"the dash passes straight through enemies without knockback")
 	check(torch.dash_hops == 2 and torch.global_position.distance_to(c2) < 1.0,"the flame visits every reachable soul fire once and stops at the last")
 	check(not torch.dashing and torch.image.visible and torch._dash_cooldown_left > 2.5,"it turns back into a torch with about 3 s cooldown")
 	check(torch.soul_fires().size() == 3,"soul fires are not consumed")

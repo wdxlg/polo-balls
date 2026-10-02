@@ -57,14 +57,6 @@
       "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/particle/lava.png",
       "sha256": "2a01d0a53de286c7acb0417183c492424b278050687d4573d218226ad3b7392f",
       "use": "普通火星"
-    },
-    {
-      "file": "soul_dash_flame.png",
-      "url": "https://opengameart.org/content/fireball-spritesheet (https://opengameart.org/sites/default/files/fireball_10.png)",
-      "license": "CC0 1.0 (author Umplix; credit not required)",
-      "source_sha256": "8421175c879d2569fd5a7f49ee719313e41c45aa7723e817830c9424b5135a57",
-      "sha256": "3797336abcf0d0012d3878605378a0936fc11b8214f73fa843097112729c8f25",
-      "use": "灵魂火把冲刺火焰形态（4 帧 50×20，火头朝 -X）；由原图 4 帧裁到火球范围、按 2 像素格缩回、3 种橙黄色映射为原版 soul_fire_flame 粒子的 3 种青白色"
     }
   ],
   "reused": [

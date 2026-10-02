@@ -3,12 +3,16 @@ extends "res://scripts/effects/我的世界/烈焰火场.gd"
 ## 灵魂火改用原版 soul_fire_0/1 贴图，伤害与燃烧倍率由火把翻倍后传入。注册为 AI_Hazard，威胁圆即真实伤害圆。
 const U = preload("res://scripts/characters/我的世界/new5/utils.gd")
 const PARTICLES = preload("res://scripts/characters/我的世界/torch/torch_particles.gd")
+const TORCH_AUDIO = preload("res://scripts/characters/我的世界/torch/torch_audio.gd")
+const FIRE_SOUND_GAP_META:StringName = &"mc_torch_fire_sound_next_msec"
+const FIRE_SOUND_GAP_MSEC:int = 300 # 全场两声火焰噼啪之间至少间隔
 
 var soul:bool = false
 var fire_id:int = 0
 var cell:Vector2i = Vector2i.ZERO
 var _fx_rng := RandomNumberGenerator.new()
 var _fx_wait:float = -1.0
+var _sound_wait:float = -1.0
 
 
 func setup_torch(source:ball,id:int,point:Vector2,soul_fire:bool,radius:float,duration:float,area_multiplier:float,burn_seconds:float,burn_multiplier:float) -> void:
@@ -34,6 +38,24 @@ static func apply_burn(source:ball,target:ball,seconds:float,tick:float,soul_fir
 
 func _soul_fire_visual() -> bool:
 	return soul
+
+
+## 原版火方块：每团火各自隔一段随机时间噼啪燃烧（block.fire.ambient，音调 0.3..1.0）；
+## 全场共用最短间隔，火多时也不叠成噪声。替换烈焰人火场那种全场只有一个、很久才响一声的燃烧声。
+func _update_burn_ambient_audio() -> void:
+	if _sound_wait < 0.0:
+		_fx_rng.randomize()
+		_sound_wait = _fx_rng.randf_range(0.05,0.6)
+	_sound_wait -= get_physics_process_delta_time()
+	if _sound_wait > 0.0 or get_tree() == null or get_tree().current_scene == null: return
+	var world:Node = get_tree().current_scene
+	var now:int = Time.get_ticks_msec()
+	if now < int(world.get_meta(FIRE_SOUND_GAP_META,0)):
+		_sound_wait = _fx_rng.randf_range(0.1,0.4)
+		return
+	world.set_meta(FIRE_SOUND_GAP_META,now + FIRE_SOUND_GAP_MSEC)
+	_sound_wait = _fx_rng.randf_range(1.5,3.5)
+	TORCH_AUDIO.play(self,TORCH_AUDIO.KIND_FIRE,0,damage_center(),_fx_rng.randf_range(0.3,1.0))
 
 
 ## 火把的火持续冒原版大烟（共用火把粒子发射器，纯视觉本地随机），不再用烈焰人火场的稀疏烟。
