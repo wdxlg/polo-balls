@@ -1,4 +1,13 @@
 extends RefCounted
+## 每局录像存进一个以中文对阵名命名的文件夹，里面是固定短名的中/英文成片与封面。
+const ZH_VIDEO:String = "中文.mp4"
+const EN_VIDEO:String = "English.mp4"
+const COVERS:Dictionary = {
+	"zh_9x16":"中文封面_9x16.jpg", "zh_16x9":"中文封面_16x9.jpg",
+	"en_9x16":"English_cover_9x16.jpg", "en_16x9":"English_cover_16x9.jpg",
+}
+## 文件夹里最长的临时文件名（English.video.mp4）加分隔符所需的路径余量。
+const FOLDER_CONTENT_RESERVE:int = 19
 ## Snapshot the INITIAL matchup, never infer random selection from the sampled name.
 static func snapshot(world:Node, simulated:bool) -> Dictionary:
 	var groups:Array = []
@@ -89,9 +98,13 @@ static func _occupied(path:String) -> bool:
 	return false
 
 static func filename(data:Dictionary, locale:String, _stamp:String, root:String) -> String:
-	var text:String = _safe_stem(title(data,locale))
 	# No timestamp/language/mode prefix. Reserve room for temporary encoder paths.
-	var budget:int = mini(160,238 - root.length() - 16)
+	var stem:String = _unique(_safe_stem(title(data,locale)), mini(160,238 - root.length() - 16),
+		func(candidate:String) -> bool: return _occupied(root.path_join(candidate + ".mp4")))
+	return "" if stem.is_empty() else stem + ".mp4"
+
+## 重名只加 " (2)" 等编号，过长截断并带标识哈希；预算放不下文字 + 哈希时返回空。
+static func _unique(text:String, budget:int, taken:Callable) -> String:
 	var minimum:int = 12 # Keep role text plus the truncation hash, without branding prefixes.
 	if budget < minimum: return ""
 	var serial:int = 1
@@ -100,7 +113,14 @@ static func filename(data:Dictionary, locale:String, _stamp:String, root:String)
 		var limit:int = budget - suffix.length()
 		if limit < minimum: return ""
 		var stem:String = text if text.length() <= limit else text.left(limit - 9) + "~" + text.sha256_text().left(8)
-		var candidate:String = stem + suffix + ".mp4"
-		if not _occupied(root.path_join(candidate)): return candidate
+		if not taken.call(stem + suffix): return stem + suffix
 		serial += 1
 	return ""
+
+
+## 本局录像文件夹名（中文对阵名，同名已有文件夹/文件时编号避让），路径过长时返回空。
+static func folder(data:Dictionary, root:String) -> String:
+	return _unique(_safe_stem(title(data,"zh")), mini(160,238 - root.length() - FOLDER_CONTENT_RESERVE),
+		func(candidate:String) -> bool:
+			var path:String = root.path_join(candidate)
+			return DirAccess.dir_exists_absolute(path) or FileAccess.file_exists(path))

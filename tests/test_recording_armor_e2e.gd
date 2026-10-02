@@ -91,8 +91,11 @@ func run() -> void:
 	if recorder.last_outputs.size()==2:
 		var zh:String = str(recorder.last_outputs.zh)
 		var en:String = str(recorder.last_outputs.en)
-		check(zh.get_file().begins_with("烈焰人") and zh.ends_with(".mp4"),"Chinese movie uses the new-character name")
-		check(en.get_file().begins_with("Blaze") and not en.get_file().contains("vs") and en.ends_with(".mp4"),"English movie is the English role name alone")
+		check(zh.get_base_dir().get_file().begins_with("烈焰人") and zh.get_file() == "中文.mp4","Chinese movie sits in a folder named after the new character")
+		check(en.get_base_dir() == zh.get_base_dir() and en.get_file() == "English.mp4","English movie shares the folder under a fixed short name")
+		check(recorder.last_folder == zh.get_base_dir() and recorder.last_covers.size() == 4,"Chinese/English 9:16 and 16:9 covers are written too: %s" % [recorder.last_covers])
+		for cover:String in recorder.last_covers.values():
+			check(cover.get_base_dir() == zh.get_base_dir() and Image.load_from_file(cover) != null,"cover is a readable image in the recording folder: " + cover)
 		check(FileAccess.file_exists(zh) and FileAccess.file_exists(en),"both output paths exist on disk")
 	var result:Dictionary = {"mode":args[1],"checks":checks,"failures":failures,"frames":recorder._frame_index,"end_frame":ended_at_frame,"duration_from_frames":float(recorder._frame_index)/60.0,"outputs":recorder.last_outputs.duplicate(),"error":recorder.get_last_error()}
 	var file:FileAccess = FileAccess.open(args[0].path_join("e2e-"+args[1]+".json"),FileAccess.WRITE)

@@ -151,6 +151,19 @@ func _run() -> void:
 	check(Naming.filename(pair,"en","STAMP","C:/" + "a".repeat(225)).is_empty(),"overlong output directory fails safely")
 	check(Naming.filename(pair,"zh","STAMP","C:/" + "a".repeat(208)).is_empty(),"path too short for role text plus identity hash is rejected")
 	check(not Naming.filename(pair,"zh","STAMP","C:/" + "a".repeat(207)).is_empty(),"tight valid Chinese path no longer reserves unused branding space")
+	# One Chinese-named folder per recording, fixed short names inside.
+	check(Naming.folder(counted,scratch) == "3个钻石剑 vs 2个木剑","recording folder is the Chinese matchup title")
+	check(Naming.folder(armor,scratch) == "烈焰人","armor recording folder is the role name")
+	DirAccess.make_dir_absolute(scratch.path_join("3个钻石剑 vs 2个木剑"))
+	check(Naming.folder(counted,scratch) == "3个钻石剑 vs 2个木剑 (2)","an existing recording folder is never reused")
+	touch("钻石剑 vs 木剑")
+	check(Naming.folder(pair,scratch) == "钻石剑 vs 木剑 (2)","a file with the folder name is avoided too")
+	check(Naming.folder(pair,"C:/" + "a".repeat(225)).is_empty(),"overlong output directory cannot hold a recording folder")
+	check(not Naming.folder(data_for([{"char":"VeryLongName".repeat(40)}],[wood]),scratch).is_empty(),"long matchup folder is truncated with a hash")
+	check(Naming.ZH_VIDEO == "中文.mp4" and Naming.EN_VIDEO == "English.mp4","videos inside use short fixed names")
+	var cover_names:Array = Naming.COVERS.values()
+	check(Naming.COVERS.size() == 4 and cover_names.has("中文封面_9x16.jpg") and cover_names.has("中文封面_16x9.jpg") and cover_names.has("English_cover_9x16.jpg") and cover_names.has("English_cover_16x9.jpg"),"four covers: Chinese/English x 9:16/16:9")
+	DirAccess.remove_absolute(scratch.path_join("3个钻石剑 vs 2个木剑"))
 	# Exercise snapshot source selection and deep copies, not just made-up title data.
 	var fake := SnapshotWorld.new()
 	game.Game_Settings.Training_Mode_Type = "manual"

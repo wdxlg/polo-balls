@@ -106,6 +106,7 @@ func capture_case(label:String,simulated:bool) -> void:
 	recorder.stop()
 	await wait_idle()
 	check(recorder.last_outputs.size() == 2,label+": writes both actual MP4 variants")
+	check(recorder.last_covers.size() == 4 and recorder.last_outputs.values().all(func(path:String) -> bool: return path.get_base_dir() == recorder.last_folder),label+": both videos and four covers share the matchup folder")
 	outputs.append({"case":label,"files":recorder.last_outputs.duplicate(),"frames":recorder._frame_index})
 	game.now_stop_state = false
 	if game.has_method("continue_game"): game.continue_game()

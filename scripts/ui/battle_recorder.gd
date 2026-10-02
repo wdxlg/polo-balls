@@ -62,6 +62,8 @@ var _speed_physics_start:float = 0.0
 var _speed_warmup:float = 1.0
 var _timing_invalid:bool = false
 const NamingScript = preload("res://scripts/ui/battle_record_naming.gd")
+const CoverScript = preload("res://scripts/ui/battle_record_cover.gd")
+const VersusTitleScript = preload("res://scripts/ui/versus_title_3d.gd")
 const LocaleScript = preload("res://scripts/ui/battle_record_locale.gd")
 var _secondary:Node
 var _locale_mirror:Node
@@ -70,6 +72,11 @@ var _is_variant:bool = false
 var _locale:String = "zh"
 var _previous_secondary_image:PackedByteArray = PackedByteArray()
 var last_outputs:Dictionary = {}
+## 本局录像文件夹（以中文对阵名命名）与其中已写出的封面（"zh_9x16" 等 → 路径）。
+var last_folder:String = ""
+var last_covers:Dictionary = {}
+var _session_folder:String = ""
+var _cover:Node = null
 var _match_snapshot:Dictionary = {}
 const PreferencesScript = preload("res://scripts/ui/battle_record_preferences.gd")
 var preferences:RefCounted = PreferencesScript.new()
@@ -410,12 +417,16 @@ func _begin_session(output_fps:float, tag:String) -> bool:
 	_png_fallback = false
 	_session_dir = ""
 
-	var stamp:String = Time.get_datetime_string_from_system(false, true).replace(":", "-").replace(" ", "_") + "_%d" % _wall_usec()
+	last_folder = ""
+	last_covers.clear()
 	_match_snapshot = NamingScript.snapshot(_world(), false)
-	var zh_name:String = NamingScript.filename(_match_snapshot, "zh", stamp, _session_output_root)
-	var en_name:String = NamingScript.filename(_match_snapshot, "en", stamp, _session_output_root)
-	if zh_name.is_empty() or en_name.is_empty(): return _fail("保存目录路径过长，请选择更短的录制目录。")
-	_out_path = _session_output_root.path_join(zh_name)
+	# 每局一个中文对阵名文件夹，里面是固定短名的中/英文成片和封面。
+	var folder_name:String = NamingScript.folder(_match_snapshot, _session_output_root)
+	if folder_name.is_empty(): return _fail("保存目录路径过长，请选择更短的录制目录。")
+	_session_folder = _session_output_root.path_join(folder_name)
+	var made:Error = DirAccess.make_dir_recursive_absolute(_session_folder)
+	if made != OK: return _fail("无法创建录像文件夹（%s）：%s" % [error_string(made), ProjectSettings.globalize_path(_session_folder)])
+	_out_path = _session_folder.path_join(NamingScript.ZH_VIDEO)
 	_video_path = _out_path.get_basename() + ".video.mp4"
 	_audio_path = _out_path.get_basename() + ".audio.f32"
 	_secondary = get_script().new()
@@ -429,7 +440,7 @@ func _begin_session(output_fps:float, tag:String) -> bool:
 	_secondary._capture_size = _capture_size
 	_secondary._composition = _composition
 	_secondary._output_fps = _output_fps
-	_secondary._out_path = _session_output_root.path_join(en_name)
+	_secondary._out_path = _session_folder.path_join(NamingScript.EN_VIDEO)
 	_secondary._video_path = _secondary._out_path.get_basename() + ".video.mp4"
 	_secondary._audio_path = _audio_path
 	_audio = AudioCaptureScript.new()
@@ -437,9 +448,13 @@ func _begin_session(output_fps:float, tag:String) -> bool:
 		_audio.finish()
 		_secondary.queue_free()
 		_secondary = null
+		DirAccess.remove_absolute(_session_folder) # 只会删掉本次刚建的空文件夹。
 		return _fail(_audio.error)
 
 	_secondary._audio = _audio
+	_cover = CoverScript.new()
+	_cover.folder = _session_folder
+	add_child(_cover)
 	if _open_video_output() and _secondary._open_video_output(): return true
 	# Clean up partial startup without leaving an encoder or audio tap behind.
 	_session_active = true
@@ -553,6 +568,9 @@ func _finish_session() -> void:
 	if _audio != null:
 		_audio.finish()
 		if not _audio.error.is_empty(): _fail(_audio.error)
+	# 一直没等到开场时刻（没开战就停止等）：用最后一帧的画面做封面。
+	if is_instance_valid(_cover) and _frame_index > 0 and _cover.state == CoverScript.State.WAITING and is_instance_valid(_sim_viewport):
+		_capture_cover()
 	_release_sim_world_state()
 	_free_sim_capture_viewport()
 	if is_instance_valid(_locale_mirror):
@@ -583,8 +601,46 @@ func _finish_session() -> void:
 	_last_good_live_zh = PackedByteArray()
 	_last_good_live_en = PackedByteArray()
 	_release_live_render_budget()
+	await _finish_cover()
 	_finalizing = false
 	recording_finished.emit(path, _frame_index)
+
+
+## 等封面合成写盘（与视频收尾并行，通常早已完成）；没有画面就删掉本次的空文件夹。
+func _finish_cover() -> void:
+	last_folder = _session_folder
+	if is_instance_valid(_cover):
+		var frames_left:int = 1800
+		while _frame_index > 0 and _cover.is_active() and frames_left > 0:
+			frames_left -= 1
+			await get_tree().process_frame
+		last_covers = _cover.outputs.duplicate()
+		if _frame_index > 0 and last_covers.size() < NamingScript.COVERS.size():
+			_note_live_issue("cover", "封面未全部生成：" + (str(_cover.error) if not str(_cover.error).is_empty() else "合成超时。"))
+		_cover.queue_free()
+	_cover = null
+	if _frame_index == 0 and not _session_folder.is_empty():
+		DirAccess.remove_absolute(_session_folder)
+		last_folder = ""
+
+
+## 封面时刻：用这一帧录像的相机抓纯战场画面。标题文字同文件夹/文件名的对阵名，各方配色取自对局 VS 立体字。
+func _capture_cover() -> void:
+	var world:Node = _world()
+	var label:RichTextLabel = world.get("versus_label") as RichTextLabel if world != null else null
+	var source:String = label.text if is_instance_valid(label) else ""
+	var sides:Dictionary = {}
+	var titles:Dictionary = {}
+	for locale:String in ["zh", "en"]:
+		titles[locale] = NamingScript.title(_match_snapshot, locale)
+		var text:String = source
+		if is_instance_valid(_locale_mirror) and not text.is_empty(): text = _locale_mirror.translate(text, locale, true)
+		var colored:Array = VersusTitleScript.parse_sides(text) if not text.is_empty() else []
+		var names:PackedStringArray = str(titles[locale]).split(" vs ", false)
+		if colored.size() == names.size():
+			for i:int in range(names.size()): colored[i] = {"text":names[i], "style":colored[i].style}
+		sides[locale] = colored
+	_cover.capture(get_viewport(), _sim_viewport.canvas_transform, _capture_size, _map_visual_rect(), sides, titles)
 
 
 func _finish_video_output() -> String:
@@ -1006,6 +1062,8 @@ func _prepare_next_capture() -> void:
 		var camera := Transform2D.IDENTITY.scaled(Vector2.ONE * _follow_zoom)
 		camera.origin = anchor - _follow_screen_center * _follow_zoom
 		_sim_viewport.canvas_transform = camera * base
+	if not _is_variant and is_instance_valid(_cover) and _cover.should_capture(_world()):
+		_capture_cover()
 	if is_instance_valid(_overview_viewport):
 		_update_overview_camera()
 		_overview_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE

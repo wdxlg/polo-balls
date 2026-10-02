@@ -109,7 +109,7 @@ func refresh() -> void:
 		button.modulate = Color(1.0, 0.8, 0.3)
 	if recorder.is_preparing(): button.text = "准备中…"
 	button.disabled = saving
-	button.tooltip_text = "左键：开始/停止高清对战录制；右键：从当前状态离线计算对局，不重打；尽快生成正常速度的有声视频。" + "\n默认：user://recordings；在设置 → 录制中选择保存目录" + "\n每次输出中文 + 英文两份视频 · 1080×1920 / 60fps · 仅对战画面和游戏声音 · 暂停不计入成片"
+	button.tooltip_text = "左键：开始/停止高清对战录制；右键：从当前状态离线计算对局，不重打；尽快生成正常速度的有声视频。" + "\n默认：user://recordings；在设置 → 录制中选择保存目录" + "\n每次存进以中文对阵名命名的文件夹：中文 + 英文两份视频与各自 9:16、16:9 封面 · 1080×1920 / 60fps · 仅对战画面和游戏声音 · 暂停不计入成片"
 
 	if active:
 		var tail_left:float = recorder.get_tail_left()
@@ -128,6 +128,8 @@ func _on_finished(path:String, frames:int) -> void:
 	else:
 		var kind:String = "%d 个语言版本 MP4" % recorder.last_outputs.size() if path.ends_with(".mp4") else "PNG 图片序列（未找到可用的编码器）"
 		message = ("已保存 %s，%d 帧（含游戏声音）。" if path.ends_with(".mp4") else "已保存 %s，%d 帧；音频保留为 .audio.f32 临时文件，尚未合成视频。") % [kind, frames]
+		if not recorder.last_folder.is_empty():
+			message += "\n文件夹「%s」，含 %d 张封面（中/英文 9:16、16:9）。" % [recorder.last_folder.get_file(), recorder.last_covers.size()]
 	var warnings:String = recorder.get_recording_warnings()
 	if not warnings.is_empty(): message += "\n\n本次录制提示（已尽力继续，成片质量可能受影响）：\n" + warnings
 	_show_message(message)
