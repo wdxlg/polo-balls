@@ -51,7 +51,6 @@ var _swing_connected:bool = false
 var _swing_hits:Dictionary = {}
 var _last_phase:float = 0.0
 var _last_pose:Transform2D
-var _rest_position:Vector2
 var _rest_scale:Vector2 = Vector2.ONE
 var _swing_aim_from:float = 0.0
 var _swing_aim_to:float = 0.0
@@ -69,6 +68,7 @@ var _cleanse_effect:Node2D
 var _copper_audio:Array[WeakRef] = []
 var _weapon_shapes:Dictionary = {}
 var _grip_colliders:Array[CollisionShape2D] = []
+var _hurt_shapes:Dictionary = {}
 ## Native 16x16 item texture: the grip/pommel, not the blade or crossguard.
 const GRIP_PIXEL_CENTER:Vector2 = Vector2(-4.5,4.5)
 const HIT_BEGIN:float = 0.32
@@ -90,14 +90,15 @@ func _ready() -> void:
 	Unique_Death_Audio = AUDIO.EVENTS["entity.item.break"][0].stream
 	WEAPON_SIZE.fit_to_wooden_sword(image,1.0)
 	_rest_scale = image.scale
-	_rest_position = image.position
 	super._ready()
-	_rest_position = image.position
 	_rest_scale = image.scale
 	image.z_as_relative = false
 	image.z_index = 3
 	for path:NodePath in [NodePath("CollisionShape2D"),NodePath("hitbox/CollisionShape2D"),NodePath("hurtbox/CollisionShape2D")]:
 		_grip_colliders.append(get_node(path) as CollisionShape2D)
+	_ensure_weapon_shapes()
+	# The hurtbox is the whole sword; own copies so nothing edits the shared blade query.
+	_hurt_shapes = {true:_weapon_shapes[true].duplicate(),false:_weapon_shapes[false].duplicate()}
 	_face_right = not is_character_visual_flipped_h()
 	_movement_face_right = _face_right
 	native_feedback = NATIVE_FEEDBACK.attach(self,"copper_sword")
@@ -209,12 +210,12 @@ func begin_swing(target:ball = null) -> bool:
 	if not mc_enemy(target) or not target.is_combat_lockable(): target = _select_swing_target()
 	var continuing:bool = _holding_pose
 	var previous_aim:float = _swing_aim_to
-	var previous_pose:Transform2D = _current_local_pose()
 	if not _has_attack_pose():
 		if target!=null: _face_right = _facing_toward(target,_face_right)
 		elif has_player_control_aim():
 			var hint:Vector2 = player_control_aim_direction()
 			if absf(hint.x)>0.01: _face_right = hint.x>0.0
+	var previous_pose:Transform2D = _current_local_pose()
 	_swing_aim_to = _aim_angle(target)
 	_swing_aim_from = previous_aim if continuing else _swing_aim_to
 	_swing_down = _next_swing_down
@@ -293,17 +294,23 @@ func _advance_return(delta:float) -> void:
 		else: _face_right = _movement_face_right
 	visual_mob()
 
+## Every pose pivots on the grip, pinned to the character origin: swings and facing
+## flips rotate the sword around the physical body instead of moving it.
+func _anchor_grip(pose:Transform2D) -> Transform2D:
+	pose.origin = -pose.basis_xform(Vector2(GRIP_PIXEL_CENTER.x*(1.0 if _face_right else -1.0),GRIP_PIXEL_CENTER.y))
+	return pose
+
 func _rest_pose() -> Transform2D:
-	return Transform2D(0.0,_rest_scale,0.0,_rest_position)
+	return _anchor_grip(Transform2D(0.0,_rest_scale,0.0,Vector2.ZERO))
 
 func _current_local_pose() -> Transform2D:
 	if _returning:
 		var t:float = clampf(_return_elapsed/maxf(return_duration,0.001),0.0,1.0)
-		return _return_from.interpolate_with(_rest_pose(),1.0-pow(1.0-t,3.0))
+		return _anchor_grip(_return_from.interpolate_with(_rest_pose(),1.0-pow(1.0-t,3.0)))
 	if _swing_active:
 		if _windup_left>0.0:
 			var raised:float = 1.0-_windup_left/maxf(_windup_total,0.001)
-			return _raise_from.interpolate_with(_weapon_local_pose(0.0),smoothstep(0.0,1.0,raised))
+			return _anchor_grip(_raise_from.interpolate_with(_weapon_local_pose(0.0),smoothstep(0.0,1.0,raised)))
 		return _weapon_local_pose(clampf(_swing_elapsed/maxf(_swing_duration,0.001),0.0,1.0))
 	if _holding_pose: return _weapon_local_pose(1.0)
 	return _rest_pose()
@@ -321,10 +328,7 @@ func weapon_angle(phase:float) -> float:
 	return aim-native_axis+sweep
 
 func _weapon_local_pose(phase:float) -> Transform2D:
-	var angle:float = weapon_angle(phase)
-	var grip:Vector2 = Vector2(-5.5 if _face_right else 5.5,5.5)*_rest_scale
-	var position_local:Vector2 = _rest_position+grip-grip.rotated(angle)
-	return Transform2D(angle,_rest_scale,0.0,position_local)
+	return _anchor_grip(Transform2D(weapon_angle(phase),_rest_scale,0.0,Vector2.ZERO))
 
 func weapon_transform(phase:float) -> Transform2D:
 	return graphics.global_transform*_weapon_local_pose(phase)
@@ -566,9 +570,14 @@ func _sync_grip_colliders() -> void:
 	var shaft:Vector2 = pose.basis_xform(Vector2(-facing,1.0))
 	if shaft.length_squared()<0.000001: return
 	var angle:float = shaft.angle()-PI*0.5 # Capsule's long axis is local Y.
-	for collider:CollisionShape2D in _grip_colliders:
-		collider.global_position = center
-		collider.global_rotation = angle
+	# The physical body stays on the origin even while Graphics shakes or squashes.
+	_grip_colliders[0].position = Vector2.ZERO
+	_grip_colliders[0].global_rotation = angle
+	_grip_colliders[1].global_position = center
+	_grip_colliders[1].global_rotation = angle
+	var hurt:CollisionShape2D = _grip_colliders[2]
+	if not _hurt_shapes.is_empty() and hurt.shape!=_hurt_shapes[_face_right]: hurt.shape = _hurt_shapes[_face_right]
+	hurt.global_transform = pose
 
 func _sync_copper_visual() -> void:
 	if multiplayer.has_multiplayer_peer(): _new5_visual.rpc(network_visual_state())

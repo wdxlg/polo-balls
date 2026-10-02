@@ -63,10 +63,11 @@ func run() -> void:
 	check(unit.mc_live() and unit.can_act(),"copper sword is in active combat")
 	check(is_equal_approx(unit.current_swing_duration(),0.44) and is_equal_approx(unit.Attack_Cooling,0.44),"faster initial swing and scene cooldown are synchronized at 0.44s")
 	check(is_equal_approx(unit.initial_raise_duration,0.07),"first raise is shortened to 0.07s")
-	for part:NodePath in [NodePath("CollisionShape2D"),NodePath("hitbox/CollisionShape2D"),NodePath("hurtbox/CollisionShape2D")]:
+	for part:NodePath in [NodePath("CollisionShape2D"),NodePath("hitbox/CollisionShape2D")]:
 		var collider:CollisionShape2D = unit.get_node(part)
 		var shape:CapsuleShape2D = collider.shape as CapsuleShape2D
-		check(shape!=null and is_equal_approx(shape.radius,11.25) and is_equal_approx(shape.height,63.75),"body/hit/hurt use narrow sword-grip capsules: "+str(part))
+		check(shape!=null and is_equal_approx(shape.radius,11.25) and is_equal_approx(shape.height,63.75),"body/hit use narrow sword-grip capsules: "+str(part))
+	check(unit.get_node("hurtbox/CollisionShape2D").shape is ConvexPolygonShape2D,"hurtbox is the whole sword")
 	var reference_edge:float = unit.WEAPON_SIZE.visible_long_edge(unit.WEAPON_SIZE.REFERENCE_TEXTURE)*unit.WEAPON_SIZE.REFERENCE_SPRITE_SCALE
 	var unchanged_scale:Vector2 = Vector2.ONE*(reference_edge/unit.WEAPON_SIZE.visible_long_edge(unit.SWORD))
 	check(unit.image.scale.is_equal_approx(unchanged_scale),"grip collider does not shrink sword art or weapon-sweep scale")

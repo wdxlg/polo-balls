@@ -1,7 +1,18 @@
 extends "res://tests/test_copper_sword.gd"
-## Both collision layers and the body use the small, rotated native grip. The
-## attack's separate blade-sweep query must not be shrunk to the grip.
-const GRIP_PARTS:Array[NodePath] = [NodePath("CollisionShape2D"),NodePath("hitbox/CollisionShape2D"),NodePath("hurtbox/CollisionShape2D")]
+## The body and hitbox use the small, rotated native grip, pinned to the character
+## origin; the hurtbox is the whole sword. The blade-sweep query is separate.
+const GRIP_PARTS:Array[NodePath] = [NodePath("CollisionShape2D"),NodePath("hitbox/CollisionShape2D")]
+
+func overlaps_body(unit:Node2D,point:Vector2) -> bool:
+	var probe := CircleShape2D.new()
+	probe.radius = 0.35
+	var query := PhysicsShapeQueryParameters2D.new()
+	query.shape = probe
+	query.transform = Transform2D(0.0,point)
+	query.collision_mask = 0xFFFFFFFF
+	for contact:Dictionary in unit.get_world_2d().direct_space_state.intersect_shape(query,32):
+		if contact.collider == unit: return true
+	return false
 
 func overlaps_unit(unit:Node2D,point:Vector2) -> bool:
 	var probe := CircleShape2D.new()
@@ -27,9 +38,13 @@ func verify_pose(unit:Node2D,label:String) -> void:
 		check(shape != null and absf(shape.radius-11.25)<0.01 and absf(shape.height-63.75)<0.01, label+" grip shape "+str(part))
 		check(collider.global_position.distance_to(handle)<0.02, label+" handle position "+str(part))
 		check(collider.global_transform.basis_xform(Vector2.DOWN).normalized().dot(axis)>0.999, label+" follows rotation "+str(part))
+	check(handle.distance_to(unit.global_position)<0.05,label+" grip stays on the origin")
 	check(overlaps_unit(unit,handle),label+" physics contacts the handle")
 	var blade:Vector2 = pose * Vector2(5.5*facing,-5.5)
-	check(not overlaps_unit(unit,blade),label+" blade is not a body collider")
+	check(not overlaps_body(unit,blade),label+" blade is not a body collider")
+	var hurt:CollisionShape2D = unit.get_node("hurtbox/CollisionShape2D")
+	check(hurt.shape is ConvexPolygonShape2D and hurt.global_transform.origin.distance_to(pose.origin)<0.02,label+" hurtbox is the whole sword")
+	check(overlaps_unit(unit,blade) and overlaps_unit(unit,handle),label+" hurtbox covers blade and handle")
 
 func run() -> void:
 	game = root.get_node("Game")
