@@ -289,6 +289,35 @@ func run() -> void:
 	root.get_node("Game").now_stop_state = false
 	clear_bolts()
 
+	var wall_body := StaticBody2D.new()
+	wall_body.collision_layer = 1
+	var wall_shape := CollisionShape2D.new()
+	var wall_rect := RectangleShape2D.new()
+	wall_rect.size = Vector2(8,280)
+	wall_shape.shape = wall_rect
+	wall_body.add_child(wall_shape)
+	arena.add_child(wall_body)
+	wall_body.global_position = actor.global_position+Vector2(70,0)
+	var behind:Node2D = make_target("BehindWall",actor.global_position+Vector2(155,0),true)
+	await physics_frame
+	var passing:Node2D = actor.fire_bolt(Vector2.RIGHT,behind)
+	passing.set_physics_process(false)
+	var traced:Dictionary = passing._trace(actor,actor.global_position,behind.global_position+Vector2(5,0))
+	check(traced.get("collider") == behind,"trace ignores wall and still finds enemy behind it")
+	wall_body.collision_layer = 3
+	await physics_frame
+	traced = passing._trace(actor,actor.global_position,behind.global_position+Vector2(5,0))
+	check(traced.get("collider") == behind,"non-character wall on mixed layers cannot consume bolt")
+	passing.set_physics_process(true)
+	for f:int in range(240):
+		await physics_frame
+		if not is_instance_valid(passing) or passing.finished: break
+	check(behind.health == 9995 and EFFECTS.level_of(behind,"wither") == 1,"live bolt crosses full wall then deals five damage and Wither")
+	clear_bolts()
+	wall_body.queue_free()
+	behind.queue_free()
+	await physics_frame
+
 	# --- 发射者死亡：弹体散掉 ---
 	var orphan:Node2D = actor.fire_bolt(Vector2.RIGHT,null)
 	actor.health = 0

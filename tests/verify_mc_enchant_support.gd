@@ -58,6 +58,16 @@ func finish(code:int) -> void:
 	if game != null:
 		game.Game_Settings = saved
 		game.now_stop_state = saved_stop
+	if is_instance_valid(world):
+		for node:Node in world.find_children("*","Node",true,false):
+			if node.get_script() != null and node.get_script().resource_path.ends_with("mc_native_prewarm.gd"):
+				node.set_process(false)
+	var warm:Script = load("res://scripts/effects/我的世界/mc_native_prewarm.gd")
+	for role:String in warm.CHARACTERS:
+		var path:String = "res://scenes/characters/我的世界/"+role+".tscn"
+		var state:int = ResourceLoader.load_threaded_get_status(path)
+		if state == ResourceLoader.THREAD_LOAD_IN_PROGRESS or state == ResourceLoader.THREAD_LOAD_LOADED:
+			ResourceLoader.load_threaded_get(path)
 	if is_instance_valid(world): world.queue_free()
 	await process_frame
 	quit(code)

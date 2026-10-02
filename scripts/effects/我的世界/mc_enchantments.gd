@@ -31,6 +31,8 @@ const HIT_EFFECT_INTERVAL_MS:int = 250
 const DIRECT_CARRIERS:Array[String] = ["body_contact","weapon_sweep","projectile","ray_beam","area"]
 ## Smite / Bane of Arthropods targets by character scene (Minecraft undead and skeleton characters).
 const CREATURE_FAMILIES:Dictionary = {
+	"res://scenes/characters/我的世界/僵尸.tscn": "undead",
+	"res://scenes/characters/我的世界/僵尸王.tscn": "undead",
 	"res://scenes/characters/我的世界/凋灵.tscn": "undead",
 	"res://scenes/characters/我的世界/凋灵骷髅.tscn": "undead",
 	"res://scenes/characters/我的世界/溺尸.tscn": "undead",

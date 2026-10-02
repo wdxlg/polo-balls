@@ -1,0 +1,37 @@
+{
+  "revision": "736072450c26a7c67f07b1661f29d9a5ebaa14b1",
+  "license": "Minecraft EULA; Mojang/Microsoft original assets, not freely redistributable artwork.",
+  "files": [
+    {
+      "file": "zombie.geo.json",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/models/entity/zombie.geo.json",
+      "sha256": "61a8ff5d0443bc29a6946ab165ab144ae87237e19bdd11fdec077e8cf5d9e414"
+    },
+    {
+      "file": "zombie.animation.json",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/animations/zombie.animation.json",
+      "sha256": "abec25b15f1a324485a9cf218498739ec95c6bddef10b8aac66fffd63924f0d9"
+    },
+    {
+      "file": "humanoid.animation.json",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/animations/humanoid.animation.json",
+      "sha256": "4059e76703386ec92b4a66e863507fd17417c7398bad071c2e0e6ffec8363a44"
+    },
+    {
+      "file": "zombie.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/entity/zombie/zombie.png",
+      "sha256": "b172ff1b50c3ce0587cf82a2865bb05b9a22fc54a78d446b7bfcab13ffcea0ab"
+    },
+    {
+      "file": "gold_1.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/models/armor/gold_1.png",
+      "sha256": "8de56f77070e79e0b31983852835ad7d3e766c7521f14008a84feb2365e3dbf6"
+    },
+    {
+      "file": "slimeball.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/items/slimeball.png",
+      "sha256": "206d06850fe5572fd5eda272ec25d92f67fe7cd8ec0a6d4b774b2af94f32b1d8"
+    }
+  ],
+  "derivation": "Native cuboids and UVs rasterized through the shared Baker; original zombie arm track and humanoid leg walk. King equips original golden helmet texture on the inflated native head. Bite reuses native_frames/fang.tres (official Evoker Fangs)."
+}

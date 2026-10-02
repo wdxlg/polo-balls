@@ -163,16 +163,16 @@ func emit_body(from:Vector2,to:Vector2,count:int) -> void:
 			_rng.randf_range(BODY_LIFETIME.x,BODY_LIFETIME.y),_rng.randf_range(BODY_WIDTH.x,BODY_WIDTH.y))
 		if particle != null: particle.add_to_group(BODY_GROUP)
 
-## 同凋灵头颅：射线查询身体/墙（mask 3），跳过发射者与非敌方单位；非单位碰撞即墙。
+## Ignore terrain entirely; only an eligible enemy body can end this shot.
 func _trace(source:ball,start:Vector2,end:Vector2) -> Dictionary:
 	var excluded:Array[RID] = [source.get_rid()]
 	for n:int in range(12):
-		var query := PhysicsRayQueryParameters2D.create(start,end,3,excluded)
+		var query := PhysicsRayQueryParameters2D.create(start,end,2,excluded)
 		var hit:Dictionary = get_world_2d().direct_space_state.intersect_ray(query)
 		if hit.is_empty(): return {}
 		var collider:Variant = hit.get("collider")
-		if collider is ball and (collider.health <= 0 or not source.call("is_bolt_enemy",collider)):
-			excluded.append((collider as ball).get_rid())
+		if not collider is ball or collider.health <= 0 or not source.call("is_bolt_enemy",collider):
+			excluded.append(hit.rid)
 			continue
 		return hit
 	return {}

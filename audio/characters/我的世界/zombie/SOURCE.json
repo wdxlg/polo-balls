@@ -1,0 +1,72 @@
+{
+  "version": "Java 1.21.5",
+  "license": "Minecraft EULA; Mojang/Microsoft original assets, not freely redistributable artwork.",
+  "files": [
+    {
+      "file": "ambient1.ogg",
+      "asset": "minecraft/sounds/mob/zombie/say1.ogg",
+      "url": "https://resources.download.minecraft.net/65/65b762da90c8b192ee065692fcd50068f571b3fc",
+      "sha1": "65b762da90c8b192ee065692fcd50068f571b3fc"
+    },
+    {
+      "file": "ambient2.ogg",
+      "asset": "minecraft/sounds/mob/zombie/say2.ogg",
+      "url": "https://resources.download.minecraft.net/66/66a961b791a166340350a5f4d6029d6d0cae214b",
+      "sha1": "66a961b791a166340350a5f4d6029d6d0cae214b"
+    },
+    {
+      "file": "ambient3.ogg",
+      "asset": "minecraft/sounds/mob/zombie/say3.ogg",
+      "url": "https://resources.download.minecraft.net/7e/7e86ced51d049411a28627854c633a3977f45332",
+      "sha1": "7e86ced51d049411a28627854c633a3977f45332"
+    },
+    {
+      "file": "hurt1.ogg",
+      "asset": "minecraft/sounds/mob/zombie/hurt1.ogg",
+      "url": "https://resources.download.minecraft.net/e4/e46ef10953dadb96e7faab3dddcfecc5551b652b",
+      "sha1": "e46ef10953dadb96e7faab3dddcfecc5551b652b"
+    },
+    {
+      "file": "hurt2.ogg",
+      "asset": "minecraft/sounds/mob/zombie/hurt2.ogg",
+      "url": "https://resources.download.minecraft.net/0f/0fe7a2c57b0b284ec0e7b52b0e0e38d4a9139e53",
+      "sha1": "0fe7a2c57b0b284ec0e7b52b0e0e38d4a9139e53"
+    },
+    {
+      "file": "death1.ogg",
+      "asset": "minecraft/sounds/mob/zombie/death.ogg",
+      "url": "https://resources.download.minecraft.net/51/51deaef407de6444854e4da39b165faa0d41370d",
+      "sha1": "51deaef407de6444854e4da39b165faa0d41370d"
+    },
+    {
+      "file": "step1.ogg",
+      "asset": "minecraft/sounds/mob/zombie/step1.ogg",
+      "url": "https://resources.download.minecraft.net/cb/cb6b9af3cd796285405177177f8ca7a2d6c91a25",
+      "sha1": "cb6b9af3cd796285405177177f8ca7a2d6c91a25"
+    },
+    {
+      "file": "step2.ogg",
+      "asset": "minecraft/sounds/mob/zombie/step2.ogg",
+      "url": "https://resources.download.minecraft.net/5c/5ce5022d7f6176bd0ebc0aceadedd228d2b2a8c6",
+      "sha1": "5ce5022d7f6176bd0ebc0aceadedd228d2b2a8c6"
+    },
+    {
+      "file": "step3.ogg",
+      "asset": "minecraft/sounds/mob/zombie/step3.ogg",
+      "url": "https://resources.download.minecraft.net/c9/c9202ed6588c8acab2f13cfeeb170ec3d0805d59",
+      "sha1": "c9202ed6588c8acab2f13cfeeb170ec3d0805d59"
+    },
+    {
+      "file": "step4.ogg",
+      "asset": "minecraft/sounds/mob/zombie/step4.ogg",
+      "url": "https://resources.download.minecraft.net/70/70fdc50a914cb6c3d90c6c3bae33955192303807",
+      "sha1": "70fdc50a914cb6c3d90c6c3bae33955192303807"
+    },
+    {
+      "file": "step5.ogg",
+      "asset": "minecraft/sounds/mob/zombie/step5.ogg",
+      "url": "https://resources.download.minecraft.net/9c/9cb8dba93672de4ae019f50dfd31356a8c9a51b5",
+      "sha1": "9cb8dba93672de4ae019f50dfd31356a8c9a51b5"
+    }
+  ]
+}
