@@ -66,6 +66,12 @@ var _mesh_node:MeshInstance3D = null
 var _shadow_node:MeshInstance3D = null
 var _materials:Array[ShaderMaterial] = []
 var _renderer:Node2D = null
+## 0 = 实体，1 = 完全换成半透明副本（仅花丛类模型）。
+var see_through:float = 0.0
+var _ghost_materials:Array[ShaderMaterial] = []
+var _ghost_node:MeshInstance3D = null
+var _ghost_renderer:Node2D = null
+var _ghost_user:bool = false
 const CANOPY_MODELS:Array[StringName] = [&"azalea",&"flowering_azalea"]
 
 
@@ -122,6 +128,30 @@ func set_cracks(texture:Texture2D) -> void:
 	if texture == crack_texture: return
 	crack_texture = texture
 	_apply_material_state()
+
+
+## 花丛被人挡住时变半透明：value 0..1 在实体与 SEE_THROUGH_ALPHA 之间过渡（纹素溶解实体层）。
+func set_see_through(value:float) -> void:
+	value = clampf(value,0.0,1.0)
+	if is_equal_approx(value,see_through): return
+	see_through = value
+	_sync_ghost_user()
+	_apply_material_state()
+
+
+func ghost_instance() -> MeshInstance3D:
+	return _ghost_node
+
+
+func ghost_renderer() -> Node2D:
+	return _ghost_renderer
+
+
+func _sync_ghost_user() -> void:
+	var wanted:bool = see_through > 0.001 and is_instance_valid(_ghost_node) and is_instance_valid(_ghost_renderer)
+	if wanted == _ghost_user: return
+	_ghost_user = wanted
+	RENDERER.add_user(_ghost_renderer,1 if wanted else -1)
 
 
 func set_model(model_name:StringName) -> void:
@@ -206,51 +236,79 @@ func _rebuild() -> void:
 	_shadow_node.name = "NativeBlockGroundShadow_%s" % model
 	_shadow_node.mesh = built.mesh
 	_shadow_node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+	var ghost_host:Node2D = RENDERER.shared_for(_renderer_host(),cell,RENDERER.SEE_THROUGH) if overlay_layer() == RENDERER.CANOPY else null
+	if is_instance_valid(ghost_host):
+		# 半透明副本层里放一模一样的网格（同样互相投影），像素与实体层一致。
+		_ghost_node = MeshInstance3D.new()
+		_ghost_node.name = "NativeBlockSeeThrough_%s" % model
+		_ghost_node.mesh = built.mesh
+		_ghost_node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	var surface_textures:Array = built.textures
 	for surface:int in range(surface_textures.size()):
-		var material:ShaderMaterial = new_material(TEXTURES[surface_textures[surface]])
+		var texture:Texture2D = TEXTURES[surface_textures[surface]]
+		var material:ShaderMaterial = new_material(texture)
 		_materials.append(material)
 		_mesh_node.set_surface_override_material(surface,material)
-		# 同一材质：仙人掌侧面内缩、杜鹃镂空与溶解在影子里也一致。
-		_shadow_node.set_surface_override_material(surface,material)
+		# 影子与主网格同材质（仙人掌内缩、出现溶解一致）；花丛的影子改用半透明副本的材质，
+		# 两者状态都只跟 alpha 走，花丛变半透明时影子不消失。
+		var shadow_material:ShaderMaterial = material
+		if _ghost_node != null:
+			shadow_material = new_material(texture)
+			_ghost_materials.append(shadow_material)
+			_ghost_node.set_surface_override_material(surface,shadow_material)
+		_shadow_node.set_surface_override_material(surface,shadow_material)
 	shared.viewport.add_child(_mesh_node)
 	shared.shadow_viewport.add_child(_shadow_node)
 	_renderer = shared
 	RENDERER.add_user(shared,1)
+	if _ghost_node != null:
+		ghost_host.viewport.add_child(_ghost_node)
+		_ghost_renderer = ghost_host
+		_sync_ghost_user()
 	_sync_position()
 	_apply_material_state()
 
 
 func _release() -> void:
-	for node:MeshInstance3D in [_mesh_node,_shadow_node]:
+	if _ghost_user and is_instance_valid(_ghost_renderer): RENDERER.add_user(_ghost_renderer,-1)
+	_ghost_user = false
+	_ghost_renderer = null
+	for node:MeshInstance3D in [_mesh_node,_shadow_node,_ghost_node]:
 		if is_instance_valid(node):
 			if node.get_parent() != null: node.get_parent().remove_child(node)
 			node.queue_free()
 	_mesh_node = null
 	_shadow_node = null
+	_ghost_node = null
 	_materials.clear()
+	_ghost_materials.clear()
 	if is_instance_valid(_renderer): RENDERER.add_user(_renderer,-1)
 	_renderer = null
 
 
 func _sync_position() -> void:
 	var corner:Vector2 = global_position-Vector2.ONE*cell*0.5
-	for node:MeshInstance3D in [_mesh_node,_shadow_node]:
+	for node:MeshInstance3D in [_mesh_node,_shadow_node,_ghost_node]:
 		if is_instance_valid(node): node.position = Vector3(corner.x,0.0,corner.y)
 
 
 func _sync_visibility() -> void:
 	var shown:bool = is_visible_in_tree() and alpha > 0.001
-	for node:MeshInstance3D in [_mesh_node,_shadow_node]:
+	for node:MeshInstance3D in [_mesh_node,_shadow_node,_ghost_node]:
 		if is_instance_valid(node): node.visible = shown
 
 
 func _apply_material_state() -> void:
-	for material:ShaderMaterial in _materials:
-		material.set_shader_parameter("fade",alpha)
-		material.set_shader_parameter("cracked",crack_texture != null)
-		if crack_texture != null: material.set_shader_parameter("crack_tex",crack_texture)
+	var solid:float = alpha if _ghost_node == null else alpha*(1.0-see_through)
+	for material:ShaderMaterial in _materials: _set_material_state(material,solid)
+	for material:ShaderMaterial in _ghost_materials: _set_material_state(material,alpha)
 	_sync_visibility()
+
+
+func _set_material_state(material:ShaderMaterial,fade:float) -> void:
+	material.set_shader_parameter("fade",fade)
+	material.set_shader_parameter("cracked",crack_texture != null)
+	if crack_texture != null: material.set_shader_parameter("crack_tex",crack_texture)
 
 
 func _renderer_host() -> Node:

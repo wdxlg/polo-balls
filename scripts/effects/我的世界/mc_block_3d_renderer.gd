@@ -4,9 +4,15 @@ extends "res://scripts/effects/我的世界/地图立体墙.gd"
 ## （随昼夜转向，按地图主题换能量），没有墙的蓝色主题用地图墙默认光和同一个昼夜太阳方向。
 ## 两层：GROUND 和墙一样画在角色之下（z -4）；CANOPY（苔藓杜鹃花丛）画在角色之上、血条之下，
 ## 影子仍落在苔藓地皮(-3)之上、角色之下。方块的真实影子投到 2D 地面上。
+## SEE_THROUGH：花丛"半透明"副本层（含全部花丛，z 41，整张画面 2D 不透明度 SEE_THROUGH_ALPHA）。
+## 有人靠近的花丛从 CANOPY 层溶解掉，只剩这一层的半透明像素；其余花丛两层像素完全相同，看不出叠加。
+## 3D 内部一律不透明，避免半透明 3D 像素合成发白；只有花丛被淡化时才渲染这一层。
 const NAME:StringName = &"MCBlock3DRenderer"
 const GROUND:StringName = &"ground"
 const CANOPY:StringName = &"canopy"
+const SEE_THROUGH:StringName = &"canopy_see_through"
+## 有人靠近时花丛的不透明度（与原先 nearby_alpha 0.40 一致）。
+const SEE_THROUGH_ALPHA:float = 0.40
 ## 角色贴图最高约 36，地图血条 91-99：花丛压住角色但不挡血条与伤害数字。
 const CANOPY_Z:int = 40
 ## 苔藓地皮在绝对 -3：花丛地影要在它之上、角色(0)之下。
@@ -26,7 +32,10 @@ var _ground_wait:float = 0.0
 
 ## 宿主（世界场景）下共用的一份；首次调用时创建。
 static func node_name(layer:StringName) -> StringName:
-	return NAME if layer != CANOPY else StringName(String(NAME)+"Canopy")
+	match layer:
+		CANOPY: return StringName(String(NAME)+"Canopy")
+		SEE_THROUGH: return StringName(String(NAME)+"CanopySeeThrough")
+	return NAME
 
 
 static func shared_for(host:Node,cell:float,layer:StringName = GROUND) -> Node2D:
@@ -60,11 +69,15 @@ func configure_block_overlay(cell:float,overlay_layer:StringName = GROUND) -> vo
 	configure_surface_overlay(Vector2.ONE*cell,light if light is Vector2 else Vector2(1.0,-1.0))
 	# 墙是背景：地面(-5) < 墙/地影(-4) < 人物。方块障碍同层，晚于地图墙加入，画在墙之上。
 	z_as_relative = false
-	z_index = CANOPY_Z if layer == CANOPY else GROUND_Z
+	z_index = GROUND_Z
+	if layer == CANOPY: z_index = CANOPY_Z
+	elif layer == SEE_THROUGH: z_index = CANOPY_Z+1
 	shadow_picture.z_as_relative = false
 	shadow_picture.z_index = CANOPY_SHADOW_Z if layer == CANOPY else GROUND_Z
 	# surface overlay 默认关闭地影通道；方块要像墙一样把真实影子投到地面。
-	shadow_picture.show()
+	# 半透明副本不投影（影子由实体花丛层负责，淡化时花丛仍在原地）。
+	shadow_picture.visible = layer != SEE_THROUGH
+	if layer == SEE_THROUGH: picture.modulate.a = SEE_THROUGH_ALPHA
 	_refresh_ground(true)
 	sync_map_lighting()
 	set_active(false)
@@ -76,7 +89,7 @@ func set_active(active:bool) -> void:
 	if not is_instance_valid(viewport): return
 	var mode:int = SubViewport.UPDATE_ALWAYS if active else SubViewport.UPDATE_DISABLED
 	viewport.render_target_update_mode = mode
-	shadow_viewport.render_target_update_mode = mode
+	shadow_viewport.render_target_update_mode = mode if layer != SEE_THROUGH else SubViewport.UPDATE_DISABLED
 	if active:
 		_refresh_ground(true)
 		sync_map_lighting()
