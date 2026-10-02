@@ -197,28 +197,36 @@ func run() -> void:
 	check(field.cells.size() >= 100,"soul sand keeps spreading during combat (%d cells)" % field.cells.size())
 	check(max_depth >= 2 and edge_count < 196,"spread is random, not ring by ring (edge %d/196, deepest %d)" % [edge_count,max_depth])
 	check(connected,"every new soul sand cell grows next to existing soul sand")
-	# 逐渐长满：新格先只露出来源一侧的一部分像素行，GROW_SECONDS 后才算完整。
+	# 像素随机蔓延：新格从已有灵魂沙的边缘按像素随机长，并溢到相邻格；整格长满才是正式灵魂沙。
 	var fresh:Vector2i = Vector2i(-999,-999)
 	for c:Vector2i in field.floor_cells:
-		if not field.cells.has(c) and [Vector2i.LEFT,Vector2i.RIGHT,Vector2i.UP,Vector2i.DOWN].any(func(d:Vector2i): return field.cells.has(c + d)):
+		if field.cells.has(c) or not [Vector2i.LEFT,Vector2i.RIGHT,Vector2i.UP,Vector2i.DOWN].any(func(d:Vector2i): return field.cells.has(c + d)): continue
+		# 至少两个相邻的空地面格，才有地方溢出。
+		if [Vector2i.LEFT,Vector2i.RIGHT,Vector2i.UP,Vector2i.DOWN].filter(func(d:Vector2i): return field.floor_cells.has(c + d) and not field.cells.has(c + d)).size() >= 2:
 			fresh = c
 			break
 	field.full_cover_seconds = 1.0e9
 	field._add_cell(fresh,field._clock)
-	check(field.has_sand_at(field.cell_center(fresh)) and not field.has_full_sand_at(field.cell_center(fresh)) and field._growing.has(fresh),"a new soul sand cell starts growing instead of popping in whole")
-	var from:Vector2i = field._grow_from.get(fresh,Vector2i.ZERO)
-	check(field.cells.has(fresh + from),"it grows in from the side of the soul sand it spread from")
+	check(field._growing.has(fresh) and not field.has_sand_at(field.cell_center(fresh)) and field.cell_pixel_count(fresh) < field.pixels_per_cell(),"a new soul sand cell starts growing and is not formal soul sand yet")
 	await sim(field.GROW_SECONDS * 0.5)
-	check(not field.has_full_sand_at(field.cell_center(fresh)),"half way through it is still not full sand")
+	var total_px:int = field.pixels_per_cell()
+	var half_px:int = field.cell_pixel_count(fresh)
+	check(half_px > total_px / 4 and half_px < total_px and not field.has_full_sand_at(field.cell_center(fresh)),"half way through it is partly covered pixel by pixel and still not formal (%d/%d)" % [half_px,total_px])
 	await sim(field.GROW_SECONDS * 0.6)
-	check(field.has_full_sand_at(field.cell_center(fresh)) and not field._growing.has(fresh),"after %.1f s the cell is full soul sand" % field.GROW_SECONDS)
+	check(field.has_full_sand_at(field.cell_center(fresh)) and field.cell_pixel_count(fresh) == total_px and not field._growing.has(fresh),"after %.1f s every pixel is covered and the cell becomes formal soul sand" % field.GROW_SECONDS)
+	var spilled:int = 0
+	var spill_formal:bool = false
+	for d:Vector2i in [Vector2i.LEFT,Vector2i.RIGHT,Vector2i.UP,Vector2i.DOWN]:
+		var n:Vector2i = fresh + d
+		if field.floor_cells.has(n) and not field.cells.has(n):
+			spilled += field.cell_pixel_count(n)
+			spill_formal = spill_formal or field.has_sand_at(field.cell_center(n))
+	check(spilled > 0 and not spill_formal,"pixels also creep into neighbouring cells, which do not become soul sand from that (%d px)" % spilled)
 	# 只有长满的灵魂沙减速 20%；灵魂疾行 1 级抵消，之后每级 +20%。
 	var enchants:Script = load("res://scripts/effects/我的世界/mc_enchantments.gd")
 	# 测减速用地图中部的格子：贴边的格子会被墙把假人推出去。
 	var full_cell:Vector2i = field.cell_of(center + Vector2(96.0,0.0))
-	field.cells.erase(full_cell)
-	field._add_cell(full_cell,field._clock - field.GROW_SECONDS - 0.1)
-	field.queue_redraw()
+	field.force_full(full_cell)
 	var dummy_on_sand:Node2D = dummy(field.cell_center(full_cell))
 	await sim(0.25)
 	check(field.cell_of(dummy_on_sand.global_position) == full_cell and is_equal_approx(dummy_on_sand.motion_speed_factor(),0.8),"anyone on full soul sand moves 20%% slower (%.2f)" % dummy_on_sand.motion_speed_factor())
@@ -248,8 +256,7 @@ func run() -> void:
 	await sim(1.0)
 	check(is_equal_approx(field.coverage(),1.0),"soul sand eventually covers the whole map")
 	field.full_cover_seconds = 1.0e9
-	field.cells.clear()
-	field.queue_redraw()
+	field.clear_sand()
 	torch.soul_charge = 0.0
 
 	# --- 火星落地成火 ---
@@ -294,15 +301,15 @@ func run() -> void:
 
 	# --- 灵魂沙充能与灵魂火把 ---
 	for c:Vector2i in field.floor_cells:
-		if field.cell_rect(c).intersects(torch.body_rect()): field.cells[c] = true
+		if field.cell_rect(c).intersects(torch.body_rect()): field.force_full(c)
 	var charged_time:float = await sim(1.0)
 	var expected_charge:float = charged_time / torch.soul_charge_seconds
 	check(absf(torch.soul_charge - expected_charge) < 0.03,"standing on soul sand fills the bar (%.3f after %.2f s, expected %.3f)" % [torch.soul_charge,charged_time,expected_charge])
-	field.cells.clear()
+	field.clear_sand()
 	var held:float = torch.soul_charge
 	await sim(0.4)
 	check(is_equal_approx(torch.soul_charge,held),"the bar holds while off soul sand")
-	for c:Vector2i in field.floor_cells: field.cells[c] = true
+	for c:Vector2i in field.floor_cells: field.force_full(c)
 	torch.soul_charge = 0.995
 	await sim(0.5)
 	check(torch.soul_form and torch.image.texture.resource_path.ends_with("soul_torch.png"),"a full bar turns it into a soul torch")
