@@ -174,6 +174,7 @@ func run() -> void:
 	await vindicator_suite(center)
 	await goat_suite(center)
 	await sheep_suite(center)
+	await fog_suite(center)
 	# --- cache bound
 	var cache:Dictionary = LEGS._cache.get("enderman",{})
 	check(cache.is_empty() or (cache["order"] as Array).size() <= LEGS.CACHE_PER_SET,"composite cache bounded")
@@ -554,6 +555,52 @@ func sheep_suite(center:Vector2) -> void:
 	var idle_k:int = int(sh._view_clock*sh.FRAMES.get_animation_speed(&"wool_idle"))%8
 	check(g.at_rest and sh.image.texture == sh.FRAMES.get_frame_texture(&"sheared_idle",idle_k) and sh._wool_visual.texture == sh._wool_body_frames[idle_k+8],"sheep: still -> idle clip on body and wool")
 	sh.queue_free()
+
+func fog_move(f:Node2D,speed:float,frames_n:int) -> Dictionary:
+	var g:RefCounted = f._fog_gait()
+	var out:Dictionary = {"idx":{},"ok":true}
+	for i:int in range(frames_n):
+		f.global_position.x += speed/60.0
+		f._legs_delta = 1.0/60.0
+		f.visual_mob()
+		if f._clip == &"walk":
+			out.idx[f._frame_index] = true
+			out.ok = out.ok and f._frame_index == g.walk_index(12) and f.image.texture == f.BODY.get_frame_texture(&"walk",f._frame_index)
+		elif f._clip == &"rage":
+			out.idx[f._frame_index] = true
+			out.ok = out.ok and f._frame_index == g.walk_index(24)%12
+	return out
+
+func fog_suite(center:Vector2) -> void:
+	var f:Node2D = spawn("res://scenes/characters/我的世界/雾中人.tscn",center+Vector2(0,-350))
+	await process_frame
+	await process_frame
+	f.set_process(false)
+	f.set_physics_process(false)
+	f.phase = f.Phase.STALK
+	f._swing_left = 0.0
+	var g:RefCounted = f._fog_gait()
+	var std:float = LEGS.standard_speed(f)
+	check(is_equal_approx(std,float(f.default_properties.Speed)*0.6) and is_equal_approx(g.cycle,1.0),"fog man: own base speed x 0.6, 1 s walk cycle")
+	var r:Dictionary = fog_move(f,std,60)
+	check(r.ok and r.idx.size() >= 11 and f._clip == &"walk","fog man: walk frames follow the gait (%d of 12)" % r.idx.size())
+	var p0:float = g.phase
+	fog_move(f,std*0.5,12)
+	var slow:float = fposmod(g.phase-p0,1.0)
+	p0 = g.phase
+	fog_move(f,std*1.5,12)
+	var fast:float = fposmod(g.phase-p0,1.0)
+	check(slow > 0.0 and absf(fast/slow-3.0) < 0.15,"fog man: leg rate scales with speed (x%.2f for x3)" % (fast/maxf(slow,0.0001)))
+	f.phase = f.Phase.RAGE
+	f.rush = f.Rush.RETREAT # visible rage movement (MIST travels hidden)
+	r = fog_move(f,std*2.0,30)
+	check(r.ok and f._clip == &"rage" and r.idx.size() >= 8,"fog man: rage run cycle follows the gait (%d of 12)" % r.idx.size())
+	fog_move(f,0.0,90)
+	check(g.at_rest and f._clip == &"idle","fog man: standing still in rage -> legs back to the idle pose")
+	f.phase = f.Phase.STALK
+	fog_move(f,0.0,30)
+	check(g.at_rest and f._clip == &"idle","fog man: still -> idle clip")
+	f.queue_free()
 
 func vis_step(u:Node2D,vis:Node,ratio:float,frames_n:int,setup:Callable) -> Dictionary:
 	var v:float = LEGS.standard_speed(u)*ratio

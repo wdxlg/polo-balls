@@ -7,6 +7,10 @@ const EYE_FX = preload("res://scripts/characters/我的世界/fog_man/eyes.gd")
 const LIGHTNING = preload("res://scenes/effects/我的世界/雷电.tscn")
 const MC_ABILITIES = preload("res://scripts/effects/我的世界/mc_combat_abilities.gd")
 const FX = preload("res://scripts/characters/我的世界/fog_man/effects.gd")
+## Independent legs: walk / rage-run frames follow real displacement against the OWN base speed
+## (rage run = 2 cycles per walk cycle) and settle to idle when still, rage included. The attack
+## clip keeps its original whole-body mod animation (its leg motion is baked into the swing).
+const MC_LEGS = preload("res://scripts/effects/我的世界/mc_legs.gd")
 const VOICES:Dictionary = {
 	"spawn":preload("res://audio/characters/我的世界/fog_man/spawn.ogg"),
 	"whisper":preload("res://audio/characters/我的世界/fog_man/whisper.ogg"),
@@ -68,6 +72,8 @@ var _saved_layer:int = 0
 var _saved_mask:int = 0
 var _clip:StringName = &"idle"
 var _frame_index:int = 0
+var gait:RefCounted
+var _legs_delta:float = 0.0
 var _event_id:int = 0
 var _last_event:int = 0
 var _transition:int = 0
@@ -401,12 +407,27 @@ func body_alpha() -> float:
 	var time:float = clock if is_multiplayer_authority() else _view_clock
 	if phase==Phase.VANISHED or is_attack_hidden(): return 0.0
 	return clampf((time-phase_started)/0.35,0.0,1.0)
+func _fog_gait() -> RefCounted:
+	if gait == null:
+		gait = MC_LEGS.create(float(BODY.get_frame_count(&"walk"))/maxf(BODY.get_animation_speed(&"walk"),0.001),[0.25,0.75])
+		gait.observe(self)
+	return gait
 func visual_mob() -> void:
 	visible = phase!=Phase.VANISHED and not is_attack_hidden() and health>0
 	if not is_instance_valid(image): return
 	var time:float = clock if is_multiplayer_authority() else _view_clock
-	_clip = &"attack" if _swing_left>0.0 else &"rage" if phase==Phase.RAGE else &"walk" if velocity.length_squared()>1.0 else &"idle"
+	var legs:RefCounted = _fog_gait()
+	var legs_step:float = _legs_delta
+	_legs_delta = 0.0
+	if health > 0 and is_combat_runtime_active() and phase != Phase.VANISHED and not is_attack_hidden():
+		legs.tick(self,legs_step,dizziness != true)
+	else:
+		legs.observe(self)
+		legs.reset_rest()
+	_clip = &"attack" if _swing_left>0.0 else &"idle" if legs.at_rest else &"rage" if phase==Phase.RAGE else &"walk"
 	_frame_index = int(time*BODY.get_animation_speed(_clip))%BODY.get_frame_count(_clip)
+	if _clip == &"walk": _frame_index = legs.walk_index(BODY.get_frame_count(&"walk"))
+	elif _clip == &"rage": _frame_index = legs.walk_index(BODY.get_frame_count(&"rage")*2)%BODY.get_frame_count(&"rage")
 	image.texture = BODY.get_frame_texture(_clip,_frame_index)
 	image.self_modulate = Color(0.9,0.92,0.95,body_alpha())
 	image.visible = phase!=Phase.VANISHED and not is_attack_hidden() and health>0
@@ -476,6 +497,7 @@ func _fog_event(id:int,kind:String,point:Vector2,amount:float) -> void:
 		player.play()
 	if is_instance_valid(player): _voices.append({"player":weakref(player),"left":4.0 if kind=="rage" else 5.0,"kind":kind})
 func _process(delta:float) -> void:
+	_legs_delta += maxf(delta,0.0)
 	super._process(delta)
 	for i:int in range(_voices.size()-1,-1,-1):
 		var player:Variant = _voices[i].player.get_ref()
