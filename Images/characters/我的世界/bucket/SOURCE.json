@@ -1,0 +1,188 @@
+{
+    "description":  "水桶 / 岩浆桶 (Water Bucket / Lava Bucket): bucket items, 3D water/lava fluid textures, air bubbles HUD, bubble/splash particles; stone and obsidian blocks; destroy_stage_0..9 crack overlays for the timed blocks",
+    "origin":  "Minecraft Java 1.21.4 assets (mirror InventivetalentDev/minecraft-assets, branch 1.21.4); bytes copied unchanged",
+    "license":  "Minecraft assets are copyright Mojang Studios/Microsoft and subject to the Minecraft EULA; no general redistribution permission is claimed.",
+    "used_by":  "scripts/characters/我的世界/bucket/, scripts/effects/我的世界/mc_block_3d.gd (stone, obsidian)",
+    "files":  [
+                  {
+                      "file":  "water_bucket.png",
+                      "dir":  "Images/characters/我的世界/bucket",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/water_bucket.png",
+                      "sha256":  "0efb2f243397e7d82a9a9e97b6e8fc39fc6c7972bf86b9b6ed97e7101b79c0a1"
+                  },
+                  {
+                      "file":  "lava_bucket.png",
+                      "dir":  "Images/characters/我的世界/bucket",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/item/lava_bucket.png",
+                      "sha256":  "88093ce03b421a9504d42b79f2bee3a4d3ffcf3652bea3b5602cda8c86cfab2c"
+                  },
+                  {
+                      "file":  "water_still.png",
+                      "dir":  "Images/characters/我的世界/bucket",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/water_still.png",
+                      "sha256":  "5843e8826507c484dfc15d5d255843d041804bcaa2036ed137320610d7fb9af7"
+                  },
+                  {
+                      "file":  "water_still.png.mcmeta",
+                      "dir":  "Images/characters/我的世界/bucket",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/water_still.png.mcmeta",
+                      "sha256":  "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+                  },
+                  {
+                      "file":  "water_flow.png",
+                      "dir":  "Images/characters/我的世界/bucket",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/water_flow.png",
+                      "sha256":  "b53b424a188e5c4d5c586cb053950529cdca3333ecfd8b9587ab3cd3f7886991"
+                  },
+                  {
+                      "file":  "water_flow.png.mcmeta",
+                      "dir":  "Images/characters/我的世界/bucket",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/water_flow.png.mcmeta",
+                      "sha256":  "802acdb8f55f30146d5ed18414b21ba35650d4e550f81825ea104131c12dc4fc"
+                  },
+                  {
+                      "file":  "lava_still.png",
+                      "dir":  "Images/characters/我的世界/bucket",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/lava_still.png",
+                      "sha256":  "7ba546bb9093670f1277ad39d4e973a693ce362f1854a9db00fdb7ab3e434c3c"
+                  },
+                  {
+                      "file":  "lava_still.png.mcmeta",
+                      "dir":  "Images/characters/我的世界/bucket",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/lava_still.png.mcmeta",
+                      "sha256":  "6a19bef21d66aac8fdcd8032751057733e321446b304d38f5ee8ba35efe99a1d"
+                  },
+                  {
+                      "file":  "lava_flow.png",
+                      "dir":  "Images/characters/我的世界/bucket",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/lava_flow.png",
+                      "sha256":  "d64204c75b085e8a58b349d785e7c0bfcec3d3fdc91d37f8ae5c9e491863aaf8"
+                  },
+                  {
+                      "file":  "lava_flow.png.mcmeta",
+                      "dir":  "Images/characters/我的世界/bucket",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/lava_flow.png.mcmeta",
+                      "sha256":  "af915735740bd046c85e66fc03c47bb31517ef64f1721726151ea5de8cf121e3"
+                  },
+                  {
+                      "file":  "air.png",
+                      "dir":  "Images/characters/我的世界/bucket",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/gui/sprites/hud/air.png",
+                      "sha256":  "e686c95add0d0a10396eb51714e881eca00055afafade9eea77baccbaf559d80"
+                  },
+                  {
+                      "file":  "air_bursting.png",
+                      "dir":  "Images/characters/我的世界/bucket",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/gui/sprites/hud/air_bursting.png",
+                      "sha256":  "c6c994513b8e47ee10b649762ba2e59cd19d0a7d248699a2682e04e934676c77"
+                  },
+                  {
+                      "file":  "air_empty.png",
+                      "dir":  "Images/characters/我的世界/bucket",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/gui/sprites/hud/air_empty.png",
+                      "sha256":  "15a130e1bc9a7fcea69345961f0a395d678752c050350f83428c469c370bd2a1"
+                  },
+                  {
+                      "file":  "bubble.png",
+                      "dir":  "Images/characters/我的世界/bucket",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/particle/bubble.png",
+                      "sha256":  "c6ca7be955a2444083d979cb87e4b84ee526be8353d309bf62ed9bf755847a99"
+                  },
+                  {
+                      "file":  "splash_0.png",
+                      "dir":  "Images/characters/我的世界/bucket",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/particle/splash_0.png",
+                      "sha256":  "b6d56ad365460e43a1863dd977d3ec624e0649250361eaa603aba84af423eb7e"
+                  },
+                  {
+                      "file":  "splash_1.png",
+                      "dir":  "Images/characters/我的世界/bucket",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/particle/splash_1.png",
+                      "sha256":  "ae61a754ac6c169586cde25f42343b5ae31b3219d254912a1e4400bfdc49c6d0"
+                  },
+                  {
+                      "file":  "splash_2.png",
+                      "dir":  "Images/characters/我的世界/bucket",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/particle/splash_2.png",
+                      "sha256":  "ce332458d7f4ca92e3ec52ebc0a5b56fe741ddb765440932d190842c6850e0fd"
+                  },
+                  {
+                      "file":  "splash_3.png",
+                      "dir":  "Images/characters/我的世界/bucket",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/particle/splash_3.png",
+                      "sha256":  "d1e5ae65dcfbac5407bb0d913722a20f1e24072c3732c03da4fd95c2c876fb09"
+                  },
+                  {
+                      "file":  "destroy_stage_0.png",
+                      "dir":  "Images/characters/我的世界/bucket",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/destroy_stage_0.png",
+                      "sha256":  "f499533ea289fe9f34b0917d630129b4805ae39b9491859eba496682cd2fd0c3"
+                  },
+                  {
+                      "file":  "destroy_stage_1.png",
+                      "dir":  "Images/characters/我的世界/bucket",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/destroy_stage_1.png",
+                      "sha256":  "0de13fe3603a953791dc229fbd78ff825845af57bfdb4137eddcc7ef9debce34"
+                  },
+                  {
+                      "file":  "destroy_stage_2.png",
+                      "dir":  "Images/characters/我的世界/bucket",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/destroy_stage_2.png",
+                      "sha256":  "3dad4672e2cd127105cc113bc7584785ae1d600a993e5e5261661d4805fe9b11"
+                  },
+                  {
+                      "file":  "destroy_stage_3.png",
+                      "dir":  "Images/characters/我的世界/bucket",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/destroy_stage_3.png",
+                      "sha256":  "d7eca4b992e6a5e33b7a9247b28f7ecb5ef7d64ca876cd6fa4239aca4822552b"
+                  },
+                  {
+                      "file":  "destroy_stage_4.png",
+                      "dir":  "Images/characters/我的世界/bucket",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/destroy_stage_4.png",
+                      "sha256":  "5d26b667ba1b56164cfa9cc8860a7f603fe0091223249a3c312febd7526c18a3"
+                  },
+                  {
+                      "file":  "destroy_stage_5.png",
+                      "dir":  "Images/characters/我的世界/bucket",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/destroy_stage_5.png",
+                      "sha256":  "e66112ebadbed250bf374685e5e8f49ecab78aae6d7c8c3c05f503f5a0e2fb28"
+                  },
+                  {
+                      "file":  "destroy_stage_6.png",
+                      "dir":  "Images/characters/我的世界/bucket",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/destroy_stage_6.png",
+                      "sha256":  "e2d6371698dff727db1f06f9176033c3f6774671f4c87718c05ac38910b12e21"
+                  },
+                  {
+                      "file":  "destroy_stage_7.png",
+                      "dir":  "Images/characters/我的世界/bucket",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/destroy_stage_7.png",
+                      "sha256":  "e57b32b06a2f1dea079b880bfe6b767d1ee638b07027c82f4abb82ed5330cba7"
+                  },
+                  {
+                      "file":  "destroy_stage_8.png",
+                      "dir":  "Images/characters/我的世界/bucket",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/destroy_stage_8.png",
+                      "sha256":  "e1c1d8c8ec097fa8de5d0dd6e8f69972c1afb1504bff4899d1911f245de81cc7"
+                  },
+                  {
+                      "file":  "destroy_stage_9.png",
+                      "dir":  "Images/characters/我的世界/bucket",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/destroy_stage_9.png",
+                      "sha256":  "37aff035cb4ba9d7666b4d8b3270caa5427d0d15ff6850d3bd6c105246bd0638"
+                  },
+                  {
+                      "file":  "stone.png",
+                      "dir":  "Images/effects/我的世界/obstacle_blocks",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/stone.png",
+                      "sha256":  "33ac70ba8cb701087642a12c5fd29c1ba3006dc4730e9b014ed3a19ce7cdda7b"
+                  },
+                  {
+                      "file":  "obsidian.png",
+                      "dir":  "Images/effects/我的世界/obstacle_blocks",
+                      "url":  "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/obsidian.png",
+                      "sha256":  "d9c7dc812d8e8b995e22caff2b10c1fc663b5e127a94c20a7476cfd88af2cd82"
+                  }
+              ]
+}

@@ -26,6 +26,8 @@ const TEXTURES:Dictionary = {
 	&"azalea_plant":preload("res://Images/effects/我的世界/obstacle_blocks/azalea_plant.png"),
 	&"flowering_azalea_top":preload("res://Images/effects/我的世界/obstacle_blocks/flowering_azalea_top.png"),
 	&"flowering_azalea_side":preload("res://Images/effects/我的世界/obstacle_blocks/flowering_azalea_side.png"),
+	&"stone":preload("res://Images/effects/我的世界/obstacle_blocks/stone.png"),
+	&"obsidian":preload("res://Images/effects/我的世界/obstacle_blocks/obsidian.png"),
 }
 const FACES:Array[String] = ["down","up","north","south","west","east"]
 ## 与地图立体墙 _new_material 同一受光模型（Burley 漫反射、粗糙度 1、非金属、sRGB 贴图），
@@ -386,6 +388,16 @@ const MODELS:Dictionary = {
 	# block/template_azalea.json + azalea.json / flowering_azalea.json
 	&"azalea":{"particle":&"azalea_top","elements":"azalea"},
 	&"flowering_azalea":{"particle":&"flowering_azalea_top","elements":"flowering_azalea"},
+	&"stone":{"particle":&"stone","elements":[
+		{"from":Vector3(0,0,0),"to":Vector3(16,16,16),"faces":{
+			"down":[&"stone",CUBE_UV],"up":[&"stone",CUBE_UV],"north":[&"stone",CUBE_UV],
+			"south":[&"stone",CUBE_UV],"west":[&"stone",CUBE_UV],"east":[&"stone",CUBE_UV]}},
+	]},
+	&"obsidian":{"particle":&"obsidian","elements":[
+		{"from":Vector3(0,0,0),"to":Vector3(16,16,16),"faces":{
+			"down":[&"obsidian",CUBE_UV],"up":[&"obsidian",CUBE_UV],"north":[&"obsidian",CUBE_UV],
+			"south":[&"obsidian",CUBE_UV],"west":[&"obsidian",CUBE_UV],"east":[&"obsidian",CUBE_UV]}},
+	]},
 }
 
 

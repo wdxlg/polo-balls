@@ -1,0 +1,103 @@
+{
+    "description":  "水桶 / 岩浆桶 native Java sounds",
+    "origin":  "Minecraft Java 1.21 asset index (local launcher cache, objects by SHA1); bytes copied unchanged",
+    "license":  "Minecraft assets are copyright Mojang Studios/Microsoft and subject to the Minecraft EULA; no general redistribution permission is claimed.",
+    "used_by":  "scripts/characters/我的世界/bucket/bucket_audio.gd",
+    "files":  [
+                  {
+                      "file":  "bucket_empty1.ogg",
+                      "source":  "minecraft/sounds/item/bucket/empty1.ogg",
+                      "sha1":  "27987b7065ef4a27106246f9d32382a0514f87b2"
+                  },
+                  {
+                      "file":  "bucket_empty2.ogg",
+                      "source":  "minecraft/sounds/item/bucket/empty2.ogg",
+                      "sha1":  "a796e8907874e6ae174c30da28ff000f1cf566c3"
+                  },
+                  {
+                      "file":  "bucket_empty3.ogg",
+                      "source":  "minecraft/sounds/item/bucket/empty3.ogg",
+                      "sha1":  "8dec8307dff359b0279e3e49798692309204d55e"
+                  },
+                  {
+                      "file":  "bucket_empty_lava1.ogg",
+                      "source":  "minecraft/sounds/item/bucket/empty_lava1.ogg",
+                      "sha1":  "3612c93dfebcedbeb22bc8283e0b85de033d081a"
+                  },
+                  {
+                      "file":  "bucket_empty_lava2.ogg",
+                      "source":  "minecraft/sounds/item/bucket/empty_lava2.ogg",
+                      "sha1":  "b98e76594736052ac7ab8851d95a96b5ad7d2ce2"
+                  },
+                  {
+                      "file":  "bucket_empty_lava3.ogg",
+                      "source":  "minecraft/sounds/item/bucket/empty_lava3.ogg",
+                      "sha1":  "d62e50329337eee968b1e93cce04a65aeecad27d"
+                  },
+                  {
+                      "file":  "water_ambient.ogg",
+                      "source":  "minecraft/sounds/liquid/water.ogg",
+                      "sha1":  "3483650440deb3934255e044ddabff5b01a65356"
+                  },
+                  {
+                      "file":  "lava_ambient.ogg",
+                      "source":  "minecraft/sounds/liquid/lava.ogg",
+                      "sha1":  "9272aef9f27dfcc10b6e3879b7a2a67f8faa1a83"
+                  },
+                  {
+                      "file":  "lava_pop.ogg",
+                      "source":  "minecraft/sounds/liquid/lavapop.ogg",
+                      "sha1":  "19a5aae31c3e0018a960b709a9f0240d8d47dda7"
+                  },
+                  {
+                      "file":  "fizz.ogg",
+                      "source":  "minecraft/sounds/random/fizz.ogg",
+                      "sha1":  "c649e60ea9a99c97501a50d2dc4e579343e91ea8"
+                  },
+                  {
+                      "file":  "splash.ogg",
+                      "source":  "minecraft/sounds/liquid/splash.ogg",
+                      "sha1":  "4c14c40542e249c902d0cac710ab4c6d6debba28"
+                  },
+                  {
+                      "file":  "drown1.ogg",
+                      "source":  "minecraft/sounds/entity/player/hurt/drown1.ogg",
+                      "sha1":  "ca9e12d7b01c10932a3d16e33b9e317396c3d2ea"
+                  },
+                  {
+                      "file":  "drown2.ogg",
+                      "source":  "minecraft/sounds/entity/player/hurt/drown2.ogg",
+                      "sha1":  "8011c7d566d5a6958832855d7328edba54702076"
+                  },
+                  {
+                      "file":  "drown3.ogg",
+                      "source":  "minecraft/sounds/entity/player/hurt/drown3.ogg",
+                      "sha1":  "66057f99ba11a223e1824ce006b4e2b288b6f895"
+                  },
+                  {
+                      "file":  "drown4.ogg",
+                      "source":  "minecraft/sounds/entity/player/hurt/drown4.ogg",
+                      "sha1":  "d7637457a9290d5e10d965f3bea4a4e19937f87b"
+                  },
+                  {
+                      "file":  "stone_break1.ogg",
+                      "source":  "minecraft/sounds/dig/stone1.ogg",
+                      "sha1":  "4e094ed8dfa98656d8fec52a7d20c5ee6098b6ad"
+                  },
+                  {
+                      "file":  "stone_break2.ogg",
+                      "source":  "minecraft/sounds/dig/stone2.ogg",
+                      "sha1":  "9c92f697142ae320584bf64c0d54381d59703528"
+                  },
+                  {
+                      "file":  "stone_break3.ogg",
+                      "source":  "minecraft/sounds/dig/stone3.ogg",
+                      "sha1":  "8f23c02475d388b23e5faa680eafe6b991d7a9d4"
+                  },
+                  {
+                      "file":  "stone_break4.ogg",
+                      "source":  "minecraft/sounds/dig/stone4.ogg",
+                      "sha1":  "363545a76277e5e47538b2dd3a0d6aa4f7a87d34"
+                  }
+              ]
+}

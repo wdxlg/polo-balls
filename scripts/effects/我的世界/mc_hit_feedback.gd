@@ -25,6 +25,7 @@ const POLICIES:Dictionary = {
 	"res://scripts/characters/我的世界/lightning_rod/lightning_rod.gd": 1,
 	"res://scripts/characters/我的世界/enchanting_table/enchanting_table.gd": 1,
 	"res://scripts/characters/我的世界/torch/torch.gd": 1,
+	"res://scripts/characters/我的世界/bucket/bucket.gd": 1,
 	"res://scripts/characters/我的世界/女巫.gd": 1,
 	"res://scripts/characters/我的世界/new5/guardian.gd": 1,
 	"res://scripts/characters/我的世界/new6/bow.gd": 1,

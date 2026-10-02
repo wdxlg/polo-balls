@@ -1,0 +1,45 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/characters/我的世界/bucket/bucket.gd" id="2_script"]
+[ext_resource type="Texture2D" path="res://Images/characters/我的世界/bucket/lava_bucket.png" id="3_visual"]
+
+[sub_resource type="RectangleShape2D" id="BodyShape"]
+resource_local_to_scene = true
+size = Vector2(72, 86)
+
+[node name="岩浆桶" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+liquid = 1
+pour_cooldown = 8.0
+Has_Collision_Damage = false
+Type_Tags = PackedStringArray("我的世界", "火焰", "燃烧", "地形", "减速")
+Max_health = 600
+Damage = 10
+Speed = 85.0
+Attack_Cooling = 999.0
+Skill_Cooling = 999.0
+Health_Restore = 0
+Can_Skill = false
+
+[node name="Image" parent="Graphics" index="0"]
+texture = ExtResource("3_visual")
+texture_filter = 1
+scale = Vector2(6.5, 6.5)
+
+[node name="CollisionShape2D" parent="." index="1"]
+shape = SubResource("BodyShape")
+metadata/_character_auto_fit_v3_manual = true
+
+[node name="CharacterAutoFit" parent="." index="2"]
+enabled = false
+
+[node name="CollisionShape2D" parent="hitbox" index="0"]
+shape = SubResource("BodyShape")
+metadata/_character_auto_fit_v3_manual = true
+
+[node name="CollisionShape2D" parent="hurtbox" index="0"]
+shape = SubResource("BodyShape")
+metadata/_character_auto_fit_v3_manual = true
+
+[editable path="Health_Bar"]
