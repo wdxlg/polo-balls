@@ -63,10 +63,13 @@ const BOOK_ANCHOR:Vector2 = Vector2(0.0,-17.4)
 @export var attack_range:float = 520.0
 ## 符文出生在书周围这个半径内（角色单位 1 时的世界像素，随根缩放）。
 @export var rune_spawn_radius:float = 34.0
-@export var rune_speed:float = 230.0
-@export var rune_turn_rate:float = 6.0
-@export var rune_life:float = 3.2
-@export var rune_hover_time:float = 0.12
+@export var rune_speed:float = 120.0
+## 略微追踪：每秒最多转向的弧度。
+@export var rune_turn_rate:float = 1.4
+## 自动射出的符文初始方向在朝向目标的基础上随机偏转（弧度），配合略微追踪画出弧线。
+@export var rune_spread:float = 0.6
+@export var rune_life:float = 5.5
+@export var rune_hover_time:float = 0.25
 ## 命中友军的回复量 = 当前攻击力 × 该倍率。
 @export var rune_heal_ratio:float = 1.0
 @export var hits_per_enchant:int = 10
@@ -210,13 +213,16 @@ func fire_rune(target:ball,point:Vector2) -> bool:
 	var start:Vector2 = center + Vector2.RIGHT.rotated(rng.randf()*TAU)*radius
 	var aim:Vector2 = start.direction_to(point)
 	if aim.is_zero_approx(): aim = Vector2.RIGHT
+	# 近处目标偏转收窄，否则慢速小转向的符文会绕着目标打转。
+	var spread:float = rune_spread*clampf((start.distance_to(point) - 30.0*_unit_scale())/(150.0*_unit_scale()),0.0,1.0)
+	if target != null and spread > 0.0: aim = aim.rotated(rng.randf_range(-spread,spread))
 	_rune_serial += 1
 	runes_fired += 1
 	var rune_name:String = str(name)+"_Rune_"+str(_rune_serial)
 	var polarity:int = 0
 	if target != null: polarity = 1 if is_rune_enemy(target) else -1
 	var glyph:int = rng.randi_range(0,25)
-	var shade:float = rng.randf()*0.6+0.4
+	var shade:float = rng.randf()*0.35+0.65
 	var target_path:NodePath = target.get_path() if target != null else NodePath()
 	var damage:float = attack_damage()
 	_spawn_rune(rune_name,start,aim,damage,polarity,target_path,glyph,shade)

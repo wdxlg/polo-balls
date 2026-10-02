@@ -106,7 +106,7 @@ func run() -> void:
 	await frames(3)
 	await process_frame
 	check(world.return_all_character_names().has("附魔台"),"附魔台 appears in the Minecraft roster")
-	check(table.Max_health == 600 and int(table.Damage) == 6 and is_equal_approx(table.Attack_Cooling,0.3),"600 HP, rune damage 6, rune every 0.3 s")
+	check(table.Max_health == 600 and int(table.Damage) == 4 and is_equal_approx(table.Attack_Cooling,0.12),"600 HP, rune damage 4, rune every 0.12 s")
 	check(not table.book_open and table.has_closed_guard() and is_equal_approx(table.Damage_reduction,0.25),"the book starts closed with 25% damage reduction")
 	var before:float = float(table.health)
 	table.receive_positional_damage(100.0,table.global_position,true,enemy)
@@ -122,20 +122,24 @@ func run() -> void:
 	check(table.nearest_rune_target() != null,"open book finds the nearest enemy or ally")
 	table.set("attack_range",0.0)
 	check(table.nearest_rune_target() == null,"nothing in range means no rune")
-	table.set("attack_range",520.0)
+	# 以下只用显式 fire_rune，射程保持为 0 让自动连射不干扰逐发计数。
 	var enemy_before:float = float(enemy.health)
 	check(table.fire_rune(enemy,enemy.global_position),"a rune fires at the enemy while the book is open")
 	var shot:Node = runes()[0] if not runes().is_empty() else null
 	check(shot != null and shot.global_position.distance_to(table.book_world_position()) <= table.rune_spawn_radius*table._unit_scale() + 0.5,"the rune appears within the radius around the book")
+	check(shot != null and float(shot.Speed) <= 140.0 and float(shot.get("turn_rate")) > 0.0 and float(shot.get("turn_rate")) <= 2.0,"runes fly slowly and home only slightly")
 	await wait_until(func(): return float(enemy.health) < enemy_before,240)
-	check(is_equal_approx(enemy_before - float(enemy.health),6.0),"a rune deals the table's current attack to an enemy")
+	check(is_equal_approx(enemy_before - float(enemy.health),4.0),"a rune deals the table's current attack to an enemy")
+	var fx:Node = world.get_node_or_null("MCEnchantRuneParticles")
+	check(fx != null and int(fx.count(0)) > 0,"a flying rune leaves a trail of vanilla glyph particles")
+	check(fx != null and int(fx.count(1)) >= 8,"a landing rune bursts into enchanted-hit sparks")
 	check(table.counter_of(enemy) == 1,"the enemy's counter shows I")
 	ally.health = 5000
 	await frames(20)
 	table._shot_left = 0.0
 	check(table.fire_rune(ally,ally.global_position),"a rune fires at an ally")
 	await wait_until(func(): return int(ally.health) > 5000,240)
-	check(int(ally.health) == 5006 and table.counter_of(ally) == 1,"the ally is healed by the same amount and its counter shows I")
+	check(int(ally.health) == 5004 and table.counter_of(ally) == 1,"the ally is healed by the same amount and its counter shows I")
 	check(load("res://scripts/characters/我的世界/enchanting_table/enchant_counter_overlay.gd").roman(9) == "IX","counters are written in roman numerals")
 
 	# --- 计数到 X：随机生效附魔，友军正、敌人负 ---
@@ -156,6 +160,9 @@ func run() -> void:
 	table.on_rune_landed(ally)
 	var ally_levels:Dictionary = ENCHANTS.levels_of(ally)
 	check(ally_levels.size() == 1 and int(ally_levels.values()[0]) == 1 and ally_pool.has(ally_levels.keys()[0]),"the tenth ally hit grants one positive level from its pool")
+	await frames(15)
+	var glints:Array = ally.find_children("MCEnchantGlint*","",true,false)
+	check(not glints.is_empty() and glints.all(func(g:Node): return ally.graphics.is_ancestor_of(g)),"the enchantment glint covers only the body art, never the health bar, status icon or shadow")
 	var overlay:Node = table.overlay()
 	check(overlay != null and overlay.z_index == 90 and not overlay.z_as_relative,"counters draw on a world overlay above characters, below health bars")
 

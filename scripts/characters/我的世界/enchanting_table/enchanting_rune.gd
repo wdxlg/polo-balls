@@ -1,7 +1,9 @@
 extends ball
 ## 附魔台射出的原版附魔符文（particle/sga_*.png，颜色按原版 EnchantmentTableParticle：
-## 灰度 0.4–1.0，红绿 ×0.9）。投射物契约与三废石石块一致：逐帧扫掠接触、权威端 RPC 生成、
-## 名字确定。符文穿过墙体，出生后在书旁悬停 hover_time 再飞出，按 turn_rate 追踪目标。
+## 灰度取原版范围的亮端 0.65–1.0，红绿 ×0.9）。投射物契约与三废石石块一致：逐帧扫掠接触、权威端 RPC 生成、
+## 名字确定。符文穿过墙体，出生后在书旁悬停 hover_time 再慢速飞出，按较小的 turn_rate 略微追踪目标
+## （目标急转可能被甩开）。飞行时字形轻微脉动，身后飘出原版附魔字形碎片和星芒（rune_particles.gd），
+## 送达时散开一圈；粒子各端本地生成。
 ## polarity  1：只接触敌人，走公共 hitbox 造成伤害（投射物附魔、护盾、格挡照常）。
 ## polarity -1：只接触友军，送达时回复 heal_amount。
 ## polarity  0（手控直射）：接触到的第一个敌人或友军按其身份结算。
@@ -36,11 +38,13 @@ const GLYPHS:Array[Texture2D] = [
 ]
 ## 回复符文带一点绿色，便于和伤害符文区分（贴图本身是原版白色字形）。
 const HEAL_TINT:Color = Color(0.75,1.0,0.75)
+const PARTICLES_PATH:String = "res://scripts/characters/我的世界/enchanting_table/rune_particles.gd"
+const TRAIL_INTERVAL:float = 0.045
 @export var polarity:int = 1
 @export var heal_amount:float = 0.0
-@export var life:float = 3.2
-@export var hover_time:float = 0.12
-@export var turn_rate:float = 6.0
+@export var life:float = 5.5
+@export var hover_time:float = 0.25
+@export var turn_rate:float = 1.4
 @export var glyph:int = 0
 @export var shade:float = 0.7
 var target_ref:WeakRef = null
@@ -49,6 +53,9 @@ var heals:int = 0
 var _age:float = 0.0
 var _spent:bool = false
 var _resolving_hit:bool = false
+var _fx_clock:float = 0.0
+var _trail_left:float = 0.0
+var _last_fx_position:Vector2 = Vector2.INF
 
 func _ready() -> void:
 	Hit_Audio = ""
@@ -109,8 +116,23 @@ func accepts(unit:Variant) -> bool:
 	if polarity < 0: return _is_ally(unit)
 	return _is_enemy(unit) or _is_ally(unit)
 
-func _process(_delta:float) -> void:
+func _process(delta:float) -> void:
 	_refresh_color()
+	if _spent or not visible: return
+	var game:Node = get_node_or_null("/root/Game")
+	if get_tree().paused or (game != null and bool(game.get("now_stop_state"))): return
+	_fx_clock += delta
+	if image != null: image.scale = Vector2.ONE*(1.0 + 0.12*sin(_fx_clock*9.0 + float(glyph)))
+	var moved:Vector2 = global_position - _last_fx_position if _last_fx_position.is_finite() else Vector2.ZERO
+	_last_fx_position = global_position
+	_trail_left -= delta
+	if _trail_left > 0.0 or moved.length_squared() <= 0.0001: return
+	_trail_left = TRAIL_INTERVAL
+	var fx:Node2D = (load(PARTICLES_PATH) as Script).call("find_or_create",self)
+	if fx != null: fx.call("trail",global_position,moved,shade,polarity < 0,_fx_scale())
+
+func _fx_scale() -> float:
+	return clampf(absf(global_transform.get_scale().x),0.2,4.0)
 
 func tick_physics(state:State,delta:float) -> void:
 	if _spent or not is_multiplayer_authority(): return
@@ -222,13 +244,17 @@ func Die() -> void: expire()
 func when_collide(_speed:float,_collision:KinematicCollision2D) -> void: pass
 func expire() -> void:
 	if _spent: return
-	if is_multiplayer_authority() and multiplayer.has_multiplayer_peer() and multiplayer.get_peers().size() > 0: _retire.rpc()
-	_retire()
+	var landed:bool = hits > 0 or heals > 0
+	if is_multiplayer_authority() and multiplayer.has_multiplayer_peer() and multiplayer.get_peers().size() > 0: _retire.rpc(landed,global_position)
+	_retire(landed,global_position)
 
 @rpc("authority","call_remote","reliable")
-func _retire() -> void:
+func _retire(landed:bool = false,point:Vector2 = Vector2.INF) -> void:
 	if _spent: return
 	_spent = true
+	if landed and is_inside_tree():
+		var fx:Node2D = (load(PARTICLES_PATH) as Script).call("find_or_create",self)
+		if fx != null: fx.call("burst",point if point.is_finite() else global_position,polarity < 0,shade,_fx_scale())
 	hide()
 	velocity = Vector2.ZERO
 	Repel = Vector2.ZERO

@@ -320,6 +320,11 @@
       "input": "enchanting_table_top.png, enchanting_table_side.png, enchanting_table_bottom.png",
       "projection": "orthographic, yaw 30, pitch 25, fixed face lighting (same as the useless stones blocks); book uses the vanilla EnchantTableRenderer/BookModel parts, facing -60 degrees",
       "sha256": "c3664e697028e41a24186a0ea5772a3f4892a5afa4614c1a0552e52d8d761c06"
+    },
+    "enchanted_hit.png": {
+      "original_path": "assets/minecraft/textures/particle/enchanted_hit.png",
+      "sha1": "fc3c962ecb9f059c357d56eb460fe078bde938b6",
+      "modified": false
     }
   }
 }

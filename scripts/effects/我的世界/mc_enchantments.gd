@@ -528,10 +528,20 @@ func _reconcile() -> void:
 		if overlay != null: _slots[id] = {"source":weakref(source),"overlay":weakref(overlay)}
 
 func _collect(node:Node,found:Dictionary) -> void:
-	if node == self or node.has_meta("mc_enchant_skip"): return
+	# Characters glint only on their body art: the Graphics subtree plus nodes opted in with
+	# meta mc_enchant_body. Health bar, status icon, ground shadow and other UI stay plain.
+	if node == get_parent() and node is ball and is_instance_valid((node as ball).graphics):
+		_collect_visuals((node as ball).graphics,found)
+		for extra:Node in node.find_children("*","CanvasItem",true,false):
+			if extra.has_meta("mc_enchant_body") and not (node as ball).graphics.is_ancestor_of(extra): _collect_visuals(extra,found)
+		return
+	_collect_visuals(node,found)
+
+func _collect_visuals(node:Node,found:Dictionary) -> void:
+	if node == self or node.has_meta("mc_enchant_skip") or node is CanvasLayer: return
 	if node is Sprite2D or node is AnimatedSprite2D or node is Polygon2D or node is TextureRect or node is ColorRect:
 		found[node.get_instance_id()] = node
-	for child:Node in node.get_children(): _collect(child,found)
+	for child:Node in node.get_children(): _collect_visuals(child,found)
 
 func _create_overlay(source:CanvasItem) -> CanvasItem:
 	var overlay:CanvasItem
@@ -605,5 +615,10 @@ func _sync_overlay(source:CanvasItem,overlay:CanvasItem) -> void:
 		var view:ColorRect = overlay as ColorRect
 		view.size = c.size
 		view.color = Color(1,1,1,c.color.a)
+	# The glint is a child, so it inherits modulate/visibility but not self_modulate:
+	# a source faded out through self_modulate must not leave a glowing silhouette behind.
+	overlay.self_modulate.a = source.self_modulate.a
+	if source.self_modulate.a <= 0.01: overlay.visible = false
+	elif overlay is Polygon2D or overlay is ColorRect: overlay.visible = true
 	var scale_factor:float = maxf(source.get_global_transform().x.length(),0.01)
 	(overlay.material as ShaderMaterial).set_shader_parameter("world_texel",scale_factor)

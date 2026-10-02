@@ -9,6 +9,9 @@ const CATALOG = preload("res://scripts/effects/我的世界/mc_enchantment_catal
 const NUMBER_COLOR:Color = Color("80ff20")
 const OVERLAY_Z:int = 90
 const FONT_SIZE:int = 10
+## 罗马数字按 COUNTER_RASTER 字号栅格化后缩到 COUNTER_SIZE 世界像素高，比附魔名小一号且保持清晰。
+const COUNTER_SIZE:float = 7.0
+const COUNTER_RASTER:int = 16
 const POPUP_SECONDS:float = 1.2
 var table_ref:WeakRef = null
 var _popups:Array[Dictionary] = []
@@ -30,7 +33,7 @@ func table() -> Node:
 ## 目标左上角（世界坐标），同一目标上第 slot 个附魔台的计数再往下错开一行。
 static func anchor_for(target:Node2D,slot:int) -> Vector2:
 	var radius:float = float(target.call("get_crowd_separation_radius_world")) if target.has_method("get_crowd_separation_radius_world") else 12.0
-	return target.global_position + Vector2(-radius,-radius) + Vector2(0.0,float(slot)*(FONT_SIZE+1))
+	return target.global_position + Vector2(-radius,-radius) + Vector2(0.0,float(slot)*(COUNTER_SIZE+1.0))
 
 func _slot_for(target:Node) -> int:
 	var owner_table:Node = table()
@@ -58,10 +61,13 @@ func _english() -> bool:
 	var game:Node = get_node_or_null("/root/Game")
 	return game != null and str(game.get("current_locale")).begins_with("en")
 
-func _draw_text(font:Font,point:Vector2,text:String,color:Color) -> void:
-	# 原版 GUI 文字阴影：同色 1/4 亮度，右下偏 1 像素。
-	draw_string(font,point+Vector2(1,1),text,HORIZONTAL_ALIGNMENT_LEFT,-1,FONT_SIZE,Color(color.r*0.25,color.g*0.25,color.b*0.25,color.a))
-	draw_string(font,point,text,HORIZONTAL_ALIGNMENT_LEFT,-1,FONT_SIZE,color)
+func _draw_text(font:Font,point:Vector2,text:String,color:Color,size:int = FONT_SIZE,scale_factor:float = 1.0) -> void:
+	# 原版 GUI 文字阴影：同色 1/4 亮度，右下偏 1 个字体像素。
+	draw_set_transform(point,0.0,Vector2.ONE*scale_factor)
+	var shadow:float = maxf(float(size)/8.0,1.0)
+	draw_string(font,Vector2(shadow,shadow),text,HORIZONTAL_ALIGNMENT_LEFT,-1,size,Color(color.r*0.25,color.g*0.25,color.b*0.25,color.a))
+	draw_string(font,Vector2.ZERO,text,HORIZONTAL_ALIGNMENT_LEFT,-1,size,color)
+	draw_set_transform(Vector2.ZERO,0.0,Vector2.ONE)
 
 func _draw() -> void:
 	var owner_table:Node = table()
@@ -73,7 +79,7 @@ func _draw() -> void:
 		if not is_instance_valid(target) or not target.visible or int(target.get("health")) <= 0: continue
 		var count:int = int(entry.get("count",0))
 		if count <= 0: continue
-		_draw_text(NUMBER_FONT,anchor_for(target,_slot_for(target)),roman(count),NUMBER_COLOR)
+		_draw_text(NUMBER_FONT,anchor_for(target,_slot_for(target)),roman(count),NUMBER_COLOR,COUNTER_RASTER,COUNTER_SIZE/float(COUNTER_RASTER))
 	var english:bool = _english()
 	for entry:Dictionary in _popups:
 		var progress:float = clampf(float(entry.age)/POPUP_SECONDS,0.0,1.0)
