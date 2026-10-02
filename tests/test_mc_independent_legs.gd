@@ -172,6 +172,7 @@ func run() -> void:
 	await trader_suite(center)
 	await wither_suite(center)
 	await vindicator_suite(center)
+	await goat_suite(center)
 	# --- cache bound
 	var cache:Dictionary = LEGS._cache.get("enderman",{})
 	check(cache.is_empty() or (cache["order"] as Array).size() <= LEGS.CACHE_PER_SET,"composite cache bounded")
@@ -488,6 +489,25 @@ func vindicator_suite(center:Vector2) -> void:
 	r = vind_move(v,0.0,90)
 	check(g.at_rest and v.image.texture == v.FRAMES.get_frame_texture(&"idle",0) and r.ok,"vindicator: still -> legs settle back to the idle pose")
 	v.queue_free()
+
+func goat_suite(center:Vector2) -> void:
+	var goat:Node2D = load("res://scripts/characters/我的世界/goat_horn/goat_charger.gd").new()
+	goat.global_position = center
+	world.add_child(goat)
+	await process_frame
+	goat.set_process(false)
+	goat.speed = 50.0
+	goat._update_visual(true)
+	var slow:float = goat._sprite.speed_scale
+	goat.speed = 150.0
+	goat._update_visual(true)
+	check(is_equal_approx(slow,0.25) and is_equal_approx(goat._sprite.speed_scale/slow,3.0),"goat: leg tempo proportional to speed, no floor (%.2f at 50 px/s)" % slow)
+	goat.unit_scale = 0.5
+	goat._update_visual(true)
+	check(is_equal_approx(goat._sprite.speed_scale,1.5),"goat: a shrunken goat (shorter legs) steps faster at the same speed")
+	goat._update_visual(false)
+	check(goat._sprite.speed_scale == 0.0,"goat: paused -> legs frozen")
+	goat.queue_free()
 
 func vis_step(u:Node2D,vis:Node,ratio:float,frames_n:int,setup:Callable) -> Dictionary:
 	var v:float = LEGS.standard_speed(u)*ratio

@@ -371,6 +371,11 @@ func _process(delta:float) -> void:
 	_update_visual(running)
 
 
+const LEG_STANDARD_SPEED:float = 200.0
+
+func leg_speed_scale(speed_value:float = -1.0) -> float:
+	return maxf(speed if speed_value < 0.0 else speed_value,0.0) / (LEG_STANDARD_SPEED * maxf(unit_scale,0.05))
+
 func _update_visual(running:bool = true) -> void:
 	if _sprite == null: return
 	# 全程低头冲撞姿势（ram 片段带奔跑腿部循环）。
@@ -378,8 +383,9 @@ func _update_visual(running:bool = true) -> void:
 		var keep:int = _sprite.frame
 		_sprite.play(&"ram")
 		_sprite.frame = keep % FRAMES.get_frame_count(&"ram")
-	# 腿部动画随实际移速放慢，避免慢跑时原地快速倒腿。
-	_sprite.speed_scale = clampf(speed / 200.0,0.35,2.2) if running else 0.0
+	# 腿部节奏与实际移速成正比（无下限/上限）：标准速度 = 原生 ram 节奏对应的 200 px/s × 根缩放
+	# （缩小的山羊腿更短，同样速度要迈得更快）。暂停时冻结。
+	_sprite.speed_scale = leg_speed_scale() if running else 0.0
 	# 原图朝左；向右跑时镜像。只分左右，不随斜向旋转。
 	var flip:bool = heading.x > 0.0
 	_sprite.flip_h = flip
