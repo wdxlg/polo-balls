@@ -6273,6 +6273,7 @@ const ARMOR_TEST_ROLE_SUMMARIES:Dictionary = {
 	"res://scripts/characters/我的世界/new6/heavenfall_longbow.gd":"MC_ARMOR_INTRO_LONGBOW_OF_THE_HEAVENS",
 	"res://scripts/characters/我的世界/goat_horn/goat_horn.gd":"MC_ARMOR_INTRO_GOAT_HORN",
 	"res://scripts/characters/我的世界/useless_stones/useless_stones.gd":"MC_ARMOR_INTRO_USELESS_STONES",
+	"res://scripts/characters/我的世界/lightning_rod/lightning_rod.gd":"MC_ARMOR_INTRO_LIGHTNING_ROD",
 	"res://scripts/characters/我的世界/enchanting_table/enchanting_table.gd":"MC_ARMOR_INTRO_ENCHANTING_TABLE",
 	"res://scripts/characters/我的世界/铁匠村民.gd":"MC_ARMOR_INTRO_BLACKSMITH_VILLAGER",
 	"res://scripts/characters/我的世界/铁傀儡.gd":"MC_ARMOR_INTRO_IRON_GOLEM",

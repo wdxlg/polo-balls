@@ -1,0 +1,46 @@
+{
+  "description": "避雷针 (Lightning Rod) sprites, storm cloud, rain, electric spark glow and charge bar",
+  "upstream": "Minecraft Java Edition 1.21.1 client jar (minecraft_1.21.1_client.jar, SHA1 30c73b1c5da787909b2f73340419fdf13b9def88)",
+  "license": "Minecraft assets are copyright Mojang Studios/Microsoft and subject to the Minecraft EULA; no general redistribution permission is claimed.",
+  "used_by": "scripts/characters/我的世界/lightning_rod/",
+  "files": {
+    "lightning_rod.png": {
+      "original_path": "assets/minecraft/textures/block/lightning_rod.png",
+      "generated_by": "scripts/training/mc_native_assets/bake_lightning_rod.py --jar <minecraft_1.21.1_client.jar> --output Images/characters/我的世界/lightning_rod",
+      "projection": "side view of block/lightning_rod.json: 4x4 head (uv 0,0-4,4) above the 2x12 stem (uv 0,4-2,16), pixels copied unchanged",
+      "sha256": "123811805030bb64b49e5d186da5798b180270c6cf0b4a09375def25391923a3"
+    },
+    "lightning_rod_on.png": {
+      "original_path": "assets/minecraft/textures/block/lightning_rod_on.png",
+      "generated_by": "scripts/training/mc_native_assets/bake_lightning_rod.py --jar <minecraft_1.21.1_client.jar> --output Images/characters/我的世界/lightning_rod",
+      "projection": "same layout as lightning_rod.png (block/lightning_rod_on.json)",
+      "sha256": "3a934b4322b5de2b18e93250948bc154d9abd17d1af9d390b76222162e4a56cc"
+    },
+    "storm_cloud.png": {
+      "original_path": "assets/minecraft/textures/environment/clouds.png",
+      "generated_by": "scripts/training/mc_native_assets/bake_lightning_rod.py --jar <minecraft_1.21.1_client.jar> --output Images/characters/我的世界/lightning_rod",
+      "projection": "crop x 212-225, y 1-7, keeping the single connected cloud around its centre",
+      "sha256": "d2f96c32ba039b68314ea70908f6b5e2bec80d93290d669ba3ae71c822d9d436"
+    },
+    "rain.png": {
+      "original_path": "assets/minecraft/textures/environment/rain.png",
+      "sha1": "e658f890c05d2f385fb6dab54f4df8b5aeab5127",
+      "modified": false
+    },
+    "glow.png": {
+      "original_path": "assets/minecraft/textures/particle/glow.png",
+      "sha1": "1c025abd19793c8191527e9378bb64ab06c435f9",
+      "modified": false
+    },
+    "boss_bar_blue_background.png": {
+      "original_path": "assets/minecraft/textures/gui/sprites/boss_bar/blue_background.png",
+      "sha1": "e2d62912c27ccf251fd5851f67e81a34f244777d",
+      "modified": false
+    },
+    "boss_bar_blue_progress.png": {
+      "original_path": "assets/minecraft/textures/gui/sprites/boss_bar/blue_progress.png",
+      "sha1": "c088dbc22a0768554e9a7e890b5702693c19ad49",
+      "modified": false
+    }
+  }
+}

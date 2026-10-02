@@ -1,0 +1,97 @@
+{
+    "source": "Locally installed Minecraft Java asset index 1.21.json (used by 1.21.1) and its hashed original objects under .minecraft/assets/objects; bytes copied unchanged",
+    "rights": "Minecraft assets are copyright Mojang Studios/Microsoft. Use is subject to the Minecraft EULA; no general redistribution permission is claimed.",
+    "used_by": "scripts/characters/我的世界/lightning_rod/lightning_rod_audio.gd (避雷针 storm rain, copper hits and death, discharge fizz); thunder and impact reuse audio/characters/我的世界/苦力怕/thunder*.ogg and explode*.ogg",
+    "files": [
+        {
+            "new_asset": "rain1.ogg",
+            "original_path": "minecraft/sounds/ambient/weather/rain1.ogg",
+            "sha1": "941611aed1eb6888f6ad998af22d2d2ef2efc4aa",
+            "event": "weather.rain"
+        },
+        {
+            "new_asset": "rain2.ogg",
+            "original_path": "minecraft/sounds/ambient/weather/rain2.ogg",
+            "sha1": "6cf5c9f78a221f9a9576753fa5ca6cf3563c352a",
+            "event": "weather.rain"
+        },
+        {
+            "new_asset": "rain3.ogg",
+            "original_path": "minecraft/sounds/ambient/weather/rain3.ogg",
+            "sha1": "61dba25ce75a25e7920bcb210408fc6b6a2c92f0",
+            "event": "weather.rain"
+        },
+        {
+            "new_asset": "rain4.ogg",
+            "original_path": "minecraft/sounds/ambient/weather/rain4.ogg",
+            "sha1": "0b0d9e03b93a8c5823eb4f925114aef0cb9ac6b2",
+            "event": "weather.rain"
+        },
+        {
+            "new_asset": "copper_break1.ogg",
+            "original_path": "minecraft/sounds/block/copper/break1.ogg",
+            "sha1": "ea1c8d3e12caad4fffae0d696e12ea35863a7f0e",
+            "event": "block.copper.break / block.copper.place"
+        },
+        {
+            "new_asset": "copper_break2.ogg",
+            "original_path": "minecraft/sounds/block/copper/break2.ogg",
+            "sha1": "747e06241f0959846b50cd4dd2309903f57e694f",
+            "event": "block.copper.break / block.copper.place"
+        },
+        {
+            "new_asset": "copper_break3.ogg",
+            "original_path": "minecraft/sounds/block/copper/break3.ogg",
+            "sha1": "4a17b1adbdd910de67e2d812fcbad87f00a69912",
+            "event": "block.copper.break / block.copper.place"
+        },
+        {
+            "new_asset": "copper_break4.ogg",
+            "original_path": "minecraft/sounds/block/copper/break4.ogg",
+            "sha1": "b721be4b544ac26e19a254830ffb6954cb40f67d",
+            "event": "block.copper.break / block.copper.place"
+        },
+        {
+            "new_asset": "copper_step1.ogg",
+            "original_path": "minecraft/sounds/block/copper/step1.ogg",
+            "sha1": "a37ad944694b98075cb5fc00b12da6bbcc600fc5",
+            "event": "block.copper.hit"
+        },
+        {
+            "new_asset": "copper_step2.ogg",
+            "original_path": "minecraft/sounds/block/copper/step2.ogg",
+            "sha1": "d87ff5f9736c6b86f3445faccfdd20c595eadb32",
+            "event": "block.copper.hit"
+        },
+        {
+            "new_asset": "copper_step3.ogg",
+            "original_path": "minecraft/sounds/block/copper/step3.ogg",
+            "sha1": "0abfb8f19f7bdc0dd211f4a46e392ca1dac2d531",
+            "event": "block.copper.hit"
+        },
+        {
+            "new_asset": "copper_step4.ogg",
+            "original_path": "minecraft/sounds/block/copper/step4.ogg",
+            "sha1": "ce467337da42a96332befcdf961e2981e1c61682",
+            "event": "block.copper.hit"
+        },
+        {
+            "new_asset": "copper_step5.ogg",
+            "original_path": "minecraft/sounds/block/copper/step5.ogg",
+            "sha1": "85ac3c677b8cba25063bf0c9575eea4dcd669d8e",
+            "event": "block.copper.hit"
+        },
+        {
+            "new_asset": "copper_step6.ogg",
+            "original_path": "minecraft/sounds/block/copper/step6.ogg",
+            "sha1": "63417f028c4720bd91b1974ef67c93546ac4f3b6",
+            "event": "block.copper.hit"
+        },
+        {
+            "new_asset": "fizz.ogg",
+            "original_path": "minecraft/sounds/random/fizz.ogg",
+            "sha1": "c649e60ea9a99c97501a50d2dc4e579343e91ea8",
+            "event": "block.lava.extinguish / entity.generic.extinguish_fire"
+        }
+    ]
+}

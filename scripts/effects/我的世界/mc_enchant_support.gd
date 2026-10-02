@@ -96,6 +96,7 @@ const SUPPORT:Dictionary = {
 	"res://scenes/characters/小弟/黑帮小弟.tscn": ["melee", "efficiency"],
 	"res://scenes/characters/小弟/黑帮持枪小弟.tscn": ["ranged", "multishot", "efficiency"],
 	"res://scenes/characters/我的世界/三废石.tscn": ["ranged", "multishot", "efficiency"],
+	"res://scenes/characters/我的世界/避雷针.tscn": ["melee"],
 	"res://scenes/characters/我的世界/仙人掌.tscn": ["melee", "ranged", "multishot"],
 	"res://scenes/characters/我的世界/凋灵.tscn": ["melee"],
 	"res://scenes/characters/我的世界/凋灵骷髅.tscn": ["melee"],
