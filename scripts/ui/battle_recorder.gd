@@ -1343,6 +1343,7 @@ func _setup_sim_capture_viewport() -> void:
 	layer.add_child(_capture_vignette)
 	_capture_vignette.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_sync_capture_vignette()
+	load("res://scripts/effects/motion_blur.gd").attach(sub,sub)
 	_setup_recording_composition(sub)
 	if sub.use_hdr_2d:
 		_setup_color_resolve(sub)

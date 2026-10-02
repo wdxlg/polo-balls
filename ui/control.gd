@@ -1629,9 +1629,12 @@ func _build_parameter_settings(parent_box:VBoxContainer) -> void:
 	_create_bool_setting_row(parent_box,"Minecraft_Clouds")
 	if not Game.Game_Settings.has("Day_Night_Cycle"): Game.Game_Settings["Day_Night_Cycle"] = true
 	_create_bool_setting_row(parent_box,"Day_Night_Cycle")
+	if not Game.Game_Settings.has("Motion_Blur"): Game.Game_Settings["Motion_Blur"] = false
+	_create_bool_setting_row(parent_box,"Motion_Blur")
 	var excluded:Dictionary = {
 		"Minecraft_Clouds": true,
 		"Day_Night_Cycle": true,
+		"Motion_Blur": true,
 		"Training_Mode": true,
 		"Manual_Training": true,
 		"Manual_Collision_Damage": true,

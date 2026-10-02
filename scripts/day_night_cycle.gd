@@ -47,7 +47,7 @@ func _ready() -> void:
 func _create_clock() -> void:
 	clock_layer = CanvasLayer.new()
 	clock_layer.name = "WorldTimeHUD"
-	clock_layer.layer = 1
+	clock_layer.layer = 2 # 1 is reserved for motion blur
 	add_child(clock_layer)
 	_clock_root = Control.new()
 	_clock_root.name = "ClockAnchor"

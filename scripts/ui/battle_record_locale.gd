@@ -35,7 +35,7 @@ func begin(scene:Node, viewport:Viewport, capture_viewports:Dictionary = {}) -> 
 			var capture:SubViewport = capture_viewports[locale]
 			var layer := CanvasLayer.new()
 			layer.name = "RecordingVersus_" + locale
-			layer.layer = 1
+			layer.layer = 2 # 1 is reserved for motion blur
 			layer.set_meta("recording_copy", true)
 			layer.transform = Transform2D.IDENTITY.scaled(Vector2(capture.size) / main.get_visible_rect().size)
 			capture.add_child(layer)

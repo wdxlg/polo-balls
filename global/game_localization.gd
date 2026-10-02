@@ -363,6 +363,7 @@ const RUNTIME_LABELS:Dictionary = {
 	"SETTING_MANUAL_COLLISION_DAMAGE": ["鼠标碰撞伤害", "Mouse Collision Damage"],
 	"SETTING_MANUAL_ATTACK_INTERVAL": ["发射间隔", "Fire Interval"],
 	"SETTING_BLOOD_EFFECTS": ["血液", "Blood"],
+	"SETTING_MOTION_BLUR": ["动态模糊", "Motion Blur"],
 	"SETTING_TRAINING_DEBUG_MODE": ["威胁调试显示", "Threat Debug Overlay"],
 	"SETTINGS_CATEGORY_TRAINING": ["训练", "Training"],
 	"SETTINGS_CATEGORY_PARAMETERS": ["参数", "Parameters"],

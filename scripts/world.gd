@@ -1755,6 +1755,7 @@ func _ready() -> void:
 	minecraft_clouds = load("res://scripts/effects/我的世界/minecraft_clouds.gd").new(self)
 	minecraft_clouds.name = "MinecraftClouds"
 	add_child(minecraft_clouds)
+	load("res://scripts/effects/motion_blur.gd").attach(self,get_viewport())
 	_setup_center_watermark()
 	setup_manual_training_controller()
 	setup_combat_threat_analyzer()
@@ -4504,7 +4505,7 @@ func setup_map_presentation() -> void:
 	# 第一行：不同阵营不同颜色的角色名 VS 角色名。屏幕画布不继承 Camera2D 的分数像素位移。
 	versus_screen_layer = CanvasLayer.new()
 	versus_screen_layer.name = "VersusScreenLayer"
-	versus_screen_layer.layer = 1
+	versus_screen_layer.layer = 2 # 1 is reserved for motion blur
 	add_child(versus_screen_layer)
 	versus_label = RichTextLabel.new()
 	versus_label.name = "VersusLabel"
