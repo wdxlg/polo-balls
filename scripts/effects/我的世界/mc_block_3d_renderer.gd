@@ -2,8 +2,16 @@ extends "res://scripts/effects/我的世界/地图立体墙.gd"
 ## 单格 3D 方块障碍专用的透视 overlay（工作台/锻造台/仙人掌/杜鹃花丛）。
 ## 与地图立体墙同一相机、投影、受光材质；太阳、环境光与地影强度每帧照抄地图墙体
 ## （随昼夜转向，按地图主题换能量），没有墙的蓝色主题用地图墙默认光和同一个昼夜太阳方向。
-## 和墙一样画在角色之下（z -4），方块的真实影子投到 2D 地面上。
+## 两层：GROUND 和墙一样画在角色之下（z -4）；CANOPY（苔藓杜鹃花丛）画在角色之上、血条之下，
+## 影子仍落在苔藓地皮(-3)之上、角色之下。方块的真实影子投到 2D 地面上。
 const NAME:StringName = &"MCBlock3DRenderer"
+const GROUND:StringName = &"ground"
+const CANOPY:StringName = &"canopy"
+## 角色贴图最高约 36，地图血条 91-99：花丛压住角色但不挡血条与伤害数字。
+const CANOPY_Z:int = 40
+## 苔藓地皮在绝对 -3：花丛地影要在它之上、角色(0)之下。
+const CANOPY_SHADOW_Z:int = -2
+const GROUND_Z:int = -4
 const USERS_META:StringName = &"mc_block_3d_users"
 ## 与地图立体墙 configure_regions 的默认（草/石/下界）一致。
 const DEFAULT_AMBIENT_COLOR:Color = Color(0.72,0.79,0.89)
@@ -17,17 +25,21 @@ var _ground_wait:float = 0.0
 
 
 ## 宿主（世界场景）下共用的一份；首次调用时创建。
-static func shared_for(host:Node,cell:float) -> Node2D:
+static func node_name(layer:StringName) -> StringName:
+	return NAME if layer != CANOPY else StringName(String(NAME)+"Canopy")
+
+
+static func shared_for(host:Node,cell:float,layer:StringName = GROUND) -> Node2D:
 	if host == null: return null
-	var existing:Node = host.get_node_or_null(NodePath(String(NAME)))
+	var existing:Node = host.get_node_or_null(NodePath(String(node_name(layer))))
 	if existing != null:
 		if existing.is_queued_for_deletion() or not is_instance_valid(existing.get("viewport")): return null
 		return existing as Node2D
 	var renderer:Node2D = load("res://scripts/effects/我的世界/mc_block_3d_renderer.gd").new()
-	renderer.name = NAME
+	renderer.name = node_name(layer)
 	renderer.set_meta(USERS_META,0)
 	host.add_child(renderer)
-	renderer.configure_block_overlay(cell)
+	renderer.configure_block_overlay(cell,layer)
 	return renderer
 
 
@@ -38,13 +50,19 @@ static func add_user(renderer:Node2D,change:int) -> void:
 	renderer.set_active(users > 0)
 
 
-func configure_block_overlay(cell:float) -> void:
+var layer:StringName = GROUND
+
+
+func configure_block_overlay(cell:float,overlay_layer:StringName = GROUND) -> void:
+	layer = overlay_layer
 	var host:Node = get_parent()
 	var light:Variant = host.get("map_wall_light_direction") if host != null else null
 	configure_surface_overlay(Vector2.ONE*cell,light if light is Vector2 else Vector2(1.0,-1.0))
 	# 墙是背景：地面(-5) < 墙/地影(-4) < 人物。方块障碍同层，晚于地图墙加入，画在墙之上。
 	z_as_relative = false
-	z_index = -4
+	z_index = CANOPY_Z if layer == CANOPY else GROUND_Z
+	shadow_picture.z_as_relative = false
+	shadow_picture.z_index = CANOPY_SHADOW_Z if layer == CANOPY else GROUND_Z
 	# surface overlay 默认关闭地影通道；方块要像墙一样把真实影子投到地面。
 	shadow_picture.show()
 	_refresh_ground(true)

@@ -1,8 +1,8 @@
 extends Node2D
 ## 苔藓地面上长出的原版单格 3D 植物；苔藓地面、伤害与层数仍在原有地面层。
 ## 层数加深不叠苔藓，而是长出植物：2 层 = 杜鹃花丛，3 层 = 盛开的杜鹃花丛；1 层只有苔藓地面。
-## 植物是 mc_block_3d.gd 的原版模型，和地图墙一样画在角色之下、同一太阳受光并投地影，
-## 不遮挡人物，所以不需要靠近淡出。
+## 植物是 mc_block_3d.gd 的原版模型，与地图墙同一太阳受光；花丛画在苔藓地皮和角色之上（血条之下），
+## 地影落在苔藓地皮上、角色之下。
 const BLOCK = preload("res://scripts/effects/我的世界/mc_block_3d.gd")
 const AZALEA:StringName = &"azalea"
 const FLOWERING:StringName = &"flowering_azalea"

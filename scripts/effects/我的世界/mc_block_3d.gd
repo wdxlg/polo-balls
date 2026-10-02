@@ -66,6 +66,7 @@ var _mesh_node:MeshInstance3D = null
 var _shadow_node:MeshInstance3D = null
 var _materials:Array[ShaderMaterial] = []
 var _renderer:Node2D = null
+const CANOPY_MODELS:Array[StringName] = [&"azalea",&"flowering_azalea"]
 
 
 ## model 见 MODELS；size 为方块边长（像素，默认一格地图格）。
@@ -141,6 +142,15 @@ func renderer() -> Node2D:
 	return _renderer
 
 
+## 苔藓长出的杜鹃花丛是"树冠"，画在角色之上；工作台/锻造台/仙人掌和墙同层在角色之下。
+static func layer_for(model_name:StringName) -> StringName:
+	return RENDERER.CANOPY if CANOPY_MODELS.has(model_name) else RENDERER.GROUND
+
+
+func overlay_layer() -> StringName:
+	return layer_for(model)
+
+
 func surface_material(surface:int) -> ShaderMaterial:
 	return _materials[surface] if surface >= 0 and surface < _materials.size() else null
 
@@ -184,7 +194,7 @@ func _ensure_debris_sample() -> void:
 func _rebuild() -> void:
 	_release()
 	if not is_inside_tree() or not MODELS.has(model): return
-	var shared:Node2D = RENDERER.shared_for(_renderer_host(),cell)
+	var shared:Node2D = RENDERER.shared_for(_renderer_host(),cell,overlay_layer())
 	if shared == null: return
 	var built:Dictionary = build_mesh(model,cell)
 	_mesh_node = MeshInstance3D.new()
