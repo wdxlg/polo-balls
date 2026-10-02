@@ -76,8 +76,7 @@ func run() -> void:
 	check(current("left")!=null and current("right")!=null,"one blue and one red enter")
 	check(world._rotation_frame_hud.visible,"frame HUD visible in rotation")
 	world.refresh_versus_text()
-	check(world.versus_label.visible and "VS" in world.versus_label.get_parsed_text(),"challenge shows ordinary XX VS XX title")
-	check(world.versus_label.text==world.build_versus_text(),"rotation reuses ordinary title builder/style")
+	check(not world.versus_label.visible and world.versus_label.text.is_empty(),"challenge hides XX VS XX title")
 	check(world.versus_label.position.y==world.versus_screen_top_padding_px,"rotation title keeps ordinary screen top anchor")
 	world._layout_rotation_versus_hud()
 	check(not world.rotation_left_root.visible and not world.rotation_vs_label.visible,"legacy name HUD hidden in rotation")
@@ -133,7 +132,7 @@ func run() -> void:
 	check(int(world._rotation_active_setup.left)==1 and int(world._rotation_active_setup.right)==4,"rematch starts from both first entries")
 	await setup("duel")
 	world.refresh_versus_text()
-	check(world.versus_label.visible and "VS" in world.versus_label.get_parsed_text(),"duel shows ordinary XX VS XX title")
+	check(not world.versus_label.visible,"duel hides XX VS XX title")
 	current("left").health = 19
 	await eliminate("right")
 	check(int(world._rotation_active_setup.left)==2 and int(world._rotation_active_setup.right)==5,"1v1 replaces BOTH fighters")
@@ -158,7 +157,7 @@ func run() -> void:
 	check(int(world._rotation_active_setup.left)==2 and int(world._rotation_active_setup.right)==5,"delayed death removal does not skip the next duel")
 	await setup("wheel")
 	world.refresh_versus_text()
-	check(world.versus_label.visible and "VS" in world.versus_label.get_parsed_text(),"wheel shows ordinary XX VS XX title")
+	check(not world.versus_label.visible,"wheel hides XX VS XX title")
 	current("left").health = 23
 	await eliminate("right")
 	check(int(world._rotation_active_setup.left)==1 and current("left").health==23,"wheel retains winner and current health")

@@ -79,6 +79,8 @@ const SIDE_MARGIN:float = 24.0
 const GAP:float = 12.0
 const SIDE_WIDTH:float = 404.0
 const PANEL_HEIGHT:float = 176.0
+## Rotation shows the clock alone: no side panels, no VS line, a shorter centre panel.
+const TIME_ONLY_PANEL_HEIGHT:float = 100.0
 const PAD:float = 20.0
 const PORTRAIT_SIZE:float = 96.0 # item_frame 32px × 3（与 tooltip 同为 GUI 像素 ×3）
 const PORTRAIT_TOP:float = 16.0
@@ -375,7 +377,7 @@ func _versus_title_visible() -> bool:
 ## 不是 1v1 的对局：开场后（World 的开战边沿）只要场上至少两方就显示中间面板；
 ## 胜负已分后保持到结算退场或重置。
 func _center_panel_wanted() -> bool:
-	if not _versus_title_visible():
+	if not _versus_title_visible() and not Game.is_rotation_training_mode():
 		return false
 	if bool(world.get("_victory_bell_played")):
 		return _center_was_visible
@@ -852,6 +854,10 @@ func _refresh_pair() -> void:
 	var order:Array = collected.order
 	var entries:Dictionary = collected.entries
 	_side_count = order.size()
+	if Game.is_rotation_training_mode():
+		sides = []
+		_pair_signature = ""
+		return
 	if timed_mode:
 		# 计时模式按队伍组对：本局正好 2 个队伍才显示对战面板（多于 2 队只显示计时器）。
 		_refresh_timed_team_pair(order,entries)
@@ -1061,7 +1067,7 @@ func _panel_rects() -> Array:
 	var top:float = TOP + _panel_shift
 	return [
 		Rect2(SIDE_MARGIN,top,SIDE_WIDTH,PANEL_HEIGHT),
-		Rect2(center_x,top,DESIGN_WIDTH - center_x * 2.0,PANEL_HEIGHT),
+		Rect2(center_x,top,DESIGN_WIDTH - center_x * 2.0,TIME_ONLY_PANEL_HEIGHT if Game.is_rotation_training_mode() else PANEL_HEIGHT),
 		Rect2(DESIGN_WIDTH - SIDE_MARGIN - SIDE_WIDTH,top,SIDE_WIDTH,PANEL_HEIGHT),
 	]
 
@@ -1294,6 +1300,7 @@ func _draw_clock_text(center:Rect2) -> void:
 	var time_size:int = _fit_font_size(time_text,inner_width,TIME_TEXT_SIZE,20)
 	_outlined_text(_text_layer,Vector2(inner_x,center.position.y + 62.0),time_text,HORIZONTAL_ALIGNMENT_CENTER,
 		inner_width,time_size,Color("ff5555") if bool(data.timed_mode) and float(data.timed_remaining)<=5.0 else TIME_COLOR,5)
+	if Game.is_rotation_training_mode(): return
 	_outlined_text(_text_layer,Vector2(inner_x,center.position.y + 146.0),"VS",HORIZONTAL_ALIGNMENT_CENTER,
 		inner_width,VS_TEXT_SIZE,Color.WHITE,8)
 

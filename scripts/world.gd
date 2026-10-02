@@ -6513,7 +6513,15 @@ func refresh_versus_text() -> void:
 		_refresh_armor_stand_test_enemy_info()
 		return
 
-	# Rotation frames have no text VS: reuse the ordinary screen-space XX VS XX.
+	# Rotation shows no XX VS XX at all; the top HUD keeps only its clock.
+	if Game.is_rotation_training_mode():
+		versus_label.visible = false
+		versus_label.text = ""
+		versus_label.size.y = 0.0
+		_last_versus_text = ""
+		if is_instance_valid(rotation_versus_root): rotation_versus_root.visible = false
+		_layout_character_dialogue_hud()
+		return
 	# Boss wheel mode still owns its legacy name-column VS; never show both.
 	if _queue_battle_mode_active() and not Game.is_rotation_training_mode():
 		versus_label.visible = false

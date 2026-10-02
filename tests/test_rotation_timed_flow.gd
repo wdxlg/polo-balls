@@ -93,11 +93,7 @@ func run() -> void:
 	blue.Damage_reduction=0.35
 	world._timed_damage_by_setup={1:123.0,2:23.0}
 	world.refresh_versus_text();world.duel_top_hud._refresh_pair();world.duel_top_hud._refresh_values();world.duel_top_hud._update_clock(0);world.duel_top_hud._process(0)
-	check(world.duel_top_hud.timed_mode and world.duel_top_hud.sides.size()==2,"timed duel keeps existing top HUD")
-	var left:Dictionary=world.duel_top_hud.sides[0]
-	check(left.damage==123.0 and is_equal_approx(left.reduction,0.35),"top HUD reads real accumulated damage and retains armor")
-	check("123" in world.duel_top_hud.side_value_text(left) and not "/" in world.duel_top_hud.side_value_text(left),"life text replaced with damage-taken value")
-	check(world.duel_top_hud.side_value_text(left)=="123","top HUD shows only the damage-taken number, no label text")
+	check(world.duel_top_hud.timed_mode and world.duel_top_hud.sides.is_empty() and world.duel_top_hud.visible and not world.duel_top_hud._matchup_panels_visible(),"rotation timed duel shows only the top clock")
 	world._update_special_training_modes(1.0);world.duel_top_hud._update_clock(0)
 	check(world.duel_top_hud.clock_text()=="00:09" and not world.timed_training_label.visible,"one upper countdown replaces lower map timer")
 	# Scores are damage TAKEN: any actual HP loss (here a sourceless direct write) counts, via ball.health setter.
