@@ -2288,6 +2288,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.is_pressed():
+		if (world as World).return_can_create_char() and (world as World).rotation_quick_layout_click((world as World).get_global_mouse_position()):
+			get_viewport().set_input_as_handled()
+			return
 		# 不再按下瞬间直接生成人物：先进入“待确认”状态。
 		# 短按在 release 时仍只放 1 个；按住约 0.3s 后切换成蓝色框选。
 		if (world as World).return_can_create_char() and _placement._position_inside_character_placement_area(world as World,(world as World).get_global_mouse_position()):
@@ -2357,7 +2360,7 @@ func _process(delta: float) -> void:
 		if _placement.ghost_ball and is_instance_valid(_placement.ghost_ball):
 			_placement.ghost_ball.queue_free()
 			_placement.ghost_ball = null
-	elif not is_controlling_character() and _placement._position_inside_character_placement_area(world,_placement.mouse_poi) and (world.now_choose_char != "" or world.random_character_draft.is_enabled()) and world.return_can_create_char():
+	elif not is_controlling_character() and _placement._position_inside_character_placement_area(world,_placement.mouse_poi) and (world.now_choose_char != "" or world.random_character_draft.is_enabled()) and world.return_can_create_char() and not world.rotation_quick_layout_active():
 		var cursor_name:String = "RandomCharacterCursor" if world.random_character_draft.is_enabled() else world.now_choose_char
 		if _placement.ghost_ball and is_instance_valid(_placement.ghost_ball) and _placement.ghost_ball.name == cursor_name:
 			_placement.ghost_ball.global_position = _placement.mouse_poi

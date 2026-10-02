@@ -975,6 +975,10 @@ SETTING_ROTATION_RED_COUNT,红队人物数量倍数,Red team count
 UI_ROTATION_ROUNDS,轮次,Rounds
 UI_ROTATION_ROUND_N,第%d轮,Round %d
 UI_ROTATION_AUTO,自动下一轮,Next automatically
+UI_ROTATION_QUICK_LAYOUT,一键布局,Quick layout
+UI_ROTATION_QUICK_LAYOUT_APPLY,完成布局,Apply layout
+UI_ROTATION_QUICK_LAYOUT_PLACE,先在地图上放队伍位置,Place a team spot first
+UI_ROTATION_QUICK_LAYOUT_CHECKING,勾选%s：%d个,%s: %d checked
 ROTATION_INCOMPLETE_ROUND,第%d轮尚未同时放置蓝队与红队人物，请补齐后开战。,Round %d needs both Blue and Red teams. Complete the formation before starting.
 ROTATION_CHALLENGE,挑战,Challenge
 ROTATION_CHALLENGE_HINT,每名蓝队独立挑战整支红队；失败或通关后重置双方状态并换下一名蓝队。,Each blue fighter challenges the entire red roster. Reset for the next blue fighter after defeat or victory.

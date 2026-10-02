@@ -755,6 +755,8 @@ var rotation_count_spins:Dictionary={}
 var rotation_round_panel:Control
 var rotation_round_box:VBoxContainer
 var _rotation_round_ui_signature:String=""
+var rotation_quick_layout_button:Button
+static var _quick_layout_box_icons:Dictionary = {}
 var rotation_match_option:OptionButton
 var rotation_match_label:Label
 var timed_mode_options:VBoxContainer
@@ -1821,6 +1823,11 @@ func _sync_rotation_formation_ui() -> void:
 		rotation_round_panel.get_node("Label").hide()
 		var add:Button=rotation_round_panel.get_node("CreateButton")
 		add.text="+";add.button_up.connect(_add_rotation_round)
+		rotation_quick_layout_button=add.duplicate(0)
+		rotation_quick_layout_button.name="QuickLayoutButton"
+		rotation_round_panel.add_child(rotation_quick_layout_button)
+		rotation_quick_layout_button.position=add.position+Vector2(0,add.size.y+6)
+		rotation_quick_layout_button.button_up.connect(_on_rotation_quick_layout_pressed)
 		var inner:Control=rotation_round_panel.get_node("Team_Inner")
 		for child:Node in inner.get_children():inner.remove_child(child);child.queue_free()
 		var scroll:=ScrollContainer.new();inner.add_child(scroll)
@@ -1831,6 +1838,7 @@ func _sync_rotation_formation_ui() -> void:
 		Game.Set_Ui_sfx(rotation_round_panel)
 	rotation_round_panel.show()
 	rotation_round_panel.get_node("NowTeam").text=Game.ui_t("UI_ROTATION_ROUNDS")
+	_sync_quick_layout_ui()
 	var signature:String=str([world.rotation_round_numbers(),world.rotation_selected_round,Game.rotation_multi_enabled(),Game.current_locale])
 	if signature==_rotation_round_ui_signature: return
 	_rotation_round_ui_signature=signature
@@ -1847,6 +1855,75 @@ func _sync_rotation_formation_ui() -> void:
 		button.pressed.connect(func(): world.select_rotation_round(number))
 		rotation_round_box.add_child(button)
 	Game.Set_Ui_sfx(rotation_round_box)
+
+func _on_rotation_quick_layout_pressed() -> void:
+	var world:Node=get_tree().current_scene
+	if not world is World or not Game.is_rotation_training_mode() or world._rotation_started: return
+	if world.rotation_quick_layout_active():
+		world.rotation_quick_layout_commit()
+		change_choose_team("","now_choose_char")
+	else:
+		world.rotation_quick_layout().begin()
+		world.rotation_quick_layout().set_side(_quick_layout_side_of(str(world.now_choose_team)))
+		change_choose_team("","now_choose_char")
+	_sync_quick_layout_ui()
+
+func _quick_layout_side_of(team_value:String) -> String:
+	if team_value=="__rotation_left" or team_value=="Team0": return "left"
+	if team_value=="__rotation_right" or team_value=="Team1": return "right"
+	return ""
+
+func _quick_layout_active() -> bool:
+	var world:Node=get_tree().current_scene if is_inside_tree() else null
+	return world is World and world.rotation_quick_layout_active()
+
+func _toggle_quick_layout_check(but:Button) -> void:
+	var layout:Node=get_tree().current_scene.rotation_quick_layout()
+	if not layout.toggle(str(but.get_meta("choice_value",but.text))):
+		Audios.play_sfx("ButtonUpMouseOut",{},true)
+	_sync_quick_layout_ui()
+
+static func _quick_layout_box_icon(checked:bool) -> Texture2D:
+	if _quick_layout_box_icons.has(checked): return _quick_layout_box_icons[checked]
+	var image:=Image.create(9,9,false,Image.FORMAT_RGBA8)
+	image.fill(Color(0.08,0.08,0.08,0.85))
+	for i:int in range(9):
+		for edge:Vector2i in [Vector2i(i,0),Vector2i(i,8),Vector2i(0,i),Vector2i(8,i)]: image.set_pixelv(edge,Color(0.86,0.86,0.86))
+	if checked:
+		for pixel:Vector2i in [Vector2i(2,4),Vector2i(3,5),Vector2i(4,6),Vector2i(5,5),Vector2i(5,4),Vector2i(6,3),Vector2i(6,2),Vector2i(2,5),Vector2i(3,6),Vector2i(4,5)]:
+			image.set_pixelv(pixel,Color("55ff55"))
+	_quick_layout_box_icons[checked]=ImageTexture.create_from_image(image)
+	return _quick_layout_box_icons[checked]
+
+## Quick layout turns the character list into ordered check boxes for the current team.
+func _sync_quick_layout_ui() -> void:
+	if not is_node_ready(): return
+	var world:Node=get_tree().current_scene
+	if not world is World: return
+	var active:bool=world.rotation_quick_layout_active()
+	if is_instance_valid(rotation_quick_layout_button):
+		rotation_quick_layout_button.text=Game.ui_t("UI_ROTATION_QUICK_LAYOUT_APPLY" if active else "UI_ROTATION_QUICK_LAYOUT")
+		rotation_quick_layout_button.disabled=bool(world._rotation_started)
+	var layout:Node=world.rotation_quick_layout() if active else null
+	for child:Node in char_box.get_children():
+		if child.is_queued_for_deletion() or not child is Button: continue
+		var button:Button=child as Button
+		var raw_name:String=str(button.get_meta("choice_value",button.text))
+		if active:
+			var index:int=layout.check_index(raw_name)
+			button.icon=_quick_layout_box_icon(index>=0)
+			button.text=(str(index+1)+" " if index>=0 else "")+Game.ui_t(raw_name)
+			button.self_modulate=Color(1,1,1,1)
+			button.set_meta("quick_layout_view",true)
+		elif button.has_meta("quick_layout_view"):
+			button.remove_meta("quick_layout_view")
+			button.icon=null
+			button.text=Game.ui_t(raw_name)
+			button.self_modulate=Color(1,1,1,1)
+	if active:
+		var side:String=layout.current_side
+		if side.is_empty(): now_char.text=Game.ui_t("UI_ROTATION_QUICK_LAYOUT_PLACE")
+		else: now_char.text=Game.ui_t("UI_ROTATION_QUICK_LAYOUT_CHECKING")%[Game.ui_t("__rotation_"+side),(layout.checks[side] as Array).size()]
 
 func _add_rotation_round() -> void:
 	var world:Node=get_tree().current_scene
@@ -2426,6 +2503,9 @@ func _on_team_button_toggled(toggled_on:bool, but:Button) -> void:
 			choice_value,
 			"now_choose_team"
 		)
+		if _quick_layout_active() and not _quick_layout_side_of(choice_value).is_empty():
+			get_tree().current_scene.rotation_quick_layout().set_side(_quick_layout_side_of(choice_value))
+			_sync_quick_layout_ui()
 	else:
 		var world = get_tree().current_scene
 		if (
@@ -2454,6 +2534,9 @@ func _refresh_team_button_colors() -> void:
 
 
 func set_team_button_callable_choose(but:Button) -> void:
+	if but.get_parent() == char_box and _quick_layout_active():
+		_toggle_quick_layout_check(but)
+		return
 	if but.get_parent() == char_box and str(Game.Game_Settings.Character_Placement_Mode)=="random":
 		_toggle_random_character_exclusion(but)
 		return
@@ -2621,6 +2704,7 @@ func Create_char_buts() -> void:
 	_configure_character_middle_drag()
 	char_box.queue_sort()
 	call_deferred("_reset_char_list_to_top")
+	_sync_quick_layout_ui()
 	now_type.text = Game.ui_t("UI_NOW_TYPE") + " " + Game.ui_t(world.return_now_char_type())
 
 

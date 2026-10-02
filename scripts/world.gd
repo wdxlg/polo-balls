@@ -738,6 +738,8 @@ var rotation_right_root:Control = null
 var rotation_vs_label:Label = null
 var _rotation_rosters:Dictionary = {"left": [], "right": []}
 var rotation_selected_round:int = 0 # 0 = automatic single-slot placement.
+const ROTATION_QUICK_LAYOUT_SCRIPT = preload("res://scripts/ui/rotation_quick_layout.gd")
+var _rotation_quick_layout:Node2D
 var _rotation_draft_rounds:Array[int]=[1]
 var _rotation_preview_round:int = 1
 var _rotation_formation_preview:Dictionary = {}
@@ -7208,6 +7210,53 @@ func select_rotation_round(number:int) -> void:
 	_rotation_preview_round=maxi(rotation_selected_round,1)
 	_refresh_rotation_formation_preview()
 	if is_instance_valid(control): control.call_deferred("_sync_rotation_formation_ui")
+
+func rotation_quick_layout() -> Node2D:
+	if not is_instance_valid(_rotation_quick_layout):
+		_rotation_quick_layout = ROTATION_QUICK_LAYOUT_SCRIPT.new()
+		add_child(_rotation_quick_layout)
+	return _rotation_quick_layout
+
+func rotation_quick_layout_active() -> bool:
+	return is_instance_valid(_rotation_quick_layout) and _rotation_quick_layout.active
+
+## Left click while quick layout is open places/moves that team's single position marker.
+func rotation_quick_layout_click(poi:Vector2) -> bool:
+	if not rotation_quick_layout_active(): return false
+	if can_place_character_at(poi):
+		var side:String = _special_two_team_side(str(now_choose_team),poi)
+		if not side.is_empty():
+			_rotation_quick_layout.place_marker(side,poi)
+			if is_instance_valid(control): control.call_deferred("_sync_quick_layout_ui")
+	return true
+
+func rotation_quick_layout_commit() -> void:
+	if not rotation_quick_layout_active(): return
+	var entries:Array = _rotation_quick_layout.entries()
+	_rotation_quick_layout.cancel()
+	if entries.is_empty(): return
+	if is_multiplayer_authority(): _apply_rotation_quick_layout(entries)
+	else: _request_rotation_quick_layout.rpc_id(1,entries)
+
+@rpc("any_peer","call_remote","reliable")
+func _request_rotation_quick_layout(entries:Array) -> void:
+	if is_multiplayer_authority() and multiplayer.get_remote_sender_id()>0: _apply_rotation_quick_layout(entries)
+
+## Each team's k-th checked character goes into the same new round, after every existing one.
+func _apply_rotation_quick_layout(entries:Array) -> void:
+	if not Game.is_rotation_training_mode() or _rotation_started: return
+	var last_round:int = 0
+	for side:String in ["left","right"]:
+		for i:int in range(_rotation_rosters[side].size()):
+			last_round = maxi(last_round,int(_rotation_rosters[side][i].get("round",i+1)))
+	for raw:Variant in entries:
+		if not raw is Dictionary: continue
+		var side:String = str(raw.get("side",""))
+		var char_name:String = str(raw.get("char",""))
+		if side not in ["left","right"] or not _has_character_scene_any(char_name): continue
+		var round_number:int = last_round+1+clampi(int(raw.get("index",0)),0,998)
+		if round_number > 999: continue
+		create_char("__rotation_"+side,char_name,Vector2(float(raw.get("x",0.0)),float(raw.get("y",0.0))),round_number)
 
 @rpc("any_peer","call_remote","reliable")
 func _request_rotation_round(number:int) -> void:
