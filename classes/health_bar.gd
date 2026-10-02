@@ -21,8 +21,8 @@ const HEALTH_NUMBER_HIT_SETTLE_TIME:float = 0.32
 var _health_number_base_scale:Vector2 = Vector2.ONE
 var _health_number_hit_tween:Tween = null
 # 受伤残影：失去的那段先留一条半透明白色，停一下再缩到当前生命；同时整条血条按损失比例抖一下。
-const DAMAGE_GHOST_HOLD:float = 0.4
-const DAMAGE_GHOST_DRAIN:float = 0.35
+const DAMAGE_GHOST_HOLD:float = 0.12
+const DAMAGE_GHOST_DRAIN:float = 0.2
 const DAMAGE_GHOST_COLOR:Color = Color(1.0,1.0,1.0,0.9)
 const DAMAGE_GHOST_SETTLED_ALPHA:float = 0.55
 const BAR_SHAKE_DURATION:float = 0.22
@@ -596,13 +596,14 @@ func _show_damage_ghost(previous_ratio:float,current_ratio:float) -> void:
 		return
 	if _damage_ghost_tween != null and _damage_ghost_tween.is_valid():
 		_damage_ghost_tween.kill()
-	# 连续受击：残影保留最早的高位，一起缩回。
-	var start:float = maxf(previous_ratio,ghost.value) if ghost.visible else previous_ratio
-	ghost.value = start
-	ghost.self_modulate = DAMAGE_GHOST_COLOR
-	ghost.visible = true
+	# 连续受击：残影从当前位置接着缩，不重新停顿，避免连击时一直挂着不动。
+	var continuing:bool = ghost.visible and ghost.value > previous_ratio
+	ghost.value = ghost.value if continuing else previous_ratio
 	_damage_ghost_tween = create_tween()
-	_damage_ghost_tween.tween_property(ghost,"self_modulate:a",DAMAGE_GHOST_SETTLED_ALPHA,DAMAGE_GHOST_HOLD).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	if not continuing:
+		ghost.self_modulate = DAMAGE_GHOST_COLOR
+		ghost.visible = true
+		_damage_ghost_tween.tween_property(ghost,"self_modulate:a",DAMAGE_GHOST_SETTLED_ALPHA,DAMAGE_GHOST_HOLD).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	_damage_ghost_tween.tween_property(ghost,"value",current_ratio,DAMAGE_GHOST_DRAIN).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
 	_damage_ghost_tween.tween_callback(_hide_damage_ghost)
 

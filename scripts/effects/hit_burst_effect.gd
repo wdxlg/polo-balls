@@ -195,7 +195,10 @@ func _process(delta:float) -> void:
 
 
 func chip_position(chip:Dictionary,age:float) -> Vector2:
-	return (chip.get("offset",Vector2.ZERO) as Vector2) + (chip.get("velocity",Vector2.ZERO) as Vector2) * age + Vector2(0.0,0.5 * float(chip.get("gravity",0.0)) * age * age)
+	# 线性阻力的解析解：v(t)=v0·e^(-k t)，再叠加重力下落。
+	var drag:float = float(chip.get("drag",0.0))
+	var travel:float = age if drag <= 0.0001 else (1.0 - exp(-drag * age)) / drag
+	return (chip.get("offset",Vector2.ZERO) as Vector2) + (chip.get("velocity",Vector2.ZERO) as Vector2) * travel + Vector2(0.0,0.5 * float(chip.get("gravity",0.0)) * age * age)
 
 
 func _draw() -> void:
@@ -206,11 +209,19 @@ func _draw() -> void:
 		var life:float = maxf(float(chip.get("life",0.35)),0.05)
 		if _elapsed >= life:
 			continue
-		var tint:Color = chip.get("color",Color.WHITE)
-		# 末尾 35% 渐隐并略缩小；方块不旋转，保持像素风。
+		# 末尾 35% 渐隐并略缩小。
 		var fade:float = 1.0 - _smootherstep01((_elapsed / life - 0.65) / 0.35)
-		tint.a *= fade
-		if tint.a <= 0.001:
+		if fade <= 0.001:
 			continue
-		var size:float = float(chip.get("size",2.0)) * lerpf(0.7,1.0,fade)
-		draw_rect(Rect2(chip_position(chip,_elapsed) - Vector2.ONE * size * 0.5,Vector2.ONE * size),tint)
+		var cell:float = float(chip.get("cell",2.0))
+		var scale_factor:float = lerpf(0.7,1.0,fade)
+		draw_set_transform(chip_position(chip,_elapsed),float(chip.get("spin",0.0)) * _elapsed,Vector2.ONE * scale_factor)
+		var cells:Array = chip.get("cells",[])
+		if cells.is_empty():
+			cells = [[Vector2.ZERO,chip.get("color",Color.WHITE)]]
+		for entry:Variant in cells:
+			var tint:Color = entry[1]
+			tint.a *= fade
+			# 每格略放大一点，旋转时格子之间不露缝。
+			draw_rect(Rect2((entry[0] as Vector2) - Vector2.ONE * (cell * 0.5 + 0.05),Vector2.ONE * (cell + 0.1)),tint)
+	draw_set_transform(Vector2.ZERO,0.0,Vector2.ONE)

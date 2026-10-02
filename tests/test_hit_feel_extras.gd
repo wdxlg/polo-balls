@@ -75,6 +75,9 @@ func run() -> void:
 	SHAKE = load("res://scripts/effects/character_hurt_shake.gd")
 	var saved:Dictionary = game.Game_Settings.duplicate(true)
 	var saved_stop:bool = game.now_stop_state
+	# 本测试改动的设置一律写到临时文件，不污染玩家自己的设置。
+	var saved_settings_path:String = game._settings_storage_path
+	game._settings_storage_path = "user://test_hit_feel_extras_settings.cfg"
 	game.reset_feedback_settings("Shaking_Camera",false)
 	game.reset_feedback_settings(KEY,false)
 	game.Game_Settings.Training_Mode = false
@@ -169,8 +172,20 @@ func run() -> void:
 
 	# ---------- 4. 碎屑 ----------
 	var counts:Array[int] = []
+	var palette:Dictionary = {}
+	var pal_sampler:RefCounted = target._make_visual_pixel_sampler()
+	var pal_rect:Rect2 = pal_sampler.rect
+	for gx:int in range(int(pal_rect.size.x * 4.0)):
+		for gy:int in range(int(pal_rect.size.y * 4.0)):
+			var c:Color = pal_sampler.sample(pal_rect.position + Vector2(gx + 0.5,gy + 0.5) * 0.25)
+			if c.a > 0.10: palette[c.to_html()] = true
+	check(palette.size() >= 2,"target texture has a real palette to compare (%d colours)" % palette.size())
+	var cell_counts:Dictionary = {}
+	var speeds:Array = []
+	var lives:Array = []
 	for damage:float in [8.0,400.0]:
-		target._play_hit_burst_feedback_local(attacker.global_position,damage,20.0,12345,false,Vector2.RIGHT)
+		# force_white=true：受击闪白时打击线是白的，碎屑仍取人物真实像素。
+		target._play_hit_burst_feedback_local(attacker.global_position,damage,20.0,12345,true,Vector2.RIGHT)
 		var effect:Node = null
 		for child:Node in world.get_children():
 			if child is HitBurstEffect: effect = child
@@ -178,14 +193,26 @@ func run() -> void:
 		if effect == null: continue
 		var chips:Array = effect._chips
 		counts.append(chips.size())
-		var colors:Array = effect._streaks.map(func(s:Dictionary) -> Color: return s.get("color",Color.WHITE))
-		check(chips.size() >= 1 and chips.size() <= 10 and chips.all(func(c:Dictionary) -> bool: return colors.has(c.color)),"chips use the sampled streak colours (%d chips)" % chips.size())
+		var all_from_texture:bool = not chips.is_empty()
+		var non_white:int = 0
+		for c:Dictionary in chips:
+			cell_counts[(c.cells as Array).size()] = true
+			speeds.append((c.velocity as Vector2).length())
+			lives.append(float(c.life))
+			for cell:Array in c.cells:
+				if not palette.has((cell[1] as Color).to_html()): all_from_texture = false
+				if not (cell[1] as Color).is_equal_approx(Color.WHITE): non_white += 1
+		check(all_from_texture,"every chip cell colour is a real pixel of the character texture (%d chips)" % chips.size())
+		check(non_white > 0,"chips are not the white hit-flash colour")
 		var forward:int = 0
 		for c:Dictionary in chips:
 			if (c.velocity as Vector2).x > 0.0: forward += 1
 		check(forward * 2 >= chips.size(),"chips fly out along the hit direction")
 		effect.free()
 	check(counts.size() == 2 and counts[1] > counts[0],"heavier hits throw more chips (%s)" % [counts])
+	speeds.sort(); lives.sort()
+	check(cell_counts.size() >= 3,"chips come in several shapes (cell counts %s)" % [cell_counts.keys()])
+	check(speeds.size() >= 4 and speeds[-1] > speeds[0] * 2.0 and lives[-1] - lives[0] > 0.15,"chip speeds and lifetimes vary widely")
 
 	# ---------- 9. 游戏声总线审计 ----------
 	var accent:int = AudioServer.get_bus_index(&"ImpactAccent")
@@ -290,12 +317,15 @@ func run() -> void:
 	await process_frame
 	await process_frame
 	check(bar.texture_rect.position != base_position,"health bar shakes on a big drop")
+	check(bar.get_damage_ghost_value() > 0.85,"ghost holds briefly before draining (%.3f)" % bar.get_damage_ghost_value())
 	await create_timer(0.2,true,false,true).timeout
-	check(bar.get_damage_ghost_value() > 0.85,"ghost holds before draining (%.3f)" % bar.get_damage_ghost_value())
+	var mid:float = bar.get_damage_ghost_value()
+	check(mid > 0.0 and mid < 0.97,"ghost is already draining after 0.2 s (%.3f)" % mid)
 	target.health = 700
-	check(bar.get_damage_ghost_value() > 0.85,"consecutive hits keep the ghost at the earliest high mark")
-	await create_timer(1.0,true,false,true).timeout
-	check(bar.get_damage_ghost_value() < 0.0,"ghost drains and hides")
+	check(absf(bar.get_damage_ghost_value() - mid) < 0.02,"consecutive hit continues from the current ghost instead of restarting")
+	await create_timer(0.3,true,false,true).timeout
+	check(bar.get_damage_ghost_value() < 0.0,"ghost drains and hides within about 0.3 s")
+	await create_timer(0.3,true,false,true).timeout
 	check(bar.texture_rect.position == base_position,"bar returns to its exact place after shaking")
 	target.health = 695
 	await process_frame
@@ -347,5 +377,7 @@ func run() -> void:
 	await process_frame
 	game.Game_Settings = saved
 	game.now_stop_state = saved_stop
+	game._settings_storage_path = saved_settings_path
+	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_hit_feel_extras_settings.cfg"))
 	print("HIT_FEEL_EXTRAS_RESULT checks=",checks," failures=",failures)
 	quit(0 if failures == 0 else 1)

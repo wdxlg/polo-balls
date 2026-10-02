@@ -6539,30 +6539,98 @@ func _play_hit_burst_feedback_local(
 			"color": sample.get("color",Color.WHITE),
 		})
 
-	# 碎屑：沿同一背侧方向喷出的小方块，颜色取自上面从人物像素采样的线条颜色，带重力下落。
+	# 碎屑：从人物贴图上真实取一小块像素（1×1 到 3×3，透明处缺角），不受受击闪白影响。
 	# 只在全部白线随机数之后取随机数，原有白线序列不变。
 	var chips:Array = []
 	if not streaks.is_empty():
-		var chip_count:int = clampi(int(round(lerpf(2.0,9.0,damage_shape))) + rng.randi_range(-1,1),1,10)
-		if _large_battle_performance_mode:
-			chip_count = maxi(int(ceil(float(chip_count) * minf(0.5,get_large_battle_visual_density()))),1)
-		for _chip_index:int in range(chip_count):
-			var source_streak:Dictionary = streaks[rng.randi_range(0,streaks.size() - 1)]
-			var chip_direction:Vector2 = outward.rotated(deg_to_rad(rng.randf_range(-spread_degrees,spread_degrees) * 1.3))
-			var chip_speed:float = character_radius * rng.randf_range(3.0,6.5) * lerpf(0.8,1.3,damage_shape)
-			chips.append({
-				"offset": source_streak.get("spawn_offset",Vector2.ZERO),
-				"velocity": chip_direction * chip_speed + Vector2(0.0,-character_radius * rng.randf_range(0.5,2.0)),
-				"gravity": character_radius * rng.randf_range(14.0,20.0),
-				"size": clampf(character_radius * rng.randf_range(0.10,0.18) * lerpf(0.9,1.25,damage_shape),1.5,4.5),
-				"life": rng.randf_range(0.28,0.42),
-				"color": source_streak.get("color",Color.WHITE),
-			})
+		chips = _build_hit_chips(rng,outward,character_radius,damage_shape,spread_degrees,shared_pixel_sampler)
 
 	var effect = HIT_BURST_EFFECT_SCRIPT.new()
 	effect.setup(global_position,streaks,chips)
 	parent.add_child(effect)
 
+
+const HIT_CHIP_MAX_CELLS:int = 3
+
+
+# 每块碎屑的格子颜色逐格从当前贴图采样（含翻转、队伍染色与调色链），没有可采样贴图就不生成。
+# 大小、形状、速度、阻力、重力、旋转和寿命逐块随机，重伤更多更大更远。
+func _build_hit_chips(
+	rng:RandomNumberGenerator,
+	outward:Vector2,
+	character_radius:float,
+	damage_shape:float,
+	spread_degrees:float,
+	sampler:RefCounted
+) -> Array:
+	var chips:Array = []
+	if sampler == null or not bool(sampler.get("valid")) or not is_instance_valid(image):
+		return chips
+	var rect:Rect2 = sampler.get("rect")
+	var source_size:Vector2 = sampler.get("source_size")
+	if rect.size.x <= 0.001 or rect.size.y <= 0.001 or source_size.x <= 0.0:
+		return chips
+	var sample_transform:Transform2D = image.global_transform
+	var local_per_texel:float = rect.size.x / source_size.x
+	var texel_world:float = sample_transform.basis_xform(Vector2(local_per_texel,0.0)).length()
+	if texel_world <= 0.0001:
+		return chips
+	# 一格至少 1 屏幕像素、至多 2.5：高清贴图一格取一个更大的块，低清贴图一格就是一个原始像素。
+	var cell_world:float = clampf(texel_world,1.0,2.5)
+	var step_local:float = cell_world / texel_world * local_per_texel
+	var chip_count:int = clampi(int(round(lerpf(3.0,12.0,damage_shape))) + rng.randi_range(-2,2),2,14)
+	if _large_battle_performance_mode:
+		chip_count = maxi(int(ceil(float(chip_count) * minf(0.5,get_large_battle_visual_density()))),1)
+	var rect_end:Vector2 = rect.end
+	for _chip_index:int in range(chip_count):
+		# 锚点：多数取受击背侧，少数取全身任意实体像素。
+		var rear_only:bool = rng.randf() < 0.75
+		var anchor:Vector2 = Vector2.INF
+		for _attempt:int in range(14):
+			var local_point := Vector2(rng.randf_range(rect.position.x,rect_end.x),rng.randf_range(rect.position.y,rect_end.y))
+			if rear_only and (sample_transform * local_point - global_position).dot(outward) < -character_radius * 0.1:
+				continue
+			if sampler.sample(local_point).a > 0.10:
+				anchor = local_point
+				break
+		if not anchor.is_finite():
+			continue
+		var max_cells:int = 2 if damage_shape < 0.35 else HIT_CHIP_MAX_CELLS
+		var w:int = rng.randi_range(1,max_cells)
+		var h:int = rng.randi_range(1,max_cells)
+		var cells:Array = []
+		var anchor_color:Color = Color.TRANSPARENT
+		for i:int in range(w):
+			for j:int in range(h):
+				var grid := Vector2(float(i) - float(w - 1) * 0.5,float(j) - float(h - 1) * 0.5)
+				var cell_color:Color = sampler.sample(anchor + grid * step_local)
+				if cell_color.a <= 0.10:
+					continue
+				# 实心区域也随机缺一两格，避免一律方正。
+				if w * h >= 4 and cells.size() > 0 and rng.randf() < 0.18:
+					continue
+				cells.append([grid * cell_world,cell_color])
+				if anchor_color.a <= 0.0 or (i == int((w - 1) * 0.5) and j == int((h - 1) * 0.5)):
+					anchor_color = cell_color
+		if cells.is_empty():
+			continue
+		var mass:float = sqrt(float(cells.size()))
+		var wide:bool = rng.randf() < 0.2
+		var angle:float = rng.randf_range(-spread_degrees,spread_degrees) * (2.6 if wide else 1.3)
+		var chip_direction:Vector2 = outward.rotated(deg_to_rad(angle))
+		var chip_speed:float = character_radius * rng.randf_range(1.6,8.0) * lerpf(0.8,1.45,damage_shape) / lerpf(1.0,mass,0.55)
+		chips.append({
+			"offset": sample_transform * anchor - global_position,
+			"velocity": chip_direction * chip_speed + Vector2(0.0,-character_radius * rng.randf_range(0.0,2.8)),
+			"gravity": character_radius * rng.randf_range(9.0,24.0),
+			"drag": rng.randf_range(0.0,3.5),
+			"spin": 0.0 if cells.size() == 1 else rng.randf_range(-14.0,14.0),
+			"cell": cell_world,
+			"cells": cells,
+			"life": rng.randf_range(0.28,0.72) * lerpf(0.9,1.15,damage_shape),
+			"color": anchor_color,
+		})
+	return chips
 
 # 暴击粒子从当前人物图像全身采样，而不是复用受击射线的“背侧”或中心小椭圆。
 # 每批只创建一次像素采样器；沿 3x3 区域轮换，减少少量粒子全挤在躯干的情况。
