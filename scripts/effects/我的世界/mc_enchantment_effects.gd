@@ -95,9 +95,12 @@ static func resolve(values:Dictionary,event:String,context:Dictionary = {}) -> D
 		"move":
 			var move_factor:float = 1.0
 			if bool(context.get("in_water",false)): move_factor += 0.10*level(v,"depth_strider")
-			if bool(context.get("on_soul",false)): move_factor += 0.05*level(v,"soul_speed")
 			if bool(context.get("sneaking",false)): move_factor += 0.05*level(v,"swift_sneak")
-			result["speed_multiplier"] = _bounded(move_factor,1.0,4.0)
+			# on_soul = standing on fully grown soul sand: 0.8 without Soul Speed; level 1 cancels it, +0.2 per further level.
+			if bool(context.get("on_soul",false)):
+				var soul:int = level(v,"soul_speed")
+				move_factor *= 0.8 if soul <= 0 else 1.0+0.2*float(soul-1)
+			result["speed_multiplier"] = _bounded(move_factor,0.0,4.0)
 			result["freeze_radius"] = _bounded(float(level(v,"frost_walker"))*0.3,0.0,8.0) if bool(context.get("near_water",false)) else 0.0
 		"attack_rate":
 			var rate:float = 1.0+0.05*level(v,"efficiency")

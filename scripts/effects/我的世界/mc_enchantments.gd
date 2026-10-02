@@ -11,6 +11,8 @@ const GLINT_NAME:String = "MCEnchantGlint"
 const MAX_LEVEL:int = 32767
 const ATTACK_BUFF:String = "MC附魔攻速"
 const WATER_MOVE_BUFF:String = "MC附魔水中移速"
+const SOUL_MOVE_BUFF:String = "MC附魔灵魂疾行"
+const SOUL_SAND_FIELD_PATH:String = "res://scripts/characters/我的世界/torch/soul_sand_field.gd"
 @export var enchantments:Dictionary = {} # minecraft ID -> 1..32767 (no vanilla item restrictions)
 var _slots:Dictionary = {} # visual instance id -> weak source / overlay
 var _clock:float = 0.0
@@ -211,6 +213,9 @@ func _refresh_combat_buffs() -> void:
 	_set_combat_buff(world,actor,ATTACK_BUFF,float(attack.get("attack_rate_multiplier",1.0)),Buff.Buff_types.Attack_Cooling,true)
 	var depth_level:int = int(_combat_levels(actor).get("depth_strider",0))
 	_set_combat_buff(world,actor,WATER_MOVE_BUFF,float(move.get("speed_multiplier",1.0)) if water and depth_level > 0 else 1.0,Buff.Buff_types.Speed,false)
+	# Soul Speed above level 1 speeds up on fully grown soul sand; the slowdown itself is the field's motion lease.
+	var on_soul:bool = int(_combat_levels(actor).get("soul_speed",0)) > 1 and bool(load(SOUL_SAND_FIELD_PATH).full_sand_under(actor))
+	_set_combat_buff(world,actor,SOUL_MOVE_BUFF,float(resolve_event(actor,"move",{"on_soul":true}).get("speed_multiplier",1.0)) if on_soul else 1.0,Buff.Buff_types.Speed,false)
 
 static func _set_combat_buff(world:Node,actor:ball,key:String,factor:float,buff_type:int,invert:bool) -> void:
 	if factor > 1.0:
@@ -227,6 +232,7 @@ func _exit_tree() -> void:
 	if world != null and world.has_method("new_buff"):
 		_set_combat_buff(world,actor,ATTACK_BUFF,1.0,Buff.Buff_types.Attack_Cooling,true)
 		_set_combat_buff(world,actor,WATER_MOVE_BUFF,1.0,Buff.Buff_types.Speed,false)
+		_set_combat_buff(world,actor,SOUL_MOVE_BUFF,1.0,Buff.Buff_types.Speed,false)
 
 func _reconcile() -> void:
 	if not is_inside_tree() or get_parent() == null: return

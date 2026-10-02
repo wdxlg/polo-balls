@@ -1,13 +1,19 @@
 extends Node2D
-## 灵魂沙地形（火把）：World 下的单例。地图外围一圈固定显示（画在地图外遮罩之上），
-## 地图内从外沿开始按随机前沿逐格向内蔓延（不是一圈一圈），最终可铺满全图；只是地形，不影响移动。
-## World 权威端蔓延并可靠下发增量，客机迟到时请求全量；场上没有存活火把时淡出消散。
+## 灵魂沙地形（火把）：World 下的单例。说明见 MCP_CONTEXT（火把条目）。
 const GEOMETRY = preload("res://classes/map_tile_geometry.gd")
 const TEXTURE:Texture2D = preload("res://Images/effects/我的世界/草方块背景/soul_sand.png")
 const SCRIPT_PATH:String = "res://scripts/characters/我的世界/torch/soul_sand_field.gd"
 const NODE_NAME:String = "MCSoulSandField"
 const GROUND_Z:int = -3 # 与苔藓/雪地同层：地面之上、角色之下
-const RING_Z:int = 91 # 地图外遮罩 z=90 之上、黑色边框 z=100 之下
+const RING_Z:int = -4 # 与立体墙同层：墙/墙影/云是 top_level，同层排在普通节点之后画，所以外圈在云(-5)之上、墙之下
+## 有立体墙的主题：外圈向内收进墙下的格数，墙外只露出 1 - 该值。
+const RING_INSET_CELLS:float = 0.5
+## 新灵魂沙从来源一侧逐像素行/列长满的秒数；只有长满的格才减速。
+const GROW_SECONDS:float = 1.2
+const GROW_JITTER:float = 0.45
+const SLOW_KEY:StringName = &"mc_soul_sand"
+const SLOW_CHECK_INTERVAL:float = 0.1
+const ENCHANTS_PATH:String = "res://scripts/effects/我的世界/mc_enchantments.gd"
 const SEND_INTERVAL:float = 0.1
 const FADE_SECONDS:float = 0.8
 const DIRS:Array[Vector2i] = [Vector2i.LEFT,Vector2i.RIGHT,Vector2i.UP,Vector2i.DOWN]
@@ -35,6 +41,12 @@ var _retiring:bool = false
 var _fade:float = 1.0
 var _rng := RandomNumberGenerator.new()
 var _ring_view:Node2D
+var _growing_view:Node2D
+## 本地战斗时钟：cells 里存每格出现时刻，长满判断与生长动画都用它。
+var _clock:float = 0.0
+var _growing:Array[Vector2i] = []
+var _grow_from:Dictionary = {}
+var _slow_left:float = 0.0
 
 
 static func ensure(context:Node) -> Node2D:
@@ -79,6 +91,13 @@ func _ready() -> void:
 	_ring_view.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_ring_view.draw.connect(_draw_ring)
 	add_child(_ring_view)
+	_growing_view = Node2D.new()
+	_growing_view.name = "GrowingCells"
+	_growing_view.z_as_relative = false
+	_growing_view.z_index = GROUND_Z
+	_growing_view.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_growing_view.draw.connect(_draw_growing)
+	add_child(_growing_view)
 	_rng.seed = Game.battle_rng_seed_or("mc_torch_soul_sand",int(Time.get_ticks_usec()) ^ get_instance_id())
 	_rebuild_grid()
 	if not is_multiplayer_authority(): get_tree().create_timer(0.5,false).timeout.connect(_request_state)
@@ -104,6 +123,27 @@ func cell_rect(cell:Vector2i) -> Rect2:
 
 func has_sand_at(point:Vector2) -> bool:
 	return not _retiring and cells.has(cell_of(point))
+
+
+func is_cell_full(cell:Vector2i) -> bool:
+	return cells.has(cell) and _clock - float(cells[cell]) >= GROW_SECONDS
+
+
+func has_full_sand_at(point:Vector2) -> bool:
+	return not _retiring and is_cell_full(cell_of(point))
+
+
+## 站在长满的灵魂沙上（以身体中心为准）。附魔组件用它决定灵魂疾行加速。
+static func full_sand_under(actor:Node) -> bool:
+	if not (actor is Node2D): return false
+	var field:Node2D = find(actor)
+	return field != null and bool(field.call("has_full_sand_at",(actor as Node2D).global_position))
+
+
+## 灵魂沙上的移速倍率：无灵魂疾行 0.8；灵魂疾行由附魔规则给出（1 级 1.0，之后每级 +0.2）。
+static func speed_factor_for(actor:Node) -> float:
+	var resolved:Dictionary = load(ENCHANTS_PATH).resolve_event(actor,"move",{"on_soul":true})
+	return float(resolved.get("speed_multiplier",1.0))
 
 
 func is_floor_at(point:Vector2) -> bool:
@@ -140,10 +180,12 @@ func _rebuild_grid() -> void:
 	size = size.max(Vector2.ONE)
 	var regions:Array[Rect2] = []
 	var visuals:Array[Rect2] = []
+	var physical:Array[Rect2] = []
 	for island:Dictionary in islands:
 		for region:Variant in island.get("regions",[]):
 			if region is Rect2: regions.append(region)
 		var rect:Rect2 = island.get("rect",Rect2())
+		physical.append(rect)
 		visuals.append(world.call("_island_visual_rect",rect,size) if world.has_method("_island_visual_rect") else rect)
 	var key:String = var_to_str([size,regions,visuals])
 	if key == _grid_key: return
@@ -151,6 +193,8 @@ func _rebuild_grid() -> void:
 	grid_size = size
 	grid_origin = regions[0].position if not regions.is_empty() else Vector2.ZERO
 	cells.clear()
+	_growing.clear()
+	_grow_from.clear()
 	floor_cells.clear()
 	_frontier.clear()
 	_frontier_at.clear()
@@ -166,27 +210,32 @@ func _rebuild_grid() -> void:
 				if floor_cells.has(cell): continue
 				var area:Array[Rect2] = [cell_rect(cell).grow(-0.01)]
 				if GEOMETRY.subtract(area,regions).is_empty(): floor_cells[cell] = true
-	_build_ring(visuals)
+	_build_ring(visuals,physical)
 	if is_multiplayer_authority(): _seed_frontier()
 	queue_redraw()
 	if is_instance_valid(_ring_view): _ring_view.queue_redraw()
+	if is_instance_valid(_growing_view): _growing_view.queue_redraw()
 
 
 ## 每个岛的显示外框（含方块主题的一格外墙）外侧再铺一圈；会压到别的岛的格子不画。
-func _build_ring(visuals:Array[Rect2]) -> void:
+## 显示外框比地面大（有立体墙）时整圈向内收 RING_INSET_CELLS 格，收进去的部分在墙下。
+func _build_ring(visuals:Array[Rect2],physical:Array[Rect2] = []) -> void:
 	ring_rects.clear()
 	for i:int in range(visuals.size()):
 		var v:Rect2 = visuals[i]
 		if not v.has_area(): continue
+		var walled:bool = i < physical.size() and v.size.x > physical[i].size.x + 0.5
+		var inset:Vector2 = grid_size * RING_INSET_CELLS if walled else Vector2.ZERO
 		var cols:int = maxi(int(round(v.size.x / grid_size.x)),1)
 		var rows:int = maxi(int(round(v.size.y / grid_size.y)),1)
 		var candidates:Array[Rect2] = []
 		for x:int in range(-1,cols + 1):
-			candidates.append(Rect2(v.position + Vector2(x * grid_size.x,-grid_size.y),grid_size))
-			candidates.append(Rect2(v.position + Vector2(x * grid_size.x,rows * grid_size.y),grid_size))
+			var shift_x:float = inset.x if x < 0 else -inset.x if x >= cols else 0.0
+			candidates.append(Rect2(v.position + Vector2(x * grid_size.x + shift_x,-grid_size.y + inset.y),grid_size))
+			candidates.append(Rect2(v.position + Vector2(x * grid_size.x + shift_x,rows * grid_size.y - inset.y),grid_size))
 		for y:int in range(rows):
-			candidates.append(Rect2(v.position + Vector2(-grid_size.x,y * grid_size.y),grid_size))
-			candidates.append(Rect2(v.position + Vector2(cols * grid_size.x,y * grid_size.y),grid_size))
+			candidates.append(Rect2(v.position + Vector2(-grid_size.x + inset.x,y * grid_size.y),grid_size))
+			candidates.append(Rect2(v.position + Vector2(cols * grid_size.x - inset.x,y * grid_size.y),grid_size))
 		for rect:Rect2 in candidates:
 			var blocked:bool = false
 			for j:int in range(visuals.size()):
@@ -252,7 +301,7 @@ func _spread_one() -> bool:
 		var pick:int = _rng.randi_range(0,_frontier.size() - 1)
 		if float(_resistance.get(_frontier[pick],0.0)) < float(_resistance.get(_frontier[best],0.0)): best = pick
 	var cell:Vector2i = _take_frontier(best)
-	cells[cell] = true
+	_add_cell(cell,_clock)
 	_pending.append(cell.x)
 	_pending.append(cell.y)
 	for dir:Vector2i in DIRS:
@@ -261,11 +310,73 @@ func _spread_one() -> bool:
 	return true
 
 
+## 新格记下出现时刻和来源方向（朝向已有灵魂沙，边缘格朝向地图外），之后由 _growing_view 逐行长满。
+func _add_cell(cell:Vector2i,born:float) -> void:
+	if cells.has(cell): return
+	if _clock - born < GROW_SECONDS:
+		_grow_from[cell] = _pick_grow_from(cell)
+		_growing.append(cell)
+	cells[cell] = born
+
+
+func _pick_grow_from(cell:Vector2i) -> Vector2i:
+	var sand:Array[Vector2i] = []
+	var open:Array[Vector2i] = []
+	for dir:Vector2i in DIRS:
+		if cells.has(cell + dir): sand.append(dir)
+		elif not floor_cells.has(cell + dir): open.append(dir)
+	var pool:Array[Vector2i] = sand if not sand.is_empty() else open if not open.is_empty() else DIRS
+	return pool[absi(_cell_hash(cell,7)) % pool.size()]
+
+
+## 每行提前量 0..1：与相邻行加权平均，前沿成团而不是细条纹。
+static func _lane_lead(cell:Vector2i,lane:int) -> float:
+	var sum:float = 0.0
+	for k:int in [-1,0,0,1]: sum += float(_cell_hash(cell,lane + k) % 1000) / 999.0
+	return sum / 4.0
+
+
+static func _cell_hash(cell:Vector2i,lane:int) -> int:
+	return ((cell.x * 73856093) ^ (cell.y * 19349663) ^ (lane * 83492791)) & 0x7fffffff
+
+
+func _update_growth() -> void:
+	if _growing.is_empty(): return
+	var finished:bool = false
+	var index:int = _growing.size() - 1
+	while index >= 0:
+		var cell:Vector2i = _growing[index]
+		if not cells.has(cell) or is_cell_full(cell):
+			_growing.remove_at(index)
+			_grow_from.erase(cell)
+			finished = true
+		index -= 1
+	if finished: queue_redraw()
+	if is_instance_valid(_growing_view): _growing_view.queue_redraw()
+
+
+## 长满的灵魂沙上，本端拥有的所有角色按 speed_factor_for 减速（公共运动减速租约，离开即撤销）。
+func _apply_slow() -> void:
+	for node:Node in get_tree().get_nodes_in_group("Ball"):
+		if not (node is Node2D) or not node.has_method("set_motion_speed_factor") or not node.is_multiplayer_authority(): continue
+		if node.is_queued_for_deletion() or (node.get("health") != null and float(node.get("health")) <= 0.0): continue
+		var factor:float = 1.0
+		if has_full_sand_at((node as Node2D).global_position): factor = speed_factor_for(node)
+		node.call("set_motion_speed_factor",SLOW_KEY,self,factor,0.25)
+
+
 func _physics_process(delta:float) -> void:
 	_grid_check_left -= delta
 	if _grid_check_left <= 0.0:
 		_grid_check_left = 0.5
 		_rebuild_grid()
+	if not _retiring and runtime_active():
+		_clock += delta
+		_update_growth()
+	_slow_left -= delta
+	if _slow_left <= 0.0:
+		_slow_left = SLOW_CHECK_INTERVAL
+		_apply_slow()
 	if _retiring:
 		_fade = maxf(_fade - delta / FADE_SECONDS,0.0)
 		modulate.a = _fade
@@ -305,7 +416,7 @@ func _flush() -> void:
 
 @rpc("authority","call_remote","reliable")
 func _receive_cells(packed:PackedInt32Array) -> void:
-	for i:int in range(0,packed.size() - 1,2): cells[Vector2i(packed[i],packed[i + 1])] = true
+	for i:int in range(0,packed.size() - 1,2): _add_cell(Vector2i(packed[i],packed[i + 1]),_clock)
 	queue_redraw()
 
 
@@ -327,7 +438,11 @@ func _request_full() -> void:
 @rpc("authority","call_remote","reliable")
 func _receive_full(packed:PackedInt32Array,retiring:bool) -> void:
 	cells.clear()
-	_receive_cells(packed)
+	_growing.clear()
+	_grow_from.clear()
+	# 迟到的全量直接视为长满，不重播生长。
+	for i:int in range(0,packed.size() - 1,2): _add_cell(Vector2i(packed[i],packed[i + 1]),_clock - GROW_SECONDS)
+	queue_redraw()
 	if retiring: _retiring = true
 
 
@@ -343,7 +458,32 @@ func _receive_retire() -> void:
 
 
 func _draw() -> void:
-	for cell:Vector2i in cells: draw_texture_rect(TEXTURE,cell_rect(cell),false)
+	for cell:Vector2i in cells:
+		if is_cell_full(cell): draw_texture_rect(TEXTURE,cell_rect(cell),false)
+
+
+## 生长中的格：从来源一侧按贴图像素逐行（或逐列）露出，每行带固定随机提前量，前沿呈锯齿状向前爬。
+func _draw_growing() -> void:
+	var tw:int = TEXTURE.get_width()
+	var th:int = TEXTURE.get_height()
+	for cell:Vector2i in _growing:
+		if not cells.has(cell): continue
+		var progress:float = clampf((_clock - float(cells[cell])) / GROW_SECONDS,0.0,1.0)
+		if progress >= 1.0: continue
+		var from:Vector2i = _grow_from.get(cell,Vector2i.LEFT)
+		var rect:Rect2 = cell_rect(cell)
+		var unit:Vector2 = rect.size / Vector2(tw,th)
+		var horizontal:bool = from.x != 0
+		var lanes:int = th if horizontal else tw
+		var span:int = tw if horizontal else th
+		for lane:int in range(lanes):
+			var lead:float = _lane_lead(cell,lane) * GROW_JITTER
+			var shown:int = int(floor(clampf(progress * (1.0 + GROW_JITTER) - lead,0.0,1.0) * span))
+			if shown <= 0: continue
+			var src:Rect2
+			if horizontal: src = Rect2(0 if from.x < 0 else tw - shown,lane,shown,1)
+			else: src = Rect2(lane,0 if from.y < 0 else th - shown,1,shown)
+			_growing_view.draw_texture_rect_region(TEXTURE,Rect2(rect.position + src.position * unit,src.size * unit),src)
 
 
 func _draw_ring() -> void:

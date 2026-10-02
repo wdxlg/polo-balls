@@ -161,10 +161,17 @@ func run() -> void:
 	field._grid_key = ""
 	field._rebuild_grid()
 	var visual:Rect2 = world.return_map_visual_rect(map)
-	check(field.ring_rects.size() >= 200 and field.ring_rects.all(func(r:Rect2): return not visual.grow(-0.5).intersects(r)),"outer soul sand ring surrounds the map outside its walls")
-	var mask:Variant = world.get("map_outside_mask_root")
+	var floor_rect:Rect2 = world.return_map_world_rect(map)
+	var walled:bool = visual.size.x > floor_rect.size.x + 0.5
+	var g:float = field.grid_size.x
+	var tuck:float = g * field.RING_INSET_CELLS if walled else 0.0
+	check(field.ring_rects.size() >= 200 and field.ring_rects.all(func(r:Rect2): return not visual.grow(-tuck - 0.5).intersects(r) and not floor_rect.intersects(r)),"outer soul sand ring surrounds the map, at most half a block tucked under the wall")
+	var outside_part:float = 0.0
+	for r:Rect2 in field.ring_rects:
+		if r.position.y + r.size.y <= visual.position.y + tuck + 0.01 and r.position.x > visual.position.x and r.end.x < visual.end.x: outside_part = maxf(outside_part,visual.position.y - r.position.y)
+	check(walled and is_equal_approx(outside_part,g - tuck),"only half a block of the ring shows outside the wall (%.2f of %.2f)" % [outside_part,g])
 	var ring_view:Node2D = field.get_node("OuterRing")
-	check(mask is Node2D and not ring_view.z_as_relative and ring_view.z_index > (mask as Node2D).z_index and ring_view.z_index < 100,"outer ring draws above the map-outside mask and below the map border")
+	check(not ring_view.z_as_relative and ring_view.z_index == -4,"outer ring shares the 3D wall layer (z -4) so the top-level walls and clouds order around it")
 	check(not field.z_as_relative and field.z_index == -3,"soul sand inside the map is ground level under characters")
 	check(field.floor_cells.size() == 2500,"every floor cell of the 50x50 map can turn into soul sand")
 	check(field.cells.is_empty() and field.frontier_size() == 196,"spreading starts from the cells along the map edge")
@@ -190,9 +197,52 @@ func run() -> void:
 	check(field.cells.size() >= 100,"soul sand keeps spreading during combat (%d cells)" % field.cells.size())
 	check(max_depth >= 2 and edge_count < 196,"spread is random, not ring by ring (edge %d/196, deepest %d)" % [edge_count,max_depth])
 	check(connected,"every new soul sand cell grows next to existing soul sand")
-	var dummy_on_sand:Node2D = dummy(field.cell_center(field.cells.keys()[0]))
-	await physics_frame
-	check(is_equal_approx(dummy_on_sand.motion_speed_factor(),1.0),"soul sand does not affect movement")
+	# 逐渐长满：新格先只露出来源一侧的一部分像素行，GROW_SECONDS 后才算完整。
+	var fresh:Vector2i = Vector2i(-999,-999)
+	for c:Vector2i in field.floor_cells:
+		if not field.cells.has(c) and [Vector2i.LEFT,Vector2i.RIGHT,Vector2i.UP,Vector2i.DOWN].any(func(d:Vector2i): return field.cells.has(c + d)):
+			fresh = c
+			break
+	field.full_cover_seconds = 1.0e9
+	field._add_cell(fresh,field._clock)
+	check(field.has_sand_at(field.cell_center(fresh)) and not field.has_full_sand_at(field.cell_center(fresh)) and field._growing.has(fresh),"a new soul sand cell starts growing instead of popping in whole")
+	var from:Vector2i = field._grow_from.get(fresh,Vector2i.ZERO)
+	check(field.cells.has(fresh + from),"it grows in from the side of the soul sand it spread from")
+	await sim(field.GROW_SECONDS * 0.5)
+	check(not field.has_full_sand_at(field.cell_center(fresh)),"half way through it is still not full sand")
+	await sim(field.GROW_SECONDS * 0.6)
+	check(field.has_full_sand_at(field.cell_center(fresh)) and not field._growing.has(fresh),"after %.1f s the cell is full soul sand" % field.GROW_SECONDS)
+	# 只有长满的灵魂沙减速 20%；灵魂疾行 1 级抵消，之后每级 +20%。
+	var enchants:Script = load("res://scripts/effects/我的世界/mc_enchantments.gd")
+	# 测减速用地图中部的格子：贴边的格子会被墙把假人推出去。
+	var full_cell:Vector2i = field.cell_of(center + Vector2(96.0,0.0))
+	field.cells.erase(full_cell)
+	field._add_cell(full_cell,field._clock - field.GROW_SECONDS - 0.1)
+	field.queue_redraw()
+	var dummy_on_sand:Node2D = dummy(field.cell_center(full_cell))
+	await sim(0.25)
+	check(field.cell_of(dummy_on_sand.global_position) == full_cell and is_equal_approx(dummy_on_sand.motion_speed_factor(),0.8),"anyone on full soul sand moves 20%% slower (%.2f)" % dummy_on_sand.motion_speed_factor())
+	var growing_cell:Vector2i = field.cell_of(center + Vector2(-96.0,0.0))
+	field.cells.erase(growing_cell)
+	field._add_cell(growing_cell,field._clock)
+	var dummy_on_growing:Node2D = dummy(field.cell_center(growing_cell))
+	await sim(0.25)
+	check(is_equal_approx(dummy_on_growing.motion_speed_factor(),1.0),"sand that is still growing does not slow")
+	dummy_on_growing.queue_free()
+	enchants.apply(dummy_on_sand,"soul_speed",1)
+	await sim(0.25)
+	var source:int = dummy_on_sand.get_instance_id()
+	var buffs:Dictionary = dummy_on_sand.Buff_Dic.get(source,{})
+	check(is_equal_approx(dummy_on_sand.motion_speed_factor(),1.0) and not buffs.has("MC附魔灵魂疾行"),"Soul Speed I ignores the soul sand slowdown")
+	enchants.apply(dummy_on_sand,"soul_speed",3)
+	await sim(0.25)
+	buffs = dummy_on_sand.Buff_Dic.get(source,{})
+	check(is_equal_approx(dummy_on_sand.motion_speed_factor(),1.0) and buffs.has("MC附魔灵魂疾行") and is_equal_approx(float(buffs["MC附魔灵魂疾行"].amount),1.4),"Soul Speed III: +20% per level above I on soul sand (x1.4)")
+	dummy_on_sand.global_position = field.cell_center(growing_cell)
+	await sim(0.25)
+	buffs = dummy_on_sand.Buff_Dic.get(source,{})
+	check(not buffs.has("MC附魔灵魂疾行"),"the Soul Speed bonus ends off full soul sand")
+	enchants.remove(dummy_on_sand,"soul_speed")
 	dummy_on_sand.queue_free()
 	field.full_cover_seconds = 0.5
 	await sim(1.0)

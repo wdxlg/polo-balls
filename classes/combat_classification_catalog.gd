@@ -2947,7 +2947,7 @@ const SCRIPTS:Dictionary = {
 	"res://scripts/characters/我的世界/torch/torch.gd": {"entity_kind":"character","attack_modes":["melee"],"carriers":["area","body_contact"],"damage_kinds":["fire"],"review":"root_of_torch; ground_damage_only_through_torch_fire; dash_contact_fire_damage_soul_burn_knockback_once_per_chain"},
 	"res://scripts/characters/我的世界/torch/torch_fire.gd": {"entity_kind":"hazard","attack_modes":[],"carriers":["area"],"damage_kinds":["fire"],"review":"extends_blaze_ground_fire; soul_variant_native_soul_fire_frames_double_multipliers; same_source_burn_not_downgraded; ai_hazard_circle_is_damage_circle"},
 	"res://scripts/characters/我的世界/torch/torch_spark.gd": {"entity_kind":"visual","attack_modes":[],"carriers":[],"damage_kinds":[],"review":"falling_spark_visual; landing_spawns_fire_via_torch; no_damage"},
-	"res://scripts/characters/我的世界/torch/soul_sand_field.gd": {"entity_kind":"terrain","attack_modes":[],"carriers":[],"damage_kinds":[],"review":"singleton_soul_sand_ring_outside_map; random_frontier_spread_inward_to_full_cover; no_movement_effect; authority_spread_reliable_sync"},
+	"res://scripts/characters/我的世界/torch/soul_sand_field.gd": {"entity_kind":"terrain","attack_modes":[],"carriers":[],"damage_kinds":[],"review":"singleton_soul_sand_ring_outside_map; random_frontier_spread_inward_to_full_cover; cells_grow_in_gradually; full_sand_slows_everyone_20pct_soul_speed_cancels; authority_spread_reliable_sync"},
 	"res://scripts/characters/我的世界/torch/torch_audio.gd": {"entity_kind":"component","attack_modes":[],"carriers":[],"damage_kinds":[],"review":"native_torch_fire_audio_table"},
  "res://scripts/characters/默认/丁某人睡觉.gd": {
    "entity_kind": "character",
