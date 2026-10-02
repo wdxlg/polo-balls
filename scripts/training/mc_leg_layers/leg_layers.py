@@ -40,16 +40,21 @@ def split_render(baker, bones, leg_names, call, trunk_names=('body',)):
     legs = leg_bone_set(bones, leg_names)
     trunk = {n.lower() for n in trunk_names} - legs
     by_group = {'legs': legs, 'trunk': trunk}
-    cubes_of = lambda names: {id(c) for b in bones if b['name'].lower() in names for c in b.get('cubes', [])}
-    leg_cubes = cubes_of(legs); trunk_cubes = cubes_of(trunk)
+    # Tag cubes (tags survive deepcopy, e.g. the charged-creeper armor shell pass).
+    tagged = []
+    for b in bones:
+        n = b['name'].lower()
+        for c in b.get('cubes', []):
+            if n in legs: c['_lg'] = 1; tagged.append(c)
+            elif n in trunk: c['_tk'] = 1; tagged.append(c)
     cls_cube = type(baker).cube; cls_quad = type(baker).quad
     out = {}
     for mode in ('legs', 'trunk', 'upper'):
         flag = {'on': False}
         def allowed(c, _m=mode):
-            if _m == 'legs': return id(c) in leg_cubes
-            if _m == 'trunk': return id(c) in trunk_cubes
-            return id(c) not in leg_cubes
+            if _m == 'legs': return bool(c.get('_lg'))
+            if _m == 'trunk': return bool(c.get('_tk'))
+            return not c.get('_lg')
         def cube(c, *a, _m=mode, **k):
             if not allowed(c): return None
             flag['on'] = True
@@ -74,6 +79,7 @@ def split_render(baker, bones, leg_names, call, trunk_names=('body',)):
     ur, ud = out['upper']
     out['upper_trunk'] = (tr[..., 3] > 10) & (np.abs(td - ud) < 1e-4) & (ur[..., 3] > 10)
     out['full'] = np.array(call().convert('RGBA'))
+    for c in tagged: c.pop('_lg', None); c.pop('_tk', None)
     return out
 
 
@@ -203,7 +209,7 @@ class LayerSet:
         return over(out, self.crops[f])
 
     def gdscript(self, comment):
-        buf = io.BytesIO(); Image.fromarray(self.atlas).save(buf, format='PNG', optimize=True)
+        buf = io.BytesIO(); Image.fromarray(self.atlas).save(buf, format='WEBP', lossless=True, quality=100, method=6, exact=True)
         png = base64.b64encode(buf.getvalue()).decode()
         r = lambda i: self.rect[i] if i >= 0 else []
         legs = [[r(i) for i in ids] for ids in self.leg_ids]
@@ -221,5 +227,5 @@ class LayerSet:
                  f'const LEGS := {gd(legs)}',
                  '## clip -> per frame [front_rect, back_rect(or []), leg_variant]',
                  f'const UPPER := {gd(upper)}',
-                 f'const PNG := "{png}"', '']
+                 f'const WEBP := "{png}"', '']
         return '\n'.join(lines), len(buf.getvalue())

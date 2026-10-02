@@ -93,11 +93,72 @@ def bake_drowned():
                         lambda: b.render('drowned', 'idle', 0), uppers)
 
 
+def bake_batch2_set(role, legs, trunk, upper_clips):
+    import bake_native_batch2 as b2
+    b = b2.BatchBaker(); clips = b2.CLIPS[role]
+    uppers = {c: [lambda t=t, c=c: b.render(role, c, t) for t in mc16_times(*clips[c])] for c in upper_clips}
+    return bake_generic(role, b, b.models[role], legs, trunk,
+                        lambda t: b.render(role, 'walk', t), mc16_times(*clips['walk']),
+                        lambda: b.render(role, 'idle', 0), uppers)
+
+
+CREEPER_SWELL = {False: [0.0, 0.72, 0.86, 0.95, 1.0], True: [0.0, 0.86, 1.0]}  # charged shell is ~5x heavier
+
+
+def bake_creeper():
+    """Swelling scales the whole body (legs included): leg variants per swell level x charged."""
+    import bake_native_batch2 as b2
+
+    class Mix(b2.BatchBaker):
+        mix = None   # (fuse progress, leg time)
+        def pose(self, role, state, t, peek=0):
+            if role != 'creeper' or self.mix is None: return super().pose(role, state, t, peek)
+            progress, leg_t = self.mix
+            legs = super().pose(role, 'walk', leg_t, peek)
+            swell = super().pose(role, 'fuse', progress, peek)
+            legs['body']['scale'] = swell['body']['scale'].copy()
+            return legs
+
+    b = Mix(); clips = b2.CLIPS['creeper']; bones = b.models['creeper']
+    legs = tuple(f'leg{i}' for i in range(4)); trunk = ('body',)
+    walk_t = mc16_times(*clips['walk'])
+    ls = bake_generic('creeper', b, bones, legs, trunk, lambda t: b.render('creeper', 'walk', t), walk_t,
+                      lambda: b.render('creeper', 'idle', 0), {})
+    variants = []
+    for charged in (False, True):
+        for level in CREEPER_SWELL[charged]:
+            phases = []
+            for t in walk_t:
+                b.mix = (level, t)
+                r = split_render(b, bones, legs, lambda t=t: b.render('creeper', 'fuse_walk_charged' if charged else 'fuse_walk', t), trunk)
+                phases.append(r['legs'])
+            b.mix = None
+            variants.append(phases)
+    ls.legs = variants; ls.rest = [ls.rest[0]] * len(variants)
+    def nearest(progress, charged):
+        scale = lambda p: p ** 4 * .4 + 1
+        levels = CREEPER_SWELL[charged]
+        base = len(CREEPER_SWELL[False]) if charged else 0
+        return base + min(range(len(levels)), key=lambda i: abs(scale(levels[i]) - scale(progress)))
+    for charged in (False, True):
+        clip = 'fuse_charged' if charged else 'fuse'
+        count, duration, loop = clips[clip]
+        frames = []
+        for t in mc16_times(count, duration, loop):
+            r = split_render(b, bones, legs, lambda t=t: b.render('creeper', clip, t), trunk)
+            frames.append((r['upper'][0], r['upper'][1], nearest(min(max(t / duration, 0), 1), charged), r['upper_trunk']))
+        ls.add_upper(clip, frames)
+    return ls
+
+
 SETS = {
     'enderman': lambda: bake_native_mobs_set('enderman', ['attack', 'angry_attack']),
     'evoker': lambda: bake_native_mobs_set('evoker', ['cast', 'celebrate']),
     'spider': bake_spider,
     'drowned': bake_drowned,
+    'witch': lambda: bake_batch2_set('witch', ('leg0', 'leg1'), ('body',), ['hold', 'drink']),
+    'skeleton': lambda: bake_batch2_set('skeleton', HUMANOID_LEGS, ('body', 'waist'), ['shoot']),
+    'creeper': bake_creeper,
 }
 
 COMMENTS = {
@@ -105,6 +166,9 @@ COMMENTS = {
     'evoker': 'Evoker: walking legs under cast / celebrate upper body.',
     'spider': 'Spider: walking legs under the web-cast head/body. attack/lunge/land keep their own leg motion.',
     'drowned': 'Drowned (trident-free body layer): walking legs under splash / throw / windup / catch.',
+    'witch': 'Witch: walking legs under hold / drink upper body.',
+    'skeleton': 'Skeleton: walking legs under the bow shoot upper body.',
+    'creeper': 'Creeper: fuse upper body + swollen walking legs; variants 0-4 plain swell levels, 5-7 charged.',
 }
 
 
