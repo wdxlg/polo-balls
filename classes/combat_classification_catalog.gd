@@ -5,7 +5,7 @@ extends RefCounted
 ## Unknown new resources stay unregistered; do not infer fire from names/directories.
 const SCENES:Dictionary = {
  "res://scenes/creatures/僵尸粘液球.tscn": {"entity_kind": "projectile", "attack_modes": ["ranged"], "carriers": ["projectile"], "damage_kinds": [], "status_effects": ["slowness"], "root_script": "res://scripts/characters/我的世界/zombie/slime_ball.gd"},
- "res://scenes/characters/我的世界/僵尸.tscn": {"entity_kind": "character", "attack_modes": ["melee"], "carriers": ["body_contact"], "damage_kinds": ["ordinary"], "root_script": "res://scripts/characters/我的世界/zombie/zombie.gd"},
+ "res://scenes/characters/我的世界/僵尸.tscn": {"entity_kind": "character", "attack_modes": ["melee"], "carriers": ["body_contact"], "damage_kinds": ["ordinary"], "root_script": "res://scripts/characters/我的世界/zombie/zombie.gd", "stage_field": "emerging", "stages": {"true": {"attack_modes": [], "carriers": [], "damage_kinds": []}, "false": {"attack_modes": ["melee"], "carriers": ["body_contact"], "damage_kinds": ["ordinary"]}}},
  "res://scenes/characters/我的世界/僵尸王.tscn": {"entity_kind": "character", "attack_modes": ["summon", "ranged"], "carriers": ["projectile"], "damage_kinds": [], "status_effects": ["slowness"], "root_script": "res://scripts/characters/我的世界/zombie/king.gd"},
  "res://scenes/characters/我的世界/卫道士.tscn": {"entity_kind": "character", "attack_modes": ["melee"], "carriers": ["weapon_sweep"], "damage_kinds": ["ordinary"], "stage_field": "phase", "stages": {"0": {"entity_kind": "character", "attack_modes": []}, "1": {"entity_kind": "character", "attack_modes": []}, "2": {"entity_kind": "character", "attack_modes": []}, "3": {"entity_kind": "character", "attack_modes": ["melee"], "carriers": ["weapon_sweep"], "damage_kinds": ["ordinary"]}, "4": {"entity_kind": "character", "attack_modes": []}}, "review": "held charge/release; >=50% bypass guard/parry/reflection, >=75% bypass armor/reduction without bypassing dodge/invulnerability; dash accumulates actual charge; native axe-tip sweep", "root_script": "res://scripts/characters/我的世界/vindicator/vindicator.gd"},
  "res://scenes/characters/我的世界/时钟.tscn": {
@@ -2913,7 +2913,7 @@ const SCENES:Dictionary = {
 }
 
 const SCRIPTS:Dictionary = {
- "res://scripts/characters/我的世界/zombie/zombie.gd": {"entity_kind": "character", "attack_modes": ["melee"], "carriers": ["body_contact"], "damage_kinds": ["ordinary"]},
+ "res://scripts/characters/我的世界/zombie/zombie.gd": {"entity_kind": "character", "attack_modes": ["melee"], "carriers": ["body_contact"], "damage_kinds": ["ordinary"], "stage_field": "emerging", "stages": {"true": {"attack_modes": [], "carriers": [], "damage_kinds": []}, "false": {"attack_modes": ["melee"], "carriers": ["body_contact"], "damage_kinds": ["ordinary"]}}},
  "res://scripts/characters/我的世界/zombie/king.gd": {"entity_kind": "character", "attack_modes": ["summon", "ranged"], "carriers": ["projectile"], "damage_kinds": [], "status_effects": ["slowness"]},
  "res://scripts/characters/我的世界/zombie/slime_ball.gd": {"entity_kind": "projectile", "attack_modes": ["ranged"], "carriers": ["projectile"], "damage_kinds": [], "status_effects": ["slowness"], "review": "no_direct_damage; level_2_slow; native_parabolic_path"},
  "res://scripts/characters/我的世界/zombie/bite.gd": {"entity_kind": "visual", "attack_modes": [], "carriers": [], "damage_kinds": []},

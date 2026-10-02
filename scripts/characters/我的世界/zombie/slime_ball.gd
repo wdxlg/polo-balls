@@ -1,12 +1,11 @@
 extends "res://scripts/characters/我的世界/torch/torch_spark.gd"
-# Reuse the existing parabolic path, not the torch's particles or landing action.
+# Continue the shared parabola beyond its aiming point; only terrain is ignored.
 const SLIME_TEXTURE:Texture2D = preload("res://Images/characters/我的世界/zombie/slimeball.png")
 const PARTICLE = preload("res://scripts/effects/我的世界/末影粒子.gd")
 const SWEEP = preload("res://classes/weapon_tip_sweep.gd")
 const PROJECTILES = preload("res://classes/projectile_interactions.gd")
 const ENCHANTS = preload("res://scripts/effects/我的世界/mc_enchantments.gd")
 const EFFECTS = preload("res://scripts/effects/我的世界/mc_status_effects.gd")
-const UTILS = preload("res://scripts/characters/我的世界/new5/utils.gd")
 const HIT_RADIUS:float = 4.0
 const SLOW_SECONDS:float = 4.0
 var _owner_name:String = ""
@@ -15,6 +14,7 @@ var _spent:bool = false
 var _redirected:bool = false
 var _motion:Vector2 = Vector2.ZERO
 var _life:float = 3.0
+var _arena_bounds:Rect2 = Rect2()
 var _trail_distance:float = 0.0
 var _visual_rng := RandomNumberGenerator.new()
 
@@ -28,6 +28,13 @@ func configure(caster:ball,start:Vector2,end:Vector2) -> void:
 	_flight = clampf(start.distance_to(end)/210.0,0.55,1.25)
 	_arc = 28.0+start.distance_to(end)*0.18
 	_age = 0.0
+	_arena_bounds = caster.mc_arena_rect()
+	var world:Node = caster.get_parent()
+	if world.has_method("current_map_island_rects"):
+		var rects:Array = world.current_map_island_rects()
+		if not rects.is_empty():
+			_arena_bounds = rects[0]
+			for rect:Rect2 in rects: _arena_bounds = _arena_bounds.merge(rect)
 	set_meta("projectile_damage_kind","ordinary")
 func _ready() -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -49,7 +56,7 @@ func get_projectile_damage_kind() -> String: return "ordinary"
 func get_projectile_radius() -> float: return HIT_RADIUS
 func get_projectile_velocity() -> Vector2:
 	if _redirected: return _motion
-	var t:float = clampf(_age/_flight,0.0,1.0)
+	var t:float = _age/_flight
 	return (_to-_from+Vector2.UP*_arc*4.0*(1.0-2.0*t))/_flight
 func set_projectile_velocity(value:Vector2) -> void:
 	_redirected = true
@@ -76,22 +83,16 @@ func _physics_process(delta:float) -> void:
 		retire()
 		return
 	if not source.is_combat_runtime_active(): return
-	_life -= delta
-	if _life <= 0.0:
-		retire()
-		return
 	var start:Vector2 = global_position
 	_age += delta
-	var t:float = clampf(_age/_flight,0.0,1.0)
+	var t:float = _age/_flight
 	var end:Vector2 = point_at(t)
 	if _redirected:
 		var gravity:Vector2 = Vector2.DOWN*(8.0*_arc/(_flight*_flight))
 		end = start+_motion*delta+gravity*(0.5*delta*delta)
 		_motion += gravity*delta
 	if is_multiplayer_authority():
-		var wall:Dictionary = UTILS.trace(self,start,end)
-		if not wall.is_empty(): end = wall.position
-		var contacts:Array[Dictionary] = SWEEP.contacts(source,start,end,HIT_RADIUS,{})
+		var contacts:Array[Dictionary] = SWEEP.contacts(source,start,end,HIT_RADIUS,{},Vector2.INF,false)
 		contacts.sort_custom(func(a:Dictionary,b:Dictionary) -> bool: return start.distance_squared_to(a.point) < start.distance_squared_to(b.point))
 		for contact:Dictionary in contacts:
 			var victim:ball = contact.target
@@ -109,14 +110,12 @@ func _physics_process(delta:float) -> void:
 			global_position = contact.point
 			retire()
 			return
-		if not wall.is_empty():
-			global_position = end
-			retire()
-			return
 	global_position = end
 	_emit_slime_trail(start,end)
 	queue_redraw()
-	if t >= 1.0: retire()
+	# High lobs may leave the top of the arena and fall back into it.
+	var bounds:Rect2 = _arena_bounds.grow(64.0)
+	if end.y > bounds.end.y or (get_projectile_velocity().y > 0.0 and (end.x < bounds.position.x or end.x > bounds.end.x)): retire()
 func _emit_slime_trail(start:Vector2,end:Vector2) -> void:
 	var distance:float = start.distance_to(end)
 	var along:float = 4.0-_trail_distance

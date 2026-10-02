@@ -1,4 +1,11 @@
 extends SceneTree
+class EntryArena extends Node2D:
+	func _animate_ball_back_inside_map(actor:Node2D,target:Vector2,seconds:float,_raise:bool=true) -> void:
+		actor.set_meta("map_rescue_animating",true)
+		var tween:Tween = create_tween().set_process_mode(Tween.TWEEN_PROCESS_PHYSICS)
+		tween.tween_property(actor,"global_position",target,seconds)
+		tween.finished.connect(func():
+			if is_instance_valid(actor): actor.remove_meta("map_rescue_animating"))
 var checks:int = 0
 var failures:int = 0
 var host_root:Node2D
@@ -18,7 +25,7 @@ func scope(label:String) -> Node2D:
 	view.size = Vector2i(400,300)
 	view.world_2d = World2D.new()
 	root.add_child(view)
-	var parent := Node2D.new()
+	var parent := EntryArena.new()
 	parent.name = "Arena"
 	view.add_child(parent)
 	var spawner := MultiplayerSpawner.new()
@@ -89,6 +96,12 @@ func run() -> void:
 		for node:Node in guest_root.get_children():
 			if node.is_in_group("MinecraftZombie") and node.name not in ["King","Zombie"]: count += 1
 		return count == 2),"both summons replicate through shared spawner")
+	var host_child:Node2D = king.living_summons()[0]
+	var remote_child:Node2D = guest_root.get_node(NodePath(str(host_child.name)))
+	check(await until(func():return is_instance_valid(remote_child._entry_clip) and remote_child._entry_clip.active),"wall clip and emergence phase replicate to the client")
+	check(remote_child.entry_face == host_child.entry_face and remote_child.entry_normal == host_child.entry_normal,"entry wall plane is identical on both peers")
+	check(not remote_child.can_act(),"replica cannot attack during wall entry")
+	check(await until(func():return host_child.entry_left == 0.0 and remote_child.entry_left == 0.0),"entry completion replicates without leaving the client stuck")
 	replica.summon_cooldown = 0.0
 	check(replica.summon_zombies()==0,"client cannot mint extra summons")
 	zombie.bite_cooldown = 0.0

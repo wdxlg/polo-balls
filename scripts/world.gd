@@ -3279,7 +3279,7 @@ func _release_body_from_safety_wall(b:ball,map_rect:Rect2) -> void:
 	var target:Vector2=_map_free_body_position(b,map_rect,b.global_position,4)
 	if target.distance_squared_to(b.global_position)>0.0001: b.global_position=target
 
-func _animate_ball_back_inside_map(b:ball,target_position:Vector2,entry_seconds:float=-1.0) -> void:
+func _animate_ball_back_inside_map(b:ball,target_position:Vector2,entry_seconds:float=-1.0,raise_over_mask:bool=true) -> void:
 	if b == null or not is_instance_valid(b) or not is_multiplayer_authority():
 		return
 	if b.has_meta(&"map_rescue_animating") and bool(b.get_meta(&"map_rescue_animating")):
@@ -3294,11 +3294,12 @@ func _animate_ball_back_inside_map(b:ball,target_position:Vector2,entry_seconds:
 	b.set_meta("map_rescue_state_physics",b.state_machine.is_physics_processing() if b.state_machine!=null else false)
 	if b.state_machine!=null: b.state_machine.set_physics_process(false)
 	var tween:Tween = create_tween().bind_node(b)
-	if entry_seconds>0.0:
+	if entry_seconds>0.0 and raise_over_mask:
 		b.set_meta("queue_entry_z",b.z_index)
 		b.set_meta("queue_entry_z_relative",b.z_as_relative)
 		b.z_as_relative=false
 		b.z_index=95 # Visible outside the map crop; restore the original depth on entry.
+	if entry_seconds>0.0:
 		b.direction=b.global_position.direction_to(target_position)
 		tween.set_trans(Tween.TRANS_LINEAR)
 	else:

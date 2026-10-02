@@ -5,8 +5,9 @@ const SOUNDS = preload("res://scripts/characters/我的世界/zombie/sounds.gd")
 const SWEEP = preload("res://classes/weapon_tip_sweep.gd")
 const BITE = preload("res://scripts/characters/我的世界/zombie/bite.gd")
 const COPY_SIZE = preload("res://scripts/characters/我的世界/haochen/copy_body_scale.gd")
+const WALL_CLIP = preload("res://scripts/characters/我的世界/wandering_trader/wall_clip.gd")
 const CHASE_RANGE:float = 180.0
-const BITE_REACH:float = 28.0
+const BITE_REACH:float = 36.0
 const BITE_RADIUS:float = 10.0
 const BITE_WINDUP:float = 0.14
 var bite_cooldown:float = 0.0
@@ -23,6 +24,16 @@ var _previous:Vector2
 var _walking:bool = false
 var _damage_regions:Array[Dictionary] = []
 var _bite_fx:Node2D
+var emerging:bool:
+	get: return entry_left > 0.0
+var _hold_distance:bool = false
+var entry_left:float = 0.0
+var entry_face:Vector2
+var entry_normal:Vector2 = Vector2.UP
+var entry_target:Vector2
+var _entry_started:bool = false
+var _entry_clip:Node
+var _entry_health_visible:bool = true
 
 func _ready() -> void:
 	Has_Collision_Damage = false
@@ -39,10 +50,11 @@ func _ready() -> void:
 	add_child(voice)
 	add_to_group("MinecraftZombie")
 	set_process(true)
+	if entry_left > 0.0: call_deferred("_begin_wall_entry")
 
 func body_frames() -> SpriteFrames: return FRAMES
 func can_act() -> bool:
-	return mc_live() and Can_Attack and not dizziness and not is_hard_controlled()
+	return entry_left <= 0.0 and mc_live() and Can_Attack and not dizziness and not is_hard_controlled()
 func mc_enemy(target:Variant) -> bool:
 	if preload("res://scripts/characters/我的世界/haochen/copy_friendly_guard.gd").skips_target(self,target): return false
 	if not super.mc_enemy(target): return false
@@ -59,6 +71,7 @@ func tick_physics(state:State,delta:float) -> void:
 	super.tick_physics(state,delta)
 func step_zombie(delta:float) -> void:
 	_damage_regions.clear()
+	_hold_distance = false
 	bite_cooldown = maxf(0.0,bite_cooldown-delta)
 	if not can_act():
 		cancel_bite()
@@ -72,9 +85,29 @@ func step_zombie(delta:float) -> void:
 	var target:ball = mc_nearest(delta)
 	if target == null: return
 	var point:Vector2 = ball.body_point(target,global_position)
-	if global_position.distance_to(point) <= CHASE_RANGE:
-		direction = global_position.direction_to(point)
+	var distance:float = global_position.distance_to(point)
+	if distance <= CHASE_RANGE:
+		var toward:Vector2 = global_position.direction_to(point)
+		if distance < bite_reach()*0.72 or body_too_close(target,toward):
+			direction = -toward if toward != Vector2.ZERO else Vector2.LEFT
+		elif distance <= bite_reach():
+			direction = toward
+			_hold_distance = true
+		else:
+			direction = toward
 	if bite_cooldown <= 0.0: begin_bite(target)
+func body_too_close(target:ball,toward:Vector2) -> bool:
+	var other:CollisionShape2D = target.collision_shape_2d
+	if collision_shape_2d == null or other == null or collision_shape_2d.disabled or other.disabled: return false
+	if collision_shape_2d.shape == null or other.shape == null: return false
+	var predicted:Transform2D = collision_shape_2d.global_transform
+	predicted.origin += toward*2.0*COPY_SIZE.of(self)
+	return collision_shape_2d.shape.collide(predicted,other.shape,other.global_transform)
+func move(speed:float,delta:float):
+	if not is_player_controlled() and _hold_distance:
+		stand(delta)
+		return
+	super.move(speed,delta)
 func player_control_action_ids() -> Array[StringName]: return [&"controlled_attack_action"]
 func controlled_attack_action() -> void:
 	if not is_player_controlled(): return
@@ -133,16 +166,43 @@ func _receive_bite(serial:int,point:Vector2,radius:float) -> void:
 	var fx:Node2D = BITE.new()
 	get_parent().add_child(fx)
 	fx.global_position = point
-	fx.setup(self,BITE_WINDUP,0.0,{})
-	fx.remove_from_group("MCEvokerFang")
-	fx.add_to_group("MCZombieBite")
+	fx.setup(self,BITE_WINDUP)
 	fx.scale = Vector2.ONE*(radius/BITE_RADIUS)
 	_bite_fx = fx
 func get_ai_attack_threats() -> Array[Dictionary]:
 	if bite_left < 0.0 or not can_act(): return []
 	return [{"shape":"circle","position":bite_point,"radius":bite_radius(),"damage":attack_damage(),"source":self,"danger_delay":bite_left,"danger_duration":0.02,"kind":"zombie_bite"}]
 func get_debug_attack_regions() -> Array[Dictionary]: return _damage_regions
+func _begin_wall_entry() -> void:
+	if entry_left <= 0.0 or _entry_started: return
+	_entry_started = true
+	_entry_clip = WALL_CLIP.new()
+	_entry_clip.name = "WallEmergenceClip"
+	add_child(_entry_clip)
+	_entry_clip.start(image,entry_face,entry_normal)
+	var bar:CanvasItem = get_node_or_null("Health_Bar")
+	if bar != null:
+		_entry_health_visible = bar.visible
+		bar.hide()
+	if is_multiplayer_authority():
+		var world:Node = get_parent()
+		if world.has_method("_animate_ball_back_inside_map"):
+			world._animate_ball_back_inside_map(self,entry_target,entry_left,false)
+		else:
+			entry_left = 0.0
+func _update_wall_entry() -> void:
+	if not _entry_started: return
+	if is_multiplayer_authority() and not has_meta("map_rescue_animating"): entry_left = 0.0
+	if entry_left > 0.0: return
+	if is_instance_valid(_entry_clip):
+		_entry_clip.stop()
+		_entry_clip.queue_free()
+		_entry_clip = null
+	var bar:CanvasItem = get_node_or_null("Health_Bar")
+	if bar != null: bar.visible = _entry_health_visible
+	_entry_started = false
 func _process(delta:float) -> void:
+	_update_wall_entry()
 	var moved:float = global_position.distance_to(_previous)
 	_previous = global_position
 	if health <= 0 or not is_combat_runtime_active() or get_tree().paused: return
