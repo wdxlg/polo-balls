@@ -7,6 +7,17 @@ extends Node
 # 但不会经过 GameplayRecord，所以不会进入录像。
 const GAMEPLAY_BUS:StringName = &"GameplayRecord"
 const UI_BUS:StringName = &"UI"
+# 重击/击杀时压低其他游戏声：GameplayRecord 首个效果器整体衰减，ImpactAccent（送入
+# GameplayRecord）用等量增益抵消，所以重击本身的声音不被压低，录像也能录到这次压低。
+const IMPACT_ACCENT_BUS:StringName = &"ImpactAccent"
+const IMPACT_DUCK_MAX_DB:float = 8.0
+var _impact_duck_effect:AudioEffectAmplify = null
+var _impact_accent_effect:AudioEffectAmplify = null
+var _impact_duck_db:float = 0.0
+var _impact_duck_peak_db:float = 0.0
+var _impact_duck_hold_left:float = 0.0
+var _impact_duck_release:float = 0.3
+var _impact_duck_last_usec:int = 0
 const UI_SFX_NAMES:Dictionary = {
 	"ButtonDown1": true,
 	"ButtonUpMouseOut": true,
@@ -72,6 +83,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_ensure_audio_bus(GAMEPLAY_BUS)
 	_ensure_audio_bus(UI_BUS)
+	_ensure_impact_duck_buses()
 
 	# Sfx 现在既可以直接放 AudioStreamPlayer，也可以放“音频组”Node。
 	# 递归缓存默认参数，同时把战斗声音与 UI 声音分流。
@@ -96,6 +108,7 @@ func _process(_delta:float) -> void:
 		_last_requested_game_time_scale = engine_scale
 		_expected_engine_time_scale = -1.0
 	_sync_audio_clock(false)
+	_update_impact_duck()
 
 # Game._apply_time_scale_overrides() 会在改变 Engine.time_scale 的同一帧调用这里，
 # 避免倍速滑条改变后要等一帧音频才追上。
@@ -122,6 +135,62 @@ func _ensure_audio_bus(bus_name:StringName) -> int:
 	AudioServer.set_bus_name(index,bus_name)
 	AudioServer.set_bus_send(index,&"Master")
 	return index
+
+func _ensure_impact_duck_buses() -> void:
+	var gameplay:int = _ensure_audio_bus(GAMEPLAY_BUS)
+	var accent:int = AudioServer.get_bus_index(IMPACT_ACCENT_BUS)
+	if accent < 0:
+		AudioServer.add_bus()
+		accent = AudioServer.get_bus_count() - 1
+		AudioServer.set_bus_name(accent,IMPACT_ACCENT_BUS)
+	AudioServer.set_bus_send(accent,GAMEPLAY_BUS)
+	if _impact_duck_effect == null:
+		_impact_duck_effect = AudioEffectAmplify.new()
+		_impact_duck_effect.volume_db = 0.0
+		# 放在最前面：录像的采集效果器后来追加在末尾，能录到压低后的混音。
+		AudioServer.add_bus_effect(gameplay,_impact_duck_effect,0)
+	if _impact_accent_effect == null:
+		_impact_accent_effect = AudioEffectAmplify.new()
+		_impact_accent_effect.volume_db = 0.0
+		AudioServer.add_bus_effect(accent,_impact_accent_effect,0)
+
+## 压低除 ImpactAccent 外的全部游戏声 depth_db 分贝，保持 hold 秒后在 release 秒内恢复。
+## 同时多次请求只取更深的一次，不累加。
+func duck_for_impact(depth_db:float,hold:float = 0.05,release:float = 0.3) -> void:
+	if not is_finite(depth_db) or depth_db <= 0.0: return
+	if _impact_duck_effect == null: _ensure_impact_duck_buses()
+	var depth:float = minf(depth_db,IMPACT_DUCK_MAX_DB)
+	if depth >= _impact_duck_db:
+		_impact_duck_peak_db = depth
+		_impact_duck_db = depth
+		_impact_duck_hold_left = maxf(hold,0.0)
+		_impact_duck_release = maxf(release,0.01)
+	else:
+		_impact_duck_hold_left = maxf(_impact_duck_hold_left,0.0)
+	_impact_duck_last_usec = Time.get_ticks_usec()
+	_apply_impact_duck()
+
+func get_impact_duck_db() -> float:
+	return _impact_duck_db
+
+func _update_impact_duck() -> void:
+	if _impact_duck_db <= 0.0: return
+	var now:int = Time.get_ticks_usec()
+	# 按音频时间推进：游戏慢放时声音也慢放，压低的包络跟着一起慢。
+	var real_delta:float = maxf(float(now - _impact_duck_last_usec) * 0.000001,0.0)
+	_impact_duck_last_usec = now
+	var audio_delta:float = real_delta * maxf(AudioServer.playback_speed_scale,0.0)
+	if _impact_duck_hold_left > 0.0:
+		var used:float = minf(_impact_duck_hold_left,audio_delta)
+		_impact_duck_hold_left -= used
+		audio_delta -= used
+	if audio_delta > 0.0:
+		_impact_duck_db = maxf(_impact_duck_db - _impact_duck_peak_db * audio_delta / _impact_duck_release,0.0)
+	_apply_impact_duck()
+
+func _apply_impact_duck() -> void:
+	if _impact_duck_effect != null: _impact_duck_effect.volume_db = -_impact_duck_db
+	if _impact_accent_effect != null: _impact_accent_effect.volume_db = _impact_duck_db
 
 func _is_audio_player(node:Node) -> bool:
 	return (

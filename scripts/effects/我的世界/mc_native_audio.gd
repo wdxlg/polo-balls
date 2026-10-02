@@ -121,6 +121,7 @@ static func _start_queued(tree_ref:WeakRef,scene_ref:WeakRef,source_ref:WeakRef,
 		replace.call("stop")
 		replace.remove_from_group("MCNativeSFX")
 		replace.queue_free()
+	if ticket.has("volume_db_override"): options["volume_db"] = float(ticket.volume_db_override)
 	var player:AudioStreamPlayer2D = _create_player(parent,ticket.stream,point,options)
 	ticket.player = weakref(player)
 	ticket.started_msec = Time.get_ticks_msec()
@@ -142,7 +143,9 @@ static func _create_player(scene:Node,stream:AudioStream,point:Vector2,options:D
 	player.pitch_scale = maxf(float(options.get("pitch",1.0)),0.01)
 	player.max_distance = float(options.get("max_distance",1700.0))
 	player.attenuation = float(options.get("attenuation",0.65))
-	if AudioServer.get_bus_index(&"GameplayRecord") >= 0: player.bus = &"GameplayRecord"
+	var bus_name:StringName = StringName(options.get("bus",&"GameplayRecord"))
+	if AudioServer.get_bus_index(bus_name) >= 0: player.bus = bus_name
+	elif AudioServer.get_bus_index(&"GameplayRecord") >= 0: player.bus = &"GameplayRecord"
 	var metadata:Dictionary = options.get("metadata",{})
 	for key:Variant in metadata: player.set_meta(key,metadata[key])
 	player.set_meta("mc_sound_priority",bool(options.get("priority",metadata.get("mc_sound_priority",false))))

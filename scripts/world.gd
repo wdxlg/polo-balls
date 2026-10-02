@@ -859,6 +859,15 @@ var _damage_shake_pixels:float = 0.0
 var _damage_shake_time_left:float = 0.0
 var _damage_shake_duration:float = 0.12
 var _damage_shake_elapsed:float = 0.0
+# 方向性推镜：命中瞬间沿击退方向推一下画面，再用欠阻尼弹簧回中；与零中心抖动叠加。
+const CAMERA_KICK_GAIN:float = 0.9
+const CAMERA_KICK_FREQUENCY:float = 20.0
+const CAMERA_KICK_DAMPING_RATIO:float = 0.55
+# 欠阻尼冲量响应的峰值约为 v0/ω × 0.52（ζ=0.55）。
+const CAMERA_KICK_PEAK_FACTOR:float = 0.52
+var _camera_kick_pending:Vector2 = Vector2.ZERO
+var _camera_kick_offset:Vector2 = Vector2.ZERO
+var _camera_kick_velocity:Vector2 = Vector2.ZERO
 
 @export_group("命中视觉与重击顿挫")
 @export var impact_visuals_enabled:bool = true
@@ -888,6 +897,9 @@ var _heavy_hit_active_tier:int = 0
 var _crit_flash_rect:ColorRect = null
 var _crit_flash_tween:Tween = null
 var _crit_flash_next_usec:int = 0
+# 局部顿帧（设置 Local_Hitstop）：只暂停受击者与攻击者自身的处理，不改全局时间。
+var _local_hitstop_entries:Dictionary = {}
+var _local_hitstop_cooldowns:Dictionary = {}
 
 
 func _impact_is_on_screen(origin:Vector2) -> bool:
@@ -947,6 +959,7 @@ func _clear_high_damage_feedback() -> void:
 	_heavy_hit_pending_duration = 0.0
 	_heavy_hit_next_allowed_usec = 0
 	_release_heavy_hitstop() # Release only our own lease, never another character's slow motion.
+	_release_all_local_hitstop()
 	if is_instance_valid(camera_2d): _apply_camera_zoom()
 
 
@@ -975,7 +988,7 @@ func hitstop_duration(actual_health_damage:float,max_health:float,tier:int) -> f
 
 
 ## 已确认的攻击命中调用。返回档位：0 不停，1 轻顿，2 重顿，3 暴击/致命。
-func request_heavy_hitstop(actual_health_damage:float,max_health:float,origin:Vector2,lethal:bool = false) -> int:
+func request_heavy_hitstop(actual_health_damage:float,max_health:float,origin:Vector2,lethal:bool = false,participants:Array = []) -> int:
 	var tier:int = hitstop_tier(actual_health_damage,max_health,lethal)
 	if tier == 0 or not origin.is_finite() or not _impact_is_on_screen(origin):
 		return 0
@@ -983,6 +996,9 @@ func request_heavy_hitstop(actual_health_damage:float,max_health:float,origin:Ve
 	if tier >= 3 and not lethal:
 		_play_crit_flash()
 	if not _can_play_heavy_hitstop():
+		return tier
+	if local_hitstop_enabled():
+		_freeze_local_hitstop(participants,hitstop_duration(actual_health_damage,max_health,tier),tier)
 		return tier
 	var now:int = Time.get_ticks_usec()
 	# 冷却与进行中的顿挫只拦普通档；暴击/致命可以插队或延长。
@@ -1035,6 +1051,86 @@ func _can_play_heavy_hitstop() -> bool:
 	return (heavy_hitstop_enabled and _high_damage_feedback_enabled() and offline
 		and not Game.is_training_mode() and Game.get_base_game_time_scale() <= 2.0
 		and is_combat_runtime_active())
+
+
+func local_hitstop_enabled() -> bool:
+	return bool(Game.Game_Settings.get("Local_Hitstop",false))
+
+
+func _freeze_local_hitstop(participants:Array,duration:float,tier:int) -> void:
+	var now:int = Time.get_ticks_usec()
+	var end_usec:int = now + int(maxf(duration,0.0) * 1000000.0)
+	for raw:Variant in participants:
+		if not raw is Node or not is_instance_valid(raw):
+			continue
+		var node:Node = raw as Node
+		if not node.is_inside_tree() or node.is_queued_for_deletion():
+			continue
+		var id:int = node.get_instance_id()
+		if _local_hitstop_entries.has(id):
+			# 冻结中只允许更高档延长，不叠加。
+			var entry:Dictionary = _local_hitstop_entries[id]
+			if tier > int(entry.tier):
+				entry.end = maxi(int(entry.end),end_usec)
+				entry.tier = tier
+			continue
+		if tier < 3 and now < int(_local_hitstop_cooldowns.get(id,0)):
+			continue
+		if node.process_mode == Node.PROCESS_MODE_DISABLED:
+			continue
+		# DISABLED 默认会把碰撞体移出物理世界；冻结期间保持碰撞/受击判定，只停自身处理。
+		var collision_objects:Array = []
+		_collect_collision_objects(node,collision_objects)
+		var collision_modes:Array = []
+		for body:CollisionObject2D in collision_objects:
+			collision_modes.append([weakref(body),body.disable_mode])
+			body.disable_mode = CollisionObject2D.DISABLE_MODE_KEEP_ACTIVE
+		_local_hitstop_entries[id] = {"ref":weakref(node),"end":end_usec,"tier":tier,"mode":node.process_mode,"collision":collision_modes}
+		_local_hitstop_cooldowns[id] = now + int(maxf(heavy_hitstop_cooldown,0.0) * 1000000.0)
+		node.process_mode = Node.PROCESS_MODE_DISABLED
+
+
+func _collect_collision_objects(node:Node,result:Array) -> void:
+	if node is CollisionObject2D:
+		result.append(node)
+	for child:Node in node.get_children():
+		_collect_collision_objects(child,result)
+
+
+func is_local_hitstop_frozen(node:Node) -> bool:
+	return is_instance_valid(node) and _local_hitstop_entries.has(node.get_instance_id())
+
+
+func _update_local_hitstop() -> void:
+	var now:int = Time.get_ticks_usec()
+	if _local_hitstop_entries.is_empty():
+		for id:Variant in _local_hitstop_cooldowns.keys():
+			if now >= int(_local_hitstop_cooldowns[id]): _local_hitstop_cooldowns.erase(id)
+		return
+	var release_all:bool = not _can_play_heavy_hitstop() or not local_hitstop_enabled()
+	for id:Variant in _local_hitstop_entries.keys():
+		var entry:Dictionary = _local_hitstop_entries[id]
+		if release_all or now >= int(entry.end):
+			_release_local_hitstop_entry(entry)
+			_local_hitstop_entries.erase(id)
+
+
+func _release_local_hitstop_entry(entry:Dictionary) -> void:
+	var node:Node = (entry.ref as WeakRef).get_ref() as Node
+	# 期间别的系统改过 process_mode 就不覆盖它。
+	if is_instance_valid(node) and node.process_mode == Node.PROCESS_MODE_DISABLED:
+		node.process_mode = int(entry.mode)
+	for pair:Array in entry.get("collision",[]):
+		var body:CollisionObject2D = (pair[0] as WeakRef).get_ref() as CollisionObject2D
+		if is_instance_valid(body) and body.disable_mode == CollisionObject2D.DISABLE_MODE_KEEP_ACTIVE:
+			body.disable_mode = int(pair[1])
+
+
+func _release_all_local_hitstop() -> void:
+	for id:Variant in _local_hitstop_entries.keys():
+		_release_local_hitstop_entry(_local_hitstop_entries[id])
+	_local_hitstop_entries.clear()
+	_local_hitstop_cooldowns.clear()
 
 
 func _release_heavy_hitstop() -> void:
@@ -1158,6 +1254,45 @@ func add_damage_camera_shake(actual_damage:float) -> void:
 	_damage_shake_pending_sum = minf(_damage_shake_pending_sum + pixels,damage_shake_max_pixels * 8.0)
 
 
+func add_directional_camera_kick(direction:Vector2,actual_damage:float,origin:Vector2) -> void:
+	if not is_finite(actual_damage) or actual_damage <= 0.0 or not direction.is_finite() or direction.length_squared() <= 0.000001:
+		return
+	if not Game.Game_Settings.Shaking_Camera or not is_combat_runtime_active():
+		return
+	if not origin.is_finite() or not _impact_is_on_screen(origin):
+		return
+	var pixels:float = FEEDBACK_TUNING.amplitude(actual_damage,Game.Game_Settings,"Camera") * maxf(damage_shake_strength,0.0) * CAMERA_KICK_GAIN
+	# 同帧多次命中只取最强一次的方向，不累加越级。
+	if pixels > _camera_kick_pending.length():
+		_camera_kick_pending = direction.normalized() * pixels
+
+
+func _clear_camera_kick() -> void:
+	_camera_kick_pending = Vector2.ZERO
+	_camera_kick_offset = Vector2.ZERO
+	_camera_kick_velocity = Vector2.ZERO
+
+
+## 返回本帧推镜偏移（视口像素）。画面内容沿击退方向移动，所以相机偏移取反方向。
+func _advance_camera_kick(delta:float) -> Vector2:
+	var omega:float = CAMERA_KICK_FREQUENCY
+	if _camera_kick_pending.length_squared() > 0.0:
+		var velocity_cap:float = maxf(damage_shake_max_pixels,0.0) * omega / CAMERA_KICK_PEAK_FACTOR
+		_camera_kick_velocity = (_camera_kick_velocity - _camera_kick_pending * omega / CAMERA_KICK_PEAK_FACTOR).limit_length(velocity_cap)
+		_camera_kick_pending = Vector2.ZERO
+	if _camera_kick_offset.length_squared() <= 0.0 and _camera_kick_velocity.length_squared() <= 0.0:
+		return Vector2.ZERO
+	var remaining:float = clampf(delta,0.0,0.25)
+	while remaining > 0.0:
+		var step:float = minf(remaining,1.0 / 240.0)
+		_camera_kick_velocity += (-omega * omega * _camera_kick_offset - 2.0 * CAMERA_KICK_DAMPING_RATIO * omega * _camera_kick_velocity) * step
+		_camera_kick_offset += _camera_kick_velocity * step
+		remaining -= step
+	if _camera_kick_offset.length() < 0.01 and _camera_kick_velocity.length() < 0.5:
+		_clear_camera_kick()
+	return _camera_kick_offset
+
+
 func _update_damage_camera_shake(delta:float) -> void:
 	if not Game.Game_Settings.Shaking_Camera:
 		camera_shake_amount = 0.0
@@ -1165,6 +1300,7 @@ func _update_damage_camera_shake(delta:float) -> void:
 		_damage_shake_pending_sum = 0.0
 		_damage_shake_pixels = 0.0
 		_damage_shake_time_left = 0.0
+		_clear_camera_kick()
 		camera_2d.offset = Vector2.ZERO
 		return
 	if _damage_shake_pending_peak > 0.0:
@@ -1185,9 +1321,12 @@ func _update_damage_camera_shake(delta:float) -> void:
 	var legacy_pixels:float = maxf(camera_shake_amount * shake_rate,0.0) * _feedback_number("Camera_Gain") * legacy_gain
 	var amplitude:float = maxf(_damage_shake_pixels,legacy_pixels)
 	# 双向、零中心衰减振荡；不占用战斗 RNG，不影响命中/AI 的随机序列。
+	var screen_offset:Vector2 = Vector2.ZERO
 	if amplitude > 0.001:
 		var phase:float = _damage_shake_elapsed * TAU * _feedback_number("Shake_Frequency")
-		var screen_offset:Vector2 = Vector2(cos(phase),sin(phase * 1.31 + 0.7)) * amplitude
+		screen_offset = Vector2(cos(phase),sin(phase * 1.31 + 0.7)) * amplitude
+	screen_offset += _advance_camera_kick(delta)
+	if screen_offset.length_squared() > 0.0:
 		camera_2d.offset = screen_offset / Vector2(maxf(absf(camera_2d.zoom.x),0.001),maxf(absf(camera_2d.zoom.y),0.001))
 	else:
 		camera_2d.offset = Vector2.ZERO
@@ -1668,6 +1807,7 @@ func _exit_tree() -> void:
 	if _development != null:
 		_development.cleanup(false)
 	_release_heavy_hitstop()
+	_release_all_local_hitstop()
 	_cinematic_focus_requests.clear()
 	Game.release_time_scale_override(CINEMATIC_FOCUS_TIME_KEY)
 	if get_tree() != null and get_tree().node_added.is_connected(_on_training_scene_node_added):
@@ -1734,6 +1874,7 @@ func set_fps_text() -> void:
 func process_always(delta:float):
 	_update_damage_focus()
 	_update_heavy_hitstop()
+	_update_local_hitstop()
 	# FPS 文本 4Hz 更新即可；每帧重新排版 Label 没有视觉收益。
 	_fps_refresh_elapsed += delta
 	if _fps_refresh_elapsed >= 0.25:

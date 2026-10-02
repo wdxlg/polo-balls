@@ -15,6 +15,8 @@ class_name HitBurstEffect
 
 var _origin:Vector2 = Vector2.ZERO
 var _streaks:Array = []
+# 人物受击碎屑：本节点自己批量绘制的小方块，不创建子节点。
+var _chips:Array = []
 var _elapsed:float = 0.0
 var _end_time:float = 0.0
 var _use_real_time:bool = false
@@ -30,9 +32,10 @@ func _smootherstep01(value:float) -> float:
 	return t * t * t * (t * (t * 6.0 - 15.0) + 10.0)
 
 
-func setup(origin:Vector2,streaks:Array) -> void:
+func setup(origin:Vector2,streaks:Array,chips:Array = []) -> void:
 	_origin = origin
 	_streaks = streaks
+	_chips = chips
 	_use_real_time = false
 	for raw:Variant in _streaks:
 		if not raw is Dictionary:
@@ -54,9 +57,12 @@ func _ready() -> void:
 	global_rotation = 0.0
 	global_scale = Vector2.ONE
 
-	if _streaks.is_empty():
+	if _streaks.is_empty() and _chips.is_empty():
 		queue_free()
 		return
+	for chip:Variant in _chips:
+		if chip is Dictionary:
+			_end_time = maxf(_end_time,float((chip as Dictionary).get("life",0.35)))
 
 	for index:int in range(_streaks.size()):
 		var data:Dictionary = _streaks[index]
@@ -181,5 +187,30 @@ func _process(delta:float) -> void:
 		if absf(line.width - next_width) > _WIDTH_EPSILON:
 			line.width = next_width
 
+	if not _chips.is_empty():
+		queue_redraw()
+
 	if _elapsed >= _end_time + 0.02:
 		queue_free()
+
+
+func chip_position(chip:Dictionary,age:float) -> Vector2:
+	return (chip.get("offset",Vector2.ZERO) as Vector2) + (chip.get("velocity",Vector2.ZERO) as Vector2) * age + Vector2(0.0,0.5 * float(chip.get("gravity",0.0)) * age * age)
+
+
+func _draw() -> void:
+	for raw:Variant in _chips:
+		if not raw is Dictionary:
+			continue
+		var chip:Dictionary = raw
+		var life:float = maxf(float(chip.get("life",0.35)),0.05)
+		if _elapsed >= life:
+			continue
+		var tint:Color = chip.get("color",Color.WHITE)
+		# 末尾 35% 渐隐并略缩小；方块不旋转，保持像素风。
+		var fade:float = 1.0 - _smootherstep01((_elapsed / life - 0.65) / 0.35)
+		tint.a *= fade
+		if tint.a <= 0.001:
+			continue
+		var size:float = float(chip.get("size",2.0)) * lerpf(0.7,1.0,fade)
+		draw_rect(Rect2(chip_position(chip,_elapsed) - Vector2.ONE * size * 0.5,Vector2.ONE * size),tint)

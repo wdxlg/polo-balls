@@ -20,6 +20,20 @@ const HEALTH_NUMBER_HIT_GROW_TIME:float = 0.075
 const HEALTH_NUMBER_HIT_SETTLE_TIME:float = 0.32
 var _health_number_base_scale:Vector2 = Vector2.ONE
 var _health_number_hit_tween:Tween = null
+# 受伤残影：失去的那段先留一条半透明白色，停一下再缩到当前生命；同时整条血条按损失比例抖一下。
+const DAMAGE_GHOST_HOLD:float = 0.4
+const DAMAGE_GHOST_DRAIN:float = 0.35
+const DAMAGE_GHOST_COLOR:Color = Color(1.0,1.0,1.0,0.9)
+const DAMAGE_GHOST_SETTLED_ALPHA:float = 0.55
+const BAR_SHAKE_DURATION:float = 0.22
+const BAR_SHAKE_MIN_DROP_RATIO:float = 0.01
+const BAR_SHAKE_MAX_PIXELS:float = 95.0
+var _damage_ghost_bar:TextureProgressBar = null
+var _damage_ghost_tween:Tween = null
+var _bar_shake_tween:Tween = null
+var _bar_shake_pixels:float = 0.0
+var _bar_shake_base_position:Vector2 = Vector2.ZERO
+var _bar_shake_base_captured:bool = false
 ## 0 disables the visual drop limit for characters requiring complete feedback.
 @export var max_live_damage_texts:int = 80
 
@@ -402,6 +416,7 @@ func set_invincible_display(enabled:bool,animate_glow:bool = true) -> void:
 
 	if enabled:
 		_stop_health_number_hit_pulse()
+		_hide_damage_ghost()
 		_kill_bar_tween(health_bar)
 		if _karma_bar != null and is_instance_valid(_karma_bar):
 			_karma_bar.visible = false
@@ -503,6 +518,13 @@ func when_value_changed(last_value:int,value:int,max_value:int,if_tween:bool,bar
 	# 不播放。连续受击会停止前一次 Tween 并从原尺寸重新起跳，不会叠乘。
 	if bar == health_bar and last_value > value and not suppress_floating_text and _is_character_health_bar_owner():
 		_pulse_health_number_on_hit()
+	if bar == health_bar and max_value > 0 and _is_character_health_bar_owner():
+		if last_value > value and get_karma_preview_total() <= 0.0001:
+			var previous_ratio:float = clampf(float(last_value) / float(max_value),0.0,1.0)
+			_show_damage_ghost(previous_ratio,target_value)
+			_shake_bar_for_drop(previous_ratio - target_value)
+		elif value > last_value:
+			_damage_ghost_follow_heal(target_value)
 
 	if if_tween:
 		_kill_bar_tween(bar)
@@ -538,6 +560,104 @@ func when_value_changed(last_value:int,value:int,max_value:int,if_tween:bool,bar
 
 	if bar == health_bar and get_karma_preview_total() > 0.0001:
 		_apply_karma_overlay()
+
+func _ensure_damage_ghost_bar() -> TextureProgressBar:
+	if is_instance_valid(_damage_ghost_bar):
+		return _damage_ghost_bar
+	if health_bar == null or health_bar.get_parent() == null:
+		return null
+	_damage_ghost_bar = health_bar.duplicate() as TextureProgressBar
+	if _damage_ghost_bar == null:
+		return null
+	_damage_ghost_bar.name = "HealthDamageGhost"
+	_damage_ghost_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_damage_ghost_bar.visible = false
+	_damage_ghost_bar.z_index = health_bar.z_index
+	_damage_ghost_bar.modulate = Color.WHITE
+	_damage_ghost_bar.self_modulate = DAMAGE_GHOST_COLOR
+	var parent_node:Node = health_bar.get_parent()
+	parent_node.add_child(_damage_ghost_bar)
+	# 画在正常生命条之下：只露出刚失去的那一段。
+	parent_node.move_child(_damage_ghost_bar,health_bar.get_index())
+	return _damage_ghost_bar
+
+
+func get_damage_ghost_value() -> float:
+	if not is_instance_valid(_damage_ghost_bar) or not _damage_ghost_bar.visible:
+		return -1.0
+	return _damage_ghost_bar.value
+
+
+func _show_damage_ghost(previous_ratio:float,current_ratio:float) -> void:
+	if _invincible_display or previous_ratio <= current_ratio:
+		return
+	var ghost:TextureProgressBar = _ensure_damage_ghost_bar()
+	if ghost == null:
+		return
+	if _damage_ghost_tween != null and _damage_ghost_tween.is_valid():
+		_damage_ghost_tween.kill()
+	# 连续受击：残影保留最早的高位，一起缩回。
+	var start:float = maxf(previous_ratio,ghost.value) if ghost.visible else previous_ratio
+	ghost.value = start
+	ghost.self_modulate = DAMAGE_GHOST_COLOR
+	ghost.visible = true
+	_damage_ghost_tween = create_tween()
+	_damage_ghost_tween.tween_property(ghost,"self_modulate:a",DAMAGE_GHOST_SETTLED_ALPHA,DAMAGE_GHOST_HOLD).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_damage_ghost_tween.tween_property(ghost,"value",current_ratio,DAMAGE_GHOST_DRAIN).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
+	_damage_ghost_tween.tween_callback(_hide_damage_ghost)
+
+
+func _damage_ghost_follow_heal(current_ratio:float) -> void:
+	if not is_instance_valid(_damage_ghost_bar) or not _damage_ghost_bar.visible:
+		return
+	if current_ratio >= _damage_ghost_bar.value:
+		_hide_damage_ghost()
+
+
+func _hide_damage_ghost() -> void:
+	if _damage_ghost_tween != null and _damage_ghost_tween.is_valid():
+		_damage_ghost_tween.kill()
+	_damage_ghost_tween = null
+	if is_instance_valid(_damage_ghost_bar):
+		_damage_ghost_bar.visible = false
+
+
+static func bar_shake_pixels_for_drop(drop_ratio:float) -> float:
+	if not is_finite(drop_ratio) or drop_ratio < BAR_SHAKE_MIN_DROP_RATIO:
+		return 0.0
+	# 约 25% 最大生命的一下达到上限；小伤害只轻轻一动。
+	return BAR_SHAKE_MAX_PIXELS * sqrt(clampf(drop_ratio / 0.25,0.0,1.0))
+
+
+func _shake_bar_for_drop(drop_ratio:float) -> void:
+	var pixels:float = bar_shake_pixels_for_drop(drop_ratio)
+	if pixels <= 0.0 or not is_instance_valid(texture_rect):
+		return
+	if not _bar_shake_base_captured:
+		_bar_shake_base_position = texture_rect.position
+		_bar_shake_base_captured = true
+	# 抖动进行中只让更强的一下重新开始。
+	if _bar_shake_tween != null and _bar_shake_tween.is_valid() and _bar_shake_tween.is_running() and pixels < _bar_shake_pixels:
+		return
+	if _bar_shake_tween != null and _bar_shake_tween.is_valid():
+		_bar_shake_tween.kill()
+	_bar_shake_pixels = pixels
+	_bar_shake_tween = create_tween()
+	_bar_shake_tween.tween_method(_apply_bar_shake,0.0,1.0,BAR_SHAKE_DURATION)
+	_bar_shake_tween.tween_callback(_apply_bar_shake.bind(1.0))
+
+
+func _apply_bar_shake(progress:float) -> void:
+	if not is_instance_valid(texture_rect):
+		return
+	var t:float = clampf(progress,0.0,1.0)
+	if t >= 1.0:
+		texture_rect.position = _bar_shake_base_position
+		return
+	var phase:float = t * BAR_SHAKE_DURATION * TAU * 26.0
+	var envelope:float = pow(1.0 - t,1.6)
+	texture_rect.position = _bar_shake_base_position + Vector2(sin(phase),sin(phase * 1.37 + 1.1) * 0.45) * _bar_shake_pixels * envelope
+
 
 func _kill_bar_tween(bar:TextureProgressBar) -> void:
 	if not _bar_tweens.has(bar):

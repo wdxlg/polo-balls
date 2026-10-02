@@ -15,6 +15,7 @@ const KNOCKBACK_EFFECT_SCRIPT = preload("res://scripts/effects/knockback_effect.
 const HIT_BURST_EFFECT_SCRIPT = preload("res://scripts/effects/hit_burst_effect.gd")
 const HURT_SHAKE_SCRIPT = preload("res://scripts/effects/character_hurt_shake.gd")
 const HIT_COMBO = preload("res://scripts/effects/hit_combo.gd")
+const HIT_FEEL_AUDIO = preload("res://scripts/effects/hit_feel_audio.gd")
 const WALL_HIT_BURST_SCRIPT = preload("res://scripts/effects/wall_hit_burst.gd")
 const STUN_VISUAL_SCENE = preload("res://scenes/effects/stun_visual.tscn")
 const AFTER_IMAGE_MATERIAL = preload("res://shaders/after_image_material.tres")
@@ -744,15 +745,18 @@ func _play_body_hurt_shake(actual_damage:float) -> void:
 	if not hurt_shake_enabled or Type not in [Ball_Type.Ball,Ball_Type.Creature]: return
 	if actual_damage<=0.0 or not is_finite(actual_damage) or health<=0: return
 	if not is_instance_valid(graphics) or not is_combat_runtime_active(): return
-	if not is_instance_valid(_hurt_shake_effect):
-		_hurt_shake_effect = HURT_SHAKE_SCRIPT.new()
-		_hurt_shake_effect.name = "CharacterHurtShake"
-		_hurt_shake_effect.actor = self
-		_hurt_shake_effect.graphics = graphics
-		_hurt_shake_effect.extra_graphics = _hurt_shake_render_parts
-		_hurt_shake_effect.extra_parts_provider = _get_hurt_shake_visual_parts
-		add_child(_hurt_shake_effect)
+	_ensure_hurt_shake_effect()
 	_hurt_shake_effect.kick(actual_damage)
+
+func _ensure_hurt_shake_effect() -> void:
+	if is_instance_valid(_hurt_shake_effect): return
+	_hurt_shake_effect = HURT_SHAKE_SCRIPT.new()
+	_hurt_shake_effect.name = "CharacterHurtShake"
+	_hurt_shake_effect.actor = self
+	_hurt_shake_effect.graphics = graphics
+	_hurt_shake_effect.extra_graphics = _hurt_shake_render_parts
+	_hurt_shake_effect.extra_parts_provider = _get_hurt_shake_visual_parts
+	add_child(_hurt_shake_effect)
 
 func _play_confirmed_damage_flash(actual_damage:float) -> void:
 	if image == null or not is_instance_valid(image) or Type == Ball_Type.Creature:
@@ -6289,7 +6293,8 @@ func notify_hit_burst_feedback(
 	block_loss:float,
 	coverage_width:float,
 	seed:int,
-	incoming_direction:Vector2 = Vector2.ZERO
+	incoming_direction:Vector2 = Vector2.ZERO,
+	attacker:Node = null
 ) -> void:
 	# 顿挫只来自已确认的攻击命中，不从 health setter 触发，避免复制生命/技能自损误触发。
 	var impact_world:Node = get_tree().current_scene
@@ -6298,9 +6303,18 @@ func notify_hit_burst_feedback(
 	if is_instance_valid(impact_world) and impact_world.has_method("request_heavy_hitstop"):
 		# 主角色的致命一击算暴击档（顿帧）；击杀不闪白。
 		var lethal:bool = health_loss > 0.0 and health <= 0 and Type == Ball_Type.Ball and not _large_battle_performance_mode
-		var raw_tier:Variant = impact_world.call("request_heavy_hitstop",health_loss,get_impact_reference_health(),global_position,lethal)
+		var raw_tier:Variant = impact_world.call("request_heavy_hitstop",health_loss,get_impact_reference_health(),global_position,lethal,_local_hitstop_participants(attacker,lethal))
 		var impact_tier:int = int(raw_tier) if raw_tier is int else 0
 		if impact_tier >= 2 and not lethal: _hold_impact_white(0.13 if impact_tier >= 3 else 0.05)
+	var feel_damage:float = maxf(health_loss,0.0) + maxf(block_loss,0.0) * 0.70
+	if health_loss > 0.0 and feel_damage > 0.0:
+		var feel_direction:Vector2 = incoming_direction
+		if feel_direction.length_squared() <= 0.000001: feel_direction = global_position - source_position
+		feel_direction = feel_direction.normalized() if feel_direction.length_squared() > 0.000001 else Vector2.ZERO
+		var killing:bool = health <= 0
+		_play_hit_feel_layers(feel_damage,feel_direction,killing)
+		if multiplayer.has_multiplayer_peer():
+			_remote_hit_feel_layers.rpc(feel_damage,feel_direction,killing)
 	if state_machine != null and state_machine.current_state == State.Die:
 		return
 
@@ -6330,6 +6344,35 @@ func notify_hit_burst_feedback(
 			force_white,
 			incoming_direction
 		)
+
+
+# 局部顿帧：受击者 + 直接攻击的人物/召唤物（投射物不算）。致命一击不冻结受击者，避免拖住死亡流程。
+func _local_hitstop_participants(attacker:Node,lethal:bool) -> Array:
+	var result:Array = []
+	if not lethal: result.append(self)
+	var striker:Node = attacker
+	if is_instance_valid(striker) and striker != self and striker is ball and (striker as ball).Type in [Ball_Type.Ball,Ball_Type.Creature] and striker.is_inside_tree():
+		result.append(striker)
+	return result
+
+
+# 方向性挤压、方向镜头推移、分层命中音和重击压低其他声音；只是表现，不改伤害/物理。
+func _play_hit_feel_layers(feel_damage:float,feel_direction:Vector2,killing:bool) -> void:
+	if not is_inside_tree() or not is_finite(feel_damage) or feel_damage <= 0.0:
+		return
+	if feel_direction.length_squared() > 0.000001 and Type in [Ball_Type.Ball,Ball_Type.Creature] and hurt_shake_enabled and not killing:
+		if is_instance_valid(graphics) and is_combat_runtime_active():
+			_ensure_hurt_shake_effect()
+			_hurt_shake_effect.squash(feel_direction,feel_damage,get_impact_reference_health())
+	var world:Node = get_tree().current_scene
+	if feel_direction.length_squared() > 0.000001 and is_instance_valid(world) and world.has_method("add_directional_camera_kick"):
+		world.call("add_directional_camera_kick",feel_direction,feel_damage,global_position)
+	HIT_FEEL_AUDIO.request(self,feel_damage,global_position,killing)
+
+
+@rpc("authority","call_remote","reliable")
+func _remote_hit_feel_layers(feel_damage:float,feel_direction:Vector2,killing:bool) -> void:
+	_play_hit_feel_layers(feel_damage,feel_direction,killing)
 
 
 @rpc("authority","call_remote","reliable")
@@ -6496,8 +6539,28 @@ func _play_hit_burst_feedback_local(
 			"color": sample.get("color",Color.WHITE),
 		})
 
+	# 碎屑：沿同一背侧方向喷出的小方块，颜色取自上面从人物像素采样的线条颜色，带重力下落。
+	# 只在全部白线随机数之后取随机数，原有白线序列不变。
+	var chips:Array = []
+	if not streaks.is_empty():
+		var chip_count:int = clampi(int(round(lerpf(2.0,9.0,damage_shape))) + rng.randi_range(-1,1),1,10)
+		if _large_battle_performance_mode:
+			chip_count = maxi(int(ceil(float(chip_count) * minf(0.5,get_large_battle_visual_density()))),1)
+		for _chip_index:int in range(chip_count):
+			var source_streak:Dictionary = streaks[rng.randi_range(0,streaks.size() - 1)]
+			var chip_direction:Vector2 = outward.rotated(deg_to_rad(rng.randf_range(-spread_degrees,spread_degrees) * 1.3))
+			var chip_speed:float = character_radius * rng.randf_range(3.0,6.5) * lerpf(0.8,1.3,damage_shape)
+			chips.append({
+				"offset": source_streak.get("spawn_offset",Vector2.ZERO),
+				"velocity": chip_direction * chip_speed + Vector2(0.0,-character_radius * rng.randf_range(0.5,2.0)),
+				"gravity": character_radius * rng.randf_range(14.0,20.0),
+				"size": clampf(character_radius * rng.randf_range(0.10,0.18) * lerpf(0.9,1.25,damage_shape),1.5,4.5),
+				"life": rng.randf_range(0.28,0.42),
+				"color": source_streak.get("color",Color.WHITE),
+			})
+
 	var effect = HIT_BURST_EFFECT_SCRIPT.new()
-	effect.setup(global_position,streaks)
+	effect.setup(global_position,streaks,chips)
 	parent.add_child(effect)
 
 
@@ -7508,7 +7571,8 @@ func _on_hitbox_on_hit(hurt: hurtbox) -> void:
 			block_loss,
 			hit_coverage_width,
 			hit_effect_seed,
-			hit_travel_direction.normalized() if hit_travel_direction.length_squared() > MOTION_EPSILON_SQ else Vector2.ZERO
+			hit_travel_direction.normalized() if hit_travel_direction.length_squared() > MOTION_EPSILON_SQ else Vector2.ZERO,
+			self
 		)
 
 	if _is_ranged_hit_source(self):
@@ -7594,7 +7658,8 @@ func _emit_positional_damage_feedback(
 			block_loss,
 			coverage,
 			seed,
-			incoming.normalized() if incoming.length_squared() > MOTION_EPSILON_SQ else Vector2.ZERO
+			incoming.normalized() if incoming.length_squared() > MOTION_EPSILON_SQ else Vector2.ZERO,
+			source if is_instance_valid(source) else null
 		)
 
 

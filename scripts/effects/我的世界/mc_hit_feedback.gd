@@ -63,6 +63,11 @@ const POLICIES:Dictionary = {
 	"res://scripts/creatures/mc_short_lived_mob.gd": 1,
 }
 static var _script_policy:Dictionary = {}
+# 同一物理帧、同一事件（普通/暴击）的多个受击音合成一声，按目标数量略加音量。
+const MERGE_STEP_DB:float = 1.5
+const MERGE_MAX_DB:float = 4.5
+static var _merge_frame:int = -1
+static var _merge:Dictionary = {}
 static var _rng := RandomNumberGenerator.new()
 static var _seeded:bool = false
 
@@ -119,11 +124,31 @@ static func play(target:Node2D,actual:float,point:Vector2,index:int,serial:int,p
 	var event:String = GAIN.damage_event(actual)
 	var records:Array = AUDIO.EVENTS[event]
 	if index<0 or index>=records.size(): return {}
+	var gain:float = GAIN.damage_gain(actual)
+	var frame:int = Engine.get_physics_frames()
+	if frame != _merge_frame:
+		_merge_frame = frame
+		_merge.clear()
+	if _merge.has(event):
+		var merged:Dictionary = _merge[event]
+		var queued:Dictionary = merged.ticket
+		if str(queued.get("state","")) == "queued":
+			merged.count = int(merged.count) + 1
+			merged.gain = maxf(float(merged.gain),gain)
+			# 合并加的音量同样受 MC 受击音 +6 dB 上限约束。
+			queued["volume_db_override"] = minf(float(merged.gain) + minf(MERGE_STEP_DB * float(int(merged.count) - 1),MERGE_MAX_DB),GAIN.MAX_GAIN_DB)
+			queued["merged_hits"] = int(merged.count)
+			return queued
 	var parent:Node = target.get_tree().current_scene
 	if parent is Node2D and target.get_world_2d()!=parent.get_world_2d():
 		parent = target
 		while parent.get_parent() is Node2D and parent.get_parent().get_world_2d()==target.get_world_2d(): parent = parent.get_parent()
-	return QUEUE.queue_stream(target,records[index].stream,point,{
-		"audio_parent":parent,"volume_db":GAIN.damage_gain(actual),"pitch":clampf(pitch,0.5,2.0),
+	var ticket:Dictionary = QUEUE.queue_stream(target,records[index].stream,point,{
+		"audio_parent":parent,"volume_db":gain,"pitch":clampf(pitch,0.5,2.0),
 		"priority":true,"keep_after_source":true,
+		# 重击音走 ImpactAccent：重击时压低其他声音，但不压低这一下本身。
+		"bus":(&"ImpactAccent" if actual > 50.0 else &"GameplayRecord"),
 		"metadata":{"mc_sound_event":event,"mc_actual_damage":actual,"mc_damage_serial":serial,"mc_damage_target":target.get_instance_id(),"mc_unified_hit":true}})
+	if not ticket.is_empty():
+		_merge[event] = {"ticket":ticket,"count":1,"gain":gain}
+	return ticket
