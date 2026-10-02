@@ -29,7 +29,8 @@
 | 扩张圆环连续扫掠 | `classes/expanding_ring_sweep.gd::segments/contacts` | 真实环带几何；调用方负责伤害、权威结算、去重 |
 | 武器尖端连续扫掠 | `classes/weapon_tip_sweep.gd::contacts(...)` | 只查几何 |
 | 真实墙接触 | `ball.wall_contact_impact(normal_speed,point)`；`SurfaceAcceleration.reflect_momentum` | 伤害由订阅者结算 |
-| 击退/眩晕 | `apply_knockback(dir,dist,speed,bounce,stun,{"source":caster})` / `apply_stun(duration,caster)` | 不复制 `knockback_effect.gd`，不裸写 `Repel` |
+| 击退/眩晕 | `apply_knockback(dir,dist,speed,bounce,stun,{"source":caster})` / `apply_stun(duration,caster)` | 普通击退为可叠加衰减冲量，不锁移动/攻击/技能，dist 仅作无阻挡参考；明确眩晕独立锁控。不裸写 `Repel` |
+| 人物身体运动 | `ball.move/stand`；特殊轨迹 `move_with_body_slide/collision` | 公共 `character_motion.gd` 结算双方反弹与真实形状限量纠偏，所有规模保留实体碰撞；普通角色等质量，明确不可推动者才例外。停止自驱不等于免疫外力 |
 | 强控判断 | `ball.is_hard_controlled()` | 不把 `dizziness` 一律当眩晕 |
 | 可挣脱牵引 | `knockback_effect.gd::set_pull/release_pull` | 每步刷新、不锁输入 |
 | 不改属性的减速 | `ball.set_motion_speed_factor(key,source,factor,left)` | 不改 `Speed`，多条取乘积 |

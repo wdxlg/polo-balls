@@ -88,21 +88,9 @@ func step_zombie(delta:float) -> void:
 	var distance:float = global_position.distance_to(point)
 	if distance <= CHASE_RANGE:
 		var toward:Vector2 = global_position.direction_to(point)
-		if distance < bite_reach()*0.72 or body_too_close(target,toward):
-			direction = -toward if toward != Vector2.ZERO else Vector2.LEFT
-		elif distance <= bite_reach():
-			direction = toward
-			_hold_distance = true
-		else:
-			direction = toward
+		direction = toward
+		_hold_distance = distance <= bite_reach()
 	if bite_cooldown <= 0.0: begin_bite(target)
-func body_too_close(target:ball,toward:Vector2) -> bool:
-	var other:CollisionShape2D = target.collision_shape_2d
-	if collision_shape_2d == null or other == null or collision_shape_2d.disabled or other.disabled: return false
-	if collision_shape_2d.shape == null or other.shape == null: return false
-	var predicted:Transform2D = collision_shape_2d.global_transform
-	predicted.origin += toward*2.0*COPY_SIZE.of(self)
-	return collision_shape_2d.shape.collide(predicted,other.shape,other.global_transform)
 func move(speed:float,delta:float):
 	if not is_player_controlled() and _hold_distance:
 		stand(delta)

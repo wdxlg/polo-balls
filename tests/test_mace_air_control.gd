@@ -66,12 +66,12 @@ func control_cases(role:String) -> void:
 	for warm:int in 6: await process_frame
 	check(unit._airborne and unit._flight_elapsed>0.0,"real airborne chain started: "+role)
 	var knock:Node = unit.apply_knockback(Vector2.RIGHT,40.0,120.0,0.0,0.0,{"source":enemy})
-	check(is_instance_valid(knock) and unit.dizziness and not unit.is_hard_controlled(),"ordinary knockback input lock is not hard control: "+role)
+	check(is_instance_valid(knock) and not unit.dizziness and not unit.is_hard_controlled(),"ordinary knockback has no input lock: "+role)
 	var before:float = unit._flight_elapsed
 	step(unit,0.01)
 	check(unit._flight_elapsed>before,"ordinary knockback does not pause the jump: "+role)
 	knock._finish_knockback(false)
-	check(not unit.is_hard_controlled(),"knockback recovery is still only a soft lock: "+role)
+	check(not unit.is_hard_controlled(),"knockback completion adds no recovery lock: "+role)
 	knock.free()
 	var cold:Node = cold_script.ensure(unit)
 	check(cold.add_cold(50.0,0.5,enemy) and not unit.is_hard_controlled(),"partial cold is only a slow: "+role)

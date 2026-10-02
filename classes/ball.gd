@@ -1001,30 +1001,7 @@ func apply_knockback(
 		options = options.duplicate()
 		options["source"] = control_source
 
-	# V10.1：同一个角色同时只保留一个通用击退控制器。
-	# 以前多人/多技能同帧命中会生成多个 KnockbackEffect，
-	# 它们都在物理帧末尾写 Repel，最后执行的那个会覆盖前面的结果，
-	# 于是会出现忽左忽右、突然停顿、撞墙后二次加速等不稳定观感。
-	# 现在新击退默认平滑重定向现有控制器；确实需要并行效果时仍可显式 replace_existing=false。
-	if bool(options.get("replace_existing",true)):
-		for child in get_children():
-			if child == null or not is_instance_valid(child):
-				continue
-			if child.get_script() != KNOCKBACK_EFFECT_SCRIPT:
-				continue
-			if child.has_method("is_active_effect") and not bool(child.call("is_active_effect")):
-				continue
-			if child.has_method("replace_with_hit"):
-				child.call(
-					"replace_with_hit",
-					knockback_direction,
-					maxf(knockback_distance,0.0),
-					maxf(knockback_speed,0.0),
-					maxf(wall_bounce_strength,0.0),
-					maxf(stun_duration,0.0),
-					options
-				)
-				return child
+	# Each hit owns one additive impulse; replacing a vector loses simultaneous impacts.
 
 	var effect = KNOCKBACK_EFFECT_SCRIPT.new()
 	effect.name = "KnockbackEffect_%d" % Time.get_ticks_usec()
@@ -1037,7 +1014,7 @@ func apply_knockback(
 	effect.max_wall_bounces = maxi(int(options.get("max_wall_bounces",1)),0)
 	effect.stop_on_character = bool(options.get("stop_on_character",true))
 	effect.character_bounce_strength = maxf(float(options.get("character_bounce_strength",0.0)),0.0)
-	effect.lock_control_during_knockback = bool(options.get("lock_control",true))
+	effect.lock_control_during_knockback = false
 	effect.stun_duration = maxf(stun_duration,0.0)
 	effect.stun_only_on_collision = bool(options.get("stun_only_on_collision",false))
 	effect.collision_damage = maxf(float(options.get("collision_damage",0.0)),0.0)
@@ -5059,6 +5036,26 @@ func _compose_body_motion(desired:Vector2,other:Vector2,delta:float) -> Vector2:
 func _resolve_body_motion(incoming:Vector2) -> void:
 	var motion:Node = get_body_motion()
 	if motion != null: motion.resolve_slide(incoming)
+
+# Explicit dash/arc movement bypasses the ordinary motor, not external forces or body response.
+func move_with_body_slide(delta:float) -> bool:
+	var motion:Node = get_body_motion()
+	if motion != null: velocity = motion.compose_direct(velocity,delta)
+	_last_requested_velocity = velocity
+	var collided:bool = move_and_slide()
+	_resolve_body_motion(_last_requested_velocity)
+	return collided
+func move_with_body_collision(motion_vector:Vector2,delta:float) -> KinematicCollision2D:
+	var motion:Node = get_body_motion()
+	var dt:float = maxf(delta,0.000001)
+	velocity = motion_vector/dt
+	if motion != null: velocity = motion.compose_direct(velocity,dt)
+	_last_requested_velocity = velocity
+	var contact:KinematicCollision2D = move_and_collide(velocity*dt)
+	if motion != null and contact != null:
+		motion.resolve_contact(contact)
+		velocity = motion.current_velocity
+	return contact
 
 func move(speed:float,delta:float):
 	if apply_transport_pose(): return

@@ -12,6 +12,7 @@ var impulses:Dictionary = {}
 var _initialized:bool = false
 var _advance_frame:int = -1
 var _compose_frame:int = -1
+var _direct_frame:int = -1
 var _correction_frame:int = -1
 var _correction_used:float = 0.0
 var _last_position:Vector2
@@ -48,10 +49,10 @@ func advance(delta:float) -> void:
 		var entry:Dictionary = impulses[key]
 		if int(entry.frame)<frame: entry.velocity *= exp(-float(entry.drag)*maxf(delta,0.0))
 		if Vector2(entry.velocity).length_squared()<0.01: impulses.erase(key)
-func add_impulse(key:int,value:Vector2,drag:float=CONTACT_DRAG) -> void:
+func add_impulse(key:int,value:Vector2,drag:float=CONTACT_DRAG,wall_bounce:float=RESTITUTION) -> void:
 	if not live() or inverse_mass()<=0.0 or not value.is_finite(): return
 	var previous:Vector2 = impulses[key].velocity if impulses.has(key) else Vector2.ZERO
-	impulses[key] = {"velocity":previous+value,"drag":maxf(drag,0.1),"frame":Engine.get_physics_frames()}
+	impulses[key] = {"velocity":previous+value,"drag":maxf(drag,0.1),"frame":Engine.get_physics_frames(),"wall_bounce":maxf(wall_bounce,0.0)}
 	current_velocity += value
 func remove_impulse(key:int) -> void:
 	if impulses.has(key):
@@ -75,6 +76,15 @@ func compose(desired:Vector2,other:Vector2,delta:float) -> Vector2:
 	_compose_frame = Engine.get_physics_frames()
 	current_velocity = motor+other+impulse_velocity()
 	return current_velocity
+func compose_direct(value:Vector2,delta:float) -> Vector2:
+	if not live(): return Vector2.ZERO
+	advance(delta)
+	_direct_frame = Engine.get_physics_frames()
+	_compose_frame = _direct_frame
+	_initialized = true
+	motor = value
+	current_velocity = value+impulse_velocity()
+	return current_velocity
 func resolve_slide(incoming:Vector2) -> void:
 	if not live() or externally_driven(): return
 	current_velocity = incoming
@@ -92,12 +102,21 @@ func resolve_contact(collision:KinematicCollision2D) -> void:
 	if actor._is_external_gravity_quiet_support_collision(collision): return
 	var approach:float = current_velocity.dot(normal)
 	if approach < -0.1:
-		var delta_v:Vector2 = -(1.0+RESTITUTION)*approach*normal
-		add_impulse(0,delta_v)
+		# Transform owned momentum in place, so ending one effect cannot expose an opposite
+		# cancellation impulse. Per-effect wall bounce never scales the tangent.
+		var before:Vector2 = impulse_velocity()
+		for entry:Dictionary in impulses.values():
+			var value:Vector2 = entry.velocity
+			entry.velocity = value-(1.0+float(entry.wall_bounce))*value.dot(normal)*normal
+		var change:Vector2 = impulse_velocity()-before
+		var non_impulse:Vector2 = current_velocity-before
+		current_velocity += change
+		add_impulse(0,-(1.0+RESTITUTION)*non_impulse.dot(normal)*normal)
 		reflect_motor(normal)
 func reflect_motor(normal:Vector2) -> void:
 	if actor.is_player_controlled() or actor.direction.dot(normal)>=0.0: return
 	actor.direction = actor.direction.bounce(normal).normalized()
+	if _direct_frame == Engine.get_physics_frames(): return
 	var change:Vector2 = motor.bounce(normal)-motor if motor.dot(normal)<0.0 else Vector2.ZERO
 	motor += change
 	current_velocity += change
@@ -122,7 +141,7 @@ func resolve_pair(other:Node,normal:Vector2) -> void:
 	other.velocity = b.current_velocity
 	reflect_motor(normal)
 	b.reflect_motor(-normal)
-func _safe_shift(unit:Node,offset:Vector2) -> Vector2:
+func _safe_shift(unit:Node,offset:Vector2,partner:Node) -> Vector2:
 	if offset.length_squared()<0.000001: return Vector2.ZERO
 	var owner_motion:Node = unit.get_body_motion()
 	if owner_motion._correction_frame != Engine.get_physics_frames():
@@ -134,12 +153,16 @@ func _safe_shift(unit:Node,offset:Vector2) -> Vector2:
 	query.shape = cs.shape
 	query.transform = cs.global_transform
 	query.motion = offset
-	query.collision_mask = 1
-	query.exclude = [unit.get_rid()]
+	query.collision_mask = 3
+	var ignored:Array[RID] = [unit.get_rid(),partner.get_rid()]
+	for exception:PhysicsBody2D in unit.get_collision_exceptions():
+		if is_instance_valid(exception): ignored.append(exception.get_rid())
+	query.exclude = ignored
 	var space:PhysicsDirectSpaceState2D = unit.get_world_2d().direct_space_state
 	var cast:PackedFloat32Array = space.cast_motion(query)
 	var move:Vector2 = offset*(cast[0] if not cast.is_empty() else 0.0)
 	query.motion = Vector2.ZERO
+	query.collision_mask = 1
 	query.transform.origin += move
 	if not space.intersect_shape(query,1).is_empty(): return Vector2.ZERO
 	unit.global_position += move
@@ -175,9 +198,9 @@ func separate_overlaps() -> void:
 		var ia:float = inverse_mass()
 		var ib:float = b.inverse_mass()
 		if ia+ib<=0.0: continue
-		var first:Vector2 = _safe_shift(actor,correction*ia/(ia+ib)) if ia>0.0 else Vector2.ZERO
-		var second:Vector2 = _safe_shift(other,-(correction-first)) if ib>0.0 else Vector2.ZERO
-		if ia>0.0: _safe_shift(actor,correction-first+second)
+		var first:Vector2 = _safe_shift(actor,correction*ia/(ia+ib),other) if ia>0.0 else Vector2.ZERO
+		var second:Vector2 = _safe_shift(other,-(correction-first),actor) if ib>0.0 else Vector2.ZERO
+		if ia>0.0: _safe_shift(actor,correction-first+second,other)
 func _physics_process(delta:float) -> void:
 	if not live() or externally_driven(): return
 	advance(delta)
