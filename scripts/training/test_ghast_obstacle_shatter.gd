@@ -43,7 +43,7 @@ func run() -> void:
 	var fx:Node2D=get_nodes_in_group("MCItemFragments").back()
 	check(fx.pieces.size()>1,"table breaks into multiple texture pieces")
 	for piece:Dictionary in fx.pieces:
-		check(piece.sprite.texture.atlas.resource_path.contains("锻造台"),"fragments come from the actual table art, not the crack overlay")
+		check(piece.sprite.texture.atlas.resource_path.contains("smithing_table"),"fragments come from the native smithing table texture, not the crack overlay")
 	var before:Vector2=fx.pieces[0].sprite.global_position
 	fx.advance(0.05)
 	check(fx.pieces[0].sprite.global_position!=before,"original obstacle fragments launch and fall without changing the obstacle flow")

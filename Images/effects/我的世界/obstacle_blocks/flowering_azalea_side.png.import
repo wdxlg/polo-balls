@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b1o7vv6rl62jx"
-path="res://.godot/imported/flowering_azalea_bush.png-89d1bcffb8ca2b791a42cc02c53d7a3f.ctex"
+uid="uid://bh3em3ubgf5st"
+path="res://.godot/imported/flowering_azalea_side.png-c53f36be7069c0e699318db0040cdc25.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Images/characters/我的世界/frontier/flowering_azalea_bush.png"
-dest_files=["res://.godot/imported/flowering_azalea_bush.png-89d1bcffb8ca2b791a42cc02c53d7a3f.ctex"]
+source_file="res://Images/effects/我的世界/obstacle_blocks/flowering_azalea_side.png"
+dest_files=["res://.godot/imported/flowering_azalea_side.png-c53f36be7069c0e699318db0040cdc25.ctex"]
 
 [params]
 

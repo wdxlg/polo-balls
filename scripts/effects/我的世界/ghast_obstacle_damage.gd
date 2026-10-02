@@ -5,6 +5,7 @@ const PROFILE=preload("res://scripts/effects/我的世界/mc_obstacle_properties
 const CRACKS=[preload("res://Images/Status/BlockDamage/destroy_stage_3.png"),preload("res://Images/Status/BlockDamage/destroy_stage_7.png")]
 const CRACK_SHADER=preload("res://scripts/effects/我的世界/ghast_block_cracks.gdshader")
 const FRAGMENTS=preload("res://scripts/effects/我的世界/item_fragments.gd")
+const BLOCK_3D=preload("res://scripts/effects/我的世界/mc_block_3d.gd")
 var records:Dictionary={}
 static func ensure(context:Node) -> Node:
 	var world:Node=context.get_tree().current_scene
@@ -166,6 +167,12 @@ func apply_updates(updates:Array) -> void:
 			continue
 		var crack_index:int=PROFILE.crack_index(node,float(record.progress))
 		if crack_index<0: continue
+		var block:Node2D=null if update.tile else BLOCK_3D.find_in(node)
+		if block!=null:
+			# 原版 3D 方块障碍：裂纹像原版一样贴在方块模型的每个面上，不再盖 2D 贴片。
+			block.set_cracks(CRACKS[mini(crack_index,CRACKS.size()-1)])
+			record.block=block
+			continue
 		if not is_instance_valid(record.overlay):
 			var overlay:=Sprite2D.new()
 			overlay.name="MCBlockCracks"
@@ -190,6 +197,7 @@ func reset_all() -> void:
 	get_parent().remove_meta("mc_smithing_table_destroyed")
 	for record:Dictionary in records.values():
 		if is_instance_valid(record.overlay): record.overlay.queue_free()
+		if is_instance_valid(record.get("block")): record.block.set_cracks(null)
 		if not is_instance_valid(record.node): continue
 		var node:Node=record.node
 		if record.tile:

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cleabi6ym74jk"
-path="res://.godot/imported/azalea_bush.png-ed8eb73623ca4171f0b9fd7fb4ba7dbf.ctex"
+uid="uid://c2ndtfi3bvxuk"
+path="res://.godot/imported/crafting_table_side.png-e5b3360a84e037a00df52d6cfd248764.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Images/characters/我的世界/frontier/azalea_bush.png"
-dest_files=["res://.godot/imported/azalea_bush.png-ed8eb73623ca4171f0b9fd7fb4ba7dbf.ctex"]
+source_file="res://Images/effects/我的世界/obstacle_blocks/crafting_table_side.png"
+dest_files=["res://.godot/imported/crafting_table_side.png-e5b3360a84e037a00df52d6cfd248764.ctex"]
 
 [params]
 

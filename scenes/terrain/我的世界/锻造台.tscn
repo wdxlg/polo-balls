@@ -1,21 +1,15 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/terrain/我的世界/锻造台.gd" id="1_script"]
-[ext_resource type="Texture2D" path="res://Images/terrain/我的世界/锻造台.png" id="2_visual"]
 
 [sub_resource type="RectangleShape2D" id="TableShape"]
-size = Vector2(23, 25.5)
+size = Vector2(16, 16)
 
 [node name="锻造台" type="StaticBody2D"]
 collision_layer = 1
 collision_mask = 2
 script = ExtResource("1_script")
 z_index = 2
-
-[node name="Sprite2D" type="Sprite2D" parent="."]
-texture = ExtResource("2_visual")
-texture_filter = 1
-scale = Vector2(0.025, 0.025)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("TableShape")

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bjqmdt841o1ok"
-path="res://.godot/imported/锻造台.png-217ec56a9e1b62cc4d24ff651a68fdfb.ctex"
+uid="uid://cmmbhxvnymcwf"
+path="res://.godot/imported/smithing_table_side.png-54aad8d5e3aa4967fb28cafb1c70b6ff.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Images/terrain/我的世界/锻造台.png"
-dest_files=["res://.godot/imported/锻造台.png-217ec56a9e1b62cc4d24ff651a68fdfb.ctex"]
+source_file="res://Images/effects/我的世界/obstacle_blocks/smithing_table_side.png"
+dest_files=["res://.godot/imported/smithing_table_side.png-54aad8d5e3aa4967fb28cafb1c70b6ff.ctex"]
 
 [params]
 

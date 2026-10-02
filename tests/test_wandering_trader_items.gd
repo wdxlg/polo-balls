@@ -387,6 +387,9 @@ func run() -> void:
 		cactus.global_position=center+Vector2(0,-20) # open floor, clear of the tiny map's walls
 		await physics_frame
 		check(cactus.body.collision_layer==1,"cactus is a solid obstacle (layer 1)")
+		var cactus_cell:float = cactus.BLOCK.map_cell(cactus)
+		check(cactus.block.model==&"cactus" and is_equal_approx(cactus.block.cell,cactus_cell) and is_instance_valid(cactus.block.mesh_instance()),"cactus is a native 3D block exactly one map cell wide")
+		check(is_equal_approx(cactus.body_size,cactus_cell*14.0/16.0),"cactus collision is the vanilla 14/16 body of that block")
 		var probe:Node2D=await dummy("E6","Team1",center+Vector2(0,70))
 		var r:Rect2=cactus.rect()
 		var half:Vector2=CATALOG.body_rect(probe).size*0.5
@@ -394,10 +397,11 @@ func run() -> void:
 		probe.global_position=Vector2(r.position.x-half.x-0.5,r.get_center().y)
 		await seconds(0.1)
 		check(hpp-probe.health>=7.9,"touching its left side hurts (%.1f)" % (hpp-probe.health))
-		hpp=probe.health
-		probe.global_position=Vector2(r.get_center().x,r.position.y-half.y-0.5)
-		await seconds(0.6)
-		check(probe.health==hpp,"its top face is harmless")
+		for face:Vector2 in [Vector2.UP,Vector2.RIGHT,Vector2.DOWN]:
+			hpp=probe.health
+			probe.global_position=r.get_center()+face*(r.size*0.5+half+Vector2.ONE*0.5)
+			await seconds(0.6)
+			check(hpp-probe.health>=7.9,"touching its %s face hurts too (%.1f)" % [face,hpp-probe.health])
 		var hph:float=trader.health
 		var tpos:Vector2=trader.global_position
 		trader.global_position=Vector2(r.end.x+CATALOG.body_rect(trader).size.x*0.5+0.5,r.get_center().y);trader.direction=Vector2.ZERO

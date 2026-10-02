@@ -1,9 +1,11 @@
 extends StaticBody2D
 ## One fixed, solid obstacle bench per sword family. No global/shared repair pairing.
-const TABLE:Texture2D = preload("res://Images/characters/我的世界/frontier/table_block.png")
+## Native single-block 3D crafting table (mc_block_3d.gd); its collision is exactly one map cell.
+const BLOCK = preload("res://scripts/effects/我的世界/mc_block_3d.gd")
 const BAR = preload("res://scripts/characters/我的世界/frontier/creeper_style_bar.gd")
 const U = preload("res://scripts/characters/我的世界/new5/utils.gd")
-const BENCH_SIZE:float = 34.0
+var bench_size:float = BLOCK.DEFAULT_CELL
+var block:Node2D
 var obstacle_shape:CollisionShape2D
 var _solid:bool = false
 var image:Sprite2D
@@ -23,9 +25,10 @@ var _empty_time:float = 0.0
 func _ready() -> void:
 	collision_layer=0
 	collision_mask=2
+	bench_size=BLOCK.map_cell(self)
 	obstacle_shape=CollisionShape2D.new()
 	var shape:=RectangleShape2D.new()
-	shape.size=Vector2.ONE*BENCH_SIZE
+	shape.size=Vector2.ONE*bench_size
 	obstacle_shape.shape=shape
 	obstacle_shape.disabled=true
 	add_child(obstacle_shape)
@@ -35,11 +38,10 @@ func _ready() -> void:
 	z_as_relative = false
 	z_index = 2
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	var sprite := Sprite2D.new()
-	image = sprite
-	sprite.texture = TABLE
-	sprite.scale = Vector2.ONE*BENCH_SIZE/TABLE.get_size()
-	add_child(sprite)
+	block = BLOCK.create(&"crafting_table",bench_size)
+	add_child(block)
+	# Transparent native particle sample: shared block debris still cuts the crafting table.
+	image = block.debris_sample
 	update_opacity()
 func is_materialized() -> bool:
 	return age >= materialize_duration
@@ -50,6 +52,7 @@ func update_opacity() -> void:
 		set_deferred("collision_layer",1 if solid else 0)
 		obstacle_shape.set_deferred("disabled",not solid)
 	modulate.a = lerpf(0.2,1.0,clampf(age/maxf(materialize_duration,0.001),0.0,1.0))
+	if is_instance_valid(block): block.set_alpha(modulate.a)
 func bind_piece(piece:Node2D) -> void:
 	for ref:WeakRef in pieces:
 		if ref.get_ref() == piece: return
@@ -64,7 +67,7 @@ func living_pieces() -> Array[ball]:
 	return result
 func touching(piece:ball) -> bool:
 	if _consumed or piece.health<=0 or piece.sword_family!=family or piece.dock_delay>0.0: return false
-	var half:Vector2=Vector2.ONE*BENCH_SIZE*0.5
+	var half:Vector2=Vector2.ONE*bench_size*0.5
 	var closest:Vector2=global_position+ (piece.global_position-global_position).clamp(-half,half)
 	if piece.global_position.distance_to(closest)>U.radius(piece)+2.0: return false
 	# The bench itself must not occlude its own repair contact; other walls still do.
@@ -129,7 +132,7 @@ func complete_repair() -> void:
 func _draw() -> void:
 	if progress <= 0.0: return
 	var ratio:float = clampf(progress/repair_duration,0,1)
-	BAR.paint(self,Rect2(-15,25,30,30*16.0/110.0),ratio,ratio)
+	BAR.paint(self,Rect2(-15,bench_size*0.5+8.0,30,30*16.0/110.0),ratio,ratio)
 
 func is_character_visual_flipped_h() -> bool: return false
 func break_bench() -> void:

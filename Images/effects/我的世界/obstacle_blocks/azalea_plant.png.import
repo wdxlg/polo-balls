@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cwrc88etttefr"
-path="res://.godot/imported/锻造台.svg-1ee1e532d5e180adc0b66c43e36c018c.ctex"
+uid="uid://c5u1f3m4stcty"
+path="res://.godot/imported/azalea_plant.png-e9dbef9cff4816557ef9f70c28a7e53a.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Images/terrain/我的世界/锻造台.svg"
-dest_files=["res://.godot/imported/锻造台.svg-1ee1e532d5e180adc0b66c43e36c018c.ctex"]
+source_file="res://Images/effects/我的世界/obstacle_blocks/azalea_plant.png"
+dest_files=["res://.godot/imported/azalea_plant.png-e9dbef9cff4816557ef9f70c28a7e53a.ctex"]
 
 [params]
 
@@ -38,6 +38,3 @@ process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
 detect_3d/compress_to=1
-svg/scale=1.0
-editor/scale_with_editor_scale=false
-editor/convert_colors_with_editor_theme=false

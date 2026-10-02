@@ -13,13 +13,17 @@ func run() -> void:
 		piece.state_machine.set_physics_process(false)
 		piece.dock_delay=0
 		piece.global_position=o+Vector2(80 if piece==sword else -80,0)
-	check(bench.image.texture.get_size()*bench.image.scale==Vector2(34,34),"workbench image is reduced from 40 to 34")
-	check(bench.obstacle_shape.shape.size==Vector2(34,34),"physical obstacle matches reduced image size")
+	var cell:float = bench.BLOCK.map_cell(bench)
+	check(is_equal_approx(bench.bench_size,cell) and bench.block.model==&"crafting_table" and is_instance_valid(bench.block.mesh_instance()),"workbench is a native 3D crafting table exactly one map cell wide")
+	check(bench.image==bench.block.debris_sample and bench.image.texture.get_size()*bench.image.scale==Vector2.ONE*cell,"debris sample covers the same single block")
+	check(bench.obstacle_shape.shape.size==Vector2.ONE*cell,"physical obstacle matches the single 3D block")
+	check(bench.block.alpha<1.0,"materializing 3D table is translucent")
 	check(bench.collision_layer==0,"materializing workbench remains nonblocking")
 	bench.age=bench.materialize_duration; bench.update_opacity()
 	await process_frame
 	await physics_frame
 	check(bench.collision_layer==1 and not bench.obstacle_shape.disabled,"materialized workbench becomes a real terrain obstacle")
+	check(is_equal_approx(bench.block.alpha,1.0),"materialized 3D table is opaque")
 	var ray:=PhysicsRayQueryParameters2D.create(o+Vector2(-60,0),o+Vector2(60,0),1)
 	var hit:Dictionary=world.get_world_2d().direct_space_state.intersect_ray(ray)
 	check(hit.get("collider")==bench,"ordinary obstacle raycasts hit the workbench")
@@ -32,7 +36,7 @@ func run() -> void:
 	check(collision!=null and collision.get_collider()==bench and body.global_position.x<o.x,"moving body cannot pass through the table")
 	body.queue_free()
 	for piece:Node2D in parts:
-		piece.global_position=o+Vector2((17+sword.U.radius(piece)-0.5)*(1 if piece==sword else -1),0)
+		piece.global_position=o+Vector2((cell*0.5+sword.U.radius(piece)-0.5)*(1 if piece==sword else -1),0)
 		check(bench.touching(piece),"fragment can repair from the outside edge without seeing the bench as an obstruction")
 	bench.advance(0.25)
 	check(bench.progress>0 and parts[0].repairing and parts[1].repairing,"both fragments can start normal repair while outside solid bench")
@@ -41,7 +45,9 @@ func run() -> void:
 		var updates:Array=manager.collect_blast(sword,o,24)
 		check(updates.any(func(u:Dictionary): return str(u.get("path",""))==str(world.get_path_to(bench))),"normal obstacle blast collection finds workbench")
 		manager.apply_updates(updates)
-		if n<2: check(not bench.is_queued_for_deletion(),"workbench survives before third obstacle blast")
+		if n<2:
+			check(not bench.is_queued_for_deletion(),"workbench survives before third obstacle blast")
+			check(bench.block.crack_texture!=null and bench.block.crack_instance().visible and bench.find_child("MCBlockCracks",true,false)==null,"cracks are drawn on the 3D block faces, not as a flat 2D patch")
 	check(bench.is_queued_for_deletion() and sword.bench_destroyed and parts[1].bench_destroyed,"third blast destroys obstacle and invalidates its family's repair bench")
 	await process_frame
 	sword.ensure_workbench()

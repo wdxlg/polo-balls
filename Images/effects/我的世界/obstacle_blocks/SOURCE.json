@@ -1,0 +1,74 @@
+{
+ "source": "Minecraft Java Edition 1.21.4 client textures (assets/minecraft/textures/block), mirrored by InventivetalentDev/minecraft-assets",
+ "models": "assets/minecraft/models/block: crafting_table, smithing_table, cactus, template_azalea, azalea, flowering_azalea, short_grass/tinted_cross (elements transcribed in scripts/effects/我的世界/mc_block_3d.gd)",
+ "files": {
+  "azalea_plant.png": {
+   "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/azalea_plant.png",
+   "sha1": "e394d856217a752270b4168de16eb3f1e23bbc05"
+  },
+  "azalea_side.png": {
+   "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/azalea_side.png",
+   "sha1": "e5154bd325d715a7d9948ba552374803cfe2e630"
+  },
+  "azalea_top.png": {
+   "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/azalea_top.png",
+   "sha1": "5fccda8dcd89a27a66d5c9caf02b6b0c8b8420f9"
+  },
+  "cactus_bottom.png": {
+   "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/cactus_bottom.png",
+   "sha1": "839cc92406cc96dbeecc8971d3fbf0e054f8c0e4"
+  },
+  "cactus_side.png": {
+   "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/cactus_side.png",
+   "sha1": "23f0a74a32347e1cd74fa23606818e7e720643c9"
+  },
+  "cactus_top.png": {
+   "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/cactus_top.png",
+   "sha1": "c97332825eb3ab687f6f59535899a766a11e0311"
+  },
+  "crafting_table_front.png": {
+   "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/crafting_table_front.png",
+   "sha1": "0a5877913895388317147cfc9b5ac15cbc00ef74"
+  },
+  "crafting_table_side.png": {
+   "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/crafting_table_side.png",
+   "sha1": "d005edad449306c763fb8402eee66e6176a744e8"
+  },
+  "crafting_table_top.png": {
+   "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/crafting_table_top.png",
+   "sha1": "c5f670d0af5190877f341f6aeca08616433eacad"
+  },
+  "flowering_azalea_side.png": {
+   "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/flowering_azalea_side.png",
+   "sha1": "efe9ad2c14ec2e1e1faa9fd36242760ccfaef405"
+  },
+  "flowering_azalea_top.png": {
+   "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/flowering_azalea_top.png",
+   "sha1": "f615af4cf7d414dfa2be50a39a4729b3e2e41b74"
+  },
+  "oak_planks.png": {
+   "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/oak_planks.png",
+   "sha1": "00ee799274746088244510dfb2d708507a7ca75b"
+  },
+  "short_grass.png": {
+   "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/short_grass.png",
+   "sha1": "8229e9e04b4d7b08d316968a25ab368fb1e9dc75"
+  },
+  "smithing_table_bottom.png": {
+   "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/smithing_table_bottom.png",
+   "sha1": "46bb98906eb39f81b39b5bcfa383ec40b5acab31"
+  },
+  "smithing_table_front.png": {
+   "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/smithing_table_front.png",
+   "sha1": "30a9887bccc67133794abd59ff1ba8c3cc4e1784"
+  },
+  "smithing_table_side.png": {
+   "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/smithing_table_side.png",
+   "sha1": "17a1e3b9a57b3ab5dda9a4a5ba281c4ef8f83c9c"
+  },
+  "smithing_table_top.png": {
+   "url": "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.21.4/assets/minecraft/textures/block/smithing_table_top.png",
+   "sha1": "f3ca281d62f76b7875b324847d7c2d2ff68688c3"
+  }
+ }
+}

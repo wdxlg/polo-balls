@@ -44,12 +44,24 @@ func run() -> void:
 	moss.patches.assign([{"point":origin,"layers":1,"serial":1},{"point":two,"layers":2,"serial":2},{"point":three,"layers":3,"serial":3}])
 	var canopy:Node2D = moss.get_node("MossAzaleaCanopy")
 	check(is_equal_approx(canopy.nearby_alpha,0.40),"both azalea variants retain at least 40% opacity when shaded")
-	check(canopy.top_level and not canopy.z_as_relative and canopy.z_index > moss.image.z_index and canopy.z_index > 101,"both bush variants render above ground, fighters and elytra")
-	check(canopy.AZALEA.get_size() == Vector2(16,22) and canopy.FLOWERING.get_size() == Vector2(16,22) and canopy.AZALEA != canopy.FLOWERING,"nonflowering and flowering native-texture bushes are distinct real assets")
 	var cells:Dictionary = canopy._canopy_cells()
 	var two_cell:Vector2i = moss.cell_at(two)
 	var three_cell:Vector2i = moss.cell_at(three)
-	check(cells.size() == 2 and cells.has(two_cell) and cells.has(three_cell) and not cells.has(moss.cell_at(origin)),"one layer stays bare; two and three gain their canopies")
+	var origin_cell:Vector2i = moss.cell_at(origin)
+	check(cells.size() == 2 and cells.has(two_cell) and cells.has(three_cell) and not cells.has(origin_cell),"one layer has no bush; two and three gain their bushes")
+	canopy._process(0.0)
+	var plants:Dictionary = canopy._plant_cells()
+	check(plants[two_cell] == BUSH.AZALEA and plants[three_cell] == BUSH.FLOWERING,"deeper moss grows native azalea, then flowering azalea, instead of stacking moss")
+	check(plants.has(origin_cell) == BUSH.grows_grass(origin_cell) and (not plants.has(origin_cell) or plants[origin_cell] == BUSH.GRASS),"single-layer moss only grows the per-cell short grass")
+	var grass_cells:int = 0
+	for x:int in range(-10,10):
+		for y:int in range(-10,10):
+			if BUSH.grows_grass(Vector2i(x,y)): grass_cells += 1
+	check(grass_cells > 80 and grass_cells < 200,"short grass appears on part of the single-layer cells (%d/400)" % grass_cells)
+	var bush:Node2D = canopy.plant_block(two_cell)
+	var flowering:Node2D = canopy.plant_block(three_cell)
+	check(is_instance_valid(bush) and bush.model == &"azalea" and is_instance_valid(bush.mesh_instance()) and is_equal_approx(bush.cell,moss.CELL),"azalea is a single-block 3D model")
+	check(is_instance_valid(flowering) and flowering.model == &"flowering_azalea" and flowering.global_position.is_equal_approx(moss.point_for_cell(three_cell)),"flowering azalea stands on its own moss cell")
 	var fx_source:String = FileAccess.get_file_as_string("res://scripts/characters/我的世界/frontier/fx.gd")
 	var moss_draw:String = fx_source.split("func _draw_moss")[1].split("func _draw_sword")[0]
 	check(moss_draw.count("draw_texture_rect(MOSS,") == 2 and not moss_draw.contains("for layer:"),"all moss depths draw one ground tile, with one preview at most")
@@ -88,6 +100,7 @@ func run() -> void:
 	check(is_equal_approx(canopy._alpha_for_cell(two_cell),return_half),"re-entering mid-transition retains the current alpha")
 	canopy._process(fade_time*0.1)
 	check(canopy._alpha_for_cell(two_cell) < return_half,"re-entering reverses smoothly toward nearby opacity")
+	check(is_equal_approx(canopy.plant_block(two_cell).alpha,canopy._alpha_for_cell(two_cell)),"3D azalea uses the faded opacity")
 	walker.free()
 	canopy._process(0.0)
 	canopy._process(fade_time)
@@ -113,7 +126,7 @@ func run() -> void:
 	projectile.free()
 	var object_sprite:=Sprite2D.new()
 	world.add_child(object_sprite)
-	object_sprite.texture = canopy.AZALEA
+	object_sprite.texture = moss.BODY
 	object_sprite.add_to_group("BattleTransient")
 	object_sprite.global_position = two
 	check(canopy._faded_cells(cells).has(two_cell),"visible world objects also fade canopy")
@@ -132,6 +145,7 @@ func run() -> void:
 	canopy._process(0.0)
 	check(not canopy._canopy_cells().has(two_cell) and canopy._canopy_cells().has(three_cell),"consumed layer removes azalea without leaving visual ghosts")
 	check(not canopy._alpha_states.has(two_cell),"consumed azalea releases its opacity state")
+	check(canopy.plant_block(two_cell) == null or canopy.plant_block(two_cell).model == &"short_grass","consumed azalea removes its 3D bush")
 	moss.health = 0
 	canopy._process(0.0)
 	check(not canopy.visible and canopy._alpha_states.is_empty(),"owner death immediately hides canopies and clears opacity states")
