@@ -117,7 +117,7 @@ class LayerSet:
             a = rgba[..., 3] > 10; b = rest[..., 3] > 10
             diffs.append(int((a ^ b).sum() + (np.abs(rgba.astype(int) - rest.astype(int)).sum(-1)[a & b] > 24).sum()))
         n = len(diffs); best = min(diffs)
-        cand = [i for i, d in enumerate(diffs) if d <= best + max(6, best * 0.15)
+        cand = [i for i, d in enumerate(diffs) if d <= best + max(getattr(self, 'neutral_tolerance', 6), best * 0.15)
                 and d <= diffs[(i - 1) % n] and d <= diffs[(i + 1) % n]]
         # collapse neighbours, keep the minimum of each run
         out = []

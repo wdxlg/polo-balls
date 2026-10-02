@@ -4,6 +4,11 @@ const SHRIEKER:Texture2D = preload("res://Images/characters/我的世界/frontie
 const WARDEN:SpriteFrames = preload("res://Images/characters/我的世界/frontier/warden_frames.tres")
 const NOISE = preload("res://scripts/characters/我的世界/frontier/battle_noise.gd")
 const WAVE = preload("res://scripts/characters/我的世界/frontier/warden_wave.gd")
+const MC_LEGS = preload("res://scripts/effects/我的世界/mc_legs.gd")
+## 独立腿部步态（mc_legs.gd）：走路相位 = 真实位移 / 自身标准移速（苏醒 66、潜伏 54），近战与音爆时腿照常迈。
+var gait:RefCounted
+var _leg_index:int = -1
+var _legs_delta:float = 0.0
 enum Form { DORMANT, EMERGING, AWAKE, BURROWING }
 @export var listen_range:float = 360.0
 @export var hearing_fx_threshold:float = 16.0
@@ -503,8 +508,30 @@ func player_control_action(action_index:int) -> void:
 	elif action_index==1: begin_sonic()
 	elif action_index==2: begin_probe()
 	elif action_index==3: begin_burrow()
+func _process(delta:float) -> void:
+	_legs_delta += maxf(delta,0.0)
+	super._process(delta)
+
+func _warden_gait() -> RefCounted:
+	if gait == null:
+		var cycle:float = float(WARDEN.get_frame_count(&"walk"))/maxf(WARDEN.get_animation_speed(&"walk"),0.001)
+		gait = MC_LEGS.for_set("warden",cycle)
+		gait.observe(self)
+		MC_LEGS.prewarm("warden")
+	return gait
+
 func visual_mob() -> void:
 	if not is_instance_valid(image): return
+	var legs:RefCounted = _warden_gait()
+	var legs_step:float = _legs_delta
+	_legs_delta = 0.0
+	if form == Form.AWAKE and health > 0 and is_combat_runtime_active():
+		legs.tick(self,legs_step,not dizziness)
+	else:
+		# Dormant shrieker / emerge / dig own their full-body poses.
+		legs.observe(self)
+		legs.reset_rest()
+	_leg_index = -1
 	update_form_collider(form in [Form.AWAKE,Form.BURROWING])
 	# Keep the Shrieker and collision geometry at their original scale. All
 	# Warden artwork, including emerge and dig, uses one consistent 1.4x scale.
@@ -519,10 +546,16 @@ func visual_mob() -> void:
 		elif sonic_left>0.0: clip=&"sonic"; progress=(1.0-sonic_left/sonic_windup)*0.72
 		elif sonic_recover>0.0: clip=&"sonic"; progress=0.72+0.28*(1.0-sonic_recover/0.5)
 		elif melee_visual_left>0.0: clip=&"attack"; progress=1.0-melee_visual_left/0.4
-		elif velocity.length_squared()>4.0: clip=&"walk"
+		elif not legs.at_rest: clip=&"walk" # real displacement, not steering into a wall
 		var count:int = WARDEN.get_frame_count(clip)
 		var index:int = clampi(roundi(clampf(progress,0,1)*float(count-1)),0,count-1) if progress>=0 else int(_view_clock*WARDEN.get_animation_speed(clip))%count
-		image.texture = WARDEN.get_frame_texture(clip,index)
+		if clip == &"walk": index = legs.walk_index(count)
+		var composed:Texture2D = null
+		if not legs.at_rest and MC_LEGS.has_upper("warden",clip):
+			_leg_index = legs.walk_index(int(MC_LEGS.layer_data("warden").WALK))
+			composed = MC_LEGS.compose("warden",clip,index,_leg_index)
+			if composed == null: _leg_index = -1
+		image.texture = composed if composed != null else WARDEN.get_frame_texture(clip,index)
 	image.rotation = listen_heading.angle() if form==Form.DORMANT else 0.0
 	face_horizontal(direction,true)
 	# Keep bars and echo icons, but never show overhead status text in any form.

@@ -168,6 +168,7 @@ func run() -> void:
 	# --- second wave: spider / drowned (mc_native_animation) + witch / skeleton / creeper (batch2)
 	await action_suite(center)
 	await pair_suite(center)
+	await warden_suite(center)
 	# --- cache bound
 	var cache:Dictionary = LEGS._cache.get("enderman",{})
 	check(cache.is_empty() or (cache["order"] as Array).size() <= LEGS.CACHE_PER_SET,"composite cache bounded")
@@ -338,6 +339,50 @@ func pair_suite(center:Vector2) -> void:
 	check(absf(wrapf(vg.phase-before,-0.5,0.5)) > 0.2,"villager: tick_physics advances legs from real displacement")
 	g.queue_free()
 	v.queue_free()
+
+func warden_step(w:Node2D,ratio:float,frames_n:int,setup:Callable) -> Dictionary:
+	var v:float = LEGS.standard_speed(w)*ratio
+	var out:Dictionary = {"legs":{},"clips":{}}
+	for i:int in range(frames_n):
+		setup.call()
+		w.global_position.x += v/60.0
+		w._legs_delta = 1.0/60.0
+		w.visual_mob()
+		out.legs[w._leg_index] = true
+	return out
+
+func warden_suite(center:Vector2) -> void:
+	var w:Node2D = spawn("res://scenes/characters/我的世界/监守者.tscn",center+Vector2(500,300))
+	await process_frame
+	await process_frame
+	w.set_process(false)
+	w._form_stats(true)
+	w.form = w.Form.AWAKE
+	var g:RefCounted = w._warden_gait()
+	check(is_equal_approx(LEGS.standard_speed(w),66.0*0.6) and (g.neutral as Array).size() == 2,"warden: awake standard speed 66 x 0.6, 2 rest phases")
+	var none:Callable = func(): pass
+	var idx:Dictionary = {}
+	for i:int in range(60):
+		w.global_position.x += LEGS.standard_speed(w)/60.0
+		w._legs_delta = 1.0/60.0
+		w.visual_mob()
+		idx[g.walk_index(16)] = w.image.texture == w.WARDEN.get_frame_texture(&"walk",g.walk_index(16))
+	check(idx.size() >= 15 and not idx.values().has(false),"warden: walk frames follow the gait (%d of 16)" % idx.size())
+	var ra:Dictionary = warden_step(w,1.0,20,func(): w.melee_visual_left = 0.3)
+	check(ra.legs.size() >= 6 and not ra.legs.has(-1),"warden: melee while moving keeps legs walking (%d phases)" % ra.legs.size())
+	var rs:Dictionary = warden_step(w,1.0,20,func(): w.sonic_left = w.sonic_windup*0.5)
+	check(rs.legs.size() >= 6 and not rs.legs.has(-1) and LEGS.cached_source_image(w.image.texture) != null,"warden: sonic boom while moving composites walking legs")
+	for i:int in range(60):
+		w.sonic_left = w.sonic_windup*0.5
+		w._legs_delta = 1.0/60.0
+		w.visual_mob()
+	check(g.at_rest and w._leg_index == -1,"warden: sonic while still -> stock frame, legs at rest")
+	w.sonic_left = 0.0
+	w.melee_visual_left = 0.0
+	w._legs_delta = 1.0/60.0
+	w.visual_mob()
+	check(w.image.texture == w.WARDEN.get_frame_texture(&"idle",int(w._view_clock*w.WARDEN.get_animation_speed(&"idle"))%w.WARDEN.get_frame_count(&"idle")),"warden: still -> idle clip")
+	w.queue_free()
 
 func finish(code:int) -> void:
 	if finishing: return

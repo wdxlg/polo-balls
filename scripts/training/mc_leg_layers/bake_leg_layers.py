@@ -234,6 +234,35 @@ def bake_villager():
                         lambda: b.render('villager', 'idle', 0), uppers)
 
 
+def _frontier_module():
+    """mc_frontier_assets/build_assets.py downloads + bakes at import: exec only the Warden rig."""
+    path = TRAINING / 'mc_frontier_assets' / 'build_assets.py'
+    src = path.read_text(encoding='utf8')
+    head = ("from pathlib import Path\nimport copy, importlib.util, json, math\nimport numpy as np\nfrom PIL import Image\n"
+            "B = Path(__file__).resolve().parent\nsource = B / 'resource_pack'\n"
+            "spec = importlib.util.spec_from_file_location('frontier_native_rasterizer', B.parent/'mc_native_assets/bake_native_mobs.py')\n"
+            "m = importlib.util.module_from_spec(spec)\nspec.loader.exec_module(m)\n")
+    body = src[src.index("def vector("):src.index("\nm.W, m.H = 192,240")]
+    ns = {'__file__': str(path), '__name__': 'frontier_warden_rig'}
+    exec(compile(head + body, str(path), 'exec'), ns)
+    return ns
+
+
+def bake_warden():
+    """Warden legs hang from `root` (not `body`); attack / sonic_boom never move them,
+    so the plain walk legs are exact under both actions."""
+    ns = _frontier_module(); m = ns['m']
+    m.W, m.H = 192, 240
+    b = ns['WardenBaker']()
+    clips = {'attack': (10, .33333, False), 'sonic': (24, 3.0, False)}
+    uppers = {c: [lambda t=t, c=c: b.render('warden', c, t) for t in mc16_times(*v)] for c, v in clips.items()}
+    ls = bake_generic('warden', b, b.models['warden'], ('left_leg', 'right_leg'), ('body',),
+                      lambda t: b.render('warden', 'walk', t), mc16_times(16, 1.0, True),
+                      lambda: b.render('warden', 'idle', 0), uppers)
+    ls.neutral_tolerance = 48   # phase 4 differs from idle only by body-sway hip shading (32 px)
+    return ls
+
+
 SETS = {
     'enderman': lambda: bake_native_mobs_set('enderman', ['attack', 'angry_attack']),
     'evoker': lambda: bake_native_mobs_set('evoker', ['cast', 'celebrate']),
@@ -247,6 +276,7 @@ SETS = {
     'golem_2': lambda: bake_golem(2),
     'golem_3': lambda: bake_golem(3),
     'villager': bake_villager,
+    'warden': bake_warden,
 }
 
 COMMENTS = {
@@ -262,6 +292,7 @@ COMMENTS = {
     'golem_2': 'Iron golem (cracked medium): charge / swing upper body over un-swayed walking legs (variants 1-8 = crouch, per charge frame).',
     'golem_3': 'Iron golem (cracked high): charge / swing upper body over un-swayed walking legs (variants 1-8 = crouch, per charge frame).',
     'villager': 'Golem-pair villager: walking legs under the iron-ingot throw.',
+    'warden': 'Warden: walking legs under the melee attack / sonic boom upper body.',
 }
 
 
