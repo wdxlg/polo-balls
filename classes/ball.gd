@@ -4482,6 +4482,7 @@ func _setup_motion_blur_ghost() -> void:
 	_motion_blur_material.shader = BALL_MOTION_BLUR_SHADER
 	_motion_blur_ghost = Sprite2D.new()
 	_motion_blur_ghost.name = "MotionBlurLayer"
+	_motion_blur_ghost.set_meta("mc_enchant_skip",true)
 	_motion_blur_ghost.material = _motion_blur_material
 	_motion_blur_ghost.visible = false
 	_motion_blur_ghost.z_as_relative = true

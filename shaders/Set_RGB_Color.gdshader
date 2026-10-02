@@ -48,6 +48,7 @@ const float DEFORM_PAD = 0.35;
 varying vec2 deform_local_uv;
 
 varying vec4 sprite_modulate;
+#include "res://shaders/mc_enchant_glint.gdshaderinc"
 
 float bell(float x, float center, float width) {
 	float q = (x - center) / max(width, 0.0001);
@@ -223,6 +224,7 @@ void fragment() {
 	out_color.rgb = mix(out_color.rgb, default_color.rgb, defualt_color_mix);
 	out_color.rgb = mix(out_color.rgb, vec3(0.94, 0.98, 1.0), clamp(snow_cold, 0.0, 1.0) * 0.88);
 	out_color.rgb = mix(out_color.rgb, hit_white_color.rgb, power);
+	out_color.rgb += mc_enchant_glint_rgb(warped_uv, TEXTURE_PIXEL_SIZE);
 	float luminance = dot(out_color.rgb,vec3(0.299,0.587,0.114));
 	out_color.rgb = mix(out_color.rgb,vec3(luminance),character_grayscale);
 	COLOR = out_color;

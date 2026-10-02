@@ -10,6 +10,11 @@ const SHADER = preload("res://scripts/effects/我的世界/mc_enchantment_glint.
 const NATIVE_GLINT = preload("res://Images/characters/我的世界/native_frames/trident_masks/enchanted_item_glint.png")
 const NODE_NAME:String = "MinecraftEnchantments"
 const GLINT_NAME:String = "MCEnchantGlint"
+## Shaders that include shaders/mc_enchant_glint.gdshaderinc draw the glint themselves
+## (same flip / soft-body warp / crop as the body); other visuals get a child overlay.
+const GLINT_PARAM:StringName = &"enchant_glint"
+const GLINT_TEXTURE_PARAM:StringName = &"enchant_glint_texture"
+static var _glint_shader_cache:Dictionary = {} # shader instance id -> bool
 const MAX_LEVEL:int = 32767
 const ATTACK_BUFF:String = "MC附魔攻速"
 const WATER_MOVE_BUFF:String = "MC附魔水中移速"
@@ -37,7 +42,7 @@ const CREATURE_FAMILIES:Dictionary = {
 @export var enchantments:Dictionary = {} # minecraft ID -> -32767..-1 / 1..32767 (negative = inverse)
 ## Runtime-granted enchantments (Enchanting Table) show a live tooltip on the character.
 @export var show_live_tooltip:bool = false
-var _slots:Dictionary = {} # visual instance id -> weak source / overlay
+var _slots:Dictionary = {} # visual instance id -> {source, overlay (weak or null), shader:bool}
 var _clock:float = 0.0
 var _rescan_left:float = 0.0
 var _buff_refresh_left:float = 0.0
@@ -313,6 +318,8 @@ static func preview_entries(target:Node) -> Array[MCPreviewEnchantment]:
 	return result
 
 func _ready() -> void:
+	# Sync glints after characters update their visuals this frame (no one-frame lag).
+	process_priority = 100
 	var valid:Dictionary = {}
 	for raw:Variant in enchantments:
 		var id:String = CATALOG.canonical(str(raw))
@@ -395,10 +402,23 @@ func _process(delta:float) -> void:
 	if _rescan_left <= 0.0:
 		_rescan_left = 0.20
 		_reconcile() # Covers visuals dynamically created or removed after the enchantment.
-	for slot:Dictionary in _slots.values():
-		var overlay:CanvasItem = slot.overlay.get_ref() as CanvasItem
+	for id:int in _slots.keys():
+		var slot:Dictionary = _slots[id]
 		var source:CanvasItem = slot.source.get_ref() as CanvasItem
-		if is_instance_valid(overlay) and is_instance_valid(source):
+		if not is_instance_valid(source): continue
+		# A character may swap its material at runtime (effects, forms): switch drawing mode.
+		if shader_draws_glint(source) != bool(slot.shader):
+			_drop_slot(slot)
+			slot = _make_slot(source)
+			if slot.is_empty():
+				_slots.erase(id)
+				continue
+			_slots[id] = slot
+		if bool(slot.shader):
+			_apply_shader_glint(source)
+			continue
+		var overlay:CanvasItem = (slot.overlay as WeakRef).get_ref() as CanvasItem
+		if is_instance_valid(overlay):
 			_sync_overlay(source,overlay)
 			(overlay.material as ShaderMaterial).set_shader_parameter("glint_time",_clock)
 
@@ -426,6 +446,7 @@ static func _set_combat_buff(world:Node,actor:ball,key:String,factor:float,buff_
 		if actor_buffs.has(key): world.call("new_buff",actor,actor,key,Buff.new(),"delete")
 
 func _exit_tree() -> void:
+	_clear_slots()
 	if _counted_live:
 		_counted_live = false
 		Engine.set_meta(LIVE_META,maxi(int(Engine.get_meta(LIVE_META,0))-1,0))
@@ -492,29 +513,67 @@ func _release_impaling() -> void:
 func _reconcile() -> void:
 	if not is_inside_tree() or get_parent() == null: return
 	if enchantments.is_empty():
-		for slot:Dictionary in _slots.values():
-			var old:Node = slot.overlay.get_ref()
-			if is_instance_valid(old): old.queue_free()
-		_slots.clear()
+		_clear_slots()
 		return
 	var found:Dictionary = {}
 	_collect(get_parent(),found)
 	for id:int in _slots.keys():
 		var slot:Dictionary = _slots[id]
-		var overlay:Node = slot.overlay.get_ref()
-		if not found.has(id) or not is_instance_valid(overlay) or overlay.is_queued_for_deletion():
-			if is_instance_valid(overlay): overlay.queue_free()
+		if not found.has(id) or not _slot_alive(slot):
+			_drop_slot(slot)
 			_slots.erase(id)
 	for id:int in found:
 		if _slots.has(id): continue
-		var source:CanvasItem = found[id]
-		var overlay:CanvasItem = _create_overlay(source)
-		if overlay != null: _slots[id] = {"source":weakref(source),"overlay":weakref(overlay)}
+		var slot:Dictionary = _make_slot(found[id])
+		if not slot.is_empty(): _slots[id] = slot
+
+func _make_slot(source:CanvasItem) -> Dictionary:
+	if shader_draws_glint(source):
+		_apply_shader_glint(source)
+		return {"source":weakref(source),"overlay":null,"shader":true}
+	var overlay:CanvasItem = _create_overlay(source)
+	if overlay == null: return {}
+	return {"source":weakref(source),"overlay":weakref(overlay),"shader":false}
+
+func _slot_alive(slot:Dictionary) -> bool:
+	var source:Object = slot.source.get_ref()
+	if not is_instance_valid(source) or (source as Node).is_queued_for_deletion(): return false
+	if bool(slot.shader): return true
+	var overlay:Object = (slot.overlay as WeakRef).get_ref()
+	return is_instance_valid(overlay) and not (overlay as Node).is_queued_for_deletion()
+
+func _drop_slot(slot:Dictionary) -> void:
+	var source:Object = slot.source.get_ref()
+	if bool(slot.shader):
+		if is_instance_valid(source) and shader_draws_glint(source as CanvasItem): (source as CanvasItem).set_instance_shader_parameter(GLINT_PARAM,Vector4.ZERO)
+		return
+	var overlay:Object = (slot.overlay as WeakRef).get_ref()
+	if is_instance_valid(overlay): (overlay as Node).queue_free()
+
+func _clear_slots() -> void:
+	for slot:Dictionary in _slots.values(): _drop_slot(slot)
+	_slots.clear()
+
+## True when the visual's own shader includes mc_enchant_glint.gdshaderinc.
+static func shader_draws_glint(source:CanvasItem) -> bool:
+	if not is_instance_valid(source): return false
+	var material:ShaderMaterial = source.material as ShaderMaterial
+	if material == null or material.shader == null: return false
+	var id:int = material.shader.get_instance_id()
+	if not _glint_shader_cache.has(id): _glint_shader_cache[id] = material.shader.code.contains("enchant_glint")
+	return bool(_glint_shader_cache[id])
+
+func _apply_shader_glint(source:CanvasItem) -> void:
+	var material:ShaderMaterial = source.material as ShaderMaterial
+	if material.get_shader_parameter(GLINT_TEXTURE_PARAM) == null: material.set_shader_parameter(GLINT_TEXTURE_PARAM,NATIVE_GLINT)
+	source.set_instance_shader_parameter(GLINT_PARAM,Vector4(1.0,_clock,maxf(source.get_global_transform().x.length(),0.01),0.0))
 
 func _collect(node:Node,found:Dictionary) -> void:
 	# Characters glint only on their body art: the Graphics subtree plus nodes opted in with
 	# meta mc_enchant_body. Health bar, status icon, ground shadow and other UI stay plain.
-	if node == get_parent() and node is ball and is_instance_valid((node as ball).graphics):
+	if node == get_parent() and node is ball:
+		# Without its Graphics node a character has no body art yet: never fall back to the whole tree.
+		if not is_instance_valid((node as ball).graphics): return
 		_collect_visuals((node as ball).graphics,found)
 		for extra:Node in node.find_children("*","CanvasItem",true,false):
 			if extra.has_meta("mc_enchant_body") and not (node as ball).graphics.is_ancestor_of(extra): _collect_visuals(extra,found)

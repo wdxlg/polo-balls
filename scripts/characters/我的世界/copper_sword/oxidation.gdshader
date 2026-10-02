@@ -14,6 +14,7 @@ uniform sampler2D copper_exposed : source_color, filter_nearest, repeat_disable;
 uniform sampler2D copper_weathered : source_color, filter_nearest, repeat_disable;
 uniform sampler2D copper_oxidized : source_color, filter_nearest, repeat_disable;
 varying vec4 sprite_modulate;
+#include "res://shaders/mc_enchant_glint.gdshaderinc"
 void vertex() {
 	VERTEX += snow_freeze_offset;
 	sprite_modulate = COLOR;
@@ -39,5 +40,6 @@ void fragment() {
 	result.rgb = mix(result.rgb, default_color.rgb, defualt_color_mix);
 	result.rgb = mix(result.rgb, vec3(0.94, 0.98, 1.0), clamp(snow_cold, 0.0, 1.0) * 0.88);
 	result.rgb = mix(result.rgb, hit_white_color.rgb, power);
+	result.rgb += mc_enchant_glint_rgb(uv, TEXTURE_PIXEL_SIZE);
 	COLOR = result;
 }

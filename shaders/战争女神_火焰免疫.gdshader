@@ -13,6 +13,7 @@ instance uniform vec4 bounce_params_b = vec4(0.17, 0.040, 0.0, 0.0);
 instance uniform vec2 bounce_direction = vec2(1.0, 0.0);
 
 // 免疫效果使用普通 uniform。每个战争女神实例都有独立 ShaderMaterial。
+#include "res://shaders/mc_enchant_glint.gdshaderinc"
 uniform float immunity_radius : hint_range(0.08, 0.55) = 0.50;
 uniform vec4 immunity_content_rect = vec4(0.0, 0.0, 1.0, 1.0);
 uniform float immunity_global_flash : hint_range(0.0, 1.0) = 0.0;
@@ -355,5 +356,6 @@ void fragment() {
     vec4 out_color = tex * sprite_modulate;
     out_color.rgb = mix(out_color.rgb, default_color.rgb, defualt_color_mix);
     out_color.rgb = mix(out_color.rgb, hit_white_color.rgb, power);
+    out_color.rgb += mc_enchant_glint_rgb(sample_uv, TEXTURE_PIXEL_SIZE) * base_tex.a;
     COLOR = out_color;
 }
