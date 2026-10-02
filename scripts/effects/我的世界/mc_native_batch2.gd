@@ -9,6 +9,7 @@ const FRAMES:Dictionary = {
 	"skeleton":preload("res://Images/characters/我的世界/native_frames/skeleton.tres"),
 }
 const BOUNDS:Dictionary = {"witch": [40, 37, 111, 204], "blaze": [41, 56, 133, 183], "creeper": [48, 57, 112, 197], "silverfish": [59, 125, 138, 167], "skeleton": [19, 55, 109, 203]}
+const MC_LEGS = preload("res://scripts/effects/我的世界/mc_legs.gd")
 const WITCH_MOUTH:Vector2 = Vector2(66.35,114.36093537489617)
 var unit:ball
 var role:String
@@ -26,6 +27,10 @@ var _remote_pose:String = ""
 var _remote_fuse:float = 0.0
 var _network_wait:float = 0.0
 var _last_sent_pose:String = ""
+## 独立腿部步态（mc_legs.gd）：腿由真实位移/自身标准移速推进，女巫喝药、骷髅拉弓、苦力怕引爆时照常迈步。
+var gait:RefCounted
+var legs_key:String = ""
+var _leg_index:int = -1
 
 static func attach(target:ball,kind:String) -> Node:
 	if not FRAMES.has(kind): return null
@@ -61,6 +66,11 @@ func _setup() -> void:
 	sprite.position = Vector2(old_position.x,foot-(neutral.end.y-112.0)*fit)
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	frames = FRAMES[role]
+	var walk_cycle:float = float(frames.get_frame_count(&"walk"))/maxf(frames.get_animation_speed(&"walk"),0.001) if frames.has_animation(&"walk") else 1.0
+	legs_key = role if MC_LEGS.layer_data(role) != null else ""
+	gait = MC_LEGS.for_set(legs_key,walk_cycle) if not legs_key.is_empty() else MC_LEGS.create(walk_cycle)
+	gait.observe(unit)
+	MC_LEGS.prewarm(legs_key)
 	if sprite is AnimatedSprite2D:
 		(sprite as AnimatedSprite2D).sprite_frames = frames
 		(sprite as AnimatedSprite2D).animation = &"idle"
@@ -90,11 +100,17 @@ func advance(delta:float) -> void:
 	if not ready_visual or not is_instance_valid(unit): return
 	var traveled:float = unit.global_position.distance_to(_last_position)
 	_last_position = unit.global_position
-	if unit.health <= 0 or not unit.is_combat_runtime_active(): return
+	if unit.health <= 0 or not unit.is_combat_runtime_active():
+		gait.observe(unit)
+		return
 	var step:float = maxf(delta,0.0)
 	_shoot_left = maxf(0.0,_shoot_left-step)
 	_moving_left = maxf(0.0,_moving_left-step)
-	if traveled>0.025 and traveled<maxf(40.0,unit.Speed*step*5.0): _moving_left = 0.12
+	if legs_key.is_empty():
+		if traveled>0.025 and traveled<maxf(40.0,unit.Speed*step*5.0): _moving_left = 0.12
+	else:
+		gait.tick(unit,step,not bool(unit.get("dizziness")))
+		_moving_left = 0.0 if gait.at_rest else 0.12
 	var desired:String = _local_pose()
 	if not unit.is_multiplayer_authority() and not _remote_pose.is_empty():
 		desired = _remote_pose
@@ -123,7 +139,8 @@ func _local_pose() -> String:
 			var base:String = "walk" if moving else "idle"
 			if bool(unit.get("_fusing")):
 				fuse_progress = clampf(float(unit.get("_fuse_elapsed"))/maxf(float(unit.get("_current_fuse_duration")),0.05),0.0,1.0)
-				base = "fuse_walk" if moving else "fuse"
+				# With leg layers the fuse body is composited over independently walking legs.
+				base = "fuse" if (not moving or MC_LEGS.has_upper(legs_key,&"fuse")) else "fuse_walk"
 			else: fuse_progress = 0.0
 			return base+("_charged" if bool(unit.get("_charged")) else "")
 		"skeleton": return "shoot" if _shoot_left>0.0 else "walk" if moving else "idle"
@@ -158,8 +175,25 @@ func _render_frame() -> void:
 	if str(current_clip).begins_with("fuse"): next = int(round(fuse_progress*float(count-1)))
 	elif frames.get_animation_loop(current_clip): next %= count
 	next = clampi(next,0,count-1)
-	if next==frame_index: return
+	if not legs_key.is_empty() and str(current_clip).begins_with("walk"): next = gait.walk_index(count)
+	# Upper-body action while the legs are still walking/settling: composite walking legs.
+	var leg:int = -1
+	if not legs_key.is_empty() and not gait.at_rest and MC_LEGS.has_upper(legs_key,current_clip):
+		leg = gait.walk_index(int(MC_LEGS.layer_data(legs_key).WALK))
+	if next==frame_index and leg==_leg_index: return
 	frame_index = next
+	_leg_index = leg
+	if leg >= 0:
+		var composed:Texture2D = MC_LEGS.compose(legs_key,current_clip,next,leg)
+		if composed != null:
+			if sprite is Sprite2D: (sprite as Sprite2D).texture = composed
+			else:
+				# AnimatedSprite2D cannot show an ad-hoc texture; swap to a Sprite2D-style override frame.
+				var animated := sprite as AnimatedSprite2D
+				animated.animation = current_clip
+				animated.frame = next
+				animated.pause()
+			return
 	if sprite is Sprite2D:
 		(sprite as Sprite2D).texture = frames.get_frame_texture(current_clip,next)
 	else:

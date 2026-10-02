@@ -6,6 +6,7 @@ const CATCH_LAYERS=preload("res://Images/characters/我的世界/native_frames/c
 const HAND_LAYERS = preload("res://Images/characters/我的世界/native_frames/hand_pounce/drowned_hand_layers.gd")
 const SPIDER_ACTIONS = preload("res://Images/characters/我的世界/native_frames/hand_pounce/spider_pounce.tres")
 const DROWNED_HANDS = preload("res://Images/characters/我的世界/native_frames/drowned_hands.gd")
+const MC_LEGS = preload("res://scripts/effects/我的世界/mc_legs.gd")
 const FRAMES:Dictionary = {
 	"enderman":preload("res://Images/characters/我的世界/native_frames/enderman.tres"),
 	"evoker":preload("res://Images/characters/我的世界/native_frames/evoker.tres"),
@@ -39,6 +40,10 @@ var _remote_pose:String = ""
 var _last_sent_pose:String = ""
 var _network_wait:float = 0.0
 var _semantic_pose:String = ""
+## 独立腿部步态（mc_legs.gd）：走路相位由真实位移/标准移速推进，上半身动作期间腿照常迈。
+var gait:RefCounted
+var legs_key:String = ""
+var _leg_index:int = -1
 
 static func attach(target:ball, kind:String) -> Node:
 	if not FRAMES.has(kind): return null
@@ -97,6 +102,11 @@ func _setup() -> void:
 	sprite.position = Vector2(old_position.x,foot-(neutral.end.y-112.0)*fit)
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_last_position = unit.global_position
+	var walk_cycle:float = float(frames.get_frame_count(&"walk"))/maxf(frames.get_animation_speed(&"walk"),0.001) if frames.has_animation(&"walk") else 1.0
+	legs_key = role if MC_LEGS.layer_data(role) != null else ""
+	gait = MC_LEGS.for_set(legs_key,walk_cycle) if not legs_key.is_empty() else MC_LEGS.create(walk_cycle)
+	gait.observe(unit)
+	MC_LEGS.prewarm(legs_key)
 	if role in ["enderman","spider"] and unit.self_hitbox != null:
 		unit.self_hitbox.on_hit.connect(_on_contact_attack)
 	ready_visual = true
@@ -158,14 +168,19 @@ func _process(delta:float) -> void:
 
 func advance(delta:float) -> void:
 	if not ready_visual or not is_instance_valid(unit): return
-	var traveled:float = unit.global_position.distance_to(_last_position)
 	_last_position = unit.global_position
 	# Do not use mc_live(): it is authority-only and would freeze all clients.
-	if unit.health <= 0 or get_tree().paused or Game.now_stop_state: return
-	if role in ["spider","drowned"] and unit.dizziness: return
+	if unit.health <= 0 or get_tree().paused or Game.now_stop_state:
+		gait.observe(unit)
+		return
+	if role in ["spider","drowned"] and unit.dizziness:
+		gait.observe(unit)
+		return
 	# Let a pending Evoker gesture finish after combat closes, but preserve pause.
 	var evoker_finishing:bool = role == "evoker" and (_cast_left > 0.0 or _evoker_celebrate_left > 0.0 or _evoker_remote_left > 0.0 or current_clip in [&"cast",&"celebrate"])
-	if not unit.is_combat_runtime_active() and not evoker_finishing: return
+	if not unit.is_combat_runtime_active() and not evoker_finishing:
+		gait.observe(unit)
+		return
 	var step:float = maxf(delta,0.0)
 	if role == "evoker":
 		_evoker_celebrate_left = maxf(0.0,_evoker_celebrate_left-step)
@@ -175,11 +190,11 @@ func advance(delta:float) -> void:
 	_cast_left = maxf(0.0,_cast_left-step)
 	_attack_left = maxf(0.0,_attack_left-step)
 	_action_left = maxf(0.0,_action_left-step)
-	_moving_left = maxf(0.0,_moving_left-step)
-	if traveled > 0.025 and traveled < maxf(40.0,unit.Speed*step*5.0):
-		_moving_left = 0.12
-		var reference:float = 125.0 if role == "enderman" else 78.0
-		_motion_rate = clampf(traveled/maxf(step,0.0001)/reference,0.4,2.4)
+	# Legs advance from real displacement regardless of attack/cast/throw upper-body clips.
+	var stepping:bool = not unit.dizziness
+	if role == "spider" and float(unit.get("_lunge_left")) > 0.0: stepping = false # airborne pounce, not a stride
+	gait.tick(unit,step,stepping)
+	_moving_left = 0.0 if gait.at_rest else 0.12
 	var desired:String = _local_pose()
 	if not unit.is_multiplayer_authority() and not _remote_pose.is_empty(): desired = _remote_pose
 	_semantic_pose = desired
@@ -194,8 +209,7 @@ func advance(delta:float) -> void:
 		else: _set_clip(&"open" if target_peek > shell_peek else &"close")
 	else:
 		_set_clip(StringName(desired))
-	var rate:float = _motion_rate if (str(current_clip).ends_with("walk") or current_clip==&"walk_empty") else 1.0
-	clip_time += step * rate
+	clip_time += step
 	_render_frame()
 	# Keep these block-model characters rigid; retain shader facing and hit tint.
 	sprite.set_instance_shader_parameter("motion_params",Vector4.ZERO)
@@ -258,8 +272,19 @@ func _render_frame() -> void:
 	elif current_clip == &"close": next = int(round((1.0-shell_peek)*float(count-1)))
 	elif frames.get_animation_loop(current_clip): next %= count
 	next = clampi(next,0,count-1)
-	if next == frame_index: return
+	if _is_walk_clip(current_clip): next = gait.walk_index(count)
+	# Upper-body action while the legs are still walking/settling: composite walking legs.
+	var leg:int = -1
+	if not legs_key.is_empty() and not gait.at_rest and MC_LEGS.has_upper(legs_key,current_clip):
+		leg = gait.walk_index(int(MC_LEGS.layer_data(legs_key).WALK))
+	if next == frame_index and leg == _leg_index: return
 	frame_index = next
+	_leg_index = leg
+	if leg >= 0:
+		var composed:Texture2D = MC_LEGS.compose(legs_key,current_clip,next,leg)
+		if composed != null:
+			sprite.texture = composed
+			return
 	if role=="drowned":
 		var record:Dictionary = hand_frame_record()
 		sprite.texture = record.body if not record.is_empty() else frames.get_frame_texture(current_clip,next)
@@ -291,3 +316,6 @@ func hand_world_position() -> Vector2:
 	var point:Vector2 = track[clampi(frame_index,0,track.size()-1)]-Vector2(80,112)
 	if unit._visual_facing_flipped_h: point.x = -point.x
 	return sprite.to_global(point)
+
+func _is_walk_clip(clip:StringName) -> bool:
+	return str(clip).ends_with("walk") or clip == &"walk_empty"
