@@ -2913,6 +2913,7 @@ const SCENES:Dictionary = {
 }
 
 const SCRIPTS:Dictionary = {
+ "res://classes/character_motion.gd": {"entity_kind":"component","attack_modes":[],"carriers":[],"damage_kinds":[]},
  "res://scripts/characters/我的世界/zombie/zombie.gd": {"entity_kind": "character", "attack_modes": ["melee"], "carriers": ["body_contact"], "damage_kinds": ["ordinary"], "stage_field": "emerging", "stages": {"true": {"attack_modes": [], "carriers": [], "damage_kinds": []}, "false": {"attack_modes": ["melee"], "carriers": ["body_contact"], "damage_kinds": ["ordinary"]}}},
  "res://scripts/characters/我的世界/zombie/king.gd": {"entity_kind": "character", "attack_modes": ["summon", "ranged"], "carriers": ["projectile"], "damage_kinds": [], "status_effects": ["slowness"]},
  "res://scripts/characters/我的世界/zombie/slime_ball.gd": {"entity_kind": "projectile", "attack_modes": ["ranged"], "carriers": ["projectile"], "damage_kinds": [], "status_effects": ["slowness"], "review": "no_direct_damage; level_2_slow; native_parabolic_path"},

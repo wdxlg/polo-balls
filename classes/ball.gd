@@ -2702,6 +2702,7 @@ func _ready() -> void:
 		self_hitbox.monitoring = false
 	
 	add_to_group("Ball")
+	get_body_motion()
 	# V106：让 World 用事件注册维护战斗单位列表，避免每个 physics tick get_nodes_in_group()。
 	if _cached_world != null and is_instance_valid(_cached_world):
 		_cached_world.register_battle_unit(self)
@@ -4841,7 +4842,7 @@ func _ensure_upright_character_visual() -> void:
 			animated.flip_h = false
 
 
-# 功能：切换大规模战斗物理模式；只关闭“角色身体扫描角色身体”，墙体和 Hitbox/Hurtbox 仍照常工作。
+# 大规模模式只简化表现；身体碰撞与普通战斗一致。
 func set_large_battle_performance_mode(enabled:bool) -> void:
 	if Type != Ball_Type.Ball and Type != Ball_Type.Creature:
 		_large_battle_performance_mode = false
@@ -4860,11 +4861,8 @@ func set_large_battle_performance_mode(enabled:bool) -> void:
 		_motion_blur_strength = 0.0
 		if _motion_blur_ghost != null and is_instance_valid(_motion_blur_ghost):
 			_motion_blur_ghost.visible = false
-		# Layer 2 是项目当前角色身体/受击层。这里只从 CharacterBody2D 的移动扫描中去掉 Layer 2；
-		# self_hitbox/self_hurtbox 自己的 collision layer/mask 不变，所以真实攻击与受伤检测不丢失。
-		set_collision_mask_value(2,false)
-		# 顶视角大规模模式下只需要墙体停止/一次滑动；减少一次 move_and_slide() 内的重复碰撞求解上限。
-		max_slides = 1
+		# Body contacts use the same solver at every population size.
+		max_slides = maxi(_large_battle_original_max_slides,4)
 		_physical_contact_ids.clear()
 
 		# 单机没有任何远程 Peer 时，不让每个单位的 MultiplayerSynchronizer 继续进入内部处理。
@@ -4898,8 +4896,8 @@ func get_large_battle_visual_density() -> float:
 
 
 # 功能：接收 World 空间网格计算出的角色分离速度，避免关闭身体互撞后所有单位完全叠成一点。
-func set_crowd_separation_velocity(value:Vector2) -> void:
-	_crowd_separation_velocity = value if _large_battle_performance_mode else Vector2.ZERO
+func set_crowd_separation_velocity(_value:Vector2) -> void:
+	_crowd_separation_velocity = Vector2.ZERO
 
 
 # V79 单人性能修复辅助：在没有多人 Peer 时禁用 MultiplayerSynchronizer，
@@ -5046,6 +5044,22 @@ func motion_speed_factor() -> float:
 func motion_scaled_delta(delta:float) -> float:
 	return maxf(delta,0.0)*motion_speed_factor()
 
+var _body_motion:Node
+func get_body_motion() -> Node:
+	if Type not in [Ball_Type.Ball,Ball_Type.Creature]: return null
+	if not is_instance_valid(_body_motion):
+		_body_motion = load("res://classes/character_motion.gd").new()
+		_body_motion.name = "BodyMotion"
+		_body_motion.actor = self
+		add_child(_body_motion)
+	return _body_motion
+func _compose_body_motion(desired:Vector2,other:Vector2,delta:float) -> Vector2:
+	var motion:Node = get_body_motion()
+	return motion.compose(desired,other,delta) if motion != null else desired+other
+func _resolve_body_motion(incoming:Vector2) -> void:
+	var motion:Node = get_body_motion()
+	if motion != null: motion.resolve_slide(incoming)
+
 func move(speed:float,delta:float):
 	if apply_transport_pose(): return
 
@@ -5070,7 +5084,8 @@ func move(speed:float,delta:float):
 		move_speed,
 		Repel
 	)
-	velocity += surface_motion_velocity + KNOCKBACK_EFFECT_SCRIPT.pull_velocity(self)
+	var drive:Vector2 = effective_direction*move_speed
+	velocity = _compose_body_motion(drive,velocity-drive+surface_motion_velocity+KNOCKBACK_EFFECT_SCRIPT.pull_velocity(self),delta)
 	velocity *= motion_speed_factor()
 	_last_requested_velocity = velocity
 
@@ -5086,6 +5101,7 @@ func move(speed:float,delta:float):
 	if Type in [Ball_Type.Shooter,Ball_Type.Shooter_with_Health] and get_tree().has_group("MinecraftAllay"):
 		if load("res://scripts/characters/我的世界/allay/capture.gd").sweep(self,global_position,global_position+velocity*delta): return
 	move_and_slide()
+	_resolve_body_motion(_last_requested_velocity)
 	_process_external_directional_gravity_locomotion_collisions()
 
 	# 高速角色可能先被 CharacterBody2D 实体碰撞截停，
@@ -5154,7 +5170,7 @@ func stand(_delta:float):
 	if apply_transport_pose(): return
 	# Stand 状态只有显式 Repel 才允许发生位移。
 	# hitbox/hurtbox 是 Area2D，不调用 move_and_slide() 也仍可正常攻击/受伤。
-	velocity = Repel + _crowd_separation_velocity + surface_motion_velocity + KNOCKBACK_EFFECT_SCRIPT.pull_velocity(self)
+	velocity = _compose_body_motion(Vector2.ZERO,Repel+surface_motion_velocity+KNOCKBACK_EFFECT_SCRIPT.pull_velocity(self),_delta)
 	velocity *= motion_speed_factor()
 	_last_requested_velocity = velocity
 	if velocity.length_squared() <= MOTION_EPSILON_SQ:
@@ -5167,6 +5183,7 @@ func stand(_delta:float):
 	var knockback_speed:float = velocity.length()
 	var knockback_dir:Vector2 = velocity.normalized() if knockback_speed > 0.0001 else Vector2.ZERO
 	move_and_slide()
+	_resolve_body_motion(_last_requested_velocity)
 	_process_external_directional_gravity_locomotion_collisions()
 	_process_physical_contact_hits()
 	_process_wall_hit_bursts_from_slide_collisions(knockback_speed)
@@ -5916,7 +5933,7 @@ func when_collide(speed:float,collision:KinematicCollision2D):
 	var incoming_dir:Vector2 = incoming_velocity.normalized() if incoming_velocity.length_squared() > MOTION_EPSILON_SQ else (direction.normalized() if direction.length_squared() > MOTION_EPSILON_SQ else -normal)
 
 	# 只有仍然朝碰撞面运动时才反弹，避免贴墙时方向来回翻转。
-	if direction.dot(normal) < 0.0:
+	if get_body_motion() == null and direction.dot(normal) < 0.0:
 		direction = direction.bounce(normal).normalized()
 
 	var collider = collision.get_collider()
