@@ -239,4 +239,5 @@
 选角人物,scenes/characters/我的世界/时钟.tscn,scripts/characters/我的世界/clock/clock.gd,,是,无独立主动键：时间加速、时光倒流与残影均为被动
 选角人物,scenes/characters/我的世界/卫道士.tscn,scripts/characters/我的世界/vindicator/vindicator.gd,"controlled_attack_action,controlled_skill_action",是,左键按住蓄力松开挥斧；右键冲刺蓄力近敌挥斧
 选角人物,scenes/characters/我的世界/僵尸.tscn,scripts/characters/我的世界/zombie/zombie.gd,controlled_attack_action,是,左：近身咬击；手控期间不自动追敌或出招
+选角人物,scenes/characters/我的世界/小僵尸.tscn,scripts/characters/我的世界/baby_zombie/baby_zombie.gd,controlled_attack_action,是,左：挥臂近战（范围内无敌人时对空挥臂）；手控期间不自动追击或漫步
 选角人物,scenes/characters/我的世界/僵尸王.tscn,scripts/characters/我的世界/zombie/king.gd,"controlled_attack_action,controlled_skill_action",是,左：召唤僵尸；右：投粘液球；受冷却和召唤上限约束

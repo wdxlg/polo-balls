@@ -22,6 +22,7 @@ const CATALOG_PATH:String = "res://scripts/effects/我的世界/mc_enchantment_c
 
 const SUPPORT:Dictionary = {
 	"res://scenes/characters/我的世界/僵尸.tscn": ["melee", "efficiency"],
+	"res://scenes/characters/我的世界/小僵尸.tscn": ["melee", "efficiency"],
 	"res://scenes/characters/我的世界/僵尸王.tscn": ["melee", "multishot", "efficiency"],
 	"res://scenes/characters/meme/不坏煎饼.tscn": ["ranged"],
 	"res://scenes/characters/meme/凑企鹅.tscn": ["melee", "ranged"],

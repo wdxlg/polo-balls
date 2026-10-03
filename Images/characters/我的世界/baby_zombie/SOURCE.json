@@ -1,0 +1,22 @@
+{
+  "revision": "736072450c26a7c67f07b1661f29d9a5ebaa14b1",
+  "license": "Minecraft EULA; Mojang/Microsoft original assets, not freely redistributable artwork.",
+  "files": [
+    {
+      "file": "baby_zombie.geo.json",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/models/entity/baby_zombie.geo.json",
+      "sha256": "2b984033d05d2224aaed965ad3c4fed569bef4aab446b1e60c17400bdf70006d"
+    },
+    {
+      "file": "zombie.animation.json",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/animations/zombie.animation.json",
+      "sha256": "abec25b15f1a324485a9cf218498739ec95c6bddef10b8aac66fffd63924f0d9"
+    },
+    {
+      "file": "zombie_baby.png",
+      "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/736072450c26a7c67f07b1661f29d9a5ebaa14b1/resource_pack/textures/entity/zombie/zombie_baby.png",
+      "sha256": "fbf0ffc494e967a71be54a58e43ae9a30089d3bd8b04d11f541b114e71aa1a90"
+    }
+  ],
+  "derivation": "Native baby cuboids and UVs rasterized through the shared Baker with the adult zombie camera and scale; original baby_attack_bare_hand arm track (arms at the sides, swing over 6 ticks) and humanoid leg walk. Sounds reuse audio/characters/我的世界/zombie at baby pitch."
+}

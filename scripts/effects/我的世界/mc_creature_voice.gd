@@ -4,8 +4,11 @@ extends Node
 const QUEUE = preload("res://scripts/effects/我的世界/mc_native_audio.gd")
 const FOOTSTEP = preload("res://scripts/effects/我的世界/footstep_cadence.gd")
 const STEP_BASE_INTERVAL:float = 0.3
+const VOICE_KINDS:Array[String] = ["ambient","hurt","death"]
 var unit:ball
 var events:Dictionary = {}
+## 原版 getVoicePitch：叫声音高 = x + (rand-rand)*y，只作用于 VOICE_KINDS，脚步不变。
+var voice_pitch:Vector2 = Vector2(1.0,0.0)
 var played:Dictionary = {}
 var _rng := RandomNumberGenerator.new()
 var _serial:int = 0
@@ -33,12 +36,14 @@ func request(kind:String,point:Vector2,gain:float = 0.0) -> bool:
 	if records.is_empty(): return false
 	_serial += 1
 	var variant:int = _rng.randi_range(0,records.size()-1)
-	_receive(_serial,kind,variant,point,gain)
-	if multiplayer.has_multiplayer_peer(): _receive.rpc(_serial,kind,variant,point,gain)
+	var pitch_scale:float = 1.0
+	if kind in VOICE_KINDS and voice_pitch != Vector2(1.0,0.0): pitch_scale = maxf(0.05,voice_pitch.x+(_rng.randf()-_rng.randf())*voice_pitch.y)
+	_receive(_serial,kind,variant,point,gain,pitch_scale)
+	if multiplayer.has_multiplayer_peer(): _receive.rpc(_serial,kind,variant,point,gain,pitch_scale)
 	return true
 
 @rpc("authority","call_remote","reliable")
-func _receive(serial:int,kind:String,variant:int,point:Vector2,gain:float) -> void:
+func _receive(serial:int,kind:String,variant:int,point:Vector2,gain:float,pitch_scale:float = 1.0) -> void:
 	if serial <= _received or not events.has(kind): return
 	_received = serial
 	var records:Array = events[kind]
@@ -48,7 +53,7 @@ func _receive(serial:int,kind:String,variant:int,point:Vector2,gain:float) -> vo
 		_dying = true
 	var record:Variant = records[variant]
 	var stream:AudioStream = record.get("stream") if record is Dictionary else record
-	var pitch:float = float(record.get("pitch",1.0)) if record is Dictionary else 1.0
+	var pitch:float = (float(record.get("pitch",1.0)) if record is Dictionary else 1.0)*pitch_scale
 	if kind == "step" and stream != null: _step_length = stream.get_length()/maxf(pitch,0.01)
 	var parent:Node = get_tree().current_scene
 	if parent is Node2D and unit.get_world_2d() != parent.get_world_2d():

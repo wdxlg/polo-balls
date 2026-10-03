@@ -9,6 +9,7 @@ const OWNERS = preload("res://classes/projectile_interactions.gd")
 const COMBO = preload("res://scripts/effects/hit_combo.gd")
 const POLICIES:Dictionary = {
 	"res://scripts/characters/我的世界/zombie/zombie.gd": 1,
+	"res://scripts/characters/我的世界/baby_zombie/baby_zombie.gd": 1,
 	"res://scripts/characters/我的世界/vindicator/vindicator.gd": 1,
 	"res://scripts/characters/默认/丁某人睡觉.gd": 1,
 	"res://scripts/characters/默认/ding_sleep/z.gd": 1,
