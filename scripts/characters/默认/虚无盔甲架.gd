@@ -108,8 +108,8 @@ func refresh_projectile_body_exception(body:PhysicsBody2D) -> void:
 		_void_forget_projectile_body(id)
 		return
 	if _void_projectile_bodies.has(id): return
-	body.add_collision_exception_with(self)
-	add_collision_exception_with(body)
+	preload("res://classes/body_collision_exclusions.gd").add_exception(body,self)
+	preload("res://classes/body_collision_exclusions.gd").add_exception(self,body)
 	_void_projectile_bodies[id] = weakref(body)
 	var exiting:Callable = _void_forget_projectile_body.bind(id)
 	if not body.tree_exiting.is_connected(exiting): body.tree_exiting.connect(exiting,CONNECT_ONE_SHOT)
@@ -119,8 +119,8 @@ func _void_forget_projectile_body(id:int) -> void:
 	if reference==null: return
 	var body:PhysicsBody2D = reference.get_ref() as PhysicsBody2D
 	if is_instance_valid(body):
-		body.remove_collision_exception_with(self)
-		remove_collision_exception_with(body)
+		preload("res://classes/body_collision_exclusions.gd").remove_exception(body,self)
+		preload("res://classes/body_collision_exclusions.gd").remove_exception(self,body)
 	_void_projectile_bodies.erase(id)
 
 func _void_clear_projectile_bodies() -> void:

@@ -556,7 +556,7 @@ func retire() -> void:
 	var herd:Array = get_tree().get_nodes_in_group(&"MCTraderLlama")
 	if is_instance_valid(owner_trader): herd.append(owner_trader)
 	for body:Variant in herd:
-		if is_instance_valid(body) and body is PhysicsBody2D and body != self: (body as PhysicsBody2D).remove_collision_exception_with(self)
+		if is_instance_valid(body) and body is PhysicsBody2D and body != self: preload("res://classes/body_collision_exclusions.gd").remove_exception((body as PhysicsBody2D),self)
 	queue_free()
 
 func Die() -> void: retire()

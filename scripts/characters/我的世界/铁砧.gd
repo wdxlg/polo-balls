@@ -517,8 +517,8 @@ func _press_contact(target:ball,impact_speed:float,point:Vector2,dt:float) -> vo
 	if first: press.next = _crush_clock+maxf(crush_interval,0.05)
 	if not _damage_with_feedback(target,amount,point,first or feedback_due): return
 	# Every confirmed pressure settlement also pushes. Only sound/flash are
-	# throttled; apply_knockback reuses one controller and replaces (not adds)
-	# its bounded remaining distance. No damage/contact means no renewal.
+	# throttled; each ordinary impulse composes with existing momentum without
+	# forcing a remaining travel distance. No damage/contact means no new impulse.
 	_apply_impact_knockback(target,impact_speed,point,not first)
 	if first or feedback_due:
 		press.next = _crush_clock+maxf(crush_interval,0.05)

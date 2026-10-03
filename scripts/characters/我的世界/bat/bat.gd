@@ -117,8 +117,8 @@ func _spawn_member(hp:int,capacity:int,index:int,count:int) -> ball:
 	# Symmetric body-only exceptions, including every newly split member.
 	# Hitbox/hurtbox layers and collisions with other cohorts stay unchanged.
 	for member:ball in living_members():
-		unit.add_collision_exception_with(member)
-		member.add_collision_exception_with(unit)
+		preload("res://classes/body_collision_exclusions.gd").add_exception(unit,member)
+		preload("res://classes/body_collision_exclusions.gd").add_exception(member,unit)
 		unit._cohort_collision_peers.append(weakref(member))
 		member._cohort_collision_peers.append(weakref(unit))
 	cohort.members.append(weakref(unit))
@@ -136,8 +136,8 @@ func _clear_cohort_collision_exceptions() -> void:
 	for ref:WeakRef in _cohort_collision_peers:
 		var peer:Variant = ref.get_ref()
 		if is_instance_valid(peer):
-			remove_collision_exception_with(peer)
-			peer.remove_collision_exception_with(self)
+			preload("res://classes/body_collision_exclusions.gd").remove_exception(self,peer)
+			preload("res://classes/body_collision_exclusions.gd").remove_exception(peer,self)
 			peer._forget_cohort_collision_peer(self)
 	_cohort_collision_peers.clear()
 
@@ -279,7 +279,7 @@ func begin_bite(target:Variant) -> void:
 	Repel = Vector2.ZERO
 	_reset_drain_waits()
 	_last_host_position = target.global_position
-	add_collision_exception_with(target)
+	preload("res://classes/body_collision_exclusions.gd").add_exception(self,target)
 	# Cancel an earlier unlocked push as soon as a real latch succeeds.
 	# Controllers preserve any genuine unconditional stun through the same hook.
 	for child:Node in get_children():
@@ -317,7 +317,7 @@ func _notify_damage_camera_feedback(actual_damage:float,blocked:bool = false,foc
 
 func detach() -> void:
 	var target:Variant = attached_target()
-	if target != null: remove_collision_exception_with(target)
+	if target != null: preload("res://classes/body_collision_exclusions.gd").remove_exception(self,target)
 	if _attached_ref != null:
 		_cooldown = maxf(_cooldown,bite_cooldown)
 		_shield_bite_wait = _shield_interval()

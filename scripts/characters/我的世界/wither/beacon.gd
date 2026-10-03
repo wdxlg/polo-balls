@@ -61,7 +61,7 @@ func _ready() -> void:
 		health_bar.visible=false
 	texture_filter=CanvasItem.TEXTURE_FILTER_NEAREST
 	_body=get_node("CollisionShape2D")
-	if is_instance_valid(Master) and Master is PhysicsBody2D: add_collision_exception_with(Master)
+	if is_instance_valid(Master) and Master is PhysicsBody2D: preload("res://classes/body_collision_exclusions.gd").add_exception(self,Master)
 	_summon_origin=Master.global_position if is_instance_valid(Master) else global_position
 	_summon_target=_summon_origin
 	_summon_fx=SUMMON_FX.new()

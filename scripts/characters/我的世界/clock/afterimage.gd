@@ -61,7 +61,7 @@ func setup(clock:Node2D,texture:Texture2D,sprite_scale:Vector2,point:Vector2,dur
 		shape.shape = circle
 		_body.add_child(shape)
 		add_child(_body)
-		if clock is PhysicsBody2D: (clock as PhysicsBody2D).add_collision_exception_with(_body)
+		if clock is PhysicsBody2D: preload("res://classes/body_collision_exclusions.gd").add_exception((clock as PhysicsBody2D),_body)
 
 
 func _physics_process(delta:float) -> void:
@@ -83,5 +83,5 @@ func _apply_fade() -> void:
 func _expire() -> void:
 	var clock:Variant = _clock_ref.get_ref() if _clock_ref != null else null
 	if _body != null and is_instance_valid(clock) and clock is PhysicsBody2D:
-		(clock as PhysicsBody2D).remove_collision_exception_with(_body)
+		preload("res://classes/body_collision_exclusions.gd").remove_exception((clock as PhysicsBody2D),_body)
 	queue_free()

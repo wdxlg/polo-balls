@@ -121,8 +121,8 @@ func _add_mutual_collision_exception(body:Node) -> void:
 	if body == null or body == self or not is_instance_valid(body) or not body is PhysicsBody2D:
 		return
 	var other_body:PhysicsBody2D = body as PhysicsBody2D
-	add_collision_exception_with(other_body)
-	other_body.add_collision_exception_with(self)
+	preload("res://classes/body_collision_exclusions.gd").add_exception(self,other_body)
+	preload("res://classes/body_collision_exclusions.gd").add_exception(other_body,self)
 
 func _configure_owner_collision_exception() -> void:
 	# 只让主人与自己的狗互不阻挡。狗与狗之间绝不加 exception，必须保留真实身体碰撞。

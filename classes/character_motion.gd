@@ -18,7 +18,12 @@ var _direct_frame:int = -1
 var _was_direct:bool = false
 var _correction_frame:int = -1
 var _correction_used:float = 0.0
+var _drive:Vector2 = Vector2.ZERO
+var _drive_delta:float = 0.0
+var _drive_origin:Vector2
+var _pressure_frame:int = -1
 var _last_position:Vector2
+static var _motion_frame:int = -1
 static var _pair_frame:int = -1
 static var _pairs:Dictionary = {}
 static var _overlaps:Dictionary = {}
@@ -37,12 +42,14 @@ func physical_body() -> bool:
 func held() -> bool:
 	return actor.is_transport_mounted() or actor.has_meta("mc_sticky_hold") or (actor.dizziness and actor.collision_layer==0 and actor.collision_mask==0)
 func reset_motion() -> void:
+	_drive = Vector2.ZERO
 	impulses.clear()
 	motor = Vector2.ZERO
 	current_velocity = Vector2.ZERO
 	_initialized = false
 	_was_direct = false
 func transform_motion(map_vector:Callable) -> void:
+	_drive = Vector2.ZERO
 	motor = map_vector.call(motor)
 	current_velocity = map_vector.call(current_velocity)
 	for entry:Dictionary in impulses.values(): entry.velocity = map_vector.call(entry.velocity)
@@ -78,6 +85,10 @@ func impulse_velocity() -> Vector2:
 	for entry:Dictionary in impulses.values(): result += Vector2(entry.velocity)
 	return result.limit_length(12000.0)
 func compose(desired:Vector2,other:Vector2,delta:float) -> Vector2:
+	if not desired.is_zero_approx() or not other.is_zero_approx() or not impulses.is_empty(): _motion_frame = Engine.get_physics_frames()
+	_drive_origin = actor.global_position
+	_drive = desired*actor.motion_speed_factor()
+	_drive_delta = maxf(delta,0.0)
 	if not live(): return Vector2.ZERO
 	advance(delta)
 	if held():
@@ -99,6 +110,8 @@ func compose(desired:Vector2,other:Vector2,delta:float) -> Vector2:
 	current_velocity = motor+other+impulse_velocity()
 	return current_velocity
 func compose_direct(value:Vector2,delta:float) -> Vector2:
+	if not value.is_zero_approx() or not impulses.is_empty(): _motion_frame = Engine.get_physics_frames()
+	_drive = Vector2.ZERO
 	if not live(): return Vector2.ZERO
 	advance(delta)
 	if held():
@@ -160,7 +173,7 @@ func reflect_motor(normal:Vector2) -> void:
 	add_impulse(0,-change)
 func resolve_pair(other:Node,normal:Vector2) -> void:
 	if not other.is_multiplayer_authority() or other.get_world_2d()!=actor.get_world_2d(): return
-	if EXCLUSIONS.are_excluded(actor,other) or actor.get_collision_exceptions().has(other): return
+	if EXCLUSIONS.are_excluded(actor,other): return
 	var b:Node = other.get_body_motion()
 	if b == null or not b.live() or not b.physical_body() or b.externally_driven() or not physical_body(): return
 	_begin_frame()
@@ -178,6 +191,111 @@ func resolve_pair(other:Node,normal:Vector2) -> void:
 	other.velocity = b.current_velocity
 	reflect_motor(normal)
 	b.reflect_motor(-normal)
+func _press_contacts() -> void:
+	# Apply continuing manual pressure after normal movement, not once per mob impact.
+	# Predict from input rather than resultant velocity: opposed forces may reduce
+	# the latter to zero while the player is still actively trying to make space.
+	var frame:int = Engine.get_physics_frames()
+	if not live() or _pressure_frame==frame or _compose_frame!=frame or not actor.is_player_controlled() or actor.dizziness or inverse_mass()<=0.0 or _drive.is_zero_approx() or _direct_frame==frame or externally_driven(): return
+	_pressure_frame = frame
+	var intended:Vector2 = _drive*_drive_delta
+	var actual:Vector2 = actor.global_position-_drive_origin
+	var axis:Vector2 = intended.normalized()
+	var step:Vector2 = axis*minf(MAX_CORRECTION,intended.length()+maxf(0.0,-actual.dot(axis)))
+	var cs:CollisionShape2D = actor.collision_shape_2d
+	var bounds:Rect2 = cs.global_transform*cs.shape.get_rect()
+	var swept:Rect2 = bounds.merge(Rect2(bounds.position+step,bounds.size)).grow(POSITION_SLOP)
+	var first:Node
+	var push:Vector2 = Vector2.ZERO
+	var best:float = 0.0
+	# A native recovery contact may be behind the player when other actors moved
+	# first. Select the opposed surface from current swept geometry, not that contact.
+	for other:Node in get_tree().get_nodes_in_group("Ball"):
+		if other==actor or not _pressure_movable(other) or other.get_world_2d()!=actor.get_world_2d() or EXCLUSIONS.are_excluded(actor,other): continue
+		var other_cs:CollisionShape2D = other.collision_shape_2d
+		if not swept.intersects(other_cs.global_transform*other_cs.shape.get_rect()): continue
+		var points:PackedVector2Array = cs.shape.collide_with_motion_and_get_contacts(cs.global_transform,step,other_cs.shape,other_cs.global_transform,Vector2.ZERO)
+		for i:int in range(0,points.size()-1,2):
+			var normal:Vector2 = (points[i+1]-points[i]).normalized()
+			var motor_distance:float = maxf(0.0,-intended.dot(normal))
+			if motor_distance<=0.0001: continue
+			var distance:float = minf(MAX_CORRECTION,maxf(0.0,motor_distance+actual.dot(normal)))
+			if distance>best:
+				best=distance;first=other;push=-normal*distance
+	if first!=null and best>0.0001: _press_group(first,push)
+
+func _pressure_movable(unit:Object) -> bool:
+	if not is_instance_valid(unit) or not unit is CharacterBody2D or not unit.has_method("get_body_motion"): return false
+	var motion:Node = unit.get_body_motion()
+	return motion != null and motion.live() and motion.physical_body() and not motion.externally_driven() and motion.inverse_mass()>0.0
+
+func _pressure_budget(motion:Node) -> float:
+	if motion._correction_frame != Engine.get_physics_frames():
+		motion._correction_frame = Engine.get_physics_frames()
+		motion._correction_used = 0.0
+	return maxf(MAX_CORRECTION-motion._correction_used,0.0)
+
+func _press_group(first:Object,offset:Vector2) -> void:
+	if not _pressure_movable(first): return
+	var bodies:Array[CharacterBody2D] = [actor,first]
+	var exclusions:Array[RID] = [actor.get_rid(),first.get_rid()]
+	var candidates:Array[Node] = get_tree().get_nodes_in_group("Ball")
+	var index:int = 0
+	while index<bodies.size():
+		var unit:CharacterBody2D = bodies[index]
+		offset = offset.limit_length(_pressure_budget(unit.get_body_motion()))
+		if offset.length_squared()<0.000001: return
+		var params:=PhysicsTestMotionParameters2D.new()
+		params.from = unit.global_transform
+		params.motion = offset
+		params.margin = 0.001
+		params.exclude_bodies = exclusions
+		var hit:=PhysicsTestMotionResult2D.new()
+		if PhysicsServer2D.body_test_motion(unit.get_rid(),params,hit):
+			var blocker:Object = hit.get_collider()
+			if _pressure_movable(blocker) and not bodies.has(blocker) and bodies.size()<64:
+				bodies.append(blocker)
+				exclusions.append(blocker.get_rid())
+				continue
+			# Terrain, an immovable body or the bounded search horizon limits the
+			# entire contact chain. Exclusions exist only in this predictive query.
+			offset *= clampf(hit.get_collision_safe_fraction(),0.0,1.0)
+		# Kinematic server poses can lag nodes moved earlier in this same tick.
+		# Validate swept shapes at their actual current poses before committing a chain.
+		var cs:CollisionShape2D = unit.collision_shape_2d
+		var bounds:Rect2 = cs.global_transform*cs.shape.get_rect()
+		var swept:Rect2 = bounds.merge(Rect2(bounds.position+offset,bounds.size)).grow(POSITION_SLOP)
+		for other:Node in candidates:
+			if bodies.has(other) or not is_instance_valid(other) or not other.has_method("get_body_motion") or other.get_world_2d()!=unit.get_world_2d(): continue
+			var other_motion:Node = other.get_body_motion()
+			if other_motion==null or not other_motion.physical_body() or EXCLUSIONS.are_excluded(unit,other): continue
+			var other_cs:CollisionShape2D = other.collision_shape_2d
+			if not swept.intersects(other_cs.global_transform*other_cs.shape.get_rect()): continue
+			if not cs.shape.collide_with_motion(cs.global_transform,offset,other_cs.shape,other_cs.global_transform,Vector2.ZERO): continue
+			if not _pressure_movable(other) or bodies.size()>=64: return
+			bodies.append(other)
+			exclusions.append(other.get_rid())
+		index += 1
+	if offset.length_squared()<0.000001: return
+	# Terrain is checked against the actual collision shape as well, without relying
+	# on native recovery displacement or a temporary spawn-safety wall exception.
+	for unit:CharacterBody2D in bodies:
+		var cs:CollisionShape2D = unit.collision_shape_2d
+		var query:=PhysicsShapeQueryParameters2D.new()
+		query.shape=cs.shape;query.transform=cs.global_transform
+		query.motion=offset;query.collision_mask=1;query.exclude=exclusions
+		var space:PhysicsDirectSpaceState2D=unit.get_world_2d().direct_space_state
+		var travel:PackedFloat32Array=space.cast_motion(query)
+		offset *= travel[0] if not travel.is_empty() else 0.0
+		query.motion=Vector2.ZERO;query.transform.origin+=offset
+		if not space.intersect_shape(query,1).is_empty(): return
+	if offset.length_squared()<0.000001: return
+	# Commit together: sequential native moves see neighbors' old physics poses
+	# and can deadlock the very chain that has just been proven free to translate.
+	_motion_frame = Engine.get_physics_frames()
+	for unit:CharacterBody2D in bodies:
+		unit.global_position += offset
+		unit.get_body_motion()._correction_used += offset.length()
 func _safe_shift(unit:Node,offset:Vector2,_partner:Node) -> Vector2:
 	if offset.length_squared()<0.000001: return Vector2.ZERO
 	var owner_motion:Node = unit.get_body_motion()
@@ -201,6 +319,7 @@ func _safe_shift(unit:Node,offset:Vector2,_partner:Node) -> Vector2:
 	query.collision_mask = 1
 	query.transform.origin += move
 	if not space.intersect_shape(query,1).is_empty(): return Vector2.ZERO
+	if not move.is_zero_approx(): _motion_frame = Engine.get_physics_frames()
 	unit.global_position += move
 	owner_motion._correction_used += move.length()
 	return move
@@ -211,17 +330,23 @@ func separate_overlaps() -> void:
 	query.shape = cs.shape
 	query.transform = cs.global_transform
 	query.collision_mask = 2
+	# Motor steps and corrective shifts can leave same-tick physics poses behind nodes.
+	# Resting crowds keep the narrow query instead of repeatedly testing near misses.
+	query.margin = MAX_CORRECTION if _motion_frame==Engine.get_physics_frames() else 0.0
 	query.exclude = [actor.get_rid()]
 	_begin_frame()
 	for hit:Dictionary in actor.get_world_2d().direct_space_state.intersect_shape(query,24):
 		var other:Node = hit.collider as Node
 		if not is_instance_valid(other) or not other.has_method("get_body_motion") or not other.is_multiplayer_authority(): continue
-		if EXCLUSIONS.are_excluded(actor,other) or actor.get_collision_exceptions().has(other): continue
+		if EXCLUSIONS.are_excluded(actor,other): continue
 		var b:Node = other.get_body_motion()
 		if b == null or not b.live() or not b.physical_body() or b.externally_driven(): continue
 		var key:String = _pair_key(actor,other)
-		if _overlaps.has(key): continue
-		_overlaps[key] = true
+		# Both owners may refine a contact after neighbors move; impact impulses
+		# remain once per pair, and all corrections share the same body budget.
+		var refinements:int = 2 if _motion_frame==Engine.get_physics_frames() else 1
+		if int(_overlaps.get(key,0))>=refinements: continue
+		_overlaps[key] = int(_overlaps.get(key,0))+1
 		var points:PackedVector2Array = cs.shape.collide_and_get_contacts(cs.global_transform,other.collision_shape_2d.shape,other.collision_shape_2d.global_transform)
 		var correction:Vector2 = Vector2.ZERO
 		for i:int in range(0,points.size()-1,2):
@@ -237,12 +362,14 @@ func separate_overlaps() -> void:
 		var first:Vector2 = _safe_shift(actor,correction*ia/(ia+ib),other) if ia>0.0 else Vector2.ZERO
 		var second:Vector2 = _safe_shift(other,-(correction-first),actor) if ib>0.0 else Vector2.ZERO
 		if ia>0.0: _safe_shift(actor,correction-first+second,other)
+	_press_contacts()
 func _physics_process(delta:float) -> void:
 	if not live(): return
 	advance(delta)
 	if externally_driven(): return
 	# Explicit skill movement remains owned by that skill; ordinary forces still compose.
 	if _compose_frame != Engine.get_physics_frames() and impulse_velocity().length_squared()>0.01:
+		_motion_frame = Engine.get_physics_frames()
 		var incoming:Vector2 = actor.velocity+impulse_velocity()
 		var contact:KinematicCollision2D = actor.move_and_collide(impulse_velocity()*delta)
 		current_velocity = incoming

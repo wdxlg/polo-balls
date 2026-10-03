@@ -1612,7 +1612,7 @@ func _spawn_basic_projectile(
 
 	_add_combat_node(projectile)
 	if is_instance_valid(projectile) and projectile is PhysicsBody2D:
-		(projectile as PhysicsBody2D).add_collision_exception_with(self)
+		preload("res://classes/body_collision_exclusions.gd").add_exception((projectile as PhysicsBody2D),self)
 	return projectile
 
 

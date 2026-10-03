@@ -192,8 +192,8 @@ func _spawn_member(kind:int,index:int) -> ball:
 	unit.add_to_group("BattleTransient")
 	for member:ball in living_members():
 		if member == unit: continue
-		unit.add_collision_exception_with(member)
-		member.add_collision_exception_with(unit)
+		preload("res://classes/body_collision_exclusions.gd").add_exception(unit,member)
+		preload("res://classes/body_collision_exclusions.gd").add_exception(member,unit)
 		unit._stone_collision_peers.append(weakref(member))
 		member._stone_collision_peers.append(weakref(unit))
 	trio.members.append(weakref(unit))
@@ -226,8 +226,8 @@ func _clear_stone_collision_exceptions() -> void:
 	for ref:WeakRef in _stone_collision_peers:
 		var peer:Variant = ref.get_ref()
 		if is_instance_valid(peer):
-			remove_collision_exception_with(peer)
-			peer.remove_collision_exception_with(self)
+			preload("res://classes/body_collision_exclusions.gd").remove_exception(self,peer)
+			preload("res://classes/body_collision_exclusions.gd").remove_exception(peer,self)
 			peer._forget_stone_collision_peer(self)
 	_stone_collision_peers.clear()
 

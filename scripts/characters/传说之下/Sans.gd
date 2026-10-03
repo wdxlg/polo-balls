@@ -1723,7 +1723,7 @@ func _persistent_gravity_state_for_target(target:ball) -> Dictionary:
 	var collision_meta_key:StringName = _gravity_collision_exception_meta_key()
 	var target_exception_owned:bool = not bool(target.get_meta(collision_meta_key,false))
 	if target_exception_owned:
-		target.add_collision_exception_with(self)
+		preload("res://classes/body_collision_exclusions.gd").add_exception(target,self)
 		target.set_meta(collision_meta_key,true)
 
 	var state:Dictionary = {
@@ -1749,7 +1749,7 @@ func _ensure_gravity_target_ignores_sans(target:ball) -> void:
 	# 只查自己的 metadata，不再遍历 collision exception Node 数组。
 	var collision_meta_key:StringName = _gravity_collision_exception_meta_key()
 	if not bool(target.get_meta(collision_meta_key,false)):
-		target.add_collision_exception_with(self)
+		preload("res://classes/body_collision_exclusions.gd").add_exception(target,self)
 		target.set_meta(collision_meta_key,true)
 
 
@@ -1758,7 +1758,7 @@ func _restore_gravity_target_sans_collision(target:ball,_state:Dictionary) -> vo
 		return
 	var collision_meta_key:StringName = _gravity_collision_exception_meta_key()
 	if bool(target.get_meta(collision_meta_key,false)):
-		target.remove_collision_exception_with(self)
+		preload("res://classes/body_collision_exclusions.gd").remove_exception(target,self)
 		target.remove_meta(collision_meta_key)
 
 

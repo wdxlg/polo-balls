@@ -519,7 +519,7 @@ func Attack() -> void:
 	# 主动刺只改变移动方向，不再规划“前冲多少像素”或强制改成特殊突刺速度。
 	# 为避免 CharacterBody2D 身体先挡住矛头，对本次目标临时放行实体碰撞；真正伤害仍只认矛头 Area2D。
 	_attack_collision_exception = target
-	add_collision_exception_with(target)
+	preload("res://classes/body_collision_exclusions.gd").add_exception(self,target)
 	_attack_last_tip_position = _spear_tip_world_position()
 	_attack_last_target_position = combat_target_position(target)
 
@@ -1089,7 +1089,7 @@ func _cleanup_attack(clear_attacking:bool = true) -> void:
 	if _attack_active:
 		_end_penetration_speed(_attack_pass_hit,_attack_pass_trigger == ActiveThrustPassTrigger.FORWARD_PATH)
 	if _attack_collision_exception != null and is_instance_valid(_attack_collision_exception):
-		remove_collision_exception_with(_attack_collision_exception)
+		preload("res://classes/body_collision_exclusions.gd").remove_exception(self,_attack_collision_exception)
 	_attack_collision_exception = null
 	_attack_active = false
 	_attack_target = null
@@ -1581,7 +1581,7 @@ func _start_pass_through(target:ball) -> void:
 	_pass_afterimage_elapsed = 0.0
 	_pass_target_start_forward = (combat_target_position(target) - global_position).dot(_pass_direction)
 	_pass_last_tip_position = _spear_tip_world_position()
-	add_collision_exception_with(target)
+	preload("res://classes/body_collision_exclusions.gd").add_exception(self,target)
 
 
 func _tick_pass_completion(delta:float) -> void:
@@ -1616,7 +1616,7 @@ func _cleanup_pass(start_recovery:bool) -> void:
 		_end_penetration_speed(start_recovery or _pass_hit,true)
 	_pass_hit_ids.clear()
 	if _pass_target != null and is_instance_valid(_pass_target):
-		remove_collision_exception_with(_pass_target)
+		preload("res://classes/body_collision_exclusions.gd").remove_exception(self,_pass_target)
 	_pass_active = false
 	_pass_target = null
 	_pass_elapsed = 0.0

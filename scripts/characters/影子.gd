@@ -441,8 +441,8 @@ func _create_shadow_proxy() -> void:
 	body.add_to_group("BattleTransient")
 	_shadow_body = body
 
-	_shadow_body.add_collision_exception_with(self)
-	add_collision_exception_with(_shadow_body)
+	preload("res://classes/body_collision_exclusions.gd").add_exception(_shadow_body,self)
+	preload("res://classes/body_collision_exclusions.gd").add_exception(self,_shadow_body)
 	_create_shadow_collision()
 	_create_shadow_damage_area()
 	_create_shadow_sprite()

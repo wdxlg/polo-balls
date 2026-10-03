@@ -8,8 +8,8 @@ func setup(source:PhysicsBody2D,effect:Node) -> void:
 	source_ref = weakref(source)
 	effect_ref = weakref(effect)
 	var victim:PhysicsBody2D = get_parent() as PhysicsBody2D
-	if victim!=null and source not in victim.get_collision_exceptions():
-		victim.add_collision_exception_with(source)
+	if victim!=null and not preload("res://classes/body_collision_exclusions.gd").has_exception(victim,source):
+		preload("res://classes/body_collision_exclusions.gd").add_exception(victim,source)
 		owns_exception = true
 func _physics_process(_delta:float) -> void:
 	var source:Variant = source_ref.get_ref() if source_ref!=null else null
@@ -20,5 +20,5 @@ func _exit_tree() -> void:
 	var victim:PhysicsBody2D = get_parent() as PhysicsBody2D
 	var source:Variant = source_ref.get_ref() if source_ref!=null else null
 	if owns_exception and is_instance_valid(victim) and is_instance_valid(source):
-		victim.remove_collision_exception_with(source)
+		preload("res://classes/body_collision_exclusions.gd").remove_exception(victim,source)
 	owns_exception = false

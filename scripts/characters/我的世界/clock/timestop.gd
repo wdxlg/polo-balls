@@ -113,7 +113,7 @@ func _freeze(node:Node2D) -> void:
 	if node is ball: entry["buffs"] = STATE.copy_buffs(node.Buff_Dic)
 	node.process_mode = Node.PROCESS_MODE_DISABLED
 	var clock:Node = _clock_ref.get_ref() as Node
-	if clock is PhysicsBody2D and node is PhysicsBody2D: (clock as PhysicsBody2D).add_collision_exception_with(node)
+	if clock is PhysicsBody2D and node is PhysicsBody2D: preload("res://classes/body_collision_exclusions.gd").add_exception((clock as PhysicsBody2D),node)
 	_frozen[node.get_instance_id()] = entry
 
 
@@ -132,7 +132,7 @@ func _thaw(id:int) -> void:
 		var scene:Node = get_tree().current_scene
 		if scene != null and scene.has_method("refresh_runtime_buffs"): scene.call("refresh_runtime_buffs",node)
 	var clock:Node = _clock_ref.get_ref() as Node
-	if clock is PhysicsBody2D and node is PhysicsBody2D: (clock as PhysicsBody2D).remove_collision_exception_with(node)
+	if clock is PhysicsBody2D and node is PhysicsBody2D: preload("res://classes/body_collision_exclusions.gd").remove_exception((clock as PhysicsBody2D),node)
 
 
 func _thaw_all() -> void:

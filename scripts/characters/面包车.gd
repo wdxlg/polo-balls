@@ -800,8 +800,8 @@ func _sync_friendly_collision_exceptions() -> void:
 		var ally_id:int = ally.get_instance_id()
 		desired[ally_id] = weakref(ally)
 		if not _friendly_collision_refs.has(ally_id):
-			add_collision_exception_with(ally)
-			(ally as PhysicsBody2D).add_collision_exception_with(self)
+			preload("res://classes/body_collision_exclusions.gd").add_exception(self,ally)
+			preload("res://classes/body_collision_exclusions.gd").add_exception((ally as PhysicsBody2D),self)
 			_friendly_collision_refs[ally_id] = weakref(ally)
 
 	for key:Variant in _friendly_collision_refs.keys():
@@ -812,8 +812,8 @@ func _sync_friendly_collision_exceptions() -> void:
 		var raw_ally:Variant = stored.get_ref() if stored is WeakRef else null
 		if raw_ally is PhysicsBody2D and is_instance_valid(raw_ally):
 			var ally_body:PhysicsBody2D = raw_ally as PhysicsBody2D
-			remove_collision_exception_with(ally_body)
-			ally_body.remove_collision_exception_with(self)
+			preload("res://classes/body_collision_exclusions.gd").remove_exception(self,ally_body)
+			preload("res://classes/body_collision_exclusions.gd").remove_exception(ally_body,self)
 		_friendly_collision_refs.erase(ally_id)
 
 
@@ -827,8 +827,8 @@ func _grant_crowd_ram_pass_through(target:ball) -> void:
 	if already_active:
 		return
 	var body:PhysicsBody2D = target as PhysicsBody2D
-	add_collision_exception_with(body)
-	body.add_collision_exception_with(self)
+	preload("res://classes/body_collision_exclusions.gd").add_exception(self,body)
+	preload("res://classes/body_collision_exclusions.gd").add_exception(body,self)
 	_release_crowd_ram_pass_through(id,weakref(target))
 
 
@@ -850,8 +850,8 @@ func _release_crowd_ram_pass_through(target_id:int,target_ref:WeakRef) -> void:
 	# 同队永久例外优先，不能在临时宽限结束时重新打开队友碰撞。
 	if raw is ball and TOOLS.same_side(self,raw as ball):
 		return
-	remove_collision_exception_with(raw)
-	(raw as PhysicsBody2D).remove_collision_exception_with(self)
+	preload("res://classes/body_collision_exclusions.gd").remove_exception(self,raw)
+	preload("res://classes/body_collision_exclusions.gd").remove_exception((raw as PhysicsBody2D),self)
 
 
 func _resolve_enemy_body_blocking(delta:float,actual_displacement:Vector2,requested_velocity:Vector2) -> void:
@@ -1568,8 +1568,8 @@ func _spawn_van_minion_at(kind_value:int,spawn_point:Vector2) -> bool:
 
 	# 刚下车时短暂忽略面包车本体，避免车辆还在倒车就把自己的小弟顶进墙里。
 	if minion is PhysicsBody2D:
-		add_collision_exception_with(minion)
-		(minion as PhysicsBody2D).add_collision_exception_with(self)
+		preload("res://classes/body_collision_exclusions.gd").add_exception(self,minion)
+		preload("res://classes/body_collision_exclusions.gd").add_exception((minion as PhysicsBody2D),self)
 		_release_van_minion_collision_exception(weakref(minion))
 	_play_random_van_exit_audio()
 	return true
@@ -1683,8 +1683,8 @@ func _release_van_minion_collision_exception(minion_ref:WeakRef) -> void:
 		# 同队碰撞例外由 _sync_friendly_collision_exceptions() 持续维护。
 		if minion_body is ball and TOOLS.same_side(self,minion_body as ball):
 			return
-		remove_collision_exception_with(minion_body)
-		minion_body.remove_collision_exception_with(self)
+		preload("res://classes/body_collision_exclusions.gd").remove_exception(self,minion_body)
+		preload("res://classes/body_collision_exclusions.gd").remove_exception(minion_body,self)
 
 
 func has_training_boss_specialization() -> bool:

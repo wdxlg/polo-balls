@@ -18,6 +18,7 @@ func press_reset(unit:Node2D,point:Vector2) -> void:
 	unit.Repel = Vector2.ZERO
 func run() -> void:
 	game = root.get_node("Game")
+	game._settings_storage_path=OS.get_environment("TEMP").path_join("anvil_crush_settings.json")
 	saved = game.Game_Settings.duplicate(true)
 	saved_stop = game.now_stop_state
 	game.Game_Settings.Training_Mode = false
@@ -209,8 +210,8 @@ func run() -> void:
 	unit._press_contact(victim,360.0,unit.global_position,0.1)
 	check(victim.health==hp,"dead anvil cannot leave damaging pressure behind")
 	unit.health = own_hp
-	# Sustained damage renews the SAME real impulse before the audio interval,
-	# rather than merely retaining the first hit's already-spent knockback.
+	# Each confirmed damage step adds its own ordinary impulse, independently of
+	# the audio interval, without resetting an older impulse or locking control.
 	unit.knockback_per_speed = 0.06
 	press_reset(unit,center+Vector2(-120,-100))
 	unit.fall_speed = 360.0
@@ -222,30 +223,29 @@ func run() -> void:
 	check(pushes.size()==1,"first contact starts exactly one real pressure knockback controller")
 	if not pushes.is_empty():
 		var push:Node = pushes[0]
-		check(push.lock_control_during_knockback and victim.dizziness,"first impact retains its original control lock")
+		check(not push.lock_control_during_knockback and not victim.dizziness,"first impact preserves normal control")
 		var cues_before:int = damage_sounds(unit).size()
 		var ticks_before:int = unit.crush_tick_count
-		push._remaining_distance = 1.0
 		push._elapsed = 0.07
 		hp = victim.health
 		var pressure_speed:float = unit.fall_speed
 		unit.step_mob(1.0/120.0)
 		check(victim.health<hp and unit.crush_tick_count==ticks_before+1,"continued bottom contact actually loses HP on the next physics step")
-		check(knockbacks(victim).size()==1 and knockbacks(victim)[0]==push and push._remaining_distance>1.0 and push._elapsed==0.0,"the very same damage settlement refreshes the existing impulse before 0.20s")
-		check(push.direction==Vector2.DOWN and victim.Repel.y>0.0 and push._remaining_distance<=unit.maximum_knockback_distance,"continued pressure pushes downward with bounded distance, not stacked launches")
+		check(knockbacks(victim).size()==2 and knockbacks(victim)[0]==push and push._elapsed==0.07,"the same damage settlement adds an independent impulse without refreshing the first")
+		push = knockbacks(victim).back()
+		check(push.direction==Vector2.DOWN and victim.get_body_motion().impulse_velocity().y>0.0 and push.distance<=unit.maximum_knockback_distance,"continued pressure adds a downward vector with bounded reference strength")
 		check(damage_sounds(unit).size()==cues_before,"continuous knockback is independent of the throttled audio cue")
 		check(is_equal_approx(push.distance,unit.impact_knockback_distance(pressure_speed)*0.25),"continued pressure uses exactly one quarter of the original knockback rule")
-		check(not push.lock_control_during_knockback and not push._lock_acquired and not victim.dizziness,"sustained pressure releases the old first-impact control lock")
-		push._remaining_distance = 1.0
+		check(not push.lock_control_during_knockback and not push._lock_acquired and not victim.dizziness,"neither first nor sustained impact acquires a control lock")
 		push._elapsed = 0.07
 		victim.Damage_reduction = 1.0
 		hp = victim.health
 		unit.step_mob(1.0/120.0)
-		check(victim.health==hp and push._remaining_distance==1.0 and push._elapsed==0.07,"fully blocked pressure cannot renew the control effect")
+		check(victim.health==hp and knockbacks(victim).size()==2 and push._elapsed==0.07,"fully blocked pressure cannot renew the control effect")
 		victim.Damage_reduction = 0.0
 		unit.slam_phase = unit.SlamPhase.GROUND
 		unit._press_contact(victim,400.0,unit.global_position,0.1)
-		check(push._remaining_distance==1.0 and push._elapsed==0.07,"grounded contact cannot renew the pressure impulse")
+		check(knockbacks(victim).size()==2 and push._elapsed==0.07,"grounded contact cannot renew the pressure impulse")
 		unit.slam_phase = unit.SlamPhase.FALLING
 		unit._crush_clock += 1.0/120.0
 		unit._press_contact(victim,400.0,unit.global_position,1.0/120.0)
@@ -257,6 +257,7 @@ func run() -> void:
 		unit.global_position.x -= 100.0
 		await create_timer(0.45).timeout
 		check(victim.global_position.y>pushed_from.y+5.0,"renewed pressure really displaces the target under normal engine physics")
+		await settle_knockback(victim)
 		check(knockbacks(victim).is_empty() and not victim.dizziness,"after contact ends, the last finite impulse finishes without a stuck control lock")
 		victim.state_machine.set_physics_process(false)
 	# Real victim physics: floor + left/right wall, escape toward the open side.
@@ -287,6 +288,8 @@ func run() -> void:
 		await process_frame
 		check((victim.global_position.x-before.x)*(-blocked_sign)>8.0,"real physics moves pinned enemy sideways out of the anvil")
 		check(victim.global_position.y+vh.y<=floor.global_position.y-2.0+0.2 and bounds.encloses(Rect2(victim.global_position-vh,vh*2.0)),"escape cannot go through floor or outside map")
+		await settle_knockback(victim)
+		await physics_frame;await process_frame
 		check(victim.health==hp and knockbacks(victim).is_empty() and unit not in victim.get_collision_exceptions(),"escape ends without hidden damage, stuck control, or leaked collision exception")
 		victim.state_machine.set_physics_process(false)
 		floor.queue_free(); wall.queue_free()
@@ -306,7 +309,7 @@ func run() -> void:
 	await physics_frame
 	await process_frame
 	# Do not remove someone else's preexisting exception; remove our own on redirect.
-	victim.add_collision_exception_with(unit)
+	preload("res://classes/body_collision_exclusions.gd").add_exception(victim,unit)
 	var effect:Node = victim.apply_knockback(Vector2.RIGHT,5.0,80.0,0.0,0.0,{"source":unit})
 	var lease:Node = unit.ESCAPE_LEASE.new()
 	victim.add_child(lease)
@@ -314,7 +317,7 @@ func run() -> void:
 	check(not lease.owns_exception,"escape lease recognizes a preexisting caller-owned collision exception")
 	lease.free()
 	check(unit in victim.get_collision_exceptions(),"lease cleanup preserves preexisting collision exception")
-	victim.remove_collision_exception_with(unit)
+	preload("res://classes/body_collision_exclusions.gd").remove_exception(victim,unit)
 	lease = unit.ESCAPE_LEASE.new()
 	victim.add_child(lease)
 	lease.setup(unit,effect)

@@ -351,7 +351,7 @@ func _body_radius(actor:ball) -> float:
 func _clear_charge_contacts() -> void:
 	for ref:WeakRef in _charge_exceptions:
 		var body = ref.get_ref()
-		if is_instance_valid(body): remove_collision_exception_with(body)
+		if is_instance_valid(body): preload("res://classes/body_collision_exclusions.gd").remove_exception(self,body)
 	_charge_exceptions.clear()
 	_charge_contacts.clear()
 
@@ -365,7 +365,7 @@ func _refresh_charge_contacts() -> void:
 		for ref:WeakRef in _charge_exceptions.duplicate():
 			var body = ref.get_ref()
 			if not is_instance_valid(body) or body == victim:
-				if is_instance_valid(body): remove_collision_exception_with(body)
+				if is_instance_valid(body): preload("res://classes/body_collision_exclusions.gd").remove_exception(self,body)
 				_charge_exceptions.erase(ref)
 
 func _charge_obstacle(node:Node) -> bool:
@@ -377,7 +377,7 @@ func _charge_touch(victim:ball,point:Vector2) -> bool:
 	var id:int = victim.get_instance_id()
 	if _charge_contacts.has(id): return false
 	_charge_contacts[id] = weakref(victim)
-	add_collision_exception_with(victim)
+	preload("res://classes/body_collision_exclusions.gd").add_exception(self,victim)
 	_charge_exceptions.append(weakref(victim))
 	var impact:Dictionary = impact_profile(_charge_speed)
 	if U.enemy(self,victim) and can_act() and U.damage(self,victim,impact.damage,point):

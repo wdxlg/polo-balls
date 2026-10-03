@@ -38,10 +38,10 @@ func _ready() -> void:
 		direction = Vector2.RIGHT
 	direction = direction.normalized()
 	if is_instance_valid(Master):
-		add_collision_exception_with(Master)
+		preload("res://classes/body_collision_exclusions.gd").add_exception(self,Master)
 		# 主人需要能穿过自己的石头才能进入拾取 Area；碰撞例外双向设置。
 		if Master is PhysicsBody2D:
-			(Master as PhysicsBody2D).add_collision_exception_with(self)
+			preload("res://classes/body_collision_exclusions.gd").add_exception((Master as PhysicsBody2D),self)
 	if damage_area != null:
 		damage_area.body_entered.connect(_on_damage_area_body_entered)
 		# 飞行阶段由 CharacterBody2D 的真实实体碰撞造成高伤；

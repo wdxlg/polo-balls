@@ -30,13 +30,13 @@
 | 武器尖端连续扫掠 | `classes/weapon_tip_sweep.gd::contacts(...)` | 只查几何 |
 | 真实墙接触 | `ball.wall_contact_impact(normal_speed,point)`；`SurfaceAcceleration.reflect_momentum` | 伤害由订阅者结算 |
 | 击退/眩晕 | `apply_knockback(dir,dist,speed,bounce,stun,{"source":caster})` / `apply_stun(duration,caster)` | 普通击退为可叠加衰减冲量，不锁移动/攻击/技能，dist 仅作无阻挡参考；明确眩晕独立锁控。不裸写 `Repel` |
-| 人物身体运动 | `ball.move/stand`；特殊轨迹 `move_with_body_slide/collision` | 公共 `character_motion.gd` 结算双方反弹与真实形状限量纠偏，所有规模保留实体碰撞；普通角色等质量，明确不可推动者才例外。停止自驱不等于免疫外力 |
+| 人物身体运动 | `ball.move/stand`；特殊轨迹 `move_with_body_slide/collision` | 公共 `character_motion.gd` 结算双方反弹与真实形状限量纠偏，所有规模保留实体碰撞；普通角色等质量，明确不可推动者才例外。手控持续移动允许限量接触链推挤，但不穿人或穿墙；停止自驱不等于免疫外力 |
 | 强控判断 | `ball.is_hard_controlled()` | 不把 `dizziness` 一律当眩晕 |
 | 可挣脱牵引 | `knockback_effect.gd::set_pull/release_pull` | 每步刷新、不锁输入 |
 | 不改属性的减速 | `ball.set_motion_speed_factor(key,source,factor,left)` | 不改 `Speed`，多条取乘积 |
 | 真实身体击飞 | `physical_airborne_effect.gd::launch(...)` | |
 | 地表方向加速 | `surface_acceleration.gd::touch(target,surface)` | |
-| 临时免碰撞 | `classes/body_collision_exclusions.gd::acquire/release` | 不改层/掩码 |
+| 身体免碰撞 | `classes/body_collision_exclusions.gd::acquire/release`（租约）；`add_exception/remove_exception`（单向） | 统一登记并随实体退出清理，不裸调原生例外 API、不枚举例外 Node；不改层/掩码 |
 | 穿格挡/穿减伤 | 分类伤害上下文 `bypass_guard` / `bypass_damage_reduction` | 不临时改目标属性 |
 | 砸地碎屑 | `mc_combat_abilities.gd::ground_impact` | |
 | 爆炸 | `mc_combat_abilities.gd::explosion` | 只管表现 |

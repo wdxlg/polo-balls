@@ -22,6 +22,7 @@ func fighter(name_key:String,point:Vector2,sulfur:bool = false) -> Node2D:
 	world.add_child(unit)
 	unit.state_machine.set_physics_process(false)
 	unit.set_physics_process(false)
+	unit.get_body_motion().set_physics_process(false)
 	unit.Max_health = 2000
 	unit.default_properties.Max_health = 2000
 	unit.health = 2000
@@ -40,19 +41,15 @@ func sweep(unit:Node2D,start:Vector2,motion:Vector2) -> Object:
 	unit.global_position = original
 	unit.force_update_transform()
 	return collision.get_collider() if collision != null else null
-func crowd(units:Array) -> void:
-	world._large_battle_mode_active = true
-	world._large_battle_separation_elapsed = 999.0
-	world._battle_spatial_grid.clear()
-	world._battle_spatial_active_cells.clear()
-	world._battle_spatial_active_cells.append(Vector2i.ZERO)
-	var ids:Array = []
-	world._battle_spatial_positions.resize(units.size())
-	for i:int in range(units.size()):
-		ids.append(i)
-		world._battle_spatial_positions[i] = units[i].global_position
-	world._battle_spatial_grid[Vector2i.ZERO] = ids
-	world._update_large_battle_crowd_separation(units,0.1)
+func crowd(units:Array) -> Array[Vector2]:
+	var before:Array[Vector2] = []
+	for unit:Node2D in units:
+		before.append(unit.global_position)
+		unit.set_large_battle_performance_mode(true)
+	for unit:Node2D in units: unit.get_body_motion().separate_overlaps()
+	var displacement:Array[Vector2] = []
+	for i:int in range(units.size()): displacement.append(units[i].global_position-before[i])
+	return displacement
 func color_rect(parent:Node,rect:Rect2,color:Color,z:int) -> Polygon2D:
 	var node := Polygon2D.new()
 	node.polygon = PackedVector2Array([rect.position,Vector2(rect.end.x,rect.position.y),rect.end,Vector2(rect.position.x,rect.end.y)])
@@ -64,6 +61,7 @@ func color_rect(parent:Node,rect:Rect2,color:Color,z:int) -> Polygon2D:
 func run() -> void:
 	create_timer(90.0,true,false,true).timeout.connect(func(): print("SULFUR_CONTACT_TIMEOUT"); quit(2))
 	var game:Node = root.get_node("Game")
+	game._settings_storage_path=OS.get_environment("TEMP").path_join("sulfur_contact_settings.json")
 	var saved:Dictionary = game.Game_Settings.duplicate(true)
 	var saved_stop:bool = game.now_stop_state
 	game.now_stop_state = false
@@ -76,6 +74,7 @@ func run() -> void:
 	world = load("res://scenes/world.tscn").instantiate()
 	world.tree_entered.connect(func(): current_scene = world,CONNECT_ONE_SHOT)
 	root.add_child(world)
+	check(await load("res://tests/mc_animation_test_cleanup.gd").wait_for_preloads(self),"honey preloads complete")
 	if is_instance_valid(world._mc_prewarmer): world._mc_prewarmer.free()
 	world.set_process(false)
 	world.set_physics_process(false)
@@ -112,11 +111,12 @@ func run() -> void:
 	var hp:float = victim.health
 	victim.receive_positional_damage(17.0,center,true,cube)
 	check(is_equal_approx(hp-victim.health,17.0) and not victim.get_node("hurtbox/CollisionShape2D").disabled,"adhesion preserves hurt detection and damage, not invulnerability")
-	crowd([cube,victim])
-	check(world._battle_spatial_pushes[0].is_zero_approx() and world._battle_spatial_pushes[1].is_zero_approx(),"large-battle soft separation agrees with honey pair physics")
+	var correction:Array[Vector2]=crowd([cube,victim])
+	check(correction[0].is_zero_approx() and correction[1].is_zero_approx(),"large-battle body correction honors the adhering pair")
 	third.global_position = center+Vector2(0,5)
-	crowd([cube,victim,third])
-	check(not world._battle_spatial_pushes[2].is_zero_approx(),"large-battle separation remains enabled against third parties")
+	await physics_frame
+	correction=crowd([cube,victim,third])
+	check(not correction[2].is_zero_approx(),"large-battle body correction remains enabled against third parties")
 	third.global_position = center+Vector2(0,75)
 	victim.global_position = center+Vector2(40,0)
 	cube._pull_touching_enemies(0.1)
@@ -125,7 +125,7 @@ func run() -> void:
 	cube._pull_touching_enemies(0.1)
 	cube.set_block(cube.Block.EMPTY)
 	check(not victim.get_collision_exceptions().has(cube),"changing form releases honey collision exclusions immediately")
-	cube.add_collision_exception_with(victim)
+	preload("res://classes/body_collision_exclusions.gd").add_exception(cube,victim)
 	var holder_a := Node.new()
 	var holder_b := Node.new()
 	world.add_child(holder_a)
@@ -135,8 +135,8 @@ func run() -> void:
 	PAIRS.release(cube,victim,holder_a)
 	check(PAIRS.are_excluded(cube,victim),"one lease owner cannot release another owner's exclusion")
 	holder_b.free()
-	check(not PAIRS.are_excluded(cube,victim) and cube.get_collision_exceptions().has(victim) and not victim.get_collision_exceptions().has(cube),"holder teardown clears owned exceptions but preserves preexisting external exceptions")
-	cube.remove_collision_exception_with(victim)
+	check(not cube.get_meta(PAIRS.META,{}).has(victim.get_instance_id()) and cube.get_collision_exceptions().has(victim) and not victim.get_collision_exceptions().has(cube),"holder teardown clears owned exceptions but preserves preexisting external exceptions")
+	preload("res://classes/body_collision_exclusions.gd").remove_exception(cube,victim)
 	holder_a.free()
 	var other_cube:Node2D = fighter("SecondHoneySource",center+Vector2(0,2),true)
 	cube.set_block(cube.Block.HONEY)

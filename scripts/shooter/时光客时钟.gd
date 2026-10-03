@@ -270,7 +270,7 @@ func _handle_physical_collision(collision:KinematicCollision2D,motion:Vector2) -
 	if collider is ball:
 		var target:ball = collider as ball
 		if _should_ignore_character(target):
-			add_collision_exception_with(target)
+			preload("res://classes/body_collision_exclusions.gd").add_exception(self,target)
 			if motion.length_squared() > 0.000001:
 				global_position += motion.normalized() * 2.0
 			return

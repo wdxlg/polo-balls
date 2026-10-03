@@ -219,13 +219,13 @@ func _spawn_llama(index:int) -> ball:
 func _register_llama(index:int,llama:ball) -> void:
 	_llama_refs[index] = weakref(llama)
 	llama.set(&"leash_connected",true)
-	add_collision_exception_with(llama)
-	llama.add_collision_exception_with(self)
+	preload("res://classes/body_collision_exclusions.gd").add_exception(self,llama)
+	preload("res://classes/body_collision_exclusions.gd").add_exception(llama,self)
 	for other_index:int in range(_llama_refs.size()):
 		var other:Node = _llama(other_index)
 		if other != null and other != llama:
-			llama.add_collision_exception_with(other)
-			(other as PhysicsBody2D).add_collision_exception_with(llama)
+			preload("res://classes/body_collision_exclusions.gd").add_exception(llama,other)
+			preload("res://classes/body_collision_exclusions.gd").add_exception((other as PhysicsBody2D),llama)
 
 func _llama(index:int) -> Node:
 	if index < 0 or index >= _llama_refs.size(): return null

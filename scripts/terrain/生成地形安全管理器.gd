@@ -307,8 +307,8 @@ func _mark_pair_desired(terrain_id:int,actor_id:int,now_msec:int) -> void:
 		return
 	var terrain:PhysicsBody2D = terrain_obj as PhysicsBody2D
 	var actor:PhysicsBody2D = actor_obj as PhysicsBody2D
-	terrain.add_collision_exception_with(actor)
-	actor.add_collision_exception_with(terrain)
+	preload("res://classes/body_collision_exclusions.gd").add_exception(terrain,actor)
+	preload("res://classes/body_collision_exclusions.gd").add_exception(actor,terrain)
 	_active_pairs[key] = {
 		"terrain_id": terrain_id,
 		"actor_id": actor_id,
@@ -340,8 +340,8 @@ func _remove_pair(key:String) -> void:
 		if terrain_obj is PhysicsBody2D and actor_obj is PhysicsBody2D:
 			var terrain:PhysicsBody2D = terrain_obj as PhysicsBody2D
 			var actor:PhysicsBody2D = actor_obj as PhysicsBody2D
-			terrain.remove_collision_exception_with(actor)
-			actor.remove_collision_exception_with(terrain)
+			preload("res://classes/body_collision_exclusions.gd").remove_exception(terrain,actor)
+			preload("res://classes/body_collision_exclusions.gd").remove_exception(actor,terrain)
 	_active_pairs.erase(key)
 	_pair_last_desired_msec.erase(key)
 

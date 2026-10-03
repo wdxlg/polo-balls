@@ -74,7 +74,7 @@ func _ready() -> void:
 
 	# 物理体也忽略发射者，避免刚生成就在小丑身体内部碰撞并立刻销毁/反弹。
 	if is_instance_valid(Master) and Master is PhysicsBody2D:
-		add_collision_exception_with(Master as PhysicsBody2D)
+		preload("res://classes/body_collision_exclusions.gd").add_exception(self,Master as PhysicsBody2D)
 
 	_apply_projectile_skin()
 

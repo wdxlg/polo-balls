@@ -26,6 +26,7 @@ func reset_speed(value:float = 420.0) -> void:
 	spear.dizziness = false
 func run() -> void:
 	var game:Node = root.get_node("Game")
+	game._settings_storage_path = OS.get_environment("TEMP").path_join("wood_spear_settings.json")
 	saved = game.Game_Settings.duplicate(true)
 	saved_stop = game.now_stop_state
 	game.Game_Settings.Training_Mode = false
@@ -247,6 +248,11 @@ func run() -> void:
 		spear.when_collide(420.0,collision)
 		check(approx(spear.Speed,403.5),"actual obstacle callback applies 5 percent accumulated loss")
 	wall.queue_free()
+	if is_instance_valid(world._mc_prewarmer):
+		for path:Variant in world._mc_prewarmer._paths.values():
+			var status:int=ResourceLoader.load_threaded_get_status(str(path))
+			if status in [ResourceLoader.THREAD_LOAD_IN_PROGRESS,ResourceLoader.THREAD_LOAD_LOADED]:
+				ResourceLoader.load_threaded_get(str(path))
 	# 碰撞会生成deferred特效；释放测试场景并排空两帧，避免进程退出时残留。
 	world.queue_free()
 	await process_frame

@@ -705,22 +705,21 @@ func _restore_normal_visual_after(delay:float,token:int) -> void:
 
 func _begin_dash_ball_collision_exceptions() -> void:
 	_clear_dash_ball_collision_exceptions()
-	var existing:Array = get_collision_exceptions()
 	for raw:Node in get_tree().get_nodes_in_group("Ball"):
 		if raw == self or not (raw is PhysicsBody2D) or not is_instance_valid(raw):
 			continue
 		var body:PhysicsBody2D = raw as PhysicsBody2D
 		# 不移除其它系统原本就建立的碰撞例外，只记录本次突刺新加的项。
-		if body in existing:
+		if preload("res://classes/body_collision_exclusions.gd").has_exception(self,body):
 			continue
-		add_collision_exception_with(body)
+		preload("res://classes/body_collision_exclusions.gd").add_exception(self,body)
 		_dash_added_collision_exceptions.append(body)
 
 
 func _clear_dash_ball_collision_exceptions() -> void:
 	for body:PhysicsBody2D in _dash_added_collision_exceptions:
 		if body != null and is_instance_valid(body):
-			remove_collision_exception_with(body)
+			preload("res://classes/body_collision_exclusions.gd").remove_exception(self,body)
 	_dash_added_collision_exceptions.clear()
 
 

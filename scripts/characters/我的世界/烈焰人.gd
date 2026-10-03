@@ -155,8 +155,8 @@ func _setup_rod(rod:AnimatableBody2D,_group_name:String) -> void:
 	# 只把 Z 层级改成绝对值；仍然继承烈焰人的父级 Transform，
 	# 所以棒子继续跟随角色移动和本地轨道旋转。
 	rod.z_as_relative = false
-	add_collision_exception_with(rod)
-	rod.add_collision_exception_with(self)
+	preload("res://classes/body_collision_exclusions.gd").add_exception(self,rod)
+	preload("res://classes/body_collision_exclusions.gd").add_exception(rod,self)
 
 func _setup_rod_damage_area(area:Area2D) -> void:
 	if area == null:

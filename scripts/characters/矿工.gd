@@ -347,8 +347,8 @@ func _spawn_random_stones(impact_center:Vector2) -> void:
 		get_tree().current_scene.add_child(stone,true)
 
 		# 只让矿工本人忽略自己的石头；其他角色会把落地石头当成真实地形。
-		add_collision_exception_with(stone)
-		stone.add_collision_exception_with(self)
+		preload("res://classes/body_collision_exclusions.gd").add_exception(self,stone)
+		preload("res://classes/body_collision_exclusions.gd").add_exception(stone,self)
 
 		if stone.has_method("launch"):
 			stone.call("launch",start_position,landing_position,stone_throw_duration,stone_arc_height)
