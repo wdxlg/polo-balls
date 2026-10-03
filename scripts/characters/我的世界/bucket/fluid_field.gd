@@ -21,12 +21,12 @@ const SOURCE_STRENGTH:Array[int] = [8,4]
 const STEP_SECONDS:Array[float] = [0.25,1.5]
 const DRAIN_STEP_SECONDS:float = 1.5
 const LAVA_SECONDS:float = 10.0
-const WATER_PUSH:float = 30.0
+const WATER_PUSH:float = 15.0
 const LAVA_SLOW:float = 0.5
 const LAVA_TICK:float = 0.5
-const LAVA_DAMAGE_MULTIPLIER:float = 1.0
+const LAVA_DAMAGE_MULTIPLIER:float = 2.0
 const LAVA_BURN_SECONDS:float = 4.0
-const LAVA_BURN_MULTIPLIER:float = 0.3
+const LAVA_BURN_MULTIPLIER:float = 0.6
 const AIR_SECONDS:float = 10.0
 const AIR_RECOVER_SECONDS:float = 3.0
 const DROWN_TICK:float = 1.0
@@ -66,7 +66,6 @@ var _remote_air:Dictionary = {}
 var _lava_wait:Dictionary = {}
 var _renderers:Array = [null,null]
 var _mesh_nodes:Array = [null,null]
-var _shadow_nodes:Array = [null,null]
 var _materials:Array = [[null,null],[null,null]]
 var _mesh_dirty:Array[bool] = [true,true]
 var _anim_time:float = 0.0
@@ -134,7 +133,6 @@ func _exit_tree() -> void:
 		if is_instance_valid(_renderers[f]): (_renderers[f] as Node).queue_free()
 		_renderers[f] = null
 		_mesh_nodes[f] = null
-		_shadow_nodes[f] = null
 	for node:Node in get_tree().get_nodes_in_group("Ball"):
 		if node is ball: KNOCK.release_pull(node,self)
 
@@ -624,9 +622,9 @@ func _drown(unit:ball) -> void:
 
 
 func _lava_contact(unit:ball,cell:Vector2i,delta:float) -> void:
+	if not unit.is_in_group("MCLavaBucket"): unit.set_motion_speed_factor(SLOW_KEY,self,LAVA_SLOW,0.25)
 	var owner:ball = lava_owner(cell)
 	if owner == null or owner.health <= 0 or owner.is_damage_output_disabled() or not U.enemy(owner,unit): return
-	unit.set_motion_speed_factor(SLOW_KEY,self,LAVA_SLOW,0.25)
 	var id:int = unit.get_instance_id()
 	var wait:float = float(_lava_wait.get(id,0.0)) - delta
 	if wait > 0.0:
@@ -815,6 +813,7 @@ func _ensure_renderer(liquid:int) -> Node2D:
 	renderer.configure_block_overlay(minf(grid_size.x,grid_size.y),RENDERER.GROUND)
 	renderer.z_as_relative = false
 	renderer.z_index = FLUID_Z
+	renderer.shadow_picture.visible = false
 	if liquid == WATER: renderer.picture.modulate.a = WATER_ALPHA
 	renderer.set_active(false)
 	_renderers[liquid] = renderer
@@ -829,14 +828,9 @@ func mesh_instance(liquid:int) -> MeshInstance3D:
 	return _mesh_nodes[liquid] if is_instance_valid(_mesh_nodes[liquid]) else null
 
 
-func shadow_instance(liquid:int) -> MeshInstance3D:
-	return _shadow_nodes[liquid] if is_instance_valid(_shadow_nodes[liquid]) else null
-
-
 func _rebuild_mesh(liquid:int) -> void:
 	if levels[liquid].is_empty():
 		if is_instance_valid(_mesh_nodes[liquid]): (_mesh_nodes[liquid] as MeshInstance3D).mesh = null
-		if is_instance_valid(_shadow_nodes[liquid]): (_shadow_nodes[liquid] as MeshInstance3D).mesh = null
 		if is_instance_valid(_renderers[liquid]): _renderers[liquid].set_active(false)
 		return
 	var shared:Node2D = _ensure_renderer(liquid)
@@ -847,23 +841,14 @@ func _rebuild_mesh(liquid:int) -> void:
 		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		shared.viewport.add_child(node)
 		_mesh_nodes[liquid] = node
-	if not is_instance_valid(_shadow_nodes[liquid]) and is_instance_valid(shared.get("shadow_viewport")):
-		var caster := MeshInstance3D.new()
-		caster.name = "NativeFluidShadow"
-		caster.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
-		shared.shadow_viewport.add_child(caster)
-		_shadow_nodes[liquid] = caster
 	var built:Dictionary = MESH.build(self,liquid)
 	var node:MeshInstance3D = _mesh_nodes[liquid]
-	var shadow:MeshInstance3D = _shadow_nodes[liquid]
 	node.mesh = built.mesh
-	if shadow != null: shadow.mesh = built.mesh
 	var surfaces:Array[int] = built.surfaces
 	for index:int in range(surfaces.size()):
 		var kind:int = surfaces[index]
 		if _materials[liquid][kind] == null: _materials[liquid][kind] = MESH.new_material(liquid,kind)
 		node.set_surface_override_material(index,_materials[liquid][kind])
-		if shadow != null: shadow.set_surface_override_material(index,_materials[liquid][kind])
 	shared.set_active(true)
 	if not shared.visible: shared.visible = true
 

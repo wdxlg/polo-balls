@@ -3,6 +3,7 @@ const BLOCK = preload("res://scripts/effects/我的世界/mc_block_3d.gd")
 const FRAGMENTS = preload("res://scripts/effects/我的世界/block_fragments.gd")
 const PAIRS = preload("res://classes/body_collision_exclusions.gd")
 const AUDIO = preload("res://scripts/characters/我的世界/bucket/bucket_audio.gd")
+const HIT_FEEDBACK = preload("res://scripts/effects/我的世界/mc_hit_feedback.gd")
 const DIR:String = "res://Images/characters/我的世界/bucket/"
 const CRACKS:Array[Texture2D] = [
 	preload(DIR + "destroy_stage_0.png"),preload(DIR + "destroy_stage_1.png"),preload(DIR + "destroy_stage_2.png"),
@@ -106,7 +107,9 @@ func _hold_trapped(delta:float) -> void:
 		entry.wait = float(entry.wait) - delta
 		if float(entry.wait) > 0.0: continue
 		entry.wait = float(entry.wait) + SUFFOCATION_TICK
+		var before:float = float(unit.health)
 		unit.receive_spatial_damage(float(unit.Max_health) * SUFFOCATION_RATIO,{"element":"suffocation","point":entry.pos,"source":self},true,true)
+		HIT_FEEDBACK.finish(self,unit,before,entry.pos)
 
 
 func _update_cracks() -> void:

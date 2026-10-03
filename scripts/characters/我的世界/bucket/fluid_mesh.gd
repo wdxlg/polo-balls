@@ -212,15 +212,10 @@ static func prewarm_pipelines(host:Node) -> void:
 		var solid := MeshInstance3D.new()
 		solid.mesh = mesh
 		solid.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		var caster := MeshInstance3D.new()
-		caster.mesh = mesh
-		caster.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
 		for surface:int in [STILL,FLOW]:
 			var material:ShaderMaterial = new_material(liquid,surface)
 			_warm_materials.append(material)
 			solid.set_surface_override_material(surface,material)
-			caster.set_surface_override_material(surface,material)
 		warm.viewport.add_child(solid)
-		warm.shadow_viewport.add_child(caster)
 	for _i:int in range(3): await RenderingServer.frame_post_draw
 	if is_instance_valid(warm): warm.queue_free()

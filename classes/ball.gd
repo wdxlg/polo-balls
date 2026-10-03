@@ -15,7 +15,6 @@ const KNOCKBACK_EFFECT_SCRIPT = preload("res://scripts/effects/knockback_effect.
 const HIT_BURST_EFFECT_SCRIPT = preload("res://scripts/effects/hit_burst_effect.gd")
 const HURT_SHAKE_SCRIPT = preload("res://scripts/effects/character_hurt_shake.gd")
 const HIT_COMBO = preload("res://scripts/effects/hit_combo.gd")
-const HIT_FEEL_AUDIO = preload("res://scripts/effects/hit_feel_audio.gd")
 const WALL_HIT_BURST_SCRIPT = preload("res://scripts/effects/wall_hit_burst.gd")
 const STUN_VISUAL_SCENE = preload("res://scenes/effects/stun_visual.tscn")
 const AFTER_IMAGE_MATERIAL = preload("res://shaders/after_image_material.tres")
@@ -6413,7 +6412,7 @@ func _local_hitstop_participants(attacker:Node,lethal:bool) -> Array:
 	return result
 
 
-# 方向性挤压、方向镜头推移、分层命中音和重击压低其他声音；只是表现，不改伤害/物理。
+# 方向性挤压、方向镜头推移；只是表现，不改伤害/物理。
 func _play_hit_feel_layers(feel_damage:float,feel_direction:Vector2,killing:bool) -> void:
 	if not is_inside_tree() or not is_finite(feel_damage) or feel_damage <= 0.0:
 		return
@@ -6424,7 +6423,6 @@ func _play_hit_feel_layers(feel_damage:float,feel_direction:Vector2,killing:bool
 	var world:Node = get_tree().current_scene
 	if feel_direction.length_squared() > 0.000001 and is_instance_valid(world) and world.has_method("add_directional_camera_kick"):
 		world.call("add_directional_camera_kick",feel_direction,feel_damage,global_position)
-	HIT_FEEL_AUDIO.request(self,feel_damage,global_position,killing)
 
 
 @rpc("authority","call_remote","reliable")

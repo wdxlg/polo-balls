@@ -10,7 +10,6 @@ var target:Node2D
 var checks:int = 0
 var failures:int = 0
 var center:Vector2
-var LAYERS:Script
 var MCF:Script
 var SHAKE:Script
 
@@ -70,7 +69,6 @@ func run() -> void:
 	create_timer(120.0,true,false,true).timeout.connect(func(): print("HIT_FEEL_EXTRAS_TIMEOUT"); quit(2))
 	game = root.get_node("Game")
 	audios = root.get_node("Audios")
-	LAYERS = load("res://scripts/effects/hit_feel_audio.gd")
 	MCF = load("res://scripts/effects/我的世界/mc_hit_feedback.gd")
 	SHAKE = load("res://scripts/effects/character_hurt_shake.gd")
 	var saved:Dictionary = game.Game_Settings.duplicate(true)
@@ -245,43 +243,17 @@ func run() -> void:
 			stray.append("%s:%s" % [node.get_path(),bus])
 	check(stray.is_empty(),"no in-world gameplay player bypasses GameplayRecord: %s" % [stray])
 
-	# ---------- 6/7. 分层命中音 + 同帧合并 ----------
-	var click:AudioStreamWAV = LAYERS.click_stream()
-	var thump:AudioStreamWAV = LAYERS.thump_stream()
-	check(click != null and absf(click.get_length() - LAYERS.CLICK_SECONDS) < 0.005 and thump != null and absf(thump.get_length() - LAYERS.THUMP_SECONDS) < 0.005,"procedural click and thump streams are generated")
-	check(LAYERS.click_stream() == click and LAYERS.thump_stream() == thump,"layer streams are cached, not rebuilt per hit")
-	var peak_click:int = 0
-	for i:int in range(0,click.data.size(),2): peak_click = maxi(peak_click,absi(click.data.decode_s16(i)))
-	var peak_thump:int = 0
-	for i:int in range(0,thump.data.size(),2): peak_thump = maxi(peak_thump,absi(thump.data.decode_s16(i)))
-	check(peak_click > 3000 and peak_thump > 15000 and peak_thump < 32767,"layers are audible but do not clip (%d / %d)" % [peak_click,peak_thump])
-	LAYERS.last_layers = {}
-	LAYERS.request(target,10.0,target.global_position,false)
-	await process_frame
-	check(int(LAYERS.last_layers.get("count",0)) == 1 and not LAYERS.last_layers.has("thump_db") and not LAYERS.last_layers.has("duck_db") and LAYERS.last_layers.get("bus") == &"GameplayRecord","light hit: transient click only, no thump, no ducking")
-	await create_timer(0.1,true,false,true).timeout
-	LAYERS.last_layers = {}
-	LAYERS.request(target,20.0,target.global_position,false)
-	LAYERS.request(attacker,80.0,attacker.global_position,false)
-	LAYERS.request(target,40.0,target.global_position,false)
-	await process_frame
-	var merged:Dictionary = LAYERS.last_layers
-	check(int(merged.get("count",0)) == 3 and is_equal_approx(float(merged.get("damage",0.0)),80.0),"three same-frame hits merge into one layered sound keyed by the strongest")
-	check(is_equal_approx(float(merged.get("click_db",0.0)),LAYERS.click_volume_db(80.0,3)) and LAYERS.click_volume_db(80.0,3) - LAYERS.click_volume_db(80.0,1) == 3.0,"merged sound is a little louder per extra target (+1.5 dB each)")
-	check(LAYERS.merge_bonus_db(20) == LAYERS.MERGE_MAX_DB,"merge loudness is capped")
-	check(merged.has("thump_db") and merged.has("duck_db") and merged.get("bus") == &"ImpactAccent","heavy hit adds the low thump, ducks others and plays on the accent bus")
-	check(not LAYERS.wants_thump(29.0,false) and LAYERS.wants_thump(30.0,false) and LAYERS.wants_thump(1.0,true),"thump from 30 damage or any kill")
-
 	# ---------- 5. 重击压低其他声音 ----------
+	audios.duck_for_impact(4.0,0.06,0.32)
 	var duck_fx:AudioEffectAmplify = AudioServer.get_bus_effect(gameplay,0) as AudioEffectAmplify
 	var accent_fx:AudioEffectAmplify = AudioServer.get_bus_effect(accent,0) as AudioEffectAmplify
 	check(audios.get_impact_duck_db() > 2.9 and is_equal_approx(duck_fx.volume_db,-audios.get_impact_duck_db()) and is_equal_approx(accent_fx.volume_db,audios.get_impact_duck_db()),"ducking lowers GameplayRecord and compensates ImpactAccent by the same amount")
-	check(not LAYERS.wants_duck(50.0,false) and LAYERS.wants_duck(51.0,false) and LAYERS.wants_duck(5.0,true),"ducking only for >50 damage or kills")
-	check(LAYERS.duck_depth_db(51.0,false) >= 3.0 and LAYERS.duck_depth_db(1000.0,false) <= 6.0 and LAYERS.duck_depth_db(5.0,true) >= 5.0,"duck depth stays within 3-6 dB")
 	var deep:float = audios.get_impact_duck_db()
 	audios.duck_for_impact(1.0)
 	check(is_equal_approx(audios.get_impact_duck_db(),deep),"a shallower duck does not replace a deeper one")
-	await create_timer(0.6,true,false,true).timeout
+	var duck_wait_start:int = Time.get_ticks_msec()
+	while Time.get_ticks_msec() - duck_wait_start < 600: await process_frame
+	await process_frame
 	check(audios.get_impact_duck_db() == 0.0 and is_zero_approx(duck_fx.volume_db) and is_zero_approx(accent_fx.volume_db),"ducking recovers fully after the release")
 
 	# ---------- 7. MC 统一受击音同帧合并 ----------
